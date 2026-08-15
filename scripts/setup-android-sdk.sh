@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs the Android command-line tools and core SDK packages needed to
-# build this project (platform-tools, platform 34, build-tools 34.0.0).
+# build this project (platform-tools, platform 37.1, build-tools 37.0.0).
 set -euo pipefail
 
 ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-/opt/android-sdk}"
@@ -26,8 +26,8 @@ export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/
 yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null
 sdkmanager --sdk_root="$ANDROID_SDK_ROOT" \
   "platform-tools" \
-  "platforms;android-34" \
-  "build-tools;34.0.0"
+  "platforms;android-37.1" \
+  "build-tools;37.0.0"
 
 echo "Android SDK installed at $ANDROID_SDK_ROOT"
 echo "Add this to your shell profile:"
