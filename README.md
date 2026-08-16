@@ -27,6 +27,22 @@ more certainty than the data supports. See `AvailabilityForecast` and
    iNaturalist — it's approximated via the Lecanoromycetes class, which
    covers most lichen species, and labeled as an approximation in the UI.
    See `domain/model/TaxonFilter`.
+
+   **Fungi excludes most lichens.** iNaturalist files lichens under its Fungi
+   iconic taxon (it calls the group "Fungi Including Lichens"), so an
+   unfiltered Fungi search returns them ranked among the mushrooms — in one
+   real 15 km search, three of the top five species were lichens. Fungi
+   therefore subtracts Lecanoromycetes via `without_taxon_id`, and the
+   Lichens chip is how you ask for them. Because that class is an
+   approximation of "lichen", this removes *most* lichens rather than all of
+   them: taxa from other lichenized classes (Candelariomycetes,
+   Verrucariales and others) can still appear in Fungi results. Plants
+   excludes nothing, and a species you searched for by name is returned
+   as-is — an exclusion never overrides an explicit species choice.
+   iNaturalist ignores unrecognised query parameters instead of rejecting
+   them, so a dropped `without_taxon_id` would fail silently;
+   `scripts/verify-lichen-exclusion.sh` re-checks against the live API that
+   it still does something.
 3. The app queries iNaturalist's `GET /v1/observations/species_counts` for
    verifiable observations matching that filter within the radius, filtered
    to that month across all years.

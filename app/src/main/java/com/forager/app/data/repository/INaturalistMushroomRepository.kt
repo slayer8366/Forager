@@ -18,27 +18,31 @@ class INaturalistMushroomRepository(
 ) : MushroomRepository {
 
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
+        val query = filter.toQuery()
         return runCatching {
             api.getSpeciesCounts(
                 lat = region.lat,
                 lng = region.lng,
                 radiusKm = region.radiusKm,
                 month = month,
-                iconicTaxa = (filter as? TaxonFilter.IconicCategory)?.iconicTaxonName,
-                taxonId = (filter as? TaxonFilter.SpecificTaxon)?.taxonId,
+                iconicTaxa = query.iconicTaxa,
+                taxonId = query.taxonId,
+                withoutTaxonId = query.withoutTaxonId,
             )
         }.map { response -> response.results.map(::toDomain) }
     }
 
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> {
+        val query = filter.toQuery()
         return runCatching {
             api.getObservations(
                 lat = region.lat,
                 lng = region.lng,
                 radiusKm = region.radiusKm,
                 month = month,
-                iconicTaxa = (filter as? TaxonFilter.IconicCategory)?.iconicTaxonName,
-                taxonId = (filter as? TaxonFilter.SpecificTaxon)?.taxonId,
+                iconicTaxa = query.iconicTaxa,
+                taxonId = query.taxonId,
+                withoutTaxonId = query.withoutTaxonId,
             )
         }.map { response -> response.results.mapNotNull(::toDomain) }
     }
