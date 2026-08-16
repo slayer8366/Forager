@@ -1,0 +1,109 @@
+package com.forager.app.data.repository
+
+import com.forager.app.data.remote.INaturalistApi
+import com.forager.app.data.remote.dto.ObservationDto
+import com.forager.app.data.remote.dto.SpeciesCountDto
+import com.forager.app.data.remote.dto.TaxonDto
+import com.forager.app.domain.MushroomRepository
+import com.forager.app.domain.model.Region
+import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SpeciesObservationCount
+import com.forager.app.domain.model.TaxonFilter
+import com.forager.app.domain.model.TaxonSearchResult
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
+
+class INaturalistMushroomRepository(
+    private val api: INaturalistApi,
+) : MushroomRepository {
+
+    override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
+        return runCatching {
+            api.getSpeciesCounts(
+                lat = region.lat,
+                lng = region.lng,
+                radiusKm = region.radiusKm,
+                month = month,
+                iconicTaxa = (filter as? TaxonFilter.IconicCategory)?.iconicTaxonName,
+                taxonId = (filter as? TaxonFilter.SpecificTaxon)?.taxonId,
+            )
+        }.map { response -> response.results.map(::toDomain) }
+    }
+
+    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> {
+        return runCatching {
+            api.getObservations(
+                lat = region.lat,
+                lng = region.lng,
+                radiusKm = region.radiusKm,
+                month = month,
+                iconicTaxa = (filter as? TaxonFilter.IconicCategory)?.iconicTaxonName,
+                taxonId = (filter as? TaxonFilter.SpecificTaxon)?.taxonId,
+            )
+        }.map { response -> response.results.mapNotNull(::toDomain) }
+    }
+
+    override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
+        return runCatching { api.searchTaxa(query) }
+            .map { response -> response.results.map(::toDomain) }
+    }
+
+    private fun toDomain(dto: SpeciesCountDto): SpeciesObservationCount {
+        val taxon = dto.taxon
+        return SpeciesObservationCount(
+            taxonId = taxon.id,
+            scientificName = taxon.name,
+            commonName = taxon.preferredCommonName,
+            rank = taxon.rank,
+            observationCount = dto.count,
+            photoUrl = taxon.defaultPhoto?.mediumUrl ?: taxon.defaultPhoto?.squareUrl,
+            wikipediaUrl = taxon.wikipediaUrl,
+        )
+    }
+
+    /** Null when iNaturalist has no plottable position for this observation, rather than a fabricated one. */
+    private fun toDomain(dto: ObservationDto): Sighting? {
+        val (lat, lng) = parseLocation(dto.location) ?: return null
+        val taxon = dto.taxon
+        return Sighting(
+            observationId = dto.id,
+            taxonId = taxon.id,
+            scientificName = taxon.name,
+            commonName = taxon.preferredCommonName,
+            lat = lat,
+            lng = lng,
+            observedOn = parseObservedOn(dto.observedOn),
+            photoUrl = dto.photos.firstOrNull()?.url,
+        )
+    }
+
+    private fun toDomain(dto: TaxonDto): TaxonSearchResult = TaxonSearchResult(
+        taxonId = dto.id,
+        scientificName = dto.name,
+        commonName = dto.preferredCommonName,
+        rank = dto.rank,
+        iconicTaxonName = dto.iconicTaxonName,
+        photoUrl = dto.defaultPhoto?.squareUrl,
+    )
+}
+
+/** Parses iNaturalist's "lat,lng" location string. Null on missing or malformed input. */
+internal fun parseLocation(raw: String?): Pair<Double, Double>? {
+    if (raw == null) return null
+    val parts = raw.split(",")
+    if (parts.size != 2) return null
+    val lat = parts[0].trim().toDoubleOrNull() ?: return null
+    val lng = parts[1].trim().toDoubleOrNull() ?: return null
+    if (lat !in -90.0..90.0 || lng !in -180.0..180.0) return null
+    return lat to lng
+}
+
+/** Parses iNaturalist's "YYYY-MM-DD" observed_on string. Null on missing or malformed input. */
+internal fun parseObservedOn(raw: String?): LocalDate? {
+    if (raw == null) return null
+    return try {
+        LocalDate.parse(raw)
+    } catch (e: DateTimeParseException) {
+        null
+    }
+}
