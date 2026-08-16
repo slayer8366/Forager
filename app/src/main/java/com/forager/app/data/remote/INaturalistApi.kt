@@ -16,6 +16,11 @@ import retrofit2.http.Query
  * [iconicTaxa] and [taxonId] are mutually exclusive per call: pass one and leave the other
  * null (a null @Query parameter is simply omitted by Retrofit). Exactly one is non-null for
  * every call this app makes; see [com.forager.app.domain.model.TaxonFilter].
+ *
+ * [withoutTaxonId] subtracts a taxon (and its descendants) from whichever of those two
+ * selected the results. Verified against the live API before being relied on, because
+ * iNaturalist answers 200 and silently ignores a parameter it doesn't recognise — a
+ * misspelling here would look exactly like a working filter that changes nothing.
  */
 interface INaturalistApi {
 
@@ -32,6 +37,7 @@ interface INaturalistApi {
         @Query("month") month: Int,
         @Query("iconic_taxa") iconicTaxa: String? = null,
         @Query("taxon_id") taxonId: Long? = null,
+        @Query("without_taxon_id") withoutTaxonId: Long? = null,
         @Query("verifiable") verifiable: Boolean = true,
         @Query("per_page") perPage: Int = 30,
     ): SpeciesCountsResponseDto
@@ -45,6 +51,7 @@ interface INaturalistApi {
         @Query("month") month: Int,
         @Query("iconic_taxa") iconicTaxa: String? = null,
         @Query("taxon_id") taxonId: Long? = null,
+        @Query("without_taxon_id") withoutTaxonId: Long? = null,
         @Query("verifiable") verifiable: Boolean = true,
         @Query("per_page") perPage: Int = 200,
     ): ObservationsResponseDto
