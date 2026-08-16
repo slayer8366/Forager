@@ -23,7 +23,25 @@ export ANDROID_SDK_ROOT
 export ANDROID_HOME="$ANDROID_SDK_ROOT"
 export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools"
 
-yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null
+# Accept the SDK licenses non-interactively.
+#
+# The answers are fed in as a here-string, deliberately NOT as `yes | sdkmanager`.
+# `yes` is an infinite writer: sdkmanager reads the handful of answers it needs
+# and exits, `yes` keeps writing into the now-closed pipe, takes SIGPIPE and dies
+# with 141. `set -o pipefail` then reports the pipeline as 141 -- the rightmost
+# non-zero status -- and `set -e` aborts the script, even though sdkmanager
+# itself succeeded. It is timing-dependent, and *more* likely on a re-run where
+# the licenses are already accepted and sdkmanager exits almost immediately.
+#
+# A here-string has no writer process at all (bash hands sdkmanager a pre-filled
+# pipe, or a temp file when the content exceeds the pipe buffer), so there is
+# nothing left alive to receive SIGPIPE. And because this is not a pipeline, the
+# exit status is sdkmanager's own -- a genuine failure here still aborts loudly.
+#
+# 100 is just "more answers than there are licenses" (there are currently 7);
+# it is a bound on the license count, not a buffer-size trick, so it is safe to
+# raise. Do not replace this with `yes` or any other unbounded writer.
+sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null <<< "$(printf 'y\n%.0s' {1..100})"
 sdkmanager --sdk_root="$ANDROID_SDK_ROOT" \
   "platform-tools" \
   "platforms;android-37.1" \

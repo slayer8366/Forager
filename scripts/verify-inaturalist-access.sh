@@ -6,7 +6,11 @@ set -euo pipefail
 check() {
   local url="$1"
   local code
-  code=$(curl -sS -o /dev/null -w "%{http_code}" "$url")
+  # Reporting reachability is this script's whole job, so one unreachable host
+  # must not abort the remaining checks via `set -e`. The failure is recorded and
+  # printed, not swallowed: curl's own diagnostic still goes to stderr (-S) and
+  # its exit code is shown in the report line.
+  code=$(curl -sS -o /dev/null -w "%{http_code}" "$url") || code="unreachable (curl exit $?)"
   printf "%-55s -> HTTP %s\n" "$url" "$code"
 }
 
