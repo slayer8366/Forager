@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
                     container.getSightingsUseCase,
                     container.searchTaxaUseCase,
                     container.getConditionsUseCase,
+                    container.clusterForagingAreasUseCase,
                 )
             }
         }
@@ -64,6 +65,7 @@ class MainActivity : ComponentActivity() {
                     onRadiusChanged = viewModel::onRadiusChanged,
                     onMonthSelected = viewModel::onMonthSelected,
                     onMapTabSelected = viewModel::onMapTabSelected,
+                    onToggleForagingAreas = viewModel::onToggleForagingAreas,
                     onCategorySelected = viewModel::onCategorySelected,
                     onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                     onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,

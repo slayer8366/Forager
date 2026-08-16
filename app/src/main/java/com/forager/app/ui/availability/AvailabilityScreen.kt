@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,11 +47,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.ForagingArea
+import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.ui.map.SightingsMap
+import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
+import com.forager.app.ui.map.foragingAreaSummary
 import java.time.Month
 import java.time.format.TextStyle
 import java.util.Locale
@@ -67,6 +74,7 @@ fun AvailabilityScreen(
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
     onMapTabSelected: () -> Unit,
+    onToggleForagingAreas: (Boolean) -> Unit,
     onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
@@ -121,7 +129,10 @@ fun AvailabilityScreen(
 
             when (selectedTab) {
                 ResultsTab.LIST -> ResultsSection(uiState = uiState)
-                ResultsTab.MAP -> MapSection(uiState = uiState)
+                ResultsTab.MAP -> MapSection(
+                    uiState = uiState,
+                    onToggleForagingAreas = onToggleForagingAreas,
+                )
             }
         }
     }
@@ -329,7 +340,7 @@ private fun ResultsSection(uiState: AvailabilityUiState) {
 }
 
 @Composable
-private fun MapSection(uiState: AvailabilityUiState) {
+private fun MapSection(uiState: AvailabilityUiState, onToggleForagingAreas: (Boolean) -> Unit) {
     when {
         !uiState.hasSearched -> Text(
             "Choose a region to see mapped sightings.",
@@ -353,13 +364,135 @@ private fun MapSection(uiState: AvailabilityUiState) {
         else -> {
             val region = uiState.region
             if (region != null) {
-                SightingsMap(
-                    region = region,
-                    sightings = uiState.sightings,
+                Column(
                     modifier = Modifier.fillMaxSize(),
-                )
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ForagingAreasToggle(
+                        checked = uiState.showForagingAreas,
+                        onCheckedChange = onToggleForagingAreas,
+                    )
+                    // Areas are only handed to the map when the layer is switched on; the
+                    // clustering itself was already computed when the sightings loaded.
+                    val visibleAreas = if (uiState.showForagingAreas) {
+                        (uiState.foragingAreas as? ForagingAreas.Found)?.areas.orEmpty()
+                    } else {
+                        emptyList()
+                    }
+                    SightingsMap(
+                        region = region,
+                        sightings = uiState.sightings,
+                        areas = visibleAreas,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+                    if (uiState.showForagingAreas) {
+                        ForagingAreasPanel(uiState.foragingAreas)
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun ForagingAreasToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Foraging areas", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Group the pins into spots that have produced repeatedly.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+/**
+ * The detail below the map when the layer is on: the numbered areas and their stats, or an
+ * explicit reason no area was found.
+ *
+ * Every branch says something. A silent blank panel would look identical to a still-loading one,
+ * and "no repeat-producing areas here" is a real answer worth reading (CLAUDE.md: partial or
+ * empty results are reported as such).
+ */
+@Composable
+private fun ForagingAreasPanel(foragingAreas: ForagingAreas?) {
+    when (foragingAreas) {
+        null -> Text(
+            "Foraging areas are grouped from the mapped sightings, which haven't loaded yet.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        is ForagingAreas.None -> Text(
+            noAreasMessage(foragingAreas),
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        is ForagingAreas.Found -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                VISITING_ORDER_DISCLAIMER,
+                style = MaterialTheme.typography.bodySmall,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colorScheme.error,
+            )
+            if (foragingAreas.ungroupedObservationCount > 0) {
+                Text(
+                    "${foragingAreas.ungroupedObservationCount} scattered observations belong to no area.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 160.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(foragingAreas.areas, key = { it.visitOrder }) { area -> ForagingAreaRow(area) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForagingAreaRow(area: ForagingArea) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("${area.visitOrder}", style = MaterialTheme.typography.titleMedium)
+            Text(foragingAreaSummary(area), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+/**
+ * Why nothing was found, stated specifically. The clustering thresholds are never relaxed to
+ * manufacture an area, so the honest answer here is sometimes "there isn't one".
+ */
+private fun noAreasMessage(none: ForagingAreas.None): String {
+    val minPoints = ClusterForagingAreasUseCase.MIN_OBSERVATIONS_PER_AREA
+    val radiusMeters = ClusterForagingAreasUseCase.NEIGHBORHOOD_RADIUS_METERS.toInt()
+    return when (none.reason) {
+        ForagingAreas.Reason.NO_OBSERVATIONS ->
+            "No mapped observations in this radius, so there's nothing to group into areas. " +
+                "Try a wider radius, a different month, or another category."
+
+        ForagingAreas.Reason.TOO_FEW_OBSERVATIONS ->
+            "Only ${none.observationsConsidered} mapped observation(s) in this radius — fewer than " +
+                "the $minPoints it takes to call anywhere a repeat-producing area."
+
+        ForagingAreas.Reason.NO_GROUP_MET_THRESHOLD ->
+            "No repeat-producing areas found in this radius. All ${none.observationsConsidered} " +
+                "mapped observations are scattered: none form a group of $minPoints or more within " +
+                "${radiusMeters}m of each other. The threshold isn't loosened to find something."
     }
 }
 

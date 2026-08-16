@@ -34,7 +34,40 @@ more certainty than the data supports. See `AvailabilityForecast` and
    conservation-sensitive taxa) are left off the map rather than guessed at.
    Sightings are fetched lazily, only when the Map tab is opened, so
    browsing the ranked list alone doesn't cost the extra API call.
-6. When the selected month is the current month, a **Current Conditions**
+6. A **Foraging areas** toggle on the Map tab groups those pins into the
+   spots that have produced *repeatedly*. Where observations bunch together
+   across many years is the strongest signal in the dataset, and drawing
+   every one as an identical pin throws it away. Grouping is
+   [DBSCAN](https://en.wikipedia.org/wiki/DBSCAN) in pure Kotlin
+   (`domain/Dbscan`), run over the sightings the Map tab already fetched —
+   it makes no extra API call. DBSCAN rather than k-means because it takes
+   a distance radius instead of a preset cluster count, and because it
+   labels isolated points as noise: one observation 8 km from anything else
+   is not a foraging spot and isn't promoted into one. Distances are true
+   great-circle metres (`domain/GeoDistance`), never Euclidean arithmetic
+   over raw lat/lng degrees, which would distort clusters east–west as
+   latitude rises. Each area reports its observation count, distinct
+   species count, and most recent observation year. The two thresholds —
+   how close counts as "the same spot" and how many finds make a pattern —
+   are labelled adjustable assumptions in
+   `ClusterForagingAreasUseCase`, not data-derived facts.
+
+   **The numbering is a visiting order, not a walking route.** Areas are
+   numbered by greedy nearest-neighbour from the search centre — head for
+   the nearest area you haven't done yet — and the connectors between them
+   are drawn *dashed* because they are straight lines between area centres
+   and nothing more. This project has no trail data, no terrain, no
+   land-ownership data and no path graph, only scattered coordinates over
+   raster tiles, so a walking path is a capability it does not have; a
+   solid line implying one could route you across a river, a motorway, a
+   cliff, or private land. Per `CLAUDE.md` an unsupported capability is
+   reported as unsupported rather than given a plausible-looking value, so
+   the app ships the order and says plainly, on screen, that it is not a
+   route. The ordering is also not optimal or shortest — greedy
+   nearest-neighbour is neither, and it isn't described as either. If no
+   group of observations meets the density threshold, the app says so
+   explicitly instead of relaxing the threshold until something appears.
+7. When the selected month is the current month, a **Current Conditions**
    card shows recent observed rainfall for the region (total precipitation
    and days since the last significant rain), pulled from
    [Open-Meteo](https://open-meteo.com)'s forecast API. iNaturalist has no
@@ -57,17 +90,23 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `MushroomRepository` interface, including parsing iNaturalist's
   `"lat,lng"` location string and `observed_on` date; and the Open-Meteo
   API onto `WeatherProvider` (`OpenMeteoWeatherProvider`).
-- `domain/` — pure Kotlin: `Region`, `SpeciesObservationCount`, `Sighting`,
-  `TaxonFilter`, `TaxonSearchResult`, `AvailabilityForecast`,
-  `ConditionsSummary`, `PredictAvailabilityUseCase`, `GetSightingsUseCase`,
-  `SearchTaxaUseCase`, `GetConditionsUseCase`, and the
+- `domain/` — pure Kotlin: `Region`, `LatLng`, `SpeciesObservationCount`,
+  `Sighting`, `TaxonFilter`, `TaxonSearchResult`, `AvailabilityForecast`,
+  `ConditionsSummary`, `ForagingArea`/`ForagingAreas`, `GeoDistance`,
+  `Dbscan`, `PredictAvailabilityUseCase`, `GetSightingsUseCase`,
+  `SearchTaxaUseCase`, `GetConditionsUseCase`,
+  `ClusterForagingAreasUseCase`, and the
   `MushroomRepository`/`LocationProvider`/`WeatherProvider` interfaces. No
   Android imports, so it's unit-testable headless (see `app/src/test/`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
 - `ui/availability/` — `AvailabilityViewModel` and the ranked-list Compose
   screen (with the List/Map tab switch).
-- `ui/map/` — `SightingsMap`, the osmdroid `MapView` wrapped for Compose.
+- `ui/map/` — `SightingsMap`, the osmdroid `MapView` wrapped for Compose,
+  including the numbered foraging-area markers and their dashed order
+  connectors; and `ForagingAreaLabels`, which holds the single wording of
+  the "not a walking route" disclaimer so the on-map info window and the
+  on-screen caption can't drift apart.
 
 These boundaries follow `CLAUDE.md`.
 
@@ -104,3 +143,10 @@ UI has not been exercised on a device or emulator — this environment has no
 hardware virtualization (`/dev/kvm`), so the Android emulator isn't usable
 here. Installing to a real device or an emulator on a machine with KVM is
 the next verification step before treating the UI as working end to end.
+
+In particular, **the foraging-area map layer has never been rendered**: the
+numbered markers and the dashed order connectors compile and are wired up,
+but nobody has seen them drawn. The dashing is the part carrying the
+honesty burden — it is what stops the connectors reading as a walking path
+— so confirming it renders as visibly dashed, at usable zoom levels, is a
+required check before trusting that layer.

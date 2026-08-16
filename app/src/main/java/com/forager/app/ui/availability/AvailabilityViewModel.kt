@@ -2,6 +2,7 @@ package com.forager.app.ui.availability
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.LocationProvider
@@ -26,6 +27,7 @@ class AvailabilityViewModel(
     private val getSightings: GetSightingsUseCase,
     private val searchTaxa: SearchTaxaUseCase,
     private val getConditions: GetConditionsUseCase,
+    private val clusterForagingAreas: ClusterForagingAreasUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -155,12 +157,18 @@ class AvailabilityViewModel(
             getSightings(region, state.selectedMonth, state.taxonFilter).fold(
                 onSuccess = { sightings ->
                     loadedSightingsQuery = query
-                    _uiState.update { it.copy(isLoadingSightings = false, sightings = sightings) }
+                    // Clustering is a pure transform of what was just fetched — no extra API
+                    // call — so it's computed up front and the toggle only controls display.
+                    val areas = clusterForagingAreas(region, sightings)
+                    _uiState.update {
+                        it.copy(isLoadingSightings = false, sightings = sightings, foragingAreas = areas)
+                    }
                 },
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(
                             isLoadingSightings = false,
+                            foragingAreas = null,
                             sightingsErrorMessage = error.message ?: "Couldn't load sightings for the map.",
                         )
                     }
@@ -169,10 +177,18 @@ class AvailabilityViewModel(
         }
     }
 
+    /** Toggles the Map tab's foraging-areas layer. Display only: the clustering is already computed. */
+    fun onToggleForagingAreas(show: Boolean) {
+        _uiState.update { it.copy(showForagingAreas = show) }
+    }
+
     private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
-        // A new search invalidates any sightings loaded for a previous region/month/filter.
+        // A new search invalidates any sightings loaded for a previous region/month/filter, and
+        // with them the areas clustered from those sightings.
         loadedSightingsQuery = null
-        _uiState.update { it.copy(sightings = emptyList(), sightingsErrorMessage = null) }
+        _uiState.update {
+            it.copy(sightings = emptyList(), foragingAreas = null, sightingsErrorMessage = null)
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
