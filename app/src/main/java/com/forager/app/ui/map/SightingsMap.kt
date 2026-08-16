@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -34,6 +35,43 @@ import java.io.File
  * When [areas] is non-empty, numbered foraging-area markers and dashed order connectors are
  * drawn over the individual pins (the pins stay: they're the evidence the areas were derived
  * from). Pass an empty list to show pins alone.
+ *
+ * ## Why the clip
+ *
+ * The [Modifier.clipToBounds] on the [AndroidView] below is load-bearing. Without it this map
+ * paints over the tab row above it and the caption below it, and the dashed order connector runs
+ * up into the app bar. Two facts combine, neither a bug on its own:
+ *
+ * 1. **Compose does not clip a hosted View to its slot.** `AndroidViewsHandler` sets
+ *    `clipChildren = false` and draws the holder with the one-argument `View.draw(Canvas)` from a
+ *    `drawBehind` inside the layout node, so the clip `ViewGroup.drawChild` normally imposes on a
+ *    child never happens — and no Compose clip happens either unless a modifier asks for one.
+ *    Whatever the View paints outside `[0, 0, width, height]` lands on the siblings around it.
+ * 2. **osmdroid paints outside that rectangle on purpose**, because it assumes the host clips.
+ *    `MapView.dispatchDraw` sets no clip. `TilesOverlay` draws whole tile bitmaps at tile-grid
+ *    positions, so edge tiles overhang the viewport by up to one tile — 256px at an integer zoom,
+ *    362px at the 10.5 [zoomForRadiusKm] picks for radii up to 30km — which is several times the
+ *    height of the tab row above the map. `LinearRing.setClipArea` keeps polyline geometry out to
+ *    2.2x the view's half-diagonal so that map rotation can never crop a line, roughly a whole
+ *    map-height past the top and bottom edges, and `PolyOverlayWithIW` draws that path uncropped.
+ *    `Marker.drawAt` even asks `canvas.getClipBounds()` whether a marker is on screen — with no
+ *    clip set that is answered against the whole window, so off-map area markers draw too.
+ *
+ * The overspill is measured from the map's own centre and edges, so it gets worse as this
+ * composable gets smaller — which is why it was reported as the map breaking its bounds *when
+ * resized*. Shrinking the slot (the foraging-areas panel below appearing, then growing when
+ * clusters load) or zooming in pushes geometry that used to be inside the rectangle out of it.
+ *
+ * Rejected: `clipChildren`/`clipToPadding` on the `MapView`, which govern child *Views* — the
+ * tiles, polyline and markers are canvas drawing done in `dispatchDraw`, so neither flag touches
+ * them. Also rejected: clipping at the call site in `AvailabilityScreen`, because "this composable
+ * does not paint outside its bounds" is this composable's invariant, not each caller's to
+ * remember.
+ *
+ * Not a cause, checked and ruled out: stale layout bounds after a resize. `MapView.dispatchDraw`
+ * and `myOnLayout` both call `resetProjection()`, and `Projection` derives its offsets from
+ * `getScreenCenterX/Y` of the *current* intrinsic screen rect, so osmdroid re-centres itself on a
+ * size change without help from [AndroidView]'s `update` block.
  */
 @Composable
 fun SightingsMap(
@@ -75,7 +113,10 @@ fun SightingsMap(
 
     AndroidView(
         factory = { mapView },
-        modifier = modifier.fillMaxSize(),
+        // Load-bearing, not cosmetic. See "Why the clip" on this composable's doc comment.
+        modifier = modifier
+            .fillMaxSize()
+            .clipToBounds(),
         update = { view ->
             val center = GeoPoint(region.lat, region.lng)
             view.controller.setZoom(zoomForRadiusKm(region.radiusKm))
@@ -199,7 +240,21 @@ private const val CONNECTOR_STROKE_WIDTH_PX = 6f
 /** 18px dash, 14px gap: long enough to read as deliberate dashing at any usable zoom. */
 private val CONNECTOR_DASH_PATTERN_PX = floatArrayOf(18f, 14f)
 
-/** A visual-only heuristic mapping search radius to a legible starting zoom level, not a domain prediction. */
+/**
+ * A visual-only heuristic mapping search radius to a legible starting zoom level, not a domain
+ * prediction.
+ *
+ * It knows the radius but not the size of the composable it is being drawn into, so it cannot
+ * promise the whole searched circle fits. A pixel at zoom 12 spans ~38m at the equator and ~24m
+ * at 50°N, so the edge of a 15km radius sits 390–690px from the centre depending on latitude —
+ * which at the top of that range is more than the half-height of a short map slot. An area out
+ * there is simply
+ * off the visible map and the connector to it runs off the edge — normal map behaviour, and it is
+ * reachable by panning. It is worth stating because before the clip on the [AndroidView] above,
+ * that same geometry was drawn *outside* the map instead of being cropped by it. Nothing is lost
+ * from the UI either way: ForagingAreasPanel lists every area with its number and summary
+ * regardless of where the map viewport happens to sit.
+ */
 private fun zoomForRadiusKm(radiusKm: Int): Double = when {
     radiusKm <= 5 -> 13.0
     radiusKm <= 15 -> 12.0

@@ -174,12 +174,23 @@ hardware virtualization (`/dev/kvm`), so the Android emulator isn't usable
 here. Installing to a real device or an emulator on a machine with KVM is
 the next verification step before treating the UI as working end to end.
 
-In particular, **the foraging-area map layer has never been rendered**: the
-numbered markers and the dashed order connectors compile and are wired up,
-but nobody has seen them drawn. The dashing is the part carrying the
-honesty burden — it is what stops the connectors reading as a walking path
-— so confirming it renders as visibly dashed, at usable zoom levels, is a
-required check before trusting that layer.
+The foraging-area map layer **has** now been seen once, on a physical
+phone, and two things came out of that. The connectors do render as
+visibly dashed at the zoom a 15 km search opens at, which is the part
+carrying the honesty burden — that much is confirmed. But the map was also
+painting outside its
+own rectangle: tiles over the tab row and over the caption below it, and a
+dashed connector running up into the app bar. Nothing clipped the hosted
+`MapView` to its Compose slot, and osmdroid draws beyond its viewport on
+purpose (whole edge tiles; polyline geometry out to 2.2x the view's
+half-diagonal) because it assumes the host clips. `SightingsMap` now sets
+`Modifier.clipToBounds()` on the `AndroidView` and records the mechanism.
+
+**The clip itself has not been re-checked on hardware.** It is reasoned
+from the osmdroid and Compose sources, not observed. Still unchecked with
+it in place: that tiles now stop at the map's edges, that a connector to an
+area near the edge of the radius is cropped there rather than escaping, and
+that no numbered marker the panel lists is left unreachable by panning.
 
 The map-first layout is likewise unrendered here. Specifically unchecked:
 whether the drawer's open/close gestures behave (swipe-to-open is disabled
