@@ -34,19 +34,35 @@ more certainty than the data supports. See `AvailabilityForecast` and
    conservation-sensitive taxa) are left off the map rather than guessed at.
    Sightings are fetched lazily, only when the Map tab is opened, so
    browsing the ranked list alone doesn't cost the extra API call.
+6. When the selected month is the current month, a **Current Conditions**
+   card shows recent observed rainfall for the region (total precipitation
+   and days since the last significant rain), pulled from
+   [Open-Meteo](https://open-meteo.com)'s forecast API. iNaturalist has no
+   answer for "has it actually been wet lately here" — historical
+   observation frequency says nothing about this week. This is raw current
+   data shown next to the ranking, not fused into it: there's no measured
+   correlation in this codebase between rainfall and observation upticks,
+   so `AvailabilityEntry.relativeLikelihood` is never adjusted by it (see
+   `GetConditionsUseCase`'s doc comment and `CLAUDE.md`'s rule against
+   unproven correction logic). The card is hidden entirely when browsing a
+   different month, since today's rain says nothing about typical
+   conditions in some other month.
 
 ## Project layout
 
-- `data/remote/` — the only code that speaks Retrofit/iNaturalist's wire
-  format (`INaturalistApi`, DTOs, `INaturalistClient`).
+- `data/remote/` — the only code that speaks Retrofit/iNaturalist's or
+  Open-Meteo's wire formats (`INaturalistApi`, `OpenMeteoApi`, DTOs,
+  `INaturalistClient`, `OpenMeteoClient`).
 - `data/repository/` — maps the iNaturalist API onto the domain-owned
   `MushroomRepository` interface, including parsing iNaturalist's
-  `"lat,lng"` location string and `observed_on` date.
+  `"lat,lng"` location string and `observed_on` date; and the Open-Meteo
+  API onto `WeatherProvider` (`OpenMeteoWeatherProvider`).
 - `domain/` — pure Kotlin: `Region`, `SpeciesObservationCount`, `Sighting`,
   `TaxonFilter`, `TaxonSearchResult`, `AvailabilityForecast`,
-  `PredictAvailabilityUseCase`, `GetSightingsUseCase`, `SearchTaxaUseCase`,
-  and the `MushroomRepository`/`LocationProvider` interfaces. No Android
-  imports, so it's unit-testable headless (see `app/src/test/`).
+  `ConditionsSummary`, `PredictAvailabilityUseCase`, `GetSightingsUseCase`,
+  `SearchTaxaUseCase`, `GetConditionsUseCase`, and the
+  `MushroomRepository`/`LocationProvider`/`WeatherProvider` interfaces. No
+  Android imports, so it's unit-testable headless (see `app/src/test/`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
 - `ui/availability/` — `AvailabilityViewModel` and the ranked-list Compose

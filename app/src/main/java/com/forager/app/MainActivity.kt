@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
                     container.predictAvailabilityUseCase,
                     container.getSightingsUseCase,
                     container.searchTaxaUseCase,
+                    container.getConditionsUseCase,
                 )
             }
         }
