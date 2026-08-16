@@ -67,7 +67,8 @@ import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
-import com.forager.app.ui.map.SightingsMap
+import com.forager.app.ui.map.MapSlot
+import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import com.forager.app.ui.map.foragingAreaSummary
 import java.time.Month
@@ -110,6 +111,11 @@ fun AvailabilityScreen(
     onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
+    /**
+     * What fills the map's box. Defaults to the real map, so no production caller passes it; see
+     * [MapSlot] for why the map is reached through a slot rather than named directly here.
+     */
+    mapSlot: MapSlot = SightingsMapSlot,
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
@@ -188,12 +194,23 @@ fun AvailabilityScreen(
                     }
                 }
 
-                // weight(1f) is the fix: the results get whatever is left after the one-line
-                // siblings above, and Compose measures weighted children last, so that height is
-                // definite and bounded instead of a remainder that can reach zero.
+                // weight(1f) states the intent: the results get whatever is left after the
+                // one-line siblings above, and Compose measures weighted children last, so that
+                // height is definite and bounded instead of a remainder that can reach zero.
+                //
+                // Measured caveat, from AvailabilityScreenLayoutTest: with the controls in the
+                // drawer, removing this weight changes nothing — the tab content is then the last
+                // unweighted child, so the remainder it is measured against is exactly the height
+                // the weight would have granted, and all three configurations measure identically
+                // either way. The drawer is what fixed the starvation; this weight is what keeps
+                // it fixed the moment another wrap-content sibling is added below the results.
                 when (selectedTab) {
                     ResultsTab.LIST -> ListTab(uiState = uiState, modifier = Modifier.weight(1f))
-                    ResultsTab.MAP -> MapTab(uiState = uiState, modifier = Modifier.weight(1f))
+                    ResultsTab.MAP -> MapTab(
+                        uiState = uiState,
+                        mapSlot = mapSlot,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -559,7 +576,7 @@ private fun ResultsSection(uiState: AvailabilityUiState, modifier: Modifier = Mo
  * below it, which is bounded so it can't repeat the starvation this layout exists to fix.
  */
 @Composable
-private fun MapTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
+private fun MapTab(uiState: AvailabilityUiState, mapSlot: MapSlot, modifier: Modifier = Modifier) {
     when {
         !uiState.hasSearched -> MapMessage(
             "Choose a region in search options to see mapped sightings.",
@@ -591,11 +608,11 @@ private fun MapTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) 
                     } else {
                         emptyList()
                     }
-                    SightingsMap(
-                        region = region,
-                        sightings = uiState.sightings,
-                        areas = visibleAreas,
-                        modifier = Modifier
+                    mapSlot(
+                        region,
+                        uiState.sightings,
+                        visibleAreas,
+                        Modifier
                             .fillMaxWidth()
                             .weight(1f),
                     )

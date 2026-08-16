@@ -131,7 +131,10 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `ModalNavigationDrawer` holding every search control over a map-first
   content area with the List/Map tab switch. `AvailabilityScreen`'s doc
   comment records why the controls are in a drawer and what was rejected.
-- `ui/map/` — `SightingsMap`, the osmdroid `MapView` wrapped for Compose,
+- `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
+  osmdroid directly (the `MushroomRepository` pattern applied to the UI
+  layer, so the screen can be composed in a test without starting tile
+  threads); `SightingsMap`, the osmdroid `MapView` wrapped for Compose,
   including the dot marker for individual observations and the numbered
   foraging-area markers with their dashed order connectors; and
   `ForagingAreaLabels`, which holds the single wording of
@@ -154,8 +157,18 @@ Then:
 
 ```sh
 ./gradlew assembleDebug       # builds app/build/outputs/apk/debug/app-debug.apk
-./gradlew testDebugUnitTest   # runs the headless domain-layer tests
+./gradlew testDebugUnitTest   # runs the headless domain, ViewModel and layout tests
 ```
+
+`assembleDebug` is followed by `verifyNothingTestOnlyReachesTheApk`, which
+opens the built APK and fails the build if any test-only class or manifest
+entry is inside it. The layout tests below need Compose UI Test and
+Robolectric on the unit-test classpath; that task is what makes "these are
+test-only" a checked fact about the artifact rather than a claim about the
+Gradle configuration.
+
+The layout tests run under Robolectric, which downloads an `android-all` jar
+from Maven Central on first use.
 
 The Gradle wrapper (`gradlew`) downloads its own Gradle distribution on
 first run.
@@ -168,11 +181,12 @@ required for the read-only endpoints this app uses.
 
 ## Not yet verified
 
-The app builds, links resources, and its unit tests pass, but the running
-UI has not been exercised on a device or emulator — this environment has no
-hardware virtualization (`/dev/kvm`), so the Android emulator isn't usable
-here. Installing to a real device or an emulator on a machine with KVM is
-the next verification step before treating the UI as working end to end.
+The app builds, links resources, and its unit tests pass, but nothing has
+been *rendered* on a device or emulator — this environment has no hardware
+virtualization (`/dev/kvm`), so the Android emulator isn't usable here.
+Installing to a real device or an emulator on a machine with KVM is still
+the verification step for anything about appearance. Layout geometry is a
+separate question and is now measured headlessly; see below.
 
 The foraging-area map layer **has** now been seen once, on a physical
 phone, and two things came out of that. The connectors do render as
@@ -192,18 +206,34 @@ it in place: that tiles now stop at the map's edges, that a connector to an
 area near the edge of the radius is cropped there rather than escaping, and
 that no numbered marker the panel lists is left unreachable by panning.
 
-The map-first layout is likewise unrendered here. Specifically unchecked:
-whether the drawer's open/close gestures behave (swipe-to-open is disabled
-on purpose so a horizontal drag over the map pans it instead), whether the
-`Scaffold` insets actually keep content clear of the navigation bar, whether
-the map now receives the full content height, and how the small dot markers
-for individual observations look at a dense radius.
+The map-first layout's **geometry** is now measured, not just reasoned
+about. `AvailabilityScreenLayoutTest` composes the real screen under
+Robolectric across three device configurations — a small dense phone, the
+same phone at a doubled font scale, and a larger phone — and reads back the
+bounds Compose actually assigned. What that establishes: the map's slot gets
+316dp of 640dp, 247dp of 640dp and 571dp of 891dp respectively; its top
+lands exactly on the tab row's bottom edge rather than above it; the
+visiting-order caption starts below the map's bottom edge; the Conditions
+card is on screen with non-zero area on the List tab; and every drawer
+control, plus the build-identity footer, is reachable and displayed. Those
+tests were checked against the original defect — the control stack put back
+in the unscrolled content column — and the map slot measured 0dp on all
+three configurations, so they fail when the bug is present.
 
-The build-identity footer at the bottom of the drawer is unrendered too. The
-version values behind it *are* verified — they were read off the packaged
-APK with `aapt2 dump badging`, not off the Gradle config — but whether the
-footer stays visible at the bottom of the sheet rather than being pushed off
-by a tall control stack has not been seen.
+The map inside that slot is **stubbed** in those tests. They prove the
+screen hands the map the right box; they prove nothing about what osmdroid
+paints in it. The clip above is therefore still unverified, and so is
+anything about rendering.
+
+Still unchecked, and only a device or emulator can answer it: whether the
+drawer's open/close gestures behave (swipe-to-open is disabled on purpose so
+a horizontal drag over the map pans it instead), whether the `Scaffold`
+insets actually keep content clear of the navigation bar, and how the small
+dot markers for individual observations look at a dense radius.
+
+The build-identity footer's version values are verified separately — they
+were read off the packaged APK with `aapt2 dump badging`, not off the Gradle
+config.
 
 ## Which build am I running?
 
