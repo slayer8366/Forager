@@ -3,6 +3,8 @@ package com.forager.app.domain
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SpeciesObservationCount
+import com.forager.app.domain.model.TaxonFilter
+import com.forager.app.domain.model.TaxonSearchResult
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -13,14 +15,20 @@ private class FakeMushroomRepository(
 ) : MushroomRepository {
     var lastRegion: Region? = null
     var lastMonth: Int? = null
+    var lastFilter: TaxonFilter? = null
 
-    override suspend fun getSpeciesCounts(region: Region, month: Int): Result<List<SpeciesObservationCount>> {
+    override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
         lastRegion = region
         lastMonth = month
+        lastFilter = filter
         return result
     }
 
-    override suspend fun getSightings(region: Region, month: Int): Result<List<Sighting>> {
+    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> {
+        throw NotImplementedError("not exercised by PredictAvailabilityUseCaseTest")
+    }
+
+    override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
         throw NotImplementedError("not exercised by PredictAvailabilityUseCaseTest")
     }
 }
@@ -52,7 +60,7 @@ class PredictAvailabilityUseCaseTest {
         )
         val useCase = PredictAvailabilityUseCase(repository)
 
-        val forecast = useCase(region, month = 9).getOrThrow()
+        val forecast = useCase(region, month = 9, filter = TaxonFilter.FUNGI).getOrThrow()
 
         assertEquals(
             listOf("Boletus edulis", "Cantharellus cibarius", "Amanita muscaria"),
@@ -72,7 +80,7 @@ class PredictAvailabilityUseCaseTest {
         )
         val useCase = PredictAvailabilityUseCase(repository)
 
-        val forecast = useCase(region, month = 9).getOrThrow()
+        val forecast = useCase(region, month = 9, filter = TaxonFilter.FUNGI).getOrThrow()
 
         assertEquals(1f, forecast.entries[0].relativeLikelihood, 0.0001f)
         assertEquals(0.25f, forecast.entries[1].relativeLikelihood, 0.0001f)
@@ -83,7 +91,7 @@ class PredictAvailabilityUseCaseTest {
         val repository = FakeMushroomRepository(Result.success(emptyList()))
         val useCase = PredictAvailabilityUseCase(repository)
 
-        val forecast = useCase(region, month = 9).getOrThrow()
+        val forecast = useCase(region, month = 9, filter = TaxonFilter.FUNGI).getOrThrow()
 
         assertTrue(forecast.entries.isEmpty())
         assertEquals(0, forecast.totalObservationsConsidered)
@@ -95,21 +103,32 @@ class PredictAvailabilityUseCaseTest {
         val repository = FakeMushroomRepository(Result.failure(failure))
         val useCase = PredictAvailabilityUseCase(repository)
 
-        val result = useCase(region, month = 9)
+        val result = useCase(region, month = 9, filter = TaxonFilter.FUNGI)
 
         assertTrue(result.isFailure)
         assertEquals(failure, result.exceptionOrNull())
     }
 
     @Test
-    fun `passes the requested region and month through unchanged`() = runTest {
+    fun `passes the requested region, month, and filter through unchanged`() = runTest {
         val repository = FakeMushroomRepository(Result.success(emptyList()))
         val useCase = PredictAvailabilityUseCase(repository)
 
-        useCase(region, month = 3)
+        useCase(region, month = 3, filter = TaxonFilter.PLANTS)
 
         assertEquals(region, repository.lastRegion)
         assertEquals(3, repository.lastMonth)
+        assertEquals(TaxonFilter.PLANTS, repository.lastFilter)
+    }
+
+    @Test
+    fun `forecast carries the filter it was computed for`() = runTest {
+        val repository = FakeMushroomRepository(Result.success(emptyList()))
+        val useCase = PredictAvailabilityUseCase(repository)
+
+        val forecast = useCase(region, month = 9, filter = TaxonFilter.LICHENS).getOrThrow()
+
+        assertEquals(TaxonFilter.LICHENS, forecast.filter)
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -117,6 +136,6 @@ class PredictAvailabilityUseCaseTest {
         val repository = FakeMushroomRepository(Result.success(emptyList()))
         val useCase = PredictAvailabilityUseCase(repository)
 
-        useCase(region, month = 13)
+        useCase(region, month = 13, filter = TaxonFilter.FUNGI)
     }
 }

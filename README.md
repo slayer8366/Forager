@@ -1,8 +1,10 @@
 # Forager
 
-An Android app that ranks which mushroom species are worth looking for, in a
-chosen region and month, based on how often people have historically logged
-them there on [iNaturalist](https://www.inaturalist.org/).
+An Android app that ranks which species are worth looking for, in a chosen
+region and month, based on how often people have historically logged them
+there on [iNaturalist](https://www.inaturalist.org/). Despite the name, it's
+not limited to fungi: search by broad category (Fungi, Plants, Lichens) or
+by a specific species.
 
 This is a historical-frequency ranking over real observation data, not a
 weather-style forecast or a fitted model: the app deliberately doesn't claim
@@ -14,12 +16,18 @@ more certainty than the data supports. See `AvailabilityForecast` and
 1. You pick a region — either "use current location" (device GPS/network
    location, with a radius slider) or manually entered latitude/longitude —
    and a month.
-2. The app queries iNaturalist's `GET /v1/observations/species_counts` for
-   verifiable fungi observations within that radius, filtered to that month
-   across all years.
-3. Species are ranked by observation count, with the top species normalized
+2. You pick what to search for: the **Fungi**, **Plants**, or **Lichens**
+   quick-filter chips, or a specific species by name (autocomplete over
+   `GET /v1/taxa/autocomplete`). Lichens has no distinct top-level group on
+   iNaturalist — it's approximated via the Lecanoromycetes class, which
+   covers most lichen species, and labeled as an approximation in the UI.
+   See `domain/model/TaxonFilter`.
+3. The app queries iNaturalist's `GET /v1/observations/species_counts` for
+   verifiable observations matching that filter within the radius, filtered
+   to that month across all years.
+4. Species are ranked by observation count, with the top species normalized
    to a relative-likelihood of 1.0.
-4. A **Map** tab shows the searched region on an OpenStreetMap view, with a
+5. A **Map** tab shows the searched region on an OpenStreetMap view, with a
    pin per individual verifiable observation (`GET /v1/observations`) —
    real reported sighting locations, not just the aggregate ranking.
    Observations iNaturalist doesn't expose a location for (e.g.
@@ -35,10 +43,10 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `MushroomRepository` interface, including parsing iNaturalist's
   `"lat,lng"` location string and `observed_on` date.
 - `domain/` — pure Kotlin: `Region`, `SpeciesObservationCount`, `Sighting`,
-  `AvailabilityForecast`, `PredictAvailabilityUseCase`,
-  `GetSightingsUseCase`, and the `MushroomRepository`/`LocationProvider`
-  interfaces. No Android imports, so it's unit-testable headless (see
-  `app/src/test/`).
+  `TaxonFilter`, `TaxonSearchResult`, `AvailabilityForecast`,
+  `PredictAvailabilityUseCase`, `GetSightingsUseCase`, `SearchTaxaUseCase`,
+  and the `MushroomRepository`/`LocationProvider` interfaces. No Android
+  imports, so it's unit-testable headless (see `app/src/test/`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
 - `ui/availability/` — `AvailabilityViewModel` and the ranked-list Compose

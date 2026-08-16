@@ -24,6 +24,7 @@ class MainActivity : ComponentActivity() {
                     container.locationProvider,
                     container.predictAvailabilityUseCase,
                     container.getSightingsUseCase,
+                    container.searchTaxaUseCase,
                 )
             }
         }
@@ -62,6 +63,9 @@ class MainActivity : ComponentActivity() {
                     onRadiusChanged = viewModel::onRadiusChanged,
                     onMonthSelected = viewModel::onMonthSelected,
                     onMapTabSelected = viewModel::onMapTabSelected,
+                    onCategorySelected = viewModel::onCategorySelected,
+                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
                 )
             }
         }

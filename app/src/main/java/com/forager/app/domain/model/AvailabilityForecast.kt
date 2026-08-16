@@ -9,6 +9,7 @@ package com.forager.app.domain.model
 data class AvailabilityForecast(
     val region: Region,
     val month: Int,
+    val filter: TaxonFilter,
     val entries: List<AvailabilityEntry>,
 ) {
     val totalObservationsConsidered: Int get() = entries.sumOf { it.species.observationCount }

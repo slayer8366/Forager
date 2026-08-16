@@ -1,5 +1,6 @@
 package com.forager.app.ui.availability
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,14 +22,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +46,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.AvailabilityEntry
+import com.forager.app.domain.model.TaxonFilter
+import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.ui.map.SightingsMap
 import java.time.Month
 import java.time.format.TextStyle
@@ -62,10 +66,13 @@ fun AvailabilityScreen(
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
     onMapTabSelected: () -> Unit,
+    onCategorySelected: (TaxonFilter) -> Unit,
+    onTaxonSearchQueryChanged: (String) -> Unit,
+    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(ResultsTab.LIST) }
 
-    LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth) {
+    LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth, uiState.taxonFilter) {
         if (selectedTab == ResultsTab.MAP) onMapTabSelected()
     }
 
@@ -88,6 +95,12 @@ fun AvailabilityScreen(
                 onManualLngChanged = onManualLngChanged,
                 onSearchManualCoordinates = onSearchManualCoordinates,
                 onRadiusChanged = onRadiusChanged,
+            )
+            TaxonFilterControls(
+                uiState = uiState,
+                onCategorySelected = onCategorySelected,
+                onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                onTaxonSearchResultSelected = onTaxonSearchResultSelected,
             )
             MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
 
@@ -163,6 +176,74 @@ private fun RegionControls(
     }
 }
 
+@Composable
+private fun TaxonFilterControls(
+    uiState: AvailabilityUiState,
+    onCategorySelected: (TaxonFilter) -> Unit,
+    onTaxonSearchQueryChanged: (String) -> Unit,
+    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Searching for: ${uiState.taxonFilter.label}", style = MaterialTheme.typography.bodyMedium)
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
+                FilterChip(
+                    selected = uiState.taxonFilter == category,
+                    onClick = { onCategorySelected(category) },
+                    label = { Text(category.label) },
+                )
+            }
+        }
+
+        OutlinedTextField(
+            value = uiState.taxonSearchQuery,
+            onValueChange = onTaxonSearchQueryChanged,
+            label = { Text("Or search a species") },
+            placeholder = { Text("e.g. chanterelle") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                if (uiState.isSearchingTaxa) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                }
+            },
+        )
+
+        if (uiState.taxonSearchErrorMessage != null) {
+            Text(
+                uiState.taxonSearchErrorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        if (uiState.taxonSearchResults.isNotEmpty()) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    uiState.taxonSearchResults.forEach { result ->
+                        TaxonSuggestionRow(result = result, onClick = { onTaxonSearchResultSelected(result) })
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaxonSuggestionRow(result: TaxonSearchResult, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+    ) {
+        Text(result.commonName ?: result.scientificName, style = MaterialTheme.typography.bodyMedium)
+        val subtitle = result.scientificName + (result.iconicTaxonName?.let { " · $it" } ?: "")
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
@@ -212,12 +293,13 @@ private fun ResultsSection(uiState: AvailabilityUiState) {
         )
 
         !uiState.hasSearched -> Text(
-            "Choose a region to see which mushrooms have historically been found nearby this month.",
+            "Choose a region to see what's historically been found nearby this month.",
             style = MaterialTheme.typography.bodyMedium,
         )
 
         uiState.forecast != null && uiState.forecast.entries.isEmpty() -> Text(
-            "No verifiable fungi observations found for this region and month. Try a wider radius.",
+            "No verifiable observations of ${uiState.forecast.filter.label} found for this region and month. " +
+                "Try a wider radius or a different category.",
             style = MaterialTheme.typography.bodyMedium,
         )
 
@@ -226,7 +308,7 @@ private fun ResultsSection(uiState: AvailabilityUiState) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     "Based on ${forecast.totalObservationsConsidered} historical iNaturalist observations " +
-                        "within ${forecast.region.radiusKm} km for " +
+                        "of ${forecast.filter.label} within ${forecast.region.radiusKm} km for " +
                         Month.of(forecast.month).getDisplayName(TextStyle.FULL, Locale.getDefault()) + ".",
                     style = MaterialTheme.typography.bodySmall,
                     fontStyle = FontStyle.Italic,

@@ -3,10 +3,13 @@ package com.forager.app.data.repository
 import com.forager.app.data.remote.INaturalistApi
 import com.forager.app.data.remote.dto.ObservationDto
 import com.forager.app.data.remote.dto.SpeciesCountDto
+import com.forager.app.data.remote.dto.TaxonDto
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SpeciesObservationCount
+import com.forager.app.domain.model.TaxonFilter
+import com.forager.app.domain.model.TaxonSearchResult
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
@@ -14,26 +17,35 @@ class INaturalistMushroomRepository(
     private val api: INaturalistApi,
 ) : MushroomRepository {
 
-    override suspend fun getSpeciesCounts(region: Region, month: Int): Result<List<SpeciesObservationCount>> {
+    override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
         return runCatching {
             api.getSpeciesCounts(
                 lat = region.lat,
                 lng = region.lng,
                 radiusKm = region.radiusKm,
                 month = month,
+                iconicTaxa = (filter as? TaxonFilter.IconicCategory)?.iconicTaxonName,
+                taxonId = (filter as? TaxonFilter.SpecificTaxon)?.taxonId,
             )
         }.map { response -> response.results.map(::toDomain) }
     }
 
-    override suspend fun getSightings(region: Region, month: Int): Result<List<Sighting>> {
+    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> {
         return runCatching {
             api.getObservations(
                 lat = region.lat,
                 lng = region.lng,
                 radiusKm = region.radiusKm,
                 month = month,
+                iconicTaxa = (filter as? TaxonFilter.IconicCategory)?.iconicTaxonName,
+                taxonId = (filter as? TaxonFilter.SpecificTaxon)?.taxonId,
             )
         }.map { response -> response.results.mapNotNull(::toDomain) }
+    }
+
+    override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
+        return runCatching { api.searchTaxa(query) }
+            .map { response -> response.results.map(::toDomain) }
     }
 
     private fun toDomain(dto: SpeciesCountDto): SpeciesObservationCount {
@@ -64,6 +76,15 @@ class INaturalistMushroomRepository(
             photoUrl = dto.photos.firstOrNull()?.url,
         )
     }
+
+    private fun toDomain(dto: TaxonDto): TaxonSearchResult = TaxonSearchResult(
+        taxonId = dto.id,
+        scientificName = dto.name,
+        commonName = dto.preferredCommonName,
+        rank = dto.rank,
+        iconicTaxonName = dto.iconicTaxonName,
+        photoUrl = dto.defaultPhoto?.squareUrl,
+    )
 }
 
 /** Parses iNaturalist's "lat,lng" location string. Null on missing or malformed input. */

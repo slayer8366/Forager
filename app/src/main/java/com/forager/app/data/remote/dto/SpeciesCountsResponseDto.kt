@@ -30,6 +30,7 @@ data class TaxonDto(
     @SerialName("wikipedia_url") val wikipediaUrl: String? = null,
     @SerialName("observations_count") val observationsCount: Int? = null,
     @SerialName("default_photo") val defaultPhoto: PhotoDto? = null,
+    @SerialName("iconic_taxon_name") val iconicTaxonName: String? = null,
 )
 
 @Serializable

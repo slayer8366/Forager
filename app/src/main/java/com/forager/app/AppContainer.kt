@@ -7,6 +7,7 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
+import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.location.AndroidLocationProvider
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
@@ -17,4 +18,5 @@ class AppContainer(context: Context) {
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
     val predictAvailabilityUseCase = PredictAvailabilityUseCase(mushroomRepository)
     val getSightingsUseCase = GetSightingsUseCase(mushroomRepository)
+    val searchTaxaUseCase = SearchTaxaUseCase(mushroomRepository)
 }
