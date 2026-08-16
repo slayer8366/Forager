@@ -13,39 +13,51 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.model.AvailabilityEntry
@@ -60,9 +72,28 @@ import com.forager.app.ui.map.foragingAreaSummary
 import java.time.Month
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private enum class ResultsTab(val label: String) { LIST("List"), MAP("Map") }
 
+/**
+ * Map-first layout: the results (map or ranked list) own the content area, and every search
+ * control lives in a navigation drawer behind the app bar's tune icon.
+ *
+ * **Why the controls are in a drawer.** They used to be stacked above the results in one
+ * unscrolled [Column]. A Column measures its non-weighted children in order against the height
+ * still unclaimed, so the eight-odd wrap-content controls took the viewport and whatever came
+ * after them — the tab row, the conditions card, the map — was measured against what was left,
+ * which on a ~780dp-tall screen is zero. Nothing scrolled, because the Column had no
+ * `verticalScroll`, so the starved children were simply unreachable. Making that Column
+ * scrollable was the other option and was rejected: a scrollable parent passes an infinite
+ * height constraint down, which a map cannot be measured against at all, so the map would still
+ * have needed a hard-coded height and would still not have been the primary thing on screen.
+ *
+ * The drawer is what makes the real fix possible: with the controls gone, the content area has
+ * exactly one wrap-content sibling (the tab row) plus a one-line summary strip, and the results
+ * take the rest via [Modifier.weight], which is a definite bounded height rather than a remainder.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AvailabilityScreen(
@@ -79,62 +110,204 @@ fun AvailabilityScreen(
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(ResultsTab.LIST) }
+    // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
+    var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth, uiState.taxonFilter) {
         if (selectedTab == ResultsTab.MAP) onMapTabSelected()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Forager") })
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            RegionControls(
-                uiState = uiState,
-                onUseCurrentLocation = onUseCurrentLocation,
-                onManualLatChanged = onManualLatChanged,
-                onManualLngChanged = onManualLngChanged,
-                onSearchManualCoordinates = onSearchManualCoordinates,
-                onRadiusChanged = onRadiusChanged,
-            )
-            TaxonFilterControls(
-                uiState = uiState,
-                onCategorySelected = onCategorySelected,
-                onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = onTaxonSearchResultSelected,
-            )
-            MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
-
-            if (uiState.conditions != null) {
-                ConditionsCard(conditions = uiState.conditions)
-            }
-
-            SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-                ResultsTab.entries.forEach { tab ->
-                    Tab(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        text = { Text(tab.label) },
-                    )
-                }
-            }
-
-            when (selectedTab) {
-                ResultsTab.LIST -> ResultsSection(uiState = uiState)
-                ResultsTab.MAP -> MapSection(
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
+        // pannable map, and a horizontal drag there means "pan", not "open the drawer". The
+        // app-bar icon is the way in. Swipe-to-close still works — Material3 enables the drag
+        // whenever the drawer is open regardless of this flag.
+        gesturesEnabled = false,
+        drawerContent = {
+            ModalDrawerSheet {
+                SearchControls(
                     uiState = uiState,
+                    onUseCurrentLocation = {
+                        scope.launch { drawerState.close() }
+                        onUseCurrentLocation()
+                    },
+                    onManualLatChanged = onManualLatChanged,
+                    onManualLngChanged = onManualLngChanged,
+                    onSearchManualCoordinates = {
+                        scope.launch { drawerState.close() }
+                        onSearchManualCoordinates()
+                    },
+                    onRadiusChanged = onRadiusChanged,
+                    onCategorySelected = onCategorySelected,
+                    onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+                    onMonthSelected = onMonthSelected,
                     onToggleForagingAreas = onToggleForagingAreas,
                 )
             }
+        },
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Forager") },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Filled.Tune, contentDescription = "Search options")
+                        }
+                    },
+                )
+            },
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // Scaffold's padding carries the system bar insets, so nothing here is laid
+                    // out under the status or navigation bar.
+                    .padding(padding),
+            ) {
+                ActiveSearchSummary(uiState)
+                SearchNotice(uiState)
+
+                SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
+                    ResultsTab.entries.forEach { tab ->
+                        Tab(
+                            selected = selectedTab == tab,
+                            onClick = { selectedTab = tab },
+                            text = { Text(tab.label) },
+                        )
+                    }
+                }
+
+                // weight(1f) is the fix: the results get whatever is left after the one-line
+                // siblings above, and Compose measures weighted children last, so that height is
+                // definite and bounded instead of a remainder that can reach zero.
+                when (selectedTab) {
+                    ResultsTab.LIST -> ListTab(uiState = uiState, modifier = Modifier.weight(1f))
+                    ResultsTab.MAP -> MapTab(uiState = uiState, modifier = Modifier.weight(1f))
+                }
+            }
         }
+    }
+}
+
+/**
+ * What the screen is currently showing, in one line — "Fungi · August · 15 km".
+ *
+ * With the controls behind a drawer the user can no longer read their own filter settings off
+ * the screen, so this replaces that. It is deliberately outside the drawer and outside the tab
+ * content: it has to be true of both tabs and visible at all times.
+ */
+@Composable
+private fun ActiveSearchSummary(uiState: AvailabilityUiState) {
+    Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
+        Text(
+            text = activeSearchSummary(uiState),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+        )
+    }
+}
+
+private fun activeSearchSummary(uiState: AvailabilityUiState): String {
+    val month = Month.of(uiState.selectedMonth).getDisplayName(TextStyle.FULL, Locale.getDefault())
+    // The radius of the search that actually ran, not the slider's pending value: moving the
+    // slider doesn't re-run the search, so reporting it here would describe a search that hasn't
+    // happened. Before any search there is no region, and this says so rather than implying one.
+    val where = uiState.region?.let { "${it.radiusKm} km" } ?: "no location set"
+    return "${uiState.taxonFilter.label} · $month · $where"
+}
+
+/**
+ * Failures that come from the drawer's own controls, surfaced outside it.
+ *
+ * The coordinate-validation and search-failure messages used to be rendered inside the ranked
+ * list, which was the default tab. The Map tab is the default now and the controls that raise
+ * these live behind a drawer that closes on search, so without this strip both messages could be
+ * raised and never seen (CLAUDE.md: failures are reported, not swallowed).
+ */
+@Composable
+private fun SearchNotice(uiState: AvailabilityUiState) {
+    val message = uiState.errorMessage
+        ?: if (uiState.locationPermissionDenied) {
+            "Location permission was denied. Open search options and enter coordinates manually."
+        } else {
+            null
+        }
+    if (message == null) return
+
+    Surface(color = MaterialTheme.colorScheme.errorContainer) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+        )
+    }
+}
+
+/**
+ * Everything that defines a search, in the drawer.
+ *
+ * The scroll modifier is not optional. This is the same tall stack of controls that starved the
+ * map when it lived in the main column; a drawer sheet is a fixed-height container too, so
+ * without it the month selector and the areas toggle would simply be unreachable on a short
+ * screen or at a large font scale.
+ */
+@Composable
+private fun SearchControls(
+    uiState: AvailabilityUiState,
+    onUseCurrentLocation: () -> Unit,
+    onManualLatChanged: (String) -> Unit,
+    onManualLngChanged: (String) -> Unit,
+    onSearchManualCoordinates: () -> Unit,
+    onRadiusChanged: (Int) -> Unit,
+    onCategorySelected: (TaxonFilter) -> Unit,
+    onTaxonSearchQueryChanged: (String) -> Unit,
+    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
+    onMonthSelected: (Int) -> Unit,
+    onToggleForagingAreas: (Boolean) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text("Search", style = MaterialTheme.typography.titleMedium)
+
+        RegionControls(
+            uiState = uiState,
+            onUseCurrentLocation = onUseCurrentLocation,
+            onManualLatChanged = onManualLatChanged,
+            onManualLngChanged = onManualLngChanged,
+            onSearchManualCoordinates = onSearchManualCoordinates,
+            onRadiusChanged = onRadiusChanged,
+        )
+        HorizontalDivider()
+        TaxonFilterControls(
+            uiState = uiState,
+            onCategorySelected = onCategorySelected,
+            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+            onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+        )
+        HorizontalDivider()
+        MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
+        HorizontalDivider()
+        ForagingAreasToggle(
+            checked = uiState.showForagingAreas,
+            onCheckedChange = onToggleForagingAreas,
+        )
     }
 }
 
@@ -152,14 +325,6 @@ private fun RegionControls(
             Icon(Icons.Filled.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(8.dp))
             Text("Use current location")
-        }
-
-        if (uiState.locationPermissionDenied) {
-            Text(
-                "Location permission was denied. Enter coordinates manually below.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -291,37 +456,56 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
     }
 }
 
+/**
+ * The ranked list, with the conditions card above it.
+ *
+ * The card sits here rather than in the drawer or over the map because rainfall is context for
+ * the ranking and belongs next to it — but *next to*, not fused into it: it keeps its own card,
+ * its own heading, and says nothing about the ranking below. See [ConditionsCard].
+ */
 @Composable
-private fun ResultsSection(uiState: AvailabilityUiState) {
-    when {
-        uiState.isLoading -> Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            CircularProgressIndicator()
+private fun ListTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Spacer(Modifier.height(4.dp))
+        if (uiState.conditions != null) {
+            ConditionsCard(conditions = uiState.conditions)
         }
+        // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
+        // bounded height rather than whatever the card above it happens to leave.
+        ResultsSection(uiState = uiState, modifier = Modifier.weight(1f))
+    }
+}
 
-        uiState.errorMessage != null -> Text(
-            uiState.errorMessage,
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+@Composable
+private fun ResultsSection(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        when {
+            uiState.isLoading -> Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                CircularProgressIndicator()
+            }
 
-        !uiState.hasSearched -> Text(
-            "Choose a region to see what's historically been found nearby this month.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
+            !uiState.hasSearched -> Text(
+                "Choose a region to see what's historically been found nearby this month.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
 
-        uiState.forecast != null && uiState.forecast.entries.isEmpty() -> Text(
-            "No verifiable observations of ${uiState.forecast.filter.label} found for this region and month. " +
-                "Try a wider radius or a different category.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
+            uiState.forecast != null && uiState.forecast.entries.isEmpty() -> Text(
+                "No verifiable observations of ${uiState.forecast.filter.label} found for this region and month. " +
+                    "Try a wider radius or a different category.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
 
-        uiState.forecast != null -> {
-            val forecast = uiState.forecast
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            uiState.forecast != null -> {
+                val forecast = uiState.forecast
                 Text(
                     "Based on ${forecast.totalObservationsConsidered} historical iNaturalist observations " +
                         "of ${forecast.filter.label} within ${forecast.region.radiusKm} km for " +
@@ -329,6 +513,7 @@ private fun ResultsSection(uiState: AvailabilityUiState) {
                     style = MaterialTheme.typography.bodySmall,
                     fontStyle = FontStyle.Italic,
                 )
+                Spacer(Modifier.height(8.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(forecast.entries, key = { it.species.taxonId }) { entry ->
                         SpeciesRow(entry)
@@ -339,39 +524,36 @@ private fun ResultsSection(uiState: AvailabilityUiState) {
     }
 }
 
+/**
+ * The map tab: the map itself takes the whole content area apart from the foraging-areas detail
+ * below it, which is bounded so it can't repeat the starvation this layout exists to fix.
+ */
 @Composable
-private fun MapSection(uiState: AvailabilityUiState, onToggleForagingAreas: (Boolean) -> Unit) {
+private fun MapTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
     when {
-        !uiState.hasSearched -> Text(
-            "Choose a region to see mapped sightings.",
-            style = MaterialTheme.typography.bodyMedium,
+        !uiState.hasSearched -> MapMessage(
+            "Choose a region in search options to see mapped sightings.",
+            modifier = modifier,
         )
 
         uiState.isLoadingSightings -> Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             CircularProgressIndicator()
         }
 
-        uiState.sightingsErrorMessage != null -> Text(
+        uiState.sightingsErrorMessage != null -> MapMessage(
             uiState.sightingsErrorMessage,
+            modifier = modifier,
             color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
         )
 
         else -> {
             val region = uiState.region
             if (region != null) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    ForagingAreasToggle(
-                        checked = uiState.showForagingAreas,
-                        onCheckedChange = onToggleForagingAreas,
-                    )
+                Column(modifier = modifier.fillMaxWidth()) {
                     // Areas are only handed to the map when the layer is switched on; the
                     // clustering itself was already computed when the sightings loaded.
                     val visibleAreas = if (uiState.showForagingAreas) {
@@ -388,12 +570,31 @@ private fun MapSection(uiState: AvailabilityUiState, onToggleForagingAreas: (Boo
                             .weight(1f),
                     )
                     if (uiState.showForagingAreas) {
-                        ForagingAreasPanel(uiState.foragingAreas)
+                        ForagingAreasPanel(
+                            foragingAreas = uiState.foragingAreas,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun MapMessage(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = color,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+    )
 }
 
 @Composable
@@ -406,7 +607,8 @@ private fun ForagingAreasToggle(checked: Boolean, onCheckedChange: (Boolean) -> 
         Column(modifier = Modifier.weight(1f)) {
             Text("Foraging areas", style = MaterialTheme.typography.titleSmall)
             Text(
-                "Group the pins into spots that have produced repeatedly.",
+                "Group the pins into spots that have produced repeatedly. Switch off to read the " +
+                    "individual observations instead.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -423,19 +625,24 @@ private fun ForagingAreasToggle(checked: Boolean, onCheckedChange: (Boolean) -> 
  * empty results are reported as such).
  */
 @Composable
-private fun ForagingAreasPanel(foragingAreas: ForagingAreas?) {
+private fun ForagingAreasPanel(foragingAreas: ForagingAreas?, modifier: Modifier = Modifier) {
     when (foragingAreas) {
         null -> Text(
             "Foraging areas are grouped from the mapped sightings, which haven't loaded yet.",
             style = MaterialTheme.typography.bodySmall,
+            modifier = modifier,
         )
 
         is ForagingAreas.None -> Text(
             noAreasMessage(foragingAreas),
             style = MaterialTheme.typography.bodySmall,
+            modifier = modifier,
         )
 
-        is ForagingAreas.Found -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        is ForagingAreas.Found -> Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Text(
                 VISITING_ORDER_DISCLAIMER,
                 style = MaterialTheme.typography.bodySmall,
@@ -448,8 +655,11 @@ private fun ForagingAreasPanel(foragingAreas: ForagingAreas?) {
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            // Capped so the panel stays a footnote to the map rather than a second screen
+            // competing with it; the list scrolls within the cap. Tapping a numbered marker on
+            // the map shows the same summary for that one area.
             LazyColumn(
-                modifier = Modifier.heightIn(max = 160.dp),
+                modifier = Modifier.heightIn(max = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 items(foragingAreas.areas, key = { it.visitOrder }) { area -> ForagingAreaRow(area) }
@@ -497,7 +707,7 @@ private fun noAreasMessage(none: ForagingAreas.None): String {
 }
 
 /**
- * Recent rainfall, shown as a standalone fact next to the ranking below — never described as
+ * Recent rainfall, shown as a standalone fact at the top of the ranked list — never described as
  * having factored into it. See [com.forager.app.domain.GetConditionsUseCase]'s doc comment for
  * why this stays unfused with the ranked list.
  */

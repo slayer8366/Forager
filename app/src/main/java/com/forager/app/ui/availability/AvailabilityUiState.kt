@@ -22,8 +22,16 @@ data class AvailabilityUiState(
     val sightings: List<Sighting> = emptyList(),
     val isLoadingSightings: Boolean = false,
     val sightingsErrorMessage: String? = null,
-    /** Whether the Map tab's foraging-areas layer is switched on. Display only — see [foragingAreas]. */
-    val showForagingAreas: Boolean = false,
+    /**
+     * Whether the Map tab's foraging-areas layer is switched on. Display only — see [foragingAreas].
+     *
+     * On by default. At a realistic radius the individual observation pins overlap into a pile
+     * that can't be read, and the clustered areas are the answer to the question the map is
+     * being asked ("where should I go"), so grouping is the starting view and switching this off
+     * is how you drop back to the raw observations. The clustering itself is unconditional and
+     * unchanged either way — this flag only decides whether the layer is drawn.
+     */
+    val showForagingAreas: Boolean = true,
     /**
      * Clustering of [sightings], recomputed whenever they change. Null before any sightings have
      * been loaded; a [ForagingAreas.None] once they have but nothing clustered, which the UI

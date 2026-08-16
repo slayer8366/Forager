@@ -3,6 +3,9 @@ package com.forager.app.ui.map
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.ShapeDrawable
+import android.graphics.drawable.shapes.OvalShape
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -88,10 +91,15 @@ fun SightingsMap(
                     snippet = "Radius: ${region.radiusKm} km"
                 },
             )
+            // One shared drawable for every observation: osmdroid sets bounds and draws the
+            // markers one at a time, and nothing here mutates it.
+            val dot = sightingDotIcon(view.context.resources.displayMetrics.density)
             sightings.forEach { sighting ->
                 view.overlays.add(
                     Marker(view).apply {
                         position = GeoPoint(sighting.lat, sighting.lng)
+                        icon = dot
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                         title = sighting.commonName ?: sighting.scientificName
                         snippet = sighting.observedOn?.toString() ?: sighting.scientificName
                     },
@@ -101,6 +109,29 @@ fun SightingsMap(
             view.invalidate()
         },
     )
+}
+
+/**
+ * A small translucent dot for the per-observation markers.
+ *
+ * osmdroid's stock marker is a full-size pin. A dense radius puts a few hundred of them on the
+ * map and they merge into one unreadable mass, which throws away the density that is the whole
+ * signal in this data. A flat dot at partial alpha reads as density instead — the more
+ * observations overlap, the darker the patch — and it leaves the pin shape meaning one specific
+ * thing (the search centre) and the numbered labels meaning another (the foraging areas).
+ *
+ * Built in code rather than as a drawable resource so the size stays in dp next to the reason
+ * for it. Unverified visually: see README's "Not yet verified".
+ */
+private fun sightingDotIcon(density: Float): Drawable {
+    val diameterPx = (SIGHTING_DOT_DIAMETER_DP * density).toInt().coerceAtLeast(1)
+    return ShapeDrawable(OvalShape()).apply {
+        intrinsicWidth = diameterPx
+        intrinsicHeight = diameterPx
+        paint.color = SIGHTING_DOT_COLOR
+        paint.style = Paint.Style.FILL
+        paint.isAntiAlias = true
+    }
 }
 
 /**
@@ -156,6 +187,10 @@ private fun addForagingAreaOverlays(view: MapView, searchCenter: GeoPoint, areas
 // Mushroom orange over the app's forest green, matching ui/theme/Color.kt. osmdroid draws on a
 // raw Android Canvas, so these are android.graphics colours, not Compose ones.
 private const val CONNECTOR_COLOR = 0xFFC97B3D.toInt()
+
+/** Bark at ~70% alpha: overlapping observations darken instead of blotting each other out. */
+private const val SIGHTING_DOT_COLOR = 0xB33B2E24.toInt()
+private const val SIGHTING_DOT_DIAMETER_DP = 9f
 private const val AREA_MARKER_BACKGROUND_COLOR = 0xFF2E5339.toInt()
 private val AREA_MARKER_FOREGROUND_COLOR = Color.WHITE
 private const val AREA_MARKER_FONT_SIZE_PX = 36
