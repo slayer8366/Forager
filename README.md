@@ -171,3 +171,23 @@ on purpose so a horizontal drag over the map pans it instead), whether the
 `Scaffold` insets actually keep content clear of the navigation bar, whether
 the map now receives the full content height, and how the small dot markers
 for individual observations look at a dense radius.
+
+The build-identity footer at the bottom of the drawer is unrendered too. The
+version values behind it *are* verified — they were read off the packaged
+APK with `aapt2 dump badging`, not off the Gradle config — but whether the
+footer stays visible at the bottom of the sheet rather than being pushed off
+by a tall control stack has not been seen.
+
+## Which build am I running?
+
+Open the drawer; the footer reads `Build <versionCode> · <versionName>`, for
+example `Build 9 · 1.0.9+g85fa6245`. The versionCode is the git commit count
+— it is what Android compares when deciding whether an install replaces the
+existing app or silently no-ops — and the sha names the exact commit. A
+`.dirty` suffix means the build had uncommitted changes.
+
+A versionName starting with `UNVERSIONED-` means the build could not derive
+its identity (a tarball with no `.git`, or a shallow clone whose commit count
+is meaningless) and fell back to versionCode 1. Such a build will not replace
+anything on install. Build from a full clone to get a real version; see
+`resolveBuildIdentity` in `app/build.gradle.kts`.
