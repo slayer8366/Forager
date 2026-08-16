@@ -20,7 +20,11 @@ class MainActivity : ComponentActivity() {
         val container = (application as ForagerApplication).container
         viewModelFactory {
             initializer {
-                AvailabilityViewModel(container.locationProvider, container.predictAvailabilityUseCase)
+                AvailabilityViewModel(
+                    container.locationProvider,
+                    container.predictAvailabilityUseCase,
+                    container.getSightingsUseCase,
+                )
             }
         }
     }
@@ -57,6 +61,7 @@ class MainActivity : ComponentActivity() {
                     onSearchManualCoordinates = viewModel::searchManualCoordinates,
                     onRadiusChanged = viewModel::onRadiusChanged,
                     onMonthSelected = viewModel::onMonthSelected,
+                    onMapTabSelected = viewModel::onMapTabSelected,
                 )
             }
         }

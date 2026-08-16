@@ -3,6 +3,7 @@ package com.forager.app
 import android.content.Context
 import com.forager.app.data.remote.INaturalistClient
 import com.forager.app.data.repository.INaturalistMushroomRepository
+import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
@@ -15,4 +16,5 @@ class AppContainer(context: Context) {
     val mushroomRepository: MushroomRepository = INaturalistMushroomRepository(api)
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
     val predictAvailabilityUseCase = PredictAvailabilityUseCase(mushroomRepository)
+    val getSightingsUseCase = GetSightingsUseCase(mushroomRepository)
 }

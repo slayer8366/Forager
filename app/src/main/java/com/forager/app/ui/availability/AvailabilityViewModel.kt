@@ -2,6 +2,7 @@ package com.forager.app.ui.availability
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.PredictAvailabilityUseCase
@@ -15,10 +16,14 @@ import kotlinx.coroutines.launch
 class AvailabilityViewModel(
     private val locationProvider: LocationProvider,
     private val predictAvailability: PredictAvailabilityUseCase,
+    private val getSightings: GetSightingsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
     val uiState: StateFlow<AvailabilityUiState> = _uiState.asStateFlow()
+
+    /** The region+month the current [AvailabilityUiState.sightings] were fetched for, or null if none fetched yet. */
+    private var loadedSightingsQuery: Pair<Region, Int>? = null
 
     fun onRadiusChanged(radiusKm: Int) {
         _uiState.update { it.copy(radiusKm = Region.clampRadiusKm(radiusKm)) }
@@ -80,7 +85,41 @@ class AvailabilityViewModel(
         _uiState.update { it.copy(locationPermissionDenied = true) }
     }
 
+    /**
+     * Called when the map tab becomes visible. Sightings are fetched lazily, only for the
+     * region+month actually being viewed, rather than on every list search, since a map view
+     * the user never opens shouldn't cost an extra API call.
+     */
+    fun onMapTabSelected() {
+        val state = _uiState.value
+        val region = state.region ?: return
+        val query = region to state.selectedMonth
+        if (loadedSightingsQuery == query) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingSightings = true, sightingsErrorMessage = null) }
+            getSightings(region, state.selectedMonth).fold(
+                onSuccess = { sightings ->
+                    loadedSightingsQuery = query
+                    _uiState.update { it.copy(isLoadingSightings = false, sightings = sightings) }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingSightings = false,
+                            sightingsErrorMessage = error.message ?: "Couldn't load sightings for the map.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
     private fun refresh(region: Region, month: Int) {
+        // A new search invalidates any sightings loaded for a previous region/month.
+        loadedSightingsQuery = null
+        _uiState.update { it.copy(sightings = emptyList(), sightingsErrorMessage = null) }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             predictAvailability(region, month).fold(

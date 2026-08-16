@@ -1,5 +1,6 @@
 package com.forager.app.data.remote
 
+import com.forager.app.data.remote.dto.ObservationsResponseDto
 import com.forager.app.data.remote.dto.SpeciesCountsResponseDto
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -28,4 +29,16 @@ interface INaturalistApi {
         @Query("verifiable") verifiable: Boolean = true,
         @Query("per_page") perPage: Int = 30,
     ): SpeciesCountsResponseDto
+
+    /** Individual observation records (position, taxon, date, photo) for map pins. */
+    @GET("observations")
+    suspend fun getObservations(
+        @Query("lat") lat: Double,
+        @Query("lng") lng: Double,
+        @Query("radius") radiusKm: Int,
+        @Query("month") month: Int,
+        @Query("iconic_taxa") iconicTaxa: String = "Fungi",
+        @Query("verifiable") verifiable: Boolean = true,
+        @Query("per_page") perPage: Int = 200,
+    ): ObservationsResponseDto
 }

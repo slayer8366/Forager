@@ -19,20 +19,31 @@ more certainty than the data supports. See `AvailabilityForecast` and
    across all years.
 3. Species are ranked by observation count, with the top species normalized
    to a relative-likelihood of 1.0.
+4. A **Map** tab shows the searched region on an OpenStreetMap view, with a
+   pin per individual verifiable observation (`GET /v1/observations`) —
+   real reported sighting locations, not just the aggregate ranking.
+   Observations iNaturalist doesn't expose a location for (e.g.
+   conservation-sensitive taxa) are left off the map rather than guessed at.
+   Sightings are fetched lazily, only when the Map tab is opened, so
+   browsing the ranked list alone doesn't cost the extra API call.
 
 ## Project layout
 
 - `data/remote/` — the only code that speaks Retrofit/iNaturalist's wire
   format (`INaturalistApi`, DTOs, `INaturalistClient`).
 - `data/repository/` — maps the iNaturalist API onto the domain-owned
-  `MushroomRepository` interface.
-- `domain/` — pure Kotlin: `Region`, `SpeciesObservationCount`,
-  `AvailabilityForecast`, `PredictAvailabilityUseCase`, and the
-  `MushroomRepository`/`LocationProvider` interfaces. No Android imports, so
-  it's unit-testable headless (see `app/src/test/`).
+  `MushroomRepository` interface, including parsing iNaturalist's
+  `"lat,lng"` location string and `observed_on` date.
+- `domain/` — pure Kotlin: `Region`, `SpeciesObservationCount`, `Sighting`,
+  `AvailabilityForecast`, `PredictAvailabilityUseCase`,
+  `GetSightingsUseCase`, and the `MushroomRepository`/`LocationProvider`
+  interfaces. No Android imports, so it's unit-testable headless (see
+  `app/src/test/`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
-- `ui/availability/` — `AvailabilityViewModel` and the Compose screen.
+- `ui/availability/` — `AvailabilityViewModel` and the ranked-list Compose
+  screen (with the List/Map tab switch).
+- `ui/map/` — `SightingsMap`, the osmdroid `MapView` wrapped for Compose.
 
 These boundaries follow `CLAUDE.md`.
 

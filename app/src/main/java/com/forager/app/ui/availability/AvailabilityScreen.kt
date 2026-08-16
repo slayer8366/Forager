@@ -28,10 +28,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,9 +44,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.AvailabilityEntry
+import com.forager.app.ui.map.SightingsMap
 import java.time.Month
 import java.time.format.TextStyle
 import java.util.Locale
+
+private enum class ResultsTab(val label: String) { LIST("List"), MAP("Map") }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +61,14 @@ fun AvailabilityScreen(
     onSearchManualCoordinates: () -> Unit,
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
+    onMapTabSelected: () -> Unit,
 ) {
+    var selectedTab by remember { mutableStateOf(ResultsTab.LIST) }
+
+    LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth) {
+        if (selectedTab == ResultsTab.MAP) onMapTabSelected()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Forager") })
@@ -77,7 +90,21 @@ fun AvailabilityScreen(
                 onRadiusChanged = onRadiusChanged,
             )
             MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
-            ResultsSection(uiState = uiState)
+
+            SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
+                ResultsTab.entries.forEach { tab ->
+                    Tab(
+                        selected = selectedTab == tab,
+                        onClick = { selectedTab = tab },
+                        text = { Text(tab.label) },
+                    )
+                }
+            }
+
+            when (selectedTab) {
+                ResultsTab.LIST -> ResultsSection(uiState = uiState)
+                ResultsTab.MAP -> MapSection(uiState = uiState)
+            }
         }
     }
 }
@@ -209,6 +236,41 @@ private fun ResultsSection(uiState: AvailabilityUiState) {
                         SpeciesRow(entry)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapSection(uiState: AvailabilityUiState) {
+    when {
+        !uiState.hasSearched -> Text(
+            "Choose a region to see mapped sightings.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+
+        uiState.isLoadingSightings -> Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            CircularProgressIndicator()
+        }
+
+        uiState.sightingsErrorMessage != null -> Text(
+            uiState.sightingsErrorMessage,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+
+        else -> {
+            val region = uiState.region
+            if (region != null) {
+                SightingsMap(
+                    region = region,
+                    sightings = uiState.sightings,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
     }

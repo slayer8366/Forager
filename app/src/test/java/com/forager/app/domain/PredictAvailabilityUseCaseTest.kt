@@ -1,6 +1,7 @@
 package com.forager.app.domain
 
 import com.forager.app.domain.model.Region
+import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SpeciesObservationCount
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -17,6 +18,10 @@ private class FakeMushroomRepository(
         lastRegion = region
         lastMonth = month
         return result
+    }
+
+    override suspend fun getSightings(region: Region, month: Int): Result<List<Sighting>> {
+        throw NotImplementedError("not exercised by PredictAvailabilityUseCaseTest")
     }
 }
 
