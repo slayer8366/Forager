@@ -13,9 +13,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
 
 ## How it works
 
-1. You pick a region — either "use current location" (device GPS/network
-   location, with a radius slider) or manually entered latitude/longitude —
-   and a month.
+1. Search controls live in a **navigation drawer**, opened from the tune
+   icon in the app bar. You pick a region there — either "use current
+   location" (device GPS/network location, with a radius slider) or manually
+   entered latitude/longitude — and a month. The drawer keeps the map, which
+   is the primary content, at full height; a one-line strip under the app bar
+   ("Fungi · August · 15 km") says what the current search is while the
+   controls are hidden. See `ui/availability/AvailabilityScreen` for why the
+   controls are not stacked above the results.
 2. You pick what to search for: the **Fungi**, **Plants**, or **Lichens**
    quick-filter chips, or a specific species by name (autocomplete over
    `GET /v1/taxa/autocomplete`). Lichens has no distinct top-level group on
@@ -27,17 +32,22 @@ more certainty than the data supports. See `AvailabilityForecast` and
    to that month across all years.
 4. Species are ranked by observation count, with the top species normalized
    to a relative-likelihood of 1.0.
-5. A **Map** tab shows the searched region on an OpenStreetMap view, with a
-   pin per individual verifiable observation (`GET /v1/observations`) —
-   real reported sighting locations, not just the aggregate ranking.
+5. The **Map** tab — the tab the app opens on — shows the searched region on
+   an OpenStreetMap view, with a small dot per individual verifiable
+   observation (`GET /v1/observations`): real reported sighting locations,
+   not just the aggregate ranking. Dots rather than osmdroid's stock pins
+   because a dense radius merges a few hundred pins into one unreadable
+   mass, which throws away the density that is the signal here.
    Observations iNaturalist doesn't expose a location for (e.g.
    conservation-sensitive taxa) are left off the map rather than guessed at.
    Sightings are fetched lazily, only when the Map tab is opened, so
    browsing the ranked list alone doesn't cost the extra API call.
-6. A **Foraging areas** toggle on the Map tab groups those pins into the
-   spots that have produced *repeatedly*. Where observations bunch together
-   across many years is the strongest signal in the dataset, and drawing
-   every one as an identical pin throws it away. Grouping is
+6. **Foraging areas**, on by default, groups those dots into the spots that
+   have produced *repeatedly*, and the drawer's toggle switches the layer
+   back off to read the raw observations. It is the default view because
+   where observations bunch together across many years is the strongest
+   signal in the dataset, and drawing every one as an identical dot throws
+   it away. Grouping is
    [DBSCAN](https://en.wikipedia.org/wiki/DBSCAN) in pure Kotlin
    (`domain/Dbscan`), run over the sightings the Map tab already fetched —
    it makes no extra API call. DBSCAN rather than k-means because it takes
@@ -68,8 +78,9 @@ more certainty than the data supports. See `AvailabilityForecast` and
    group of observations meets the density threshold, the app says so
    explicitly instead of relaxing the threshold until something appears.
 7. When the selected month is the current month, a **Current Conditions**
-   card shows recent observed rainfall for the region (total precipitation
-   and days since the last significant rain), pulled from
+   card at the top of the **List** tab shows recent observed rainfall for
+   the region (total precipitation and days since the last significant
+   rain), pulled from
    [Open-Meteo](https://open-meteo.com)'s forecast API. iNaturalist has no
    answer for "has it actually been wet lately here" — historical
    observation frequency says nothing about this week. This is raw current
@@ -100,11 +111,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
   Android imports, so it's unit-testable headless (see `app/src/test/`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
-- `ui/availability/` — `AvailabilityViewModel` and the ranked-list Compose
-  screen (with the List/Map tab switch).
+- `ui/availability/` — `AvailabilityViewModel` and the Compose screen: a
+  `ModalNavigationDrawer` holding every search control over a map-first
+  content area with the List/Map tab switch. `AvailabilityScreen`'s doc
+  comment records why the controls are in a drawer and what was rejected.
 - `ui/map/` — `SightingsMap`, the osmdroid `MapView` wrapped for Compose,
-  including the numbered foraging-area markers and their dashed order
-  connectors; and `ForagingAreaLabels`, which holds the single wording of
+  including the dot marker for individual observations and the numbered
+  foraging-area markers with their dashed order connectors; and
+  `ForagingAreaLabels`, which holds the single wording of
   the "not a walking route" disclaimer so the on-map info window and the
   on-screen caption can't drift apart.
 
@@ -150,3 +164,30 @@ but nobody has seen them drawn. The dashing is the part carrying the
 honesty burden — it is what stops the connectors reading as a walking path
 — so confirming it renders as visibly dashed, at usable zoom levels, is a
 required check before trusting that layer.
+
+The map-first layout is likewise unrendered here. Specifically unchecked:
+whether the drawer's open/close gestures behave (swipe-to-open is disabled
+on purpose so a horizontal drag over the map pans it instead), whether the
+`Scaffold` insets actually keep content clear of the navigation bar, whether
+the map now receives the full content height, and how the small dot markers
+for individual observations look at a dense radius.
+
+The build-identity footer at the bottom of the drawer is unrendered too. The
+version values behind it *are* verified — they were read off the packaged
+APK with `aapt2 dump badging`, not off the Gradle config — but whether the
+footer stays visible at the bottom of the sheet rather than being pushed off
+by a tall control stack has not been seen.
+
+## Which build am I running?
+
+Open the drawer; the footer reads `Build <versionCode> · <versionName>`, for
+example `Build 9 · 1.0.9+g85fa6245`. The versionCode is the git commit count
+— it is what Android compares when deciding whether an install replaces the
+existing app or silently no-ops — and the sha names the exact commit. A
+`.dirty` suffix means the build had uncommitted changes.
+
+A versionName starting with `UNVERSIONED-` means the build could not derive
+its identity (a tarball with no `.git`, or a shallow clone whose commit count
+is meaningless) and fell back to versionCode 1. Such a build will not replace
+anything on install. Build from a full clone to get a real version; see
+`resolveBuildIdentity` in `app/build.gradle.kts`.
