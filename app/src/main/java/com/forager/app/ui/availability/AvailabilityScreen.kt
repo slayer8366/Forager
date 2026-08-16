@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.forager.app.BuildConfig
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
@@ -129,6 +130,10 @@ fun AvailabilityScreen(
         drawerContent = {
             ModalDrawerSheet {
                 SearchControls(
+                    // The controls take whatever height is left over so the build footer stays
+                    // pinned to the bottom of the sheet rather than sitting past the end of the
+                    // controls' own scroll, where nobody would find it.
+                    modifier = Modifier.weight(1f),
                     uiState = uiState,
                     onUseCurrentLocation = {
                         scope.launch { drawerState.close() }
@@ -147,6 +152,7 @@ fun AvailabilityScreen(
                     onMonthSelected = onMonthSelected,
                     onToggleForagingAreas = onToggleForagingAreas,
                 )
+                BuildIdentityFooter()
             }
         },
     ) {
@@ -264,8 +270,32 @@ private fun SearchNotice(uiState: AvailabilityUiState) {
  * without it the month selector and the areas toggle would simply be unreachable on a short
  * screen or at a large font scale.
  */
+/**
+ * Which build this is, at the bottom of the drawer.
+ *
+ * Debug APKs get handed to a tester several times a session and, before this, the app had no way
+ * to say which one was running: two different builds both reported "1.0". The versionCode is here
+ * because that is the number Android compares when deciding whether an install replaces or
+ * no-ops, and the versionName because it carries the commit sha that names the exact build. A
+ * versionName starting with "UNVERSIONED" means the build could not derive its identity from git
+ * — see resolveBuildIdentity in app/build.gradle.kts — and its versionCode is not trustworthy.
+ */
+@Composable
+private fun BuildIdentityFooter() {
+    HorizontalDivider()
+    Text(
+        text = "Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
 @Composable
 private fun SearchControls(
+    modifier: Modifier = Modifier,
     uiState: AvailabilityUiState,
     onUseCurrentLocation: () -> Unit,
     onManualLatChanged: (String) -> Unit,
@@ -279,7 +309,7 @@ private fun SearchControls(
     onToggleForagingAreas: (Boolean) -> Unit,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
