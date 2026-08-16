@@ -1,6 +1,7 @@
 package com.forager.app.ui.availability
 
 import com.forager.app.domain.model.AvailabilityForecast
+import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
@@ -25,6 +26,9 @@ data class AvailabilityUiState(
     val taxonSearchResults: List<TaxonSearchResult> = emptyList(),
     val isSearchingTaxa: Boolean = false,
     val taxonSearchErrorMessage: String? = null,
+    val conditions: ConditionsSummary? = null,
+    val isLoadingConditions: Boolean = false,
+    val conditionsErrorMessage: String? = null,
 ) {
     val hasSearched: Boolean get() = region != null
 }

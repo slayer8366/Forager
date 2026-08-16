@@ -2,6 +2,7 @@ package com.forager.app.ui.availability
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
@@ -10,6 +11,7 @@ import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
+import java.time.LocalDate
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +25,7 @@ class AvailabilityViewModel(
     private val predictAvailability: PredictAvailabilityUseCase,
     private val getSightings: GetSightingsUseCase,
     private val searchTaxa: SearchTaxaUseCase,
+    private val getConditions: GetConditionsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -178,6 +181,31 @@ class AvailabilityViewModel(
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(isLoading = false, errorMessage = error.message ?: "Request failed. Check your connection and try again.")
+                    }
+                },
+            )
+        }
+
+        // Recent rainfall is only meaningful for the current month: searching "what's typical
+        // in November" while it's April doesn't make today's rain relevant to that answer.
+        if (month != LocalDate.now().monthValue) {
+            _uiState.update { it.copy(conditions = null, isLoadingConditions = false, conditionsErrorMessage = null) }
+            return
+        }
+
+        // Independent of the forecast fetch above: a conditions failure must not block or fail
+        // the main forecast, same independence pattern as onMapTabSelected's sightings fetch.
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingConditions = true, conditionsErrorMessage = null) }
+            getConditions(region).fold(
+                onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingConditions = false,
+                            conditions = null,
+                            conditionsErrorMessage = error.message ?: "Couldn't load recent rainfall.",
+                        )
                     }
                 },
             )

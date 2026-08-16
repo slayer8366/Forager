@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.AvailabilityEntry
+import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.ui.map.SightingsMap
@@ -103,6 +104,10 @@ fun AvailabilityScreen(
                 onTaxonSearchResultSelected = onTaxonSearchResultSelected,
             )
             MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
+
+            if (uiState.conditions != null) {
+                ConditionsCard(conditions = uiState.conditions)
+            }
 
             SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
                 ResultsTab.entries.forEach { tab ->
@@ -354,6 +359,35 @@ private fun MapSection(uiState: AvailabilityUiState) {
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+        }
+    }
+}
+
+/**
+ * Recent rainfall, shown as a standalone fact next to the ranking below — never described as
+ * having factored into it. See [com.forager.app.domain.GetConditionsUseCase]'s doc comment for
+ * why this stays unfused with the ranked list.
+ */
+@Composable
+private fun ConditionsCard(conditions: ConditionsSummary) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("Current Conditions", style = MaterialTheme.typography.titleSmall)
+            val totalMm = conditions.totalPrecipitationMm
+            Text(
+                "${"%.1f".format(totalMm)}mm of rain in the last 14 days",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            val daysSince = conditions.daysSinceSignificantRain
+            Text(
+                when {
+                    daysSince == null -> "No significant rain in the last 14 days."
+                    daysSince == 0 -> "Rain today."
+                    daysSince == 1 -> "1 day since last rain."
+                    else -> "$daysSince days since last rain."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
