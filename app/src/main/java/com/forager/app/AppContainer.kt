@@ -5,6 +5,7 @@ import com.forager.app.data.remote.INaturalistClient
 import com.forager.app.data.remote.OpenMeteoClient
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.data.repository.OpenMeteoWeatherProvider
+import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.LocationProvider
@@ -26,4 +27,7 @@ class AppContainer(context: Context) {
     val getSightingsUseCase = GetSightingsUseCase(mushroomRepository)
     val searchTaxaUseCase = SearchTaxaUseCase(mushroomRepository)
     val getConditionsUseCase = GetConditionsUseCase(weatherProvider)
+
+    // No repository dependency: clustering is a pure transform of sightings already fetched.
+    val clusterForagingAreasUseCase = ClusterForagingAreasUseCase()
 }
