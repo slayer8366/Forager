@@ -1,9 +1,15 @@
 import java.util.zip.ZipFile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
+    // KSP (for Room's compiler) is incompatible with AGP's built-in Kotlin — see the note next to
+    // android.builtInKotlin in gradle.properties — so this project now needs the standalone
+    // Kotlin Android plugin explicitly rather than relying on that built-in support.
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
 }
 
 /**
@@ -153,6 +159,16 @@ android {
     }
 }
 
+// The classic `kotlin-android` plugin (needed for Room's KSP compiler — see gradle.properties)
+// defaults Kotlin's own JVM target to the Gradle daemon's JDK (21 here) rather than reading
+// android.compileOptions above, which is Java-only. Left inconsistent, compileDebugKotlin and
+// compileDebugJavaWithJavac disagree and AGP fails the build rather than silently picking one.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -173,6 +189,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.osmdroid.android)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.nga.mgrs)
 
     debugImplementation(libs.androidx.ui.tooling)
 

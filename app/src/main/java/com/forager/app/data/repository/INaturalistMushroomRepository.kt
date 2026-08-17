@@ -19,7 +19,7 @@ class INaturalistMushroomRepository(
 
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
         val query = filter.toQuery()
-        return runCatching {
+        return runCatchingCancellable {
             api.getSpeciesCounts(
                 lat = region.lat,
                 lng = region.lng,
@@ -34,7 +34,7 @@ class INaturalistMushroomRepository(
 
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> {
         val query = filter.toQuery()
-        return runCatching {
+        return runCatchingCancellable {
             api.getObservations(
                 lat = region.lat,
                 lng = region.lng,
@@ -48,7 +48,7 @@ class INaturalistMushroomRepository(
     }
 
     override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
-        return runCatching { api.searchTaxa(query) }
+        return runCatchingCancellable { api.searchTaxa(query) }
             .map { response -> response.results.map(::toDomain) }
     }
 

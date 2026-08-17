@@ -3,9 +3,11 @@ package com.forager.app.ui.map
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
+import android.graphics.drawable.shapes.PathShape
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -18,13 +20,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.forager.app.domain.model.ForagingArea
+import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.CopyrightOverlay
+import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import java.io.File
@@ -35,6 +41,19 @@ import java.io.File
  * When [areas] is non-empty, numbered foraging-area markers and dashed order connectors are
  * drawn over the individual pins (the pins stay: they're the evidence the areas were derived
  * from). Pass an empty list to show pins alone.
+ *
+ * [plannedTrips] draws a third, distinct marker per planned trip — a diamond, to read as
+ * different from both the translucent sighting dots (density of what's been observed) and the
+ * numbered foraging-area labels (where to go based on that history): a planned trip is neither of
+ * those, it's a place the user chose for themselves.
+ *
+ * [onLongPress] fires with the geographic point under a long-press, for the caller to turn into a
+ * planned trip (via a date picker it owns — this composable knows nothing about dates or
+ * persistence, only where the gesture happened). Wired through [MapEventsOverlay] rather than a
+ * gesture detector on the [AndroidView] itself, because osmdroid's own touch handling already
+ * owns pan/zoom/marker-tap on this `MapView`; layering a second, independent gesture detector on
+ * top would race it for the same touch stream. [MapEventsOverlay] is osmdroid's own mechanism for
+ * this and composes with its existing overlays instead of fighting them.
  *
  * ## Why the clip
  *
@@ -79,6 +98,8 @@ fun SightingsMap(
     sightings: List<Sighting>,
     modifier: Modifier = Modifier,
     areas: List<ForagingArea> = emptyList(),
+    plannedTrips: List<PlannedTrip> = emptyList(),
+    onLongPress: (LatLng) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -125,6 +146,22 @@ fun SightingsMap(
             // Rebuild markers each update; keep the copyright overlay, which is index 0.
             while (view.overlays.size > 1) view.overlays.removeAt(view.overlays.size - 1)
 
+            // Added early, not that it matters for touch dispatch (osmdroid offers a long-press to
+            // overlays top-down and Marker never consumes one, so this would fire regardless of
+            // position) — added here so it reads next to the overlay list it belongs to.
+            view.overlays.add(
+                MapEventsOverlay(
+                    object : MapEventsReceiver {
+                        override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean = false
+                        override fun longPressHelper(p: GeoPoint?): Boolean {
+                            if (p == null) return false
+                            onLongPress(LatLng(p.latitude, p.longitude))
+                            return true
+                        }
+                    },
+                ),
+            )
+
             view.overlays.add(
                 Marker(view).apply {
                     position = center
@@ -147,6 +184,7 @@ fun SightingsMap(
                 )
             }
             addForagingAreaOverlays(view, center, areas)
+            addPlannedTripOverlays(view, plannedTrips)
             view.invalidate()
         },
     )
@@ -225,6 +263,51 @@ private fun addForagingAreaOverlays(view: MapView, searchCenter: GeoPoint, areas
     }
 }
 
+/**
+ * Draws one diamond marker per planned trip. A separate loop rather than folding into the
+ * sighting or area loops above, per CLAUDE.md — a planned trip is neither an observation nor a
+ * derived area, so it doesn't belong threaded through either one as a flag.
+ */
+private fun addPlannedTripOverlays(view: MapView, plannedTrips: List<PlannedTrip>) {
+    if (plannedTrips.isEmpty()) return
+
+    val icon = plannedTripIcon(view.context.resources.displayMetrics.density)
+    plannedTrips.forEach { trip ->
+        view.overlays.add(
+            Marker(view).apply {
+                position = GeoPoint(trip.location.lat, trip.location.lng)
+                this.icon = icon
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                title = "Planned trip"
+                snippet = trip.date.toString()
+            },
+        )
+    }
+}
+
+/**
+ * A solid diamond, distinct in shape and colour from both the translucent sighting
+ * [OvalShape] dots and the numbered-label area markers, so "planned" reads as its own kind of
+ * pin rather than a variant of either.
+ */
+private fun plannedTripIcon(density: Float): Drawable {
+    val sizePx = (PLANNED_TRIP_MARKER_SIZE_DP * density)
+    val diamond = Path().apply {
+        moveTo(sizePx / 2f, 0f)
+        lineTo(sizePx, sizePx / 2f)
+        lineTo(sizePx / 2f, sizePx)
+        lineTo(0f, sizePx / 2f)
+        close()
+    }
+    return ShapeDrawable(PathShape(diamond, sizePx, sizePx)).apply {
+        intrinsicWidth = sizePx.toInt().coerceAtLeast(1)
+        intrinsicHeight = sizePx.toInt().coerceAtLeast(1)
+        paint.color = PLANNED_TRIP_MARKER_COLOR
+        paint.style = Paint.Style.FILL
+        paint.isAntiAlias = true
+    }
+}
+
 // Mushroom orange over the app's forest green, matching ui/theme/Color.kt. osmdroid draws on a
 // raw Android Canvas, so these are android.graphics colours, not Compose ones.
 private const val CONNECTOR_COLOR = 0xFFC97B3D.toInt()
@@ -236,6 +319,10 @@ private const val AREA_MARKER_BACKGROUND_COLOR = 0xFF2E5339.toInt()
 private val AREA_MARKER_FOREGROUND_COLOR = Color.WHITE
 private const val AREA_MARKER_FONT_SIZE_PX = 36
 private const val CONNECTOR_STROKE_WIDTH_PX = 6f
+
+/** A sky blue, distinct from both the area marker's forest green and the connector's orange. */
+private const val PLANNED_TRIP_MARKER_COLOR = 0xFF3B6EA5.toInt()
+private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 
 /** 18px dash, 14px gap: long enough to read as deliberate dashing at any usable zoom. */
 private val CONNECTOR_DASH_PATTERN_PX = floatArrayOf(18f, 14f)

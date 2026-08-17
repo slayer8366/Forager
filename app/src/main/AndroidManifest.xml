@@ -5,6 +5,21 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!--
+      Without this, PlannedTripRow's "Directions" action always reports no maps app installed,
+      even with one present: compileSdk/targetSdk 37 means Android's package-visibility rules
+      apply, so `PackageManager.resolveActivity()`/`startActivity()` for an implicit `geo:` intent
+      report nothing resolvable unless the manifest explicitly declares visibility into it — this
+      is Android's own documented pattern for exactly that intent (see the platform docs on
+      package visibility and the `geo:` scheme example).
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ForagerApplication"
         android:allowBackup="true"

@@ -9,16 +9,25 @@ import com.forager.app.data.remote.dto.TaxaAutocompleteResponseDto
 import com.forager.app.data.remote.dto.TaxonDto
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeTripWindowsUseCase
+import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetConditionsUseCase
+import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
+import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
+import com.forager.app.domain.model.WeatherSeries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -127,6 +136,21 @@ private class StubWeatherProvider : WeatherProvider {
         Result.success(ConditionsSummary(region = region, totalPrecipitationMm = 12.0, daysSinceSignificantRain = 2))
 }
 
+/** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */
+private object StubTripPlanningWeatherProvider : TripPlanningWeatherProvider {
+    override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
+        Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
+}
+
+/** Not exercised by this test's assertions; empty rather than failing, since it loads on every ViewModel init. */
+private object StubPlannedTripRepository : PlannedTripRepository {
+    override suspend fun getAll(): Result<List<PlannedTrip>> = Result.success(emptyList())
+    override suspend fun save(trip: PlannedTrip): Result<Unit> =
+        Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
+    override suspend fun delete(id: String): Result<Unit> =
+        Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
+}
+
 class AvailabilityViewModelFilterTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -146,6 +170,10 @@ class AvailabilityViewModelFilterTest {
             searchTaxa = SearchTaxaUseCase(repository),
             getConditions = GetConditionsUseCase(StubWeatherProvider()),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
+            getTripWindows = GetTripWindowsUseCase(StubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
+            getPlannedTrips = GetPlannedTripsUseCase(StubPlannedTripRepository),
+            savePlannedTrip = SavePlannedTripUseCase(StubPlannedTripRepository),
+            deletePlannedTrip = DeletePlannedTripUseCase(StubPlannedTripRepository),
         )
     }
 

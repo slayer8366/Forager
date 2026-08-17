@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -24,8 +25,12 @@ import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.NoTripWindowReason
+import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SoilAvailability
+import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import java.time.LocalDate
@@ -174,6 +179,27 @@ private val CONDITIONS = ConditionsSummary(
     daysSinceSignificantRain = 2,
 )
 
+/**
+ * A trip-window search that ran and found nothing, with a stated reason — the simplest non-null
+ * report, sufficient to prove the Trip Planner tab renders [TripWindowsCard]'s content rather
+ * than the "no search yet" message. This file owns the layout question of which tab shows the
+ * card and when; the content of a populated window list is a rendering detail this fixture
+ * doesn't need to exercise to answer that question.
+ */
+private val TRIP_WINDOW_REPORT_NO_WINDOWS = TripWindowReport(
+    region = REGION,
+    referenceDay = LocalDate.of(2025, 8, 14),
+    horizonEnd = LocalDate.of(2025, 8, 21),
+    rainEvents = emptyList(),
+    windows = emptyList(),
+    noWindowReason = NoTripWindowReason.NoForecastDays,
+    soilAvailability = SoilAvailability(
+        shallowMoistureBand = null,
+        deeperMoistureBand = null,
+        temperatureBand = null,
+    ),
+)
+
 abstract class AvailabilityScreenLayoutTest {
 
     private val composeRule = createComposeRule()
@@ -196,11 +222,11 @@ abstract class AvailabilityScreenLayoutTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     /** Composes the real screen with every real callback wired to a recorder, and a stubbed map. */
-    private fun setScreen(uiState: AvailabilityUiState) {
+    private fun setScreen(uiState: AvailabilityUiState, onUseCurrentLocation: () -> Unit = {}) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = {},
+                onUseCurrentLocation = onUseCurrentLocation,
                 onManualLatChanged = {},
                 onManualLngChanged = {},
                 onSearchManualCoordinates = {},
@@ -211,6 +237,10 @@ abstract class AvailabilityScreenLayoutTest {
                 onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = {},
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -340,31 +370,154 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 5 — every drawer control can actually be reached.**
-     *
-     * The tall stack of controls that starved the map is now behind a scroll in the drawer sheet.
-     * "Reachable" is the property that matters: unreachable is exactly what they were before, and
-     * a control measured off the bottom of a fixed-height sheet is no better than one measured to
-     * zero height. Each is scrolled to through the real scroll container and then asserted to be
-     * on screen, which is a stronger claim than existing in the tree.
+     * The Trip Planner drawer section's own gate: [TripWindowsCard] used to be shown inside the
+     * List tab whenever `uiState.region != null`, with no message otherwise, then moved to its own
+     * top-level tab, and now lives inside the drawer's collapsible Trip Planner section. It still
+     * needs the same "nothing chosen yet" gate [MapTab] has for its own content — otherwise
+     * expanding the section before any search would render an empty card with nothing explaining
+     * why.
      */
     @Test
-    fun `every drawer control is reachable`() {
+    fun `the drawer's Trip Planner section shows a no-search message before any region is chosen`() {
+        setScreen(AvailabilityUiState())
+
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Choose a region in search options to see rain-driven trip windows.")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Trip Windows").assertDoesNotExist()
+    }
+
+    /** The other half of the gate: once a region has been searched, the card itself is shown. */
+    @Test
+    fun `the drawer's Trip Planner section shows the trip windows card once a region is searched`() {
+        setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_NO_WINDOWS))
+
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Trip Windows").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "No forecast days were returned for this location, so there's nothing to plan against.",
+        ).assertIsDisplayed()
+    }
+
+    /**
+     * **The planned-trips feature's core display promise.** A trip dated today is moved to the
+     * front of the list and carries a "Today" label, distinct from a trip on any other date — the
+     * "auto-promoted display, no notification" behaviour the user asked for. Drives the real
+     * drawer-section expand tap rather than handing the screen a pre-expanded state, so this also
+     * proves the list is reachable through the same gesture a user would use.
+     */
+    @Test
+    fun `a planned trip dated today is shown with a Today label in the Trip Planner section`() {
+        val today = LocalDate.now()
+        val todayTrip = PlannedTrip(id = "today-trip", name = "Today's Trip", location = LatLng(45.40, -122.70), date = today)
+        val futureTrip = PlannedTrip(id = "future-trip", name = "Future Trip", location = LatLng(45.50, -122.80), date = today.plusDays(5))
+        setScreen(SEARCHED_STATE.copy(plannedTrips = listOf(todayTrip, futureTrip)))
+
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Today").assertIsDisplayed()
+        composeRule.onNodeWithText("45.4000, -122.7000").assertIsDisplayed()
+        composeRule.onNodeWithText("45.5000, -122.8000").assertIsDisplayed()
+    }
+
+    /**
+     * **Test 5 — every advanced-search drawer control can actually be reached.**
+     *
+     * The tall stack of controls that starved the map is now behind a scroll in the drawer sheet,
+     * *and* behind the "Advanced search" section's own expand tap — both have to be defeated for
+     * a control to count as reachable. "Reachable" is the property that matters: unreachable is
+     * exactly what they were before, and a control measured off the bottom of a fixed-height sheet
+     * (or behind a collapsed section nobody expanded) is no better than one measured to zero
+     * height. Each is scrolled to through the real scroll container and then asserted to be on
+     * screen, which is a stronger claim than existing in the tree.
+     *
+     * Species/category search used to be in this list — it was one of the drawer controls this
+     * test guarded. It moved to [AvailabilitySearchTopBar], in the app bar itself, so its
+     * reachability is asserted without opening the drawer at all in the test below instead. The
+     * foraging-areas toggle left this list for the same reason: it moved out of the drawer to sit
+     * directly below the map — see the test below this one.
+     */
+    @Test
+    fun `every advanced-search drawer control is reachable`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithContentDescription("Search options").performClick()
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Advanced search").performClick()
 
         listOf(
             "Use current location",
             "Search this location",
             "Search radius: 15 km",
-            "Searching for: Fungi",
-            "Or search a species",
             "Month",
-            "Foraging areas",
         ).forEach { label ->
             composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
         }
+    }
+
+    /**
+     * The foraging-areas toggle's own reachability claim: it used to be one of the drawer controls
+     * guarded above, behind the tune icon and the "Advanced search" section's expand tap. It now
+     * sits directly below the map itself — this asserts it is on screen with no drawer interaction
+     * at all, the same "reachable without the drawer" property [AvailabilitySearchTopBar]'s
+     * species search bar has.
+     */
+    @Test
+    fun `the foraging areas toggle is reachable below the map without opening the drawer`() {
+        setScreen(SEARCHED_STATE)
+
+        composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
+    }
+
+    /**
+     * **Test 6 — the species search bar is reachable without opening the drawer.**
+     *
+     * This is the control the user reported as buried: it used to sit behind the same tune-icon
+     * tap as location and radius, at the same depth as settings people touch once a session, then
+     * moved to a bar of its own above the tab row, and now lives in the app bar itself, replacing
+     * the static "Forager" title. This asserts it is on screen with no drawer interaction at all —
+     * the property the promotion exists to deliver.
+     */
+    @Test
+    fun `the species search bar is reachable without opening the drawer`() {
+        setScreen(SEARCHED_STATE)
+
+        listOf(
+            "Fungi",
+            "Plants",
+            "Lichens (approx.)",
+            "Or search a species",
+        ).forEach { label ->
+            composeRule.onNodeWithText(label).assertIsDisplayed()
+        }
+    }
+
+    /**
+     * The Trip Planner section's own controls (the planned-trips list, reached through
+     * [TripPlannerSection]) are reachable the same way the Advanced search section's are: open
+     * the drawer, expand the section, scroll to the control.
+     */
+    @Test
+    fun `every Trip Planner drawer control is reachable`() {
+        val trip = PlannedTrip(id = "reachable-trip", name = "Reachable Trip", location = LatLng(45.40, -122.70), date = LocalDate.now())
+        setScreen(SEARCHED_STATE.copy(plannedTrips = listOf(trip)))
+
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Planned Trips").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Reachable Trip").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("45.4000, -122.7000").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Directions to ${trip.name}")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Remove planned trip for ${trip.date}")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     /**
@@ -375,10 +528,46 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the build identity footer stays visible without scrolling`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithContentDescription("Search options").performClick()
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
 
         composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
             .assertIsDisplayed()
+    }
+
+    /**
+     * The drawer's own close affordance. Gestures are off on this drawer (a swipe over the map
+     * means "pan", not "close" — see [AvailabilityScreen]'s doc comment), so tapping the scrim was
+     * the only way out before this button existed; this asserts the button actually closes it
+     * rather than just existing in the tree.
+     */
+    @Test
+    fun `the drawer close button closes the drawer`() {
+        setScreen(SEARCHED_STATE)
+
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
+            .assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Close search options").performClick()
+
+        composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
+            .assertIsNotDisplayed()
+    }
+
+    /**
+     * The "use current location" shortcut in the search bar's category row. It has to call the
+     * same [AvailabilityScreen.onUseCurrentLocation] callback the drawer's own button calls — not
+     * a second location-fetch path — which this proves by wiring a recorder into that single
+     * callback and tapping the search-bar icon rather than the drawer's button.
+     */
+    @Test
+    fun `the search bar's location icon calls onUseCurrentLocation`() {
+        var callCount = 0
+        setScreen(SEARCHED_STATE, onUseCurrentLocation = { callCount++ })
+
+        composeRule.onNodeWithContentDescription("Use current location").performClick()
+
+        assertTrue("onUseCurrentLocation should have been called exactly once", callCount == 1)
     }
 }
 
@@ -390,6 +579,6 @@ abstract class AvailabilityScreenLayoutTest {
  * which would render anything measurable under Robolectric anyway. This fills the same box and
  * carries a tag, so the box itself can be measured.
  */
-private val StubMapSlot: MapSlot = { _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, modifier ->
     Box(modifier.testTag(MAP_SLOT_TAG))
 }

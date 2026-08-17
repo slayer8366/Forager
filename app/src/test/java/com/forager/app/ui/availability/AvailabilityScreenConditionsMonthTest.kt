@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,20 +17,29 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeTripWindowsUseCase
+import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetConditionsUseCase
+import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
+import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
+import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
+import com.forager.app.domain.model.WeatherSeries
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import java.time.Month
@@ -89,6 +99,10 @@ class AvailabilityScreenConditionsMonthTest {
             searchTaxa = SearchTaxaUseCase(FakeRepository),
             getConditions = GetConditionsUseCase(FakeWeatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
+            getTripWindows = GetTripWindowsUseCase(FakeTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
+            getPlannedTrips = GetPlannedTripsUseCase(FakePlannedTripRepository),
+            savePlannedTrip = SavePlannedTripUseCase(FakePlannedTripRepository),
+            deletePlannedTrip = DeletePlannedTripUseCase(FakePlannedTripRepository),
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -106,17 +120,35 @@ class AvailabilityScreenConditionsMonthTest {
                 onCategorySelected = viewModel::onCategorySelected,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                 onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                onPlaceTripPin = viewModel::onPlaceTripPin,
+                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                 mapSlot = StubMapSlot,
             )
         }
     }
 
     private fun openDrawer() =
-        composeRule.onNodeWithContentDescription("Search options").performClick()
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+
+    /**
+     * Opens the drawer and expands its "Advanced search" section, exactly as a user would tap it.
+     * The drawer sheet stays composed (just animated off-screen) while closed, so the section's
+     * own expand/collapse state survives a close-and-reopen — this only taps the header when the
+     * section isn't already open, rather than blindly toggling it shut again.
+     */
+    private fun openDrawerToAdvancedSearch() {
+        openDrawer()
+        val alreadyExpanded = composeRule.onAllNodesWithText("Latitude").fetchSemanticsNodes().isNotEmpty()
+        if (!alreadyExpanded) {
+            composeRule.onNodeWithText("Advanced search").performClick()
+        }
+    }
 
     /** Types coordinates into the drawer and searches, exactly as a user would. */
     private fun searchAReferenceRegion() {
-        openDrawer()
+        openDrawerToAdvancedSearch()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
         // Closes the drawer itself, which is why nothing closes it here.
@@ -125,7 +157,7 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     private fun selectMonth(month: Month) {
-        openDrawer()
+        openDrawerToAdvancedSearch()
         composeRule.onNodeWithText("Month").performScrollTo().performClick()
         composeRule.onNodeWithText(month.getDisplayName(TextStyle.FULL, Locale.getDefault()))
             .performClick()
@@ -165,7 +197,7 @@ class AvailabilityScreenConditionsMonthTest {
     }
 }
 
-private val StubMapSlot: MapSlot = { _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
+private val StubMapSlot: MapSlot = { _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
 
 /** The coordinate path is what this test drives, so the device-location path is never reached. */
 private object UnusedLocationProvider : LocationProvider {
@@ -207,4 +239,19 @@ private object FakeWeatherProvider : WeatherProvider {
             daysSinceSignificantRain = 2,
         ),
     )
+}
+
+/** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */
+private object FakeTripPlanningWeatherProvider : TripPlanningWeatherProvider {
+    override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
+        Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
+}
+
+/** Not exercised by this test's assertions; empty rather than failing, since it loads on every ViewModel init. */
+private object FakePlannedTripRepository : PlannedTripRepository {
+    override suspend fun getAll(): Result<List<PlannedTrip>> = Result.success(emptyList())
+    override suspend fun save(trip: PlannedTrip): Result<Unit> =
+        Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
+    override suspend fun delete(id: String): Result<Unit> =
+        Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
 }

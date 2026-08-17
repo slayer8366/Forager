@@ -3,12 +3,18 @@ package com.forager.app.ui.availability
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.GetConditionsUseCase
+import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.PredictAvailabilityUseCase
+import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -28,6 +34,10 @@ class AvailabilityViewModel(
     private val searchTaxa: SearchTaxaUseCase,
     private val getConditions: GetConditionsUseCase,
     private val clusterForagingAreas: ClusterForagingAreasUseCase,
+    private val getTripWindows: GetTripWindowsUseCase,
+    private val getPlannedTrips: GetPlannedTripsUseCase,
+    private val savePlannedTrip: SavePlannedTripUseCase,
+    private val deletePlannedTrip: DeletePlannedTripUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -36,6 +46,12 @@ class AvailabilityViewModel(
     /** The region+month+filter the current [AvailabilityUiState.sightings] were fetched for, or null if none fetched yet. */
     private var loadedSightingsQuery: Triple<Region, Int, TaxonFilter>? = null
     private var taxonSearchJob: Job? = null
+
+    init {
+        // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
+        // up front rather than waiting on a region the way sightings and trip windows do.
+        loadPlannedTrips()
+    }
 
     fun onRadiusChanged(radiusKm: Int) {
         _uiState.update { it.copy(radiusKm = Region.clampRadiusKm(radiusKm)) }
@@ -47,7 +63,14 @@ class AvailabilityViewModel(
     }
 
     fun onCategorySelected(category: TaxonFilter) {
-        _uiState.update { it.copy(taxonFilter = category, taxonSearchQuery = "", taxonSearchResults = emptyList()) }
+        _uiState.update {
+            it.copy(
+                taxonFilter = category,
+                foragingSelection = ForagingSelection.forChip(category),
+                taxonSearchQuery = "",
+                taxonSearchResults = emptyList(),
+            )
+        }
         _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, category) }
     }
 
@@ -78,16 +101,48 @@ class AvailabilityViewModel(
         }
     }
 
+    /**
+     * Collapses the species-search suggestion popup without touching the typed query, so it can't
+     * be left showing over other content it wasn't meant to sit above — e.g. the drawer opening
+     * over the app bar. The in-flight search job is cancelled too: with no results to eventually
+     * show, letting it run to completion in the background would only re-populate
+     * [AvailabilityUiState.taxonSearchResults] and silently reopen the popup this was just told to
+     * close.
+     */
+    fun onDismissTaxonSuggestions() {
+        taxonSearchJob?.cancel()
+        _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false) }
+    }
+
     fun onTaxonSearchResultSelected(result: TaxonSearchResult) {
         val filter = result.toFilter()
         _uiState.update {
             it.copy(
                 taxonFilter = filter,
+                foragingSelection = ForagingSelection.fromSearchResult(result),
+                // The query that produced the list [result] was picked from — remembered here,
+                // at the one point it's guaranteed non-blank (a result can't have been picked
+                // from an empty query), so it survives taxonSearchQuery being cleared right below.
+                lastTaxonSearchQuery = it.taxonSearchQuery,
                 taxonSearchQuery = "",
                 taxonSearchResults = emptyList(),
             )
         }
         _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, filter) }
+    }
+
+    /**
+     * Reopens the suggestion dropdown for the last species search, so picking a different result
+     * doesn't mean retyping the query from scratch — tapped from the summary strip
+     * ([AvailabilityUiState.lastTaxonSearchQuery]'s doc comment has the full picture). Re-runs the
+     * search rather than replaying the old [AvailabilityUiState.taxonSearchResults]: this app
+     * doesn't own the freshness of iNaturalist's taxonomy data, so showing a list from however
+     * long ago without a live query would be a stale result presented as a current one. A no-op
+     * when nothing has been searched yet, rather than opening an empty dropdown.
+     */
+    fun onReopenTaxonSuggestions() {
+        val query = _uiState.value.lastTaxonSearchQuery
+        if (query.isNotBlank()) onTaxonSearchQueryChanged(query)
     }
 
     fun onManualLatChanged(text: String) {
@@ -204,24 +259,84 @@ class AvailabilityViewModel(
 
         // Recent rainfall is only meaningful for the current month: searching "what's typical
         // in November" while it's April doesn't make today's rain relevant to that answer.
-        if (month != LocalDate.now().monthValue) {
+        if (month == LocalDate.now().monthValue) {
+            // Independent of the forecast fetch above: a conditions failure must not block or
+            // fail the main forecast, same independence pattern as onMapTabSelected's sightings
+            // fetch.
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoadingConditions = true, conditionsErrorMessage = null) }
+                getConditions(region).fold(
+                    onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(
+                                isLoadingConditions = false,
+                                conditions = null,
+                                conditionsErrorMessage = error.message ?: "Couldn't load recent rainfall.",
+                            )
+                        }
+                    },
+                )
+            }
+        } else {
             _uiState.update { it.copy(conditions = null, isLoadingConditions = false, conditionsErrorMessage = null) }
-            return
         }
 
-        // Independent of the forecast fetch above: a conditions failure must not block or fail
-        // the main forecast, same independence pattern as onMapTabSelected's sightings fetch.
+        // Trip windows are about the days ahead of today, not about the browsed month, so unlike
+        // conditions above they are fetched regardless of which month is selected for the ranked
+        // list — browsing "what's typical in November" in August doesn't make this week's rain
+        // and forecast irrelevant to planning a trip this week.
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingConditions = true, conditionsErrorMessage = null) }
-            getConditions(region).fold(
-                onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
+            _uiState.update { it.copy(isLoadingTripWindows = true, tripWindowsErrorMessage = null) }
+            getTripWindows(region).fold(
+                onSuccess = { report -> _uiState.update { it.copy(isLoadingTripWindows = false, tripWindowReport = report) } },
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(
-                            isLoadingConditions = false,
-                            conditions = null,
-                            conditionsErrorMessage = error.message ?: "Couldn't load recent rainfall.",
+                            isLoadingTripWindows = false,
+                            tripWindowReport = null,
+                            tripWindowsErrorMessage = error.message ?: "Couldn't load trip-window weather.",
                         )
+                    }
+                },
+            )
+        }
+    }
+
+    private fun loadPlannedTrips() {
+        viewModelScope.launch {
+            getPlannedTrips().fold(
+                onSuccess = { trips -> _uiState.update { it.copy(plannedTrips = trips, plannedTripsErrorMessage = null) } },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(plannedTripsErrorMessage = error.message ?: "Couldn't load planned trips.")
+                    }
+                },
+            )
+        }
+    }
+
+    /** Called from the map's long-press flow once a date and name are confirmed; see [com.forager.app.ui.map.SightingsMap]. */
+    fun onPlaceTripPin(location: LatLng, date: LocalDate, name: String) {
+        viewModelScope.launch {
+            savePlannedTrip(location, date, name).fold(
+                onSuccess = { loadPlannedTrips() },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(plannedTripsErrorMessage = error.message ?: "Couldn't save the planned trip.")
+                    }
+                },
+            )
+        }
+    }
+
+    fun onDeletePlannedTrip(id: String) {
+        viewModelScope.launch {
+            deletePlannedTrip(id).fold(
+                onSuccess = { loadPlannedTrips() },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(plannedTripsErrorMessage = error.message ?: "Couldn't delete the planned trip.")
                     }
                 },
             )
