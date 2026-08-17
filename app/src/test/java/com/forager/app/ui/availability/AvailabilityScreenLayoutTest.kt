@@ -24,8 +24,11 @@ import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.NoTripWindowReason
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SoilAvailability
+import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import java.time.LocalDate
@@ -172,6 +175,27 @@ private val CONDITIONS = ConditionsSummary(
     region = REGION,
     totalPrecipitationMm = 12.4,
     daysSinceSignificantRain = 2,
+)
+
+/**
+ * A trip-window search that ran and found nothing, with a stated reason — the simplest non-null
+ * report, sufficient to prove the Trip Planner tab renders [TripWindowsCard]'s content rather
+ * than the "no search yet" message. This file owns the layout question of which tab shows the
+ * card and when; the content of a populated window list is a rendering detail this fixture
+ * doesn't need to exercise to answer that question.
+ */
+private val TRIP_WINDOW_REPORT_NO_WINDOWS = TripWindowReport(
+    region = REGION,
+    referenceDay = LocalDate.of(2025, 8, 14),
+    horizonEnd = LocalDate.of(2025, 8, 21),
+    rainEvents = emptyList(),
+    windows = emptyList(),
+    noWindowReason = NoTripWindowReason.NoForecastDays,
+    soilAvailability = SoilAvailability(
+        shallowMoistureBand = null,
+        deeperMoistureBand = null,
+        temperatureBand = null,
+    ),
 )
 
 abstract class AvailabilityScreenLayoutTest {
@@ -340,30 +364,85 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 5 — every drawer control can actually be reached.**
+     * The Trip Planner tab's own gate: [TripWindowsCard] used to be shown inside the List tab
+     * whenever `uiState.region != null`, with no message otherwise. Now that it's a whole tab
+     * reached by its own click, it needs the same "nothing chosen yet" gate [MapTab] already has
+     * — otherwise selecting the tab before any search would render an empty card with nothing
+     * explaining why.
+     */
+    @Test
+    fun `the trip planner tab shows a no-search message before any region is chosen`() {
+        setScreen(AvailabilityUiState())
+
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Choose a region in search options to see planned trip windows.")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Trip Windows").assertDoesNotExist()
+    }
+
+    /** The other half of the gate: once a region has been searched, the card itself is shown. */
+    @Test
+    fun `the trip planner tab shows the trip windows card once a region is searched`() {
+        setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_NO_WINDOWS))
+
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Trip Windows").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "No forecast days were returned for this location, so there's nothing to plan against.",
+        ).assertIsDisplayed()
+    }
+
+    /**
+     * **Test 5 — every advanced-search drawer control can actually be reached.**
      *
      * The tall stack of controls that starved the map is now behind a scroll in the drawer sheet.
      * "Reachable" is the property that matters: unreachable is exactly what they were before, and
      * a control measured off the bottom of a fixed-height sheet is no better than one measured to
      * zero height. Each is scrolled to through the real scroll container and then asserted to be
      * on screen, which is a stronger claim than existing in the tree.
+     *
+     * Species/category search used to be in this list — it was one of the drawer controls this
+     * test guarded. It moved to [SpeciesSearchBar], always visible above the tab row, so its
+     * reachability is asserted without opening the drawer at all in the test below instead.
      */
     @Test
-    fun `every drawer control is reachable`() {
+    fun `every advanced-search drawer control is reachable`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithContentDescription("Search options").performClick()
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
 
         listOf(
             "Use current location",
             "Search this location",
             "Search radius: 15 km",
-            "Searching for: Fungi",
-            "Or search a species",
             "Month",
             "Foraging areas",
         ).forEach { label ->
             composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    /**
+     * **Test 6 — the species search bar is reachable without opening the drawer.**
+     *
+     * This is the control the user reported as buried: it used to sit behind the same tune-icon
+     * tap as location and radius, at the same depth as settings people touch once a session. It
+     * is now content in the main column, so this asserts it is on screen with no drawer
+     * interaction at all — the property the promotion exists to deliver.
+     */
+    @Test
+    fun `the species search bar is reachable without opening the drawer`() {
+        setScreen(SEARCHED_STATE)
+
+        listOf(
+            "Fungi",
+            "Plants",
+            "Lichens (approx.)",
+            "Or search a species",
+        ).forEach { label ->
+            composeRule.onNodeWithText(label).assertIsDisplayed()
         }
     }
 
@@ -375,7 +454,7 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the build identity footer stays visible without scrolling`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithContentDescription("Search options").performClick()
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
 
         composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
             .assertIsDisplayed()

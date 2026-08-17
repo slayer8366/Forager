@@ -83,13 +83,20 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-private enum class ResultsTab(val label: String) { LIST("List"), MAP("Map") }
+private enum class ResultsTab(val label: String) {
+    LIST("List"),
+    MAP("Map"),
+    TRIP_PLANNER("Trip Planner"),
+}
 
 /**
- * Map-first layout: the results (map or ranked list) own the content area, and every search
- * control lives in a navigation drawer behind the app bar's tune icon.
+ * Map-first layout: the results (map, ranked list, or trip windows) own the content area, and
+ * everything set far less than once per search — location, radius, month, the foraging-areas
+ * layer — lives in a navigation drawer behind the app bar's tune icon. The one control used on
+ * nearly every search, species/category, is promoted out of that drawer into [SpeciesSearchBar],
+ * always visible below the app bar; see its doc comment for why.
  *
- * **Why the controls are in a drawer.** They used to be stacked above the results in one
+ * **Why the rest is still in a drawer.** They used to be stacked above the results in one
  * unscrolled [Column]. A Column measures its non-weighted children in order against the height
  * still unclaimed, so the eight-odd wrap-content controls took the viewport and whatever came
  * after them — the tab row, the conditions card, the map — was measured against what was left,
@@ -99,9 +106,12 @@ private enum class ResultsTab(val label: String) { LIST("List"), MAP("Map") }
  * height constraint down, which a map cannot be measured against at all, so the map would still
  * have needed a hard-coded height and would still not have been the primary thing on screen.
  *
- * The drawer is what makes the real fix possible: with the controls gone, the content area has
- * exactly one wrap-content sibling (the tab row) plus a one-line summary strip, and the results
- * take the rest via [Modifier.weight], which is a definite bounded height rather than a remainder.
+ * The drawer is what makes the real fix possible: with most controls gone, the content area has
+ * a small, bounded set of wrap-content siblings above the results (the summary strip, the species
+ * search bar, the tab row), and the results take the rest via [Modifier.weight], which is a
+ * definite bounded height rather than a remainder. [SpeciesSearchBar]'s own doc comment explains
+ * how its one unbounded-looking piece — the autocomplete suggestion list — is kept from repeating
+ * the same starvation.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -159,9 +169,6 @@ fun AvailabilityScreen(
                         onSearchManualCoordinates()
                     },
                     onRadiusChanged = onRadiusChanged,
-                    onCategorySelected = onCategorySelected,
-                    onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                    onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                     onMonthSelected = onMonthSelected,
                     onToggleForagingAreas = onToggleForagingAreas,
                 )
@@ -175,7 +182,7 @@ fun AvailabilityScreen(
                     title = { Text("Forager") },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Filled.Tune, contentDescription = "Search options")
+                            Icon(Icons.Filled.Tune, contentDescription = "Advanced search options")
                         }
                     },
                 )
@@ -190,6 +197,12 @@ fun AvailabilityScreen(
             ) {
                 ActiveSearchSummary(uiState)
                 SearchNotice(uiState)
+                SpeciesSearchBar(
+                    uiState = uiState,
+                    onCategorySelected = onCategorySelected,
+                    onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+                )
 
                 SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
                     ResultsTab.entries.forEach { tab ->
@@ -202,8 +215,8 @@ fun AvailabilityScreen(
                 }
 
                 // weight(1f) states the intent: the results get whatever is left after the
-                // one-line siblings above, and Compose measures weighted children last, so that
-                // height is definite and bounded instead of a remainder that can reach zero.
+                // wrap-content siblings above, and Compose measures weighted children last, so
+                // that height is definite and bounded instead of a remainder that can reach zero.
                 //
                 // Measured caveat, from AvailabilityScreenLayoutTest: with the controls in the
                 // drawer, removing this weight changes nothing — the tab content is then the last
@@ -216,6 +229,10 @@ fun AvailabilityScreen(
                     ResultsTab.MAP -> MapTab(
                         uiState = uiState,
                         mapSlot = mapSlot,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ResultsTab.TRIP_PLANNER -> TripPlannerTab(
+                        uiState = uiState,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -287,7 +304,10 @@ private fun SearchNotice(uiState: AvailabilityUiState) {
 }
 
 /**
- * Everything that defines a search, in the drawer.
+ * Everything set far less than once per search, in the drawer: location, radius, month, and the
+ * foraging-areas layer. Species/category used to live here too; it is now [SpeciesSearchBar],
+ * always visible above the tab row, because it's the one control people reach for on nearly every
+ * search rather than once a session.
  *
  * The scroll modifier is not optional. This is the same tall stack of controls that starved the
  * map when it lived in the main column; a drawer sheet is a fixed-height container too, so
@@ -326,9 +346,6 @@ private fun SearchControls(
     onManualLngChanged: (String) -> Unit,
     onSearchManualCoordinates: () -> Unit,
     onRadiusChanged: (Int) -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
-    onTaxonSearchQueryChanged: (String) -> Unit,
-    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onMonthSelected: (Int) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
 ) {
@@ -338,7 +355,7 @@ private fun SearchControls(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Search", style = MaterialTheme.typography.titleMedium)
+        Text("Advanced search", style = MaterialTheme.typography.titleMedium)
 
         RegionControls(
             uiState = uiState,
@@ -347,13 +364,6 @@ private fun SearchControls(
             onManualLngChanged = onManualLngChanged,
             onSearchManualCoordinates = onSearchManualCoordinates,
             onRadiusChanged = onRadiusChanged,
-        )
-        HorizontalDivider()
-        TaxonFilterControls(
-            uiState = uiState,
-            onCategorySelected = onCategorySelected,
-            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-            onTaxonSearchResultSelected = onTaxonSearchResultSelected,
         )
         HorizontalDivider()
         MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
@@ -411,16 +421,41 @@ private fun RegionControls(
     }
 }
 
+/**
+ * Species/category search, always visible below the app bar rather than behind the drawer.
+ *
+ * This was the most-buried control in the previous layout — the same depth as location and
+ * radius, which are set once a session, when species search is the control used on nearly every
+ * search. Promoting it here is the fix; see [AvailabilityScreen]'s doc comment.
+ *
+ * Kept to two rows on purpose. This bar sits above a `weight(1f)` tab-content sibling with no
+ * scroll container of its own around it — a top-level sibling here is measured exactly like the
+ * original unscrolled drawer stack was, so every line added is a line taken from the map (or
+ * list, or trip planner) on a short screen or at a large font scale. That ruled out a third,
+ * separate "Searching for: X" caption above the chips: [ActiveSearchSummary] already states the
+ * active category, so it would have been the same fact twice at the cost of a whole text line.
+ * It's also why the text field carries no floating label, only a `placeholder` — the label
+ * reserves its own vertical space even when the field is unfocused and empty, the placeholder
+ * doesn't. This is the same height-budget constraint [AvailabilityScreenLayoutTest] measures on
+ * the map; see also [ForagingAreasPanel]'s cap, tightened during this change for the same reason.
+ *
+ * The suggestion list below the text field is the one part of this bar whose height isn't fixed
+ * by its content — it grows with however many matches the search returns. [heightIn] caps it and
+ * the [LazyColumn] scrolls within that cap, so a long result list can't repeat the same squeeze.
+ */
 @Composable
-private fun TaxonFilterControls(
+private fun SpeciesSearchBar(
     uiState: AvailabilityUiState,
     onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Searching for: ${uiState.taxonFilter.label}", style = MaterialTheme.typography.bodyMedium)
-
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
                 FilterChip(
@@ -434,8 +469,9 @@ private fun TaxonFilterControls(
         OutlinedTextField(
             value = uiState.taxonSearchQuery,
             onValueChange = onTaxonSearchQueryChanged,
-            label = { Text("Or search a species") },
-            placeholder = { Text("e.g. chanterelle") },
+            placeholder = {
+                Text("Or search a species", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = {
@@ -455,8 +491,8 @@ private fun TaxonFilterControls(
 
         if (uiState.taxonSearchResults.isNotEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    uiState.taxonSearchResults.forEach { result ->
+                LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
+                    items(uiState.taxonSearchResults, key = { it.taxonId }) { result ->
                         TaxonSuggestionRow(result = result, onClick = { onTaxonSearchResultSelected(result) })
                     }
                 }
@@ -516,6 +552,12 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
  * The card sits here rather than in the drawer or over the map because rainfall is context for
  * the ranking and belongs next to it — but *next to*, not fused into it: it keeps its own card,
  * its own heading, and says nothing about the ranking below. See [ConditionsCard].
+ *
+ * Trip windows used to be shown here too; they now have their own tab — see [TripPlannerTab] —
+ * because "what's likely nearby this month" and "when in the next few days is worth going" are
+ * different questions with different lifetimes (the ranking depends on the browsed month, trip
+ * windows only on the next several days), and fusing them into one scrolling column was one more
+ * step to reach whichever one wasn't currently showing.
  */
 @Composable
 private fun ListTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
@@ -528,9 +570,6 @@ private fun ListTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier)
         Spacer(Modifier.height(4.dp))
         if (uiState.conditions != null) {
             ConditionsCard(conditions = uiState.conditions)
-        }
-        if (uiState.region != null) {
-            TripWindowsCard(uiState = uiState)
         }
         // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
         // bounded height rather than whatever the card above it happens to leave.
@@ -638,6 +677,31 @@ private fun MapTab(uiState: AvailabilityUiState, mapSlot: MapSlot, modifier: Mod
     }
 }
 
+/**
+ * The trip-planner tab: upcoming rain-driven windows plus the group's general weather guidance,
+ * gated on a search the same way [MapTab] is — before any region is chosen there is no rainfall
+ * history to plan from, so this says that rather than rendering an empty [TripWindowsCard].
+ */
+@Composable
+private fun TripPlannerTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
+    if (!uiState.hasSearched) {
+        MapMessage(
+            "Choose a region in search options to see planned trip windows.",
+            modifier = modifier,
+        )
+        return
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+    ) {
+        TripWindowsCard(uiState = uiState)
+    }
+}
+
 @Composable
 private fun MapMessage(
     text: String,
@@ -697,7 +761,16 @@ private fun ForagingAreasPanel(foragingAreas: ForagingAreas?, modifier: Modifier
         )
 
         is ForagingAreas.Found -> Column(
-            modifier = modifier,
+            // The whole panel is capped and scrolls within the cap, not just the area list below
+            // it: this sits inside the map tab's weighted region, next to a `weight(1f)` mapSlot
+            // with no bound of its own, so an uncapped disclaimer/count caption is exactly the
+            // kind of wrap-content sibling that starved the map before the controls moved to the
+            // drawer — it would just be doing it one level down and at large font scales instead
+            // of small screens. Capping only the list (as before) left that caption able to grow
+            // without limit.
+            modifier = modifier
+                .heightIn(max = FORAGING_AREAS_PANEL_MAX_HEIGHT)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
@@ -712,18 +785,20 @@ private fun ForagingAreasPanel(foragingAreas: ForagingAreas?, modifier: Modifier
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            // Capped so the panel stays a footnote to the map rather than a second screen
-            // competing with it; the list scrolls within the cap. Tapping a numbered marker on
-            // the map shows the same summary for that one area.
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(foragingAreas.areas, key = { it.visitOrder }) { area -> ForagingAreaRow(area) }
-            }
+            // Tapping a numbered marker on the map shows the same summary for that one area, so
+            // this list staying a footnote here costs nothing.
+            foragingAreas.areas.forEach { area -> ForagingAreaRow(area) }
         }
     }
 }
+
+/**
+ * The footnote-not-competitor cap for [ForagingAreasPanel]. Bounds the disclaimer/count caption
+ * together with the area list below it, so the panel as a whole stays small enough that the
+ * mapSlot it shares a weighted region with keeps the larger share — see
+ * [AvailabilityScreenLayoutTest]'s `MIN_MAP_SHARE_OF_SCREEN` for the map's own floor.
+ */
+private val FORAGING_AREAS_PANEL_MAX_HEIGHT = 60.dp
 
 @Composable
 private fun ForagingAreaRow(area: ForagingArea) {

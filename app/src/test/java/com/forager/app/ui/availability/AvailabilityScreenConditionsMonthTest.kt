@@ -117,7 +117,7 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     private fun openDrawer() =
-        composeRule.onNodeWithContentDescription("Search options").performClick()
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
 
     /** Types coordinates into the drawer and searches, exactly as a user would. */
     private fun searchAReferenceRegion() {
