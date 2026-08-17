@@ -3,6 +3,8 @@ package com.forager.app.ui.map
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.forager.app.domain.model.ForagingArea
+import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 
@@ -16,14 +18,19 @@ import com.forager.app.domain.model.Sighting
  * [com.forager.app.ui.availability.AvailabilityScreen] previously named [SightingsMap] directly,
  * so there was no way to compose the screen without also standing up the whole tile stack.
  *
- * The parameters are exactly what the screen knows and the map needs. [modifier] is last because
- * it is the slot's *size contract* — the screen decides how much room the map gets, which is the
- * one thing about this arrangement the screen is actually responsible for.
+ * The parameters are exactly what the screen knows and the map needs. [onLongPress] is how the map
+ * reports a trip-planning gesture back up without knowing anything about dates or persistence —
+ * the screen owns the date picker and the save call, the map only reports where the finger was.
+ * [modifier] is last because it is the slot's *size contract* — the screen decides how much room
+ * the map gets, which is the one thing about this arrangement the screen is actually responsible
+ * for.
  */
 typealias MapSlot = @Composable (
     region: Region,
     sightings: List<Sighting>,
     areas: List<ForagingArea>,
+    plannedTrips: List<PlannedTrip>,
+    onLongPress: (LatLng) -> Unit,
     modifier: Modifier,
 ) -> Unit
 
@@ -31,6 +38,13 @@ typealias MapSlot = @Composable (
  * The real map. This is the default every production call path gets, so introducing the seam
  * changed no caller: `MainActivity` passes nothing new.
  */
-val SightingsMapSlot: MapSlot = { region, sightings, areas, modifier ->
-    SightingsMap(region = region, sightings = sightings, areas = areas, modifier = modifier)
+val SightingsMapSlot: MapSlot = { region, sightings, areas, plannedTrips, onLongPress, modifier ->
+    SightingsMap(
+        region = region,
+        sightings = sightings,
+        areas = areas,
+        plannedTrips = plannedTrips,
+        onLongPress = onLongPress,
+        modifier = modifier,
+    )
 }

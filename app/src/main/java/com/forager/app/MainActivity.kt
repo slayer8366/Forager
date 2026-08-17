@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
@@ -28,6 +29,9 @@ class MainActivity : ComponentActivity() {
                     container.getConditionsUseCase,
                     container.clusterForagingAreasUseCase,
                     container.getTripWindowsUseCase,
+                    container.getPlannedTripsUseCase,
+                    container.savePlannedTripUseCase,
+                    container.deletePlannedTripUseCase,
                 )
             }
         }
@@ -47,6 +51,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Without this, the system nav bar stays whatever the platform default is — light on
+        // most devices — regardless of this app's own theme, which is why it read as a stray
+        // white bar under an otherwise dark screen. enableEdgeToEdge() makes it transparent and
+        // switches its icon color to match light/dark automatically, and lets this app's own
+        // background show through underneath it instead of a separately-colored system bar.
+        enableEdgeToEdge()
         setContent {
             ForagerTheme {
                 val uiState by viewModel.uiState.collectAsState()
@@ -70,6 +80,10 @@ class MainActivity : ComponentActivity() {
                     onCategorySelected = viewModel::onCategorySelected,
                     onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                     onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = viewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                 )
             }
         }

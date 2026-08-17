@@ -46,7 +46,7 @@ class OpenMeteoWeatherProvider(
      * bug the past/future split exists to prevent.
      */
     private suspend fun fetch(region: Region): Result<Pair<PrecipitationResponseDto, LocalDate>> =
-        runCatching {
+        runCatchingCancellable {
             val response = api.getPrecipitation(
                 latitude = region.lat,
                 longitude = region.lng,

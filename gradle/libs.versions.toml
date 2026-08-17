@@ -1,6 +1,10 @@
 [versions]
 agp = "9.3.1"
-kotlin = "2.2.20"
+# Bumped from 2.2.20 alongside adding Room/KSP: the classic `kotlin-android` Gradle plugin at
+# 2.2.20 fails to apply against AGP 9.3.1's newer extension type hierarchy ("ApplicationExtensionImpl
+# cannot be cast to BaseExtension") — a plugin-side incompatibility, not anything in this project's
+# own code. 2.3.10 applies cleanly against the same AGP version.
+kotlin = "2.3.10"
 coreKtx = "1.19.0"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
@@ -14,6 +18,13 @@ junit = "4.13.2"
 kotlinxCoroutinesTest = "1.11.0"
 osmdroid = "6.1.20"
 robolectric = "4.16.1"
+room = "2.8.4"
+# KSP2's versioning tracks Kotlin directly (no more "kotlinVersion-kspVersion" composite scheme
+# as of the Kotlin 2.3 line), so this stays equal to the `kotlin` version above.
+ksp = "2.3.10"
+# NGA's own MGRS conversion library — see the doc comment on domain/MgrsConverter.kt for why an
+# established library was chosen over hand-rolling the UTM/grid-zone math.
+mgrs = "2.1.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -37,13 +48,23 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
+# Local persistence for planned trips — the same "wrap an external integration behind an owned
+# interface" rule CLAUDE.md applies to iNaturalist and Open-Meteo above applies here too; Room is
+# reached only through domain's PlannedTripRepository, never named in domain/ itself.
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 # Test-only. Versions come from the Compose BOM, which the unit-test classpath also imports, so
 # the test artifacts can never drift from the Compose the app is built against.
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+# NGA's own Military Grid Reference System library — pure Java, no Android dependency, safe to
+# call from domain/. See domain/MgrsConverter.kt.
+nga-mgrs = { group = "mil.nga", name = "mgrs", version.ref = "mgrs" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -10,8 +10,12 @@ private val LightColors = lightColorScheme(
     primary = ForestGreen,
     secondary = Mushroom,
     tertiary = MossGreen,
-    background = Cream,
-    surface = Cream,
+    background = NearWhite,
+    surface = NearWhite,
+    surfaceVariant = Cream,
+    onSurfaceVariant = WarmOnSurfaceVariantLight,
+    primaryContainer = MossGreenContainerLight,
+    onPrimaryContainer = Bark,
     onPrimary = Cream,
     onBackground = Bark,
     onSurface = Bark,
@@ -20,14 +24,28 @@ private val LightColors = lightColorScheme(
 private val DarkColors = darkColorScheme(
     primary = MossGreen,
     secondary = Mushroom,
-    tertiary = ForestGreen,
-    background = Bark,
-    surface = Bark,
+    // ForestGreen (used here before) is dark enough that as literal text color — see the
+    // "not a walking route" disclaimer, the one place this role is used as a text color rather
+    // than a fill — it read poorly against a background that's now neutral gray rather than warm
+    // brown. MossGreen is the same brand hue, lighter, and already this scheme's primary, so it
+    // doesn't introduce a fourth color into a three-color brand palette.
+    tertiary = MossGreen,
+    background = NeutralGray900,
+    surface = NeutralGray900,
+    surfaceVariant = NeutralGray800,
+    onSurfaceVariant = NeutralGray200,
+    primaryContainer = MossGreenContainerDark,
+    onPrimaryContainer = Cream,
     onPrimary = Cream,
     onBackground = Cream,
     onSurface = Cream,
 )
 
+/**
+ * Light and dark variants both exist here already — [darkTheme] defaults to
+ * [isSystemInDarkTheme], so the app follows the device's system theme setting rather than needing
+ * its own in-app toggle, the same convention most Android apps use.
+ */
 @Composable
 fun ForagerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

@@ -4,6 +4,7 @@ import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingAreas
+import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
@@ -45,6 +46,13 @@ data class AvailabilityUiState(
     val taxonSearchResults: List<TaxonSearchResult> = emptyList(),
     val isSearchingTaxa: Boolean = false,
     val taxonSearchErrorMessage: String? = null,
+    /**
+     * The query text behind [taxonSearchResults] at the moment a result was last picked — kept
+     * around after [taxonSearchQuery] itself is cleared back to blank on selection, so tapping the
+     * summary strip can restore and re-search it without the user retyping. See
+     * [AvailabilityViewModel.onReopenTaxonSuggestions][com.forager.app.ui.availability.AvailabilityViewModel.onReopenTaxonSuggestions].
+     */
+    val lastTaxonSearchQuery: String = "",
     val conditions: ConditionsSummary? = null,
     val isLoadingConditions: Boolean = false,
     val conditionsErrorMessage: String? = null,
@@ -56,6 +64,14 @@ data class AvailabilityUiState(
     val tripWindowReport: TripWindowReport? = null,
     val isLoadingTripWindows: Boolean = false,
     val tripWindowsErrorMessage: String? = null,
+    /**
+     * Trips the user has placed on the map for a future date, independent of any region search —
+     * these are absolute map points, not tied to species/category/search state. Sorted by
+     * [GetPlannedTripsUseCase][com.forager.app.domain.GetPlannedTripsUseCase] with any dated today
+     * promoted to the front.
+     */
+    val plannedTrips: List<PlannedTrip> = emptyList(),
+    val plannedTripsErrorMessage: String? = null,
 ) {
     val hasSearched: Boolean get() = region != null
 }
