@@ -1,5 +1,6 @@
 package com.forager.app.domain
 
+import com.forager.app.domain.model.GeoBoundingBox
 import com.forager.app.domain.model.LatLng
 import kotlin.math.asin
 import kotlin.math.cos
@@ -40,5 +41,55 @@ object GeoDistance {
             cos(lat1) * cos(lat2) * sin(halfDLng) * sin(halfDLng)
         // coerceAtMost(1.0) guards asin's domain against floating-point overshoot on antipodes.
         return 2 * EARTH_MEAN_RADIUS_METERS * asin(sqrt(h).coerceAtMost(1.0))
+    }
+
+    /**
+     * The lat/lng rectangle that circumscribes a circle of [radiusKm] centred on [center] — an
+     * equirectangular approximation, not the true circumscribing box of a great-circle radius.
+     * Built for [com.forager.app.map.OsmdroidOfflineMapRepository]'s "Download Maps" region picker,
+     * which needs a rectangle of tiles to hand osmdroid's `CacheManager`, not a precise circle
+     * (there is no such thing as a circular tile download).
+     *
+     * A degree of longitude shrinks toward the poles — the same fact [metersBetween] exists to get
+     * right for distance — so the north/south span in degrees and the east/west span in degrees are
+     * computed separately: latitude uses the constant ~111km/degree, longitude divides that by
+     * `cos(latitude)` so the box widens in degrees as the search moves toward a pole, staying
+     * (approximately) [radiusKm] wide in real metres at every latitude it's drawn at.
+     *
+     * [GeoBoundingBox.east] and [.west][GeoBoundingBox.west] are normalized into `[-180, 180]` and
+     * can cross the antimeridian (`east < west`) for a centre near longitude ±180°; north/south are
+     * clamped to `[-90, 90]`. The `cos(latitude)` denominator is floored rather than left to approach
+     * zero near a pole, which would otherwise blow the east/west span out to (or past) the whole
+     * globe for a real, if unlikely, foraging search near 90°N.
+     */
+    fun boundingBox(center: LatLng, radiusKm: Int): GeoBoundingBox {
+        require(radiusKm >= 0) { "radiusKm must not be negative, was $radiusKm" }
+        val radiusMeters = radiusKm * 1_000.0
+
+        val latSpanDegrees = Math.toDegrees(radiusMeters / EARTH_MEAN_RADIUS_METERS)
+        val north = (center.lat + latSpanDegrees).coerceAtMost(90.0)
+        val south = (center.lat - latSpanDegrees).coerceAtLeast(-90.0)
+
+        val cosLat = cos(Math.toRadians(center.lat.coerceIn(-90.0, 90.0))).coerceAtLeast(MIN_COS_LAT)
+        val lngSpanDegrees = Math.toDegrees(radiusMeters / (EARTH_MEAN_RADIUS_METERS * cosLat))
+        val east = normalizeLongitudeDegrees(center.lng + lngSpanDegrees)
+        val west = normalizeLongitudeDegrees(center.lng - lngSpanDegrees)
+
+        return GeoBoundingBox(north = north, south = south, east = east, west = west)
+    }
+
+    /**
+     * The floor on `cos(latitude)` in [boundingBox]'s longitude-span denominator, equivalent to
+     * stopping 0.1° short of an exact pole. Below this the true east/west span in degrees is not
+     * meaningful anyway (a small circle around 90°N touches every longitude), so this is an
+     * explicit operating limit rather than the unbounded value the raw formula would compute.
+     */
+    private val MIN_COS_LAT = cos(Math.toRadians(89.9))
+
+    private fun normalizeLongitudeDegrees(lngDegrees: Double): Double {
+        var normalized = lngDegrees % 360.0
+        if (normalized > 180.0) normalized -= 360.0
+        if (normalized < -180.0) normalized += 360.0
+        return normalized
     }
 }

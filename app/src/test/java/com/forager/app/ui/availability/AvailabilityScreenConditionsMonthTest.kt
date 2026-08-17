@@ -26,6 +26,8 @@ import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -103,6 +105,7 @@ class AvailabilityScreenConditionsMonthTest {
             getPlannedTrips = GetPlannedTripsUseCase(FakePlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(FakePlannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(FakePlannedTripRepository),
+            offlineMapRepository = FakeOfflineMapRepository,
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -124,6 +127,11 @@ class AvailabilityScreenConditionsMonthTest {
                 onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
                 onPlaceTripPin = viewModel::onPlaceTripPin,
                 onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
                 mapSlot = StubMapSlot,
             )
         }
@@ -197,7 +205,7 @@ class AvailabilityScreenConditionsMonthTest {
     }
 }
 
-private val StubMapSlot: MapSlot = { _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
 
 /** The coordinate path is what this test drives, so the device-location path is never reached. */
 private object UnusedLocationProvider : LocationProvider {
@@ -254,4 +262,13 @@ private object FakePlannedTripRepository : PlannedTripRepository {
         Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
     override suspend fun delete(id: String): Result<Unit> =
         Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
+}
+
+/** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
+private object FakeOfflineMapRepository : OfflineMapRepository {
+    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun delete(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
 }
