@@ -1,0 +1,238 @@
+name: CI
+
+# Every merge to main before this workflow existed was green on nobody's authority but
+# whoever ran the build locally. This runs the same two commands README.md documents --
+# assembleDebug and testDebugUnitTest -- on a clean machine, and publishes the APK it built
+# so a build is downloadable without anyone building one by hand.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the in-flight run's answer stale, so cancel it.
+# Runs on main are exempt: main's history is what release APKs are built from, and a
+# cancelled run there would leave a commit with no recorded result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  # Deliberately outside the workspace. resolveBuildIdentity (app/build.gradle.kts) runs
+  # `git status --porcelain` and appends `.dirty` to versionName when it is non-empty, so an
+  # SDK unpacked inside the checkout would mark every CI build dirty. This also overrides the
+  # runner image's own preinstalled ANDROID_HOME/ANDROID_SDK_ROOT, which is the point: the
+  # SDK under test is the one scripts/setup-android-sdk.sh produces, not the one GitHub ships.
+  ANDROID_SDK_ROOT: ${{ github.workspace }}/../android-sdk
+  ANDROID_HOME: ${{ github.workspace }}/../android-sdk
+  # The one place the build-tools version is named in CI. It has to match the version
+  # scripts/setup-android-sdk.sh installs; the aapt2 step fails loudly if it does not.
+  BUILD_TOOLS_VERSION: "37.0.0"
+
+jobs:
+  build:
+    name: Build, test, publish APK
+    # Pinned rather than ubuntu-latest: `latest` silently moves to the next image, which is a
+    # toolchain change nobody chose. Same reason every action below is pinned to a commit sha
+    # rather than a mutable tag -- CLAUDE.md, "pin dependency versions ... so a build is
+    # reproducible".
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Not a default worth accepting. versionCode is the commit count and versionName
+          # carries the sha (resolveBuildIdentity in app/build.gradle.kts); a shallow clone
+          # answers `rev-list --count` with a plausible small number that means nothing, which
+          # the build detects and downgrades to versionCode=1 / UNVERSIONED-shallow-clone-*.
+          # An APK like that cannot install over a real build. "Verify the version on the
+          # built APK" below checks the setting actually took, rather than trusting this line.
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        # Caches ~/.gradle (dependencies, wrapper distribution, build cache). Writes the cache
+        # only from main by default, so a PR run reads a warm cache without poisoning it.
+        uses: gradle/actions/setup-gradle@67621b124fd2e251c5e8a0e6e3b91318f2287669 # v6.3.0
+
+      - name: Cache Robolectric's android-all jars
+        # Robolectric fetches an instrumented android-all jar (~100 MB) into the local Maven
+        # repository on first use. Cached rather than skipped: the layout tests are the only
+        # thing in this project that measures the Compose tree, and a CI run that quietly
+        # dropped them would report a smaller test count and still look green.
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: robolectric-${{ runner.os }}-
+
+      - name: Install the Android SDK with the repo's own setup script
+        # Not android-actions/setup-android, and not the runner's preinstalled SDK. Running
+        # this script from a clean state is itself the regression test: it aborted with
+        # SIGPIPE on any clean install for the project's entire history and nobody noticed,
+        # because every build until now happened where the SDK was already present. The
+        # minutes a prebuilt action would save are worth less than executing the path
+        # README.md tells a new contributor to run.
+        run: ./scripts/setup-android-sdk.sh
+
+      - name: Build the debug APK
+        # Finalized by verifyNothingTestOnlyReachesTheApk (app/build.gradle.kts), which opens
+        # the APK this step produced and fails if Robolectric, JUnit or Compose UI Test
+        # classes are inside it.
+        run: ./gradlew --stacktrace assembleDebug
+
+      - name: Verify the version on the built APK
+        # The evidence that fetch-depth: 0 took effect, read out of the artifact rather than
+        # assumed from the YAML. Two independent things are checked: that the build did not
+        # fall back to a provisional identity, and that the versionCode equals this checkout's
+        # real commit count.
+        run: |
+          set -euo pipefail
+          aapt2="$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/aapt2"
+          if [ ! -x "$aapt2" ]; then
+            echo "aapt2 not found at $aapt2 -- BUILD_TOOLS_VERSION does not match what" \
+                 "scripts/setup-android-sdk.sh installed. Contents of build-tools:"
+            ls -1 "$ANDROID_SDK_ROOT/build-tools" || true
+            exit 1
+          fi
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          [ -f "$apk" ] || { echo "No APK at $apk"; exit 1; }
+
+          # Captured whole, then matched from a here-string, rather than piped into `grep -m1`.
+          # grep would close the pipe after the first match, aapt2 would take SIGPIPE and exit
+          # 141, and `set -o pipefail` would fail this step on a successful dump -- the exact
+          # bug scripts/setup-android-sdk.sh documents at its sdkmanager call.
+          badging="$("$aapt2" dump badging "$apk")"
+          package_line="$(grep -m1 '^package:' <<<"$badging")" || {
+            echo "aapt2 dump badging produced no package: line for $apk"; exit 1; }
+          version_code="$(printf '%s' "$package_line" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
+          version_name="$(printf '%s' "$package_line" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
+          expected_code="$(git rev-list --count HEAD)"
+
+          echo "APK reports versionCode=$version_code versionName=$version_name"
+          echo "Commit count of this checkout: $expected_code"
+
+          failed=0
+          case "$version_name" in
+            UNVERSIONED-*)
+              echo "::error::The APK is unversioned ($version_name). The checkout could not" \
+                   "answer git's questions -- most likely fetch-depth: 0 was lost. Such an" \
+                   "APK reports versionCode=1 and will not install over a real build."
+              failed=1
+              ;;
+          esac
+          if [ "$version_code" != "$expected_code" ]; then
+            echo "::error::versionCode=$version_code but this checkout has $expected_code" \
+                 "commits. The build derived its identity from something other than the" \
+                 "history that is actually checked out."
+            failed=1
+          fi
+          [ "$failed" -eq 0 ] || exit 1
+
+          {
+            echo "### Built APK"
+            echo
+            echo "| field | value |"
+            echo "| --- | --- |"
+            echo "| versionCode | \`$version_code\` |"
+            echo "| versionName | \`$version_name\` |"
+            echo "| commit count | \`$expected_code\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run the unit tests
+        run: ./gradlew --stacktrace testDebugUnitTest
+
+      - name: Summarize the test results
+        # Runs even when the test task failed, so the summary reports the failure rather than
+        # disappearing with it. Reads the JUnit XML Gradle wrote, not the task's exit code.
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+
+          results = sorted(glob.glob("app/build/test-results/testDebugUnitTest/TEST-*.xml"))
+          if not results:
+              sys.exit(
+                  "No JUnit XML in app/build/test-results/testDebugUnitTest/. The test task "
+                  "produced no results at all, which is a failure, not an empty pass."
+              )
+
+          keys = ("tests", "failures", "errors", "skipped")
+          totals = dict.fromkeys(keys, 0)
+          rows = []
+          for path in results:
+              suite = ET.parse(path).getroot()
+              counts = {key: int(suite.get(key, 0)) for key in keys}
+              for key in keys:
+                  totals[key] += counts[key]
+              rows.append((suite.get("name", os.path.basename(path)), counts))
+
+          lines = ["### Unit tests", "", "| suite | tests | failures | errors | skipped |",
+                   "| --- | ---: | ---: | ---: | ---: |"]
+          for name, counts in rows:
+              lines.append(
+                  "| `{}` | {} | {} | {} | {} |".format(
+                      name.rsplit(".", 1)[-1], *(counts[key] for key in keys)
+                  )
+              )
+          lines.append(
+              "| **total across {} suites** | **{}** | **{}** | **{}** | **{}** |".format(
+                  len(rows), *(totals[key] for key in keys)
+              )
+          )
+          summary = "\n".join(lines)
+          print(summary)
+          step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if step_summary:
+              with open(step_summary, "a", encoding="utf-8") as handle:
+                  handle.write(summary + "\n")
+
+          # A test that did not run is the failure mode this whole step exists to catch: the
+          # Robolectric layout tests are the ones that would go missing first, and a run that
+          # silently dropped them would otherwise still be green. No expected count is
+          # hardcoded -- that would break every time a test is added -- so the per-suite table
+          # above is what makes a drop visible to a human.
+          problems = []
+          if totals["tests"] == 0:
+              problems.append("no tests ran")
+          if totals["skipped"]:
+              problems.append("{} test(s) were skipped".format(totals["skipped"]))
+          if totals["failures"] or totals["errors"]:
+              problems.append(
+                  "{} failure(s) and {} error(s)".format(totals["failures"], totals["errors"])
+              )
+          if problems:
+              sys.exit("Test results are not clean: " + "; ".join(problems) + ".")
+          PY
+
+      - name: Upload the debug APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unit-test-report
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
+          if-no-files-found: error
