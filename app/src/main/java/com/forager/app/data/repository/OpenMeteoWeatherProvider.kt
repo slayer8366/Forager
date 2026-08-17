@@ -36,6 +36,17 @@ class OpenMeteoWeatherProvider(
     }
 }
 
+/**
+ * TEMPORARY NAIVE IMPLEMENTATION — deliberately wrong, so the past/future split test can be
+ * watched failing before the fix is written (CLAUDE.md: see the failure before writing the fix).
+ * Replaced in the next commit.
+ */
+internal fun summariseObservedConditions(
+    dto: PrecipitationResponseDto,
+    region: Region,
+    referenceDay: java.time.LocalDate,
+): ConditionsSummary = toDomain(dto, region)
+
 /** Maps the Open-Meteo DTO onto [ConditionsSummary]. */
 internal fun toDomain(dto: PrecipitationResponseDto, region: Region): ConditionsSummary {
     val precipitation = dto.daily.precipitationSum
