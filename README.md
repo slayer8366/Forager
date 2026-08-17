@@ -110,6 +110,28 @@ more certainty than the data supports. See `AvailabilityForecast` and
    different month, since today's rain says nothing about typical
    conditions in some other month.
 
+8. **Searches you have already run work without a connection.** Every ranked
+   list that comes back is written to a local Room table, and if a later
+   search for the same region, month and category can't reach iNaturalist,
+   the saved copy is shown instead — under an "Offline — showing results
+   saved 3 hours ago" banner, never silently in place of a live result
+   (`CLAUDE.md`: a fallback is reported as a fallback). The last five
+   distinct searches are kept, least-recently-used first, and the drawer's
+   **Recent searches** section re-runs any of them in one tap. A tap there
+   goes through the ordinary search, so with a connection it returns fresh
+   results and only falls back to the stored copy when the live call fails.
+
+   **Only the ranked list is cached.** Current Conditions and Trip Windows
+   are deliberately not: both are "as of today" readings (see
+   `GetConditionsUseCase` and `OpenMeteoWeatherProvider`), and replaying a
+   stored rainfall total offline would present a reading from days ago as
+   the current one. A historical-frequency ranking has no such problem —
+   last week's copy is the same answer today — and it is labelled with its
+   age either way. Matching is exact equality on region + month + filter:
+   a search 400m away is a different search and is not answered with this
+   one's results. See `domain/SearchCacheRepository` and
+   `domain/GetAvailabilityUseCase`.
+
 ## Project layout
 
 - `data/remote/` — the only code that speaks Retrofit/iNaturalist's or
@@ -117,22 +139,42 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `INaturalistClient`, `OpenMeteoClient`).
 - `data/repository/` — maps the iNaturalist API onto the domain-owned
   `MushroomRepository` interface, including parsing iNaturalist's
-  `"lat,lng"` location string and `observed_on` date; and the Open-Meteo
-  API onto `WeatherProvider` (`OpenMeteoWeatherProvider`).
+  `"lat,lng"` location string and `observed_on` date; the Open-Meteo
+  API onto `WeatherProvider` (`OpenMeteoWeatherProvider`); and Room onto
+  `PlannedTripRepository` and `SearchCacheRepository`
+  (`RoomSearchCacheRepository`, which owns the five-entry LRU and is the
+  only place a cached row meets an `AvailabilityForecast`).
+- `data/local/` — the Room layer: `ForagerDatabase` and, per table, an
+  entity and a DAO. `CachedSearchEntity` holds one cached ranked list —
+  its `key` column encodes region + month + filter and *is* the match
+  rule — with the ranked entries serialized by `CachedSearchPayload`'s
+  `@Serializable` DTOs. Room annotations and serialization stay here,
+  never in `domain/`. `CachedSearchDao`'s two `@Transaction` methods are
+  what make "write then evict" and "read then mark used" atomic.
 - `domain/` — pure Kotlin: `Region`, `LatLng`, `SpeciesObservationCount`,
   `Sighting`, `TaxonFilter`, `TaxonSearchResult`, `AvailabilityForecast`,
   `ConditionsSummary`, `ForagingArea`/`ForagingAreas`, `GeoDistance`,
-  `Dbscan`, `PredictAvailabilityUseCase`, `GetSightingsUseCase`,
+  `Dbscan`, `PredictAvailabilityUseCase`, `GetAvailabilityUseCase` (the
+  live-then-cached-fallback decision, returning an
+  `AvailabilitySearchResult.Live`/`.Cached` or the original failure
+  unchanged), `GetSightingsUseCase`, `GetRecentSearchesUseCase`,
   `SearchTaxaUseCase`, `GetConditionsUseCase`,
   `ClusterForagingAreasUseCase`, and the
-  `MushroomRepository`/`LocationProvider`/`WeatherProvider` interfaces. No
-  Android imports, so it's unit-testable headless (see `app/src/test/`).
+  `MushroomRepository`/`LocationProvider`/`WeatherProvider`/`SearchCacheRepository`/`CurrentTimeProvider`
+  interfaces. No Android imports, so it's unit-testable headless (see
+  `app/src/test/`). `CurrentTimeProvider` is why: the cache's LRU stamps
+  and the relative times rendered from them are injected rather than read
+  off `System.currentTimeMillis()`, so both are assertable.
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
 - `ui/availability/` — `AvailabilityViewModel` and the Compose screen: a
   `ModalNavigationDrawer` holding every search control over a map-first
   content area with the List/Map tab switch. `AvailabilityScreen`'s doc
   comment records why the controls are in a drawer and what was rejected.
+  The drawer's three collapsible sections are Recent searches, Advanced
+  search and Trip Planner, in that order; `SearchControls` records why the
+  picker is first and a section of its own. The List tab's offline banner
+  lives here too.
 - `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
   osmdroid directly (the `MushroomRepository` pattern applied to the UI
   layer, so the screen can be composed in a test without starting tile
@@ -268,6 +310,29 @@ The map inside that slot is **stubbed** in those tests. They prove the
 screen hands the map the right box; they prove nothing about what osmdroid
 paints in it. The clip above is therefore still unverified, and so is
 anything about rendering.
+
+The **offline search cache** is verified headlessly and not on hardware. What
+is measured: the Room round trip, the five-entry LRU and its eviction order
+against a real in-memory database (`RoomSearchCacheRepositoryTest`); the
+live/cached/failed decision and that a cache miss returns the original
+exception object (`GetAvailabilityUseCaseTest`); the ViewModel state a
+fallback sets (`AvailabilityViewModelOfflineCacheTest`); and that the offline
+banner and the recent-searches rows are on screen with the text they claim,
+under a fixed clock (`AvailabilityScreenOfflineCacheTest` — checked against
+their own absence: removing the banner fails two of those tests, removing the
+picker section fails three).
+
+What that does **not** establish, and only a device can: that a real loss of
+connectivity produces the failure this falls back on (every failure here is
+an injected `IOException`, not a switched-off radio); that the cache survives
+the app being killed and restarted, since every test database is in-memory;
+that the schema-3 destructive fallback behaves on an install that already has
+a version-2 database; and how any of it looks — the banner's colour against
+the ranked list, and whether five entries in the drawer's new section read
+well at a large font scale. `RoomSearchCacheRepository.save`'s
+degrade-and-log path for a failed *write* is also untested, unlike its two
+read paths: see the note in `RoomSearchCacheRepositoryTest` for why closing
+the database was rejected as the provocation.
 
 Still unchecked, and only a device or emulator can answer it: whether the
 drawer's open/close gestures behave (swipe-to-open is disabled on purpose so

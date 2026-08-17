@@ -241,6 +241,7 @@ abstract class AvailabilityScreenLayoutTest {
                 onReopenTaxonSuggestions = {},
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -409,6 +410,16 @@ abstract class AvailabilityScreenLayoutTest {
      * "auto-promoted display, no notification" behaviour the user asked for. Drives the real
      * drawer-section expand tap rather than handing the screen a pre-expanded state, so this also
      * proves the list is reachable through the same gesture a user would use.
+     *
+     * The trips are scrolled to before being asserted on, as in
+     * [every Trip Planner drawer control is reachable] above. They were not, until the drawer grew
+     * its "Recent searches" section: one more collapsed header row above Trip Planner is enough,
+     * at fontScale 2.0 on a 640dp-tall screen, to put the *second* trip's coordinate line below the
+     * fold — measured, by removing that section and watching this test go green again. What this
+     * test is about is the promotion and the label, and reachability-through-the-drawer's-scroll is
+     * the property its sibling above states; asserting "visible with no scrolling at double font
+     * size" was incidental to it and is not a claim this drawer makes (see [SearchControls] on why
+     * the sheet scrolls at all).
      */
     @Test
     fun `a planned trip dated today is shown with a Today label in the Trip Planner section`() {
@@ -420,9 +431,9 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithContentDescription("Advanced search options").performClick()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
-        composeRule.onNodeWithText("Today").assertIsDisplayed()
-        composeRule.onNodeWithText("45.4000, -122.7000").assertIsDisplayed()
-        composeRule.onNodeWithText("45.5000, -122.8000").assertIsDisplayed()
+        composeRule.onNodeWithText("Today").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("45.4000, -122.7000").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("45.5000, -122.8000").performScrollTo().assertIsDisplayed()
     }
 
     /**

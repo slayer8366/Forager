@@ -21,10 +21,13 @@ import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.InMemorySearchCacheRepository
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
@@ -85,13 +88,22 @@ class AvailabilityScreenTripPlanningFlowTest {
 
     private lateinit var viewModel: AvailabilityViewModel
 
+    /**
+     * The offline search cache is not what this file is about. An empty in-memory one keeps the
+     * ViewModel's new dependency real — every search still writes through it — without changing
+     * anything these tests assert; the cache's own behaviour is covered by
+     * `RoomSearchCacheRepositoryTest` and `GetAvailabilityUseCaseTest`.
+     */
+    private val searchCache = InMemorySearchCacheRepository()
+
     private fun setScreen() {
         // A fresh instance per test, not a shared singleton: this repository is mutable, and each
         // test's assertions depend on starting from an empty store.
         val plannedTripRepository = TripFlowInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
             locationProvider = TripFlowUnusedLocationProvider,
-            predictAvailability = PredictAvailabilityUseCase(TripFlowEmptyRepository),
+            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(TripFlowEmptyRepository), searchCache),
+            getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(TripFlowEmptyRepository),
             searchTaxa = SearchTaxaUseCase(TripFlowEmptyRepository),
             getConditions = GetConditionsUseCase(TripFlowStubWeatherProvider),
@@ -120,6 +132,7 @@ class AvailabilityScreenTripPlanningFlowTest {
                 onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
                 onPlaceTripPin = viewModel::onPlaceTripPin,
                 onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                onRecentSearchSelected = viewModel::onRecentSearchSelected,
                 mapSlot = TriggerableMapSlot,
             )
         }
