@@ -15,6 +15,8 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
@@ -49,6 +51,7 @@ class AvailabilityViewModel(
     private val getPlannedTrips: GetPlannedTripsUseCase,
     private val savePlannedTrip: SavePlannedTripUseCase,
     private val deletePlannedTrip: DeletePlannedTripUseCase,
+    private val offlineMapRepository: OfflineMapRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -66,6 +69,7 @@ class AvailabilityViewModel(
         // connection gets back to a result at all, so it has to be populated before the first
         // search rather than as a side effect of one.
         loadRecentSearches()
+        loadOfflineMapStatus()
     }
 
     fun onRadiusChanged(radiusKm: Int) {
@@ -427,7 +431,100 @@ class AvailabilityViewModel(
         }
     }
 
+    fun onOfflineMapLatChanged(text: String) {
+        _uiState.update { it.copy(offlineMapLatText = text) }
+    }
+
+    fun onOfflineMapLngChanged(text: String) {
+        _uiState.update { it.copy(offlineMapLngText = text) }
+    }
+
+    fun onOfflineMapRadiusChanged(radiusKm: Int) {
+        _uiState.update { it.copy(offlineMapRadiusKm = Region.clampRadiusKm(radiusKm)) }
+    }
+
+    /**
+     * Reads whatever's on disk right now, once at startup — same reasoning as [loadPlannedTrips]:
+     * a downloaded region has nothing to do with the region search, so it isn't gated behind one.
+     * A read failure (e.g. a corrupt sidecar file) is reported through the same [OfflineMapStatus]
+     * channel Download/Delete use, rather than silently defaulting to "nothing downloaded" — CLAUDE.md:
+     * a failure is reported, not swallowed into a plausible-looking default.
+     */
+    private fun loadOfflineMapStatus() {
+        viewModelScope.launch {
+            offlineMapRepository.getStatus().fold(
+                onSuccess = { info ->
+                    _uiState.update {
+                        it.copy(offlineMapStatus = info?.toUiStatus() ?: OfflineMapStatus.NotDownloaded)
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't read offline map status."))
+                    }
+                },
+            )
+        }
+    }
+
+    /**
+     * Always downloads USGS Topo — see [com.forager.app.domain.OfflineMapRepository]'s doc comment
+     * for why this no longer takes a style parameter. It used to be resolved from whichever mode
+     * the quick-fire map icon was showing; the project owner's own call, after seeing that built,
+     * was that offline downloads should just always target USGS regardless of that live toggle.
+     */
+    fun onDownloadOfflineMaps() {
+        val state = _uiState.value
+        val lat = state.offlineMapLatText.toDoubleOrNull()
+        val lng = state.offlineMapLngText.toDoubleOrNull()
+        if (lat == null || lat !in -90.0..90.0 || lng == null || lng !in -180.0..180.0) {
+            _uiState.update {
+                it.copy(
+                    offlineMapStatus = OfflineMapStatus.Failed(
+                        "Enter a valid latitude (-90 to 90) and longitude (-180 to 180).",
+                    ),
+                )
+            }
+            return
+        }
+        val region = Region(lat, lng, state.offlineMapRadiusKm)
+
+        _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
+        viewModelScope.launch {
+            offlineMapRepository.download(region) { downloaded, total ->
+                _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.Downloading(downloaded, total)) }
+            }.fold(
+                onSuccess = { info -> _uiState.update { it.copy(offlineMapStatus = info.toUiStatus()) } },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't download offline maps."))
+                    }
+                },
+            )
+        }
+    }
+
+    fun onDeleteOfflineMaps() {
+        viewModelScope.launch {
+            offlineMapRepository.delete().fold(
+                onSuccess = { _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.NotDownloaded) } },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't delete offline maps."))
+                    }
+                },
+            )
+        }
+    }
+
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 300L
     }
 }
+
+private fun OfflineMapInfo.toUiStatus() = OfflineMapStatus.Downloaded(
+    region = region,
+    tileCount = tileCount,
+    sizeBytes = sizeBytes,
+    downloadedAtEpochMillis = downloadedAtEpochMillis,
+)

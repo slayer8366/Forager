@@ -31,6 +31,8 @@ import com.forager.app.domain.InMemorySearchCacheRepository
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -112,6 +114,7 @@ class AvailabilityScreenTripPlanningFlowTest {
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(plannedTripRepository),
+            offlineMapRepository = TripFlowStubOfflineMapRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -133,6 +136,11 @@ class AvailabilityScreenTripPlanningFlowTest {
                 onPlaceTripPin = viewModel::onPlaceTripPin,
                 onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                 onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
                 mapSlot = TriggerableMapSlot,
             )
         }
@@ -232,7 +240,7 @@ private val LONG_PRESS_LOCATION = LatLng(45.40, -122.70)
  * reports one via [com.forager.app.ui.map.SightingsMap]'s `onLongPress` — see that composable's
  * doc comment.
  */
-private val TriggerableMapSlot: MapSlot = { _, _, _, _, onLongPress, modifier ->
+private val TriggerableMapSlot: MapSlot = { _, _, _, _, _, onLongPress, modifier ->
     Column(modifier.testTag("map-slot")) {
         Button(onClick = { onLongPress(LONG_PRESS_LOCATION) }) {
             Text("Simulate long press")
@@ -275,4 +283,13 @@ private class TripFlowInMemoryPlannedTripRepository : PlannedTripRepository {
         trips.remove(id)
         return Result.success(Unit)
     }
+}
+
+/** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
+private object TripFlowStubOfflineMapRepository : OfflineMapRepository {
+    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun delete(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
 }

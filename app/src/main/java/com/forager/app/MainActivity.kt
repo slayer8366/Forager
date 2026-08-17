@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
                     container.getPlannedTripsUseCase,
                     container.savePlannedTripUseCase,
                     container.deletePlannedTripUseCase,
+                    container.offlineMapRepository,
                 )
             }
         }
@@ -88,6 +89,11 @@ class MainActivity : ComponentActivity() {
                     onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                     onRecentSearchSelected = viewModel::onRecentSearchSelected,
                     currentTime = container.currentTimeProvider,
+                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
                 )
             }
         }
