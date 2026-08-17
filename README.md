@@ -1,5 +1,7 @@
 # Forager
 
+[![CI](https://github.com/slayer8366/Forager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/slayer8366/Forager/actions/workflows/ci.yml)
+
 An Android app that ranks which species are worth looking for, in a chosen
 region and month, based on how often people have historically logged them
 there on [iNaturalist](https://www.inaturalist.org/). Despite the name, it's
@@ -172,6 +174,48 @@ from Maven Central on first use.
 
 The Gradle wrapper (`gradlew`) downloads its own Gradle distribution on
 first run.
+
+## Continuous integration
+
+Every push to `main` and every pull request runs
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) on a clean Ubuntu
+runner: it provisions the SDK with `scripts/setup-android-sdk.sh` — the same
+script the section above tells you to run, so CI is a regression test for the
+documented setup path — then builds the debug APK and runs the unit tests.
+Either one breaking fails the run. Before this workflow existed the project
+had no automated checks at all, and every merge to `main` was green on the
+word of whoever last ran the build locally.
+
+Two things are checked on the artifact rather than on the build
+configuration, because the artifact is what gets installed:
+
+- The APK's `versionCode`/`versionName` are read back with `aapt2 dump
+  badging`, and the run fails if the build fell back to an `UNVERSIONED-*`
+  identity or if the versionCode doesn't equal the checkout's commit count.
+  CI checks out with `fetch-depth: 0` for that reason: `actions/checkout`
+  clones shallow by default, and a shallow clone yields an APK that reports
+  versionCode 1 and cannot install over a real build.
+- The test summary fails the run if no tests ran or if any test was
+  skipped — a quietly dropped Robolectric layout test would otherwise leave
+  a green tick on a run that measured nothing. Per-suite test counts are
+  printed to the run's summary page.
+
+`assembleDebug` also carries `verifyNothingTestOnlyReachesTheApk` (see
+above), so the test-only-code check runs on every push and PR too.
+
+### Build artifacts
+
+Each run publishes two artifacts, downloadable from **Actions** → the run →
+the **Artifacts** box at the bottom of the run summary:
+
+- `app-debug-apk` — the `app-debug.apk` that run built, so a build is
+  obtainable without anyone building one by hand. Check its version in the
+  drawer footer or with `aapt2 dump badging`; see "Which build am I
+  running?" below.
+- `unit-test-report` — the HTML test report and the JUnit XML it was
+  generated from, uploaded even when the tests fail.
+
+GitHub keeps both for 90 days.
 
 ## iNaturalist API access
 
