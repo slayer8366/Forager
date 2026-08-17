@@ -6,7 +6,10 @@ import com.forager.app.data.remote.OpenMeteoClient
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.data.repository.OpenMeteoWeatherProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.GetConditionsUseCase
+import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.MushroomRepository
@@ -21,12 +24,21 @@ class AppContainer(context: Context) {
     private val weatherApi = OpenMeteoClient.create(debug = BuildConfig.DEBUG)
 
     val mushroomRepository: MushroomRepository = INaturalistMushroomRepository(api)
-    val weatherProvider: WeatherProvider = OpenMeteoWeatherProvider(weatherApi)
+
+    // One object, two owned interfaces, one API call behind both — see
+    // TripPlanningWeatherProvider's doc comment for why they are separate interfaces.
+    private val openMeteo = OpenMeteoWeatherProvider(weatherApi)
+    val weatherProvider: WeatherProvider = openMeteo
+    val tripPlanningWeatherProvider: TripPlanningWeatherProvider = openMeteo
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
     val predictAvailabilityUseCase = PredictAvailabilityUseCase(mushroomRepository)
     val getSightingsUseCase = GetSightingsUseCase(mushroomRepository)
     val searchTaxaUseCase = SearchTaxaUseCase(mushroomRepository)
     val getConditionsUseCase = GetConditionsUseCase(weatherProvider)
+    val getTripWindowsUseCase = GetTripWindowsUseCase(
+        tripPlanningWeatherProvider,
+        ComputeTripWindowsUseCase(),
+    )
 
     // No repository dependency: clustering is a pure transform of sightings already fetched.
     val clusterForagingAreasUseCase = ClusterForagingAreasUseCase()
