@@ -1,5 +1,6 @@
 package com.forager.app.ui.availability
 
+import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
@@ -82,6 +83,42 @@ data class AvailabilityUiState(
     val seasonalPattern: FruitingLagDistribution? = null,
     val isLoadingSeasonalPattern: Boolean = false,
     val seasonalPatternErrorMessage: String? = null,
+    /**
+     * Whether [forecast] came out of the offline cache rather than off the network.
+     *
+     * The List tab must say so out loud when this is true — CLAUDE.md: a fallback result is
+     * reported as a fallback, never rendered identically to a live one. See
+     * [AvailabilitySearchResult][com.forager.app.domain.AvailabilitySearchResult], the type this
+     * and [cachedResultsAsOfEpochMillis] are set from together.
+     */
+    val isShowingCachedResults: Boolean = false,
+    /**
+     * When the cached [forecast] was originally fetched, for the banner's "saved 3 hours ago".
+     *
+     * Non-null whenever [isShowingCachedResults] is true, because both are written from the same
+     * `Cached` result in one update. The screen still handles the impossible combination rather
+     * than asserting it away, since a banner that claims an age it doesn't have would be the exact
+     * dishonesty the banner exists to prevent.
+     */
+    val cachedResultsAsOfEpochMillis: Long? = null,
+    /**
+     * The offline cache's recent searches, most recently used first, for the drawer's picker.
+     * Independent of the current search — like [plannedTrips], it is loaded once at start-up and
+     * refreshed after each search rather than being derived from the search in progress.
+     */
+    val recentSearches: List<CachedSearchSummary> = emptyList(),
+    /**
+     * The standalone region picker in the "Offline Maps" submenu — independent of [region], per
+     * this project's own decision: a downloaded region has nothing to do with whatever's currently
+     * searched in the List/Map tabs. Set by long-pressing the picker map there (see
+     * `OfflineMapsPanel` in `AvailabilityScreen.kt`), not by typing — `String`, same representation
+     * [manualLatText]/[manualLngText] use, rather than a nullable `Double`, so "nothing picked yet"
+     * and "picked" are both representable without a separate flag.
+     */
+    val offlineMapLatText: String = "",
+    val offlineMapLngText: String = "",
+    val offlineMapRadiusKm: Int = 15,
+    val offlineMapStatus: OfflineMapStatus = OfflineMapStatus.NotDownloaded,
 ) {
     val hasSearched: Boolean get() = region != null
 }

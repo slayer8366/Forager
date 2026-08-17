@@ -12,14 +12,19 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
+import com.forager.app.domain.InMemorySearchCacheRepository
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -162,6 +167,15 @@ private object StubPlannedTripRepository : PlannedTripRepository {
         Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
 }
 
+/** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
+private object StubOfflineMapRepository : OfflineMapRepository {
+    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun delete(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
+}
+
 class AvailabilityViewModelFilterTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -172,11 +186,20 @@ class AvailabilityViewModelFilterTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
+    /**
+     * The offline search cache is not what this file is about. An empty in-memory one keeps the
+     * ViewModel's new dependency real — every search still writes through it — without changing
+     * anything these tests assert; the cache's own behaviour is covered by
+     * `RoomSearchCacheRepositoryTest` and `GetAvailabilityUseCaseTest`.
+     */
+    private val searchCache = InMemorySearchCacheRepository()
+
     private fun viewModel(): AvailabilityViewModel {
         val repository = INaturalistMushroomRepository(LichenAwareApi())
         return AvailabilityViewModel(
             locationProvider = FixedLocationProvider(),
-            predictAvailability = PredictAvailabilityUseCase(repository),
+            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(repository), searchCache),
+            getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(repository),
             searchTaxa = SearchTaxaUseCase(repository),
             getConditions = GetConditionsUseCase(StubWeatherProvider()),
@@ -190,6 +213,7 @@ class AvailabilityViewModelFilterTest {
                 StubHistoricalWeatherProvider,
                 ComputeFruitingLagDistributionUseCase(),
             ),
+            offlineMapRepository = StubOfflineMapRepository,
         )
     }
 

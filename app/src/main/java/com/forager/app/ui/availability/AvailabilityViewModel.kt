@@ -2,16 +2,22 @@ package com.forager.app.ui.availability
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forager.app.domain.AvailabilitySearchResult
+import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.ForagingSelection
+import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
@@ -30,7 +36,14 @@ import kotlinx.coroutines.launch
 
 class AvailabilityViewModel(
     private val locationProvider: LocationProvider,
-    private val predictAvailability: PredictAvailabilityUseCase,
+    /**
+     * The ranked-list search, cache-aware: live first, the offline cache only when live fails.
+     * [PredictAvailabilityUseCase] is deliberately *not* a dependency of this class any more — the
+     * fallback decision belongs in one place (see [GetAvailabilityUseCase]) rather than as another
+     * branch in [refresh].
+     */
+    private val getAvailability: GetAvailabilityUseCase,
+    private val getRecentSearches: GetRecentSearchesUseCase,
     private val getSightings: GetSightingsUseCase,
     private val searchTaxa: SearchTaxaUseCase,
     private val getConditions: GetConditionsUseCase,
@@ -40,6 +53,7 @@ class AvailabilityViewModel(
     private val savePlannedTrip: SavePlannedTripUseCase,
     private val deletePlannedTrip: DeletePlannedTripUseCase,
     private val getSeasonalPattern: GetSeasonalPatternUseCase,
+    private val offlineMapRepository: OfflineMapRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -56,6 +70,11 @@ class AvailabilityViewModel(
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
         // up front rather than waiting on a region the way sightings and trip windows do.
         loadPlannedTrips()
+        // Same reasoning, and the reason it matters more here: the picker is how somebody with no
+        // connection gets back to a result at all, so it has to be populated before the first
+        // search rather than as a side effect of one.
+        loadRecentSearches()
+        loadOfflineMapStatus()
     }
 
     fun onRadiusChanged(radiusKm: Int) {
@@ -291,14 +310,44 @@ class AvailabilityViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            predictAvailability(region, month, filter).fold(
-                onSuccess = { forecast -> _uiState.update { it.copy(isLoading = false, forecast = forecast) } },
+            getAvailability(region, month, filter).fold(
+                onSuccess = { result ->
+                    _uiState.update { state ->
+                        when (result) {
+                            is AvailabilitySearchResult.Live -> state.copy(
+                                isLoading = false,
+                                forecast = result.forecast,
+                                isShowingCachedResults = false,
+                                cachedResultsAsOfEpochMillis = null,
+                            )
+                            // Both fields set together, from one result, so the banner can never
+                            // be shown without the age it is supposed to state.
+                            is AvailabilitySearchResult.Cached -> state.copy(
+                                isLoading = false,
+                                forecast = result.forecast,
+                                isShowingCachedResults = true,
+                                cachedResultsAsOfEpochMillis = result.cachedAtEpochMillis,
+                            )
+                        }
+                    }
+                },
                 onFailure = { error ->
+                    // Live failed and nothing was cached for this exact search, so there are no
+                    // results on screen at all: the cached-results flags are cleared rather than
+                    // left over from a previous search the banner would then mislabel.
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = error.message ?: "Request failed. Check your connection and try again.")
+                        it.copy(
+                            isLoading = false,
+                            isShowingCachedResults = false,
+                            cachedResultsAsOfEpochMillis = null,
+                            errorMessage = error.message ?: "Request failed. Check your connection and try again.",
+                        )
                     }
                 },
             )
+            // Either outcome can have changed the cache: a live search writes a new entry (and may
+            // evict one), and a cache hit moves its entry to the front of the LRU order.
+            loadRecentSearches()
         }
 
         // Recent rainfall is only meaningful for the current month: searching "what's typical
@@ -347,6 +396,45 @@ class AvailabilityViewModel(
         }
     }
 
+    private fun loadRecentSearches() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(recentSearches = getRecentSearches()) }
+        }
+    }
+
+    /**
+     * Re-runs one of the drawer's recent searches: restores the region, month and filter it was
+     * made with, then goes through the ordinary [refresh] flow.
+     *
+     * Deliberately **not** a "load this from the cache" path. [refresh] already tries live first
+     * and falls back to the cache, so tapping a recent search while online returns fresh results
+     * for it rather than replaying a stored copy, and tapping the same one offline lands on the
+     * cached copy with the banner that says so. A separate cache-only path would have been a
+     * second way to reach results, with its own failure and staleness rules to keep in step.
+     *
+     * The radius and coordinate fields are restored alongside the search itself so the drawer's
+     * slider, the manual-coordinate boxes and the summary strip all describe the search that just
+     * ran — the same fields [useCurrentLocation] fills in for the same reason.
+     */
+    fun onRecentSearchSelected(summary: CachedSearchSummary) {
+        val region = summary.region
+        _uiState.update {
+            it.copy(
+                region = region,
+                radiusKm = region.radiusKm,
+                manualLatText = region.lat.toString(),
+                manualLngText = region.lng.toString(),
+                selectedMonth = summary.month,
+                taxonFilter = summary.filter,
+                foragingSelection = ForagingSelection.forChip(summary.filter),
+                taxonSearchQuery = "",
+                taxonSearchResults = emptyList(),
+                locationPermissionDenied = false,
+            )
+        }
+        refresh(region, summary.month, summary.filter)
+    }
+
     private fun loadPlannedTrips() {
         viewModelScope.launch {
             getPlannedTrips().fold(
@@ -387,7 +475,100 @@ class AvailabilityViewModel(
         }
     }
 
+    fun onOfflineMapLatChanged(text: String) {
+        _uiState.update { it.copy(offlineMapLatText = text) }
+    }
+
+    fun onOfflineMapLngChanged(text: String) {
+        _uiState.update { it.copy(offlineMapLngText = text) }
+    }
+
+    fun onOfflineMapRadiusChanged(radiusKm: Int) {
+        _uiState.update { it.copy(offlineMapRadiusKm = Region.clampRadiusKm(radiusKm)) }
+    }
+
+    /**
+     * Reads whatever's on disk right now, once at startup — same reasoning as [loadPlannedTrips]:
+     * a downloaded region has nothing to do with the region search, so it isn't gated behind one.
+     * A read failure (e.g. a corrupt sidecar file) is reported through the same [OfflineMapStatus]
+     * channel Download/Delete use, rather than silently defaulting to "nothing downloaded" — CLAUDE.md:
+     * a failure is reported, not swallowed into a plausible-looking default.
+     */
+    private fun loadOfflineMapStatus() {
+        viewModelScope.launch {
+            offlineMapRepository.getStatus().fold(
+                onSuccess = { info ->
+                    _uiState.update {
+                        it.copy(offlineMapStatus = info?.toUiStatus() ?: OfflineMapStatus.NotDownloaded)
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't read offline map status."))
+                    }
+                },
+            )
+        }
+    }
+
+    /**
+     * Always downloads USGS Topo — see [com.forager.app.domain.OfflineMapRepository]'s doc comment
+     * for why this no longer takes a style parameter. It used to be resolved from whichever mode
+     * the quick-fire map icon was showing; the project owner's own call, after seeing that built,
+     * was that offline downloads should just always target USGS regardless of that live toggle.
+     */
+    fun onDownloadOfflineMaps() {
+        val state = _uiState.value
+        val lat = state.offlineMapLatText.toDoubleOrNull()
+        val lng = state.offlineMapLngText.toDoubleOrNull()
+        if (lat == null || lat !in -90.0..90.0 || lng == null || lng !in -180.0..180.0) {
+            _uiState.update {
+                it.copy(
+                    offlineMapStatus = OfflineMapStatus.Failed(
+                        "Enter a valid latitude (-90 to 90) and longitude (-180 to 180).",
+                    ),
+                )
+            }
+            return
+        }
+        val region = Region(lat, lng, state.offlineMapRadiusKm)
+
+        _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
+        viewModelScope.launch {
+            offlineMapRepository.download(region) { downloaded, total ->
+                _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.Downloading(downloaded, total)) }
+            }.fold(
+                onSuccess = { info -> _uiState.update { it.copy(offlineMapStatus = info.toUiStatus()) } },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't download offline maps."))
+                    }
+                },
+            )
+        }
+    }
+
+    fun onDeleteOfflineMaps() {
+        viewModelScope.launch {
+            offlineMapRepository.delete().fold(
+                onSuccess = { _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.NotDownloaded) } },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't delete offline maps."))
+                    }
+                },
+            )
+        }
+    }
+
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 300L
     }
 }
+
+private fun OfflineMapInfo.toUiStatus() = OfflineMapStatus.Downloaded(
+    region = region,
+    tileCount = tileCount,
+    sizeBytes = sizeBytes,
+    downloadedAtEpochMillis = downloadedAtEpochMillis,
+)

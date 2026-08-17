@@ -4,15 +4,20 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
+import com.forager.app.domain.InMemorySearchCacheRepository
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -130,26 +135,40 @@ class AvailabilityViewModelSeasonalPatternTest {
         override suspend fun delete(id: String): Result<Unit> = Result.failure(UnsupportedOperationException("not exercised"))
     }
 
+    /** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
+    private object StubOfflineMapRepository : OfflineMapRepository {
+        override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+            Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+        override suspend fun delete(): Result<Unit> =
+            Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+        override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
+    }
+
     private fun viewModel(
         repository: MushroomRepository,
         historicalWeatherProvider: HistoricalWeatherProvider,
-    ): AvailabilityViewModel = AvailabilityViewModel(
-        locationProvider = UnusedLocationProvider,
-        predictAvailability = PredictAvailabilityUseCase(repository),
-        getSightings = GetSightingsUseCase(repository),
-        searchTaxa = SearchTaxaUseCase(repository),
-        getConditions = GetConditionsUseCase(StubWeatherProvider),
-        clusterForagingAreas = ClusterForagingAreasUseCase(),
-        getTripWindows = GetTripWindowsUseCase(StubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
-        getPlannedTrips = GetPlannedTripsUseCase(StubPlannedTripRepository),
-        savePlannedTrip = SavePlannedTripUseCase(StubPlannedTripRepository),
-        deletePlannedTrip = DeletePlannedTripUseCase(StubPlannedTripRepository),
-        getSeasonalPattern = GetSeasonalPatternUseCase(
-            GetSightingsUseCase(repository),
-            historicalWeatherProvider,
-            ComputeFruitingLagDistributionUseCase(),
-        ),
-    )
+    ): AvailabilityViewModel {
+        val searchCache = InMemorySearchCacheRepository()
+        return AvailabilityViewModel(
+            locationProvider = UnusedLocationProvider,
+            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(repository), searchCache),
+            getRecentSearches = GetRecentSearchesUseCase(searchCache),
+            getSightings = GetSightingsUseCase(repository),
+            searchTaxa = SearchTaxaUseCase(repository),
+            getConditions = GetConditionsUseCase(StubWeatherProvider),
+            clusterForagingAreas = ClusterForagingAreasUseCase(),
+            getTripWindows = GetTripWindowsUseCase(StubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
+            getPlannedTrips = GetPlannedTripsUseCase(StubPlannedTripRepository),
+            savePlannedTrip = SavePlannedTripUseCase(StubPlannedTripRepository),
+            deletePlannedTrip = DeletePlannedTripUseCase(StubPlannedTripRepository),
+            getSeasonalPattern = GetSeasonalPatternUseCase(
+                GetSightingsUseCase(repository),
+                historicalWeatherProvider,
+                ComputeFruitingLagDistributionUseCase(),
+            ),
+            offlineMapRepository = StubOfflineMapRepository,
+        )
+    }
 
     private fun AvailabilityViewModel.searchReferenceRegion() {
         onManualLatChanged(region.lat.toString())

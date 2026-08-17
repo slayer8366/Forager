@@ -6,10 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -242,6 +244,12 @@ abstract class AvailabilityScreenLayoutTest {
                 onReopenTaxonSuggestions = {},
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineMaps = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -410,6 +418,16 @@ abstract class AvailabilityScreenLayoutTest {
      * "auto-promoted display, no notification" behaviour the user asked for. Drives the real
      * drawer-section expand tap rather than handing the screen a pre-expanded state, so this also
      * proves the list is reachable through the same gesture a user would use.
+     *
+     * The trips are scrolled to before being asserted on, as in
+     * [every Trip Planner drawer control is reachable] above. They were not, until the drawer grew
+     * its "Recent searches" section: one more collapsed header row above Trip Planner is enough,
+     * at fontScale 2.0 on a 640dp-tall screen, to put the *second* trip's coordinate line below the
+     * fold — measured, by removing that section and watching this test go green again. What this
+     * test is about is the promotion and the label, and reachability-through-the-drawer's-scroll is
+     * the property its sibling above states; asserting "visible with no scrolling at double font
+     * size" was incidental to it and is not a claim this drawer makes (see [SearchControls] on why
+     * the sheet scrolls at all).
      */
     @Test
     fun `a planned trip dated today is shown with a Today label in the Trip Planner section`() {
@@ -421,9 +439,9 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithContentDescription("Advanced search options").performClick()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
-        composeRule.onNodeWithText("Today").assertIsDisplayed()
-        composeRule.onNodeWithText("45.4000, -122.7000").assertIsDisplayed()
-        composeRule.onNodeWithText("45.5000, -122.8000").assertIsDisplayed()
+        composeRule.onNodeWithText("Today").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("45.4000, -122.7000").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("45.5000, -122.8000").performScrollTo().assertIsDisplayed()
     }
 
     /**
@@ -522,15 +540,36 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * The build footer is pinned below the controls' scroll rather than inside it — it is the only
-     * way to tell two debug APKs apart, so it may not be something the user has to scroll for.
+     * The Settings entry row is pinned below the search controls' scroll rather than inside it —
+     * it's the drawer's sticky way into Settings, so it may not be something the user has to scroll
+     * for. It occupies the exact slot [BuildIdentityFooter] used to (see [AvailabilityScreen]'s
+     * `SettingsEntryRow`), which is why this replaces the old "build footer stays visible" test
+     * rather than sitting alongside it — the footer itself moved to the bottom of the Settings panel,
+     * covered by [the Settings panel shows Choose Maps Service and the build identity footer].
      */
     @Test
-    fun `the build identity footer stays visible without scrolling`() {
+    fun `the Settings entry row stays visible without scrolling`() {
         setScreen(SEARCHED_STATE)
 
         composeRule.onNodeWithContentDescription("Advanced search options").performClick()
 
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+    }
+
+    /**
+     * The build identity footer, and the panel that now hosts it: tapping the sticky Settings entry
+     * row switches the drawer to the Settings panel, where the footer sits at the bottom exactly as
+     * it used to sit at the bottom of the Search panel — see [AvailabilityScreen]'s doc comment on
+     * `drawerPanel` for why the footer moved rather than the entry row growing a second copy of it.
+     */
+    @Test
+    fun `the Settings panel shows Choose Maps Service and the build identity footer`() {
+        setScreen(SEARCHED_STATE)
+
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Settings").performClick()
+
+        composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
         composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
             .assertIsDisplayed()
     }
@@ -546,13 +585,30 @@ abstract class AvailabilityScreenLayoutTest {
         setScreen(SEARCHED_STATE)
 
         composeRule.onNodeWithContentDescription("Advanced search options").performClick()
-        composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
-            .assertIsDisplayed()
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Close search options").performClick()
 
-        composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
-            .assertIsNotDisplayed()
+        composeRule.onNodeWithText("Settings").assertIsNotDisplayed()
+    }
+
+    /**
+     * The Settings panel's own back arrow returns to Search — the only way back from Settings
+     * other than closing and reopening the whole drawer (which resets it the same way; see
+     * [AvailabilityScreen]'s doc comment on `drawerPanel`).
+     */
+    @Test
+    fun `the Settings panel's back arrow returns to the Search panel`() {
+        setScreen(SEARCHED_STATE)
+
+        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Back to search options").performClick()
+
+        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Choose Maps Service").assertCountEquals(0)
     }
 
     /**
@@ -580,6 +636,6 @@ abstract class AvailabilityScreenLayoutTest {
  * which would render anything measurable under Robolectric anyway. This fills the same box and
  * carries a tag, so the box itself can be measured.
  */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
     Box(modifier.testTag(MAP_SLOT_TAG))
 }

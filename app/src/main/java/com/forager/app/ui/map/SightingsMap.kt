@@ -26,7 +26,6 @@ import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.CopyrightOverlay
@@ -91,6 +90,16 @@ import java.io.File
  * and `myOnLayout` both call `resetProjection()`, and `Projection` derives its offsets from
  * `getScreenCenterX/Y` of the *current* intrinsic screen rect, so osmdroid re-centres itself on a
  * size change without help from [AndroidView]'s `update` block.
+ *
+ * ## The basemap is a parameter, and the overlays don't care what it is
+ *
+ * [basemap] chooses which service supplies the raster tiles underneath. Everything this composable
+ * draws — the sighting dots, the numbered area markers, the dashed order connector, the planned-trip
+ * diamonds, the search-centre pin — is app-drawn geometry in `view.overlays`, positioned by
+ * `GeoPoint` and rebuilt from the parameters on every `update`. The tile source feeds `TilesOverlay`
+ * alone. Swapping it therefore cannot disturb any of them, and [applyBasemap] deliberately does not
+ * touch the overlay list; `SightingsMapBasemapSwapTest` asserts the overlays are still there after a
+ * swap rather than leaving that to the argument.
  */
 @Composable
 fun SightingsMap(
@@ -99,6 +108,7 @@ fun SightingsMap(
     modifier: Modifier = Modifier,
     areas: List<ForagingArea> = emptyList(),
     plannedTrips: List<PlannedTrip> = emptyList(),
+    basemap: Basemap = Basemap.DEFAULT,
     onLongPress: (LatLng) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -111,7 +121,9 @@ fun SightingsMap(
             osmdroidTileCache = File(context.cacheDir, "osmdroid/tiles")
         }
         MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
+            // The initial source comes from the same applyBasemap the update block uses, so there
+            // is only one place that decides what "this basemap" means on a MapView.
+            applyBasemap(this, basemap)
             setMultiTouchControls(true)
             overlays.add(CopyrightOverlay(context))
         }
@@ -139,6 +151,9 @@ fun SightingsMap(
             .fillMaxSize()
             .clipToBounds(),
         update = { view ->
+            // Before the zoom below, not after: applyBasemap installs this basemap's zoom ceiling,
+            // and osmdroid's setZoomLevel clamps against whatever ceiling is in place when it runs.
+            applyBasemap(view, basemap)
             val center = GeoPoint(region.lat, region.lng)
             view.controller.setZoom(zoomForRadiusKm(region.radiusKm))
             view.controller.setCenter(center)
@@ -188,6 +203,58 @@ fun SightingsMap(
             view.invalidate()
         },
     )
+}
+
+/**
+ * Points [view] at [basemap]'s tile source and installs that basemap's zoom ceiling.
+ *
+ * Called from both the `factory` and the `update` block of [SightingsMap], so "what this basemap
+ * means on a MapView" is decided once.
+ *
+ * **The guard matters.** `update` runs on every recomposition, and
+ * `MapTileProviderBase.setTileSource` calls `clearTileCache()` unconditionally — so setting the
+ * source every pass would throw away every in-memory tile and re-fetch the visible grid each time
+ * anything on the screen changed. Comparing `name()` first means the swap, and the flush that comes
+ * with it, happen only on an actual basemap change. `name()` is the right identity to compare on:
+ * it is the same string osmdroid uses as the `provider` column that namespaces the disk cache, so
+ * two sources that compare equal here really are one basemap.
+ *
+ * **`setMaxZoomLevel` is not redundant with osmdroid's own ceiling, and it fixes a bug that predates
+ * the basemap selector.** The obvious assumption — that a `MapView` with no explicit maximum already
+ * stops at whatever its tile source declares — is wrong, and it was measured rather than reasoned:
+ * deleting the call below makes `SightingsMapBasemapSwapTest` report a ceiling of **29** on every
+ * basemap, not 19 or 15. The chain is that `MapView.getMaxZoomLevel()` falls back to
+ * `TilesOverlay` → `MapTileProviderArray.getMaximumZoomLevel()`, which returns the **maximum across
+ * its module providers** rather than the tile source's value. `MapTileDownloader` does report the
+ * source's 15 or 19, but `MapTileProviderBasic` also stacks a `MapTileApproximater` — the module that
+ * fabricates a missing high-zoom tile by upscaling a lower-zoom one — and that one answers
+ * `TileSystem.getMaximumZoomLevel()`, i.e. `primaryKeyMaxZoomLevel = 29`. The larger number wins.
+ *
+ * So before this change the map already let the user zoom to 29 over an OpenStreetMap source that
+ * serves tiles to 19, the last ten levels being upscaled blur. That is the same class of defect the
+ * task set out to avoid on USGS, and it was already shipping on MAPNIK.
+ *
+ * Set every pass rather than only inside the swap branch above because `mMaximumZoomLevel` is
+ * *sticky*: once set, `getMaxZoomLevel()` prefers it forever, so a ceiling installed on one basemap
+ * and never lifted would silently cap a later one. Unconditional and idempotent is cheaper than
+ * remembering which paths have to re-apply it.
+ *
+ * This is also where CLAUDE.md's "a reported range is not an operating limit" lands: the number
+ * installed is [Basemap.maxZoom], this app's own explicit limit, and it is deliberately neither the
+ * 29 osmdroid derives nor the 23 the USGS service advertises for itself — see [Basemap]'s doc comment
+ * for the three conflicting answers USGS gives about its own maximum.
+ *
+ * Zoom is re-clamped as a consequence rather than by hand: osmdroid's `setZoomLevel` computes
+ * `max(min, min(max, requested))`, and both `MapView.setTileSource` (which re-applies the current
+ * zoom) and [SightingsMap]'s own `setZoom` call below run after this. So a pinch past USGS Topo's 15
+ * stops at 15 rather than climbing into tiles the service answers with 404.
+ */
+private fun applyBasemap(view: MapView, basemap: Basemap) {
+    val desired = tileSourceFor(basemap)
+    if (view.tileProvider.tileSource.name() != desired.name()) {
+        view.setTileSource(desired)
+    }
+    view.setMaxZoomLevel(basemap.maxZoom.toDouble())
 }
 
 /**

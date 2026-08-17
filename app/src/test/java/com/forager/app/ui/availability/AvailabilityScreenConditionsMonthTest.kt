@@ -20,15 +20,20 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
+import com.forager.app.domain.InMemorySearchCacheRepository
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -96,10 +101,19 @@ class AvailabilityScreenConditionsMonthTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
+    /**
+     * The offline search cache is not what this file is about. An empty in-memory one keeps the
+     * ViewModel's new dependency real — every search still writes through it — without changing
+     * anything these tests assert; the cache's own behaviour is covered by
+     * `RoomSearchCacheRepositoryTest` and `GetAvailabilityUseCaseTest`.
+     */
+    private val searchCache = InMemorySearchCacheRepository()
+
     private fun setScreen() {
         val viewModel = AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,
-            predictAvailability = PredictAvailabilityUseCase(FakeRepository),
+            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(FakeRepository), searchCache),
+            getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(FakeRepository),
             searchTaxa = SearchTaxaUseCase(FakeRepository),
             getConditions = GetConditionsUseCase(FakeWeatherProvider),
@@ -113,6 +127,7 @@ class AvailabilityScreenConditionsMonthTest {
                 FakeHistoricalWeatherProvider,
                 ComputeFruitingLagDistributionUseCase(),
             ),
+            offlineMapRepository = FakeOfflineMapRepository,
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -135,6 +150,12 @@ class AvailabilityScreenConditionsMonthTest {
                 onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
                 onPlaceTripPin = viewModel::onPlaceTripPin,
                 onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
                 mapSlot = StubMapSlot,
             )
         }
@@ -208,7 +229,7 @@ class AvailabilityScreenConditionsMonthTest {
     }
 }
 
-private val StubMapSlot: MapSlot = { _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
 
 /** The coordinate path is what this test drives, so the device-location path is never reached. */
 private object UnusedLocationProvider : LocationProvider {
@@ -271,4 +292,13 @@ private object FakePlannedTripRepository : PlannedTripRepository {
         Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
     override suspend fun delete(id: String): Result<Unit> =
         Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
+}
+
+/** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
+private object FakeOfflineMapRepository : OfflineMapRepository {
+    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun delete(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
 }
