@@ -107,10 +107,14 @@ object ForagingWeatherGuidance {
                     "${format(FruitingPatternAssumptions.TEMPERATE_FRUITING_SOIL_TEMPERATURE_C.endInclusive)} °C " +
                     "is often quoted as broadly typical for temperate fleshy fungi. It is a wide " +
                     "band quoted as a rough one, and plenty of species sit outside it.",
+                // Worded without the words the guidance-text guard in ForagingWeatherGuidanceTest
+                // looks for. A blunt substring tripwire cannot tell a claim from a disclaimer, and
+                // a tripwire that has to be taught exceptions stops being a tripwire.
                 "Forager has not measured any relationship between these conditions and how often " +
                     "anything is actually observed near you. The dates and measurements are what " +
-                    "the weather did; whether that adds up to a trip is your call, not a score " +
-                    "this app is in a position to give.",
+                    "the weather did; whether that adds up to a trip is yours to judge. Forager " +
+                    "deliberately does not rank the days for you, because it has nothing to rank " +
+                    "them with.",
             ),
             speciesDataCaveat = null,
         )
