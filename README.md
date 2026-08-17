@@ -81,27 +81,35 @@ more certainty than the data supports. See `AvailabilityForecast` and
    are labelled adjustable assumptions in
    `ClusterForagingAreasUseCase`, not data-derived facts.
 
-   **The basemap under those overlays is chosen explicitly**, from the layers
-   icon in the app bar: **USGS Topo** (the default), **USGS Imagery**,
-   **OpenTopoMap**, or the **OpenStreetMap** standard street map. Terrain,
-   forest cover and water are what matter for deciding where to walk; roads
-   and building footprints are not. All four come out of the pinned osmdroid's
-   own `TileSourceFactory`, so there is no API key and no hand-written URL
-   template. See `ui/map/Basemap`.
+   **Which basemap draws the tiles is two separate decisions with two
+   different lifetimes.** Which *service* to use — **OpenStreetMap** (the
+   default) or **USGS** — is occasional, so it lives in **Settings ▸ Choose
+   Maps Service**, reached from the sticky entry at the bottom of the search
+   drawer. Which *mode* that service is in — topo or regular — is a
+   during-the-walk decision made often, so it's a quick-fire icon overlaid on
+   the map's own top-right corner rather than buried in a menu: "if a map has
+   two modes, toggle the two." OpenStreetMap's two modes are OpenTopoMap and
+   the standard OSM street map; USGS's are USGS Topo and USGS Imagery.
+   Switching service never resets the mode — leave the icon on regular mode
+   under OpenStreetMap and switch the service to USGS, and the map lands on
+   USGS Imagery, not USGS Topo. All four tile sources come out of the pinned
+   osmdroid's own `TileSourceFactory`, so there is no API key and no
+   hand-written URL template. See `ui/map/MapService` and `ui/map/Basemap`.
 
-   **USGS National Map covers the United States only**, which is why this is a
-   selector and not a new hardcoded default — that would have broken the map
-   outright for every user outside the US. The two rejected alternatives are
+   This replaces an earlier design (still visible in this project's git
+   history) where all four basemaps sat in one flat dropdown in the app bar,
+   defaulting to USGS Topo. **The default changed to OpenStreetMap** for the
+   same reason USGS was never a hardcoded default there either: **USGS
+   National Map covers the United States only**, and an opening basemap that
+   is blank for every user outside the US is a worse trade for a first launch
+   than it is for a browsing choice the user can already see and change. USGS
+   Topo — the better read for a wooded search — is still one tap away in
+   Settings. The two alternatives to stating the coverage limit outright are
    recorded in `Basemap`'s doc comment: detecting coverage and falling back
    silently (`CLAUDE.md` forbids an unlogged fallback, and the failure mode
    isn't even detectable — the service returns HTTP 404 outside the US, which
    is indistinguishable from a network error), and guessing from device locale
-   or GPS. So each option states its own coverage limit, zoom ceiling and
-   attribution in the menu, and nothing switches basemap behind the user's
-   back. The selector is in the app bar rather than under the map because a
-   wrap-content row there would eat into the map's measured floor
-   (`MIN_MAP_SHARE_OF_SCREEN`); a popup menu costs no layout height. That
-   trade-off is written up on `BasemapSelector`.
+   or GPS.
 
    Zoom ceilings differ per basemap and are applied explicitly: USGS stops at
    15, OpenTopoMap at 17, OpenStreetMap at 19. This fixed a bug that predated
@@ -115,6 +123,27 @@ more certainty than the data supports. See `AvailabilityForecast` and
    service's own metadata advertises tile levels up to **23** while tiles stop
    at 16 — the app trusts the observed ceiling, per `CLAUDE.md`'s rule that a
    reported capability range is not an operating limit.
+
+   **Settings ▸ Offline Maps downloads USGS tiles for a region you pick, for
+   offline use — and only USGS.** The section is unreachable while
+   OpenStreetMap is the selected service, not merely disabled-looking: both
+   OpenStreetMap's and OpenTopoMap's tile providers prohibit bulk/prefetch
+   downloading in their usage policies, and USGS's own low zoom ceiling (15)
+   keeps a region download a practical size regardless. osmdroid's pinned
+   artifact encodes the OpenStreetMap half of that directly — the standard
+   map's `TileSourcePolicy` sets `FLAG_NO_BULK`, citing
+   `operations.osmfoundation.org/policies/tiles/` — but carries no such flag
+   for OpenTopoMap, so that half rests on a web search of the same domain and
+   `opentopomap.org`'s own usage text rather than a fetch of either page:
+   this environment's egress proxy blocks both directly. Worth a primary-source
+   spot-check before relying on it further. See `domain/OfflineBasemapStyle`'s
+   doc comment for the full citation trail. The download always targets
+   whichever USGS style (Topo or Imagery) the quick-fire icon is showing at
+   the moment "Download Maps" is tapped, stated on screen rather than left as
+   a silent assumption; downloaded tiles are stored under the app's private
+   files directory, not the cache directory ordinary browsing uses, so
+   neither an OS cache-clear nor ordinary map panning can evict a region the
+   user explicitly asked to keep. See `map/OsmdroidOfflineMapRepository`.
 
    **The numbering is a visiting order, not a walking route.** Areas are
    numbered by greedy nearest-neighbour from the search centre — head for
@@ -157,18 +186,34 @@ more certainty than the data supports. See `AvailabilityForecast` and
   API onto `WeatherProvider` (`OpenMeteoWeatherProvider`).
 - `domain/` — pure Kotlin: `Region`, `LatLng`, `SpeciesObservationCount`,
   `Sighting`, `TaxonFilter`, `TaxonSearchResult`, `AvailabilityForecast`,
-  `ConditionsSummary`, `ForagingArea`/`ForagingAreas`, `GeoDistance`,
-  `Dbscan`, `PredictAvailabilityUseCase`, `GetSightingsUseCase`,
-  `SearchTaxaUseCase`, `GetConditionsUseCase`,
-  `ClusterForagingAreasUseCase`, and the
+  `ConditionsSummary`, `ForagingArea`/`ForagingAreas`, `GeoDistance`
+  (including its point-radius `boundingBox` helper, used by the offline-map
+  region picker), `GeoBoundingBox`, `Dbscan`, `PredictAvailabilityUseCase`,
+  `GetSightingsUseCase`, `SearchTaxaUseCase`, `GetConditionsUseCase`,
+  `ClusterForagingAreasUseCase`, `OfflineMapRepository`/`OfflineBasemapStyle`/
+  `OfflineMapInfo`, and the
   `MushroomRepository`/`LocationProvider`/`WeatherProvider` interfaces. No
   Android imports, so it's unit-testable headless (see `app/src/test/`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
+- `map/` — parallel to `location/`: the one place that touches osmdroid's
+  `CacheManager` and the filesystem directly, behind the `OfflineMapRepository`
+  interface. `OsmdroidOfflineMapRepository` downloads tiles for a picked
+  region into a persistent store under the app's private files directory
+  (not the cache directory `SightingsMap`'s ordinary browsing uses, so
+  neither an OS cache-clear nor ordinary panning can evict it) and records
+  what's downloaded in a small sidecar file rather than a Room table, read
+  back by `getStatus()`; `PersistentTileWriter` is the hand-rolled
+  `IFilesystemCache` that writes there instead of through either of
+  osmdroid's own writers, both of which resolve their storage path from a
+  process-wide `Configuration` singleton the browsing map already claims.
 - `ui/availability/` — `AvailabilityViewModel` and the Compose screen: a
   `ModalNavigationDrawer` holding every search control over a map-first
-  content area with the List/Map tab switch. `AvailabilityScreen`'s doc
-  comment records why the controls are in a drawer and what was rejected.
+  content area with the List/Map tab switch, plus a second drawer panel
+  (`DrawerPanel.Settings`) for "Choose Maps Service" and "Offline Maps".
+  `AvailabilityScreen`'s doc comment records why the controls are in a
+  drawer and what was rejected; its `drawerPanel` state doc comment covers
+  the two-panel switch.
 - `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
   osmdroid directly (the `MushroomRepository` pattern applied to the UI
   layer, so the screen can be composed in a test without starting tile
@@ -177,11 +222,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
   foraging-area markers with their dashed order connectors;
   `ForagingAreaLabels`, which holds the single wording of
   the "not a walking route" disclaimer so the on-map info window and the
-  on-screen caption can't drift apart; and `Basemap`, the same
+  on-screen caption can't drift apart; `Basemap`, the same
   own-the-vendor-boundary idea one level down — the basemap catalogue is pure
   Kotlin (labels, coverage limits, zoom ceilings, attribution, no osmdroid and
   no Compose), and `BasemapTileSources.tileSourceFor` is the only place it
-  becomes an `ITileSource`.
+  becomes an `ITileSource`; and `MapService`, which groups those four
+  `Basemap`s into the two services (OpenStreetMap, USGS) Settings' "Choose
+  Maps Service" picks between, each with a topo/regular mode the map's own
+  quick-fire icon toggles.
 
 These boundaries follow `CLAUDE.md`.
 
@@ -367,10 +415,76 @@ The build-identity footer's version values are verified separately — they
 were read off the packaged APK with `aapt2 dump badging`, not off the Gradle
 config.
 
+### The quick-fire mode toggle and the Settings panel, specifically
+
+**Rendering is unverified, same as the rest of this section.** That the icon
+sits legibly over real map tiles rather than under them or clipped by the
+same bounds `SightingsMap`'s own clip-to-bounds fix addresses, and that its
+placement and contrast read well against USGS Imagery's aerial-photo palette
+specifically, have not been seen on a device. `AvailabilityScreenSettingsPanelTest`
+proves the icon's *measured position* is inside the map's box and biased
+top-right, and that tapping it changes which `Basemap` the map slot actually
+receives — layout and wiring facts, not appearance ones.
+
+### Offline map downloads, specifically
+
+**Actual tile download/delete I/O is unverified.** Everything about
+`OsmdroidOfflineMapRepository` that touches the network or the filesystem —
+whether `CacheManager.downloadAreaAsyncNoUI` really writes through
+`PersistentTileWriter` end to end, whether a downloaded region survives an OS
+cache-clear the way it's designed to, what actually happens on a real network
+failure partway through a download — is Android file and network I/O and
+cannot be exercised on the JVM. What *is* verified, and how:
+
+- The `CacheManager` API surface this class calls — the `(ITileSource,
+  IFilesystemCache, minZoom, maxZoom)` constructor needing no live `MapView`,
+  the `downloadAreaAsyncNoUI` progress-callback shape, and that osmdroid's own
+  bulk-download policy check does not, by itself, block OpenTopoMap — was read
+  directly from `osmdroid-android-6.1.20`'s attached sources, not assumed from
+  its sparse Javadoc. See `OsmdroidOfflineMapRepository`'s doc comment for the
+  citations.
+- The sidecar-file format `getStatus()` reads is pulled out as pure
+  `Properties` conversion functions and round-trip tested headlessly
+  (`OfflineMapStatusFileTest`), including that a corrupted or partial file
+  reads as "nothing downloaded" rather than crashing or guessing.
+- The bounding-box math the region picker feeds to `CacheManager` is pure and
+  unit-tested (`GeoDistanceTest`), including the antimeridian-wrap and
+  near-pole cases.
+- The ViewModel's loading → success/failure state machine
+  (`AvailabilityViewModelOfflineMapsTest`) is exercised against a fake
+  `OfflineMapRepository` this project fully controls, covering progress
+  reporting, download/delete failure, and that invalid coordinates never
+  reach the repository at all.
+- That the "Offline Maps" section is structurally unreachable under
+  OpenStreetMap and reachable under USGS is measured against the real
+  Compose tree (`AvailabilityScreenSettingsPanelTest`), not just reasoned
+  about.
+
+**The OpenTopoMap tile-usage-policy finding is one step removed from its
+primary source.** osmdroid's pinned artifact encodes the OpenStreetMap half
+of decision #7 directly — `TileSourceFactory.MAPNIK`'s `TileSourcePolicy` sets
+`FLAG_NO_BULK`, citing `operations.osmfoundation.org/policies/tiles/` by name
+in the library's own source comment — but carries no such flag for
+`TileSourceFactory.OpenTopo` at all, so nothing in the library blocks a bulk
+request against it. The claim that OpenTopoMap's own tile server (a distinct
+service, `tile.openmaps.fr`, run separately from the OpenTopoMap map style
+itself) also prohibits bulk/prefetch downloading rests on a web search of
+`opentopomap.org`'s and the OSM Foundation's own policy text, not a direct
+fetch of either page — this environment's egress proxy blocks both
+`opentopomap.org` and `operations.osmfoundation.org` directly, on both the
+attempt during this task and an earlier one. Worth a primary-source
+spot-check in an environment that can reach them before this is relied on
+further; the enforcement in this app does not depend on osmdroid's own
+(incomplete) policy check either way — see `OfflineBasemapStyle`'s doc
+comment.
+
 ## Which build am I running?
 
-Open the drawer; the footer reads `Build <versionCode> · <versionName>`, for
-example `Build 9 · 1.0.9+g85fa6245`. The versionCode is the git commit count
+Open the drawer, then tap **Settings** at the bottom; its own footer reads
+`Build <versionCode> · <versionName>`, for
+example `Build 9 · 1.0.9+g85fa6245`. The footer moved here from the bottom
+of the search panel when Settings was added — see "Project layout" above.
+The versionCode is the git commit count
 — it is what Android compares when deciding whether an install replaces the
 existing app or silently no-ops — and the sha names the exact commit. A
 `.dirty` suffix means the build had uncommitted changes.

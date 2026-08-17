@@ -16,6 +16,7 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.MushroomRepository
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -23,6 +24,7 @@ import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.location.AndroidLocationProvider
+import com.forager.app.map.OsmdroidOfflineMapRepository
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
 class AppContainer(context: Context) {
@@ -54,4 +56,6 @@ class AppContainer(context: Context) {
     val getPlannedTripsUseCase = GetPlannedTripsUseCase(plannedTripRepository)
     val savePlannedTripUseCase = SavePlannedTripUseCase(plannedTripRepository)
     val deletePlannedTripUseCase = DeletePlannedTripUseCase(plannedTripRepository)
+
+    val offlineMapRepository: OfflineMapRepository = OsmdroidOfflineMapRepository(context)
 }

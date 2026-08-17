@@ -21,16 +21,21 @@ enum class BasemapCoverage(val note: String?) {
  *
  * This is the [MapSlot] idea one level down: the choice a user makes is described here in pure
  * Kotlin — no osmdroid, no Compose, no Android — and [tileSourceFor] is the single place that turns
- * it into an `ITileSource`. So the selector UI, the coverage notes and the zoom ceilings are all
- * unit-testable headless (see `BasemapTest`), and the vendor type stays behind one function
- * (`BasemapTileSourceTest` checks that mapping against the real artifact).
+ * it into an `ITileSource`. So the coverage notes and the zoom ceilings are all unit-testable
+ * headless (see `BasemapTest`), and the vendor type stays behind one function (`BasemapTileSourceTest`
+ * checks that mapping against the real artifact).
  *
- * ## Why a selector at all, and why USGS is the default
+ * ## How a basemap actually gets chosen
  *
- * For deciding where to walk, terrain, forest cover and water beat roads and building footprints,
- * so USGS Topo is the default. But **USGS National Map covers the United States only**, so it
- * cannot simply replace OpenStreetMap as a hardcoded default: that would break the map outright for
- * any user outside the US. Two alternatives were rejected:
+ * Not from this enum directly. [MapService] groups these four into two providers (OpenStreetMap,
+ * USGS), each with a "topo" and a "regular" [Basemap]; the user picks the service occasionally, in
+ * Settings, and a quick-fire icon over the map itself toggles topo/regular far more often, since
+ * that's a during-the-walk decision. See [MapService]'s doc comment for the full picture, including
+ * why the app's default moved off USGS Topo (PR #13's choice) onto OpenStreetMap.
+ *
+ * **USGS National Map covers the United States only**, which is why it cannot be a hardcoded
+ * default regardless of which type resolves it: that would break the map outright for any user
+ * outside the US. Two alternatives to stating the limit outright were rejected:
  *
  * - **Auto-detecting coverage and falling back to OpenStreetMap.** Blank-tile detection is
  *   unreliable, and CLAUDE.md forbids an unlogged silent fallback. Worse, the failure here is not
@@ -117,10 +122,11 @@ enum class Basemap(
 
     companion object {
         /**
-         * What the map opens on. USGS Topo, because terrain is the useful thing for choosing where
-         * to walk — see this class's doc comment, including why this is a default the user can see
-         * and change rather than a hardcoded source.
+         * What the map opens on. Derives from [MapService.DEFAULT] rather than naming a [Basemap]
+         * directly, so there is exactly one place that decides the app's opening basemap — see
+         * [MapService]'s doc comment for why that default is OpenStreetMap rather than USGS Topo
+         * (PR #13's original choice) and for how the two enums relate.
          */
-        val DEFAULT = USGS_TOPO
+        val DEFAULT get() = MapService.DEFAULT.topoBasemap
     }
 }

@@ -95,10 +95,9 @@ class SightingsMapBasemapSwapTest {
 
     @Test
     fun `every overlay survives a basemap change`() {
-        // Starts on OpenStreetMap and switches to the USGS default, rather than the reverse: the
+        // Starts on OpenStreetMap and switches to USGS Topo, rather than the reverse: the
         // interesting direction is the one a user takes when they open the app somewhere USGS has no
-        // tiles and reach for the standard map, and back. Starting on Basemap.DEFAULT and "switching"
-        // to USGS_TOPO would be no switch at all — the assertNotEquals below caught exactly that.
+        // tiles and reach for the standard map, and back.
         val map = composeMapWithOverlays(initialBasemap = Basemap.OSM_STANDARD)
         val sourceBefore = map.tileProvider.tileSource.name()
         val before = map.snapshotOverlays()
@@ -150,7 +149,11 @@ class SightingsMapBasemapSwapTest {
      */
     @Test
     fun `the visiting-order disclaimer and dashed connector survive a basemap change`() {
-        val map = composeMapWithOverlays()
+        // Starts on OSM_STANDARD rather than the default: Basemap.DEFAULT now resolves to
+        // OPEN_TOPO_MAP (see MapService), and the switch below is to that same basemap, so starting
+        // there would make this "switch" a no-op the assertNotEquals below is specifically checking
+        // didn't happen.
+        val map = composeMapWithOverlays(initialBasemap = Basemap.OSM_STANDARD)
         val sourceBefore = map.tileProvider.tileSource.name()
 
         basemapUnderTest = Basemap.OPEN_TOPO_MAP

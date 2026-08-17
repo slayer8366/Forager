@@ -10,6 +10,9 @@ import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
+import com.forager.app.domain.OfflineBasemapStyle
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -80,6 +83,15 @@ private object PlannedTripsStubTripPlanningWeatherProvider : TripPlanningWeather
         Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
 }
 
+/** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
+private object PlannedTripsStubOfflineMapRepository : OfflineMapRepository {
+    override suspend fun download(region: Region, style: OfflineBasemapStyle, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun delete(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
+    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
+}
+
 class AvailabilityViewModelPlannedTripsTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -101,6 +113,7 @@ class AvailabilityViewModelPlannedTripsTest {
         getPlannedTrips = GetPlannedTripsUseCase(repository),
         savePlannedTrip = SavePlannedTripUseCase(repository),
         deletePlannedTrip = DeletePlannedTripUseCase(repository),
+        offlineMapRepository = PlannedTripsStubOfflineMapRepository,
     )
 
     @Test

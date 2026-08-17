@@ -25,14 +25,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.ExpandLess
@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -48,7 +49,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -64,6 +64,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SelectableDates
@@ -97,6 +98,7 @@ import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.ForagingWeatherGuidance
 import com.forager.app.domain.FruitingPatternAssumptions
 import com.forager.app.domain.MgrsConverter
+import com.forager.app.domain.OfflineBasemapStyle
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
@@ -105,11 +107,14 @@ import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MgrsCoordinate
 import com.forager.app.domain.model.NoTripWindowReason
 import com.forager.app.domain.model.PlannedTrip
+import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.ui.map.Basemap
+import com.forager.app.ui.map.BasemapCoverage
+import com.forager.app.ui.map.MapService
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
@@ -126,6 +131,16 @@ import kotlinx.coroutines.delay
 private enum class ResultsTab(val label: String) {
     LIST("List"),
     MAP("Map"),
+}
+
+/**
+ * The drawer's two panels — see [AvailabilityScreen]'s doc comment on `drawerPanel` for how they're
+ * switched between, and this task's own notes for why the entry point sits at the search panel's
+ * old sticky-footer slot.
+ */
+private enum class DrawerPanel {
+    Search,
+    Settings,
 }
 
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
@@ -198,6 +213,12 @@ fun AvailabilityScreen(
     /** Called when a date and name are confirmed for a trip pin dropped via the map's long-press gesture. */
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
+    onOfflineMapLatChanged: (String) -> Unit,
+    onOfflineMapLngChanged: (String) -> Unit,
+    onOfflineMapRadiusChanged: (Int) -> Unit,
+    /** [style] is resolved by this screen from whichever mode the quick-fire map icon is currently showing. */
+    onDownloadOfflineMaps: (style: OfflineBasemapStyle) -> Unit,
+    onDeleteOfflineMaps: () -> Unit,
     /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
@@ -211,12 +232,20 @@ fun AvailabilityScreen(
     // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
     // no domain type depends on it — it is purely what the tiles look like. Putting it in
     // AvailabilityUiState would make the ViewModel the authority on a decision it has no part in.
+    // Two pieces now instead of one [Basemap] — see [MapService]'s doc comment for why the choice
+    // split into "which service" (Settings, occasional) and "which mode" (the map's own quick-fire
+    // icon, frequent) — but the reasoning above still applies to both: this task's own notes ask for
+    // this state "wherever basemap/onBasemapSelected currently live", and that is here, in Compose
+    // state local to this screen, not the ViewModel — PR #13 never put it there despite the task's
+    // phrasing suggesting otherwise, and moving it now would be scope this task didn't ask for.
     //
-    // The cost, stated rather than hidden: like selectedTab, it resets to Basemap.DEFAULT on process
-    // death. Persisting it needs somewhere to persist *to*, and the Settings panel that would own
-    // that is planned and not built; adding a Room table or a DataStore for one enum ahead of that
-    // is the speculative build CLAUDE.md warns against.
-    var basemap by remember { mutableStateOf(Basemap.DEFAULT) }
+    // The cost, stated rather than hidden: like selectedTab, both reset to their defaults on process
+    // death. Persisting them needs somewhere to persist *to*, and adding a Room table or a DataStore
+    // for two small pieces of display-only state is the speculative build CLAUDE.md warns against.
+    var selectedMapService by remember { mutableStateOf(MapService.DEFAULT) }
+    var isTopoMode by remember { mutableStateOf(true) }
+    val basemap = selectedMapService.basemapFor(isTopoMode)
+    var drawerPanel by remember { mutableStateOf(DrawerPanel.Search) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val context = LocalContext.current
 
@@ -233,7 +262,15 @@ fun AvailabilityScreen(
     // toggling stays responsive rather than queuing up stale animations.
     var isDrawerOpen by remember { mutableStateOf(false) }
     LaunchedEffect(isDrawerOpen) {
-        if (isDrawerOpen) drawerState.open() else drawerState.close()
+        if (isDrawerOpen) {
+            drawerState.open()
+        } else {
+            drawerState.close()
+            // Reset to the Search panel on every close — scrim tap, back button, or a search action
+            // that closes the drawer itself — rather than leaving Settings showing the next time the
+            // drawer opens. A minor, easily-revisited default: see this task's own notes.
+            drawerPanel = DrawerPanel.Search
+        }
     }
 
     LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth, uiState.taxonFilter) {
@@ -277,30 +314,58 @@ fun AvailabilityScreen(
         gesturesEnabled = false,
         drawerContent = {
             ModalDrawerSheet {
-                // The one visible way to close this drawer other than tapping the scrim: gestures
-                // are off (see gesturesEnabled above), and the scrim alone is undiscoverable.
-                DrawerHeader(onClose = { isDrawerOpen = false })
-                SearchControls(
-                    // The controls take whatever height is left over so the build footer stays
-                    // pinned to the bottom of the sheet rather than sitting past the end of the
-                    // controls' own scroll, where nobody would find it.
-                    modifier = Modifier.weight(1f),
-                    uiState = uiState,
-                    onUseCurrentLocation = {
-                        isDrawerOpen = false
-                        onUseCurrentLocation()
-                    },
-                    onManualLatChanged = onManualLatChanged,
-                    onManualLngChanged = onManualLngChanged,
-                    onSearchManualCoordinates = {
-                        isDrawerOpen = false
-                        onSearchManualCoordinates()
-                    },
-                    onRadiusChanged = onRadiusChanged,
-                    onMonthSelected = onMonthSelected,
-                    onDeletePlannedTrip = onDeletePlannedTrip,
-                )
-                BuildIdentityFooter()
+                when (drawerPanel) {
+                    DrawerPanel.Search -> {
+                        // The one visible way to close this drawer other than tapping the scrim:
+                        // gestures are off (see gesturesEnabled above), and the scrim alone is
+                        // undiscoverable.
+                        DrawerHeader(onClose = { isDrawerOpen = false })
+                        SearchControls(
+                            // The controls take whatever height is left over so the settings entry
+                            // row stays pinned to the bottom of the sheet rather than sitting past
+                            // the end of the controls' own scroll, where nobody would find it.
+                            modifier = Modifier.weight(1f),
+                            uiState = uiState,
+                            onUseCurrentLocation = {
+                                isDrawerOpen = false
+                                onUseCurrentLocation()
+                            },
+                            onManualLatChanged = onManualLatChanged,
+                            onManualLngChanged = onManualLngChanged,
+                            onSearchManualCoordinates = {
+                                isDrawerOpen = false
+                                onSearchManualCoordinates()
+                            },
+                            onRadiusChanged = onRadiusChanged,
+                            onMonthSelected = onMonthSelected,
+                            onDeletePlannedTrip = onDeletePlannedTrip,
+                        )
+                        // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
+                        // moved to the bottom of the Settings panel below.
+                        SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
+                    }
+
+                    DrawerPanel.Settings -> {
+                        SettingsHeader(onBack = { drawerPanel = DrawerPanel.Search })
+                        SettingsContent(
+                            modifier = Modifier.weight(1f),
+                            selectedMapService = selectedMapService,
+                            onMapServiceSelected = { selectedMapService = it },
+                            isTopoMode = isTopoMode,
+                            uiState = uiState,
+                            onOfflineMapLatChanged = onOfflineMapLatChanged,
+                            onOfflineMapLngChanged = onOfflineMapLngChanged,
+                            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                            onDownloadOfflineMaps = {
+                                onDownloadOfflineMaps(
+                                    if (isTopoMode) OfflineBasemapStyle.TOPO else OfflineBasemapStyle.IMAGERY,
+                                )
+                            },
+                            onDeleteOfflineMaps = onDeleteOfflineMaps,
+                        )
+                        BuildIdentityFooter()
+                    }
+                }
             }
         },
     ) {
@@ -322,8 +387,6 @@ fun AvailabilityScreen(
                     onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                     onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                     onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                    basemap = basemap,
-                    onBasemapSelected = { basemap = it },
                 )
             },
         ) { padding ->
@@ -363,6 +426,8 @@ fun AvailabilityScreen(
                         uiState = uiState,
                         mapSlot = mapSlot,
                         basemap = basemap,
+                        isTopoMode = isTopoMode,
+                        onToggleMapMode = { isTopoMode = !isTopoMode },
                         onPlaceTripPin = onPlaceTripPin,
                         onToggleForagingAreas = onToggleForagingAreas,
                         modifier = Modifier.weight(1f),
@@ -507,6 +572,296 @@ private fun DrawerHeader(onClose: () -> Unit) {
             .clickable(role = Role.Button, onClick = onClose)
             .semantics { contentDescription = "Close search options" },
     ) {}
+}
+
+/**
+ * The Search panel's sticky-footer entry into Settings — the exact slot [BuildIdentityFooter] used
+ * to occupy, same divider-plus-navigation-bar-padding treatment, so the footer's move to the bottom
+ * of the Settings panel doesn't leave this slot looking or behaving any differently to a user who
+ * never opens Settings at all.
+ *
+ * Unlike [DrawerHeader], this one is a real, visible, labelled row: it isn't undoing anything the
+ * app bar already drew (there is no "Settings" icon anywhere else on screen this could echo), so it
+ * has to carry its own label to be discoverable at all.
+ */
+@Composable
+private fun SettingsEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .navigationBarsPadding()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Settings, contentDescription = null)
+        Text("Settings", style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
+ * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
+ * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
+ * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
+ */
+@Composable
+private fun SettingsHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onBack)
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
+        Text("Settings", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/**
+ * The Settings panel's body: "Choose Maps Service" and "Offline Maps", built as a real menu with
+ * headroom for more sections later per this task's own framing, rather than the two sections being
+ * the only shape this panel could ever take.
+ *
+ * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
+ * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
+ */
+@Composable
+private fun SettingsContent(
+    modifier: Modifier = Modifier,
+    selectedMapService: MapService,
+    onMapServiceSelected: (MapService) -> Unit,
+    isTopoMode: Boolean,
+    uiState: AvailabilityUiState,
+    onOfflineMapLatChanged: (String) -> Unit,
+    onOfflineMapLngChanged: (String) -> Unit,
+    onOfflineMapRadiusChanged: (Int) -> Unit,
+    onDownloadOfflineMaps: () -> Unit,
+    onDeleteOfflineMaps: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        ChooseMapsServiceSection(selectedMapService = selectedMapService, onMapServiceSelected = onMapServiceSelected)
+        HorizontalDivider()
+        OfflineMapsSection(
+            selectedMapService = selectedMapService,
+            isTopoMode = isTopoMode,
+            uiState = uiState,
+            onOfflineMapLatChanged = onOfflineMapLatChanged,
+            onOfflineMapLngChanged = onOfflineMapLngChanged,
+            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+            onDownloadOfflineMaps = onDownloadOfflineMaps,
+            onDeleteOfflineMaps = onDeleteOfflineMaps,
+        )
+    }
+}
+
+/**
+ * Which tile provider the map draws from — occasional, unlike the topo/regular mode toggled from
+ * the map itself (see [MapModeToggle]), which is why this lives in Settings rather than as a
+ * quick-fire control. A plain two-option radio choice rather than restating each service's four
+ * [Basemap]s individually: [MapService] already is that grouping, and PR #13's old selector rows
+ * — one per [Basemap], with its own coverage/zoom/attribution block — are no longer what a user
+ * picks between here. The detail those rows carried survives as a short caption per service
+ * ([mapServiceCaption]) rather than being dropped outright.
+ */
+@Composable
+private fun ChooseMapsServiceSection(selectedMapService: MapService, onMapServiceSelected: (MapService) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text("Choose Maps Service", style = MaterialTheme.typography.titleMedium)
+        MapService.entries.forEach { service ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.RadioButton) { onMapServiceSelected(service) },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                RadioButton(selected = service == selectedMapService, onClick = { onMapServiceSelected(service) })
+                Column {
+                    Text(service.label, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        mapServiceCaption(service),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** The coverage-and-zoom summary [ChooseMapsServiceSection] shows under each [MapService] option. */
+private fun mapServiceCaption(service: MapService): String {
+    val coverage = if (service.topoBasemap.coverage == BasemapCoverage.WORLDWIDE) "Worldwide" else "United States only"
+    return "$coverage · zooms to ${service.topoBasemap.maxZoom} (topo) / ${service.regularBasemap.maxZoom} (regular)"
+}
+
+/**
+ * The USGS-gated "Offline Maps" section — see decision #7 in this task's own notes for the full
+ * reasoning: OpenStreetMap's and OpenTopoMap's own tile-usage policies prohibit bulk/prefetch
+ * downloading, so this section is structurally unreachable under [MapService.OPEN_STREET_MAP]
+ * rather than merely steered away from it. `return` on the gated branch below, not a disabled-look
+ * form: there is nothing valid to fill in under OpenStreetMap, so showing the fields grayed out
+ * would invite exactly the "why can't I tap this" question the explanatory line already answers.
+ */
+@Composable
+private fun OfflineMapsSection(
+    selectedMapService: MapService,
+    isTopoMode: Boolean,
+    uiState: AvailabilityUiState,
+    onOfflineMapLatChanged: (String) -> Unit,
+    onOfflineMapLngChanged: (String) -> Unit,
+    onOfflineMapRadiusChanged: (Int) -> Unit,
+    onDownloadOfflineMaps: () -> Unit,
+    onDeleteOfflineMaps: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text("Offline Maps", style = MaterialTheme.typography.titleMedium)
+
+        if (selectedMapService != MapService.USGS) {
+            Text(
+                "Offline downloads are only available for the USGS map service — OpenStreetMap's " +
+                    "tile providers don't allow bulk downloading.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return
+        }
+
+        // Which of the two USGS styles a download targets is never a separate choice in this form —
+        // it always follows whichever mode the map's own quick-fire icon is currently showing at the
+        // moment "Download Maps" is tapped. Stated here so that isn't a silent surprise; see this
+        // task's own notes for why this behavior was chosen over a second style picker.
+        Text(
+            "Downloads USGS ${if (isTopoMode) "Topo" else "Imagery"} tiles for the region below — " +
+                "whichever mode the map's own quick-fire icon is currently set to.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            OutlinedTextField(
+                value = uiState.offlineMapLatText,
+                onValueChange = onOfflineMapLatChanged,
+                label = { Text("Latitude") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = uiState.offlineMapLngText,
+                onValueChange = onOfflineMapLngChanged,
+                label = { Text("Longitude") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+            )
+        }
+        Text("Radius: ${uiState.offlineMapRadiusKm} km", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = uiState.offlineMapRadiusKm.toFloat(),
+            onValueChange = { onOfflineMapRadiusChanged(it.toInt()) },
+            valueRange = Region.MIN_RADIUS_KM.toFloat()..Region.MAX_RADIUS_KM.toFloat(),
+            steps = Region.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
+        )
+
+        OfflineMapStatusContent(uiState.offlineMapStatus)
+
+        // Mirrors AvailabilityViewModel.onDownloadOfflineMaps's own coordinate validation, the same
+        // way TripDatePickerDialog's confirm button mirrors SavePlannedTripUseCase's blank-name
+        // guard: a cheap, local re-check that disables the button rather than letting a request the
+        // ViewModel will reject anyway be sent at all.
+        val lat = uiState.offlineMapLatText.toDoubleOrNull()
+        val lng = uiState.offlineMapLngText.toDoubleOrNull()
+        val hasValidRegion = lat != null && lat in -90.0..90.0 && lng != null && lng in -180.0..180.0
+        val isDownloading = uiState.offlineMapStatus is OfflineMapStatus.Downloading
+        val isDownloaded = uiState.offlineMapStatus is OfflineMapStatus.Downloaded
+
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Button(
+                onClick = onDownloadOfflineMaps,
+                enabled = hasValidRegion && !isDownloading,
+                modifier = Modifier.weight(1f),
+            ) { Text("Download Maps") }
+            OutlinedButton(
+                onClick = onDeleteOfflineMaps,
+                enabled = isDownloaded && !isDownloading,
+                modifier = Modifier.weight(1f),
+            ) { Text("Delete Offline Maps") }
+        }
+    }
+}
+
+/** What [OfflineMapsSection] shows for each [OfflineMapStatus] — every branch says something, per CLAUDE.md. */
+@Composable
+private fun OfflineMapStatusContent(status: OfflineMapStatus) {
+    when (status) {
+        OfflineMapStatus.NotDownloaded -> Text(
+            "No offline region downloaded yet.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        is OfflineMapStatus.Downloading -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            if (status.total > 0) {
+                LinearProgressIndicator(
+                    progress = { status.downloaded.toFloat() / status.total },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text("${status.downloaded} / ${status.total} tiles", style = MaterialTheme.typography.bodySmall)
+            } else {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text("Starting download…", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        is OfflineMapStatus.Downloaded -> Text(
+            "Downloaded: ${status.region.radiusKm} km around " +
+                "${"%.4f".format(status.region.lat)}, ${"%.4f".format(status.region.lng)} — " +
+                "${status.tileCount} tiles, ${"%.1f".format(status.sizeBytes / 1_000_000.0)} MB.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        is OfflineMapStatus.Failed -> Text(
+            status.message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
+/**
+ * The quick-fire icon overlaid on the map's own top-right corner — not the app bar, not Settings —
+ * because which mode a service is in ("if a map has two modes, toggle the two") is a during-the-walk
+ * decision made often, unlike which [MapService] to use at all, which is occasional and lives in
+ * Settings. See [MapService]'s doc comment and [MapTab]'s call site for the full picture.
+ */
+@Composable
+private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onToggle,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 3.dp,
+        shadowElevation = 2.dp,
+        modifier = modifier,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Layers,
+            contentDescription = if (isTopoMode) {
+                "Showing topo mode. Switch to regular mode."
+            } else {
+                "Showing regular mode. Switch to topo mode."
+            },
+            modifier = Modifier.padding(Spacing.sm),
+        )
+    }
 }
 
 /**
@@ -699,8 +1054,6 @@ private fun AvailabilitySearchTopBar(
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
-    basemap: Basemap,
-    onBasemapSelected: (Basemap) -> Unit,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -718,12 +1071,6 @@ private fun AvailabilitySearchTopBar(
                 IconButton(onClick = onOpenDrawer) {
                     Icon(Icons.Filled.Tune, contentDescription = "Advanced search options")
                 }
-                // Before the scrolling chip row, not after it. The location icon used to sit at the
-                // end of that row and was moved out because a fixed icon at a variable-width
-                // boundary crowded the chips (see this composable's doc comment); a second one there
-                // would reintroduce exactly that. Here it is at a stable position, outside the
-                // weighted scroll region.
-                BasemapSelector(basemap = basemap, onBasemapSelected = onBasemapSelected)
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -784,122 +1131,6 @@ private fun AvailabilitySearchTopBar(
         }
     }
 }
-
-/**
- * Chooses which basemap draws the tiles under the map's overlays.
- *
- * ## Why it lives in the app bar
- *
- * Two other places were considered and rejected, both for reasons this codebase already recorded:
- *
- * - **Below the map, next to [ForagingAreasToggle].** That is where the foraging-areas switch went
- *   when it left the drawer, and by that precedent — a map-display decision belongs with the map —
- *   this would be the obvious home. It was rejected on the layout budget, which is measurable rather
- *   than a matter of taste. [ForagingAreasToggle] and the panel below it are the wrap-content
- *   siblings that compete with the weighted map slot, and `MIN_MAP_SHARE_OF_SCREEN` in
- *   [AvailabilityScreenLayoutTest] holds the map at 33% of the screen. The tightest configuration
- *   tested (a 640dp phone at fontScale 2.0) measures the map at 39%, so there is roughly 36dp of
- *   headroom there — and a title-plus-description row like the foraging-areas one costs more than
- *   that at a doubled font scale. Adding it there would trade the map's floor for a control used
- *   once a session. A dropdown costs **zero** layout height: the menu is a popup, and the anchor is
- *   an [IconButton] in a bar that already exists.
- * - **The drawer's `SearchControls`.** Cheap in layout terms, but it buries a map-display choice in
- *   the same place the foraging-areas toggle was deliberately taken out of, and behind a collapsed
- *   section at that.
- *
- * The app bar keeps it one tap from the map and always visible, which is the part of the "with the
- * map" precedent that actually matters. It stays visible on the List tab too — gating it on the
- * selected tab would make the bar's icon row change width as the user switches tabs, and choosing a
- * basemap from the List tab is harmless.
- *
- * ## What each option says, and why it says so much
- *
- * Every option carries its coverage limit, its zoom ceiling and its attribution. None of that is
- * decoration:
- *
- * - The **coverage note** is the whole reason this selector exists rather than USGS being hardcoded.
- *   The app cannot detect whether the user is inside USGS's footprint — see [Basemap] — so the one
- *   honest thing it can do is say the limit next to the choice.
- * - The **zoom ceiling** is a real capability difference the user would otherwise discover as the
- *   map refusing to zoom. USGS Topo stops at 15 where OpenStreetMap reaches 19; stating it is the
- *   difference between a documented limit and an app that seems broken.
- * - The **attribution** is here because osmdroid's `CopyrightOverlay` renders only the bare string
- *   `"USGS"` for the USGS sources. That is non-empty, so the on-map notice is not blank, but it
- *   credits neither The National Map nor the public-domain status; [Basemap.attribution] is where
- *   the real credit is legible.
- */
-@Composable
-private fun BasemapSelector(basemap: Basemap, onBasemapSelected: (Basemap) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            // The current basemap is in the content description rather than as a visible label:
-            // a label would widen this fixed icon unpredictably as the choice changes, which is the
-            // variable-width crowding the call site's comment warns about, and screen readers still
-            // get the full answer.
-            Icon(Icons.Filled.Layers, contentDescription = "Basemap: ${basemap.label}")
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            Basemap.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { BasemapOptionContent(option = option, selected = option == basemap) },
-                    onClick = {
-                        onBasemapSelected(option)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-/** One basemap's row inside [BasemapSelector]'s menu. See that composable for why each line is here. */
-@Composable
-private fun BasemapOptionContent(option: Basemap, selected: Boolean) {
-    Column(
-        // Capped so the descriptions and coverage notes wrap into a readable column instead of
-        // stretching the popup to the width of its longest line.
-        modifier = Modifier.widthIn(max = BASEMAP_MENU_MAX_WIDTH),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(option.label, style = MaterialTheme.typography.titleSmall)
-            if (selected) {
-                Icon(
-                    Icons.Filled.Check,
-                    contentDescription = "Selected",
-                    modifier = Modifier.size(BASEMAP_SELECTED_CHECK_SIZE),
-                )
-            }
-        }
-        Text(option.description, style = MaterialTheme.typography.bodySmall)
-        option.coverage.note?.let { note ->
-            // Tertiary, matching the visiting-order disclaimer in [ForagingAreasPanel]: this is a
-            // caution about what the basemap can't do, not a failure that has happened. Reusing the
-            // error colour would make a real failed fetch read as no more urgent than this.
-            Text(
-                note,
-                style = MaterialTheme.typography.bodySmall,
-                fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        }
-        Text(
-            "Zooms in to level ${option.maxZoom} · ${option.attribution}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/** Keeps [BasemapSelector]'s popup a readable column rather than as wide as its longest line. */
-private val BASEMAP_MENU_MAX_WIDTH = 280.dp
-
-/** Sized to the label beside it, so the tick reads as part of the row rather than a button. */
-private val BASEMAP_SELECTED_CHECK_SIZE = 18.dp
 
 /** One suggestion's content inside a [DropdownMenuItem], which supplies the click and padding. */
 @Composable
@@ -1032,6 +1263,8 @@ private fun MapTab(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
     basemap: Basemap,
+    isTopoMode: Boolean,
+    onToggleMapMode: () -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -1069,17 +1302,22 @@ private fun MapTab(
                     } else {
                         emptyList()
                     }
-                    mapSlot(
-                        region,
-                        uiState.sightings,
-                        visibleAreas,
-                        uiState.plannedTrips,
-                        basemap,
-                        { location -> pendingTripLocation = location },
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                    )
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        mapSlot(
+                            region,
+                            uiState.sightings,
+                            visibleAreas,
+                            uiState.plannedTrips,
+                            basemap,
+                            { location -> pendingTripLocation = location },
+                            Modifier.fillMaxSize(),
+                        )
+                        MapModeToggle(
+                            isTopoMode = isTopoMode,
+                            onToggle = onToggleMapMode,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
+                        )
+                    }
                     // Always visible below the map, not gated on showForagingAreas itself — the
                     // switch is how the layer gets turned back on, so it has to be reachable while
                     // off. It moved here from the drawer's "Advanced search" section: whether to

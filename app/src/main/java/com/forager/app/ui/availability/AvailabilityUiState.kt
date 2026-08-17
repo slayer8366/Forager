@@ -72,6 +72,17 @@ data class AvailabilityUiState(
      */
     val plannedTrips: List<PlannedTrip> = emptyList(),
     val plannedTripsErrorMessage: String? = null,
+    /**
+     * The standalone region picker in Settings' "Offline Maps" section — independent of [region],
+     * per the task this was built from: a downloaded region has nothing to do with whatever's
+     * currently searched in the List/Map tabs. Text fields for the same reason [manualLatText]/
+     * [manualLngText] are: they need to hold whatever the user is mid-typing, including invalid or
+     * incomplete input, which a `Double` cannot represent.
+     */
+    val offlineMapLatText: String = "",
+    val offlineMapLngText: String = "",
+    val offlineMapRadiusKm: Int = 15,
+    val offlineMapStatus: OfflineMapStatus = OfflineMapStatus.NotDownloaded,
 ) {
     val hasSearched: Boolean get() = region != null
 }
