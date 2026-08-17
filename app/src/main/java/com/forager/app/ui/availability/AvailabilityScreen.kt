@@ -25,16 +25,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Tune
@@ -45,6 +48,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -105,6 +109,7 @@ import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
+import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
@@ -201,6 +206,17 @@ fun AvailabilityScreen(
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
+
+    // Local remembered state, alongside selectedTab and for the same reason: which basemap is under
+    // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
+    // no domain type depends on it — it is purely what the tiles look like. Putting it in
+    // AvailabilityUiState would make the ViewModel the authority on a decision it has no part in.
+    //
+    // The cost, stated rather than hidden: like selectedTab, it resets to Basemap.DEFAULT on process
+    // death. Persisting it needs somewhere to persist *to*, and the Settings panel that would own
+    // that is planned and not built; adding a Room table or a DataStore for one enum ahead of that
+    // is the speculative build CLAUDE.md warns against.
+    var basemap by remember { mutableStateOf(Basemap.DEFAULT) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val context = LocalContext.current
 
@@ -306,6 +322,8 @@ fun AvailabilityScreen(
                     onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                     onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                     onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                    basemap = basemap,
+                    onBasemapSelected = { basemap = it },
                 )
             },
         ) { padding ->
@@ -344,6 +362,7 @@ fun AvailabilityScreen(
                     ResultsTab.MAP -> MapTab(
                         uiState = uiState,
                         mapSlot = mapSlot,
+                        basemap = basemap,
                         onPlaceTripPin = onPlaceTripPin,
                         onToggleForagingAreas = onToggleForagingAreas,
                         modifier = Modifier.weight(1f),
@@ -680,6 +699,8 @@ private fun AvailabilitySearchTopBar(
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
+    basemap: Basemap,
+    onBasemapSelected: (Basemap) -> Unit,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -697,6 +718,12 @@ private fun AvailabilitySearchTopBar(
                 IconButton(onClick = onOpenDrawer) {
                     Icon(Icons.Filled.Tune, contentDescription = "Advanced search options")
                 }
+                // Before the scrolling chip row, not after it. The location icon used to sit at the
+                // end of that row and was moved out because a fixed icon at a variable-width
+                // boundary crowded the chips (see this composable's doc comment); a second one there
+                // would reintroduce exactly that. Here it is at a stable position, outside the
+                // weighted scroll region.
+                BasemapSelector(basemap = basemap, onBasemapSelected = onBasemapSelected)
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -757,6 +784,122 @@ private fun AvailabilitySearchTopBar(
         }
     }
 }
+
+/**
+ * Chooses which basemap draws the tiles under the map's overlays.
+ *
+ * ## Why it lives in the app bar
+ *
+ * Two other places were considered and rejected, both for reasons this codebase already recorded:
+ *
+ * - **Below the map, next to [ForagingAreasToggle].** That is where the foraging-areas switch went
+ *   when it left the drawer, and by that precedent — a map-display decision belongs with the map —
+ *   this would be the obvious home. It was rejected on the layout budget, which is measurable rather
+ *   than a matter of taste. [ForagingAreasToggle] and the panel below it are the wrap-content
+ *   siblings that compete with the weighted map slot, and `MIN_MAP_SHARE_OF_SCREEN` in
+ *   [AvailabilityScreenLayoutTest] holds the map at 33% of the screen. The tightest configuration
+ *   tested (a 640dp phone at fontScale 2.0) measures the map at 39%, so there is roughly 36dp of
+ *   headroom there — and a title-plus-description row like the foraging-areas one costs more than
+ *   that at a doubled font scale. Adding it there would trade the map's floor for a control used
+ *   once a session. A dropdown costs **zero** layout height: the menu is a popup, and the anchor is
+ *   an [IconButton] in a bar that already exists.
+ * - **The drawer's `SearchControls`.** Cheap in layout terms, but it buries a map-display choice in
+ *   the same place the foraging-areas toggle was deliberately taken out of, and behind a collapsed
+ *   section at that.
+ *
+ * The app bar keeps it one tap from the map and always visible, which is the part of the "with the
+ * map" precedent that actually matters. It stays visible on the List tab too — gating it on the
+ * selected tab would make the bar's icon row change width as the user switches tabs, and choosing a
+ * basemap from the List tab is harmless.
+ *
+ * ## What each option says, and why it says so much
+ *
+ * Every option carries its coverage limit, its zoom ceiling and its attribution. None of that is
+ * decoration:
+ *
+ * - The **coverage note** is the whole reason this selector exists rather than USGS being hardcoded.
+ *   The app cannot detect whether the user is inside USGS's footprint — see [Basemap] — so the one
+ *   honest thing it can do is say the limit next to the choice.
+ * - The **zoom ceiling** is a real capability difference the user would otherwise discover as the
+ *   map refusing to zoom. USGS Topo stops at 15 where OpenStreetMap reaches 19; stating it is the
+ *   difference between a documented limit and an app that seems broken.
+ * - The **attribution** is here because osmdroid's `CopyrightOverlay` renders only the bare string
+ *   `"USGS"` for the USGS sources. That is non-empty, so the on-map notice is not blank, but it
+ *   credits neither The National Map nor the public-domain status; [Basemap.attribution] is where
+ *   the real credit is legible.
+ */
+@Composable
+private fun BasemapSelector(basemap: Basemap, onBasemapSelected: (Basemap) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            // The current basemap is in the content description rather than as a visible label:
+            // a label would widen this fixed icon unpredictably as the choice changes, which is the
+            // variable-width crowding the call site's comment warns about, and screen readers still
+            // get the full answer.
+            Icon(Icons.Filled.Layers, contentDescription = "Basemap: ${basemap.label}")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            Basemap.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { BasemapOptionContent(option = option, selected = option == basemap) },
+                    onClick = {
+                        onBasemapSelected(option)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** One basemap's row inside [BasemapSelector]'s menu. See that composable for why each line is here. */
+@Composable
+private fun BasemapOptionContent(option: Basemap, selected: Boolean) {
+    Column(
+        // Capped so the descriptions and coverage notes wrap into a readable column instead of
+        // stretching the popup to the width of its longest line.
+        modifier = Modifier.widthIn(max = BASEMAP_MENU_MAX_WIDTH),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(option.label, style = MaterialTheme.typography.titleSmall)
+            if (selected) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = "Selected",
+                    modifier = Modifier.size(BASEMAP_SELECTED_CHECK_SIZE),
+                )
+            }
+        }
+        Text(option.description, style = MaterialTheme.typography.bodySmall)
+        option.coverage.note?.let { note ->
+            // Tertiary, matching the visiting-order disclaimer in [ForagingAreasPanel]: this is a
+            // caution about what the basemap can't do, not a failure that has happened. Reusing the
+            // error colour would make a real failed fetch read as no more urgent than this.
+            Text(
+                note,
+                style = MaterialTheme.typography.bodySmall,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
+        }
+        Text(
+            "Zooms in to level ${option.maxZoom} · ${option.attribution}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Keeps [BasemapSelector]'s popup a readable column rather than as wide as its longest line. */
+private val BASEMAP_MENU_MAX_WIDTH = 280.dp
+
+/** Sized to the label beside it, so the tick reads as part of the row rather than a button. */
+private val BASEMAP_SELECTED_CHECK_SIZE = 18.dp
 
 /** One suggestion's content inside a [DropdownMenuItem], which supplies the click and padding. */
 @Composable
@@ -888,6 +1031,7 @@ private fun ResultsSection(uiState: AvailabilityUiState, modifier: Modifier = Mo
 private fun MapTab(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
+    basemap: Basemap,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -930,6 +1074,7 @@ private fun MapTab(
                         uiState.sightings,
                         visibleAreas,
                         uiState.plannedTrips,
+                        basemap,
                         { location -> pendingTripLocation = location },
                         Modifier
                             .fillMaxWidth()
