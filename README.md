@@ -109,30 +109,99 @@ more certainty than the data supports. See `AvailabilityForecast` and
    unproven correction logic). The card is hidden entirely when browsing a
    different month, since today's rain says nothing about typical
    conditions in some other month.
+8. A **Seasonal** tab tests the rain-to-fruiting-lag rule of thumb quoted in
+   `FruitingPatternAssumptions.FRUITING_LAG_DAYS` (7–21 days after a soaking
+   rain) against real data, instead of leaving it as unmeasured field lore.
+   `GetSeasonalPatternUseCase` fetches the region's dated sightings
+   (`GetSightingsUseCase`, the same source the Map tab uses) and the
+   historical rainfall behind them
+   (`HistoricalWeatherProvider`/`OpenMeteoHistoricalWeatherProvider`, over
+   Open-Meteo's *historical archive* API — a different host,
+   `archive-api.open-meteo.com`, from the forecast API the rest of the app
+   uses), padding the fetch backward from the earliest sighting by
+   `FRUITING_LAG_DAYS.last` days so a soaking event just before it is still
+   visible. `ComputeFruitingLagDistributionUseCase` then finds, for each
+   dated sighting, the *nearest* preceding soaking event (reusing
+   `ComputeTripWindowsUseCase.findSoakingEvents` — never a second copy of
+   that detection) and buckets the lag into 0–6, 7–21 (`FRUITING_LAG_DAYS`
+   itself, highlighted), 22–35, 36+, or "no preceding event." The result is
+   drawn as a hand-rolled Compose `Canvas` bar chart — no charting
+   dependency, the same choice already made for `Dbscan`/`GeoDistance`/
+   `MgrsConverter` — with the exact counts also printed as text, since
+   Robolectric cannot render `Canvas` content and the honesty this feature
+   depends on cannot live in unmeasurable pixels alone.
+
+   **This tests one named hypothesis; it does not change any ranking.** The
+   Seasonal tab never writes to `AvailabilityEntry.relativeLikelihood` or
+   any other ranked-list state — same restraint `TripWindow` and
+   `PredictAvailabilityUseCase` already apply, for the same reason
+   (`CLAUDE.md`'s rule against unproven correction logic). Scope follows the
+   existing category chip with no new picker UI: an `IconicCategory` search
+   (Fungi, Plants) pools every matched species into one histogram, and a
+   `SpecificTaxon` search (Lichens, or a species picked from the search box)
+   scopes to that one taxon — both fall out of passing the existing
+   `TaxonFilter` straight through to `GetSightingsUseCase`, the same call the
+   Map tab already makes.
+
+   Every number here is labelled as an estimate, not a finding: the tab
+   always shows the sample size, an "estimate from N observations, not a
+   guarantee" line, how many of iNaturalist's own reported total were
+   actually fetched (`SightingsPage.totalResults`, not a
+   size-vs-page-size-cap guess — see below), and an observer-effort caveat
+   that raw iNaturalist counts reflect how many people were looking, not
+   only whether the species was present. Sightings with no recorded
+   observation date are excluded from the histogram and reported as such
+   rather than counted as zero-lag or silently dropped.
+
+   **`SightingsPage.totalResults`.** `INaturalistApi.getObservations` is a
+   single unpaginated request capped at 200 results, and
+   `INaturalistMushroomRepository` additionally drops any observation
+   iNaturalist gave no mappable position for. Comparing the returned
+   sighting count against the 200 cap to guess whether a search was
+   truncated is wrong in the direction that matters least safely — a
+   200-result page that loses 30 to missing coordinates yields 170, and
+   `170 >= 200` reads as "complete" when it is not. `MushroomRepository.getSightings`
+   therefore returns `SightingsPage`, carrying iNaturalist's own
+   `total_results` (already parsed in `ObservationsResponseDto`, previously
+   unused) alongside the filtered list, so the Map tab, the List tab and this
+   feature can all say "based on N of iNaturalist's own M" instead of a
+   guess.
 
 ## Project layout
 
 - `data/remote/` — the only code that speaks Retrofit/iNaturalist's or
-  Open-Meteo's wire formats (`INaturalistApi`, `OpenMeteoApi`, DTOs,
-  `INaturalistClient`, `OpenMeteoClient`).
+  Open-Meteo's wire formats (`INaturalistApi`, `OpenMeteoApi`,
+  `OpenMeteoArchiveApi`, DTOs, `INaturalistClient`, `OpenMeteoClient`,
+  `OpenMeteoArchiveClient`). `OpenMeteoArchiveApi`/`OpenMeteoArchiveClient`
+  are separate from the forecast pair because the historical archive API is
+  served from a different host (`archive-api.open-meteo.com`, not
+  `api.open-meteo.com`) with its own request/response shape
+  (`HistoricalPrecipitationResponseDto`, not reused from the forecast DTO —
+  see that file's own doc comment for why).
 - `data/repository/` — maps the iNaturalist API onto the domain-owned
   `MushroomRepository` interface, including parsing iNaturalist's
-  `"lat,lng"` location string and `observed_on` date; and the Open-Meteo
-  API onto `WeatherProvider` (`OpenMeteoWeatherProvider`).
+  `"lat,lng"` location string and `observed_on` date; the Open-Meteo
+  forecast API onto `WeatherProvider`/`TripPlanningWeatherProvider`
+  (`OpenMeteoWeatherProvider`); and the Open-Meteo historical archive API
+  onto `HistoricalWeatherProvider` (`OpenMeteoHistoricalWeatherProvider`).
 - `domain/` — pure Kotlin: `Region`, `LatLng`, `SpeciesObservationCount`,
-  `Sighting`, `TaxonFilter`, `TaxonSearchResult`, `AvailabilityForecast`,
-  `ConditionsSummary`, `ForagingArea`/`ForagingAreas`, `GeoDistance`,
-  `Dbscan`, `PredictAvailabilityUseCase`, `GetSightingsUseCase`,
-  `SearchTaxaUseCase`, `GetConditionsUseCase`,
-  `ClusterForagingAreasUseCase`, and the
-  `MushroomRepository`/`LocationProvider`/`WeatherProvider` interfaces. No
-  Android imports, so it's unit-testable headless (see `app/src/test/`).
+  `Sighting`, `SightingsPage`, `TaxonFilter`, `TaxonSearchResult`,
+  `AvailabilityForecast`, `ConditionsSummary`, `ForagingArea`/`ForagingAreas`,
+  `FruitingLagDistribution`, `GeoDistance`, `Dbscan`,
+  `PredictAvailabilityUseCase`, `GetSightingsUseCase`, `SearchTaxaUseCase`,
+  `GetConditionsUseCase`, `ClusterForagingAreasUseCase`,
+  `ComputeFruitingLagDistributionUseCase`, `GetSeasonalPatternUseCase`, and
+  the `MushroomRepository`/`LocationProvider`/`WeatherProvider`/
+  `HistoricalWeatherProvider` interfaces. No Android imports, so it's
+  unit-testable headless (see `app/src/test/`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
 - `ui/availability/` — `AvailabilityViewModel` and the Compose screen: a
   `ModalNavigationDrawer` holding every search control over a map-first
-  content area with the List/Map tab switch. `AvailabilityScreen`'s doc
-  comment records why the controls are in a drawer and what was rejected.
+  content area with the List/Map/Seasonal tab switch. `AvailabilityScreen`'s
+  doc comment records why the controls are in a drawer and what was
+  rejected; the Seasonal tab's hand-rolled `Canvas` bar chart is
+  `FruitingLagChart` in the same file.
 - `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
   osmdroid directly (the `MushroomRepository` pattern applied to the UI
   layer, so the screen can be composed in a test without starting tile
@@ -278,6 +347,49 @@ dot markers for individual observations look at a dense radius.
 The build-identity footer's version values are verified separately — they
 were read off the packaged APK with `aapt2 dump badging`, not off the Gradle
 config.
+
+**The Seasonal tab's chart is unverified for the same reason the map is**:
+`FruitingLagChart` is a Compose `Canvas`, and Robolectric does not render
+`Canvas` content meaningfully. `AvailabilityScreenSeasonalTabTest` proves the
+sample size, the per-page-cap-honest "based on N of M" line, the
+no-preceding-event count, the excluded-for-missing-date count, the
+fruiting-lag bucket's "(the rule of thumb)" label, and the observer-effort
+caveat are all real on-screen text — one of those assertions was checked
+against the actual defect (the caveat `Text` temporarily deleted) and
+confirmed to fail with "could not find any node" before being restored — but
+whether the bars actually draw at the right heights, in the right colors, on
+a real screen has not been seen.
+
+**What was checked against the live Open-Meteo historical archive API, and
+how.** A prior session concluded `archive-api.open-meteo.com` was blocked by
+network policy; that was a misread of a rate limit (HTTP 429, `"Daily API
+request limit exceeded"`) as a connection failure. Checked directly this
+session, with backoff retries: the endpoint is reachable, `latitude`/
+`longitude`/`start_date`/`end_date`/`daily=precipitation_sum`/`timezone=auto`
+is the right request shape, the response carries `utc_offset_seconds` and a
+`daily.time`/`daily.precipitation_sum` block matching
+`HistoricalPrecipitationResponseDto`, and — the one the shipped code actually
+depends on — a single request spanning **2016-01-01 to 2024-12-31 (3288
+days)** returned every day fully populated with no truncation, so
+`OpenMeteoHistoricalWeatherProvider` makes one unchunked request per search
+rather than paging a long historical range.
+`scripts/verify-open-meteo-historical-fields.sh` encodes these same checks
+with retry/backoff so they can be re-run; the daily rate limit from this
+session's own repeated manual probing meant the script's own last run in this
+session could not complete its second (multi-year) check before exhausting
+retries — the multi-year result above was captured from a manual run minutes
+earlier and is real, but re-running the script the next day (once the quota
+resets) is how to reproduce it end to end.
+
+**Not verified, and not assumed either way:** whether the archive API
+populates the most recent few days before "today," or returns nulls for
+them — every attempt to check that specific case hit the same daily quota
+before a request got through. `OpenMeteoHistoricalWeatherProvider` does not
+guess: a missing or null precipitation value on any day is dropped from the
+series rather than defaulted to zero, the same rule
+`OpenMeteoWeatherProvider` already applies to the forecast endpoint, so an
+unpopulated recent day degrades to "not counted" rather than reading as
+"confirmed dry."
 
 ## Which build am I running?
 

@@ -1,7 +1,7 @@
 package com.forager.app.domain
 
 import com.forager.app.domain.model.Region
-import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -24,7 +24,7 @@ private class FakeMushroomRepository(
         return result
     }
 
-    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> {
+    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> {
         throw NotImplementedError("not exercised by PredictAvailabilityUseCaseTest")
     }
 

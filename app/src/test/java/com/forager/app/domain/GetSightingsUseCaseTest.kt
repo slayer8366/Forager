@@ -2,6 +2,7 @@ package com.forager.app.domain
 
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import kotlinx.coroutines.test.runTest
@@ -11,7 +12,7 @@ import org.junit.Test
 import java.time.LocalDate
 
 private class FakeSightingsRepository(
-    private val sightingsResult: Result<List<Sighting>>,
+    private val sightingsResult: Result<SightingsPage>,
 ) : MushroomRepository {
     var lastRegion: Region? = null
     var lastMonth: Int? = null
@@ -19,7 +20,7 @@ private class FakeSightingsRepository(
 
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) = Result.success(emptyList<com.forager.app.domain.model.SpeciesObservationCount>())
 
-    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> {
+    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> {
         lastRegion = region
         lastMonth = month
         lastFilter = filter
@@ -50,10 +51,13 @@ class GetSightingsUseCaseTest {
     fun `sorts sightings by observed date, most recent first`() = runTest {
         val repository = FakeSightingsRepository(
             sightingsResult = Result.success(
-                listOf(
-                    sighting(1, LocalDate.of(2025, 9, 1)),
-                    sighting(2, LocalDate.of(2025, 9, 20)),
-                    sighting(3, LocalDate.of(2025, 9, 10)),
+                SightingsPage(
+                    sightings = listOf(
+                        sighting(1, LocalDate.of(2025, 9, 1)),
+                        sighting(2, LocalDate.of(2025, 9, 20)),
+                        sighting(3, LocalDate.of(2025, 9, 10)),
+                    ),
+                    totalResults = 3,
                 ),
             ),
         )
@@ -61,16 +65,19 @@ class GetSightingsUseCaseTest {
 
         val result = useCase(region, month = 9, filter = TaxonFilter.FUNGI).getOrThrow()
 
-        assertEquals(listOf(2L, 3L, 1L), result.map { it.observationId })
+        assertEquals(listOf(2L, 3L, 1L), result.sightings.map { it.observationId })
     }
 
     @Test
     fun `sightings with no observed date sort last`() = runTest {
         val repository = FakeSightingsRepository(
             sightingsResult = Result.success(
-                listOf(
-                    sighting(1, null),
-                    sighting(2, LocalDate.of(2025, 9, 20)),
+                SightingsPage(
+                    sightings = listOf(
+                        sighting(1, null),
+                        sighting(2, LocalDate.of(2025, 9, 20)),
+                    ),
+                    totalResults = 2,
                 ),
             ),
         )
@@ -78,7 +85,21 @@ class GetSightingsUseCaseTest {
 
         val result = useCase(region, month = 9, filter = TaxonFilter.FUNGI).getOrThrow()
 
-        assertEquals(listOf(2L, 1L), result.map { it.observationId })
+        assertEquals(listOf(2L, 1L), result.sightings.map { it.observationId })
+    }
+
+    @Test
+    fun `the total from the repository passes through unchanged`() = runTest {
+        val repository = FakeSightingsRepository(
+            sightingsResult = Result.success(
+                SightingsPage(sightings = listOf(sighting(1, LocalDate.of(2025, 9, 1))), totalResults = 1847),
+            ),
+        )
+        val useCase = GetSightingsUseCase(repository)
+
+        val result = useCase(region, month = 9, filter = TaxonFilter.FUNGI).getOrThrow()
+
+        assertEquals(1847, result.totalResults)
     }
 
     @Test
@@ -95,7 +116,7 @@ class GetSightingsUseCaseTest {
 
     @Test
     fun `passes the requested region, month, and filter through unchanged`() = runTest {
-        val repository = FakeSightingsRepository(sightingsResult = Result.success(emptyList()))
+        val repository = FakeSightingsRepository(sightingsResult = Result.success(SightingsPage(emptyList(), 0)))
         val useCase = GetSightingsUseCase(repository)
 
         useCase(region, month = 4, filter = TaxonFilter.LICHENS)
@@ -107,7 +128,7 @@ class GetSightingsUseCaseTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun `rejects a month outside 1-12`() = runTest {
-        val repository = FakeSightingsRepository(sightingsResult = Result.success(emptyList()))
+        val repository = FakeSightingsRepository(sightingsResult = Result.success(SightingsPage(emptyList(), 0)))
         val useCase = GetSightingsUseCase(repository)
 
         useCase(region, month = 0, filter = TaxonFilter.FUNGI)

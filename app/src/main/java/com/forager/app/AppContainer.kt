@@ -3,17 +3,22 @@ package com.forager.app
 import android.content.Context
 import com.forager.app.data.local.ForagerDatabase
 import com.forager.app.data.remote.INaturalistClient
+import com.forager.app.data.remote.OpenMeteoArchiveClient
 import com.forager.app.data.remote.OpenMeteoClient
 import com.forager.app.data.repository.INaturalistMushroomRepository
+import com.forager.app.data.repository.OpenMeteoHistoricalWeatherProvider
 import com.forager.app.data.repository.OpenMeteoWeatherProvider
 import com.forager.app.data.repository.RoomPlannedTripRepository
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.PlannedTripRepository
@@ -28,6 +33,7 @@ import com.forager.app.location.AndroidLocationProvider
 class AppContainer(context: Context) {
     private val api = INaturalistClient.create(debug = BuildConfig.DEBUG)
     private val weatherApi = OpenMeteoClient.create(debug = BuildConfig.DEBUG)
+    private val historicalWeatherApi = OpenMeteoArchiveClient.create(debug = BuildConfig.DEBUG)
 
     val mushroomRepository: MushroomRepository = INaturalistMushroomRepository(api)
 
@@ -36,6 +42,7 @@ class AppContainer(context: Context) {
     private val openMeteo = OpenMeteoWeatherProvider(weatherApi)
     val weatherProvider: WeatherProvider = openMeteo
     val tripPlanningWeatherProvider: TripPlanningWeatherProvider = openMeteo
+    val historicalWeatherProvider: HistoricalWeatherProvider = OpenMeteoHistoricalWeatherProvider(historicalWeatherApi)
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
     val predictAvailabilityUseCase = PredictAvailabilityUseCase(mushroomRepository)
     val getSightingsUseCase = GetSightingsUseCase(mushroomRepository)
@@ -44,6 +51,11 @@ class AppContainer(context: Context) {
     val getTripWindowsUseCase = GetTripWindowsUseCase(
         tripPlanningWeatherProvider,
         ComputeTripWindowsUseCase(),
+    )
+    val getSeasonalPatternUseCase = GetSeasonalPatternUseCase(
+        getSightingsUseCase,
+        historicalWeatherProvider,
+        ComputeFruitingLagDistributionUseCase(),
     )
 
     // No repository dependency: clustering is a pure transform of sightings already fetched.

@@ -4,6 +4,7 @@ import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingAreas
+import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -72,6 +73,15 @@ data class AvailabilityUiState(
      */
     val plannedTrips: List<PlannedTrip> = emptyList(),
     val plannedTripsErrorMessage: String? = null,
+    /**
+     * The Seasonal tab's test of [com.forager.app.domain.FruitingPatternAssumptions.FRUITING_LAG_DAYS]
+     * against real historical sightings and rainfall for the current search — see
+     * [com.forager.app.domain.GetSeasonalPatternUseCase]. Fetched lazily on tab open, keyed on
+     * region+month+filter, the same pattern [sightings] already uses for the Map tab.
+     */
+    val seasonalPattern: FruitingLagDistribution? = null,
+    val isLoadingSeasonalPattern: Boolean = false,
+    val seasonalPatternErrorMessage: String? = null,
 ) {
     val hasSearched: Boolean get() = region != null
 }

@@ -19,12 +19,15 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
@@ -35,15 +38,18 @@ import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
 import com.forager.app.ui.map.MapSlot
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -100,6 +106,11 @@ class AvailabilityScreenTripPlanningFlowTest {
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(plannedTripRepository),
+            getSeasonalPattern = GetSeasonalPatternUseCase(
+                GetSightingsUseCase(TripFlowEmptyRepository),
+                TripFlowStubHistoricalWeatherProvider,
+                ComputeFruitingLagDistributionUseCase(),
+            ),
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -112,6 +123,7 @@ class AvailabilityScreenTripPlanningFlowTest {
                 onRadiusChanged = viewModel::onRadiusChanged,
                 onMonthSelected = viewModel::onMonthSelected,
                 onMapTabSelected = viewModel::onMapTabSelected,
+                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
                 onToggleForagingAreas = viewModel::onToggleForagingAreas,
                 onCategorySelected = viewModel::onCategorySelected,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
@@ -236,7 +248,7 @@ private object TripFlowEmptyRepository : MushroomRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =
-        Result.success(emptyList<Sighting>())
+        Result.success(SightingsPage(sightings = emptyList<Sighting>(), totalResults = 0))
     override suspend fun searchTaxa(query: String) = Result.success(emptyList<TaxonSearchResult>())
 }
 
@@ -248,6 +260,11 @@ private object TripFlowStubWeatherProvider : WeatherProvider {
 private object TripFlowStubTripPlanningWeatherProvider : TripPlanningWeatherProvider {
     override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
         Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
+}
+
+private object TripFlowStubHistoricalWeatherProvider : HistoricalWeatherProvider {
+    override suspend fun getHistoricalPrecipitation(region: Region, from: LocalDate, through: LocalDate): Result<List<DailyWeather>> =
+        Result.failure(UnsupportedOperationException("seasonal pattern not exercised by this test"))
 }
 
 private class TripFlowInMemoryPlannedTripRepository : PlannedTripRepository {

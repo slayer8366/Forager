@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
                     container.getPlannedTripsUseCase,
                     container.savePlannedTripUseCase,
                     container.deletePlannedTripUseCase,
+                    container.getSeasonalPatternUseCase,
                 )
             }
         }
@@ -76,6 +77,7 @@ class MainActivity : ComponentActivity() {
                     onRadiusChanged = viewModel::onRadiusChanged,
                     onMonthSelected = viewModel::onMonthSelected,
                     onMapTabSelected = viewModel::onMapTabSelected,
+                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
                     onToggleForagingAreas = viewModel::onToggleForagingAreas,
                     onCategorySelected = viewModel::onCategorySelected,
                     onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,

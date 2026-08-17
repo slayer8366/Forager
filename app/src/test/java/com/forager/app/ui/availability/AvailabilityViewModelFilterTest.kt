@@ -9,12 +9,15 @@ import com.forager.app.data.remote.dto.TaxaAutocompleteResponseDto
 import com.forager.app.data.remote.dto.TaxonDto
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.PlannedTripRepository
@@ -24,10 +27,12 @@ import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.WeatherSeries
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -142,6 +147,12 @@ private object StubTripPlanningWeatherProvider : TripPlanningWeatherProvider {
         Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
 }
 
+/** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */
+private object StubHistoricalWeatherProvider : HistoricalWeatherProvider {
+    override suspend fun getHistoricalPrecipitation(region: Region, from: LocalDate, through: LocalDate): Result<List<DailyWeather>> =
+        Result.failure(UnsupportedOperationException("seasonal pattern not exercised by this test"))
+}
+
 /** Not exercised by this test's assertions; empty rather than failing, since it loads on every ViewModel init. */
 private object StubPlannedTripRepository : PlannedTripRepository {
     override suspend fun getAll(): Result<List<PlannedTrip>> = Result.success(emptyList())
@@ -174,6 +185,11 @@ class AvailabilityViewModelFilterTest {
             getPlannedTrips = GetPlannedTripsUseCase(StubPlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(StubPlannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(StubPlannedTripRepository),
+            getSeasonalPattern = GetSeasonalPatternUseCase(
+                GetSightingsUseCase(repository),
+                StubHistoricalWeatherProvider,
+                ComputeFruitingLagDistributionUseCase(),
+            ),
         )
     }
 

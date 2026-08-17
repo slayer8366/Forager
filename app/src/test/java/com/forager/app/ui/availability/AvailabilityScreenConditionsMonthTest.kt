@@ -17,12 +17,15 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
@@ -33,9 +36,11 @@ import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -103,6 +108,11 @@ class AvailabilityScreenConditionsMonthTest {
             getPlannedTrips = GetPlannedTripsUseCase(FakePlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(FakePlannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(FakePlannedTripRepository),
+            getSeasonalPattern = GetSeasonalPatternUseCase(
+                GetSightingsUseCase(FakeRepository),
+                FakeHistoricalWeatherProvider,
+                ComputeFruitingLagDistributionUseCase(),
+            ),
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -116,6 +126,7 @@ class AvailabilityScreenConditionsMonthTest {
                 onRadiusChanged = viewModel::onRadiusChanged,
                 onMonthSelected = viewModel::onMonthSelected,
                 onMapTabSelected = viewModel::onMapTabSelected,
+                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
                 onToggleForagingAreas = viewModel::onToggleForagingAreas,
                 onCategorySelected = viewModel::onCategorySelected,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
@@ -222,7 +233,7 @@ private object FakeRepository : MushroomRepository {
         )
 
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =
-        Result.success(emptyList<Sighting>())
+        Result.success(SightingsPage(sightings = emptyList<Sighting>(), totalResults = 0))
 
     override suspend fun searchTaxa(query: String) = Result.success(emptyList<TaxonSearchResult>())
 }
@@ -245,6 +256,12 @@ private object FakeWeatherProvider : WeatherProvider {
 private object FakeTripPlanningWeatherProvider : TripPlanningWeatherProvider {
     override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
         Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
+}
+
+/** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */
+private object FakeHistoricalWeatherProvider : HistoricalWeatherProvider {
+    override suspend fun getHistoricalPrecipitation(region: Region, from: LocalDate, through: LocalDate): Result<List<DailyWeather>> =
+        Result.failure(UnsupportedOperationException("seasonal pattern not exercised by this test"))
 }
 
 /** Not exercised by this test's assertions; empty rather than failing, since it loads on every ViewModel init. */
