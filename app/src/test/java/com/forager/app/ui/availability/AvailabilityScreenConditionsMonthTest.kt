@@ -16,13 +16,16 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.Region
@@ -30,6 +33,7 @@ import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
+import com.forager.app.domain.model.WeatherSeries
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import java.time.Month
@@ -89,6 +93,7 @@ class AvailabilityScreenConditionsMonthTest {
             searchTaxa = SearchTaxaUseCase(FakeRepository),
             getConditions = GetConditionsUseCase(FakeWeatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
+            getTripWindows = GetTripWindowsUseCase(FakeTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -207,4 +212,10 @@ private object FakeWeatherProvider : WeatherProvider {
             daysSinceSignificantRain = 2,
         ),
     )
+}
+
+/** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */
+private object FakeTripPlanningWeatherProvider : TripPlanningWeatherProvider {
+    override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
+        Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
 }

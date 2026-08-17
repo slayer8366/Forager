@@ -1,5 +1,6 @@
 package com.forager.app.ui.availability
 
+import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingAreas
@@ -7,6 +8,7 @@ import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
+import com.forager.app.domain.model.TripWindowReport
 import java.time.LocalDate
 
 data class AvailabilityUiState(
@@ -46,6 +48,14 @@ data class AvailabilityUiState(
     val conditions: ConditionsSummary? = null,
     val isLoadingConditions: Boolean = false,
     val conditionsErrorMessage: String? = null,
+    /**
+     * Which group's weather guidance text applies to [taxonFilter], carried alongside it because
+     * [TaxonFilter] alone cannot answer that — see [ForagingSelection]'s doc comment.
+     */
+    val foragingSelection: ForagingSelection = ForagingSelection.forChip(TaxonFilter.FUNGI),
+    val tripWindowReport: TripWindowReport? = null,
+    val isLoadingTripWindows: Boolean = false,
+    val tripWindowsErrorMessage: String? = null,
 ) {
     val hasSearched: Boolean get() = region != null
 }

@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
                     container.searchTaxaUseCase,
                     container.getConditionsUseCase,
                     container.clusterForagingAreasUseCase,
+                    container.getTripWindowsUseCase,
                 )
             }
         }

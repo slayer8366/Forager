@@ -3,8 +3,10 @@ package com.forager.app.ui.availability
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.PredictAvailabilityUseCase
@@ -28,6 +30,7 @@ class AvailabilityViewModel(
     private val searchTaxa: SearchTaxaUseCase,
     private val getConditions: GetConditionsUseCase,
     private val clusterForagingAreas: ClusterForagingAreasUseCase,
+    private val getTripWindows: GetTripWindowsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -47,7 +50,14 @@ class AvailabilityViewModel(
     }
 
     fun onCategorySelected(category: TaxonFilter) {
-        _uiState.update { it.copy(taxonFilter = category, taxonSearchQuery = "", taxonSearchResults = emptyList()) }
+        _uiState.update {
+            it.copy(
+                taxonFilter = category,
+                foragingSelection = ForagingSelection.forChip(category),
+                taxonSearchQuery = "",
+                taxonSearchResults = emptyList(),
+            )
+        }
         _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, category) }
     }
 
@@ -83,6 +93,7 @@ class AvailabilityViewModel(
         _uiState.update {
             it.copy(
                 taxonFilter = filter,
+                foragingSelection = ForagingSelection.fromSearchResult(result),
                 taxonSearchQuery = "",
                 taxonSearchResults = emptyList(),
             )
@@ -204,23 +215,43 @@ class AvailabilityViewModel(
 
         // Recent rainfall is only meaningful for the current month: searching "what's typical
         // in November" while it's April doesn't make today's rain relevant to that answer.
-        if (month != LocalDate.now().monthValue) {
+        if (month == LocalDate.now().monthValue) {
+            // Independent of the forecast fetch above: a conditions failure must not block or
+            // fail the main forecast, same independence pattern as onMapTabSelected's sightings
+            // fetch.
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoadingConditions = true, conditionsErrorMessage = null) }
+                getConditions(region).fold(
+                    onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(
+                                isLoadingConditions = false,
+                                conditions = null,
+                                conditionsErrorMessage = error.message ?: "Couldn't load recent rainfall.",
+                            )
+                        }
+                    },
+                )
+            }
+        } else {
             _uiState.update { it.copy(conditions = null, isLoadingConditions = false, conditionsErrorMessage = null) }
-            return
         }
 
-        // Independent of the forecast fetch above: a conditions failure must not block or fail
-        // the main forecast, same independence pattern as onMapTabSelected's sightings fetch.
+        // Trip windows are about the days ahead of today, not about the browsed month, so unlike
+        // conditions above they are fetched regardless of which month is selected for the ranked
+        // list — browsing "what's typical in November" in August doesn't make this week's rain
+        // and forecast irrelevant to planning a trip this week.
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingConditions = true, conditionsErrorMessage = null) }
-            getConditions(region).fold(
-                onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
+            _uiState.update { it.copy(isLoadingTripWindows = true, tripWindowsErrorMessage = null) }
+            getTripWindows(region).fold(
+                onSuccess = { report -> _uiState.update { it.copy(isLoadingTripWindows = false, tripWindowReport = report) } },
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(
-                            isLoadingConditions = false,
-                            conditions = null,
-                            conditionsErrorMessage = error.message ?: "Couldn't load recent rainfall.",
+                            isLoadingTripWindows = false,
+                            tripWindowReport = null,
+                            tripWindowsErrorMessage = error.message ?: "Couldn't load trip-window weather.",
                         )
                     }
                 },

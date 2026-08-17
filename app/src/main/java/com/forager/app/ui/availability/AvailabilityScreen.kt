@@ -61,17 +61,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.BuildConfig
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ForagingSelection
+import com.forager.app.domain.ForagingWeatherGuidance
+import com.forager.app.domain.FruitingPatternAssumptions
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
+import com.forager.app.domain.model.NoTripWindowReason
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
+import com.forager.app.domain.model.TripWindow
+import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import com.forager.app.ui.map.foragingAreaSummary
 import java.time.Month
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -522,6 +529,9 @@ private fun ListTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier)
         if (uiState.conditions != null) {
             ConditionsCard(conditions = uiState.conditions)
         }
+        if (uiState.region != null) {
+            TripWindowsCard(uiState = uiState)
+        }
         // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
         // bounded height rather than whatever the card above it happens to leave.
         ResultsSection(uiState = uiState, modifier = Modifier.weight(1f))
@@ -778,6 +788,140 @@ private fun ConditionsCard(conditions: ConditionsSummary) {
                 },
                 style = MaterialTheme.typography.bodySmall,
             )
+        }
+    }
+}
+
+private val TRIP_WINDOW_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
+
+/**
+ * Upcoming days that sit inside the stated post-rain lag range, next to the group's general
+ * weather pattern.
+ *
+ * Two owned domain objects meet here and stay visually distinct: [TripWindowReport] is
+ * measurements and date arithmetic only (see its own doc comment for why it must never grow a
+ * score), and [ForagingWeatherGuidance] is the separately-stated rule of thumb that makes those
+ * measurements interesting. The card shows both but never blends them into one sentence.
+ *
+ * Unlike [ConditionsCard], not gated to the browsed month: the days ahead of today are relevant
+ * to planning a trip this week regardless of which month's species ranking is on screen.
+ */
+@Composable
+private fun TripWindowsCard(uiState: AvailabilityUiState) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Trip Windows", style = MaterialTheme.typography.titleSmall)
+
+            when {
+                uiState.isLoadingTripWindows -> CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                )
+
+                uiState.tripWindowsErrorMessage != null -> Text(
+                    uiState.tripWindowsErrorMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+
+                uiState.tripWindowReport != null -> TripWindowReportContent(uiState.tripWindowReport)
+            }
+
+            HorizontalDivider()
+            ForagingWeatherGuidanceSection(uiState.foragingSelection)
+        }
+    }
+}
+
+@Composable
+private fun TripWindowReportContent(report: TripWindowReport) {
+    if (report.windows.isEmpty()) {
+        Text(noTripWindowMessage(report), style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        report.windows.forEach { window -> TripWindowRow(window) }
+    }
+}
+
+@Composable
+private fun TripWindowRow(window: TripWindow) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            "${TRIP_WINDOW_DATE_FORMAT.format(window.startDate)} – ${TRIP_WINDOW_DATE_FORMAT.format(window.endDate)}",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        val mostRecentRain = window.precedingRainEvents.first()
+        Text(
+            "${window.daysAfterMostRecentRainAtStart}–${window.daysAfterMostRecentRainAtEnd} days after " +
+                "${"%.0f".format(mostRecentRain.totalMm)}mm of rain ending " +
+                TRIP_WINDOW_DATE_FORMAT.format(mostRecentRain.endDate) +
+                if (mostRecentRain.isForecast) " (forecast)" else "",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (window.precipitationDuringWindowMm > 0.0) {
+            Text(
+                "${"%.1f".format(window.precipitationDuringWindowMm)}mm more rain forecast during the window",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        window.meanShallowSoilMoistureM3M3?.let { moisture ->
+            Text(
+                "Shallow soil moisture: ${"%.2f".format(moisture)} m³/m³",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        window.meanSoilTemperatureC?.let { temp ->
+            Text("Soil temperature: ${"%.1f".format(temp)}°C", style = MaterialTheme.typography.bodySmall)
+        }
+        window.evapotranspirationSinceRainMm?.let { et0 ->
+            Text(
+                "${"%.1f".format(et0)}mm evapotranspiration since the rain",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+/**
+ * Why no window was found, stated specifically with the numbers behind it — never a bare "none
+ * found" (CLAUDE.md: partial or empty results are reported as such).
+ */
+private fun noTripWindowMessage(report: TripWindowReport): String = when (val reason = report.noWindowReason) {
+    is NoTripWindowReason.NoQualifyingRainEvent ->
+        "No run of rain in the last ${reason.daysExamined} days totaled the " +
+            "${"%.0f".format(reason.requiredTotalMm)}mm this search treats as a soaking event — the " +
+            "wettest run reached ${"%.0f".format(reason.largestRunTotalMm)}mm."
+
+    is NoTripWindowReason.LagRangeOutsideHorizon ->
+        "The most recent qualifying rain ended ${TRIP_WINDOW_DATE_FORMAT.format(reason.mostRecentEventEnd)}. " +
+            "The ${FruitingPatternAssumptions.FRUITING_LAG_DAYS.first}–" +
+            "${FruitingPatternAssumptions.FRUITING_LAG_DAYS.last} day window it points to is " +
+            "${TRIP_WINDOW_DATE_FORMAT.format(reason.lagRangeStart)}–" +
+            "${TRIP_WINDOW_DATE_FORMAT.format(reason.lagRangeEnd)}, past the " +
+            "${TRIP_WINDOW_DATE_FORMAT.format(reason.horizonEnd)} horizon this search plans within."
+
+    is NoTripWindowReason.NoForecastDays ->
+        "No forecast days were returned for this location, so there's nothing to plan against."
+
+    null -> "" // Unreachable: report.windows.isEmpty() implies a non-null reason.
+}
+
+/**
+ * The general weather pattern for the current selection, stated as a rule of thumb next to the
+ * measurements above it — never combined with them into a score. See
+ * [ForagingWeatherGuidance]'s doc comment for the rules this enforces.
+ */
+@Composable
+private fun ForagingWeatherGuidanceSection(selection: ForagingSelection) {
+    val guidance = ForagingWeatherGuidance.forSelection(selection)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(guidance.heading, style = MaterialTheme.typography.labelLarge)
+        guidance.paragraphs.forEach { paragraph ->
+            Text(paragraph, style = MaterialTheme.typography.bodySmall)
+        }
+        guidance.speciesDataCaveat?.let { caveat ->
+            Text(caveat, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
         }
     }
 }
