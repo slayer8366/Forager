@@ -1,6 +1,5 @@
 package com.forager.app.map
 
-import com.forager.app.domain.OfflineBasemapStyle
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.model.Region
 import java.util.Properties
@@ -17,7 +16,6 @@ class OfflineMapStatusFileTest {
 
     private val info = OfflineMapInfo(
         region = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
-        style = OfflineBasemapStyle.TOPO,
         tileCount = 234,
         sizeBytes = 4_200_000L,
         downloadedAtEpochMillis = 1_755_000_000_000L,
@@ -31,13 +29,6 @@ class OfflineMapStatusFileTest {
     }
 
     @Test
-    fun `round-trips the imagery style too`() {
-        val imageryInfo = info.copy(style = OfflineBasemapStyle.IMAGERY)
-
-        assertEquals(imageryInfo, imageryInfo.toProperties().toOfflineMapInfo())
-    }
-
-    @Test
     fun `an empty Properties bag is not a downloaded region`() {
         assertNull(Properties().toOfflineMapInfo())
     }
@@ -47,13 +38,6 @@ class OfflineMapStatusFileTest {
         val incomplete = info.toProperties().apply { remove("sizeBytes") }
 
         assertNull(incomplete.toOfflineMapInfo())
-    }
-
-    @Test
-    fun `an unrecognised style value reads as nothing downloaded, not a crash`() {
-        val corrupted = info.toProperties().apply { setProperty("style", "NOT_A_REAL_STYLE") }
-
-        assertNull(corrupted.toOfflineMapInfo())
     }
 
     @Test

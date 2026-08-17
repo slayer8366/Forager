@@ -26,7 +26,6 @@ import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
-import com.forager.app.domain.OfflineBasemapStyle
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
@@ -267,7 +266,7 @@ private object FakePlannedTripRepository : PlannedTripRepository {
 
 /** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
 private object FakeOfflineMapRepository : OfflineMapRepository {
-    override suspend fun download(region: Region, style: OfflineBasemapStyle, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
     override suspend fun delete(): Result<Unit> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))

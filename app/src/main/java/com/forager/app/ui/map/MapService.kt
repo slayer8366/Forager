@@ -27,17 +27,20 @@ package com.forager.app.ui.map
  * has no such gap. This is the project owner's explicit call, not a reversal for its own sake — USGS
  * remains one tap away in Settings, same as before.
  *
- * ## Why offline downloading only ever reaches [USGS]
+ * ## Offline downloading has nothing to do with this enum at all
  *
- * See `OfflineMapRepository`'s doc comment and the "Offline Maps" section of `AvailabilityScreen`'s
- * Settings panel for the full reasoning (osmdroid's own [TileSourcePolicy][org.osmdroid.tileprovider.tilesource.TileSourcePolicy]
- * marks OpenStreetMap's `MAPNIK` source `FLAG_NO_BULK`, citing the OSM tile usage policy, and this
- * project's own research — one step removed from the primary source, this environment's egress
- * proxy blocks both operations.osmfoundation.org and opentopomap.org directly — found OpenTopoMap's
- * usage policy states the same for its own tile server). The gate that matters is structural, not
- * conventional: [MapService] is the only type the offline-download UI is ever handed a basemap
- * through, and [OPEN_STREET_MAP] simply has no download entry point wired to it — see
- * `AvailabilityScreen`'s `OfflineMapsSection`, gated on `selectedMapService == MapService.USGS`.
+ * An earlier revision gated Settings' "Offline Maps" section on `selectedMapService == USGS`, since
+ * offline downloads only ever fetch USGS tiles. The project owner's own framing, after seeing it
+ * built: since offline downloads only ever use USGS regardless, there's no reason for the *feature*
+ * to react to which service is currently selected for live browsing — the two are independent
+ * decisions, and coupling one's reachability to the other's live value was a leftover of an earlier
+ * design where the download style *did* follow the live selection. So "Offline Maps" is reachable
+ * unconditionally now; `com.forager.app.domain.OfflineMapRepository` hardcodes USGS Topo rather than
+ * accepting a tile source at all, which is what actually keeps the feature USGS-only — see
+ * `OsmdroidOfflineMapRepository`'s doc comment for the full citation trail behind *why* it's
+ * USGS-only in the first place (osmdroid's own [TileSourcePolicy][org.osmdroid.tileprovider.tilesource.TileSourcePolicy]
+ * marks OpenStreetMap's `MAPNIK` source `FLAG_NO_BULK`, and this project's own one-step-removed
+ * research found OpenTopoMap's tile server states the same).
  */
 enum class MapService(
     val label: String,

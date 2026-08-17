@@ -124,26 +124,37 @@ more certainty than the data supports. See `AvailabilityForecast` and
    at 16 — the app trusts the observed ceiling, per `CLAUDE.md`'s rule that a
    reported capability range is not an operating limit.
 
-   **Settings ▸ Offline Maps downloads USGS tiles for a region you pick, for
-   offline use — and only USGS.** The section is unreachable while
-   OpenStreetMap is the selected service, not merely disabled-looking: both
-   OpenStreetMap's and OpenTopoMap's tile providers prohibit bulk/prefetch
-   downloading in their usage policies, and USGS's own low zoom ceiling (15)
-   keeps a region download a practical size regardless. osmdroid's pinned
-   artifact encodes the OpenStreetMap half of that directly — the standard
-   map's `TileSourcePolicy` sets `FLAG_NO_BULK`, citing
-   `operations.osmfoundation.org/policies/tiles/` — but carries no such flag
-   for OpenTopoMap, so that half rests on a web search of the same domain and
-   `opentopomap.org`'s own usage text rather than a fetch of either page:
-   this environment's egress proxy blocks both directly. Worth a primary-source
-   spot-check before relying on it further. See `domain/OfflineBasemapStyle`'s
-   doc comment for the full citation trail. The download always targets
-   whichever USGS style (Topo or Imagery) the quick-fire icon is showing at
-   the moment "Download Maps" is tapped, stated on screen rather than left as
-   a silent assumption; downloaded tiles are stored under the app's private
-   files directory, not the cache directory ordinary browsing uses, so
-   neither an OS cache-clear nor ordinary map panning can evict a region the
-   user explicitly asked to keep. See `map/OsmdroidOfflineMapRepository`.
+   **Settings ▸ Offline Maps downloads USGS Topo tiles for a region you pick,
+   for offline use.** Reached via a submenu of its own (a "Offline Maps" row
+   inside Settings, one tap below "Choose Maps Service"), because it holds an
+   interactive map: rather than typing latitude/longitude, you long-press the
+   map shown there to set the download's centre point, the same long-press
+   gesture used elsewhere in this app to drop a planned-trip pin — a marker
+   with the radius in its snippet confirms the pick. The download always
+   fetches USGS Topo specifically, unconditionally: it doesn't read the
+   quick-fire icon's live mode or which map service is selected for ordinary
+   browsing, both of which were considered and dropped as needless coupling
+   for a feature that only ever needs one fixed source. Downloaded tiles are
+   stored under the app's private files directory, not the cache directory
+   ordinary browsing uses, so neither an OS cache-clear nor ordinary map
+   panning can evict a region the user explicitly asked to keep. See
+   `map/OsmdroidOfflineMapRepository`.
+
+   **Why USGS only, even though the feature no longer visibly gates on the
+   selected map service.** OpenStreetMap's and OpenTopoMap's tile providers
+   both prohibit bulk/prefetch downloading in their usage policies, and
+   USGS's own low zoom ceiling (15) keeps a region download a practical size
+   regardless. osmdroid's pinned artifact encodes the OpenStreetMap half of
+   that directly — the standard map's `TileSourcePolicy` sets `FLAG_NO_BULK`,
+   citing `operations.osmfoundation.org/policies/tiles/` — but carries no such
+   flag for OpenTopoMap, so that half rests on a web search of the same
+   domain and `opentopomap.org`'s own usage text rather than a fetch of
+   either page: this environment's egress proxy blocks both directly. Worth a
+   primary-source spot-check before relying on it further. The enforcement
+   itself is structural rather than a live UI gate: `OfflineMapRepository`
+   only ever downloads USGS Topo and accepts no other tile source as a
+   parameter, so there is nothing for the UI to steer away from — see that
+   interface's doc comment for the full citation trail.
 
    **The numbering is a visiting order, not a walking route.** Areas are
    numbered by greedy nearest-neighbour from the search centre — head for
@@ -190,8 +201,8 @@ more certainty than the data supports. See `AvailabilityForecast` and
   (including its point-radius `boundingBox` helper, used by the offline-map
   region picker), `GeoBoundingBox`, `Dbscan`, `PredictAvailabilityUseCase`,
   `GetSightingsUseCase`, `SearchTaxaUseCase`, `GetConditionsUseCase`,
-  `ClusterForagingAreasUseCase`, `OfflineMapRepository`/`OfflineBasemapStyle`/
-  `OfflineMapInfo`, and the
+  `ClusterForagingAreasUseCase`, `OfflineMapRepository`/`OfflineMapInfo`
+  (always resolves to USGS Topo — no style parameter), and the
   `MushroomRepository`/`LocationProvider`/`WeatherProvider` interfaces. No
   Android imports, so it's unit-testable headless (see `app/src/test/`).
 - `location/` — the one place that touches `android.location` directly,
@@ -455,10 +466,12 @@ cannot be exercised on the JVM. What *is* verified, and how:
   `OfflineMapRepository` this project fully controls, covering progress
   reporting, download/delete failure, and that invalid coordinates never
   reach the repository at all.
-- That the "Offline Maps" section is structurally unreachable under
-  OpenStreetMap and reachable under USGS is measured against the real
-  Compose tree (`AvailabilityScreenSettingsPanelTest`), not just reasoned
-  about.
+- That the "Offline Maps" submenu is reachable regardless of the selected
+  map service, that its picker map always resolves to USGS Topo, that its
+  entry row navigates in and its back arrow returns to Settings, and that a
+  long-press on the picker map sets the region and enables "Download Maps"
+  are all measured against the real Compose tree
+  (`AvailabilityScreenSettingsPanelTest`), not just reasoned about.
 
 **The OpenTopoMap tile-usage-policy finding is one step removed from its
 primary source.** osmdroid's pinned artifact encodes the OpenStreetMap half
@@ -475,7 +488,7 @@ fetch of either page — this environment's egress proxy blocks both
 attempt during this task and an earlier one. Worth a primary-source
 spot-check in an environment that can reach them before this is relied on
 further; the enforcement in this app does not depend on osmdroid's own
-(incomplete) policy check either way — see `OfflineBasemapStyle`'s doc
+(incomplete) policy check either way — see `OfflineMapRepository`'s doc
 comment.
 
 ## Which build am I running?

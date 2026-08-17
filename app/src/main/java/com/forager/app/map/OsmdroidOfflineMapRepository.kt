@@ -3,7 +3,6 @@ package com.forager.app.map
 import android.content.Context
 import com.forager.app.data.repository.runCatchingCancellable
 import com.forager.app.domain.GeoDistance
-import com.forager.app.domain.OfflineBasemapStyle
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.model.LatLng
@@ -17,7 +16,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.cachemanager.CacheManager
-import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 
@@ -56,12 +54,30 @@ import org.osmdroid.util.BoundingBox
  *   `TileSourcePolicy.acceptsBulkDownload()` is false. In the pinned artifact that is true for
  *   `TileSourceFactory.MAPNIK` (explicit `FLAG_NO_BULK`, citing the OSM tile usage policy) but *not*
  *   for `TileSourceFactory.OpenTopo`, which carries no explicit policy at all and so defaults to
- *   accepting bulk downloads. This repository is never constructed with anything but a USGS source
- *   regardless (see [tileSourceFor]), so that gap doesn't reach this class — but it does mean the
- *   library's own check cannot be relied on as *the* enforcement of decision #7's USGS-only rule;
- *   the enforcement is [MapService][com.forager.app.ui.map.MapService] only ever handing this
- *   interface a USGS style, from the Settings UI's own gating. See [OfflineBasemapStyle]'s doc
- *   comment for the fuller picture, including the one claim that could not be verified this way.
+ *   accepting bulk downloads. See "Why USGS Topo only" below for what that means for this class.
+ *
+ * ## Why USGS Topo only, and why that's hardcoded rather than a parameter
+ *
+ * An earlier revision of this class accepted a style parameter (Topo or Imagery) resolved from
+ * whichever mode the map's own quick-fire icon happened to be showing. The project owner's own
+ * framing, after seeing it built: "since offline maps only loads USGS, then there's no need to
+ * have it react to the toggle. have it assume USGS usage and have it ready to function." [download]
+ * now always fetches [USGS_TOPO_SOURCE] — a parameter with exactly one value it's ever called with
+ * is dead configurability, so it was removed rather than kept and always passed the same constant.
+ *
+ * That also makes this class the entire enforcement of decision #7 (offline downloading is
+ * USGS-only): it doesn't accept a tile source of any kind, so there is nothing to gate one level up
+ * either — Settings' "Offline Maps" section is unconditionally reachable regardless of which
+ * `MapService` is selected for live browsing, since that selection was never wired to this class at
+ * all. *Why* USGS-only in the first place, though, still needs the citation trail: both
+ * OpenStreetMap's and OpenTopoMap's tile-usage policies prohibit bulk/prefetch downloading against
+ * their servers. osmdroid's own pinned artifact encodes the OpenStreetMap half of that directly —
+ * `TileSourceFactory.MAPNIK`'s `TileSourcePolicy` sets `FLAG_NO_BULK`, citing
+ * `https://operations.osmfoundation.org/policies/tiles/` — but, per the bullet above, carries no
+ * such flag for `TileSourceFactory.OpenTopo` at all. The OpenTopoMap half of the claim is therefore
+ * one step removed: a web search of `opentopomap.org`'s and the OSM Foundation's own policy text,
+ * gathered because this environment's egress proxy blocked both domains on a direct fetch. Worth a
+ * primary-source spot-check in an environment that can reach them before relying on it further.
  *
  * ## Progress modulo
  *
@@ -83,7 +99,6 @@ class OsmdroidOfflineMapRepository(context: Context) : OfflineMapRepository {
 
     override suspend fun download(
         region: Region,
-        style: OfflineBasemapStyle,
         onProgress: (downloaded: Int, total: Int) -> Unit,
     ): Result<OfflineMapInfo> = runCatchingCancellable {
         Configuration.getInstance().userAgentValue = appContext.packageName
@@ -95,12 +110,11 @@ class OsmdroidOfflineMapRepository(context: Context) : OfflineMapRepository {
         statusFile.delete()
         tilesDir.mkdirs()
 
-        val tileSource = tileSourceFor(style)
         val box = region.toOsmdroidBoundingBox()
         val zoomMax = USGS_MAX_ZOOM
         val zoomMin = (USGS_MAX_ZOOM - ZOOM_LEVELS_BELOW_MAX).coerceAtLeast(0)
 
-        val cacheManager = CacheManager(tileSource, PersistentTileWriter(tilesDir), zoomMin, zoomMax)
+        val cacheManager = CacheManager(USGS_TOPO_SOURCE, PersistentTileWriter(tilesDir), zoomMin, zoomMax)
 
         try {
             runDownload(cacheManager, box, zoomMin, zoomMax, onProgress)
@@ -117,7 +131,6 @@ class OsmdroidOfflineMapRepository(context: Context) : OfflineMapRepository {
         val sizeBytes = tilesDir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
         val info = OfflineMapInfo(
             region = region,
-            style = style,
             tileCount = tileCount,
             sizeBytes = sizeBytes,
             downloadedAtEpochMillis = downloadedAtEpochMillisProvider(),
@@ -188,12 +201,11 @@ class OsmdroidOfflineMapRepository(context: Context) : OfflineMapRepository {
     }
 
     /**
-     * The highest zoom level a USGS basemap offers — [com.forager.app.ui.map.Basemap.USGS_TOPO] and
-     * [com.forager.app.ui.map.Basemap.USGS_IMAGERY_TOPO] both declare 15, verified against the same
-     * pinned artifact in `BasemapTileSourceTest`. Duplicated as a literal rather than imported: this
-     * `map/` package deliberately doesn't depend on `ui/map/` (see this class's own doc comment on
-     * why `OfflineBasemapStyle`, not `Basemap`, crosses into `domain/`), so the two are kept in sync
-     * by both being pinned against the same artifact rather than by a shared reference.
+     * The highest zoom level USGS Topo offers — [com.forager.app.ui.map.Basemap.USGS_TOPO] declares
+     * 15, verified against the same pinned artifact in `BasemapTileSourceTest`. Duplicated as a
+     * literal rather than imported: this `map/` package deliberately doesn't depend on `ui/map/`
+     * (see [USGS_TOPO_SOURCE]'s doc comment), so the two are kept in sync by both being pinned
+     * against the same artifact rather than by a shared reference.
      */
     private val USGS_MAX_ZOOM = 15
 
@@ -216,14 +228,11 @@ private fun Region.toOsmdroidBoundingBox(): BoundingBox {
 }
 
 /**
- * Maps [OfflineBasemapStyle] to osmdroid's own USGS sources — the same two entries
- * `com.forager.app.ui.map.BasemapTileSources.tileSourceFor` maps `Basemap.USGS_TOPO`/
- * `Basemap.USGS_IMAGERY_TOPO` to, duplicated rather than shared for the same reason [USGS_MAX_ZOOM]
- * is: this package does not depend on `ui/map/`. `BasemapTileSourceTest` and this file's own
- * mapping are both pinned against the identical `TileSourceFactory` fields, so a mismatch would
- * show up as two tests disagreeing about the same artifact rather than silently drifting apart.
+ * The same osmdroid source `com.forager.app.ui.map.BasemapTileSources.tileSourceFor` maps
+ * `Basemap.USGS_TOPO` to, duplicated as a direct reference rather than shared for the reason
+ * [OsmdroidOfflineMapRepository.USGS_MAX_ZOOM]'s doc comment gives: this package does not depend
+ * on `ui/map/`. `BasemapTileSourceTest` and this file both pin against the identical
+ * `TileSourceFactory.USGS_TOPO` field, so a mismatch would show up as two tests disagreeing about
+ * the same artifact rather than silently drifting apart.
  */
-private fun tileSourceFor(style: OfflineBasemapStyle): OnlineTileSourceBase = when (style) {
-    OfflineBasemapStyle.TOPO -> TileSourceFactory.USGS_TOPO
-    OfflineBasemapStyle.IMAGERY -> TileSourceFactory.USGS_SAT
-}
+private val USGS_TOPO_SOURCE = TileSourceFactory.USGS_TOPO

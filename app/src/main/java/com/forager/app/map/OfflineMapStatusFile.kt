@@ -1,6 +1,5 @@
 package com.forager.app.map
 
-import com.forager.app.domain.OfflineBasemapStyle
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.model.Region
 import java.util.Properties
@@ -20,7 +19,6 @@ internal fun OfflineMapInfo.toProperties(): Properties = Properties().apply {
     setProperty(KEY_LAT, region.lat.toString())
     setProperty(KEY_LNG, region.lng.toString())
     setProperty(KEY_RADIUS_KM, region.radiusKm.toString())
-    setProperty(KEY_STYLE, style.name)
     setProperty(KEY_TILE_COUNT, tileCount.toString())
     setProperty(KEY_SIZE_BYTES, sizeBytes.toString())
     setProperty(KEY_DOWNLOADED_AT, downloadedAtEpochMillis.toString())
@@ -34,7 +32,6 @@ internal fun Properties.toOfflineMapInfo(): OfflineMapInfo? = try {
             lng = getProperty(KEY_LNG)!!.toDouble(),
             radiusKm = getProperty(KEY_RADIUS_KM)!!.toInt(),
         ),
-        style = OfflineBasemapStyle.valueOf(getProperty(KEY_STYLE)!!),
         tileCount = getProperty(KEY_TILE_COUNT)!!.toInt(),
         sizeBytes = getProperty(KEY_SIZE_BYTES)!!.toLong(),
         downloadedAtEpochMillis = getProperty(KEY_DOWNLOADED_AT)!!.toLong(),
@@ -50,7 +47,6 @@ internal fun Properties.toOfflineMapInfo(): OfflineMapInfo? = try {
 private const val KEY_LAT = "region.lat"
 private const val KEY_LNG = "region.lng"
 private const val KEY_RADIUS_KM = "region.radiusKm"
-private const val KEY_STYLE = "style"
 private const val KEY_TILE_COUNT = "tileCount"
 private const val KEY_SIZE_BYTES = "sizeBytes"
 private const val KEY_DOWNLOADED_AT = "downloadedAtEpochMillis"

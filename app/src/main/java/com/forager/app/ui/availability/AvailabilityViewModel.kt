@@ -11,7 +11,6 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
-import com.forager.app.domain.OfflineBasemapStyle
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
@@ -385,12 +384,12 @@ class AvailabilityViewModel(
     }
 
     /**
-     * [style] names which of the two USGS rasters (Topo or Imagery) to download, resolved by the
-     * caller from whichever the quick-fire map icon is currently set to — see this project's task
-     * notes and [com.forager.app.domain.OfflineBasemapStyle]'s doc comment for why this ViewModel
-     * takes that as a plain parameter instead of importing `ui.map.Basemap` to derive it itself.
+     * Always downloads USGS Topo — see [com.forager.app.domain.OfflineMapRepository]'s doc comment
+     * for why this no longer takes a style parameter. It used to be resolved from whichever mode
+     * the quick-fire map icon was showing; the project owner's own call, after seeing that built,
+     * was that offline downloads should just always target USGS regardless of that live toggle.
      */
-    fun onDownloadOfflineMaps(style: OfflineBasemapStyle) {
+    fun onDownloadOfflineMaps() {
         val state = _uiState.value
         val lat = state.offlineMapLatText.toDoubleOrNull()
         val lng = state.offlineMapLngText.toDoubleOrNull()
@@ -408,7 +407,7 @@ class AvailabilityViewModel(
 
         _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
         viewModelScope.launch {
-            offlineMapRepository.download(region, style) { downloaded, total ->
+            offlineMapRepository.download(region) { downloaded, total ->
                 _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.Downloading(downloaded, total)) }
             }.fold(
                 onSuccess = { info -> _uiState.update { it.copy(offlineMapStatus = info.toUiStatus()) } },

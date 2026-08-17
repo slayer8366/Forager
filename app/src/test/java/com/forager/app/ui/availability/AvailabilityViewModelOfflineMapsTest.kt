@@ -10,7 +10,6 @@ import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
-import com.forager.app.domain.OfflineBasemapStyle
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
@@ -48,6 +47,10 @@ import org.junit.Test
  * hand-written [OfflineMapRepository] fake this test fully controls — the same "real ViewModel
  * over fakes" style as [AvailabilityViewModelPlannedTripsTest] and [AvailabilityViewModelFilterTest].
  *
+ * Always downloads USGS Topo — there is no style choice any more (see
+ * [OfflineMapRepository]'s doc comment for why that parameter was removed), so unlike an earlier
+ * revision of this file, nothing here asserts on "which style" a download targeted.
+ *
  * What this cannot cover: actual tile download/delete I/O and osmdroid `CacheManager` behavior —
  * that's Android file and network I/O, unverifiable headlessly, and is [OsmdroidOfflineMapRepository]'s
  * own concern rather than this ViewModel's. This file covers the loading → success/failure state
@@ -57,7 +60,6 @@ private val REFERENCE_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 1
 
 private val REFERENCE_INFO = OfflineMapInfo(
     region = REFERENCE_REGION,
-    style = OfflineBasemapStyle.TOPO,
     tileCount = 234,
     sizeBytes = 4_200_000L,
     downloadedAtEpochMillis = 1_755_000_000_000L,
@@ -108,16 +110,13 @@ private class RecordingOfflineMapRepository(
 
     var downloadCalled = false
     var lastRegion: Region? = null
-    var lastStyle: OfflineBasemapStyle? = null
 
     override suspend fun download(
         region: Region,
-        style: OfflineBasemapStyle,
         onProgress: (downloaded: Int, total: Int) -> Unit,
     ): Result<OfflineMapInfo> {
         downloadCalled = true
         lastRegion = region
-        lastStyle = style
         progressSteps.forEach { (downloaded, total) -> onProgress(downloaded, total) }
         return downloadResult
     }
@@ -151,7 +150,8 @@ class AvailabilityViewModelOfflineMapsTest {
         offlineMapRepository = offlineMapRepository,
     )
 
-    private fun AvailabilityViewModel.enterReferenceRegion() {
+    /** Mirrors how [AvailabilityScreen]'s picker map now sets these — a long-press, not typing. */
+    private fun AvailabilityViewModel.pickReferenceRegion() {
         onOfflineMapLatChanged(REFERENCE_REGION.lat.toString())
         onOfflineMapLngChanged(REFERENCE_REGION.lng.toString())
         onOfflineMapRadiusChanged(REFERENCE_REGION.radiusKm)
@@ -198,7 +198,7 @@ class AvailabilityViewModelOfflineMapsTest {
 
         vm.onOfflineMapLatChanged("not a number")
         vm.onOfflineMapLngChanged("-122.634")
-        vm.onDownloadOfflineMaps(OfflineBasemapStyle.TOPO)
+        vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
         assertFalse(repository.downloadCalled)
@@ -215,7 +215,7 @@ class AvailabilityViewModelOfflineMapsTest {
 
         vm.onOfflineMapLatChanged("120")
         vm.onOfflineMapLngChanged("-122.634")
-        vm.onDownloadOfflineMaps(OfflineBasemapStyle.TOPO)
+        vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
         assertFalse(repository.downloadCalled)
@@ -223,21 +223,20 @@ class AvailabilityViewModelOfflineMapsTest {
     }
 
     @Test
-    fun `a successful download ends Downloaded, targeting the requested style and region`() = runTest(dispatcher) {
+    fun `a successful download ends Downloaded, targeting the picked region`() = runTest(dispatcher) {
         val repository = RecordingOfflineMapRepository().apply {
             progressSteps = listOf(0 to 10, 5 to 10, 10 to 10)
-            downloadResult = Result.success(REFERENCE_INFO.copy(style = OfflineBasemapStyle.IMAGERY))
+            downloadResult = Result.success(REFERENCE_INFO)
         }
         val vm = viewModel(repository)
         advanceUntilIdle()
-        vm.enterReferenceRegion()
+        vm.pickReferenceRegion()
 
-        vm.onDownloadOfflineMaps(OfflineBasemapStyle.IMAGERY)
+        vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
         assertTrue(repository.downloadCalled)
         assertEquals(REFERENCE_REGION, repository.lastRegion)
-        assertEquals(OfflineBasemapStyle.IMAGERY, repository.lastStyle)
         assertTrue(vm.uiState.value.offlineMapStatus is OfflineMapStatus.Downloaded)
     }
 
@@ -255,7 +254,6 @@ class AvailabilityViewModelOfflineMapsTest {
         val repository = object : OfflineMapRepository {
             override suspend fun download(
                 region: Region,
-                style: OfflineBasemapStyle,
                 onProgress: (downloaded: Int, total: Int) -> Unit,
             ): Result<OfflineMapInfo> {
                 onProgress(0, 10)
@@ -268,9 +266,9 @@ class AvailabilityViewModelOfflineMapsTest {
         }
         val vm = viewModel(repository)
         advanceUntilIdle()
-        vm.enterReferenceRegion()
+        vm.pickReferenceRegion()
 
-        vm.onDownloadOfflineMaps(OfflineBasemapStyle.TOPO)
+        vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
         val status = vm.uiState.value.offlineMapStatus
@@ -286,9 +284,9 @@ class AvailabilityViewModelOfflineMapsTest {
         }
         val vm = viewModel(repository)
         advanceUntilIdle()
-        vm.enterReferenceRegion()
+        vm.pickReferenceRegion()
 
-        vm.onDownloadOfflineMaps(OfflineBasemapStyle.TOPO)
+        vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
         val status = vm.uiState.value.offlineMapStatus
@@ -347,8 +345,8 @@ class AvailabilityViewModelOfflineMapsTest {
 
         // The main search region is never touched by this test, and must stay null: the offline
         // map's region picker is standalone, per this task's own decisions.
-        vm.enterReferenceRegion()
-        vm.onDownloadOfflineMaps(OfflineBasemapStyle.TOPO)
+        vm.pickReferenceRegion()
+        vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
         assertNull(vm.uiState.value.region)

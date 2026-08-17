@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.ExpandLess
@@ -98,7 +99,6 @@ import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.ForagingWeatherGuidance
 import com.forager.app.domain.FruitingPatternAssumptions
 import com.forager.app.domain.MgrsConverter
-import com.forager.app.domain.OfflineBasemapStyle
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
@@ -134,13 +134,16 @@ private enum class ResultsTab(val label: String) {
 }
 
 /**
- * The drawer's two panels — see [AvailabilityScreen]'s doc comment on `drawerPanel` for how they're
- * switched between, and this task's own notes for why the entry point sits at the search panel's
- * old sticky-footer slot.
+ * The drawer's three panels — see [AvailabilityScreen]'s doc comment on `drawerPanel` for how
+ * they're switched between. [Settings] is reached from the sticky entry at the bottom of [Search];
+ * [OfflineMaps] is reached from a row inside [Settings], one level deeper — its own back arrow
+ * returns to [Settings], not all the way to [Search], but closing the drawer entirely still resets
+ * all the way back to [Search] regardless of which of the three was showing.
  */
 private enum class DrawerPanel {
     Search,
     Settings,
+    OfflineMaps,
 }
 
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
@@ -213,11 +216,11 @@ fun AvailabilityScreen(
     /** Called when a date and name are confirmed for a trip pin dropped via the map's long-press gesture. */
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
+    /** Set by long-pressing the picker map in the Offline Maps submenu — see `OfflineMapsPanel`. */
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
-    /** [style] is resolved by this screen from whichever mode the quick-fire map icon is currently showing. */
-    onDownloadOfflineMaps: (style: OfflineBasemapStyle) -> Unit,
+    onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineMaps: () -> Unit,
     /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
@@ -351,19 +354,27 @@ fun AvailabilityScreen(
                             modifier = Modifier.weight(1f),
                             selectedMapService = selectedMapService,
                             onMapServiceSelected = { selectedMapService = it },
-                            isTopoMode = isTopoMode,
-                            uiState = uiState,
-                            onOfflineMapLatChanged = onOfflineMapLatChanged,
-                            onOfflineMapLngChanged = onOfflineMapLngChanged,
-                            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                            onDownloadOfflineMaps = {
-                                onDownloadOfflineMaps(
-                                    if (isTopoMode) OfflineBasemapStyle.TOPO else OfflineBasemapStyle.IMAGERY,
-                                )
-                            },
-                            onDeleteOfflineMaps = onDeleteOfflineMaps,
+                            onOpenOfflineMaps = { drawerPanel = DrawerPanel.OfflineMaps },
                         )
                         BuildIdentityFooter()
+                    }
+
+                    DrawerPanel.OfflineMaps -> {
+                        // Back returns to Settings, one level up — not all the way to Search. See
+                        // DrawerPanel's own doc comment.
+                        OfflineMapsHeader(onBack = { drawerPanel = DrawerPanel.Settings })
+                        OfflineMapsPanel(
+                            modifier = Modifier.weight(1f),
+                            uiState = uiState,
+                            mapSlot = mapSlot,
+                            onRegionPicked = { location ->
+                                onOfflineMapLatChanged(location.lat.toString())
+                                onOfflineMapLngChanged(location.lng.toString())
+                            },
+                            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                            onDownloadOfflineMaps = onDownloadOfflineMaps,
+                            onDeleteOfflineMaps = onDeleteOfflineMaps,
+                        )
                     }
                 }
             }
@@ -623,9 +634,13 @@ private fun SettingsHeader(onBack: () -> Unit) {
 }
 
 /**
- * The Settings panel's body: "Choose Maps Service" and "Offline Maps", built as a real menu with
- * headroom for more sections later per this task's own framing, rather than the two sections being
- * the only shape this panel could ever take.
+ * The Settings panel's body: "Choose Maps Service" plus a row into the "Offline Maps" submenu,
+ * built as a real menu with headroom for more sections later per this task's own framing.
+ *
+ * Offline Maps is a full submenu of its own ([DrawerPanel.OfflineMaps]) rather than a section
+ * inline here, because it now holds an interactive map (see [OfflineMapsPanel]) that needs real
+ * screen space to be usable — a map squeezed into one scrolling section among several would be too
+ * small to long-press accurately.
  *
  * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
  * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
@@ -635,13 +650,7 @@ private fun SettingsContent(
     modifier: Modifier = Modifier,
     selectedMapService: MapService,
     onMapServiceSelected: (MapService) -> Unit,
-    isTopoMode: Boolean,
-    uiState: AvailabilityUiState,
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineMaps: () -> Unit,
+    onOpenOfflineMaps: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -651,16 +660,7 @@ private fun SettingsContent(
     ) {
         ChooseMapsServiceSection(selectedMapService = selectedMapService, onMapServiceSelected = onMapServiceSelected)
         HorizontalDivider()
-        OfflineMapsSection(
-            selectedMapService = selectedMapService,
-            isTopoMode = isTopoMode,
-            uiState = uiState,
-            onOfflineMapLatChanged = onOfflineMapLatChanged,
-            onOfflineMapLngChanged = onOfflineMapLngChanged,
-            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-            onDownloadOfflineMaps = onDownloadOfflineMaps,
-            onDeleteOfflineMaps = onDeleteOfflineMaps,
-        )
+        OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
     }
 }
 
@@ -706,99 +706,167 @@ private fun mapServiceCaption(service: MapService): String {
 }
 
 /**
- * The USGS-gated "Offline Maps" section — see decision #7 in this task's own notes for the full
- * reasoning: OpenStreetMap's and OpenTopoMap's own tile-usage policies prohibit bulk/prefetch
- * downloading, so this section is structurally unreachable under [MapService.OPEN_STREET_MAP]
- * rather than merely steered away from it. `return` on the gated branch below, not a disabled-look
- * form: there is nothing valid to fill in under OpenStreetMap, so showing the fields grayed out
- * would invite exactly the "why can't I tap this" question the explanatory line already answers.
+ * The Settings panel's row into the [DrawerPanel.OfflineMaps] submenu. A plain row rather than a
+ * sticky one like [SettingsEntryRow]: this lives inside Settings' own scrolling content, it isn't a
+ * second drawer-wide sticky slot.
+ *
+ * Unconditionally reachable regardless of [MapService] — offline downloads always target USGS
+ * regardless of which service is selected for live browsing, so there is nothing to gate this row
+ * on; see `com.forager.app.domain.OfflineMapRepository`'s doc comment for why that coupling was
+ * removed.
  */
 @Composable
-private fun OfflineMapsSection(
-    selectedMapService: MapService,
-    isTopoMode: Boolean,
+private fun OfflineMapsEntryRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = Spacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Offline Maps", style = MaterialTheme.typography.titleMedium)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+    }
+}
+
+/** Mirrors [SettingsHeader]'s style; its back arrow returns to Settings, one level up, not to Search. */
+@Composable
+private fun OfflineMapsHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onBack)
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Settings")
+        Text("Offline Maps", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/**
+ * The "Offline Maps" submenu: an interactive USGS Topo map to pick a download region by long-press,
+ * the region's radius, current status, and the Download/Delete actions.
+ *
+ * Always downloads USGS Topo, unconditionally — see
+ * `com.forager.app.domain.OfflineMapRepository`'s doc comment for why this is no longer gated on,
+ * or reactive to, [MapService]/the quick-fire map mode: the project owner's own call was that
+ * offline downloads should "assume USGS usage and [be] ready to function" regardless of either.
+ *
+ * ## Picking a region by long-press instead of typing coordinates
+ *
+ * Reuses [MapSlot]/`SightingsMap` rather than a new map composable — empty `sightings`/`areas`/
+ * `plannedTrips`, [Basemap.USGS_TOPO] always, and [onRegionPicked] wired to the same
+ * `onLongPress` mechanism [MapTab] already uses for planning a trip, except there is no
+ * name-and-date dialog in between: a picked point becomes the region's center immediately, since
+ * there is nothing else to ask the user for. `SightingsMap` already draws a center marker whose
+ * snippet states the radius, so nothing new needs to be drawn for feedback — see that composable's
+ * own doc comment.
+ *
+ * Before anything is long-pressed, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank,
+ * so the map centres on [OFFLINE_MAP_PICKER_DEFAULT_CENTER] purely so there is a map to navigate
+ * and long-press on — not a claim about where the user is or wants to download. "Download Maps"
+ * stays disabled until a real point has been picked (see `hasValidRegion` below), so that default
+ * viewport can never itself be submitted as a region.
+ *
+ * The map is weighted to fill the space the fixed controls below it don't need, the same
+ * map-gets-the-remainder pattern [MapTab] already uses, rather than a fixed dp height: a picker map
+ * too small to long-press accurately would defeat the reason this replaced the lat/lng text fields.
+ */
+@Composable
+private fun OfflineMapsPanel(
+    modifier: Modifier = Modifier,
     uiState: AvailabilityUiState,
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
+    mapSlot: MapSlot,
+    onRegionPicked: (LatLng) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineMaps: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text("Offline Maps", style = MaterialTheme.typography.titleMedium)
+    val pickedLat = uiState.offlineMapLatText.toDoubleOrNull()
+    val pickedLng = uiState.offlineMapLngText.toDoubleOrNull()
+    val hasValidRegion = pickedLat != null && pickedLat in -90.0..90.0 && pickedLng != null && pickedLng in -180.0..180.0
 
-        if (selectedMapService != MapService.USGS) {
-            Text(
-                "Offline downloads are only available for the USGS map service — OpenStreetMap's " +
-                    "tile providers don't allow bulk downloading.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            return
-        }
-
-        // Which of the two USGS styles a download targets is never a separate choice in this form —
-        // it always follows whichever mode the map's own quick-fire icon is currently showing at the
-        // moment "Download Maps" is tapped. Stated here so that isn't a silent surprise; see this
-        // task's own notes for why this behavior was chosen over a second style picker.
+    Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            "Downloads USGS ${if (isTopoMode) "Topo" else "Imagery"} tiles for the region below — " +
-                "whichever mode the map's own quick-fire icon is currently set to.",
+            "Offline downloads always use USGS topographic maps. Long-press the map below to " +
+                "choose where to download.",
             style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OutlinedTextField(
-                value = uiState.offlineMapLatText,
-                onValueChange = onOfflineMapLatChanged,
-                label = { Text("Latitude") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = uiState.offlineMapLngText,
-                onValueChange = onOfflineMapLngChanged,
-                label = { Text("Longitude") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
+        val pickerRegion = Region(
+            lat = pickedLat ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER.lat,
+            lng = pickedLng ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER.lng,
+            radiusKm = uiState.offlineMapRadiusKm,
+        )
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            mapSlot(
+                pickerRegion,
+                emptyList(),
+                emptyList(),
+                emptyList(),
+                Basemap.USGS_TOPO,
+                onRegionPicked,
+                Modifier.fillMaxSize(),
             )
         }
-        Text("Radius: ${uiState.offlineMapRadiusKm} km", style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = uiState.offlineMapRadiusKm.toFloat(),
-            onValueChange = { onOfflineMapRadiusChanged(it.toInt()) },
-            valueRange = Region.MIN_RADIUS_KM.toFloat()..Region.MAX_RADIUS_KM.toFloat(),
-            steps = Region.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
-        )
 
-        OfflineMapStatusContent(uiState.offlineMapStatus)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Text(
+                if (hasValidRegion) {
+                    "Selected: ${"%.4f".format(pickedLat)}, ${"%.4f".format(pickedLng)}"
+                } else {
+                    "No location picked yet — long-press the map above."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
 
-        // Mirrors AvailabilityViewModel.onDownloadOfflineMaps's own coordinate validation, the same
-        // way TripDatePickerDialog's confirm button mirrors SavePlannedTripUseCase's blank-name
-        // guard: a cheap, local re-check that disables the button rather than letting a request the
-        // ViewModel will reject anyway be sent at all.
-        val lat = uiState.offlineMapLatText.toDoubleOrNull()
-        val lng = uiState.offlineMapLngText.toDoubleOrNull()
-        val hasValidRegion = lat != null && lat in -90.0..90.0 && lng != null && lng in -180.0..180.0
-        val isDownloading = uiState.offlineMapStatus is OfflineMapStatus.Downloading
-        val isDownloaded = uiState.offlineMapStatus is OfflineMapStatus.Downloaded
+            Text("Radius: ${uiState.offlineMapRadiusKm} km", style = MaterialTheme.typography.bodyMedium)
+            Slider(
+                value = uiState.offlineMapRadiusKm.toFloat(),
+                onValueChange = { onOfflineMapRadiusChanged(it.toInt()) },
+                valueRange = Region.MIN_RADIUS_KM.toFloat()..Region.MAX_RADIUS_KM.toFloat(),
+                steps = Region.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
+            )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(
-                onClick = onDownloadOfflineMaps,
-                enabled = hasValidRegion && !isDownloading,
-                modifier = Modifier.weight(1f),
-            ) { Text("Download Maps") }
-            OutlinedButton(
-                onClick = onDeleteOfflineMaps,
-                enabled = isDownloaded && !isDownloading,
-                modifier = Modifier.weight(1f),
-            ) { Text("Delete Offline Maps") }
+            OfflineMapStatusContent(uiState.offlineMapStatus)
+
+            val isDownloading = uiState.offlineMapStatus is OfflineMapStatus.Downloading
+            val isDownloaded = uiState.offlineMapStatus is OfflineMapStatus.Downloaded
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Button(
+                    onClick = onDownloadOfflineMaps,
+                    enabled = hasValidRegion && !isDownloading,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Download Maps") }
+                OutlinedButton(
+                    onClick = onDeleteOfflineMaps,
+                    enabled = isDownloaded && !isDownloading,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Delete Offline Maps") }
+            }
         }
     }
 }
 
-/** What [OfflineMapsSection] shows for each [OfflineMapStatus] — every branch says something, per CLAUDE.md. */
+/**
+ * An arbitrary opening viewport for [OfflineMapsPanel]'s picker map before anything has been
+ * long-pressed — the geographic center of the contiguous United States (near Lebanon, Kansas),
+ * since offline downloads only ever cover USGS's own coverage area. Not a default region and never
+ * submitted as one: "Download Maps" stays disabled until a real long-press sets a region.
+ */
+private val OFFLINE_MAP_PICKER_DEFAULT_CENTER = LatLng(39.8283, -98.5795)
+
+/** What [OfflineMapsPanel] shows for each [OfflineMapStatus] — every branch says something, per CLAUDE.md. */
 @Composable
 private fun OfflineMapStatusContent(status: OfflineMapStatus) {
     when (status) {

@@ -3,44 +3,42 @@ package com.forager.app.domain
 import com.forager.app.domain.model.Region
 
 /**
- * Owned abstraction over a persistent, on-disk store of downloaded USGS map tiles for one region —
- * the same pattern as [MushroomRepository]/[WeatherProvider]/[LocationProvider]: domain and UI code
- * depend on this interface, never on osmdroid's `CacheManager` directly. The real implementation,
- * `OsmdroidOfflineMapRepository`, lives in a new `map/` package parallel to `location/`.
+ * Owned abstraction over a persistent, on-disk store of downloaded USGS Topo map tiles for one
+ * region — the same pattern as [MushroomRepository]/[WeatherProvider]/[LocationProvider]: domain
+ * and UI code depend on this interface, never on osmdroid's `CacheManager` directly. The real
+ * implementation, `OsmdroidOfflineMapRepository`, lives in a new `map/` package parallel to
+ * `location/`.
  *
- * ## Why [style] and not a basemap parameter
+ * ## Always USGS Topo, not a configurable choice
  *
- * The task this interface was specified from described `download` as taking just a [Region] and a
- * progress callback. That signature cannot actually express *which* USGS raster to fetch — Topo and
- * Imagery are different tile servers — and the type that names that choice,
- * `com.forager.app.ui.map.Basemap`, deliberately lives in `ui/map/` and not `domain/` (see its own
- * doc comment: it is the vendor-selection boundary one level below `MapSlot`, and `domain/` stays
- * free of it same as it stays free of osmdroid itself). [OfflineBasemapStyle] is the smallest
- * domain-safe stand-in: it names "which of the two USGS styles" without importing the UI-owned enum
- * that also carries OpenStreetMap's non-downloadable options. The caller —
- * `AvailabilityViewModel`, which already sits in the UI layer — maps the live `Basemap` down to this
- * two-value style immediately before calling [download]; see its own doc comment for where.
+ * An earlier revision of this interface took a style parameter naming which of USGS's two rasters
+ * (Topo or Imagery) to fetch, resolved from whichever mode the map's own quick-fire icon happened
+ * to be showing. The project owner's own framing, after seeing it built: "since offline maps only
+ * loads USGS, then there's no need to have it react to the toggle. have it assume USGS usage and
+ * have it ready to function." [download] now always fetches USGS Topo — a parameter with exactly
+ * one possible value is dead configurability, not flexibility, so it was removed rather than kept
+ * and hardcoded at the call site.
  *
- * ## USGS-only is enforced by the caller, not by this interface
+ * ## USGS-only is enforced by [OsmdroidOfflineMapRepository], not by a live UI selection
  *
- * This interface has no way to be pointed at a non-USGS tile source at all — [OfflineBasemapStyle]
- * only names the two USGS styles — so there is structurally nothing here to gate. The gate that
- * matters is one level up: `AvailabilityScreen`'s "Offline Maps" section is only ever reachable when
- * `MapService.USGS` is the selected service. See [OfflineBasemapStyle]'s doc comment for why this is
- * USGS-only at all — OpenStreetMap's and OpenTopoMap's own tile-usage policies prohibit bulk
- * downloading.
+ * This interface has no way to be pointed at a non-USGS tile source at all — it doesn't take a tile
+ * source or basemap parameter of any kind — so there is structurally nothing here to gate, and
+ * nothing upstream needs to condition reachability on which map service is currently selected for
+ * live browsing either: offline downloading was never coupled to that selection once it stopped
+ * being a configurable choice. See `com.forager.app.ui.map.MapService`'s doc comment for why USGS
+ * is the only source this ever downloads from at all — OpenStreetMap's and OpenTopoMap's own
+ * tile-usage policies prohibit bulk downloading.
  */
 interface OfflineMapRepository {
 
     /**
-     * Downloads every tile covering [region] for the given [style], reporting progress via
-     * [onProgress] (tiles downloaded so far, total tiles). Replaces whatever was previously
-     * downloaded, if anything — there is only ever one downloaded region at a time (see
-     * [getStatus]'s doc comment for why this doesn't need its own Room table).
+     * Downloads every USGS Topo tile covering [region], reporting progress via [onProgress] (tiles
+     * downloaded so far, total tiles). Replaces whatever was previously downloaded, if anything —
+     * there is only ever one downloaded region at a time (see [getStatus]'s doc comment for why
+     * this doesn't need its own Room table).
      */
     suspend fun download(
         region: Region,
-        style: OfflineBasemapStyle,
         onProgress: (downloaded: Int, total: Int) -> Unit,
     ): Result<OfflineMapInfo>
 
@@ -56,31 +54,8 @@ interface OfflineMapRepository {
     suspend fun getStatus(): Result<OfflineMapInfo?>
 }
 
-/**
- * Which USGS raster style an offline download targets — this project's domain-safe stand-in for the
- * two USGS entries of `com.forager.app.ui.map.Basemap` (`USGS_TOPO`, `USGS_IMAGERY_TOPO`). See
- * [OfflineMapRepository]'s doc comment for why `domain/` names its own two-value type here rather
- * than importing the UI-owned one.
- *
- * Offline downloading is USGS-only, for two independent reasons recorded in full on
- * `com.forager.app.ui.map.MapService`'s doc comment: USGS's own low zoom ceiling (15) keeps a region
- * download a practical size regardless, and — the reason the feature is not merely inconvenient but
- * actually unavailable elsewhere — both OpenStreetMap's and OpenTopoMap's tile-usage policies
- * prohibit bulk/prefetch downloading against their servers. osmdroid's own pinned artifact encodes
- * the OpenStreetMap half of that directly: `TileSourceFactory.MAPNIK`'s `TileSourcePolicy` sets
- * `FLAG_NO_BULK`, citing `https://operations.osmfoundation.org/policies/tiles/`. The OpenTopoMap half
- * could not be confirmed the same way — the pinned artifact's `TileSourceFactory.OpenTopo` entry
- * carries no explicit policy at all, so nothing in the library itself blocks a bulk request against
- * it — so that finding is one step removed: a web search of `opentopomap.org`'s and
- * `operations.osmfoundation.org`'s own policy text, gathered because this environment's egress proxy
- * blocked both domains on a direct fetch. Treat it as worth a primary-source spot-check before
- * relying on it further, per this task's own instructions.
- */
-enum class OfflineBasemapStyle { TOPO, IMAGERY }
-
 data class OfflineMapInfo(
     val region: Region,
-    val style: OfflineBasemapStyle,
     val tileCount: Int,
     val sizeBytes: Long,
     val downloadedAtEpochMillis: Long,

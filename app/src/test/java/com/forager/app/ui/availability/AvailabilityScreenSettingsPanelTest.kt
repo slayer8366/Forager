@@ -4,12 +4,21 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,6 +28,7 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.model.ForagingAreas
+import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.ui.map.Basemap
@@ -37,17 +47,26 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * Two Phase 2 pieces of [AvailabilityScreen], measured headlessly:
+ * Three Phase 2 pieces of [AvailabilityScreen], measured headlessly:
  *
  * 1. The quick-fire mode toggle over the map's own top-right corner, and that tapping it actually
  *    changes which [Basemap] the map slot receives — not just that an icon is somewhere on screen.
- * 2. Settings' "Choose Maps Service" and "Offline Maps" sections, and that "Offline Maps" is
- *    reachable only once [com.forager.app.ui.map.MapService.USGS] is selected — the structural half
- *    of decision #7 (OpenStreetMap's and OpenTopoMap's tile-usage policies forbid bulk downloading).
+ * 2. Settings' "Choose Maps Service" section.
+ * 3. The "Offline Maps" submenu: reachable regardless of the selected [com.forager.app.ui.map.MapService]
+ *    (offline downloads always target USGS internally, so nothing about reaching the submenu depends
+ *    on the live service selection — see `com.forager.app.domain.OfflineMapRepository`'s doc comment),
+ *    its navigation (entry row in → back arrow out), and picking a region by long-pressing its map
+ *    instead of typing coordinates.
  *
- * The map itself is stubbed, same reasoning as [AvailabilityScreenLayoutTest]: composing the real
- * one starts osmdroid. Not covered here, and not verifiable headlessly: the icon's actual pixel
- * position over real map tiles, and anything about legibility — see README's "Not yet verified".
+ * The map is stubbed, same reasoning as [AvailabilityScreenLayoutTest]: composing the real one
+ * starts osmdroid. [CapturingMapSlot] backs *both* the main Map tab's map and the Offline Maps
+ * submenu's picker map — both are mounted through the same [AvailabilityScreen.mapSlot] parameter,
+ * and both can be composed at once (the main tab stays mounted behind the drawer while a submenu is
+ * open), so the stub tells them apart by content: the picker always gets empty sightings/areas/
+ * planned-trips, the main tab's ([SEARCHED_STATE]) doesn't.
+ *
+ * Not covered here, and not verifiable headlessly: the icon's and picker map's actual pixel
+ * position/legibility over real map tiles — see README's "Not yet verified".
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
@@ -67,10 +86,19 @@ class AvailabilityScreenSettingsPanelTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private var capturedBasemap: Basemap? = null
+    private var capturedOfflinePickerBasemap: Basemap? = null
 
-    private val CapturingMapSlot: MapSlot = { _, _, _, _, basemap, _, modifier ->
-        capturedBasemap = basemap
-        Box(modifier.testTag(MAP_SLOT_TAG))
+    /** See this class's doc comment for why the two map instances are told apart by content. */
+    private val CapturingMapSlot: MapSlot = { _, sightings, areas, plannedTrips, basemap, onLongPress, modifier ->
+        if (sightings.isEmpty() && areas.isEmpty() && plannedTrips.isEmpty()) {
+            capturedOfflinePickerBasemap = basemap
+            Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
+                Button(onClick = { onLongPress(PICKED_LOCATION) }) { Text("Simulate region pick") }
+            }
+        } else {
+            capturedBasemap = basemap
+            Box(modifier.testTag(MAP_SLOT_TAG))
+        }
     }
 
     private fun setScreen() {
@@ -102,9 +130,50 @@ class AvailabilityScreenSettingsPanelTest {
         }
     }
 
+    /**
+     * Unlike [setScreen], wires the offline-map callbacks to real local state so a long-press on
+     * the picker map (see [CapturingMapSlot]) actually round-trips into [AvailabilityUiState] the
+     * same way [AvailabilityViewModel]'s real `onOfflineMapLatChanged`/`onOfflineMapLngChanged` do —
+     * needed for the "long-press sets the region" test, which otherwise has nothing to observe.
+     */
+    private fun setScreenWithOfflineMapsState(initial: AvailabilityUiState = SEARCHED_STATE) {
+        composeRule.setContent {
+            var current by remember { mutableStateOf(initial) }
+            AvailabilityScreen(
+                uiState = current,
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onToggleForagingAreas = {},
+                onCategorySelected = {},
+                onTaxonSearchQueryChanged = {},
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = {},
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onOfflineMapLatChanged = { text -> current = current.copy(offlineMapLatText = text) },
+                onOfflineMapLngChanged = { text -> current = current.copy(offlineMapLngText = text) },
+                onOfflineMapRadiusChanged = { radius -> current = current.copy(offlineMapRadiusKm = radius) },
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineMaps = {},
+                mapSlot = CapturingMapSlot,
+            )
+        }
+    }
+
     private fun openSettings() {
         composeRule.onNodeWithContentDescription("Advanced search options").performClick()
         composeRule.onNodeWithText("Settings").performClick()
+    }
+
+    private fun openOfflineMaps() {
+        openSettings()
+        composeRule.onNodeWithText("Offline Maps").performClick()
     }
 
     @Test
@@ -174,59 +243,100 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `Settings shows Choose Maps Service with both options`() {
+    fun `Settings shows Choose Maps Service with both options, and an Offline Maps entry row`() {
         setScreen()
         openSettings()
 
         composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
         composeRule.onNodeWithText("OpenStreetMap").assertIsDisplayed()
         composeRule.onNodeWithText("USGS").assertIsDisplayed()
-    }
-
-    @Test
-    fun `Offline Maps is not reachable under the default OpenStreetMap service`() {
-        setScreen()
-        openSettings()
-
         composeRule.onNodeWithText("Offline Maps").assertIsDisplayed()
-        composeRule.onNodeWithText(
-            "Offline downloads are only available for the USGS map service — OpenStreetMap's tile " +
-                "providers don't allow bulk downloading.",
-        ).assertIsDisplayed()
-        // No region picker or download button reachable at all — structurally absent, not merely
-        // disabled-looking, per decision #7's own "structurally incapable" requirement.
-        composeRule.onAllNodesWithText("Download Maps").assertCountEquals(0)
+    }
+
+    /**
+     * The behavior this project's owner explicitly asked for: offline downloads always use USGS
+     * internally, so reaching the submenu never depends on which service is selected for live
+     * browsing. OpenStreetMap is the default (untouched) service for this test.
+     */
+    @Test
+    fun `Offline Maps is reachable under the default OpenStreetMap service, with no gating message`() {
+        setScreen()
+        openOfflineMaps()
+
+        composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
+        composeRule.onAllNodesWithText(
+            "Offline downloads are only available for the USGS map service",
+            substring = true,
+        ).assertCountEquals(0)
     }
 
     @Test
-    fun `Offline Maps becomes reachable after choosing the USGS service`() {
+    fun `the Offline Maps submenu always resolves the picker map to USGS Topo`() {
+        setScreen()
+        openOfflineMaps()
+        // A synchronizing node query (as every other test in this file that reads capture state
+        // right after a click already has, via assertIsDisplayed/assertIsNotEnabled) is what
+        // actually forces recomposition to settle before a plain var read; performClick() alone
+        // doesn't guarantee it here.
+        composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
+
+        assertEquals(Basemap.USGS_TOPO, capturedOfflinePickerBasemap)
+    }
+
+    @Test
+    fun `the Offline Maps entry row navigates into the submenu, and its back arrow returns to Settings`() {
         setScreen()
         openSettings()
 
-        composeRule.onNodeWithText("USGS").performClick()
+        composeRule.onNodeWithText("Offline Maps").performClick()
+        composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
+        // Settings' own content — the map-service picker — is no longer on screen once inside the submenu.
+        composeRule.onAllNodesWithText("Choose Maps Service").assertCountEquals(0)
 
-        composeRule.onNodeWithText("Download Maps").assertIsDisplayed()
-        // Disabled until a region is entered — the lat/lng fields both start blank.
-        composeRule.onNodeWithText("Download Maps").assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription("Back to Settings").performClick()
+
+        composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
+        composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
+    }
+
+    @Test
+    fun `Download Maps is disabled with no region picked, and Delete Offline Maps is disabled with nothing downloaded`() {
+        setScreen()
+        openOfflineMaps()
+
+        composeRule.onNodeWithText("Download Maps").assertIsDisplayed().assertIsNotEnabled()
         composeRule.onNodeWithText("Delete Offline Maps").assertIsNotEnabled()
     }
 
     @Test
-    fun `Offline Maps states which USGS style will be downloaded, matching the map's current mode`() {
-        setScreen()
-        openSettings()
-        composeRule.onNodeWithText("USGS").performClick()
+    fun `long-pressing the picker map sets the region and enables Download Maps`() {
+        setScreenWithOfflineMapsState()
+        openOfflineMaps()
+        composeRule.onNodeWithText("Download Maps").assertIsNotEnabled()
+
+        composeRule.onNodeWithText("Simulate region pick").performClick()
+        composeRule.waitForIdle()
 
         composeRule.onNodeWithText(
-            "Downloads USGS Topo tiles for the region below — whichever mode the map's own " +
-                "quick-fire icon is currently set to.",
+            "Selected: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
         ).assertIsDisplayed()
+        composeRule.onNodeWithText("Download Maps").assertIsEnabled()
+    }
+
+    @Test
+    fun `the Offline Maps submenu states it always uses USGS topographic maps`() {
+        setScreen()
+        openOfflineMaps()
+
+        composeRule.onAllNodesWithText("USGS topographic", substring = true).assertCountEquals(1)
     }
 }
 
 private const val MAP_SLOT_TAG = "settings-panel-test-map-slot"
+private const val OFFLINE_PICKER_MAP_TAG = "settings-panel-test-offline-picker-map-slot"
 
 private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val PICKED_LOCATION = LatLng(lat = 44.5, lng = -121.5)
 
 private fun sighting(index: Int) = Sighting(
     observationId = index.toLong(),
