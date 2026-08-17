@@ -286,6 +286,10 @@ internal fun toWeatherSeries(
 
     val days = dto.daily.time.mapIndexedNotNull { index, timestamp ->
         val date = LocalDate.parse(timestamp)
+        // A date with no precipitation value is dropped rather than defaulted to zero, which would
+        // read as a dry day. Dropping it leaves a gap in the dates, and
+        // ComputeTripWindowsUseCase.consecutiveRuns breaks a run on a date gap as well as on a
+        // failing day, so a dropped day cannot silently join two rain events into one.
         val precipitation = dto.daily.precipitationSum.getOrNull(index) ?: return@mapIndexedNotNull null
         DailyWeather(
             date = date,

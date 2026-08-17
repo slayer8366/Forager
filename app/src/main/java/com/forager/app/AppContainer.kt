@@ -8,13 +8,13 @@ import com.forager.app.data.repository.OpenMeteoWeatherProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.GetConditionsUseCase
-import com.forager.app.domain.GetTripWindowsUseCase
-import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.location.AndroidLocationProvider
 
