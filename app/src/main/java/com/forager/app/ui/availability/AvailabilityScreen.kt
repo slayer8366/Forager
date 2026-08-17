@@ -94,11 +94,14 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.BuildConfig
+import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.ForagingWeatherGuidance
 import com.forager.app.domain.FruitingPatternAssumptions
 import com.forager.app.domain.MgrsConverter
+import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
@@ -216,6 +219,19 @@ fun AvailabilityScreen(
     /** Called when a date and name are confirmed for a trip pin dropped via the map's long-press gesture. */
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
+    /** Called when one of the drawer's recent searches is tapped; see [RecentSearchesSection]. */
+    onRecentSearchSelected: (CachedSearchSummary) -> Unit,
+    /**
+     * Where "now" comes from for the relative times this screen renders — the offline banner's
+     * "saved 3 hours ago" and the recent-searches picker's "cached 2 days ago".
+     *
+     * Injected rather than read off [System.currentTimeMillis] at the two call sites, and it is
+     * the reason [CurrentTimeProvider] exists: a Robolectric test asserts the banner's actual
+     * rendered text is on screen, and text derived from the real wall clock is not something a
+     * test can name. Defaults to the real clock the same way [mapSlot] defaults to the real map,
+     * so this stays optional for callers that render neither.
+     */
+    currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /** Set by long-pressing the picker map in the Offline Maps submenu — see `OfflineMapsPanel`. */
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
@@ -342,6 +358,13 @@ fun AvailabilityScreen(
                             onRadiusChanged = onRadiusChanged,
                             onMonthSelected = onMonthSelected,
                             onDeletePlannedTrip = onDeletePlannedTrip,
+                            onRecentSearchSelected = { summary ->
+                                // Closed for the same reason searching from this drawer closes it:
+                                // the tap starts a search, and the results are behind the sheet.
+                                isDrawerOpen = false
+                                onRecentSearchSelected(summary)
+                            },
+                            currentTime = currentTime,
                         )
                         // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
                         // moved to the bottom of the Settings panel below.
@@ -432,7 +455,11 @@ fun AvailabilityScreen(
                 // either way. The drawer is what fixed the starvation; this weight is what keeps
                 // it fixed the moment another wrap-content sibling is added below the results.
                 when (selectedTab) {
-                    ResultsTab.LIST -> ListTab(uiState = uiState, modifier = Modifier.weight(1f))
+                    ResultsTab.LIST -> ListTab(
+                        uiState = uiState,
+                        currentTime = currentTime,
+                        modifier = Modifier.weight(1f),
+                    )
                     ResultsTab.MAP -> MapTab(
                         uiState = uiState,
                         mapSlot = mapSlot,
@@ -933,11 +960,12 @@ private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: M
 }
 
 /**
- * Everything set far less than once per search, as two independently collapsible sections:
- * **Advanced search** (location, radius, month) and **Trip Planner** (rain-driven trip windows
- * plus the planned-trips list). Each is a single tappable header row when collapsed and expands
- * on tap — see [CollapsibleSection] — rather than a flat stack, per the user's own framing of this
- * drawer ("single line until you tap it, then it drops down"). Species/category lives in
+ * Everything set far less than once per search, as three independently collapsible sections:
+ * **Recent searches** (the offline cache's picker), **Advanced search** (location, radius, month)
+ * and **Trip Planner** (rain-driven trip windows plus the planned-trips list). Each is a single
+ * tappable header row when collapsed and expands on tap — see [CollapsibleSection] — rather than a
+ * flat stack, per the user's own framing of this drawer ("single line until you tap it, then it
+ * drops down"). Species/category lives in
  * [AvailabilitySearchTopBar] instead, above the tab row, because it's the one control people
  * reach for on nearly every search rather than once a session. The foraging-areas layer toggle
  * used to live in "Advanced search" too; it moved to sit directly below the map itself — see
@@ -947,8 +975,8 @@ private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: M
  * The scroll modifier on the outer [Column] is not optional. This is the same tall stack of
  * controls that starved the map when it lived in the main column; a drawer sheet is a
  * fixed-height container too, so without it the later controls would simply be unreachable on a
- * short screen or at a large font scale. Collapsing both sections by default shortens that stack
- * further, but doesn't remove the need for scroll — a large font scale with both sections expanded
+ * short screen or at a large font scale. Collapsing all sections by default shortens that stack
+ * further, but doesn't remove the need for scroll — a large font scale with all sections expanded
  * still needs it.
  */
 @Composable
@@ -962,6 +990,8 @@ private fun SearchControls(
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
+    onRecentSearchSelected: (CachedSearchSummary) -> Unit,
+    currentTime: CurrentTimeProvider,
 ) {
     Column(
         modifier = modifier
@@ -969,6 +999,21 @@ private fun SearchControls(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
+        // First in the column, and a section of its own rather than a control inside "Advanced
+        // search". Two reasons, both about what this list is: one tap on an entry here *is* a
+        // whole search, so burying it under a header about the individual pieces of a search would
+        // put the shortest route to results two taps deeper than the long route; and it is the
+        // only control in this drawer that still does something useful with no connection, which
+        // is exactly when nobody wants to go hunting for it. It keeps the drawer's established
+        // one-line-until-tapped behaviour rather than being the one section that starts expanded.
+        CollapsibleSection(title = "Recent searches") {
+            RecentSearchesSection(
+                recentSearches = uiState.recentSearches,
+                currentTime = currentTime,
+                onRecentSearchSelected = onRecentSearchSelected,
+            )
+        }
+        HorizontalDivider()
         CollapsibleSection(title = "Advanced search") {
             RegionControls(
                 uiState = uiState,
@@ -1024,6 +1069,80 @@ private fun CollapsibleSection(
             ) {
                 content()
             }
+        }
+    }
+}
+
+/**
+ * The offline cache's recent searches, most recently used first, each re-runnable in one tap.
+ *
+ * The list is short by construction — the cache keeps five (see
+ * [RoomSearchCacheRepository][com.forager.app.data.repository.RoomSearchCacheRepository]) — so
+ * these are plain [Column] children inside the drawer's existing scroll rather than a nested
+ * [LazyColumn], which inside a scrolling parent would need a height of its own and would scroll
+ * independently of everything around it.
+ *
+ * Tapping an entry does **not** mean "show me the saved copy": it re-runs the search through the
+ * ordinary flow, which tries live first — see
+ * [AvailabilityViewModel.onRecentSearchSelected][com.forager.app.ui.availability.AvailabilityViewModel.onRecentSearchSelected].
+ *
+ * An empty list says so rather than rendering nothing, the same way [PlannedTripsList] does: a
+ * section that expands to blank space is indistinguishable from one that failed to load.
+ */
+@Composable
+private fun RecentSearchesSection(
+    recentSearches: List<CachedSearchSummary>,
+    currentTime: CurrentTimeProvider,
+    onRecentSearchSelected: (CachedSearchSummary) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        if (recentSearches.isEmpty()) {
+            Text(
+                "No searches saved yet. Each search you run is saved here, and the last five can " +
+                    "be reopened without a connection.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            // Read once for the whole list rather than per row, so every "cached ..." label in one
+            // rendering is measured from the same instant.
+            val now = currentTime.nowEpochMillis()
+            recentSearches.forEach { summary ->
+                RecentSearchRow(
+                    summary = summary,
+                    nowEpochMillis = now,
+                    onClick = { onRecentSearchSelected(summary) },
+                )
+            }
+        }
+    }
+}
+
+/** One recent search: what was searched for, where and when, and how old the saved copy is. */
+@Composable
+private fun RecentSearchRow(summary: CachedSearchSummary, nowEpochMillis: Long, onClick: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                // The whole card is the target, not a button inside it: the row is one action, and
+                // a small control in a card the user has already aimed at is a smaller target for
+                // no reason — the same widening [DrawerHeader] does for its close affordance.
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            val month = Month.of(summary.month).getDisplayName(TextStyle.FULL, Locale.getDefault())
+            Text("${summary.filter.label} · $month", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "${"%.4f".format(summary.region.lat)}, ${"%.4f".format(summary.region.lng)} · " +
+                    "${summary.region.radiusKm} km",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "cached ${relativeTimeLabel(summary.cachedAtEpochMillis, nowEpochMillis)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -1255,7 +1374,11 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
  * scrolling column was one more step to reach whichever one wasn't currently showing.
  */
 @Composable
-private fun ListTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
+private fun ListTab(
+    uiState: AvailabilityUiState,
+    currentTime: CurrentTimeProvider,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -1263,6 +1386,14 @@ private fun ListTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier)
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Spacer(Modifier.height(Spacing.xs))
+        // Above the conditions card and the ranking alike: it changes what everything below it
+        // means, so it cannot be something the user meets after reading the list.
+        if (uiState.isShowingCachedResults) {
+            OfflineResultsBanner(
+                cachedAtEpochMillis = uiState.cachedResultsAsOfEpochMillis,
+                nowEpochMillis = currentTime.nowEpochMillis(),
+            )
+        }
         if (uiState.conditions != null) {
             ConditionsCard(conditions = uiState.conditions)
         }
@@ -1271,6 +1402,87 @@ private fun ListTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier)
         ResultsSection(uiState = uiState, modifier = Modifier.weight(1f))
     }
 }
+
+/**
+ * Says out loud that the ranking below came out of the offline cache rather than off the network,
+ * and how old it is.
+ *
+ * **Not optional polish.** CLAUDE.md requires a partial or fallback result to be reported as such
+ * and never presented as a success; a cached ranking rendered identically to a live one is exactly
+ * that failure, and the user would have no way to tell that iNaturalist was never reached.
+ *
+ * Tertiary rather than the error palette, for the same reason the visiting-order disclaimer is
+ * (see [ForagingAreasPanel]): nothing failed in a way that cost the user their answer — the answer
+ * is right there, it is simply older than it looks. Reusing the error color would make a real
+ * failure read as no more urgent than this.
+ *
+ * [cachedAtEpochMillis] is non-null in every state the ViewModel produces (both fields are written
+ * from one `Cached` result), but a null is rendered as an explicit "when isn't known" rather than
+ * being hidden or filled in with a guess — a banner that invented an age would undo the honesty it
+ * exists for.
+ */
+@Composable
+private fun OfflineResultsBanner(cachedAtEpochMillis: Long?, nowEpochMillis: Long) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Text(
+                if (cachedAtEpochMillis == null) {
+                    "Offline — showing saved results; when they were saved isn't known."
+                } else {
+                    "Offline — showing results saved ${relativeTimeLabel(cachedAtEpochMillis, nowEpochMillis)}"
+                },
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                "iNaturalist couldn't be reached, so this is the last ranking saved for this " +
+                    "region, month and category.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+/**
+ * How long ago [thenEpochMillis] was, in the coarsest unit that still says something useful —
+ * "just now", "5 minutes ago", "3 hours ago", "2 days ago".
+ *
+ * Coarse on purpose: this labels a cached search, and the difference between 181 and 184 minutes
+ * changes nothing about whether somebody wants to re-run it. Both callers pass a clock-provided
+ * [nowEpochMillis] rather than reading [System.currentTimeMillis] here, so the output is a pure
+ * function of its arguments and can be asserted on directly — see [CurrentTimeProvider].
+ *
+ * A [thenEpochMillis] in the future (a device clock moved backwards, or a row written under a
+ * clock that was ahead) reads as "just now" rather than as a negative age. It is not a state this
+ * app can produce on its own, and inventing a phrase for it would be a claim about a clock this
+ * code cannot check.
+ */
+internal fun relativeTimeLabel(thenEpochMillis: Long, nowEpochMillis: Long): String {
+    val elapsedMillis = nowEpochMillis - thenEpochMillis
+    val minutes = elapsedMillis / MILLIS_PER_MINUTE
+    val hours = elapsedMillis / MILLIS_PER_HOUR
+    val days = elapsedMillis / MILLIS_PER_DAY
+    return when {
+        minutes < 1 -> "just now"
+        minutes < 60 -> "$minutes ${plural(minutes, "minute")} ago"
+        hours < 24 -> "$hours ${plural(hours, "hour")} ago"
+        else -> "$days ${plural(days, "day")} ago"
+    }
+}
+
+private fun plural(count: Long, singular: String) = if (count == 1L) singular else "${singular}s"
+
+private const val MILLIS_PER_MINUTE = 60_000L
+private const val MILLIS_PER_HOUR = 60 * MILLIS_PER_MINUTE
+private const val MILLIS_PER_DAY = 24 * MILLIS_PER_HOUR
 
 @Composable
 private fun ResultsSection(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {

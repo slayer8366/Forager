@@ -17,13 +17,15 @@ import com.forager.app.ui.theme.ForagerTheme
 
 class MainActivity : ComponentActivity() {
 
+    private val container: AppContainer get() = (application as ForagerApplication).container
+
     private val viewModel: AvailabilityViewModel by viewModels {
-        val container = (application as ForagerApplication).container
         viewModelFactory {
             initializer {
                 AvailabilityViewModel(
                     container.locationProvider,
-                    container.predictAvailabilityUseCase,
+                    container.getAvailabilityUseCase,
+                    container.getRecentSearchesUseCase,
                     container.getSightingsUseCase,
                     container.searchTaxaUseCase,
                     container.getConditionsUseCase,
@@ -85,6 +87,8 @@ class MainActivity : ComponentActivity() {
                     onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
                     onPlaceTripPin = viewModel::onPlaceTripPin,
                     onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                    currentTime = container.currentTimeProvider,
                     onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                     onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                     onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,

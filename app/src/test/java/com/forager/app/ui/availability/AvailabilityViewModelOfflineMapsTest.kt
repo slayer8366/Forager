@@ -3,10 +3,13 @@ package com.forager.app.ui.availability
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
+import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.InMemorySearchCacheRepository
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
@@ -136,9 +139,12 @@ class AvailabilityViewModelOfflineMapsTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
+    private val searchCache = InMemorySearchCacheRepository()
+
     private fun viewModel(offlineMapRepository: OfflineMapRepository): AvailabilityViewModel = AvailabilityViewModel(
         locationProvider = OfflineMapsUnusedLocationProvider,
-        predictAvailability = PredictAvailabilityUseCase(OfflineMapsEmptyRepository),
+        getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(OfflineMapsEmptyRepository), searchCache),
+        getRecentSearches = GetRecentSearchesUseCase(searchCache),
         getSightings = GetSightingsUseCase(OfflineMapsEmptyRepository),
         searchTaxa = SearchTaxaUseCase(OfflineMapsEmptyRepository),
         getConditions = GetConditionsUseCase(OfflineMapsStubWeatherProvider),
