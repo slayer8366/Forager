@@ -93,6 +93,11 @@ class AvailabilityScreenOfflineCacheTest {
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = { selectedRecentSearches += it },
                 currentTime = MutableClock(now = NOW),
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineMaps = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -249,6 +254,6 @@ class AvailabilityScreenOfflineCacheTest {
 }
 
 /** Stands in for the real map; see [AvailabilityScreenLayoutTest]'s own stub for why. */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
     Box(modifier.testTag("offline-cache-map-slot"))
 }

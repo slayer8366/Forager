@@ -14,6 +14,8 @@ import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.MutableClock
+import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -111,6 +113,14 @@ private object OfflineCacheStubPlannedTripRepository : PlannedTripRepository {
         Result.failure(UnsupportedOperationException("planned trips are not exercised by this test"))
 }
 
+private object OfflineCacheStubOfflineMapRepository : OfflineMapRepository {
+    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+        Result.failure(UnsupportedOperationException("offline maps are not exercised by this test"))
+    override suspend fun delete(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("offline maps are not exercised by this test"))
+    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
+}
+
 class AvailabilityViewModelOfflineCacheTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -136,6 +146,7 @@ class AvailabilityViewModelOfflineCacheTest {
         getPlannedTrips = GetPlannedTripsUseCase(OfflineCacheStubPlannedTripRepository),
         savePlannedTrip = SavePlannedTripUseCase(OfflineCacheStubPlannedTripRepository),
         deletePlannedTrip = DeletePlannedTripUseCase(OfflineCacheStubPlannedTripRepository),
+        offlineMapRepository = OfflineCacheStubOfflineMapRepository,
     )
 
     /** Drives the real coordinate-entry callbacks rather than reaching into state. */
