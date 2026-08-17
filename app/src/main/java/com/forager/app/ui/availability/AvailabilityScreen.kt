@@ -1,6 +1,7 @@
 package com.forager.app.ui.availability
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -87,6 +88,26 @@ private enum class ResultsTab(val label: String) {
     LIST("List"),
     MAP("Map"),
     TRIP_PLANNER("Trip Planner"),
+}
+
+/**
+ * The screen's spacing scale. Padding and gap values across this file used to be picked ad hoc
+ * (2dp here, 10dp there) with no relationship to each other, which is why visually-similar things
+ * — card internal padding, the gap between a card's rows — didn't quite line up card to card.
+ * Four steps, each used for a stated kind of gap, rather than a value invented per call site.
+ */
+private object Spacing {
+    /** Within a tightly related group — a line and its own subtext, one card's internal rows. */
+    val xs = 4.dp
+
+    /** Between related but distinct items — chips in a row, a card's own sub-sections. */
+    val sm = 8.dp
+
+    /** A card's outer padding, and the standard gap between sibling cards. */
+    val md = 12.dp
+
+    /** Screen-level padding, and the gap between major regions of a tab. */
+    val lg = 16.dp
 }
 
 /**
@@ -259,7 +280,7 @@ private fun ActiveSearchSummary(uiState: AvailabilityUiState) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
     }
 }
@@ -298,7 +319,7 @@ private fun SearchNotice(uiState: AvailabilityUiState) {
             color = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
     }
 }
@@ -333,7 +354,7 @@ private fun BuildIdentityFooter() {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
     )
 }
 
@@ -352,8 +373,8 @@ private fun SearchControls(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         Text("Advanced search", style = MaterialTheme.typography.titleMedium)
 
@@ -384,14 +405,14 @@ private fun RegionControls(
     onSearchManualCoordinates: () -> Unit,
     onRadiusChanged: (Int) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Button(onClick = onUseCurrentLocation, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Filled.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.size(8.dp))
+            Spacer(Modifier.size(Spacing.sm))
             Text("Use current location")
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             OutlinedTextField(
                 value = uiState.manualLatText,
                 onValueChange = onManualLatChanged,
@@ -453,10 +474,19 @@ private fun SpeciesSearchBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Scrolls rather than wraps: this bar is a fixed top-level sibling above the weighted
+        // tab content below it (see this file's own doc comment on the height-budget cost of
+        // adding lines here), so a wrap would grow the bar's height unpredictably by device
+        // width. "Lichens (approx.)" is long enough to threaten clipping in a plain, non-scrolling
+        // Row on a narrow phone; scrolling keeps the row's height fixed at one chip tall no matter
+        // how many categories exist or how long their labels are.
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
                 FilterChip(
                     selected = uiState.taxonFilter == category,
@@ -507,7 +537,7 @@ private fun TaxonSuggestionRow(result: TaxonSearchResult, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(Spacing.md),
     ) {
         Text(result.commonName ?: result.scientificName, style = MaterialTheme.typography.bodyMedium)
         val subtitle = result.scientificName + (result.iconicTaxonName?.let { " · $it" } ?: "")
@@ -564,10 +594,10 @@ private fun ListTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(Spacing.xs))
         if (uiState.conditions != null) {
             ConditionsCard(conditions = uiState.conditions)
         }
@@ -609,8 +639,8 @@ private fun ResultsSection(uiState: AvailabilityUiState, modifier: Modifier = Mo
                     style = MaterialTheme.typography.bodySmall,
                     fontStyle = FontStyle.Italic,
                 )
-                Spacer(Modifier.height(8.dp))
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(Modifier.height(Spacing.sm))
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(forecast.entries, key = { it.species.taxonId }) { entry ->
                         SpeciesRow(entry)
                     }
@@ -668,7 +698,7 @@ private fun MapTab(uiState: AvailabilityUiState, mapSlot: MapSlot, modifier: Mod
                     if (uiState.showForagingAreas) {
                         ForagingAreasPanel(
                             foragingAreas = uiState.foragingAreas,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                         )
                     }
                 }
@@ -696,7 +726,7 @@ private fun TripPlannerTab(uiState: AvailabilityUiState, modifier: Modifier = Mo
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(Spacing.lg),
     ) {
         TripWindowsCard(uiState = uiState)
     }
@@ -714,7 +744,7 @@ private fun MapMessage(
         color = color,
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(Spacing.lg),
     )
 }
 
@@ -771,13 +801,16 @@ private fun ForagingAreasPanel(foragingAreas: ForagingAreas?, modifier: Modifier
             modifier = modifier
                 .heightIn(max = FORAGING_AREAS_PANEL_MAX_HEIGHT)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
+            // Tertiary rather than error: this is a caution about what the ordering isn't, not a
+            // failure. Reusing the error color here would make a real failure (a failed sightings
+            // fetch, a couldn't-load message) read as no more urgent than a standing disclaimer.
             Text(
                 VISITING_ORDER_DISCLAIMER,
                 style = MaterialTheme.typography.bodySmall,
                 fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.tertiary,
             )
             if (foragingAreas.ungroupedObservationCount > 0) {
                 Text(
@@ -806,8 +839,8 @@ private fun ForagingAreaRow(area: ForagingArea) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Text("${area.visitOrder}", style = MaterialTheme.typography.titleMedium)
             Text(foragingAreaSummary(area), style = MaterialTheme.typography.bodySmall)
@@ -846,7 +879,7 @@ private fun noAreasMessage(none: ForagingAreas.None): String {
 @Composable
 private fun ConditionsCard(conditions: ConditionsSummary) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text("Current Conditions", style = MaterialTheme.typography.titleSmall)
             val totalMm = conditions.totalPrecipitationMm
             Text(
@@ -884,7 +917,7 @@ private val TRIP_WINDOW_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPat
 @Composable
 private fun TripWindowsCard(uiState: AvailabilityUiState) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text("Trip Windows", style = MaterialTheme.typography.titleSmall)
 
             when {
@@ -914,14 +947,14 @@ private fun TripWindowReportContent(report: TripWindowReport) {
         Text(noTripWindowMessage(report), style = MaterialTheme.typography.bodySmall)
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         report.windows.forEach { window -> TripWindowRow(window) }
     }
 }
 
 @Composable
 private fun TripWindowRow(window: TripWindow) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             "${TRIP_WINDOW_DATE_FORMAT.format(window.startDate)} – ${TRIP_WINDOW_DATE_FORMAT.format(window.endDate)}",
             style = MaterialTheme.typography.bodyMedium,
@@ -990,8 +1023,16 @@ private fun noTripWindowMessage(report: TripWindowReport): String = when (val re
 @Composable
 private fun ForagingWeatherGuidanceSection(selection: ForagingSelection) {
     val guidance = ForagingWeatherGuidance.forSelection(selection)
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(guidance.heading, style = MaterialTheme.typography.labelLarge)
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        // labelMedium + a muted color, not titleSmall/labelLarge: Material3 sizes titleSmall and
+        // labelLarge identically (14sp/500), so this heading and the card's own "Trip Windows"
+        // title above it were reading as the same weight despite one being nested inside the
+        // other. This is deliberately a step down from the card title, not a second one beside it.
+        Text(
+            guidance.heading,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         guidance.paragraphs.forEach { paragraph ->
             Text(paragraph, style = MaterialTheme.typography.bodySmall)
         }
@@ -1004,7 +1045,10 @@ private fun ForagingWeatherGuidanceSection(selection: ForagingSelection) {
 @Composable
 private fun SpeciesRow(entry: AvailabilityEntry) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
             Text(
                 entry.species.commonName ?: entry.species.scientificName,
                 style = MaterialTheme.typography.titleMedium,
@@ -1014,12 +1058,10 @@ private fun SpeciesRow(entry: AvailabilityEntry) {
                 style = MaterialTheme.typography.bodySmall,
                 fontStyle = FontStyle.Italic,
             )
-            Spacer(Modifier.height(6.dp))
             LinearProgressIndicator(
                 progress = { entry.relativeLikelihood },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(4.dp))
             Text(
                 "${entry.species.observationCount} observations",
                 style = MaterialTheme.typography.bodySmall,
