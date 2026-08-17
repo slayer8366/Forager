@@ -1,3 +1,5 @@
+import java.util.zip.ZipFile
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -139,6 +141,16 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            // Robolectric needs the variant's merged manifest, compiled resources and asset
+            // directory to stand up a real Android runtime in the JVM. Without this the resource
+            // table is absent and anything that resolves a theme, dimension or string — which a
+            // Material3 Compose tree does immediately — fails at construction.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -166,4 +178,110 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // Headless layout measurement of the Compose tree, on the JVM. Both are testImplementation:
+    // nothing here may reach the APK, and `verifyNothingTestOnlyReachesTheApk` below checks the
+    // built artifact rather than trusting the configuration name.
+    //
+    // Deliberately absent: `androidx.compose.ui:ui-test-manifest`, the usual companion of
+    // ui-test-junit4. It is an AAR whose entire payload is an `<activity>` entry for
+    // ComponentActivity, and it is conventionally added as `debugImplementation` — which really
+    // does put that entry in the debug APK handed to a tester. Adding it as `testImplementation`
+    // instead was tried and does nothing: AGP merges it into
+    // `packaged_manifests/debugUnitTest/`, but Robolectric reads the manifest packaged inside
+    // `apk_for_local_test`, which is built from the *main* variant manifest and carries only
+    // MainActivity and PreviewActivity (verified by dumping both). The host activity is therefore
+    // registered at runtime by the tests themselves; see AvailabilityScreenLayoutTest.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.robolectric)
 }
+
+/**
+ * Fails the build if a test-only dependency ends up in the shipped APK.
+ *
+ * The test dependencies above are the first in this project that could plausibly leak — Compose
+ * UI Test pulls in `androidx.test.*` and `ui-test-manifest` contributes a manifest entry — and
+ * "it's `testImplementation`, so it can't reach the APK" is exactly the kind of assumption
+ * CLAUDE.md says to verify rather than assert. This reads the APK's own entry list and the merged
+ * manifest that goes into it, so it checks the artifact rather than the build script's intent.
+ *
+ * Wired into `assembleDebug` (see below), so it runs as part of the normal build rather than
+ * being a check somebody has to remember to invoke.
+ */
+val testOnlyPackagePrefixes = listOf(
+    "androidx/test/",
+    "androidx/compose/ui/test/",
+    "org/robolectric/",
+    "org/junit/",
+    "junit/framework/",
+)
+
+tasks.register("verifyNothingTestOnlyReachesTheApk") {
+    val apkDir = layout.buildDirectory.dir("outputs/apk/debug")
+    inputs.dir(apkDir)
+    doLast {
+        val apk = apkDir.get().asFile.listFiles().orEmpty().firstOrNull { it.name.endsWith(".apk") }
+            ?: error("No debug APK found in ${apkDir.get().asFile}; nothing was verified.")
+
+        val leaked = mutableListOf<String>()
+        // The classes are dexed, so class names are not zip entry names. Scanning the dex bytes
+        // for the package prefix as an ASCII string is what actually answers the question: a
+        // leaked class's descriptor is present verbatim in the dex string table.
+        val dexNeedles = testOnlyPackagePrefixes.map { "L$it".toByteArray(Charsets.UTF_8) }
+        // ui-test-manifest's only payload is a manifest entry, so a class scan would miss it. The
+        // packaged AndroidManifest.xml is binary AXML, but every attribute value it carries is a
+        // literal string in its string pool, in UTF-8 or UTF-16LE depending on the pool's encoding
+        // flag — so both encodings are searched rather than guessing which aapt2 produced.
+        val manifestNeedles = listOf(Charsets.UTF_8, Charsets.UTF_16LE)
+            .map { "androidx.activity.ComponentActivity".toByteArray(it) }
+
+        val zip = ZipFile(apk)
+        try {
+            for (entry in zip.entries()) {
+                if (entry.name == "AndroidManifest.xml") {
+                    val bytes = zip.getInputStream(entry).readBytes()
+                    if (manifestNeedles.any { indexOfBytes(bytes, it) >= 0 }) {
+                        leaked += "androidx.activity.ComponentActivity declared in the packaged " +
+                            "manifest (ui-test-manifest leaked into the APK)"
+                    }
+                } else if (entry.name.endsWith(".dex")) {
+                    val bytes = zip.getInputStream(entry).readBytes()
+                    dexNeedles.forEachIndexed { index, needle ->
+                        if (indexOfBytes(bytes, needle) >= 0) {
+                            leaked += "${testOnlyPackagePrefixes[index]} (in ${entry.name})"
+                        }
+                    }
+                } else {
+                    testOnlyPackagePrefixes.forEach { prefix ->
+                        if (entry.name.startsWith(prefix)) leaked += "${entry.name} (packaged file)"
+                    }
+                }
+            }
+        } finally {
+            zip.close()
+        }
+
+        if (leaked.isNotEmpty()) {
+            error(
+                "Test-only code reached ${apk.name}:\n" + leaked.distinct().joinToString("\n") { "  - $it" },
+            )
+        }
+        logger.lifecycle("Verified: no test-only class or manifest entry in ${apk.name}.")
+    }
+}
+
+/** Naive byte-sequence search; the dex files here are a few MB, so this is fast enough. */
+fun indexOfBytes(haystack: ByteArray, needle: ByteArray): Int {
+    outer@ for (i in 0..haystack.size - needle.size) {
+        for (j in needle.indices) if (haystack[i + j] != needle[j]) continue@outer
+        return i
+    }
+    return -1
+}
+
+// `tasks.named` would resolve at configuration time, before AGP has created the variant tasks;
+// matching defers until the task exists.
+tasks.matching { it.name == "assembleDebug" }
+    .configureEach { finalizedBy("verifyNothingTestOnlyReachesTheApk") }
+
