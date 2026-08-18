@@ -162,25 +162,17 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     /**
-     * Opens the drawer via the Maps tab's "Open Search" button — this test always starts from a
-     * fresh ViewModel with no region searched yet, and [CompactMapTab] has no icon stack (and so
-     * no "Search" icon) until a region exists; see that composable's own doc comment on its
-     * `!uiState.hasSearched` branch. `openDrawerToAdvancedSearch()` below reuses this even after
-     * the first search, when the icon-stack "Search" icon would also work — either reaches the
-     * same drawer, so there's no need for two helpers.
+     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] shows a real map (and
+     * so the icon stack) from its very first composition, not only once a region has been searched,
+     * so this works identically before and after the first search.
      *
-     * Both entry points live inside [CompactMapTab], which only composes while the Maps bottom-nav
-     * tab is selected — this test also drives the List tab (to check the Conditions card), so this
+     * That icon lives inside [CompactMapTab], which only composes while the Maps bottom-nav tab is
+     * selected — this test also drives the List tab (to check the Conditions card), so this
      * switches back to Maps first rather than assuming it's already there.
      */
     private fun openDrawer() {
         composeRule.onNodeWithText("Maps").performClick()
-        val alreadySearched = composeRule.onAllNodesWithText("Open Search").fetchSemanticsNodes().isEmpty()
-        if (alreadySearched) {
-            composeRule.onNodeWithContentDescription("Search").performClick()
-        } else {
-            composeRule.onNodeWithText("Open Search").performClick()
-        }
+        composeRule.onNodeWithContentDescription("Search").performClick()
     }
 
     /**

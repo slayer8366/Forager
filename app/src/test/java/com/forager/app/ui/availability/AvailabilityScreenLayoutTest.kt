@@ -10,7 +10,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -266,13 +265,13 @@ abstract class AvailabilityScreenLayoutTest {
      * [CompactSearchDrawerContent]'s doc comment. [setScreen] always lands on the Maps tab by
      * default, so the icon is already on screen with no tab switch needed.
      */
+    /**
+     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] shows a real map (and
+     * so the icon stack) from its very first composition, GPS-centred or on a fixed fallback while
+     * that's still pending, not only once a region has been searched.
+     */
     private fun openSearchDrawer() {
-        val alreadySearched = composeRule.onAllNodesWithText("Open Search").fetchSemanticsNodes().isEmpty()
-        if (alreadySearched) {
-            composeRule.onNodeWithContentDescription("Search").performClick()
-        } else {
-            composeRule.onNodeWithText("Open Search").performClick()
-        }
+        composeRule.onNodeWithContentDescription("Search").performClick()
     }
 
     /**

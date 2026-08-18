@@ -7,7 +7,13 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -25,14 +31,17 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -667,6 +676,14 @@ fun AvailabilityScreen(
             isDrawerOpen = true
         }
 
+        // Pings the device's live location once, as soon as the compact Maps experience is shown,
+        // so the map opens already centred on it rather than waiting for an explicit locate-me tap
+        // — see CompactMapTab's own doc comment on the pre-search display region this feeds. Fires
+        // once per this scaffold's own composition lifetime (i.e. once per app open on a compact
+        // window), not once per Maps-tab visit, since it's hoisted here rather than into
+        // CompactMapTab itself, which enters and leaves composition on every bottom-nav switch.
+        LaunchedEffect(Unit) { onLocateMe() }
+
         Scaffold(
             bottomBar = {
                 if (!isMapFullscreen) {
@@ -835,14 +852,25 @@ fun AvailabilityScreen(
  * extended by the project owner from 3 destinations to [CompactTab]'s 5: List/Maps/Seasonal (the
  * original three), Journal, and Settings, the latter two moved here from the drawer (see
  * [CompactSearchDrawerContent]'s own doc comment). MEDIUM/EXPANDED windows still use
- * [SecondaryTabRow] via [mainScaffold], untouched. Dark bar with the active tab in the app's own
- * forest green (`MaterialTheme.colorScheme.primary` — [com.forager.app.ui.theme.ForestGreen] in
- * light theme, [com.forager.app.ui.theme.MossGreen] in dark, per that theme's own doc comment)
- * rather than a new accent color.
+ * [SecondaryTabRow] via [mainScaffold], untouched.
+ *
+ * Colored entirely from [MaterialTheme.colorScheme] rather than the fixed [Bark]/[Color.White] an
+ * earlier revision used — that hardcoding was a real bug, not a style choice: it left this bar the
+ * same dark brown regardless of system light/dark theme, while every other surface in the app (and
+ * this same bar's own active-tab color, already `MaterialTheme.colorScheme.primary`) switched with
+ * it. [NavigationBarItemDefaults.colors]' own defaults already give the unselected/indicator roles
+ * sensible theme-following values, so this only overrides `selectedIconColor`/`selectedTextColor`
+ * to keep the app's own forest green (`colorScheme.primary` —
+ * [com.forager.app.ui.theme.ForestGreen] in light theme, [com.forager.app.ui.theme.MossGreen] in
+ * dark, per that theme's own doc comment) as the active-tab accent, matching this file's other
+ * hand-picked accents rather than leaving it at M3's default secondary-container tint.
  */
 @Composable
 private fun ForagerBottomNav(selectedTab: CompactTab, onTabSelected: (CompactTab) -> Unit) {
-    NavigationBar(containerColor = Bark, contentColor = Color.White) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
                 selected = selectedTab == tab,
@@ -852,9 +880,6 @@ private fun ForagerBottomNav(selectedTab: CompactTab, onTabSelected: (CompactTab
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = Color.White.copy(alpha = 0.7f),
-                    unselectedTextColor = Color.White.copy(alpha = 0.7f),
-                    indicatorColor = Bark,
                 ),
             )
         }
@@ -2603,13 +2628,14 @@ private val MapIconStackCircleColor = Bark.copy(alpha = 0.78f)
  * separate composable rather than a conditional threaded through [MapTab] itself.
  *
  * Owns the long-press flow exactly as [MapTab] does — see that composable's doc comment for the
- * mechanics [pendingLongPressLocation] drives; [LongPressActionDialog]/[TripDatePickerDialog]/
- * [defaultTripName] are shared, unmodified. The icon stack's add (+) button reuses this exact same
- * flow — it sets [pendingLongPressLocation] directly, the identical state variable the long-press
- * gesture sets, rather than a parallel dialog/handler — so the two entry points can never drift
- * apart (decision #3.5). It hands that flow the current search region's centre, since that's a
- * stable point already on screen whenever this tab can render at all, rather than requiring its
- * own GPS fetch.
+ * mechanics [pendingLongPressLocation] drives; [TripDatePickerDialog]/[defaultTripName] are shared,
+ * unmodified, but the "what would you like to do here" chooser itself is [AddActionTile] here
+ * rather than [MapTab]'s [LongPressActionDialog] — see that composable's own doc comment for why.
+ * The icon stack's add (+) button reuses this exact same flow — it sets [pendingLongPressLocation]
+ * directly, the identical state variable the long-press gesture sets, rather than a parallel
+ * dialog/handler — so the two entry points can never drift apart (decision #3.5). It hands that
+ * flow the map's current viewport centre — the real search region if one exists, otherwise
+ * whatever `displayRegion` below is standing in for it — rather than requiring its own GPS fetch.
  */
 @Composable
 private fun CompactMapTab(
@@ -2642,23 +2668,6 @@ private fun CompactMapTab(
     }
 
     when {
-        // Before any search, there is no map to overlay an icon stack on — but with the app-bar
-        // tune icon gone (species/category search and "Advanced search" both moved into the
-        // drawer, see CompactSearchDrawerContent), this button is the *only* way to reach the
-        // drawer at all until a region exists. Without it, a first-time user would have no way to
-        // ever open search: the icon stack below that also opens it only renders once
-        // uiState.region is non-null.
-        !uiState.hasSearched -> Column(
-            modifier = modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            MapMessage("Choose a region in search options to see mapped sightings.")
-            Button(onClick = onOpenSearchDrawer, modifier = Modifier.padding(top = Spacing.sm)) {
-                Text("Open Search")
-            }
-        }
-
         uiState.isLoadingSightings -> Column(
             modifier = modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -2674,82 +2683,98 @@ private fun CompactMapTab(
         )
 
         else -> {
-            val region = uiState.region
-            if (region != null) {
-                // The GPS/locate-me pan target. remember(region) — not just remember — so a brand
-                // new search (a different region) drops any earlier locate-me override rather than
-                // keeping the map stuck on a now-stale GPS fix; see MapSlot's focusOverride doc
-                // comment for why this is independent of region itself.
-                var focusOverride by remember(region) { mutableStateOf<LatLng?>(null) }
-                LaunchedEffect(uiState.locateMeStatus) {
-                    val status = uiState.locateMeStatus
-                    if (status is LocateMeStatus.Located) focusOverride = status.location
-                }
+            // The map's own viewport, never null — unlike uiState.region (only set once a real
+            // search has run), so the map always has *something* to show rather than the earlier
+            // revision's "choose a region" placeholder: the real search region once one exists,
+            // otherwise the device's live location once locate-me above resolves one, otherwise a
+            // fixed fallback while that's still pending. The project owner's own framing: the Maps
+            // tab should already be showing a real map, centred on the user, the moment the app
+            // opens — not a message asking them to search first.
+            val located = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location
+            val displayRegion = uiState.region
+                ?: located?.let { Region(lat = it.lat, lng = it.lng, radiusKm = JOURNAL_PICKER_DEFAULT_REGION.radiusKm) }
+                ?: JOURNAL_PICKER_DEFAULT_REGION
 
-                // Areas are only handed to the map when the layer is switched on; the clustering
-                // itself was already computed when the sightings loaded.
-                val visibleAreas = if (uiState.showForagingAreas) {
-                    (uiState.foragingAreas as? ForagingAreas.Found)?.areas.orEmpty()
-                } else {
-                    emptyList()
-                }
+            // The GPS/locate-me pan target for a search that's already run — remember(uiState.region),
+            // not just remember, so a brand new search (a different region) drops any earlier
+            // locate-me override rather than keeping the map stuck on a now-stale GPS fix; see
+            // MapSlot's focusOverride doc comment for why this is independent of region itself.
+            // Pre-search, displayRegion already tracks locate-me directly (see above), so this stays
+            // null rather than doubly panning the same fix through two different mechanisms.
+            var focusOverride by remember(uiState.region) { mutableStateOf<LatLng?>(null) }
+            LaunchedEffect(uiState.locateMeStatus) {
+                val status = uiState.locateMeStatus
+                if (uiState.region != null && status is LocateMeStatus.Located) focusOverride = status.location
+            }
 
-                Box(modifier = modifier.fillMaxSize()) {
-                    mapSlot(
-                        region,
-                        uiState.sightings,
-                        visibleAreas,
-                        uiState.plannedTrips,
-                        basemap,
-                        focusOverride,
-                        { location -> pendingLongPressLocation = location },
-                        // Tapping the map restores chrome while fullscreen — decision #5. Only
-                        // meaningful in that state: chrome is never hidden by a tap, only by the
-                        // fullscreen icon itself, so a tap while chrome is already showing is a
-                        // no-op rather than toggling it away.
-                        { if (isFullscreen) onToggleFullscreen() },
-                        Modifier.fillMaxSize(),
-                    )
-                    CompassElevationStrip(
-                        compassProvider = compassProvider,
-                        elevationMeters = (uiState.locateMeStatus as? LocateMeStatus.Located)?.altitude,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(Spacing.sm),
-                    )
-                    MapIconStack(
-                        isFullscreen = isFullscreen,
-                        onToggleFullscreen = onToggleFullscreen,
-                        onLocateMe = onLocateMe,
-                        isTopoMode = isTopoMode,
-                        onToggleMapMode = onToggleMapMode,
-                        onOpenSearchDrawer = onOpenSearchDrawer,
-                        onAdd = {
-                            // Same state variable the long-press gesture sets above — not a
-                            // parallel dialog. See this function's own doc comment.
-                            pendingLongPressLocation = LatLng(region.lat, region.lng)
-                        },
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(Spacing.sm),
-                    )
-                }
+            // Sightings/areas/planned trips are only real once a search has actually run — before
+            // that, displayRegion is a viewport with nothing plotted on it yet, not a stand-in
+            // search.
+            val hasSearched = uiState.region != null
+            val visibleAreas = if (hasSearched && uiState.showForagingAreas) {
+                (uiState.foragingAreas as? ForagingAreas.Found)?.areas.orEmpty()
+            } else {
+                emptyList()
+            }
+
+            Box(modifier = modifier.fillMaxSize()) {
+                mapSlot(
+                    displayRegion,
+                    if (hasSearched) uiState.sightings else emptyList(),
+                    visibleAreas,
+                    if (hasSearched) uiState.plannedTrips else emptyList(),
+                    basemap,
+                    focusOverride,
+                    { location -> pendingLongPressLocation = location },
+                    // Tapping the map restores chrome while fullscreen — decision #5. Only
+                    // meaningful in that state: chrome is never hidden by a tap, only by the
+                    // fullscreen icon itself, so a tap while chrome is already showing is a
+                    // no-op rather than toggling it away.
+                    { if (isFullscreen) onToggleFullscreen() },
+                    Modifier.fillMaxSize(),
+                )
+                CompassElevationStrip(
+                    compassProvider = compassProvider,
+                    elevationMeters = (uiState.locateMeStatus as? LocateMeStatus.Located)?.altitude,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(Spacing.sm),
+                )
+                MapIconStack(
+                    isFullscreen = isFullscreen,
+                    onToggleFullscreen = onToggleFullscreen,
+                    onLocateMe = onLocateMe,
+                    isTopoMode = isTopoMode,
+                    onToggleMapMode = onToggleMapMode,
+                    onOpenSearchDrawer = onOpenSearchDrawer,
+                    onAdd = {
+                        // Same state variable the long-press gesture sets above — not a
+                        // parallel dialog. See this function's own doc comment.
+                        pendingLongPressLocation = LatLng(displayRegion.lat, displayRegion.lng)
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(Spacing.sm),
+                )
+
+                // Inside this Box, not alongside it, so it can align near the add button's own
+                // corner of the icon stack above — see AddActionTile's doc comment for why this
+                // reads as opening "from" that button rather than as a centered system dialog.
+                AddActionTile(
+                    visible = pendingLongPressLocation != null,
+                    onPlanTrip = {
+                        pendingLongPressLocation?.let { pendingTripLocation = it }
+                        pendingLongPressLocation = null
+                    },
+                    onLogFind = {
+                        pendingLongPressLocation?.let { onLogFindHere(it) }
+                        pendingLongPressLocation = null
+                    },
+                    onDismiss = { pendingLongPressLocation = null },
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
-    }
-
-    pendingLongPressLocation?.let { location ->
-        LongPressActionDialog(
-            onPlanTrip = {
-                pendingLongPressLocation = null
-                pendingTripLocation = location
-            },
-            onLogFind = {
-                pendingLongPressLocation = null
-                onLogFindHere(location)
-            },
-            onDismiss = { pendingLongPressLocation = null },
-        )
     }
 
     pendingTripLocation?.let { location ->
@@ -2928,6 +2953,85 @@ private fun LongPressActionDialog(onPlanTrip: () -> Unit, onLogFind: () -> Unit,
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
+
+/**
+ * [CompactMapTab]'s own version of the same "Plan a trip"/"Log a find" chooser [LongPressActionDialog]
+ * shows on medium/expanded windows — same two choices, same shared [pendingLongPressLocation] state
+ * (see [CompactMapTab]'s doc comment), but presented as a small tile that grows out of the add
+ * button's own corner of the icon stack rather than [AlertDialog]'s centered scale-in, per the
+ * project owner's own description of how it should open. Compact-only: the medium/expanded window
+ * has no floating add button for a tile to originate from, so [MapTab] keeps the plain dialog.
+ *
+ * A scrim (its own [AnimatedVisibility], faded independently of the tile) makes the map behind it
+ * unmistakably unavailable to tap while a choice is pending — the same modal intent the dialog it
+ * replaces had, just without borrowing [AlertDialog]'s fixed presentation. The tile itself keeps an
+ * explicit "Cancel" row alongside the scrim-tap-to-dismiss, the same two ways out
+ * [LongPressActionDialog] gave (its own "Cancel" dismiss button plus tapping outside).
+ */
+@Composable
+private fun AddActionTile(
+    visible: Boolean,
+    onPlanTrip: () -> Unit,
+    onLogFind: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onDismiss,
+                    ),
+            )
+        }
+
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn() + expandIn(expandFrom = Alignment.BottomEnd),
+            exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.BottomEnd),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(x = -Spacing.sm, y = ADD_TILE_ANCHOR_OFFSET),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(Spacing.md),
+                shadowElevation = 4.dp,
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Column(
+                    modifier = Modifier.padding(Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    Text("Add...", style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = onPlanTrip, modifier = Modifier.fillMaxWidth()) { Text("Plan a trip") }
+                    TextButton(onClick = onLogFind, modifier = Modifier.fillMaxWidth()) { Text("Log a find") }
+                    TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * How far down from vertical-center-end (where [AddActionTile]'s own alignment starts, matching
+ * [MapIconStack]'s alignment) to shift the tile so it lands near the add button — the 5-icon
+ * stack's bottom item, not its vertical center. Computed as half the full stack's height (5 icons
+ * plus their 4 gaps) minus half one icon's own height, from [MAP_ICON_STACK_DIAMETER] and
+ * [MapIconStack]'s `Spacing.sm` gaps, rather than a guessed constant. Not pixel-exact — the tile
+ * doesn't track the button's real measured position — but close enough that it visibly grows from
+ * that button's corner rather than from an unrelated point on screen.
+ */
+private val ADD_TILE_ANCHOR_OFFSET = (MAP_ICON_STACK_DIAMETER * 5 + Spacing.sm * 4) / 2 - MAP_ICON_STACK_DIAMETER / 2
 
 /**
  * The name a newly-placed trip pin is pre-filled with: `"Trip N"`, `N` being one more than how

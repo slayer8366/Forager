@@ -161,13 +161,13 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Opens the drawer via the Maps tab's "Open Search" button — before any region has been
-     * searched, [CompactMapTab] has no map and so no icon stack yet (its own "Search" icon isn't
-     * reachable this early), so this button is the *only* way into the drawer for a first search;
-     * see that composable's own doc comment on its `!uiState.hasSearched` branch.
+     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] now shows a real map
+     * (and so the icon stack) even before a first search, GPS-centred or on a fixed fallback while
+     * that's still pending, so this icon is reachable from the very first composition rather than
+     * only once a region exists.
      */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithText("Open Search").performClick()
+        composeRule.onNodeWithContentDescription("Search").performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
@@ -191,11 +191,16 @@ class AvailabilityScreenMapIconStackTest {
     fun `the locate-me icon calls onLocateMe, not onUseCurrentLocation`() {
         var locateMeCalls = 0
         setScreen(onLocateMe = { locateMeCalls++ })
+        composeRule.waitForIdle()
+        // The compact scaffold pings location once on its own first composition — see
+        // compactMainScaffold's own LaunchedEffect(Unit) — so one call is already counted before
+        // the icon is ever tapped.
+        val callsBeforeTap = locateMeCalls
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Center on my location").performClick()
 
-        assertEquals(1, locateMeCalls)
+        assertEquals(callsBeforeTap + 1, locateMeCalls)
     }
 
     @Test
@@ -216,7 +221,7 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.onNodeWithText("What would you like to do here?").assertIsDisplayed()
+        composeRule.onNodeWithText("Add...").assertIsDisplayed()
         composeRule.onNodeWithText("Log a find").performClick()
         composeRule.waitForIdle()
 

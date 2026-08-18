@@ -29,8 +29,10 @@ import java.time.LocalDate
 
 /**
  * The compact bottom nav's Journal destination: [LogGalleryScreen] by default, an entry's own
- * [LogEntryDetailScreen] once one is open or newly started, and — the one state neither of those
- * two needs — [LogEntryLocationPicker] while placing a brand new entry.
+ * [LogEntryReportScreen] once one is opened from the gallery, [LogEntryDetailScreen] once "Edit
+ * entry" is chosen from the report (or immediately, for a brand-new entry — see [mode]'s doc
+ * comment), and — the one state none of those needs — [LogEntryLocationPicker] while placing a
+ * brand new entry.
  *
  * This exists alongside [LogPanel] rather than replacing it: [LogPanel] is still what the
  * medium/expanded window's drawer shows (`DrawerPanel.Log` in `AvailabilityScreen.kt`, untouched by
@@ -60,15 +62,29 @@ internal fun JournalTab(
     modifier: Modifier = Modifier,
 ) {
     var pickingLocation by remember { mutableStateOf(false) }
+    // REPORT for an entry opened from the gallery (there's something to compile a report from and
+    // no reason to assume an edit is wanted), EDIT for one just started (nothing to report yet, so
+    // reporting first would just be an empty screen between the picker and the form the user is
+    // there for). Reset to REPORT whenever a *different* entry becomes the open one, so returning
+    // to an entry after editing shows the freshly-recompiled report rather than staying in edit mode.
+    var mode by remember { mutableStateOf(JournalEntryMode.REPORT) }
     val editing = uiState.editingEntry
 
     when {
-        editing != null -> LogEntryDetailScreen(
+        editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(
             entry = editing,
             cameraCaptureFiles = cameraCaptureFiles,
             onEntryChanged = onEntryChanged,
             onAddPhoto = onAddPhoto,
             onRemovePhoto = onRemovePhoto,
+            onDeleteEntry = { onDeleteEntry(editing.id) },
+            onBack = { mode = JournalEntryMode.REPORT },
+            modifier = modifier,
+        )
+
+        editing != null -> LogEntryReportScreen(
+            entry = editing,
+            onEdit = { mode = JournalEntryMode.EDIT },
             onDeleteEntry = { onDeleteEntry(editing.id) },
             onBack = onCloseEntry,
             modifier = modifier,
@@ -80,6 +96,7 @@ internal fun JournalTab(
             basemap = basemap,
             onLocationConfirmed = { location ->
                 pickingLocation = false
+                mode = JournalEntryMode.EDIT
                 onStartEntry(location, LocalDate.now())
             },
             onCancel = { pickingLocation = false },
@@ -89,12 +106,26 @@ internal fun JournalTab(
         else -> LogGalleryScreen(
             entries = uiState.entries,
             isLoading = uiState.isLoadingEntries,
-            onOpenEntry = onOpenEntry,
+            onOpenEntry = { id ->
+                mode = JournalEntryMode.REPORT
+                onOpenEntry(id)
+            },
             onAddEntry = { pickingLocation = true },
             modifier = modifier,
         )
     }
 }
+
+/**
+ * Which screen [JournalTab] shows for [MushroomLogUiState.editingEntry] — "editing" is the accurate
+ * name for what that field means (see [MushroomLogViewModel]'s doc comment on autosave), but which
+ * of [LogEntryReportScreen]/[LogEntryDetailScreen] the *user* sees for it depends on how they got
+ * there, tracked here rather than inferred from the entry's own content (an entry with nothing
+ * recorded yet is a legitimate thing to view a report of too, once the user backs out of editing it
+ * without filling anything in — REPORT stays correct for that case where "does it have data" would
+ * not).
+ */
+private enum class JournalEntryMode { REPORT, EDIT }
 
 /**
  * A minimal map picker for the gallery's "+" tile — long-press to place a pin, then confirm, the
