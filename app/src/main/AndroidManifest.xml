@@ -42,6 +42,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Step 1 of the osmdroid -> MapLibre migration (docs/plans/maplibre-migration.md) — a
+             hardware smoke test, not a screen a user ever reaches. No LAUNCHER category, so it
+             does not add a second home-screen icon or appear in app switchers/search; exported
+             only so `adb shell am start` can reach it reliably regardless of a given device's
+             non-exported-activity launch policy — launch it with:
+             adb shell am start -n com.forager.app/com.forager.app.ui.map.MapLibreBasemapPreviewActivity
+             See com.forager.app.ui.map.MapLibreBasemapPreviewActivity's doc comment. -->
+        <activity
+            android:name=".ui.map.MapLibreBasemapPreviewActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Forager" />
+
         <!-- Grants the camera app write access to a file under filesDir/captures/ for
              ActivityResultContracts.TakePicture, without exposing broader file access — see
              com.forager.app.photo.CameraCaptureFiles and res/xml/file_paths.xml. -->
