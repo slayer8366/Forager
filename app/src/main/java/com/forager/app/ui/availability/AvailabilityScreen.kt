@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -68,6 +69,8 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PermanentDrawerSheet
+import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
@@ -78,6 +81,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -127,6 +131,8 @@ import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.photo.CameraCaptureFiles
+import com.forager.app.ui.adaptive.WindowWidthClass
+import com.forager.app.ui.adaptive.currentWindowWidthClass
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.Basemap
@@ -361,103 +367,110 @@ fun AvailabilityScreen(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
-        // pannable map, and a horizontal drag there means "pan", not "open the drawer". The
-        // app-bar icon is the way in. Swipe-to-close still works — Material3 enables the drag
-        // whenever the drawer is open regardless of this flag.
-        gesturesEnabled = false,
-        drawerContent = {
-            ModalDrawerSheet {
-                when (drawerPanel) {
-                    DrawerPanel.Search -> {
-                        // The one visible way to close this drawer other than tapping the scrim:
-                        // gestures are off (see gesturesEnabled above), and the scrim alone is
-                        // undiscoverable.
-                        DrawerHeader(onClose = { isDrawerOpen = false })
-                        SearchControls(
-                            // The controls take whatever height is left over so the settings entry
-                            // row stays pinned to the bottom of the sheet rather than sitting past
-                            // the end of the controls' own scroll, where nobody would find it.
-                            modifier = Modifier.weight(1f),
-                            uiState = uiState,
-                            onUseCurrentLocation = {
-                                isDrawerOpen = false
-                                onUseCurrentLocation()
-                            },
-                            onManualLatChanged = onManualLatChanged,
-                            onManualLngChanged = onManualLngChanged,
-                            onSearchManualCoordinates = {
-                                isDrawerOpen = false
-                                onSearchManualCoordinates()
-                            },
-                            onRadiusChanged = onRadiusChanged,
-                            onMonthSelected = onMonthSelected,
-                            onDeletePlannedTrip = onDeletePlannedTrip,
-                            onRecentSearchSelected = { summary ->
-                                // Closed for the same reason searching from this drawer closes it:
-                                // the tap starts a search, and the results are behind the sheet.
-                                isDrawerOpen = false
-                                onRecentSearchSelected(summary)
-                            },
-                            currentTime = currentTime,
-                        )
-                        // Both sticky footer rows: the log is the newer of the two, placed above
-                        // Settings so it isn't the last thing in the sheet — see MushroomLogEntryRow.
-                        MushroomLogEntryRow(onClick = { drawerPanel = DrawerPanel.Log })
-                        // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
-                        // moved to the bottom of the Settings panel below.
-                        SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
-                    }
+    val windowWidthClass = currentWindowWidthClass()
 
-                    DrawerPanel.Settings -> {
-                        SettingsHeader(onBack = { drawerPanel = DrawerPanel.Search })
-                        SettingsContent(
-                            modifier = Modifier.weight(1f),
-                            selectedMapService = selectedMapService,
-                            onMapServiceSelected = { selectedMapService = it },
-                            onOpenOfflineMaps = { drawerPanel = DrawerPanel.OfflineMaps },
-                        )
-                        BuildIdentityFooter()
-                    }
-
-                    DrawerPanel.OfflineMaps -> {
-                        // Back returns to Settings, one level up — not all the way to Search. See
-                        // DrawerPanel's own doc comment.
-                        OfflineMapsHeader(onBack = { drawerPanel = DrawerPanel.Settings })
-                        OfflineMapsPanel(
-                            modifier = Modifier.weight(1f),
-                            uiState = uiState,
-                            mapSlot = mapSlot,
-                            onRegionPicked = { location ->
-                                onOfflineMapLatChanged(location.lat.toString())
-                                onOfflineMapLngChanged(location.lng.toString())
-                            },
-                            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                            onDownloadOfflineMaps = onDownloadOfflineMaps,
-                            onDeleteOfflineMaps = onDeleteOfflineMaps,
-                        )
-                    }
-
-                    DrawerPanel.Log -> {
-                        LogPanel(
-                            modifier = Modifier.weight(1f),
-                            uiState = logUiState,
-                            cameraCaptureFiles = cameraCaptureFiles,
-                            onOpenEntry = onOpenLogEntry,
-                            onCloseEntry = onCloseLogEntry,
-                            onEntryChanged = onLogEntryChanged,
-                            onAddPhoto = onAddLogPhoto,
-                            onRemovePhoto = onRemoveLogPhoto,
-                            onDeleteEntry = onDeleteLogEntry,
-                            onBackToSearch = { drawerPanel = DrawerPanel.Search },
-                        )
-                    }
+    // The drawer's panel content, shared between the compact `ModalNavigationDrawer` below and
+    // the `PermanentNavigationDrawer` medium+ windows get instead — see [windowWidthClass]. A
+    // local composable lambda rather than a top-level one so it closes over this function's ~25
+    // params and local state directly instead of re-threading all of it through an explicit
+    // parameter list a second time. [showCloseButton] is the only behavioral difference the two
+    // hosts need: a permanent drawer is never "closed", so it gets no close affordance.
+    // ColumnScope receiver, not a plain function type: both hosts' drawer sheets hand this a
+    // ColumnScope (that's what lets the `Modifier.weight(1f)` calls inside resolve at all), and a
+    // lambda assigned to a receiver-typed val keeps that receiver rather than losing it.
+    val drawerSheetContent: @Composable ColumnScope.(showCloseButton: Boolean) -> Unit = { showCloseButton ->
+        when (drawerPanel) {
+            DrawerPanel.Search -> {
+                if (showCloseButton) {
+                    // The one visible way to close this drawer other than tapping the scrim:
+                    // gestures are off (see gesturesEnabled below), and the scrim alone is
+                    // undiscoverable.
+                    DrawerHeader(onClose = { isDrawerOpen = false })
                 }
+                SearchControls(
+                    // The controls take whatever height is left over so the settings entry
+                    // row stays pinned to the bottom of the sheet rather than sitting past
+                    // the end of the controls' own scroll, where nobody would find it.
+                    modifier = Modifier.weight(1f),
+                    uiState = uiState,
+                    onUseCurrentLocation = {
+                        isDrawerOpen = false
+                        onUseCurrentLocation()
+                    },
+                    onManualLatChanged = onManualLatChanged,
+                    onManualLngChanged = onManualLngChanged,
+                    onSearchManualCoordinates = {
+                        isDrawerOpen = false
+                        onSearchManualCoordinates()
+                    },
+                    onRadiusChanged = onRadiusChanged,
+                    onMonthSelected = onMonthSelected,
+                    onDeletePlannedTrip = onDeletePlannedTrip,
+                    onRecentSearchSelected = { summary ->
+                        // Closed for the same reason searching from this drawer closes it:
+                        // the tap starts a search, and the results are behind the sheet.
+                        isDrawerOpen = false
+                        onRecentSearchSelected(summary)
+                    },
+                    currentTime = currentTime,
+                )
+                // Both sticky footer rows: the log is the newer of the two, placed above
+                // Settings so it isn't the last thing in the sheet — see MushroomLogEntryRow.
+                MushroomLogEntryRow(onClick = { drawerPanel = DrawerPanel.Log })
+                // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
+                // moved to the bottom of the Settings panel below.
+                SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
             }
-        },
-    ) {
+
+            DrawerPanel.Settings -> {
+                SettingsHeader(onBack = { drawerPanel = DrawerPanel.Search })
+                SettingsContent(
+                    modifier = Modifier.weight(1f),
+                    selectedMapService = selectedMapService,
+                    onMapServiceSelected = { selectedMapService = it },
+                    onOpenOfflineMaps = { drawerPanel = DrawerPanel.OfflineMaps },
+                )
+                BuildIdentityFooter()
+            }
+
+            DrawerPanel.OfflineMaps -> {
+                // Back returns to Settings, one level up — not all the way to Search. See
+                // DrawerPanel's own doc comment.
+                OfflineMapsHeader(onBack = { drawerPanel = DrawerPanel.Settings })
+                OfflineMapsPanel(
+                    modifier = Modifier.weight(1f),
+                    uiState = uiState,
+                    mapSlot = mapSlot,
+                    onRegionPicked = { location ->
+                        onOfflineMapLatChanged(location.lat.toString())
+                        onOfflineMapLngChanged(location.lng.toString())
+                    },
+                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onDownloadOfflineMaps = onDownloadOfflineMaps,
+                    onDeleteOfflineMaps = onDeleteOfflineMaps,
+                )
+            }
+
+            DrawerPanel.Log -> {
+                LogPanel(
+                    modifier = Modifier.weight(1f),
+                    uiState = logUiState,
+                    cameraCaptureFiles = cameraCaptureFiles,
+                    onOpenEntry = onOpenLogEntry,
+                    onCloseEntry = onCloseLogEntry,
+                    onEntryChanged = onLogEntryChanged,
+                    onAddPhoto = onAddLogPhoto,
+                    onRemovePhoto = onRemoveLogPhoto,
+                    onDeleteEntry = onDeleteLogEntry,
+                    onBackToSearch = { drawerPanel = DrawerPanel.Search },
+                )
+            }
+        }
+    }
+
+    // The Scaffold + tab content, shared between both drawer hosts below for the same reason
+    // drawerSheetContent is: it closes over this function's state rather than re-threading it.
+    val mainScaffold: @Composable () -> Unit = {
         Scaffold(
             topBar = {
                 AvailabilitySearchTopBar(
@@ -469,7 +482,15 @@ fun AvailabilityScreen(
                         // the popup stayed visible underneath/behind the drawer instead of
                         // collapsing along with it.
                         onDismissTaxonSuggestions()
-                        isDrawerOpen = true
+                        if (windowWidthClass == WindowWidthClass.COMPACT) {
+                            isDrawerOpen = true
+                        } else {
+                            // Medium+ windows show the drawer's panel permanently (see
+                            // PermanentNavigationDrawer below) — there is nothing to open, so
+                            // this icon instead jumps the always-visible panel back to Search,
+                            // the same "get back to search options" job it does on compact.
+                            drawerPanel = DrawerPanel.Search
+                        }
                     },
                     onUseCurrentLocation = onUseCurrentLocation,
                     onCategorySelected = onCategorySelected,
@@ -499,6 +520,12 @@ fun AvailabilityScreen(
                     }
                 }
 
+                val onLogFindHere: (LatLng) -> Unit = { location ->
+                    drawerPanel = DrawerPanel.Log
+                    isDrawerOpen = true
+                    onStartLogEntry(location, LocalDate.now())
+                }
+
                 // weight(1f) states the intent: the results get whatever is left after the
                 // wrap-content siblings above, and Compose measures weighted children last, so
                 // that height is definite and bounded instead of a remainder that can reach zero.
@@ -509,36 +536,134 @@ fun AvailabilityScreen(
                 // the weight would have granted, and all three configurations measure identically
                 // either way. The drawer is what fixed the starvation; this weight is what keeps
                 // it fixed the moment another wrap-content sibling is added below the results.
-                when (selectedTab) {
-                    ResultsTab.LIST -> ListTab(
-                        uiState = uiState,
-                        currentTime = currentTime,
-                        modifier = Modifier.weight(1f),
-                    )
-                    ResultsTab.MAP -> MapTab(
-                        uiState = uiState,
-                        mapSlot = mapSlot,
-                        basemap = basemap,
-                        isTopoMode = isTopoMode,
-                        onToggleMapMode = { isTopoMode = !isTopoMode },
-                        onPlaceTripPin = onPlaceTripPin,
-                        // Opens straight to the log's edit form for the new entry, bypassing
-                        // Search — see DrawerPanel's own doc comment on why Log is reachable both
-                        // ways.
-                        onLogFindHere = { location ->
-                            drawerPanel = DrawerPanel.Log
-                            isDrawerOpen = true
-                            onStartLogEntry(location, LocalDate.now())
-                        },
-                        onToggleForagingAreas = onToggleForagingAreas,
-                        modifier = Modifier.weight(1f),
-                    )
-                    ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
+                //
+                // COMPACT keeps the exact tab-switched, one-pane-at-a-time behavior this screen
+                // has always had. MEDIUM/EXPANDED windows instead reveal List and Map together in
+                // [CombinedResultsPane] — the M3 "reveal" pattern: a wider window shows list and
+                // detail/map side by side rather than making the user switch between them. Seasonal
+                // isn't part of that pairing (it's not a view onto the same sightings), so it stays
+                // its own tab at every width.
+                if (windowWidthClass == WindowWidthClass.COMPACT) {
+                    when (selectedTab) {
+                        ResultsTab.LIST -> ListTab(
+                            uiState = uiState,
+                            currentTime = currentTime,
+                            modifier = Modifier.weight(1f),
+                        )
+                        ResultsTab.MAP -> MapTab(
+                            uiState = uiState,
+                            mapSlot = mapSlot,
+                            basemap = basemap,
+                            isTopoMode = isTopoMode,
+                            onToggleMapMode = { isTopoMode = !isTopoMode },
+                            onPlaceTripPin = onPlaceTripPin,
+                            // Opens straight to the log's edit form for the new entry, bypassing
+                            // Search — see DrawerPanel's own doc comment on why Log is reachable
+                            // both ways.
+                            onLogFindHere = onLogFindHere,
+                            onToggleForagingAreas = onToggleForagingAreas,
+                            modifier = Modifier.weight(1f),
+                        )
+                        ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
+                    }
+                } else {
+                    when (selectedTab) {
+                        ResultsTab.LIST, ResultsTab.MAP -> CombinedResultsPane(
+                            uiState = uiState,
+                            currentTime = currentTime,
+                            mapSlot = mapSlot,
+                            basemap = basemap,
+                            isTopoMode = isTopoMode,
+                            onToggleMapMode = { isTopoMode = !isTopoMode },
+                            onPlaceTripPin = onPlaceTripPin,
+                            onLogFindHere = onLogFindHere,
+                            onToggleForagingAreas = onToggleForagingAreas,
+                            modifier = Modifier.weight(1f),
+                        )
+                        ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
     }
+
+    if (windowWidthClass == WindowWidthClass.COMPACT) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
+            // pannable map, and a horizontal drag there means "pan", not "open the drawer". The
+            // app-bar icon is the way in. Swipe-to-close still works — Material3 enables the drag
+            // whenever the drawer is open regardless of this flag.
+            gesturesEnabled = false,
+            drawerContent = { ModalDrawerSheet { drawerSheetContent(true) } },
+            content = mainScaffold,
+        )
+    } else {
+        // M3's "swapped" adaptive pattern: the same drawer panel, but always on screen and never
+        // covering the content — see drawerSheetContent's own doc comment for what's shared.
+        // PERMANENT_DRAWER_WIDTH keeps the panel's text at a readable line length rather than
+        // stretching it as the window grows past the medium breakpoint.
+        PermanentNavigationDrawer(
+            drawerContent = {
+                PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
+                    drawerSheetContent(false)
+                }
+            },
+            content = mainScaffold,
+        )
+    }
 }
+
+/**
+ * Width of the always-visible drawer panel on medium+ windows — see [PermanentNavigationDrawer]'s
+ * call site in [AvailabilityScreen]. 360dp is M3's standard navigation-drawer width and keeps this
+ * panel's text (species chips, radius slider, trip list) around a comfortable line length rather
+ * than stretching to fill whatever the window happens to be.
+ */
+private val PERMANENT_DRAWER_WIDTH = 360.dp
+
+/**
+ * List and Map shown together rather than tab-switched — the M3 "reveal" pattern for medium+
+ * windows (see [AvailabilityScreen]'s call site). [ListTab] keeps a fixed, readable width so it
+ * doesn't stretch as the window grows; [MapTab] takes the rest, same as it does full-bleed at
+ * compact width.
+ */
+@Composable
+private fun CombinedResultsPane(
+    uiState: AvailabilityUiState,
+    currentTime: CurrentTimeProvider,
+    mapSlot: MapSlot,
+    basemap: Basemap,
+    isTopoMode: Boolean,
+    onToggleMapMode: () -> Unit,
+    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
+    onLogFindHere: (LatLng) -> Unit,
+    onToggleForagingAreas: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier.fillMaxHeight()) {
+        ListTab(
+            uiState = uiState,
+            currentTime = currentTime,
+            modifier = Modifier.width(COMBINED_PANE_LIST_WIDTH).fillMaxHeight(),
+        )
+        VerticalDivider()
+        MapTab(
+            uiState = uiState,
+            mapSlot = mapSlot,
+            basemap = basemap,
+            isTopoMode = isTopoMode,
+            onToggleMapMode = onToggleMapMode,
+            onPlaceTripPin = onPlaceTripPin,
+            onLogFindHere = onLogFindHere,
+            onToggleForagingAreas = onToggleForagingAreas,
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+        )
+    }
+}
+
+/** Same readable-width reasoning as [PERMANENT_DRAWER_WIDTH]; see [CombinedResultsPane]. */
+private val COMBINED_PANE_LIST_WIDTH = 360.dp
 
 /**
  * What the screen is currently showing, in one line — "Fungi · August · 15 km".
