@@ -264,6 +264,82 @@ more certainty than the data supports. See `AvailabilityForecast` and
    a search 400m away is a different search and is not answered with this
    one's results. See `domain/SearchCacheRepository` and
    `domain/GetAvailabilityUseCase`.
+10. **A mushroom log lets you record a field find as a structured
+    observation — Phase 1 (local only) of this feature; see below for what's
+    deferred.** Reached from the drawer's **Mushroom Log** entry (a sticky
+    row above Settings, the same reach pattern), and a new find is started
+    by long-pressing the map — which now asks "Plan a trip" or "Log a find"
+    instead of going straight to the trip dialog, so the existing gesture
+    grows a second option rather than the app growing a second gesture for
+    the same "I'm pointing at a place" action.
+
+    **The app never identifies the mushroom.** No species suggestion,
+    candidate list, "likely," or confidence score anywhere in this feature —
+    a stated safety property from the project owner, not a scope cut: the
+    field key this data set separates includes species that can be lethal.
+    `ownIdentification` is the one free-text field that looks adjacent to
+    this, and it is explicitly the forager's own claim, never app-generated
+    — see `domain/model/MushroomLogEntry`'s doc comment.
+
+    **Three states, not two, for every recorded characteristic.**
+    `domain/model/Observed<T>` (`Recorded`/`NotObserved`) is for
+    characteristics that necessarily have *some* value once looked at (cap
+    shape, gill attachment); `domain/model/Feature<T>`
+    (`Present`/`Absent`/`NotObserved`) is for characteristics where absence
+    is itself diagnostic (a volva, an annulus, latex, cap decorations) — "no
+    volva" and "didn't check the base" are different facts, and a nullable
+    field would collapse them into the same fabricated-plausible-value
+    failure `CLAUDE.md` forbids. Fields that only make sense once a prior
+    choice is made — a gill's attachment/spacing/edge, once the hymenophore
+    is known to be gills; a stipe's interior/base, once it's known to be
+    present — are nested inside the sealed type that choice selects
+    (`HymenophoreDetails`, `StipeDetails`), so an entry recorded as pores has
+    no field a gill attachment could be written into. This is enforced by
+    the type system, not a validation pass; see `ThreeStateModelTest`,
+    which inspects the compiled classes' own declared fields to prove it at
+    runtime too, not just at compile time.
+
+    **An entry is created incomplete and finished later, on purpose.** A
+    spore print is read overnight, so unlike `PlannedTrip` (which
+    deliberately has no rename-after-creation flow), a log entry has a real
+    edit path: every field change autosaves immediately (see
+    `ui/log/MushroomLogViewModel`'s doc comment for why — a field app has no
+    guaranteed graceful exit), and any field still `NotObserved` renders
+    with an explicit "Not recorded" label rather than reading as blank or as
+    an absent value — see `MushroomLogNotObservedRenderingTest`.
+
+    **Photos: camera capture or gallery pick, no new heavy dependency.**
+    `ActivityResultContracts.TakePicture` with a `FileProvider`-issued URI
+    for the camera (`photo/CameraCaptureFiles`), and
+    `ActivityResultContracts.PickVisualMedia` — the modern photo picker,
+    needing no storage permission — for the gallery. Both sit behind the
+    owned `PhotoStore` interface, so domain code and the ViewModel never
+    name a `Uri` or an `ActivityResultContract`; `photo/FilePhotoStore`
+    copies bytes into `context.filesDir/photos/`, never `cacheDir`, since
+    these are user-created photos that must survive an OS cache-clear — the
+    same reasoning already applied to downloaded offline-map tiles.
+
+    **A real Room migration, not `fallbackToDestructiveMigration()`.**
+    `ForagerDatabase` moved from version 3 to 4 to add
+    `mushroom_log_entries`/`log_photos`, and — unlike every earlier bump on
+    this database — this one ships a hand-written `Migration` and flips
+    `exportSchema` to `true`. See `ForagerDatabase`'s doc comment for why:
+    field notes are irreplaceable, unlike the search cache or a handful of
+    test planned trips. `MushroomLogMigrationTest` builds a real version-3
+    database (from the same production entity classes, not a hand-copied
+    schema), migrates it, and asserts the pre-existing rows survive intact
+    and the new tables are actually usable afterward.
+
+    **Not implemented in this phase: uploading to iNaturalist.** The model
+    carries `LogSyncState` (`Draft`/`Uploading`/`Uploaded`/`Failed`) from the
+    start per the project owner's decision not to retrofit it later, but
+    Phase 1 only ever constructs `Draft`. Upload — OAuth2 + PKCE auth,
+    resumable background upload respecting iNaturalist's rate limit, and the
+    `observation_field_id` lookups needed to map recorded characteristics
+    onto real iNaturalist observation fields — is written up as a design in
+    `docs/plans/mushroom-log.md` for a follow-up PR, and is blocked on the
+    app owner registering an iNaturalist OAuth application (client ID +
+    redirect URI), which only they can do.
 
 ## Project layout
 
@@ -282,9 +358,13 @@ more certainty than the data supports. See `AvailabilityForecast` and
   forecast API onto `WeatherProvider`/`TripPlanningWeatherProvider`
   (`OpenMeteoWeatherProvider`); the Open-Meteo historical archive API onto
   `HistoricalWeatherProvider` (`OpenMeteoHistoricalWeatherProvider`); and
-  Room onto `PlannedTripRepository` and `SearchCacheRepository`
+  Room onto `PlannedTripRepository`, `SearchCacheRepository`
   (`RoomSearchCacheRepository`, which owns the five-entry LRU and is the
-  only place a cached row meets an `AvailabilityForecast`).
+  only place a cached row meets an `AvailabilityForecast`), and
+  `MushroomLogRepository` (`RoomMushroomLogRepository`, the only place
+  `MushroomLogEntryEntity`/`LogPhotoEntity` meet `domain/model/MushroomLogEntry`
+  — its `toEntity`/`toDomain` functions are where the column encoding
+  described below is actually applied).
 - `data/local/` — the Room layer: `ForagerDatabase` and, per table, an
   entity and a DAO. `CachedSearchEntity` holds one cached ranked list —
   its `key` column encodes region + month + filter and *is* the match
@@ -292,6 +372,13 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `@Serializable` DTOs. Room annotations and serialization stay here,
   never in `domain/`. `CachedSearchDao`'s two `@Transaction` methods are
   what make "write then evict" and "read then mark used" atomic.
+  `MushroomLogEntryEntity`/`LogPhotoEntity` hold the mushroom log's two
+  tables (real columns per field, not one serialized blob — see that
+  entity's doc comment for how `Observed`/`Feature` fields and sealed
+  choices map onto columns); `MushroomLogDao`'s `@Transaction` methods keep
+  an entry's row and its full photo set in sync the same atomic-write
+  pattern `CachedSearchDao` uses. `Migrations.kt` holds `MIGRATION_3_4`,
+  the real hand-written migration those two tables shipped with.
 - `domain/` — pure Kotlin: `Region`, `LatLng`, `SpeciesObservationCount`,
   `Sighting`, `SightingsPage`, `TaxonFilter`, `TaxonSearchResult`,
   `AvailabilityForecast`, `ConditionsSummary`, `ForagingArea`/`ForagingAreas`,
@@ -309,7 +396,20 @@ more certainty than the data supports. See `AvailabilityForecast` and
   interfaces. No Android imports, so it's unit-testable headless (see
   `app/src/test/`). `CurrentTimeProvider` is why: the cache's LRU stamps
   and the relative times rendered from them are injected rather than read
-  off `System.currentTimeMillis()`, so both are assertable.
+  off `System.currentTimeMillis()`, so both are assertable. The mushroom
+  log's model lives here too: `Observed`/`Feature` (the three-state rule —
+  see the "How it works" entry above), `MushroomLogEntry` and its seven
+  section types (`CapSection`, `HymenophoreSection`/`HymenophoreDetails`,
+  `StipeSection`/`StipeDetails`, `VeilSection`, `ContextFleshSection`,
+  `SporePrintSection`/`SporePrint`/`SporePrintColor`,
+  `HostSubstrateSection`/`Association`), `LogPhoto`, `LogSyncState`,
+  `PhotoSource` (the opaque marker `PhotoStore` takes — see `photo/` below),
+  and the `MushroomLogRepository`/`PhotoStore` interfaces plus their use
+  cases (`GetMushroomLogEntriesUseCase`, `CreateMushroomLogEntryUseCase`,
+  `SaveMushroomLogEntryUseCase`, `DeleteMushroomLogEntryUseCase`,
+  `AddPhotoToLogEntryUseCase`/`RemovePhotoFromLogEntryUseCase`, the latter
+  two the domain-level "persist/delete then attach/detach then save"
+  ordering — see `AddAndRemovePhotoUseCaseTest`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
 - `map/` — parallel to `location/`: the one place that touches osmdroid's
@@ -323,19 +423,28 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `IFilesystemCache` that writes there instead of through either of
   osmdroid's own writers, both of which resolve their storage path from a
   process-wide `Configuration` singleton the browsing map already claims.
+- `photo/` — parallel to `location/`/`map/`: the one place that touches
+  `ActivityResultContracts`/`Uri`/`FileProvider` directly, behind the
+  `PhotoStore` interface. `ContentUriPhotoSource` is the real,
+  `Uri`-carrying `PhotoSource`; `FilePhotoStore` copies bytes from it into
+  `context.filesDir/photos/`; `CameraCaptureFiles` issues the
+  `FileProvider` URI a camera capture writes into (`filesDir/captures/`, a
+  scratch handoff area distinct from the persisted photos).
 - `ui/availability/` — `AvailabilityViewModel` and the Compose screen: a
   `ModalNavigationDrawer` holding every search control over a map-first
-  content area with the List/Map/Seasonal tab switch, plus two further
-  drawer panels (`DrawerPanel.Settings`, `DrawerPanel.OfflineMaps`) reached
-  from a sticky entry row at the bottom of the search panel.
-  `AvailabilityScreen`'s doc comment records why the controls are in a
-  drawer and what was rejected; its `drawerPanel` state doc comment covers
-  the panel switch. The search panel's three collapsible sections are
-  Recent searches, Advanced search and Trip Planner, in that order;
-  `SearchControls` records why the picker is first and a section of its
-  own. The List tab's offline banner lives here too, and the Seasonal
+  content area with the List/Map/Seasonal tab switch, plus three further
+  drawer panels (`DrawerPanel.Settings`, `DrawerPanel.OfflineMaps`,
+  `DrawerPanel.Log`) reached from sticky entry rows at the bottom of the
+  search panel. `AvailabilityScreen`'s doc comment records why the controls
+  are in a drawer and what was rejected; its `drawerPanel` state doc
+  comment covers the panel switch. The search panel's three collapsible
+  sections are Recent searches, Advanced search and Trip Planner, in that
+  order; `SearchControls` records why the picker is first and a section of
+  its own. The List tab's offline banner lives here too, and the Seasonal
   tab's hand-rolled `Canvas` bar chart is `FruitingLagChart`, in the same
-  file.
+  file. `MapTab`'s long-press now opens `LongPressActionDialog` — "Plan a
+  trip" or "Log a find" — before either the existing `TripDatePickerDialog`
+  or the mushroom log's own start-entry flow runs.
 - `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
   osmdroid directly (the `MushroomRepository` pattern applied to the UI
   layer, so the screen can be composed in a test without starting tile
@@ -352,6 +461,19 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `Basemap`s into the two services (OpenStreetMap, USGS) Settings' "Choose
   Maps Service" picks between, each with a topo/regular mode the map's own
   quick-fire icon toggles.
+- `ui/log/` — `MushroomLogViewModel` and the log's Compose UI, kept in its
+  own package rather than folded into `AvailabilityScreen.kt` alongside
+  Settings/OfflineMaps — see `LogPanel`'s doc comment for why. `LogPanel` is
+  the drawer destination itself (list vs. detail is `MushroomLogUiState.editingEntry`
+  being null or not, not a separate nav enum); `LogEntryListScreen`/`LogEntryDetailScreen`
+  are the two screens; `LogFieldEditors.kt` holds the reusable
+  `Observed`/`Feature` chip-editors every section builds from
+  (`ObservedEnumField`, `FeatureEnumField`, `CapDecorationsField`,
+  `FeatureTextField`) plus `NotRecordedIndicator`, the one place the
+  "reads as unrecorded" text lives; `LogSectionEditors.kt` holds the seven
+  per-section editors, including the sealed-choice pickers
+  (`HymenophoreEditor`, `StipeEditor`, `HostSubstrateEditor`) that make
+  choosing a variant the only way its sub-fields come into existence.
 
 These boundaries follow `CLAUDE.md`.
 
@@ -667,6 +789,60 @@ spot-check in an environment that can reach them before this is relied on
 further; the enforcement in this app does not depend on osmdroid's own
 (incomplete) policy check either way — see `OfflineMapRepository`'s doc
 comment.
+
+### The mushroom log, specifically
+
+**What is verified headlessly, and how.** The three-state/inapplicability
+type rules, including reflecting on the compiled classes to confirm a
+`Pores`/`Teeth`/`SmoothOrWrinkled` hymenophore and an `Absent` stipe
+genuinely carry no sub-fields at runtime, not just at compile time
+(`ThreeStateModelTest`). The full Room round trip for a barely-populated
+entry and a fully-populated one, including every `Observed`/`Feature`
+column encoding, the sealed-choice discriminators, and that saving replaces
+an entry's photo set rather than appending to it
+(`RoomMushroomLogRepositoryTest`). The migration itself: a real version-3
+database, built from the same production entity classes, migrated forward,
+with the pre-existing `planned_trips`/`cached_searches` rows read back and
+compared field-for-field, and the new tables proven usable with a real
+save/read round trip afterward (`MushroomLogMigrationTest`). `PhotoStore`'s
+persist/delete against real app-private storage, including that a persist
+from an unreadable source fails rather than returning a path to a file
+that isn't there (`FilePhotoStoreTest`). The domain-level photo
+attach/detach ordering — persist-or-delete happens before the entry is
+saved, and a failure doesn't reach the repository at all
+(`AddAndRemovePhotoUseCaseTest`). And that a `NotObserved` field reads on
+screen as "Not recorded," distinctly from an explicitly `Absent` one — not
+just in state — measured against the real Compose tree under Robolectric
+(`MushroomLogNotObservedRenderingTest`), plus that the map's long-press now
+offers "Plan a trip"/"Log a find" and routes each choice correctly
+(`AvailabilityScreenTripPlanningFlowTest`).
+
+**Not verifiable headlessly, and not claimed as covered:**
+
+- **Camera capture on a real device.** `CameraCaptureFiles`/`FilePhotoStore`
+  are tested against a `Uri.fromFile` source standing in for a real capture
+  (see `FilePhotoStoreTest`'s own doc comment), and the `FileProvider`
+  manifest declaration and `res/xml/file_paths.xml` are reasoned correct
+  from the platform docs, not observed: whether `ActivityResultContracts.TakePicture`
+  actually launches the device camera app, writes into the granted URI, and
+  returns successfully has not been seen. Same for `PickVisualMedia` and
+  the real system photo picker.
+- **How the entry form reads at a large font scale, or on a small phone.**
+  Seven collapsible sections stacked in a scrolling column is reasoned to
+  scroll rather than clip — the same pattern `SearchControls`/`SettingsContent`
+  already use, measured layout-wise by `AvailabilityScreenLayoutTest` for
+  those panels — but the log panel's own layout has not been measured the
+  same way, and legibility at a doubled font scale has not been seen at all.
+- **Whether the chip-based `FilterChip` selection state is visually legible**
+  — selected vs. unselected relies on Material3's default container-colour
+  treatment alone (no leading check icon was added), which has not been
+  looked at on a real screen.
+- **The iNaturalist upload path — not built in this phase at all**, so
+  there is nothing to verify yet. See the "How it works" entry above and
+  `docs/plans/mushroom-log.md`'s iNaturalist section for what a follow-up
+  PR still needs to check against the live API before shipping it (the
+  swagger-spec-is-incomplete finding in particular: a wrong parameter name
+  produces a successful-looking upload that silently drops data).
 
 ## Which build am I running?
 

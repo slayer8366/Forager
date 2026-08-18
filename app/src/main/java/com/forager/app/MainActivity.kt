@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.forager.app.ui.availability.AvailabilityScreen
 import com.forager.app.ui.availability.AvailabilityViewModel
+import com.forager.app.ui.log.MushroomLogViewModel
 import com.forager.app.ui.theme.ForagerTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,6 +42,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val mushroomLogViewModel: MushroomLogViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                MushroomLogViewModel(
+                    container.getMushroomLogEntriesUseCase,
+                    container.createMushroomLogEntryUseCase,
+                    container.saveMushroomLogEntryUseCase,
+                    container.deleteMushroomLogEntryUseCase,
+                    container.addPhotoToLogEntryUseCase,
+                    container.removePhotoFromLogEntryUseCase,
+                )
+            }
+        }
+    }
+
     private val requestLocationPermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
@@ -64,6 +80,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             ForagerTheme {
                 val uiState by viewModel.uiState.collectAsState()
+                val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 AvailabilityScreen(
                     uiState = uiState,
                     onUseCurrentLocation = {
@@ -96,6 +113,15 @@ class MainActivity : ComponentActivity() {
                     onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                     onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                    logUiState = logUiState,
+                    cameraCaptureFiles = container.cameraCaptureFiles,
+                    onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
+                    onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
+                    onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
+                    onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
+                    onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
+                    onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
+                    onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
                 )
             }
         }
