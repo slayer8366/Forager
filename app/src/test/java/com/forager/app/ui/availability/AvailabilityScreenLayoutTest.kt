@@ -261,15 +261,14 @@ abstract class AvailabilityScreenLayoutTest {
     private fun rootBounds(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
 
     /**
-     * The bottom edge of the tab row, read from the tabs themselves: a [androidx.compose.material3.Tab]
-     * fills its row's height, so the lower of the two tab bottoms is the row's bottom. Taken from
-     * real nodes rather than the row's documented 48dp, so a Material change can't make this quietly
-     * wrong.
+     * The bottom edge of the top app bar, read from one of its own controls (the "Use current
+     * location" icon) rather than a hard-coded height, so a Material change can't make this
+     * quietly wrong. Replaces the pre-redesign `tabRowBottom()`: compact windows no longer have a
+     * top tab row above the map — see [ForagerBottomNav] — so the app bar is the sibling whose
+     * bottom edge the map slot must not paint over.
      */
-    private fun tabRowBottom(): Dp = maxOf(
-        composeRule.onNodeWithText("Map").getUnclippedBoundsInRoot().bottom,
-        composeRule.onNodeWithText("List").getUnclippedBoundsInRoot().bottom,
-    )
+    private fun appBarBottom(): Dp =
+        composeRule.onNodeWithContentDescription("Use current location").getUnclippedBoundsInRoot().bottom
 
     /**
      * **Test 1 — the regression test for the original bug.**
@@ -299,49 +298,58 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 2 — the map does not start above the tab row.**
+     * **Test 2 — the map does not start above the top app bar.**
      *
-     * After the map-first fix the tiles were overlapping the tab row. The clip that fixed that is
-     * osmdroid's business, but the slot's own geometry is this screen's, and if the slot itself
-     * starts above the tab row then no clip can save it.
+     * After the map-first fix the tiles were overlapping the (then top) tab row. The clip that
+     * fixed that is osmdroid's business, but the slot's own geometry is this screen's, and if the
+     * slot itself starts above the app bar then no clip can save it. The map redesign removed the
+     * compact top tab row entirely (see [ForagerBottomNav], now at the *bottom* of the screen), so
+     * the app bar is the sibling this regression test now guards against.
      */
     @Test
-    fun `the map slot starts at or below the bottom of the tab row`() {
+    fun `the map slot starts at or below the bottom of the top app bar`() {
         setScreen(SEARCHED_STATE)
 
         val mapTop = mapSlotBounds().top
-        val tabsBottom = tabRowBottom()
+        val appBarBottom = appBarBottom()
 
-        println("MEASURED mapTop=$mapTop tabRowBottom=$tabsBottom")
+        println("MEASURED mapTop=$mapTop appBarBottom=$appBarBottom")
 
         assertTrue(
-            "The map slot must begin at or below the tab row's bottom edge, but its top is " +
-                "$mapTop and the tab row ends at $tabsBottom — the map's box overlaps the tabs.",
-            mapTop >= tabsBottom,
+            "The map slot must begin at or below the app bar's bottom edge, but its top is " +
+                "$mapTop and the app bar ends at $appBarBottom — the map's box overlaps the app bar.",
+            mapTop >= appBarBottom,
         )
     }
 
     /**
-     * **Test 3 — the visiting-order caption is below the map, not under it.**
+     * **Test 3 — the visiting-order caption stays within the full-bleed map's own bounds.**
      *
-     * [VISITING_ORDER_DISCLAIMER] is the whole honesty mechanism for the ordering feature. It was
-     * one of the things the map painted over.
+     * Before the map redesign, [VISITING_ORDER_DISCLAIMER] rendered in a fixed-height box *below*
+     * the map, and this test asserted exactly that ordering — one of the things the pre-map-first
+     * layout painted over was fixed by keeping the caption below the map slot. The redesign makes
+     * the compact map full-bleed (decision #2 in `docs/plans/map-redesign.md`) with no leftover
+     * Column height for a below-map sibling, so [ForagingAreasOverlay] — carrying this same
+     * caption via [ForagingAreasPanel] — is now an intentional floating overlay drawn *inside* the
+     * map's own box instead (a deliberate choice made with the project owner; see that doc's
+     * "Scope decision" section). "Below the map" is no longer the invariant; "inside the map's
+     * bounds, not escaping them" is what replaces it.
      */
     @Test
-    fun `the visiting order caption starts at or below the bottom of the map slot`() {
+    fun `the visiting order caption stays within the map slot's own bounds`() {
         setScreen(SEARCHED_STATE)
 
-        val mapBottom = mapSlotBounds().bottom
-        val captionTop = composeRule.onNodeWithText(VISITING_ORDER_DISCLAIMER)
-            .getUnclippedBoundsInRoot().top
+        val map = mapSlotBounds()
+        val caption = composeRule.onNodeWithText(VISITING_ORDER_DISCLAIMER).getUnclippedBoundsInRoot()
 
-        println("MEASURED mapBottom=$mapBottom captionTop=$captionTop")
+        println("MEASURED map=$map caption=$caption")
 
         assertTrue(
-            "The visiting-order caption must begin at or below the map slot's bottom edge, but " +
-                "its top is $captionTop and the map ends at $mapBottom — the caption is inside " +
-                "the map's box.",
-            captionTop >= mapBottom,
+            "The visiting-order caption must stay within the full-bleed map slot's own bounds " +
+                "(it is drawn as a floating overlay on top of the map, not below it any more), " +
+                "but the caption's box $caption is not contained within the map's box $map.",
+            caption.top >= map.top && caption.bottom <= map.bottom &&
+                caption.left >= map.left && caption.right <= map.right,
         )
     }
 
@@ -480,13 +488,14 @@ abstract class AvailabilityScreenLayoutTest {
 
     /**
      * The foraging-areas toggle's own reachability claim: it used to be one of the drawer controls
-     * guarded above, behind the tune icon and the "Advanced search" section's expand tap. It now
-     * sits directly below the map itself — this asserts it is on screen with no drawer interaction
-     * at all, the same "reachable without the drawer" property [AvailabilitySearchTopBar]'s
-     * species search bar has.
+     * guarded above, behind the tune icon and the "Advanced search" section's expand tap, then sat
+     * directly below the map itself, and now floats as [ForagingAreasOverlay] on top of the
+     * full-bleed map (see Test 3's doc comment on that same move) — this asserts it is on screen
+     * with no drawer interaction at all, the same "reachable without the drawer" property
+     * [AvailabilitySearchTopBar]'s species search bar has.
      */
     @Test
-    fun `the foraging areas toggle is reachable below the map without opening the drawer`() {
+    fun `the foraging areas toggle is reachable over the map without opening the drawer`() {
         setScreen(SEARCHED_STATE)
 
         composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
@@ -636,6 +645,6 @@ abstract class AvailabilityScreenLayoutTest {
  * which would render anything measurable under Robolectric anyway. This fills the same box and
  * carries a tag, so the box itself can be measured.
  */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag(MAP_SLOT_TAG))
 }

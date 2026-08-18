@@ -81,14 +81,43 @@ more certainty than the data supports. See `AvailabilityForecast` and
    are labelled adjustable assumptions in
    `ClusterForagingAreasUseCase`, not data-derived facts.
 
+   **On a compact (phone-width) window, the Maps tab is full-bleed**, with a
+   bottom nav (List / Maps / Seasonal, replacing the old top tab row) and a
+   right-edge floating icon stack over the map itself: fullscreen (hides the
+   app bar and bottom nav, leaving only the map and the stack — tap the map
+   or the icon again to bring chrome back), GPS locate-me (recenters the map
+   on the device's live location; distinct from "use current location" above,
+   which sets the *search region* instead — the two never share state), the
+   topo/regular toggle described below, a second entry into this same search
+   drawer, and an add (+) button. The add button opens the exact same
+   "Plan a trip / Log a find" chooser the map's long-press gesture opens — it
+   sets the identical pending-location state the gesture sets, not a parallel
+   handler, so the two entry points can't drift apart — centred on the
+   current search region rather than requiring its own GPS fetch. A compass +
+   GPS-altitude strip sits at the top of the map (elevation reads `null`,
+   shown as "unavailable," whenever the location fix didn't report one — e.g.
+   a network-based fix — never a guessed value); the compass reads the
+   device's rotation-vector sensor, falling back to accelerometer +
+   magnetometer, behind an owned `domain/CompassProvider` interface so it's
+   testable without real hardware. The foraging-areas toggle and summary
+   panel now float as a card over the map instead of sitting in the space
+   below it, since full-bleed leaves no reserved space there — a change made
+   with the project owner once the full-bleed layout made the old fixed-height
+   layout impossible without giving space back. **Medium/expanded windows
+   (tablets, landscape, foldables) are unaffected** — they keep the permanent
+   drawer + side-by-side List/Map layout described below, none of the above.
+   See `ui/availability/AvailabilityScreen`'s `CompactMapTab` and
+   `docs/plans/map-redesign.md`.
+
    **Which basemap draws the tiles is two separate decisions with two
    different lifetimes.** Which *service* to use — **OpenStreetMap** (the
    default) or **USGS** — is occasional, so it lives in **Settings ▸ Choose
    Maps Service**, reached from the sticky entry at the bottom of the search
    drawer. Which *mode* that service is in — topo or regular — is a
-   during-the-walk decision made often, so it's a quick-fire icon overlaid on
-   the map's own top-right corner rather than buried in a menu: "if a map has
-   two modes, toggle the two." OpenStreetMap's two modes are OpenTopoMap and
+   during-the-walk decision made often, so it's a quick-fire icon (on a
+   compact window, the third icon in the floating stack above; on medium+
+   windows, still overlaid on the map's own top-right corner) rather than
+   buried in a menu: "if a map has two modes, toggle the two." OpenStreetMap's two modes are OpenTopoMap and
    the standard OSM street map; USGS's are USGS Topo and USGS Imagery.
    Switching service never resets the mode — leave the icon on regular mode
    under OpenStreetMap and switch the service to USGS, and the map lands on
@@ -392,8 +421,9 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `ComputeFruitingLagDistributionUseCase`, `GetSeasonalPatternUseCase`,
   `OfflineMapRepository`/`OfflineMapInfo` (always resolves to USGS Topo — no
   style parameter), and the
-  `MushroomRepository`/`LocationProvider`/`WeatherProvider`/`HistoricalWeatherProvider`/`SearchCacheRepository`/`CurrentTimeProvider`
-  interfaces. No Android imports, so it's unit-testable headless (see
+  `MushroomRepository`/`LocationProvider`/`WeatherProvider`/`HistoricalWeatherProvider`/`SearchCacheRepository`/`CurrentTimeProvider`/`CompassProvider`
+  interfaces (`CompassProvider` is the map redesign's addition — see
+  `sensor/` below). No Android imports, so it's unit-testable headless (see
   `app/src/test/`). `CurrentTimeProvider` is why: the cache's LRU stamps
   and the relative times rendered from them are injected rather than read
   off `System.currentTimeMillis()`, so both are assertable. The mushroom
@@ -430,6 +460,12 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `context.filesDir/photos/`; `CameraCaptureFiles` issues the
   `FileProvider` URI a camera capture writes into (`filesDir/captures/`, a
   scratch handoff area distinct from the persisted photos).
+- `sensor/` — parallel to `location/`/`map/`/`photo/`: the one place that
+  touches `android.hardware.SensorManager` directly, behind the
+  `CompassProvider` interface. `AndroidCompassProvider` prefers the fused
+  rotation-vector sensor and falls back to accelerometer + magnetometer,
+  emitting `null` (not a stale or guessed heading) when neither is
+  available — the map redesign's compass/elevation strip.
 - `ui/availability/` — `AvailabilityViewModel` and the Compose screen: a
   `ModalNavigationDrawer` holding every search control over a map-first
   content area with the List/Map/Seasonal tab switch, plus three further
@@ -442,9 +478,23 @@ more certainty than the data supports. See `AvailabilityForecast` and
   order; `SearchControls` records why the picker is first and a section of
   its own. The List tab's offline banner lives here too, and the Seasonal
   tab's hand-rolled `Canvas` bar chart is `FruitingLagChart`, in the same
-  file. `MapTab`'s long-press now opens `LongPressActionDialog` — "Plan a
-  trip" or "Log a find" — before either the existing `TripDatePickerDialog`
-  or the mushroom log's own start-entry flow runs.
+  file. `MapTab`'s long-press opens `LongPressActionDialog` — "Plan a trip"
+  or "Log a find" — before either the existing `TripDatePickerDialog` or the
+  mushroom log's own start-entry flow runs; `MapTab` itself, and the
+  `ModalNavigationDrawer`/tab-switch description above, is now
+  medium/expanded (tablet, landscape, foldable) width only —
+  `currentWindowWidthClass()` (`ui/adaptive/WindowWidthClass`) is what
+  branches on it, a `PermanentNavigationDrawer` plus side-by-side
+  `CombinedResultsPane` (List and Map together, the M3 "reveal" pattern) at
+  that width instead. On a compact window, `CompactMapTab` is the map redesign's
+  full-bleed replacement: same long-press flow, plus the right-edge
+  `MapIconStack`, the `CompassElevationStrip`, and `ForagingAreasOverlay`
+  floating over the map instead of sitting below it (see "How it works"
+  above and `docs/plans/map-redesign.md`). `ForagerBottomNav` replaces the
+  compact-only top tab row; `LocateMeStatus` (in this same package) is the
+  icon stack's GPS/locate-me state, deliberately independent of
+  `AvailabilityUiState.locationPermissionDenied`, which belongs to the
+  unrelated "use current location for search region" control.
 - `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
   osmdroid directly (the `MushroomRepository` pattern applied to the UI
   layer, so the screen can be composed in a test without starting tile
@@ -638,6 +688,60 @@ drawer's open/close gestures behave (swipe-to-open is disabled on purpose so
 a horizontal drag over the map pans it instead), whether the `Scaffold`
 insets actually keep content clear of the navigation bar, and how the small
 dot markers for individual observations look at a dense radius.
+
+### The compact map redesign (full-bleed map, bottom nav, icon stack, compass/elevation strip), specifically
+
+This environment started with no Android SDK at all (`sdk.dir`/`ANDROID_HOME`
+unset), unlike the emulator gap below, which is a hardware limitation
+(`/dev/kvm` missing) rather than a missing tool. Command-line tools,
+platform 37, and build-tools 37 were fetched from Google's own repository
+and installed into the session for this task, so — unlike that gap —
+**this one is not merely reasoned about: `./gradlew testDebugUnitTest` and
+`./gradlew assembleDebug` were both run for real.** `testDebugUnitTest`
+reports **428 tests, 0 failures, 0 errors** across all 59 test classes
+(`app/build/test-results/testDebugUnitTest/`), including every test this
+task added or rewrote — `AvailabilityViewModelLocateMeTest` (6),
+`AvailabilityScreenMapIconStackTest` (10), the rewritten
+`AvailabilityScreenLayoutTest` variants (17 each, ×3 configurations), and
+the untouched medium/expanded-window tests
+(`AvailabilityScreenCompactWidthDrawerTest`,
+`AvailabilityScreenWideWindowLayoutTest`), all green. `assembleDebug`
+produced a real, signed `app-debug.apk`. Neither the SDK setup nor these
+runs happened in a CI system — they ran once, in this session, against
+this exact diff — so re-running them in CI or on a real checkout remains
+the independent confirmation worth having, but "compiles and its tests
+pass" is now a measured fact, not an inference from reading the diff.
+
+What the change reasons through, on top of that measured result:
+`LocationResult.altitude` is a new nullable field, read from
+`Location.hasAltitude()`/`getAltitude()`, that extends an existing type
+without touching either of its two existing call sites' behavior for
+callers that don't ask for it (default `null`). The new
+`CompassProvider`/`AndroidCompassProvider` mirror the existing
+`LocationProvider`/`AndroidLocationProvider` seam exactly, so the same
+reasoning that seam has already earned applies. The redesign itself is
+scoped to `WindowWidthClass.COMPACT` only, by construction — a separate
+`CompactMapTab` composable, not a conditional threaded into the existing
+`MapTab` — so the medium/expanded (tablet, landscape, foldable) layout's
+code path is byte-for-byte what it was before this change; its own tests
+(`AvailabilityScreenWideWindowLayoutTest`,
+`AvailabilityScreenCompactWidthDrawerTest`) passing unmodified is now
+measured confirmation of that, not just a claim about shared composables.
+
+Not verifiable headlessly even with a working build, and only a device
+can answer: live compass heading accuracy and smoothness (the fake used
+in tests proves the strip reacts to a heading value, not that a real
+rotation-vector sensor produces a usable one); GPS altitude accuracy in
+practice (a known limitation independent of this app — reported here as
+"the behavior is tested," not as a real-world accuracy number); how the
+full-bleed layout, the floating icon stack, and the floating foraging-areas
+overlay card read on very small or very large screens, or at a large font
+scale (the existing `AvailabilityScreenLayoutTest` measures the compact
+map's geometry headlessly, but visual crowding of five overlapping floating
+elements over a map is not something bounds-checking alone can catch);
+and whether the "tap the map to restore chrome" gesture feels right
+alongside osmdroid's own pan/zoom touch handling, which only a real
+`MapView` receiving real touches can settle.
 
 ### The topographic basemap, specifically
 

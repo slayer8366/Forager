@@ -109,7 +109,11 @@ fun SightingsMap(
     areas: List<ForagingArea> = emptyList(),
     plannedTrips: List<PlannedTrip> = emptyList(),
     basemap: Basemap = Basemap.DEFAULT,
+    /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
+    focusOverride: LatLng? = null,
     onLongPress: (LatLng) -> Unit = {},
+    /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
+    onTap: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -156,7 +160,11 @@ fun SightingsMap(
             applyBasemap(view, basemap)
             val center = GeoPoint(region.lat, region.lng)
             view.controller.setZoom(zoomForRadiusKm(region.radiusKm))
-            view.controller.setCenter(center)
+            // focusOverride pans the camera without moving the search-location marker or the
+            // zoom-from-radius heuristic below, both of which stay anchored to region — see
+            // MapSlot's doc comment on this parameter for why the two are kept independent.
+            val cameraTarget = focusOverride?.let { GeoPoint(it.lat, it.lng) } ?: center
+            view.controller.setCenter(cameraTarget)
 
             // Rebuild markers each update; keep the copyright overlay, which is index 0.
             while (view.overlays.size > 1) view.overlays.removeAt(view.overlays.size - 1)
@@ -167,7 +175,14 @@ fun SightingsMap(
             view.overlays.add(
                 MapEventsOverlay(
                     object : MapEventsReceiver {
-                        override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean = false
+                        override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                            onTap()
+                            // false: unlike longPressHelper below, a plain tap isn't meant as
+                            // "consumed" — osmdroid still needs it for marker taps, which this
+                            // overlay is added ahead of only for touch-dispatch ordering (see the
+                            // comment above), not to intercept every tap.
+                            return false
+                        }
                         override fun longPressHelper(p: GeoPoint?): Boolean {
                             if (p == null) return false
                             onLongPress(LatLng(p.latitude, p.longitude))

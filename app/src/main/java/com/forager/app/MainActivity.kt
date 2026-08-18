@@ -57,15 +57,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Which action the OS permission dialog is standing in front of — [requestLocationPermission]
+     * is one shared launcher (Android only allows one in-flight request per contract per Activity),
+     * so this is how its grant/deny callback below routes to the right [viewModel] method. Set
+     * immediately before every `launch` call site.
+     */
+    private var pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
+
+    private enum class PendingLocationAction { USE_CURRENT_LOCATION, LOCATE_ME }
+
     private val requestLocationPermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
         val granted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (granted) {
-            viewModel.useCurrentLocation()
-        } else {
-            viewModel.onPermissionDenied()
+        when (pendingLocationAction) {
+            PendingLocationAction.USE_CURRENT_LOCATION ->
+                if (granted) viewModel.useCurrentLocation() else viewModel.onPermissionDenied()
+            PendingLocationAction.LOCATE_ME ->
+                if (granted) viewModel.locateMe() else viewModel.onLocateMePermissionDenied()
         }
     }
 
@@ -84,6 +95,16 @@ class MainActivity : ComponentActivity() {
                 AvailabilityScreen(
                     uiState = uiState,
                     onUseCurrentLocation = {
+                        pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
+                        requestLocationPermission.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                            ),
+                        )
+                    },
+                    onLocateMe = {
+                        pendingLocationAction = PendingLocationAction.LOCATE_ME
                         requestLocationPermission.launch(
                             arrayOf(
                                 Manifest.permission.ACCESS_FINE_LOCATION,
@@ -122,6 +143,7 @@ class MainActivity : ComponentActivity() {
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
                     onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
+                    compassProvider = container.compassProvider,
                 )
             }
         }

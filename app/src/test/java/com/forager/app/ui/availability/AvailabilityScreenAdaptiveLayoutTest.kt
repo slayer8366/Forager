@@ -304,6 +304,6 @@ private val DISTRIBUTION = FruitingLagDistribution(
 )
 
 /** Same stub as [AvailabilityScreenLayoutTest]'s — see that file for why the real map isn't used here. */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag("map-slot"))
 }
