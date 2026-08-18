@@ -35,16 +35,24 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -66,31 +74,35 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -102,6 +114,7 @@ import androidx.compose.ui.unit.dp
 import com.forager.app.BuildConfig
 import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.ForagingWeatherGuidance
@@ -127,6 +140,7 @@ import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.photo.CameraCaptureFiles
+import com.forager.app.sensor.AndroidCompassProvider
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.Basemap
@@ -136,6 +150,7 @@ import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import com.forager.app.ui.map.foragingAreaSummary
+import com.forager.app.ui.theme.Bark
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Month
@@ -143,12 +158,20 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 private enum class ResultsTab(val label: String) {
     LIST("List"),
-    MAP("Map"),
+    MAP("Maps"),
     SEASONAL("Seasonal"),
+}
+
+/** The bottom nav's icon per destination — same three [ResultsTab] values the old top tab row switched between. */
+private fun ResultsTab.icon(): ImageVector = when (this) {
+    ResultsTab.LIST -> Icons.AutoMirrored.Filled.List
+    ResultsTab.MAP -> Icons.Filled.Map
+    ResultsTab.SEASONAL -> Icons.Filled.WbSunny
 }
 
 /**
@@ -275,6 +298,17 @@ fun AvailabilityScreen(
     onRemoveLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
     /**
+     * The map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] — see
+     * [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
+     * Activity (see `MainActivity`'s `pendingLocationAction`) rather than requesting it here.
+     */
+    onLocateMe: () -> Unit = {},
+    /**
+     * What reads the device compass for the map's top strip. Defaults to the real sensor, so no
+     * production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
+     */
+    compassProvider: CompassProvider = AndroidCompassProvider(LocalContext.current),
+    /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
@@ -282,6 +316,12 @@ fun AvailabilityScreen(
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
+
+    // Local remembered state, same reasoning as selectedTab/isTopoMode below: purely a display
+    // decision the ViewModel has no part in. The map icon stack's fullscreen toggle sets this; see
+    // its call site in MapTab. Only reachable while on the Maps tab (the toggle icon lives in that
+    // tab's own icon stack), so this being true while selectedTab != MAP cannot happen in practice.
+    var isMapFullscreen by remember { mutableStateOf(false) }
 
     // Local remembered state, alongside selectedTab and for the same reason: which basemap is under
     // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
@@ -458,25 +498,41 @@ fun AvailabilityScreen(
             }
         },
     ) {
+        // Reused by both the top bar's tune icon and the map icon stack's search icon — decision
+        // #3.4 in docs/plans/map-redesign-gaia.md: the stack's search icon is a second entry point
+        // into this same drawer panel, not a new search feature, so it calls this identical lambda
+        // rather than a parallel one.
+        val openSearchDrawer = {
+            // Dismissed here, not just left to whatever state the drawer's own content happens to
+            // leave it in: the suggestion popup is anchored to the top bar and the drawer opens as
+            // an overlay above it, so without this the popup stayed visible underneath/behind the
+            // drawer instead of collapsing along with it.
+            onDismissTaxonSuggestions()
+            isDrawerOpen = true
+        }
+
         Scaffold(
+            // Fullscreen hides both the top app bar and the bottom nav below, leaving only the map
+            // and its floating icon stack/compass strip — decision #5. An empty lambda rather than
+            // omitting the parameter: Scaffold still reserves space for a topBar/bottomBar slot that
+            // renders nothing, which is what collapses it to zero height.
             topBar = {
-                AvailabilitySearchTopBar(
-                    uiState = uiState,
-                    onOpenDrawer = {
-                        // Dismissed here, not just left to whatever state the drawer's own
-                        // content happens to leave it in: the suggestion popup is anchored to
-                        // this bar and the drawer opens as an overlay above it, so without this
-                        // the popup stayed visible underneath/behind the drawer instead of
-                        // collapsing along with it.
-                        onDismissTaxonSuggestions()
-                        isDrawerOpen = true
-                    },
-                    onUseCurrentLocation = onUseCurrentLocation,
-                    onCategorySelected = onCategorySelected,
-                    onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                    onTaxonSearchResultSelected = onTaxonSearchResultSelected,
-                    onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                )
+                if (!isMapFullscreen) {
+                    AvailabilitySearchTopBar(
+                        uiState = uiState,
+                        onOpenDrawer = openSearchDrawer,
+                        onUseCurrentLocation = onUseCurrentLocation,
+                        onCategorySelected = onCategorySelected,
+                        onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                        onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+                        onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                    )
+                }
+            },
+            bottomBar = {
+                if (!isMapFullscreen) {
+                    ForagerBottomNav(selectedTab = selectedTab, onTabSelected = { selectedTab = it })
+                }
             },
         ) { padding ->
             Column(
@@ -486,17 +542,9 @@ fun AvailabilityScreen(
                     // out under the status or navigation bar.
                     .padding(padding),
             ) {
-                ActiveSearchSummary(uiState, onReopenTaxonSuggestions = onReopenTaxonSuggestions)
-                SearchNotice(uiState)
-
-                SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-                    ResultsTab.entries.forEach { tab ->
-                        Tab(
-                            selected = selectedTab == tab,
-                            onClick = { selectedTab = tab },
-                            text = { Text(tab.label) },
-                        )
-                    }
+                if (!isMapFullscreen) {
+                    ActiveSearchSummary(uiState, onReopenTaxonSuggestions = onReopenTaxonSuggestions)
+                    SearchNotice(uiState)
                 }
 
                 // weight(1f) states the intent: the results get whatever is left after the
@@ -531,11 +579,45 @@ fun AvailabilityScreen(
                             onStartLogEntry(location, LocalDate.now())
                         },
                         onToggleForagingAreas = onToggleForagingAreas,
+                        isFullscreen = isMapFullscreen,
+                        onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
+                        onLocateMe = onLocateMe,
+                        onOpenSearchDrawer = openSearchDrawer,
+                        compassProvider = compassProvider,
                         modifier = Modifier.weight(1f),
                     )
                     ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
                 }
             }
+        }
+    }
+}
+
+/**
+ * Replaces the old top [androidx.compose.material3.SecondaryTabRow] — same three [ResultsTab]
+ * destinations, same order, decision #4 in `docs/plans/map-redesign-gaia.md`: a positional change,
+ * not a new or removed destination. Dark bar with the active tab in the app's own forest green
+ * (`MaterialTheme.colorScheme.primary` — [com.forager.app.ui.theme.ForestGreen] in light theme,
+ * [com.forager.app.ui.theme.MossGreen] in dark, per that theme's own doc comment) rather than a new
+ * accent color.
+ */
+@Composable
+private fun ForagerBottomNav(selectedTab: ResultsTab, onTabSelected: (ResultsTab) -> Unit) {
+    NavigationBar(containerColor = Bark, contentColor = Color.White) {
+        ResultsTab.entries.forEach { tab ->
+            NavigationBarItem(
+                selected = selectedTab == tab,
+                onClick = { onTabSelected(tab) },
+                icon = { Icon(tab.icon(), contentDescription = null) },
+                label = { Text(tab.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                    unselectedTextColor = Color.White.copy(alpha = 0.7f),
+                    indicatorColor = Bark,
+                ),
+            )
         }
     }
 }
@@ -923,6 +1005,7 @@ private fun OfflineMapsPanel(
                 emptyList(),
                 emptyList(),
                 Basemap.USGS_TOPO,
+                null,
                 onRegionPicked,
                 Modifier.fillMaxSize(),
             )
@@ -1016,32 +1099,41 @@ private fun OfflineMapStatusContent(status: OfflineMapStatus) {
     }
 }
 
+/** Diameter shared by every icon in the map's right-edge stack, [MapModeToggle] included. */
+private val MAP_ICON_STACK_DIAMETER = 48.dp
+
+/** Dark translucent circle color for the stack's four non-primary icons — see [MapModeToggle]. */
+private val MapIconStackCircleColor = Bark.copy(alpha = 0.78f)
+
 /**
- * The quick-fire icon overlaid on the map's own top-right corner — not the app bar, not Settings —
- * because which mode a service is in ("if a map has two modes, toggle the two") is a during-the-walk
- * decision made often, unlike which [MapService] to use at all, which is occasional and lives in
- * Settings. See [MapService]'s doc comment and [MapTab]'s call site for the full picture.
+ * Slot 3 of the map's right-edge icon stack (see [MapTab]'s call site) — not the app bar, not
+ * Settings — because which mode a service is in ("if a map has two modes, toggle the two") is a
+ * during-the-walk decision made often, unlike which [MapService] to use at all, which is occasional
+ * and lives in Settings. See [MapService]'s doc comment for the full picture. The logic is
+ * unchanged from before the map redesign — only the styling (dark translucent circle, white glyph,
+ * matching the stack's other four icons) and position (in the stack, not floating alone over
+ * [Alignment.TopEnd]) moved, per decision #3.3 in `docs/plans/map-redesign-gaia.md`.
  */
 @Composable
 private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onToggle,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 3.dp,
+        color = MapIconStackCircleColor,
+        contentColor = Color.White,
         shadowElevation = 2.dp,
-        modifier = modifier,
+        modifier = modifier.size(MAP_ICON_STACK_DIAMETER),
     ) {
-        Icon(
-            imageVector = Icons.Filled.Layers,
-            contentDescription = if (isTopoMode) {
-                "Showing topo mode. Switch to regular mode."
-            } else {
-                "Showing regular mode. Switch to topo mode."
-            },
-            modifier = Modifier.padding(Spacing.sm),
-        )
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.Layers,
+                contentDescription = if (isTopoMode) {
+                    "Showing topo mode. Switch to regular mode."
+                } else {
+                    "Showing regular mode. Switch to topo mode."
+                },
+            )
+        }
     }
 }
 
@@ -1793,7 +1885,9 @@ private fun FruitingLagBucketCounts(buckets: List<FruitingLagBucket>) {
 /**
  * The map tab: the map itself takes the whole content area apart from the foraging-areas toggle
  * and detail below it, which are bounded so they can't repeat the starvation this layout exists
- * to fix.
+ * to fix. (The map-redesign task considered making this literally full-bleed with that toggle and
+ * panel moved elsewhere; the project owner chose to keep them here as-is — full-bleed reads as
+ * "no more top tab row, map gets the lion's share," not literally 100% of the screen.)
  *
  * Owns the long-press flow: [MapSlot] only reports *where* a long-press landed (see its own doc
  * comment for why), so the pending location and what it turns into both live here, next to the
@@ -1804,6 +1898,12 @@ private fun FruitingLagBucketCounts(buckets: List<FruitingLagBucket>) {
  * [LongPressActionDialog] asks which before either path runs. [defaultTripName] is computed from
  * the trip count already in state, here rather than inside the dialog, so the dialog stays a dumb
  * presenter of whatever default it's handed.
+ *
+ * The icon stack's add (+) button reuses this exact same flow — it sets [pendingLongPressLocation]
+ * directly, the identical state variable the long-press gesture sets, rather than a parallel
+ * dialog/handler — so the two entry points can never drift apart (decision #3.5). It hands that
+ * flow the current search region's centre, since that's a stable point already on screen whenever
+ * this tab can render at all, rather than requiring its own GPS fetch.
  */
 @Composable
 private fun MapTab(
@@ -1815,10 +1915,26 @@ private fun MapTab(
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
+    onLocateMe: () -> Unit,
+    onOpenSearchDrawer: () -> Unit,
+    compassProvider: CompassProvider,
     modifier: Modifier = Modifier,
 ) {
     var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
+
+    val context = LocalContext.current
+    LaunchedEffect(uiState.locateMeStatus) {
+        when (uiState.locateMeStatus) {
+            LocateMeStatus.PermissionDenied ->
+                Toast.makeText(context, "Location permission denied. Can't center on your position.", Toast.LENGTH_SHORT).show()
+            LocateMeStatus.Unavailable ->
+                Toast.makeText(context, "Couldn't determine your location.", Toast.LENGTH_SHORT).show()
+            else -> Unit
+        }
+    }
 
     when {
         !uiState.hasSearched -> MapMessage(
@@ -1843,6 +1959,16 @@ private fun MapTab(
         else -> {
             val region = uiState.region
             if (region != null) {
+                // The GPS/locate-me pan target. remember(region) — not just remember — so a brand
+                // new search (a different region) drops any earlier locate-me override rather than
+                // keeping the map stuck on a now-stale GPS fix; see MapSlot's focusOverride doc
+                // comment for why this is independent of region itself.
+                var focusOverride by remember(region) { mutableStateOf<LatLng?>(null) }
+                LaunchedEffect(uiState.locateMeStatus) {
+                    val status = uiState.locateMeStatus
+                    if (status is LocateMeStatus.Located) focusOverride = status.location
+                }
+
                 Column(modifier = modifier.fillMaxWidth()) {
                     // Areas are only handed to the map when the layer is switched on; the
                     // clustering itself was already computed when the sightings loaded.
@@ -1858,41 +1984,64 @@ private fun MapTab(
                             visibleAreas,
                             uiState.plannedTrips,
                             basemap,
+                            focusOverride,
                             { location -> pendingLongPressLocation = location },
                             Modifier.fillMaxSize(),
                         )
-                        MapModeToggle(
+                        CompassElevationStrip(
+                            compassProvider = compassProvider,
+                            elevationMeters = (uiState.locateMeStatus as? LocateMeStatus.Located)?.altitude,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(Spacing.sm),
+                        )
+                        MapIconStack(
+                            isFullscreen = isFullscreen,
+                            onToggleFullscreen = onToggleFullscreen,
+                            onLocateMe = onLocateMe,
                             isTopoMode = isTopoMode,
-                            onToggle = onToggleMapMode,
-                            modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
+                            onToggleMapMode = onToggleMapMode,
+                            onOpenSearchDrawer = onOpenSearchDrawer,
+                            onAdd = {
+                                // Same state variable the long-press gesture sets below — not a
+                                // parallel dialog. See this function's own doc comment.
+                                pendingLongPressLocation = LatLng(region.lat, region.lng)
+                            },
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(Spacing.sm),
                         )
                     }
-                    // Always visible below the map, not gated on showForagingAreas itself — the
-                    // switch is how the layer gets turned back on, so it has to be reachable while
-                    // off. It moved here from the drawer's "Advanced search" section: whether to
-                    // show the layer is a decision made while looking at the map, not a setting to
-                    // dig into a drawer for.
-                    ForagingAreasToggle(
-                        checked = uiState.showForagingAreas,
-                        onCheckedChange = onToggleForagingAreas,
-                        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                    )
-                    // A fixed-height Box, always present, rather than conditionally including
-                    // ForagingAreasPanel only when the layer is on: the panel used to appear and
-                    // disappear from this Column outright, which changed how much of the fixed
-                    // parent height was left over for the weighted mapSlot above — the map visibly
-                    // grew and shrank as the switch was toggled. Reserving the same
-                    // [FORAGING_AREAS_PANEL_MAX_HEIGHT] here regardless of the switch's state means
-                    // the sibling stack above the map never changes height, so the map doesn't
-                    // either — only what's drawn inside this fixed box changes.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(FORAGING_AREAS_PANEL_MAX_HEIGHT)
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                    ) {
-                        if (uiState.showForagingAreas) {
-                            ForagingAreasPanel(foragingAreas = uiState.foragingAreas)
+                    // Hidden in fullscreen along with the top app bar and bottom nav — decision #5
+                    // ("leaving only the map and the floating icon stack"); shown otherwise exactly
+                    // as before the redesign. Always visible in the non-fullscreen resting state,
+                    // not gated on showForagingAreas itself — the switch is how the layer gets
+                    // turned back on, so it has to be reachable while off. It moved here from the
+                    // drawer's "Advanced search" section: whether to show the layer is a decision
+                    // made while looking at the map, not a setting to dig into a drawer for.
+                    if (!isFullscreen) {
+                        ForagingAreasToggle(
+                            checked = uiState.showForagingAreas,
+                            onCheckedChange = onToggleForagingAreas,
+                            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                        )
+                        // A fixed-height Box, always present, rather than conditionally including
+                        // ForagingAreasPanel only when the layer is on: the panel used to appear and
+                        // disappear from this Column outright, which changed how much of the fixed
+                        // parent height was left over for the weighted mapSlot above — the map visibly
+                        // grew and shrank as the switch was toggled. Reserving the same
+                        // [FORAGING_AREAS_PANEL_MAX_HEIGHT] here regardless of the switch's state means
+                        // the sibling stack above the map never changes height, so the map doesn't
+                        // either — only what's drawn inside this fixed box changes.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(FORAGING_AREAS_PANEL_MAX_HEIGHT)
+                                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                        ) {
+                            if (uiState.showForagingAreas) {
+                                ForagingAreasPanel(foragingAreas = uiState.foragingAreas)
+                            }
                         }
                     }
                 }
@@ -1924,6 +2073,144 @@ private fun MapTab(
             onDismiss = { pendingTripLocation = null },
         )
     }
+}
+
+/**
+ * The right-edge floating icon stack — decision #3 in `docs/plans/map-redesign-gaia.md`: exactly
+ * five icons, top to bottom, dark translucent circles with a white glyph except the bottom one,
+ * which is filled in the app's own forest green. Slot 3 ([MapModeToggle]) is the pre-existing
+ * topo/plain toggle, restyled and repositioned rather than reimplemented — see its own doc comment.
+ */
+@Composable
+private fun MapIconStack(
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
+    onLocateMe: () -> Unit,
+    isTopoMode: Boolean,
+    onToggleMapMode: () -> Unit,
+    onOpenSearchDrawer: () -> Unit,
+    onAdd: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        MapStackIconButton(
+            icon = if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
+            contentDescription = if (isFullscreen) "Exit fullscreen" else "Fullscreen",
+            onClick = onToggleFullscreen,
+        )
+        MapStackIconButton(
+            icon = Icons.Filled.MyLocation,
+            contentDescription = "Center on my location",
+            onClick = onLocateMe,
+        )
+        MapModeToggle(isTopoMode = isTopoMode, onToggle = onToggleMapMode)
+        MapStackIconButton(
+            icon = Icons.Filled.Search,
+            contentDescription = "Search",
+            onClick = onOpenSearchDrawer,
+        )
+        MapStackIconButton(
+            icon = Icons.Filled.Add,
+            contentDescription = "Plan a trip or log a find here",
+            onClick = onAdd,
+            filled = true,
+        )
+    }
+}
+
+/** One circle in [MapIconStack]; [filled] is the stack's one green (rather than dark) icon — the add button. */
+@Composable
+private fun MapStackIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    filled: Boolean = false,
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = if (filled) MaterialTheme.colorScheme.primary else MapIconStackCircleColor,
+        contentColor = Color.White,
+        shadowElevation = 2.dp,
+        modifier = modifier.size(MAP_ICON_STACK_DIAMETER),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(imageVector = icon, contentDescription = contentDescription)
+        }
+    }
+}
+
+/**
+ * Decisions #7-8: compass heading + GPS elevation folded into one bar at the top of the map —
+ * modeled on Gaia's compass-tape widget, not its separate elevation/speed stats pill (that one is
+ * tied to active track recording, out of scope here — see the plan doc's decision #9).
+ *
+ * A thin wrapper around [CompassElevationStripContent] that does the one impure thing (collecting
+ * [compassProvider]'s [Flow][kotlinx.coroutines.flow.Flow]) so that content composable stays a pure
+ * function of primitive values — directly testable without a real sensor, per the plan doc's test
+ * requirements, and so heading ticks recompose only this small leaf rather than the whole map tab
+ * (which would otherwise fight the user's own pan/zoom on every sensor update).
+ */
+@Composable
+private fun CompassElevationStrip(
+    compassProvider: CompassProvider,
+    elevationMeters: Double?,
+    modifier: Modifier = Modifier,
+) {
+    val headingDegrees by compassProvider.heading.collectAsState(initial = null)
+    CompassElevationStripContent(headingDegrees = headingDegrees, elevationMeters = elevationMeters, modifier = modifier)
+}
+
+@Composable
+private fun CompassElevationStripContent(
+    headingDegrees: Float?,
+    elevationMeters: Double?,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = MapIconStackCircleColor,
+        contentColor = Color.White,
+        shape = MaterialTheme.shapes.extraLarge,
+        shadowElevation = 2.dp,
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Navigation,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(20.dp)
+                    .rotate(headingDegrees ?: 0f),
+            )
+            Text(
+                text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Text("·", style = MaterialTheme.typography.labelLarge)
+            Text(
+                // Meters, matching this app's existing metric convention (radiusKm) rather than
+                // introducing feet — nothing else in the app displays imperial units.
+                text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
+}
+
+/** Nearest 45°-wide compass point for [headingDegrees], `[0, 360)`. */
+private fun cardinalDirection(headingDegrees: Float): String {
+    val points = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+    val index = (((headingDegrees % 360f) + 360f) % 360f / 45f).roundToInt() % points.size
+    return points[index]
 }
 
 /** What a map long-press means — asked before either [TripDatePickerDialog] or `onLogFindHere` runs; see [MapTab]'s own doc comment. */

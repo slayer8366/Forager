@@ -89,7 +89,7 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedOfflinePickerBasemap: Basemap? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
-    private val CapturingMapSlot: MapSlot = { _, sightings, areas, plannedTrips, basemap, onLongPress, modifier ->
+    private val CapturingMapSlot: MapSlot = { _, sightings, areas, plannedTrips, basemap, _, onLongPress, modifier ->
         if (sightings.isEmpty() && areas.isEmpty() && plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {

@@ -30,8 +30,9 @@ class AndroidLocationProvider(
             awaitSingleLocation(locationManager, provider)
         }
 
-        return location?.let { LocationResult.Success(it.latitude, it.longitude) }
-            ?: LocationResult.LocationUnavailable
+        return location?.let {
+            LocationResult.Success(it.latitude, it.longitude, altitude = it.altitude.takeIf { _ -> it.hasAltitude() })
+        } ?: LocationResult.LocationUnavailable
     }
 
     private fun hasLocationPermission(): Boolean {

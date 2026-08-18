@@ -10,7 +10,12 @@ interface LocationProvider {
 }
 
 sealed interface LocationResult {
-    data class Success(val lat: Double, val lng: Double) : LocationResult
+    /**
+     * [altitude] is null when the underlying fix didn't report one — `Location.hasAltitude()` is
+     * false for network-based fixes — never defaulted to a guessed value, per CLAUDE.md's rule
+     * against fabricating a plausible value for an unsupported/unreported capability.
+     */
+    data class Success(val lat: Double, val lng: Double, val altitude: Double? = null) : LocationResult
     data object PermissionDenied : LocationResult
     data object LocationUnavailable : LocationResult
 }

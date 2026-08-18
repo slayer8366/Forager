@@ -33,6 +33,12 @@ typealias MapSlot = @Composable (
     areas: List<ForagingArea>,
     plannedTrips: List<PlannedTrip>,
     basemap: Basemap,
+    /**
+     * When non-null, pans the camera here instead of [region]'s own centre — the map-redesign's
+     * GPS/locate-me icon (distinct from [region], which stays the search centre; see that button's
+     * call site in `AvailabilityScreen.kt`'s `MapTab` for why this doesn't touch the search itself).
+     */
+    focusOverride: LatLng?,
     onLongPress: (LatLng) -> Unit,
     modifier: Modifier,
 ) -> Unit
@@ -41,13 +47,14 @@ typealias MapSlot = @Composable (
  * The real map. This is the default every production call path gets, so introducing the seam
  * changed no caller: `MainActivity` passes nothing new.
  */
-val SightingsMapSlot: MapSlot = { region, sightings, areas, plannedTrips, basemap, onLongPress, modifier ->
+val SightingsMapSlot: MapSlot = { region, sightings, areas, plannedTrips, basemap, focusOverride, onLongPress, modifier ->
     SightingsMap(
         region = region,
         sightings = sightings,
         areas = areas,
         plannedTrips = plannedTrips,
         basemap = basemap,
+        focusOverride = focusOverride,
         onLongPress = onLongPress,
         modifier = modifier,
     )

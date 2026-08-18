@@ -261,14 +261,17 @@ abstract class AvailabilityScreenLayoutTest {
     private fun rootBounds(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
 
     /**
-     * The bottom edge of the tab row, read from the tabs themselves: a [androidx.compose.material3.Tab]
-     * fills its row's height, so the lower of the two tab bottoms is the row's bottom. Taken from
-     * real nodes rather than the row's documented 48dp, so a Material change can't make this quietly
-     * wrong.
+     * The top edge of the bottom nav, read from its own destination labels: a
+     * [androidx.compose.material3.NavigationBarItem] fills its bar's height, so the higher of the
+     * two label tops is the bar's top. Taken from real nodes rather than a documented height, so a
+     * Material change can't make this quietly wrong. Replaces the map-redesign's old `tabRowBottom`
+     * — the `SecondaryTabRow` this measured used to sit *above* the map; the bottom nav that
+     * replaced it sits *below*, so the invariant this feeds flips accordingly, see
+     * `the map slot ends at or above the top of the bottom nav` below.
      */
-    private fun tabRowBottom(): Dp = maxOf(
-        composeRule.onNodeWithText("Map").getUnclippedBoundsInRoot().bottom,
-        composeRule.onNodeWithText("List").getUnclippedBoundsInRoot().bottom,
+    private fun bottomNavTop(): Dp = minOf(
+        composeRule.onNodeWithText("Maps").getUnclippedBoundsInRoot().top,
+        composeRule.onNodeWithText("List").getUnclippedBoundsInRoot().top,
     )
 
     /**
@@ -299,25 +302,28 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 2 — the map does not start above the tab row.**
+     * **Test 2 — the map does not extend below the bottom nav.**
      *
-     * After the map-first fix the tiles were overlapping the tab row. The clip that fixed that is
-     * osmdroid's business, but the slot's own geometry is this screen's, and if the slot itself
-     * starts above the tab row then no clip can save it.
+     * The map-redesign moved the tab switch from a `SecondaryTabRow` above the map to a
+     * `NavigationBar` below it (`docs/plans/map-redesign-gaia.md`, decision #4) — a positional
+     * change, not a removal, so this test's intent (the map's box and the tab-switch chrome must
+     * not overlap) carries over from the original regression it guarded, just checked from the
+     * other edge: after the map-first fix the tiles were overlapping the tab row above; now that
+     * the switch sits below, the equivalent defect would be the map's box running underneath it.
      */
     @Test
-    fun `the map slot starts at or below the bottom of the tab row`() {
+    fun `the map slot ends at or above the top of the bottom nav`() {
         setScreen(SEARCHED_STATE)
 
-        val mapTop = mapSlotBounds().top
-        val tabsBottom = tabRowBottom()
+        val mapBottom = mapSlotBounds().bottom
+        val navTop = bottomNavTop()
 
-        println("MEASURED mapTop=$mapTop tabRowBottom=$tabsBottom")
+        println("MEASURED mapBottom=$mapBottom bottomNavTop=$navTop")
 
         assertTrue(
-            "The map slot must begin at or below the tab row's bottom edge, but its top is " +
-                "$mapTop and the tab row ends at $tabsBottom — the map's box overlaps the tabs.",
-            mapTop >= tabsBottom,
+            "The map slot must end at or above the bottom nav's top edge, but its bottom is " +
+                "$mapBottom and the bottom nav starts at $navTop — the map's box overlaps the nav.",
+            mapBottom <= navTop,
         )
     }
 
@@ -636,6 +642,6 @@ abstract class AvailabilityScreenLayoutTest {
  * which would render anything measurable under Robolectric anyway. This fills the same box and
  * carries a tag, so the box itself can be measured.
  */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag(MAP_SLOT_TAG))
 }

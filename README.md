@@ -341,6 +341,61 @@ more certainty than the data supports. See `AvailabilityForecast` and
     app owner registering an iNaturalist OAuth application (client ID +
     redirect URI), which only they can do.
 
+11. **The Maps tab is redesigned around a Gaia-GPS-style layout: bottom nav
+    instead of a top tab row, and a right-edge floating icon stack over a
+    near-full-height map.** `List`/`Maps`/`Seasonal` — same three
+    destinations, same order as the old `SecondaryTabRow` — now live in a
+    dark `NavigationBar` at the bottom of the screen, active tab highlighted
+    in the app's own forest green (`MaterialTheme.colorScheme.primary`)
+    rather than a new accent color. The map keeps the foraging-areas toggle
+    and panel below it exactly as before — full-bleed here means "no more
+    top tab row taking a share of the screen," not literally covering the
+    whole viewport; see `MapTab`'s own doc comment for why that reading was
+    chosen over moving those controls elsewhere.
+
+    **The right-edge icon stack** (`MapIconStack`) is five dark translucent
+    circles, top to bottom: **fullscreen** (hides the top app bar and bottom
+    nav, leaving only the map, the stack, and the compass strip — the map
+    `MapView` itself stays mounted through the toggle, never torn down and
+    recreated, since the underlying tile session and pan/zoom state would
+    otherwise be lost); **GPS/locate-me**, a new capability distinct from the
+    drawer's "use current location for search region" control — it pans the
+    map to the device's live position without touching the search itself, and
+    reports an explicit permission-denied/unavailable state (`LocateMeStatus`)
+    rather than failing silently; the pre-existing **topo/plain toggle**
+    (`MapModeToggle`), restyled to match the stack and moved off its old
+    floating top-right position but otherwise unchanged; **search**, a second
+    entry point into the exact same drawer `Search` panel the app bar's tune
+    icon opens, not a parallel search UI; and **add (+)**, filled in green,
+    which opens the identical "Plan a trip"/"Log a find" chooser the map's
+    long-press gesture opens — it sets the same pending-location state
+    variable the long-press handler sets, at the current search region's
+    center, so the two entry points cannot drift apart.
+
+    **The GPS fix behind locate-me also feeds the new top compass+elevation
+    strip.** `LocationResult.Success` gained a nullable `altitude: Double?`
+    (null, never a guessed value, when the underlying fix has none —
+    `Location.hasAltitude()` is false for network-based fixes), read off the
+    same fix the locate-me button requests rather than a separate network
+    elevation lookup. The strip combines a heading readout with that
+    elevation in one bar, modeled on Gaia's compass tape — not its separate
+    elevation/speed pill, which is tied to active track recording and is
+    explicitly out of scope (see below). Heading comes from a new
+    `domain/CompassProvider` interface (`AndroidCompassProvider` prefers the
+    fused rotation-vector sensor, falling back to accelerometer +
+    magnetometer, and reports `null` — not a stale or fabricated value — on a
+    device with neither), kept behind its own interface per `CLAUDE.md` the
+    same way `LocationProvider` and `OfflineMapRepository` are. Heading
+    collection is scoped to the strip's own small composable rather than the
+    map tab, so a sensor tick recomposes only that leaf and never fights the
+    user's own pan/zoom on the map underneath it.
+
+    **Explicitly out of scope, per the project owner:** track/route
+    recording, the elevation+speed stats pill tied to an active recording,
+    a record button, and any "trip" concept beyond the existing
+    `PlannedTrip`. Nothing in this redesign assumes location tracking is
+    coming or leaves a half-built hook for it.
+
 ## Project layout
 
 - `data/remote/` — the only code that speaks Retrofit/iNaturalist's or
@@ -392,9 +447,13 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `ComputeFruitingLagDistributionUseCase`, `GetSeasonalPatternUseCase`,
   `OfflineMapRepository`/`OfflineMapInfo` (always resolves to USGS Topo — no
   style parameter), and the
-  `MushroomRepository`/`LocationProvider`/`WeatherProvider`/`HistoricalWeatherProvider`/`SearchCacheRepository`/`CurrentTimeProvider`
+  `MushroomRepository`/`LocationProvider`/`WeatherProvider`/`HistoricalWeatherProvider`/`SearchCacheRepository`/`CurrentTimeProvider`/`CompassProvider`
   interfaces. No Android imports, so it's unit-testable headless (see
-  `app/src/test/`). `CurrentTimeProvider` is why: the cache's LRU stamps
+  `app/src/test/`). `CompassProvider` is the map redesign's own addition —
+  a device heading reader, kept behind an interface for the same reason
+  `LocationProvider` is (see `sensor/` below); `LocationResult.Success` also
+  gained a nullable `altitude: Double?` for that redesign's top compass strip
+  (null, never guessed, when the underlying fix has none). `CurrentTimeProvider` is why: the cache's LRU stamps
   and the relative times rendered from them are injected rather than read
   off `System.currentTimeMillis()`, so both are assertable. The mushroom
   log's model lives here too: `Observed`/`Feature` (the three-state rule —
@@ -412,6 +471,11 @@ more certainty than the data supports. See `AvailabilityForecast` and
   ordering — see `AddAndRemovePhotoUseCaseTest`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
+- `sensor/` — parallel to `location/`: the one place that touches
+  `android.hardware.SensorManager` directly, behind the `CompassProvider`
+  interface. `AndroidCompassProvider` prefers the fused rotation-vector
+  sensor and falls back to accelerometer + magnetometer, reporting `null`
+  rather than a stale or fabricated heading on a device with neither.
 - `map/` — parallel to `location/`: the one place that touches osmdroid's
   `CacheManager` and the filesystem directly, behind the `OfflineMapRepository`
   interface. `OsmdroidOfflineMapRepository` downloads tiles for a picked
@@ -789,6 +853,54 @@ spot-check in an environment that can reach them before this is relied on
 further; the enforcement in this app does not depend on osmdroid's own
 (incomplete) policy check either way — see `OfflineMapRepository`'s doc
 comment.
+
+### The map redesign, specifically
+
+**What is verified headlessly, and how.** That the icon stack's five buttons
+are present and each fires its own callback — including that the add button
+opens the identical "Plan a trip"/"Log a find" chooser the long-press gesture
+opens, at the search region's center, and that the locate-me icon calls a
+distinct `onLocateMe` rather than the drawer's `onUseCurrentLocation` — is
+measured against the real Compose tree under Robolectric
+(`AvailabilityScreenMapIconStackTest`). The same file proves fullscreen hides
+the app bar and bottom nav (`onAllNodesWithContentDescription(...).assertCountEquals(0)`)
+while the map's own composable call site is never torn down and recreated
+(a `remember`-backed composition counter stays at zero across the toggle),
+and that the bottom nav's three destinations still route to the same
+`ResultsTab` values the old top tab row did. The compass/elevation strip's
+text — the heading/cardinal-direction readout and the explicit "unavailable"
+states — is exercised against a fake `CompassProvider`, no real sensor
+involved. `AvailabilityViewModelLocateMeTest` covers `locateMe()` headlessly
+against a fake `LocationProvider`: altitude present vs. `null` (never
+defaulted), the denied/unavailable states, and that it never touches
+`AvailabilityUiState.region` or the unrelated `locationPermissionDenied` flag
+the drawer's "use current location" control owns.
+
+**Not verifiable headlessly, and not claimed as covered:**
+
+- **Live compass heading accuracy and smoothness on a real device.**
+  `AndroidCompassProvider`'s sensor-fusion math (rotation-vector, or the
+  accelerometer+magnetometer fallback) is reasoned from the Android sensor
+  APIs, not observed against a moving physical compass.
+- **GPS altitude accuracy in practice** — an already-known limitation of GPS
+  altitude generally, not something this change could improve; what's tested
+  is the *behavior* (present vs. explicitly absent, never guessed), not the
+  real-world number.
+- **How the full-bleed layout, the icon stack, and the compass strip read on
+  very small or very large screens, or at a large font scale.** Unlike the
+  original map-first layout (`AvailabilityScreenLayoutTest`, which measures
+  actual dp bounds across three device configurations), the new icon stack
+  and compass strip have not been measured that way — only that they're
+  present and wired correctly.
+- **Legibility of the dark translucent icon-stack circles and the compass
+  strip over real map tiles**, including USGS Imagery's aerial-photography
+  palette — the same open question the pre-existing `MapModeToggle` already
+  carried (see "The quick-fire mode toggle" below), now shared by four more
+  icons and a text strip.
+- **The bottom nav's dark bar against the system status/navigation bar
+  insets** on a real device — `Scaffold`'s inset handling for the new
+  `bottomBar` slot is reasoned from the same mechanism the existing `topBar`
+  already relies on, not independently observed.
 
 ### The mushroom log, specifically
 

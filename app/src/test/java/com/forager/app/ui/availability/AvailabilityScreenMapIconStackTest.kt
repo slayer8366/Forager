@@ -9,16 +9,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -55,8 +58,9 @@ import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -67,19 +71,14 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * The long-press-to-plan-a-trip flow end to end: a real long-press reported by the map slot, a
- * real [androidx.compose.material3.DatePickerDialog] confirmation, and a real save through the
- * real [AvailabilityViewModel] — driven through [AvailabilityScreen]'s actual entry points rather
- * than calling [AvailabilityViewModel.onPlaceTripPin] directly, per CLAUDE.md ("exercise
- * user-triggered behavior through its real entry point").
- *
- * The map itself is stubbed — see [AvailabilityScreenLayoutTest] for why — but the stub here also
- * exposes a button that invokes the slot's real [MapSlot] `onLongPress` callback, which is the one
- * piece of the real map's behaviour this flow depends on.
+ * The map-redesign's right-edge icon stack, bottom nav, fullscreen toggle, and compass/elevation
+ * strip — driven through [AvailabilityScreen]'s real entry points, per CLAUDE.md ("exercise
+ * user-triggered behavior through its real entry point"), mirroring
+ * [AvailabilityScreenTripPlanningFlowTest]'s setup.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
-class AvailabilityScreenTripPlanningFlowTest {
+class AvailabilityScreenMapIconStackTest {
 
     private val composeRule = createComposeRule()
 
@@ -95,37 +94,32 @@ class AvailabilityScreenTripPlanningFlowTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private lateinit var viewModel: AvailabilityViewModel
-
-    /**
-     * The offline search cache is not what this file is about. An empty in-memory one keeps the
-     * ViewModel's new dependency real — every search still writes through it — without changing
-     * anything these tests assert; the cache's own behaviour is covered by
-     * `RoomSearchCacheRepositoryTest` and `GetAvailabilityUseCaseTest`.
-     */
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun setScreen(onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> }) {
-        // A fresh instance per test, not a shared singleton: this repository is mutable, and each
-        // test's assertions depend on starting from an empty store.
-        val plannedTripRepository = TripFlowInMemoryPlannedTripRepository()
+    private fun setScreen(
+        onLocateMe: () -> Unit = {},
+        compassProvider: CompassProvider = FakeCompassProvider(null),
+        onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> },
+    ) {
+        val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
-            locationProvider = TripFlowUnusedLocationProvider,
-            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(TripFlowEmptyRepository), searchCache),
+            locationProvider = IconStackUnusedLocationProvider,
+            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(IconStackEmptyRepository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
-            getSightings = GetSightingsUseCase(TripFlowEmptyRepository),
-            searchTaxa = SearchTaxaUseCase(TripFlowEmptyRepository),
-            getConditions = GetConditionsUseCase(TripFlowStubWeatherProvider),
+            getSightings = GetSightingsUseCase(IconStackEmptyRepository),
+            searchTaxa = SearchTaxaUseCase(IconStackEmptyRepository),
+            getConditions = GetConditionsUseCase(IconStackStubWeatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
-            getTripWindows = GetTripWindowsUseCase(TripFlowStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
+            getTripWindows = GetTripWindowsUseCase(IconStackStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(plannedTripRepository),
             getSeasonalPattern = GetSeasonalPatternUseCase(
-                GetSightingsUseCase(TripFlowEmptyRepository),
-                TripFlowStubHistoricalWeatherProvider,
+                GetSightingsUseCase(IconStackEmptyRepository),
+                IconStackStubHistoricalWeatherProvider,
                 ComputeFruitingLagDistributionUseCase(),
             ),
-            offlineMapRepository = TripFlowStubOfflineMapRepository,
+            offlineMapRepository = IconStackStubOfflineMapRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -154,7 +148,9 @@ class AvailabilityScreenTripPlanningFlowTest {
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
                 onStartLogEntry = onStartLogEntry,
-                mapSlot = TriggerableMapSlot,
+                onLocateMe = onLocateMe,
+                compassProvider = compassProvider,
+                mapSlot = CountingStubMapSlot,
             )
         }
     }
@@ -169,136 +165,138 @@ class AvailabilityScreenTripPlanningFlowTest {
     }
 
     @Test
-    fun `long-pressing the map and confirming a date saves a planned trip at that location`() {
+    fun `all five icon stack buttons are present`() {
         setScreen()
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Plan a trip").performClick()
-        composeRule.onNodeWithText("Plan trip").assertIsDisplayed()
-
-        composeRule.onNodeWithText("Plan trip").performClick()
-        composeRule.waitForIdle()
-
-        val trip = viewModel.uiState.value.plannedTrips.single()
-        assertEquals(LONG_PRESS_LOCATION, trip.location)
-        // No trip existed before this one, so the name field's computed default is "Trip 1" — see
-        // defaultTripName. Confirming without editing it proves that default actually reaches the
-        // saved trip, not just the text field.
-        assertEquals("Trip 1", trip.name)
+        composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Search").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
     @Test
-    fun `the trip name field can be edited before confirming, and the edited name is saved`() {
+    fun `the locate-me icon calls onLocateMe, not onUseCurrentLocation`() {
+        var locateMeCalls = 0
+        setScreen(onLocateMe = { locateMeCalls++ })
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithContentDescription("Center on my location").performClick()
+
+        assertEquals(1, locateMeCalls)
+    }
+
+    @Test
+    fun `the search icon opens the same drawer the app bar's tune icon opens`() {
         setScreen()
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Plan a trip").performClick()
-        composeRule.onNodeWithText("Trip name").performTextReplacement("Chanterelle Ridge")
-        composeRule.onNodeWithText("Plan trip").performClick()
-        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Search").performClick()
 
-        val trip = viewModel.uiState.value.plannedTrips.single()
-        assertEquals("Chanterelle Ridge", trip.name)
+        // The drawer's Search panel content — proof the icon opened the real drawer, not a
+        // parallel search UI.
+        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
     }
 
     @Test
-    fun `a second planned trip defaults its name to Trip 2`() {
-        setScreen()
-        searchAReferenceRegion()
-
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Plan a trip").performClick()
-        composeRule.onNodeWithText("Plan trip").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Plan a trip").performClick()
-        composeRule.onNodeWithText("Trip name").assertIsDisplayed()
-        composeRule.onNodeWithText("Plan trip").performClick()
-        composeRule.waitForIdle()
-
-        assertEquals(
-            setOf("Trip 1", "Trip 2"),
-            viewModel.uiState.value.plannedTrips.map { it.name }.toSet(),
-        )
-    }
-
-    @Test
-    fun `clearing the trip name disables confirming`() {
-        setScreen()
-        searchAReferenceRegion()
-
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Plan a trip").performClick()
-        composeRule.onNodeWithText("Trip name").performTextReplacement("")
-
-        composeRule.onNodeWithText("Plan trip").assertIsNotEnabled()
-    }
-
-    @Test
-    fun `dismissing the plan-or-log chooser without picking either saves nothing`() {
-        setScreen()
-        searchAReferenceRegion()
-
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Cancel").performClick()
-        composeRule.waitForIdle()
-
-        assertTrue(viewModel.uiState.value.plannedTrips.isEmpty())
-    }
-
-    @Test
-    fun `dismissing the date picker after choosing Plan a trip saves nothing`() {
-        setScreen()
-        searchAReferenceRegion()
-
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Plan a trip").performClick()
-        composeRule.onNodeWithText("Cancel").performClick()
-        composeRule.waitForIdle()
-
-        assertTrue(viewModel.uiState.value.plannedTrips.isEmpty())
-    }
-
-    @Test
-    fun `choosing Log a find calls onStartLogEntry with the long-pressed location instead of planning a trip`() {
+    fun `the add button opens the same plan-or-log chooser the long-press gesture opens, at the region center`() {
         var startedLogEntryAt: LatLng? = null
         setScreen(onStartLogEntry = { location, _ -> startedLogEntryAt = location })
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.onNodeWithText("What would you like to do here?").assertIsDisplayed()
         composeRule.onNodeWithText("Log a find").performClick()
         composeRule.waitForIdle()
 
-        assertEquals(LONG_PRESS_LOCATION, startedLogEntryAt)
-        assertTrue("choosing Log a find must not also plan a trip", viewModel.uiState.value.plannedTrips.isEmpty())
+        assertEquals(LatLng(45.326, -122.634), startedLogEntryAt)
+    }
+
+    @Test
+    fun `fullscreen hides the top app bar and bottom nav but keeps the map mounted`() {
+        setScreen()
+        searchAReferenceRegion()
+        CountingStubMapSlotState.compositionCount = 0
+
+        composeRule.onNodeWithContentDescription("Advanced search options").assertIsDisplayed()
+        composeRule.onNodeWithText("Maps").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
+        assertEquals("the map slot must not be torn down and recomposed from scratch on a chrome toggle", 0, CountingStubMapSlotState.compositionCount)
+        composeRule.onAllNodesWithContentDescription("Advanced search options").assertCountEquals(0)
+
+        composeRule.onNodeWithContentDescription("Exit fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Advanced search options").assertIsDisplayed()
+        composeRule.onNodeWithText("Maps").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the bottom nav's three destinations select the same ResultsTab the old tab row did`() {
+        setScreen()
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Seasonal").performClick()
+        composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Maps").performClick()
+        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the compass elevation strip shows an explicit unavailable state, never a guessed value, with no sensor and no fix yet`() {
+        setScreen(compassProvider = FakeCompassProvider(null))
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("Compass unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText("Elevation unavailable").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the compass elevation strip reflects a fake heading without any real sensor`() {
+        setScreen(compassProvider = FakeCompassProvider(90f))
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("90° E").assertIsDisplayed()
     }
 }
-
-private val LONG_PRESS_LOCATION = LatLng(45.40, -122.70)
 
 /**
- * Fills the map's box and exposes the one piece of real map behaviour this flow depends on: a
- * button that reports a long-press at a fixed location, the same way a real long-press gesture
- * reports one via [com.forager.app.ui.map.SightingsMap]'s `onLongPress` — see that composable's
- * doc comment.
+ * Counts real (re-)compositions of the map slot's content, so
+ * `fullscreen hides ... but keeps the map mounted` can assert the fullscreen toggle didn't tear
+ * down and recreate it — mirrors [MapSlot]'s real contract (a `remember` runs once per composition
+ * lifetime, not once per recomposition).
  */
-private val TriggerableMapSlot: MapSlot = { _, _, _, _, _, _, onLongPress, modifier ->
+private object CountingStubMapSlotState {
+    var compositionCount = 0
+}
+
+private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
+    androidx.compose.runtime.remember { CountingStubMapSlotState.compositionCount++ }
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onLongPress(LONG_PRESS_LOCATION) }) {
-            Text("Simulate long press")
-        }
+        Text("map")
     }
 }
 
-private object TripFlowUnusedLocationProvider : LocationProvider {
+private class FakeCompassProvider(initial: Float?) : CompassProvider {
+    private val state = MutableStateFlow(initial)
+    override val heading: Flow<Float?> = state
+}
+
+private object IconStackUnusedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation(): LocationResult =
         error("getCurrentLocation() is not part of this test's path and must not be called")
 }
 
-private object TripFlowEmptyRepository : MushroomRepository {
+private object IconStackEmptyRepository : MushroomRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =
@@ -306,22 +304,22 @@ private object TripFlowEmptyRepository : MushroomRepository {
     override suspend fun searchTaxa(query: String) = Result.success(emptyList<TaxonSearchResult>())
 }
 
-private object TripFlowStubWeatherProvider : WeatherProvider {
+private object IconStackStubWeatherProvider : WeatherProvider {
     override suspend fun getRecentPrecipitation(region: Region) =
         Result.success(ConditionsSummary(region = region, totalPrecipitationMm = 0.0, daysSinceSignificantRain = null))
 }
 
-private object TripFlowStubTripPlanningWeatherProvider : TripPlanningWeatherProvider {
+private object IconStackStubTripPlanningWeatherProvider : TripPlanningWeatherProvider {
     override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
         Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
 }
 
-private object TripFlowStubHistoricalWeatherProvider : HistoricalWeatherProvider {
+private object IconStackStubHistoricalWeatherProvider : HistoricalWeatherProvider {
     override suspend fun getHistoricalPrecipitation(region: Region, from: LocalDate, through: LocalDate): Result<List<DailyWeather>> =
         Result.failure(UnsupportedOperationException("seasonal pattern not exercised by this test"))
 }
 
-private class TripFlowInMemoryPlannedTripRepository : PlannedTripRepository {
+private class IconStackInMemoryPlannedTripRepository : PlannedTripRepository {
     private val trips = mutableMapOf<String, PlannedTrip>()
 
     override suspend fun getAll(): Result<List<PlannedTrip>> = Result.success(trips.values.toList())
@@ -335,8 +333,7 @@ private class TripFlowInMemoryPlannedTripRepository : PlannedTripRepository {
     }
 }
 
-/** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
-private object TripFlowStubOfflineMapRepository : OfflineMapRepository {
+private object IconStackStubOfflineMapRepository : OfflineMapRepository {
     override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
     override suspend fun delete(): Result<Unit> =
