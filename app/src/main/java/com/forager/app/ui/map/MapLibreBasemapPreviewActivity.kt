@@ -121,6 +121,7 @@ private enum class PreviewBasemap(val label: String, val tileUrlTemplate: String
 private fun rasterStyleJson(basemap: PreviewBasemap): String = """
     {
       "version": 8,
+      "glyphs": "$GLYPHS_URL_TEMPLATE",
       "sources": {
         "basemap": {
           "type": "raster",
@@ -134,6 +135,17 @@ private fun rasterStyleJson(basemap: PreviewBasemap): String = """
       ]
     }
 """.trimIndent()
+
+/**
+ * MapLibre's own public glyph PBF endpoint (demotiles.maplibre.org, no key) — confirmed against
+ * the actual file listing in github.com/maplibre/demotiles, which has a `Noto Sans Bold` font
+ * directory. Without a `glyphs` URL in the style, a `SymbolLayer`'s `text-field` silently renders
+ * nothing: this was missing from the first cut of this style JSON, and the numbered area-marker
+ * labels came up as plain circles with no visible digit on real hardware — caught from the
+ * project owner's screenshot, not predicted in advance.
+ */
+private const val GLYPHS_URL_TEMPLATE = "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf"
+private val AREA_MARKER_FONT_STACK = arrayOf("Noto Sans Bold")
 
 @Composable
 private fun MapLibreOverlayPreview(basemap: PreviewBasemap, modifier: Modifier) {
@@ -219,6 +231,7 @@ private fun addOverlayLayers(style: Style) {
     style.addLayer(
         SymbolLayer(AREA_MARKER_LABEL_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
             PropertyFactory.textField("{label}"),
+            PropertyFactory.textFont(AREA_MARKER_FONT_STACK), // must match a font in GLYPHS_URL_TEMPLATE's set, or text-field renders nothing
             PropertyFactory.textColor("#FFFFFF"), // matching SightingsMap.AREA_MARKER_FOREGROUND_COLOR
             PropertyFactory.textSize(14f),
             PropertyFactory.textAllowOverlap(true),
