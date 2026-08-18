@@ -176,6 +176,58 @@ settled, not open:
    tracking is a separate feature to be scoped later; nothing here should
    assume it's coming or leave a half-built hook for it.
 
+## Phase 2 — navigation restructure (post-delivery, from live user testing)
+
+Written after Phase 1 shipped and the owner tried the APK. Supersedes
+decision #6 above and part of #4 — recorded here rather than silently
+edited into "Decisions made in planning," since that section is a record of
+what planning actually settled on at the time, and this is a later,
+separate round of direction from the same owner.
+
+**The owner's request, condensed:** the search drawer becomes the whole
+search feature — region/radius, species/category filter, and foraging
+areas all live there, not split between a top app bar and the drawer.
+`ActiveSearchSummary` (the "Fungi · August · 15 km" line) stays visible
+above the map as a read-only quick-glance, since re-opening the drawer just
+to check what's currently searched is friction the owner explicitly didn't
+want. The app-bar tune icon is removed — the map icon stack's Search button
+is now the only entry point, since a second button opening the identical
+panel is redundant. Settings and the mushroom log move out of the drawer
+entirely and become their own bottom-nav destinations (`Journal`,
+`Settings`), replacing decision #6's "stays in the existing drawer."
+Settings gains a metric/imperial distance-unit toggle; everything else in
+Settings is unchanged. Journal opens a gallery (existing entries + an
+"add" tile styled as a journal-entry outline with a `+`), and starting a
+new entry from the gallery needs a location — the owner chose a small
+interactive map picker (long-press to place the pin) over the alternatives
+raised (device location, last-searched region center) when asked directly.
+
+**Bottom nav is now 5 destinations**, not 3: `List` / `Maps` / `Seasonal` /
+`Journal` / `Settings` — supersedes decision #4's "same three destinations
+as today's `ResultsTab` enum." `ResultsTab` (List/Map/Seasonal) still
+exists underneath and still drives `CombinedResultsPane` on
+`MEDIUM`/`EXPANDED` windows, untouched; compact's bottom nav now wraps a
+superset (`CompactTab`) and keeps the two in sync only for the three
+destinations they share.
+
+**Self-found regression, fixed in the same pass:** removing the app-bar
+tune icon removes the *only* way to reach search before a first search has
+ever run, because the map icon stack (including its Search button) is
+gated on `uiState.hasSearched` — it doesn't exist yet on a fresh install.
+That's a real dead end, not just a test artifact: a first-time user would
+have had no way to ever open search. Fixed by adding an explicit "Open
+Search" button to `CompactMapTab`'s pre-search state, doing the same
+`isDrawerOpen = true` the icon stack's Search button does. Worth flagging
+because it means **search is only reachable from the Maps tab** — there is
+no quick-search affordance from List/Seasonal/Journal/Settings, since
+`ActiveSearchSummary` is deliberately read-only everywhere in compact (see
+above). If that turns out to be worse than expected in practice, the fix is
+either a persistent search affordance outside the Maps tab or accepting the
+one-tab-away cost; not decided here.
+
+This phase is compact-only, same as Phase 1 — `MEDIUM`/`EXPANDED`'s
+`PermanentNavigationDrawer` + `CombinedResultsPane` path is untouched.
+
 ## New capability: compass
 
 No sensor code exists in this app. Needs an owned interface — e.g.

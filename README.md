@@ -15,11 +15,15 @@ more certainty than the data supports. See `AvailabilityForecast` and
 
 ## How it works
 
-1. Search controls live in a **navigation drawer**, opened from the tune
-   icon in the app bar. You pick a region there — either "use current
-   location" (device GPS/network location, with a radius slider) or manually
-   entered latitude/longitude — and a month. The drawer keeps the map, which
-   is the primary content, at full height; a one-line strip under the app bar
+1. Search controls live in a **navigation drawer**. On medium/expanded
+   windows (tablets, landscape, foldables) it's opened from the tune icon in
+   the app bar; on a compact (phone-width) window there is no app bar or tune
+   icon — the drawer is reached from the map's own floating **Search** icon
+   instead (or an **Open Search** button before a first search has run — see
+   item 6 below). You pick a region there — either "use current location"
+   (device GPS/network location, with a radius slider) or manually entered
+   latitude/longitude — and a month. The drawer keeps the map, which is the
+   primary content, at full height; a one-line strip above it
    ("Fungi · August · 15 km") says what the current search is while the
    controls are hidden. See `ui/availability/AvailabilityScreen` for why the
    controls are not stacked above the results.
@@ -82,38 +86,59 @@ more certainty than the data supports. See `AvailabilityForecast` and
    `ClusterForagingAreasUseCase`, not data-derived facts.
 
    **On a compact (phone-width) window, the Maps tab is full-bleed**, with a
-   bottom nav (List / Maps / Seasonal, replacing the old top tab row) and a
-   right-edge floating icon stack over the map itself: fullscreen (hides the
-   app bar and bottom nav, leaving only the map and the stack — tap the map
-   or the icon again to bring chrome back), GPS locate-me (recenters the map
-   on the device's live location; distinct from "use current location" above,
+   bottom nav — **List / Maps / Seasonal / Journal / Settings**, five
+   destinations, replacing the old top tab row — and a right-edge floating
+   icon stack over the map itself: fullscreen (hides the bottom nav and the
+   quick-search strip, leaving only the map and the stack — tap the map or
+   the icon again to bring chrome back), GPS locate-me (recenters the map on
+   the device's live location; distinct from "use current location" above,
    which sets the *search region* instead — the two never share state), the
-   topo/regular toggle described below, a second entry into this same search
-   drawer, and an add (+) button. The add button opens the exact same
-   "Plan a trip / Log a find" chooser the map's long-press gesture opens — it
-   sets the identical pending-location state the gesture sets, not a parallel
-   handler, so the two entry points can't drift apart — centred on the
-   current search region rather than requiring its own GPS fetch. A compass +
-   GPS-altitude strip sits at the top of the map (elevation reads `null`,
-   shown as "unavailable," whenever the location fix didn't report one — e.g.
-   a network-based fix — never a guessed value); the compass reads the
-   device's rotation-vector sensor, falling back to accelerometer +
-   magnetometer, behind an owned `domain/CompassProvider` interface so it's
-   testable without real hardware. The foraging-areas toggle and summary
-   panel now float as a card over the map instead of sitting in the space
-   below it, since full-bleed leaves no reserved space there — a change made
-   with the project owner once the full-bleed layout made the old fixed-height
-   layout impossible without giving space back. **Medium/expanded windows
-   (tablets, landscape, foldables) are unaffected** — they keep the permanent
-   drawer + side-by-side List/Map layout described below, none of the above.
-   See `ui/availability/AvailabilityScreen`'s `CompactMapTab` and
+   topo/regular toggle described below, **Search** (the only way to reach the
+   search drawer on compact — there is no app bar or tune icon here; before a
+   first search has run the icon stack doesn't exist yet, so the Maps tab
+   shows an **Open Search** button in its place), and an add (+) button. The
+   add button opens the exact same "Plan a trip / Log a find" chooser the
+   map's long-press gesture opens — it sets the identical pending-location
+   state the gesture sets, not a parallel handler, so the two entry points
+   can't drift apart — centred on the current search region rather than
+   requiring its own GPS fetch. A compass + GPS-altitude strip sits at the
+   top of the map (elevation reads `null`, shown as "unavailable," whenever
+   the location fix didn't report one — e.g. a network-based fix — never a
+   guessed value); the compass reads the device's rotation-vector sensor,
+   falling back to accelerometer + magnetometer, behind an owned
+   `domain/CompassProvider` interface so it's testable without real
+   hardware.
+
+   **The compact search drawer is the whole search feature, not just region
+   and month.** The species/category chips and taxon search field that used
+   to sit in the app bar, the foraging-areas toggle and summary that used to
+   float over the map, and Recent Searches, Advanced Search and Trip Planner
+   all live in this one drawer, reached only from the Maps tab (see above).
+   The "Fungi · August · 15 km" strip above the map stays visible on every
+   compact tab as a read-only summary of the current search, so checking
+   what's currently searched doesn't require opening the drawer — it just
+   can't *change* anything from there any more. **Settings and the mushroom
+   log are their own bottom-nav tabs** (`Journal`, `Settings`) rather than
+   drawer entries — see this item's Settings paragraph below and item 10 for
+   what changed. **Medium/expanded windows (tablets, landscape, foldables)
+   are unaffected** by any of this — they keep the permanent drawer +
+   side-by-side List/Map layout described below, with Settings/Offline
+   Maps/Mushroom Log still reached as drawer panels behind the app bar's tune
+   icon. See `ui/availability/AvailabilityScreen`'s `CompactMapTab`/
+   `CompactSearchDrawerContent`/`CompactSettingsTab` and
    `docs/plans/map-redesign.md`.
 
    **Which basemap draws the tiles is two separate decisions with two
    different lifetimes.** Which *service* to use — **OpenStreetMap** (the
    default) or **USGS** — is occasional, so it lives in **Settings ▸ Choose
-   Maps Service**, reached from the sticky entry at the bottom of the search
-   drawer. Which *mode* that service is in — topo or regular — is a
+   Maps Service** — reached from the sticky entry at the bottom of the search
+   drawer on medium/expanded windows, or the **Settings** bottom-nav tab on
+   compact. Settings also has an **imperial/metric** toggle for how every
+   distance in the app (search radius, offline-download radius, recent
+   searches, forecast summaries) is displayed — the underlying data and API
+   calls are always kilometres; this only changes the label
+   (`ui/availability/DistanceUnit`). Which *mode* that service is in — topo
+   or regular — is a
    during-the-walk decision made often, so it's a quick-fire icon (on a
    compact window, the third icon in the floating stack above; on medium+
    windows, still overlaid on the map's own top-right corner) rather than
@@ -295,12 +320,26 @@ more certainty than the data supports. See `AvailabilityForecast` and
    `domain/GetAvailabilityUseCase`.
 10. **A mushroom log lets you record a field find as a structured
     observation — Phase 1 (local only) of this feature; see below for what's
-    deferred.** Reached from the drawer's **Mushroom Log** entry (a sticky
-    row above Settings, the same reach pattern), and a new find is started
-    by long-pressing the map — which now asks "Plan a trip" or "Log a find"
-    instead of going straight to the trip dialog, so the existing gesture
-    grows a second option rather than the app growing a second gesture for
-    the same "I'm pointing at a place" action.
+    deferred.** On medium/expanded windows it's still reached from the
+    drawer's **Mushroom Log** entry (a sticky row above Settings), and a new
+    find is started by long-pressing the map — which asks "Plan a trip" or
+    "Log a find" instead of going straight to the trip dialog, so the
+    existing gesture grows a second option rather than the app growing a
+    second gesture for the same "I'm pointing at a place" action.
+
+    **On compact, the log has its own bottom-nav tab, labelled `Journal`.**
+    It opens a gallery (`ui/log/LogGalleryScreen`, a two-column grid) rather
+    than the drawer's plain list: every existing entry as a tile with its
+    cover photo (or a placeholder icon and an "Incomplete" label if any
+    field is still unrecorded), plus a permanent first tile — a dashed
+    outline with a centered `+` — that starts a new one. Since there's no
+    map to long-press from a bottom-nav tab, tapping that tile opens a small
+    interactive map instead (`ui/log/LogEntryLocationPicker`): long-press to
+    place a pin, "Place entry here" to confirm. It calls the exact same
+    start-entry handler the map's own long-press "Log a find" option calls,
+    so a Journal-started entry and a map-started one are the same code path,
+    not two. `ui/log/JournalTab` is what switches between the gallery, the
+    picker, and an entry's own detail screen.
 
     **The app never identifies the mushroom.** No species suggestion,
     candidate list, "likely," or confidence score anywhere in this feature —
@@ -486,14 +525,31 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `currentWindowWidthClass()` (`ui/adaptive/WindowWidthClass`) is what
   branches on it, a `PermanentNavigationDrawer` plus side-by-side
   `CombinedResultsPane` (List and Map together, the M3 "reveal" pattern) at
-  that width instead. On a compact window, `CompactMapTab` is the map redesign's
-  full-bleed replacement: same long-press flow, plus the right-edge
-  `MapIconStack`, the `CompassElevationStrip`, and `ForagingAreasOverlay`
-  floating over the map instead of sitting below it (see "How it works"
-  above and `docs/plans/map-redesign.md`). `ForagerBottomNav` replaces the
-  compact-only top tab row; `LocateMeStatus` (in this same package) is the
-  icon stack's GPS/locate-me state, deliberately independent of
-  `AvailabilityUiState.locationPermissionDenied`, which belongs to the
+  that width instead.
+
+  On a compact window, navigation is a different shape entirely rather than
+  a restyle of the drawer above — see `docs/plans/map-redesign.md`'s "Phase
+  2" section for why. `CompactTab` (`List`/`Maps`/`Seasonal`/`Journal`/
+  `Settings`) drives a 5-item `ForagerBottomNav`, kept in sync with the
+  shared `ResultsTab` only for the three destinations they have in common.
+  `CompactMapTab` is the map redesign's full-bleed replacement for `MapTab`:
+  same long-press flow, plus the right-edge `MapIconStack` and the
+  `CompassElevationStrip`; before a first search it shows an "Open Search"
+  button instead of the icon stack, since the stack (and its Search icon)
+  has nothing to attach to yet. `CompactSearchDrawerContent` is the compact
+  drawer's entire content — species/category search, Recent Searches,
+  Advanced Search, Trip Planner and the foraging-areas toggle all together,
+  reached only from `CompactMapTab`'s Search icon (there is no app bar or
+  tune icon on compact) — replacing the old `ForagingAreasOverlay`, which no
+  longer exists. `CompactSettingsTab` is what the `Settings` bottom-nav tab
+  shows (`SettingsContent` plus `OfflineMapsPanel`, the same composables the
+  medium/expanded drawer's `DrawerPanel.Settings`/`DrawerPanel.OfflineMaps`
+  use, just hosted outside the drawer); `DistanceUnit`
+  (`ui/availability/DistanceUnit.kt`) is the km/mi display toggle it hosts,
+  and `formatDistanceKm` is the one function every distance-displaying
+  composable in this package routes through. `LocateMeStatus` (in this same
+  package) is the icon stack's GPS/locate-me state, deliberately independent
+  of `AvailabilityUiState.locationPermissionDenied`, which belongs to the
   unrelated "use current location for search region" control.
 - `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
   osmdroid directly (the `MushroomRepository` pattern applied to the UI
@@ -524,6 +580,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
   per-section editors, including the sealed-choice pickers
   (`HymenophoreEditor`, `StipeEditor`, `HostSubstrateEditor`) that make
   choosing a variant the only way its sub-fields come into existence.
+  `JournalTab` is the compact bottom nav's equivalent of `LogPanel`, added
+  in the map redesign's Phase 2 rather than replacing `LogPanel` (see that
+  composable's own doc comment for why both exist): it switches between
+  `LogGalleryScreen` (the two-column grid gallery, plus its `AddEntryTile`),
+  `LogEntryDetailScreen` reused as-is, and `LogEntryLocationPicker` — the
+  minimal long-press-a-point map a new Journal entry needs, since there's no
+  full map to long-press on a bottom-nav tab the way `MapTab`'s gesture
+  works.
 
 These boundaries follow `CLAUDE.md`.
 
@@ -742,6 +806,48 @@ elements over a map is not something bounds-checking alone can catch);
 and whether the "tap the map to restore chrome" gesture feels right
 alongside osmdroid's own pan/zoom touch handling, which only a real
 `MapView` receiving real touches can settle.
+
+### Phase 2 — the compact navigation restructure (search-only drawer, 5-tab bottom nav, Journal gallery, distance unit), specifically
+
+Measured the same way as Phase 1 above, in the same session, against this
+exact diff: `./gradlew testDebugUnitTest` reports **422 tests, 0 failures,
+0 errors**, and `./gradlew assembleDebug` produced a real, signed
+`app-debug.apk`. The count is lower than Phase 1's 428 not because coverage
+shrank, but because several tests that asserted the *old* drawer/app-bar
+shape were rewritten in place rather than duplicated alongside new ones —
+`AvailabilityScreenLayoutTest`, `AvailabilityScreenMapIconStackTest`,
+`AvailabilityScreenConditionsMonthTest`,
+`AvailabilityScreenAdaptiveLayoutTest`,
+`AvailabilityScreenTripPlanningFlowTest`,
+`AvailabilityScreenSettingsPanelTest`, and `AvailabilityScreenOfflineCacheTest`
+all needed their drawer-opening helpers changed (the "Advanced search
+options" app-bar icon they clicked no longer exists on compact) and, in a
+few cases, their assertions changed to match where content actually moved
+(the foraging-areas toggle, the "15 km" search summary, a Settings-panel
+map-service switch) rather than where it used to be.
+
+One of those fixes caught a real navigation bug before it reached a device,
+not just a test failure: with the app-bar tune icon removed, the map icon
+stack's Search button was the *only* way to reach search — but that stack
+doesn't render until `uiState.hasSearched`, which is never true on a fresh
+install. A first-time user would have had no way to ever open search. Fixed
+by adding an explicit "Open Search" button to `CompactMapTab`'s pre-search
+state (see `docs/plans/map-redesign.md`'s "Phase 2" section for the full
+account); every test exercising a fresh, unsearched screen was updated to
+use that button rather than assuming the icon stack exists.
+
+Not verifiable headlessly, same limitation as Phase 1: how the Journal
+gallery grid, its dashed "+" tile, and the small long-press map picker
+actually look and feel on a device — Robolectric measures bounds and
+semantics, not whether a two-column grid of cover-photo thumbnails reads
+well at phone width, or whether long-pressing a small embedded map (rather
+than the full-bleed one) is comfortable to hit. Also unverified on a
+device: the metric/imperial Settings toggle's actual on-screen labels
+(`formatDistanceKm`'s output is unit-tested and exercised through
+`AvailabilityScreen`'s Robolectric suite as text, but not seen rendered),
+and whether losing the always-available search affordance outside the Maps
+tab (see "How it works" item 6 above) is a real friction point in practice
+rather than a reasoned tradeoff.
 
 ### The topographic basemap, specifically
 

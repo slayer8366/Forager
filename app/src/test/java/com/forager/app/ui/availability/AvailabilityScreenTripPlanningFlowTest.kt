@@ -160,7 +160,7 @@ class AvailabilityScreenTripPlanningFlowTest {
     }
 
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Open Search").performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")

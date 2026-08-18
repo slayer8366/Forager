@@ -171,7 +171,6 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     private fun openSettings() {
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
         composeRule.onNodeWithText("Settings").performClick()
     }
 
@@ -239,6 +238,12 @@ class AvailabilityScreenSettingsPanelTest {
 
         openSettings()
         composeRule.onNodeWithText("USGS").performClick()
+        composeRule.waitForIdle()
+
+        // Settings is its own bottom-nav tab now (not an overlay on the map), so the Maps tab's map
+        // slot is unmounted while here and won't observe the new service until it's recomposed —
+        // switch back to it, same as a real user would, before reading what it was handed.
+        composeRule.onNodeWithText("Maps").performClick()
         composeRule.waitForIdle()
 
         // "if a map has two modes, toggle the two": switching service must not reset the mode, so

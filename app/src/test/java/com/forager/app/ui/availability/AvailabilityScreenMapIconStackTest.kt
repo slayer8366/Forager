@@ -11,8 +11,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -158,8 +160,14 @@ class AvailabilityScreenMapIconStackTest {
         }
     }
 
+    /**
+     * Opens the drawer via the Maps tab's "Open Search" button — before any region has been
+     * searched, [CompactMapTab] has no map and so no icon stack yet (its own "Search" icon isn't
+     * reachable this early), so this button is the *only* way into the drawer for a first search;
+     * see that composable's own doc comment on its `!uiState.hasSearched` branch.
+     */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithText("Open Search").performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
@@ -191,14 +199,13 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the search icon opens the same drawer the app bar's tune icon opens`() {
+    fun `the search icon opens the search drawer`() {
         setScreen()
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Search").performClick()
 
-        // The drawer's Search panel content — proof the icon opened the real drawer, not a
-        // parallel search UI.
+        // The drawer's own content — proof the icon opened the real drawer, not a parallel search UI.
         composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
     }
 
@@ -217,26 +224,34 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `fullscreen hides the top app bar and bottom nav but keeps the map mounted`() {
+    fun `fullscreen hides the top strip and bottom nav but keeps the map mounted`() {
         setScreen()
         searchAReferenceRegion()
         CountingStubMapSlotState.compositionCount = 0
 
-        composeRule.onNodeWithContentDescription("Advanced search options").assertIsDisplayed()
-        composeRule.onNodeWithText("Maps").assertIsDisplayed()
+        // "Settings" (bottom nav) and the "Fungi · August · 15 km" search summary (top strip) stand
+        // in for the two chrome regions decision #5 hides together — there's no more app-bar tune
+        // icon to check now that species/category search and "Advanced search" both moved into the
+        // drawer. Matched by the summary's exact text rather than a "15 km" substring: the drawer
+        // sheet stays composed off-screen while closed (see openSearchDrawer()'s doc comment
+        // elsewhere in this suite) and its own "Search radius: 15 km" text would otherwise double
+        // the substring match.
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithText("Fungi · August · 15 km").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
         assertEquals("the map slot must not be torn down and recomposed from scratch on a chrome toggle", 0, CountingStubMapSlotState.compositionCount)
-        composeRule.onAllNodesWithContentDescription("Advanced search options").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Settings").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Fungi · August · 15 km").assertCountEquals(0)
 
         composeRule.onNodeWithContentDescription("Exit fullscreen").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Advanced search options").assertIsDisplayed()
-        composeRule.onNodeWithText("Maps").assertIsDisplayed()
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithText("Fungi · August · 15 km").assertIsDisplayed()
     }
 
     @Test
@@ -246,12 +261,12 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithContentDescription("Advanced search options").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Settings").assertCountEquals(0)
 
         composeRule.onNodeWithTag("map-slot").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Advanced search options").assertIsDisplayed()
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
     }
 
     @Test
@@ -287,12 +302,20 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the foraging areas overlay floats over the map rather than appearing as a separate tab`() {
+    fun `the foraging areas toggle lives in the search drawer, not floating over the map`() {
         setScreen()
         searchAReferenceRegion()
 
+        // searchAReferenceRegion leaves the drawer closed (a real search closes it) — foraging
+        // areas must not be reachable without opening it, the opposite of the earlier revision
+        // where it floated as an overlay on the map itself. The drawer sheet stays composed
+        // off-screen while closed, so its toggle row is still in the tree — assertIsNotDisplayed,
+        // not assertDoesNotExist, is what actually distinguishes "closed" from "open" here.
+        composeRule.onNodeWithText("Foraging areas").assertIsNotDisplayed()
+
+        composeRule.onNodeWithContentDescription("Search").performClick()
+
         composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
-        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
     }
 }
 

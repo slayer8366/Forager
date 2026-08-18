@@ -67,8 +67,15 @@ class AvailabilityScreenCompactWidthDrawerTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
+    /**
+     * "Settings" itself no longer works as this pin: it moved to the bottom nav (see
+     * `AvailabilityScreen`'s `CompactTab` and `ForagerBottomNav`) as part of the map redesign, so
+     * it's always on screen now regardless of drawer state. "Recent searches" — the drawer's own
+     * first section header, still exclusively drawer content — replaces it as the "behind the
+     * modal drawer" marker this test exists to pin.
+     */
     @Test
-    fun `the drawer's Settings entry is not shown until the drawer is opened`() {
+    fun `the drawer's search controls are not shown until the drawer is opened`() {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = SEARCHED_STATE,
@@ -98,7 +105,7 @@ class AvailabilityScreenCompactWidthDrawerTest {
             )
         }
 
-        composeRule.onNodeWithText("Settings").assertIsNotDisplayed()
+        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
     }
 
     /**
