@@ -83,3 +83,60 @@ val MIGRATION_3_4: Migration = object : Migration(3, 4) {
         )
     }
 }
+
+/**
+ * Adds `tracks`, `track_points`, and `waypoints` on top of version 4's tables — Phase 1a of the
+ * Forager Navigator plan (`docs/plans/forager-navigator-plan.md`). A real, hand-written migration,
+ * not `fallbackToDestructiveMigration()`: recorded tracks and dropped waypoints are irreplaceable
+ * field data in exactly the way mushroom-log entries are — see [ForagerDatabase]'s doc comment and
+ * [MIGRATION_3_4]'s for the precedent this follows.
+ *
+ * Column types and nullability here must match [TrackEntity]/[TrackPointEntity]/[WaypointEntity]
+ * exactly. `track_points.id` is `INTEGER PRIMARY KEY AUTOINCREMENT`, not `TEXT`, matching
+ * [TrackPointEntity]'s doc comment on why that one table departs from this database's usual `UUID`
+ * key. The index on `track_points.trackId` uses Room's standard generated name
+ * (`index_<table>_<column>`) so Room's own schema validation at app startup recognizes it as the
+ * one [TrackPointEntity]'s `@Index` declares, rather than flagging a schema mismatch.
+ */
+val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `tracks` (
+            `id` TEXT NOT NULL,
+            `name` TEXT,
+            `startedAtEpochMillis` INTEGER NOT NULL,
+            `endedAtEpochMillis` INTEGER,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `track_points` (
+            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            `trackId` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `altitude` REAL,
+            `accuracyMeters` REAL,
+            `timestampEpochMillis` INTEGER NOT NULL)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_track_points_trackId` ON `track_points` (`trackId`)",
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `waypoints` (
+            `id` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `altitude` REAL,
+            `name` TEXT NOT NULL,
+            `note` TEXT NOT NULL,
+            `createdAtEpochMillis` INTEGER NOT NULL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+    }
+}

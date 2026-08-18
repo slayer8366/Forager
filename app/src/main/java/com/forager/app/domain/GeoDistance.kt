@@ -3,6 +3,7 @@ package com.forager.app.domain
 import com.forager.app.domain.model.GeoBoundingBox
 import com.forager.app.domain.model.LatLng
 import kotlin.math.asin
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -76,6 +77,25 @@ object GeoDistance {
         val west = normalizeLongitudeDegrees(center.lng - lngSpanDegrees)
 
         return GeoBoundingBox(north = north, south = south, east = east, west = west)
+    }
+
+    /**
+     * Initial great-circle bearing from [from] to [to], in degrees clockwise from true north, in
+     * `[0, 360)`. This is the bearing to *start* walking on, not a bearing that stays constant
+     * along a great-circle route of any real length — over the short distances a return-to-start
+     * prompt is ever computed at, that distinction is immaterial. True north, not magnetic:
+     * [com.forager.app.domain.CompassProvider.heading] is already magnetic-north-relative, so
+     * combining the two is a UI-layer concern, not this function's.
+     */
+    fun initialBearingDegrees(from: LatLng, to: LatLng): Double {
+        val lat1 = Math.toRadians(from.lat)
+        val lat2 = Math.toRadians(to.lat)
+        val dLng = Math.toRadians(to.lng - from.lng)
+
+        val y = sin(dLng) * cos(lat2)
+        val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLng)
+        val bearing = Math.toDegrees(atan2(y, x))
+        return (bearing + 360.0) % 360.0
     }
 
     /**
