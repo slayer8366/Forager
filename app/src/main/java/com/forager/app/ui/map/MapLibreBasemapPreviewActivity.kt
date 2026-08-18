@@ -1,5 +1,6 @@
 package com.forager.app.ui.map
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,8 +28,15 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.forager.app.ui.theme.ForagerTheme
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.offline.OfflineManager
+import org.maplibre.android.offline.OfflineRegion
+import org.maplibre.android.offline.OfflineRegionError
+import org.maplibre.android.offline.OfflineRegionStatus
+import org.maplibre.android.offline.OfflineTilePyramidRegionDefinition
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory
@@ -36,13 +44,13 @@ import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 
 /**
- * Steps 1-2 of the osmdroid -> MapLibre migration (`docs/plans/maplibre-migration.md` §6, Track 2):
- * a basemap render, then sighting dots / numbered area markers / a dashed order connector as style
- * layers, re-created with the same colours and dash pattern [SightingsMap] uses so the "does this
- * still read against a real basemap" question (§6: "re-confirm the dash reads as dashed. Re-open
- * the colour question") is testable, not guessed at. Not wired into
+ * Steps 1-3 of the osmdroid -> MapLibre migration (`docs/plans/maplibre-migration.md` §6, Track 2):
+ * a basemap render, sighting dots / numbered area markers / a dashed order connector as style
+ * layers, and now an offline-region download using MapLibre's own `OfflineManager` — the mechanism
+ * meant to replace `PersistentTileWriter`'s hand-rolled writer. Not wired into
  * [com.forager.app.MainActivity]/[MapSlot]/[AvailabilityScreen] at all — `SightingsMap`, `Basemap`,
- * and every production screen are completely untouched by this class.
+ * `OsmdroidOfflineMapRepository`, and `PersistentTileWriter` are completely untouched by this
+ * class; retiring `PersistentTileWriter` for real is step 4, only once this step is seen working.
  *
  * Launch it manually once installed, either:
  * `adb shell am start -n com.forager.app/com.forager.app.ui.map.MapLibreBasemapPreviewActivity`,
@@ -58,6 +66,23 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * overlay data is five synthetic sighting points and three synthetic area markers around a fixed
  * Portland, OR coordinate — not a real search result, since this activity has no repository wiring.
  *
+ * ## What step 3's offline download here does and does not prove
+ *
+ * `OfflineTilePyramidRegionDefinition` needs a real, fetchable style **URL** — not the inline-JSON
+ * raster styles [rasterStyleJson] builds for the basemap picker above, which are never hosted
+ * anywhere. So the offline download below targets [DEMO_STYLE_URL] (the same one step 1 already
+ * proved renders), not USGS/OSM. This proves the mechanism — create a region, watch it download,
+ * confirm the resource count and byte count are real and nonzero, list it back after the app
+ * restarts — which is genuinely what `OfflineManager` replacing `PersistentTileWriter` depends on
+ * working. It does **not** prove USGS/OSM tiles specifically download and replay offline, and it
+ * is not the pre-built-regional-PMTiles-extract pipeline `maplibre-migration.md` §3's Option C
+ * calls for — that needs a real processing pipeline and real hosting this session has no way to
+ * stand up. Once `Basemap` itself becomes a hosted style URL (later migration work), the same
+ * `OfflineManager` call proven here applies to it directly.
+ *
+ * To actually verify offline replay: download a region, then turn on airplane mode and relaunch
+ * this activity — the downloaded area of the demo-style map should still render with no network.
+ *
  * Once confirmed on hardware, this class is deleted — it is scaffolding for verification, not a
  * feature.
  */
@@ -71,7 +96,10 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
 
         setContent {
             ForagerTheme {
+                val context = LocalContext.current
                 var selectedBasemap by remember { mutableStateOf(PreviewBasemap.OSM_STANDARD) }
+                var offlineStatus by remember { mutableStateOf<OfflineDownloadStatus>(OfflineDownloadStatus.Idle) }
+                var savedRegionsStatus by remember { mutableStateOf("Not checked yet") }
 
                 Box {
                     MapLibreOverlayPreview(basemap = selectedBasemap, modifier = Modifier)
@@ -82,7 +110,7 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
                         color = MaterialTheme.colorScheme.errorContainer,
                     ) {
                         Text(
-                            "MapLibre step-1/2 smoke test — synthetic overlay data. Not reachable from the real app.",
+                            "MapLibre step-1/2/3 smoke test — synthetic overlay data, demo-style offline download. Not reachable from the real app.",
                             modifier = Modifier.padding(8.dp),
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -97,11 +125,119 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
                                 Text(basemap.label)
                             }
                         }
+                        Button(onClick = { startOfflineDownload(context) { status -> offlineStatus = status } }) {
+                            Text("Download offline region (demo style)")
+                        }
+                        Surface(color = MaterialTheme.colorScheme.errorContainer) {
+                            Text(
+                                offlineStatus.describe(),
+                                modifier = Modifier.padding(8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Button(onClick = { listSavedRegions(context) { status -> savedRegionsStatus = status } }) {
+                            Text("List saved regions (survives restart?)")
+                        }
+                        Surface(color = MaterialTheme.colorScheme.errorContainer) {
+                            Text(
+                                savedRegionsStatus,
+                                modifier = Modifier.padding(8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+private sealed interface OfflineDownloadStatus {
+    data object Idle : OfflineDownloadStatus
+    data class Downloading(val completedResources: Long, val requiredResources: Long) : OfflineDownloadStatus
+    data class Complete(val resourceCount: Long, val byteCount: Long) : OfflineDownloadStatus
+    data class Failed(val reason: String) : OfflineDownloadStatus
+}
+
+private fun OfflineDownloadStatus.describe(): String = when (this) {
+    OfflineDownloadStatus.Idle -> "Offline region: not downloaded"
+    is OfflineDownloadStatus.Downloading -> "Offline region: downloading, $completedResources/$requiredResources resources"
+    is OfflineDownloadStatus.Complete -> "Offline region: complete, $resourceCount resources, $byteCount bytes"
+    is OfflineDownloadStatus.Failed -> "Offline region: failed — $reason"
+}
+
+/**
+ * Creates and starts an offline region download against [DEMO_STYLE_URL] — see this file's class
+ * doc comment ("What step 3's offline download here does and does not prove") for why the demo
+ * style, not USGS/OSM. [OfflineManager] is a process-wide singleton (not tied to any particular
+ * [MapView]), so this needs only a [Context] — the download runs and is persisted independent of
+ * whether the preview map itself is still on screen.
+ */
+private fun startOfflineDownload(context: Context, onStatus: (OfflineDownloadStatus) -> Unit) {
+    onStatus(OfflineDownloadStatus.Downloading(completedResources = 0, requiredResources = 0))
+
+    val bounds = LatLngBounds.Builder()
+        .include(LatLng(PREVIEW_CENTER_LAT + OFFLINE_REGION_HALF_SPAN_DEGREES, PREVIEW_CENTER_LNG + OFFLINE_REGION_HALF_SPAN_DEGREES))
+        .include(LatLng(PREVIEW_CENTER_LAT - OFFLINE_REGION_HALF_SPAN_DEGREES, PREVIEW_CENTER_LNG - OFFLINE_REGION_HALF_SPAN_DEGREES))
+        .build()
+    val definition = OfflineTilePyramidRegionDefinition(
+        DEMO_STYLE_URL,
+        bounds,
+        OFFLINE_REGION_MIN_ZOOM,
+        OFFLINE_REGION_MAX_ZOOM,
+        context.resources.displayMetrics.density,
+    )
+
+    OfflineManager.getInstance(context).createOfflineRegion(
+        definition,
+        OFFLINE_REGION_NAME.toByteArray(),
+        object : OfflineManager.CreateOfflineRegionCallback {
+            override fun onCreate(offlineRegion: OfflineRegion) {
+                offlineRegion.setObserver(object : OfflineRegion.OfflineRegionObserver {
+                    override fun onStatusChanged(status: OfflineRegionStatus) {
+                        onStatus(
+                            if (status.isComplete) {
+                                OfflineDownloadStatus.Complete(status.completedResourceCount, status.completedResourceSize)
+                            } else {
+                                OfflineDownloadStatus.Downloading(status.completedResourceCount, status.requiredResourceCount)
+                            },
+                        )
+                    }
+
+                    override fun onError(error: OfflineRegionError) {
+                        onStatus(OfflineDownloadStatus.Failed(error.message))
+                    }
+
+                    override fun mapboxTileCountLimitExceeded(limit: Long) {
+                        onStatus(OfflineDownloadStatus.Failed("tile count limit exceeded ($limit)"))
+                    }
+                })
+                offlineRegion.setDownloadState(OfflineRegion.STATE_ACTIVE)
+            }
+
+            override fun onError(error: String) {
+                onStatus(OfflineDownloadStatus.Failed(error))
+            }
+        },
+    )
+}
+
+/**
+ * Lists every offline region [OfflineManager] currently has persisted — the actual proof this
+ * step needs, since a region "downloading" on screen proves nothing about whether it survives an
+ * app restart (or, for the real feature, a killed foreground process). Run this after relaunching
+ * the activity (or the whole app) following a download to confirm persistence, not just progress.
+ */
+private fun listSavedRegions(context: Context, onStatus: (String) -> Unit) {
+    OfflineManager.getInstance(context).listOfflineRegions(object : OfflineManager.ListOfflineRegionsCallback {
+        override fun onList(offlineRegions: Array<OfflineRegion>?) {
+            onStatus("${offlineRegions?.size ?: 0} saved region(s)")
+        }
+
+        override fun onError(error: String) {
+            onStatus("Failed to list regions: $error")
+        }
+    })
 }
 
 /**
@@ -169,7 +305,7 @@ private fun MapLibreOverlayPreview(basemap: PreviewBasemap, modifier: Modifier) 
     DisposableEffect(basemap) {
         mapView.getMapAsync { map ->
             map.cameraPosition = CameraPosition.Builder()
-                .target(org.maplibre.android.geometry.LatLng(PREVIEW_CENTER_LAT, PREVIEW_CENTER_LNG))
+                .target(LatLng(PREVIEW_CENTER_LAT, PREVIEW_CENTER_LNG))
                 .zoom(13.0)
                 .build()
             // setStyle replaces the whole style object, so every layer added below has to be
@@ -250,6 +386,18 @@ private fun addOverlayLayers(style: Style) {
 
 private const val PREVIEW_CENTER_LAT = 45.5
 private const val PREVIEW_CENTER_LNG = -122.6
+
+/** MapLibre's own public demo style — the same one step 1 confirmed renders. See "What step 3's offline download here does and does not prove" above for why the offline test targets this rather than USGS/OSM. */
+private const val DEMO_STYLE_URL = "https://demotiles.maplibre.org/style.json"
+private const val OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test"
+
+// A real region, not a token gesture, but still small enough to download quickly on a phone
+// network and stay well clear of any tile-count limit. The demo style is simplified/low-detail
+// (country outlines), so a wide bounds with a modest zoom ceiling is what actually produces a
+// non-trivial, verifiable resource count rather than near-zero tiles.
+private const val OFFLINE_REGION_HALF_SPAN_DEGREES = 0.5
+private const val OFFLINE_REGION_MIN_ZOOM = 0.0
+private const val OFFLINE_REGION_MAX_ZOOM = 8.0
 
 private const val SIGHTING_SOURCE_ID = "preview-sightings"
 private const val SIGHTING_LAYER_ID = "preview-sightings-layer"
