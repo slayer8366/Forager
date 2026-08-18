@@ -235,6 +235,7 @@ abstract class AvailabilityScreenLayoutTest {
                 onRadiusChanged = {},
                 onMonthSelected = {},
                 onMapTabSelected = {},
+                onSeasonalTabSelected = {},
                 onToggleForagingAreas = {},
                 onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},

@@ -1,7 +1,7 @@
 package com.forager.app.domain
 
 import com.forager.app.domain.model.Region
-import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -54,7 +54,7 @@ private class ScriptedMushroomRepository(
         return speciesCounts
     }
 
-    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> =
+    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> =
         Result.failure(UnsupportedOperationException("sightings are not part of the cached search"))
 
     override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> =

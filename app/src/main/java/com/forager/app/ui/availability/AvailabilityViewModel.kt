@@ -11,6 +11,7 @@ import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
+import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationProvider
@@ -51,6 +52,7 @@ class AvailabilityViewModel(
     private val getPlannedTrips: GetPlannedTripsUseCase,
     private val savePlannedTrip: SavePlannedTripUseCase,
     private val deletePlannedTrip: DeletePlannedTripUseCase,
+    private val getSeasonalPattern: GetSeasonalPatternUseCase,
     private val offlineMapRepository: OfflineMapRepository,
 ) : ViewModel() {
 
@@ -59,6 +61,9 @@ class AvailabilityViewModel(
 
     /** The region+month+filter the current [AvailabilityUiState.sightings] were fetched for, or null if none fetched yet. */
     private var loadedSightingsQuery: Triple<Region, Int, TaxonFilter>? = null
+
+    /** The region+month+filter the current [AvailabilityUiState.seasonalPattern] was fetched for, or null if none fetched yet. */
+    private var loadedSeasonalPatternQuery: Triple<Region, Int, TaxonFilter>? = null
     private var taxonSearchJob: Job? = null
 
     init {
@@ -229,13 +234,13 @@ class AvailabilityViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingSightings = true, sightingsErrorMessage = null) }
             getSightings(region, state.selectedMonth, state.taxonFilter).fold(
-                onSuccess = { sightings ->
+                onSuccess = { page ->
                     loadedSightingsQuery = query
                     // Clustering is a pure transform of what was just fetched — no extra API
                     // call — so it's computed up front and the toggle only controls display.
-                    val areas = clusterForagingAreas(region, sightings)
+                    val areas = clusterForagingAreas(region, page.sightings)
                     _uiState.update {
-                        it.copy(isLoadingSightings = false, sightings = sightings, foragingAreas = areas)
+                        it.copy(isLoadingSightings = false, sightings = page.sightings, foragingAreas = areas)
                     }
                 },
                 onFailure = { error ->
@@ -256,12 +261,51 @@ class AvailabilityViewModel(
         _uiState.update { it.copy(showForagingAreas = show) }
     }
 
+    /**
+     * Called when the Seasonal tab becomes visible. Mirrors [onMapTabSelected]: fetched lazily,
+     * only for the region+month+filter actually being viewed, and cached against that key so
+     * revisiting the tab without changing the search doesn't refetch — a fresh
+     * [GetSeasonalPatternUseCase] call means a fresh historical-weather fetch, not something to
+     * repeat on every tab switch.
+     */
+    fun onSeasonalTabSelected() {
+        val state = _uiState.value
+        val region = state.region ?: return
+        val query = Triple(region, state.selectedMonth, state.taxonFilter)
+        if (loadedSeasonalPatternQuery == query) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingSeasonalPattern = true, seasonalPatternErrorMessage = null) }
+            getSeasonalPattern(region, state.selectedMonth, state.taxonFilter).fold(
+                onSuccess = { distribution ->
+                    loadedSeasonalPatternQuery = query
+                    _uiState.update { it.copy(isLoadingSeasonalPattern = false, seasonalPattern = distribution) }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingSeasonalPattern = false,
+                            seasonalPattern = null,
+                            seasonalPatternErrorMessage = error.message ?: "Couldn't load the seasonal pattern.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
     private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
         // A new search invalidates any sightings loaded for a previous region/month/filter, and
         // with them the areas clustered from those sightings.
         loadedSightingsQuery = null
         _uiState.update {
             it.copy(sightings = emptyList(), foragingAreas = null, sightingsErrorMessage = null)
+        }
+
+        // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.
+        loadedSeasonalPatternQuery = null
+        _uiState.update {
+            it.copy(seasonalPattern = null, seasonalPatternErrorMessage = null)
         }
 
         viewModelScope.launch {

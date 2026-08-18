@@ -1,7 +1,7 @@
 package com.forager.app.domain
 
 import com.forager.app.domain.model.Region
-import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -20,7 +20,7 @@ private class FakeTaxaRepository(
         Result.success(emptyList<SpeciesObservationCount>())
 
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =
-        Result.success(emptyList<Sighting>())
+        Result.success(SightingsPage(sightings = emptyList(), totalResults = 0))
 
     override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
         lastQuery = query

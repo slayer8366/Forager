@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -85,12 +86,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.BuildConfig
@@ -106,6 +110,8 @@ import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
+import com.forager.app.domain.model.FruitingLagBucket
+import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MgrsCoordinate
 import com.forager.app.domain.model.NoTripWindowReason
@@ -134,6 +140,7 @@ import kotlinx.coroutines.delay
 private enum class ResultsTab(val label: String) {
     LIST("List"),
     MAP("Map"),
+    SEASONAL("Seasonal"),
 }
 
 /**
@@ -210,6 +217,7 @@ fun AvailabilityScreen(
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
     onMapTabSelected: () -> Unit,
+    onSeasonalTabSelected: () -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
     onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
@@ -294,6 +302,7 @@ fun AvailabilityScreen(
 
     LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth, uiState.taxonFilter) {
         if (selectedTab == ResultsTab.MAP) onMapTabSelected()
+        if (selectedTab == ResultsTab.SEASONAL) onSeasonalTabSelected()
     }
 
     // System back with the drawer open closes the drawer instead of exiting — the drawer has no
@@ -470,6 +479,7 @@ fun AvailabilityScreen(
                         onToggleForagingAreas = onToggleForagingAreas,
                         modifier = Modifier.weight(1f),
                     )
+                    ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -1522,6 +1532,180 @@ private fun ResultsSection(uiState: AvailabilityUiState, modifier: Modifier = Mo
                         SpeciesRow(entry)
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The Seasonal tab: tests [FruitingPatternAssumptions.FRUITING_LAG_DAYS] — the 7–21 day
+ * rain-to-fruiting-lag rule of thumb [TripWindowsCard] and [ForagingWeatherGuidanceSection]
+ * already state as unmeasured field lore — against real historical iNaturalist sightings and real
+ * historical Open-Meteo rainfall for the current search, and reports what it finds.
+ *
+ * **This tab does not feed [AvailabilityEntry.relativeLikelihood] or the ranked List tab.** It
+ * answers one narrow question — does the data support this one named lag range — and nothing here
+ * changes how species are ranked. See [FruitingLagDistribution]'s own doc comment.
+ *
+ * Fetched lazily, keyed on region+month+filter, the same pattern [MapTab] already uses for
+ * sightings — see [AvailabilityViewModel.onSeasonalTabSelected].
+ */
+@Composable
+private fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Spacer(Modifier.height(Spacing.xs))
+        when {
+            !uiState.hasSearched -> Text(
+                "Choose a region in search options to test the rain-to-fruiting-lag rule of thumb " +
+                    "against real data.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            uiState.isLoadingSeasonalPattern -> Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+
+            uiState.seasonalPatternErrorMessage != null -> Text(
+                uiState.seasonalPatternErrorMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            uiState.seasonalPattern != null -> SeasonalPatternContent(uiState.seasonalPattern)
+        }
+    }
+}
+
+@Composable
+private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Text("Does rain predict fruiting?", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Testing whether ${distribution.filter.label} sightings actually cluster in the " +
+                "${FruitingPatternAssumptions.FRUITING_LAG_DAYS.first}–" +
+                "${FruitingPatternAssumptions.FRUITING_LAG_DAYS.last} days after a soaking rain — the " +
+                "widely-repeated foraging rule of thumb — against real historical observations and " +
+                "real historical rainfall.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+
+        SeasonalSampleSizeSummary(distribution)
+        FruitingLagChart(distribution.buckets, modifier = Modifier.fillMaxWidth())
+        FruitingLagBucketCounts(distribution.buckets)
+
+        HorizontalDivider()
+        // The observer-effort caveat: not polish, per this feature's own honesty requirement —
+        // raw counts conflate "more people were out looking" with "the species was more present."
+        Text(
+            "Raw iNaturalist counts reflect how many people were out looking that day, not only " +
+                "whether ${distribution.filter.label} was actually there — more observers means more " +
+                "sightings regardless of the rain.",
+            style = MaterialTheme.typography.bodySmall,
+            fontStyle = FontStyle.Italic,
+        )
+    }
+}
+
+/**
+ * The sample size, on screen and prominent rather than in a tooltip — this feature's whole
+ * honesty mechanism is that nobody can read a bar off [FruitingLagChart] without also seeing what
+ * it's an estimate from.
+ */
+@Composable
+private fun SeasonalSampleSizeSummary(distribution: FruitingLagDistribution) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(
+            "Estimate from ${distribution.sampleSize} observations with a known date, not a guarantee.",
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+            "Based on ${distribution.sightingsConsidered} of ${distribution.totalResultsOnServer} " +
+                "total observations iNaturalist reports for this search.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (distribution.observationsExcludedForMissingDate > 0) {
+            Text(
+                "${distribution.observationsExcludedForMissingDate} observation(s) have no recorded " +
+                    "date and are excluded from this estimate.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (distribution.observationsWithNoPrecedingEvent > 0) {
+            Text(
+                "${distribution.observationsWithNoPrecedingEvent} observation(s) had no qualifying " +
+                    "rain event in the fetched history before them.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+/**
+ * A hand-rolled Compose `Canvas` bar chart — no charting dependency, consistent with
+ * [com.forager.app.domain.Dbscan]/[com.forager.app.domain.GeoDistance]/
+ * [com.forager.app.domain.MgrsConverter] being hand-built rather than pulled from a library for a
+ * single use.
+ *
+ * The bucket whose [FruitingLagBucket.isFruitingLagRule] is true — the range this whole feature
+ * exists to test — is drawn in the theme's primary color; every other bucket, including "no
+ * preceding event", shares a second, unhighlighted color. That is the entire visual claim this
+ * chart makes: whether the data's tallest bar (or not) lines up with the rule of thumb. The exact
+ * counts behind each bar are [FruitingLagBucketCounts], not this canvas — pixel heights are for
+ * the shape of the distribution, not for reading an exact number off a screen.
+ */
+@Composable
+private fun FruitingLagChart(buckets: List<FruitingLagBucket>, modifier: Modifier = Modifier) {
+    val highlightColor = MaterialTheme.colorScheme.primary
+    val barColor = MaterialTheme.colorScheme.secondary
+    val maxCount = buckets.maxOfOrNull { it.count } ?: 0
+
+    Canvas(modifier = modifier.height(160.dp)) {
+        if (buckets.isEmpty()) return@Canvas
+        val gap = 8.dp.toPx()
+        val barWidth = ((size.width - gap * (buckets.size - 1)) / buckets.size).coerceAtLeast(0f)
+        buckets.forEachIndexed { index, bucket ->
+            val heightFraction = if (maxCount == 0) 0f else bucket.count.toFloat() / maxCount
+            val barHeight = size.height * heightFraction
+            drawRect(
+                color = if (bucket.isFruitingLagRule) highlightColor else barColor,
+                topLeft = Offset(x = index * (barWidth + gap), y = size.height - barHeight),
+                size = Size(width = barWidth, height = barHeight),
+            )
+        }
+    }
+}
+
+/**
+ * The exact count behind every bar of [FruitingLagChart], as real on-screen text — the canvas
+ * above is unmeasurable in the Robolectric layout tests this project relies on (no rendering
+ * happens under Robolectric; see [AvailabilityScreenLayoutTest]'s own doc comment for the same
+ * limitation on the map), so the numbers this feature's honesty rests on live here, not only in
+ * pixels.
+ */
+@Composable
+private fun FruitingLagBucketCounts(buckets: List<FruitingLagBucket>) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        buckets.forEach { bucket ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    if (bucket.isFruitingLagRule) "${bucket.label} (the rule of thumb)" else bucket.label,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (bucket.isFruitingLagRule) FontWeight.Bold else FontWeight.Normal,
+                )
+                Text("${bucket.count}", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

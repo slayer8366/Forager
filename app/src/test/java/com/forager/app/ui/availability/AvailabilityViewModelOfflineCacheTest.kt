@@ -1,14 +1,17 @@
 package com.forager.app.ui.availability
 
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
+import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
@@ -23,14 +26,17 @@ import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
 import java.io.IOException
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -83,8 +89,8 @@ private class SwitchableMushroomRepository : MushroomRepository {
         return failure?.let { Result.failure(it) } ?: Result.success(COUNTS)
     }
 
-    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> =
-        Result.success(emptyList())
+    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> =
+        Result.success(SightingsPage(sightings = emptyList(), totalResults = 0))
 
     override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> =
         Result.success(emptyList())
@@ -111,6 +117,11 @@ private object OfflineCacheStubPlannedTripRepository : PlannedTripRepository {
         Result.failure(UnsupportedOperationException("planned trips are not exercised by this test"))
     override suspend fun delete(id: String): Result<Unit> =
         Result.failure(UnsupportedOperationException("planned trips are not exercised by this test"))
+}
+
+private object OfflineCacheStubHistoricalWeatherProvider : HistoricalWeatherProvider {
+    override suspend fun getHistoricalPrecipitation(region: Region, from: LocalDate, through: LocalDate): Result<List<DailyWeather>> =
+        Result.failure(UnsupportedOperationException("seasonal pattern not exercised by this test"))
 }
 
 private object OfflineCacheStubOfflineMapRepository : OfflineMapRepository {
@@ -146,6 +157,11 @@ class AvailabilityViewModelOfflineCacheTest {
         getPlannedTrips = GetPlannedTripsUseCase(OfflineCacheStubPlannedTripRepository),
         savePlannedTrip = SavePlannedTripUseCase(OfflineCacheStubPlannedTripRepository),
         deletePlannedTrip = DeletePlannedTripUseCase(OfflineCacheStubPlannedTripRepository),
+        getSeasonalPattern = GetSeasonalPatternUseCase(
+            GetSightingsUseCase(remote),
+            OfflineCacheStubHistoricalWeatherProvider,
+            ComputeFruitingLagDistributionUseCase(),
+        ),
         offlineMapRepository = OfflineCacheStubOfflineMapRepository,
     )
 

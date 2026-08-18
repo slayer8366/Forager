@@ -1,7 +1,7 @@
 package com.forager.app.domain
 
 import com.forager.app.domain.model.Region
-import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -18,11 +18,14 @@ interface MushroomRepository {
 
     /**
      * Individual verifiable observations matching [filter] for [region] and [month] (1-12),
-     * across all years, that have a mappable position. iNaturalist omits or obscures the
-     * location of some observations (e.g. for conservation-sensitive taxa); those are left
-     * out here rather than plotted at a fabricated position.
+     * across all years, that have a mappable position, plus iNaturalist's own total for the
+     * query. iNaturalist omits or obscures the location of some observations (e.g. for
+     * conservation-sensitive taxa); those are left out of
+     * [SightingsPage.sightings][com.forager.app.domain.model.SightingsPage.sightings] rather
+     * than plotted at a fabricated position — see [SightingsPage] for why the total travels
+     * separately from the filtered list.
      */
-    suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>>
+    suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage>
 
     /** Name search (common or scientific) for building a [TaxonFilter.SpecificTaxon]. */
     suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>>

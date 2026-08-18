@@ -7,6 +7,7 @@ import com.forager.app.data.remote.dto.TaxonDto
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -32,7 +33,7 @@ class INaturalistMushroomRepository(
         }.map { response -> response.results.map(::toDomain) }
     }
 
-    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<List<Sighting>> {
+    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> {
         val query = filter.toQuery()
         return runCatchingCancellable {
             api.getObservations(
@@ -44,7 +45,12 @@ class INaturalistMushroomRepository(
                 taxonId = query.taxonId,
                 withoutTaxonId = query.withoutTaxonId,
             )
-        }.map { response -> response.results.mapNotNull(::toDomain) }
+        }.map { response ->
+            SightingsPage(
+                sightings = response.results.mapNotNull(::toDomain),
+                totalResults = response.totalResults,
+            )
+        }
     }
 
     override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
