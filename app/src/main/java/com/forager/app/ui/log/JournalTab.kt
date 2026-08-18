@@ -1,5 +1,6 @@
 package com.forager.app.ui.log
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,6 +70,20 @@ internal fun JournalTab(
     // to an entry after editing shows the freshly-recompiled report rather than staying in edit mode.
     var mode by remember { mutableStateOf(JournalEntryMode.REPORT) }
     val editing = uiState.editingEntry
+
+    // System back unwinds one of this tab's own nested states before AvailabilityScreen's
+    // top-level "switch away from a non-Maps tab" handler ever sees it — Compose's
+    // OnBackPressedDispatcher tries the most-recently-composed enabled callback first, so this one
+    // (composed as part of the Journal tab's own content) naturally takes priority. Mirrors the
+    // `when` below's own branch order: out of the edit form to the report, out of the report to the
+    // gallery, out of the picker to the gallery.
+    BackHandler(enabled = editing != null || pickingLocation) {
+        when {
+            editing != null && mode == JournalEntryMode.EDIT -> mode = JournalEntryMode.REPORT
+            editing != null -> onCloseEntry()
+            else -> pickingLocation = false
+        }
+    }
 
     when {
         editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(

@@ -433,20 +433,44 @@ fun AvailabilityScreen(
         if (selectedTab == ResultsTab.SEASONAL) onSeasonalTabSelected()
     }
 
-    // System back with the drawer open closes the drawer instead of exiting — the drawer has no
-    // swipe-to-close (see gesturesEnabled below), so back is otherwise the only physical-button
-    // way out, and letting it fall through to the app's own back-to-exit handling below would
-    // exit the whole app from what's meant to read as "go back one step."
+    // System back navigates one step toward "home" — the Maps tab, chrome visible, drawer closed
+    // — before falling through to the exit-confirmation handler at the bottom, rather than exiting
+    // from wherever the user happens to be. Nested UI further down the tree (a Journal entry, the
+    // Settings offline-maps submenu, the map's own add-action tile) unwinds itself first via its
+    // own local BackHandler — see JournalTab's, CompactSettingsTab's, and CompactMapTab's — since
+    // Compose's OnBackPressedDispatcher tries the most-recently-composed enabled callback first, so
+    // a nested composable's own handler naturally takes priority over these four.
+    //
+    // Each condition below explicitly excludes the states "more nested" than it, so at most one is
+    // ever enabled at once — declaration order isn't what decides precedence, in case that ever
+    // stops being true. Verified end to end (not just reasoned about) in
+    // AvailabilityScreenBackNavigationTest, including the case only compact width can reach where
+    // isDrawerOpen and isMapFullscreen are both true (the drawer's own Search entry point is still
+    // reachable while fullscreen — see MapIconStack).
+    //
+    // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are compact-only state
+    // that a medium/expanded window never changes away from its own defaults (isDrawerOpen stays
+    // false there; a PermanentNavigationDrawer is never "closed"), so none of this fires on that
+    // width class.
     BackHandler(enabled = isDrawerOpen) {
         isDrawerOpen = false
     }
+    BackHandler(enabled = !isDrawerOpen && isMapFullscreen) {
+        isMapFullscreen = false
+    }
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP) {
+        compactTab = CompactTab.MAP
+        // Keeps the shared ResultsTab-driven state in sync, same as ForagerBottomNav's own tap
+        // handler does — see compactTab's own doc comment for why the two exist side by side.
+        selectedTab = ResultsTab.MAP
+    }
 
-    // System back with the drawer closed: a second press within the window actually exits;
-    // a lone press just warns. This is a single-Activity app with nothing else back could
-    // sensibly navigate to, so an un-warned single back press off the map (which a pan gesture
-    // can graze) would otherwise dump the user straight out.
+    // "Home": drawer closed, chrome visible, Maps tab selected. A second back press within the
+    // window actually exits; a lone press just warns. This is a single-Activity app with nothing
+    // else back could sensibly navigate to once nothing is nested, so an un-warned single back
+    // press (which a pan gesture can graze) would otherwise dump the user straight out.
     var backPressedOnce by remember { mutableStateOf(false) }
-    BackHandler(enabled = !isDrawerOpen) {
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP) {
         if (backPressedOnce) {
             (context as? Activity)?.finish()
         } else {
@@ -1175,6 +1199,12 @@ private fun CompactSettingsTab(
     modifier: Modifier = Modifier,
 ) {
     var showOfflineMaps by remember { mutableStateOf(false) }
+
+    // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
+    // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
+    BackHandler(enabled = showOfflineMaps) {
+        showOfflineMaps = false
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         if (showOfflineMaps) {
@@ -2655,6 +2685,14 @@ private fun CompactMapTab(
 ) {
     var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
+
+    // AddActionTile is a plain overlay, not a real Dialog, so — unlike TripDatePickerDialog below,
+    // an M3 DatePickerDialog whose own Dialog window already handles system back for free — this
+    // needs its own BackHandler or system back would fall straight through it, same reasoning as
+    // AvailabilityScreen's own top-level "unwind before falling through" chain.
+    BackHandler(enabled = pendingLongPressLocation != null) {
+        pendingLongPressLocation = null
+    }
 
     val context = LocalContext.current
     LaunchedEffect(uiState.locateMeStatus) {
