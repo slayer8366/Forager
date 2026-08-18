@@ -137,15 +137,23 @@ private fun rasterStyleJson(basemap: PreviewBasemap): String = """
 """.trimIndent()
 
 /**
- * MapLibre's own public glyph PBF endpoint (demotiles.maplibre.org, no key) — confirmed against
- * the actual file listing in github.com/maplibre/demotiles, which has a `Noto Sans Bold` font
- * directory. Without a `glyphs` URL in the style, a `SymbolLayer`'s `text-field` silently renders
- * nothing: this was missing from the first cut of this style JSON, and the numbered area-marker
- * labels came up as plain circles with no visible digit on real hardware — caught from the
- * project owner's screenshot, not predicted in advance.
+ * MapLibre's own public glyph PBF endpoint (demotiles.maplibre.org, no key). Without a `glyphs`
+ * URL in the style, a `SymbolLayer`'s `text-field` silently renders nothing: this was missing from
+ * the first cut of this style JSON, and the numbered area-marker labels came up as plain circles
+ * with no visible digit on real hardware — caught from the project owner's screenshot, not
+ * predicted in advance.
+ *
+ * [AREA_MARKER_FONT_STACK] is `"Open Sans Semibold"`, not a guess: it's the exact font
+ * `raw.githubusercontent.com/maplibre/demotiles/gh-pages/style.json` — the real, currently-serving
+ * style this glyph endpoint backs — uses in its own `countries-label`/`geolines-label` layers'
+ * `text-font`. A first attempt at this fix used `"Noto Sans Bold"` (a font directory that does
+ * exist in the demotiles repo, per its GitHub file listing) but the labels still didn't render —
+ * this environment's egress proxy blocks demotiles.maplibre.org directly, so that couldn't be
+ * confirmed by fetching the glyph PBF itself; checking the reference style.json instead, rather
+ * than re-guessing a second font name, is what actually settled it.
  */
 private const val GLYPHS_URL_TEMPLATE = "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf"
-private val AREA_MARKER_FONT_STACK = arrayOf("Noto Sans Bold")
+private val AREA_MARKER_FONT_STACK = arrayOf("Open Sans Semibold")
 
 @Composable
 private fun MapLibreOverlayPreview(basemap: PreviewBasemap, modifier: Modifier) {
