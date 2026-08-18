@@ -169,6 +169,14 @@ kotlin {
     }
 }
 
+// Room's schema-export directory for its KSP annotation processor. Needed as of the mushroom log's
+// migration (see ForagerDatabase's doc comment on exportSchema flipping to true) so a future
+// migration has this version's schema history to migrate from — exportSchema = true alone only
+// warns that this location is missing, it doesn't provide one.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -198,6 +206,11 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // MushroomLogMigrationTest declares its own test-only @Database (LegacyForagerDatabaseV3,
+    // reusing production entity classes) to build a real version-3 database to migrate from —
+    // Room's KSP compiler has to run over test sources too, or that class has no generated
+    // implementation and the test fails with a ClassNotFoundException.
+    kspTest(libs.androidx.room.compiler)
 
     // Headless layout measurement of the Compose tree, on the JVM. Both are testImplementation:
     // nothing here may reach the APK, and `verifyNothingTestOnlyReachesTheApk` below checks the

@@ -104,7 +104,7 @@ class AvailabilityScreenTripPlanningFlowTest {
      */
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun setScreen() {
+    private fun setScreen(onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> }) {
         // A fresh instance per test, not a shared singleton: this repository is mutable, and each
         // test's assertions depend on starting from an empty store.
         val plannedTripRepository = TripFlowInMemoryPlannedTripRepository()
@@ -153,6 +153,7 @@ class AvailabilityScreenTripPlanningFlowTest {
                 onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                onStartLogEntry = onStartLogEntry,
                 mapSlot = TriggerableMapSlot,
             )
         }
@@ -173,6 +174,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithText("Simulate long press").performClick()
+        composeRule.onNodeWithText("Plan a trip").performClick()
         composeRule.onNodeWithText("Plan trip").assertIsDisplayed()
 
         composeRule.onNodeWithText("Plan trip").performClick()
@@ -192,6 +194,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithText("Simulate long press").performClick()
+        composeRule.onNodeWithText("Plan a trip").performClick()
         composeRule.onNodeWithText("Trip name").performTextReplacement("Chanterelle Ridge")
         composeRule.onNodeWithText("Plan trip").performClick()
         composeRule.waitForIdle()
@@ -206,10 +209,12 @@ class AvailabilityScreenTripPlanningFlowTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithText("Simulate long press").performClick()
+        composeRule.onNodeWithText("Plan a trip").performClick()
         composeRule.onNodeWithText("Plan trip").performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Simulate long press").performClick()
+        composeRule.onNodeWithText("Plan a trip").performClick()
         composeRule.onNodeWithText("Trip name").assertIsDisplayed()
         composeRule.onNodeWithText("Plan trip").performClick()
         composeRule.waitForIdle()
@@ -226,13 +231,14 @@ class AvailabilityScreenTripPlanningFlowTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithText("Simulate long press").performClick()
+        composeRule.onNodeWithText("Plan a trip").performClick()
         composeRule.onNodeWithText("Trip name").performTextReplacement("")
 
         composeRule.onNodeWithText("Plan trip").assertIsNotEnabled()
     }
 
     @Test
-    fun `dismissing the date picker without confirming saves nothing`() {
+    fun `dismissing the plan-or-log chooser without picking either saves nothing`() {
         setScreen()
         searchAReferenceRegion()
 
@@ -241,6 +247,33 @@ class AvailabilityScreenTripPlanningFlowTest {
         composeRule.waitForIdle()
 
         assertTrue(viewModel.uiState.value.plannedTrips.isEmpty())
+    }
+
+    @Test
+    fun `dismissing the date picker after choosing Plan a trip saves nothing`() {
+        setScreen()
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("Simulate long press").performClick()
+        composeRule.onNodeWithText("Plan a trip").performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.waitForIdle()
+
+        assertTrue(viewModel.uiState.value.plannedTrips.isEmpty())
+    }
+
+    @Test
+    fun `choosing Log a find calls onStartLogEntry with the long-pressed location instead of planning a trip`() {
+        var startedLogEntryAt: LatLng? = null
+        setScreen(onStartLogEntry = { location, _ -> startedLogEntryAt = location })
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("Simulate long press").performClick()
+        composeRule.onNodeWithText("Log a find").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(LONG_PRESS_LOCATION, startedLogEntryAt)
+        assertTrue("choosing Log a find must not also plan a trip", viewModel.uiState.value.plannedTrips.isEmpty())
     }
 }
 

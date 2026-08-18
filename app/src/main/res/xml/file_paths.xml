@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Only `captures/` is exposed: it's the sole directory this app ever hands a content:// URI for
+  (a camera capture's temporary destination — see com.forager.app.photo.CameraCaptureFiles).
+  `photos/`, where FilePhotoStore persists finished log photos, never needs a FileProvider URI —
+  this app only ever reads and writes it directly as files, it never grants another app access
+  to it.
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <files-path name="captures" path="captures/" />
+</paths>

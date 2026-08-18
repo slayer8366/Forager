@@ -8,15 +8,20 @@ import com.forager.app.data.remote.OpenMeteoClient
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.data.repository.OpenMeteoHistoricalWeatherProvider
 import com.forager.app.data.repository.OpenMeteoWeatherProvider
+import com.forager.app.data.repository.RoomMushroomLogRepository
 import com.forager.app.data.repository.RoomPlannedTripRepository
 import com.forager.app.data.repository.RoomSearchCacheRepository
+import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
+import com.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.forager.app.domain.CurrentTimeProvider
+import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
+import com.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
@@ -24,10 +29,14 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.LocationProvider
+import com.forager.app.domain.MushroomLogRepository
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.PhotoStore
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
+import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
+import com.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchCacheRepository
 import com.forager.app.domain.SearchTaxaUseCase
@@ -36,6 +45,8 @@ import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.location.AndroidLocationProvider
 import com.forager.app.map.OsmdroidOfflineMapRepository
+import com.forager.app.photo.CameraCaptureFiles
+import com.forager.app.photo.FilePhotoStore
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
 class AppContainer(context: Context) {
@@ -91,4 +102,15 @@ class AppContainer(context: Context) {
     val getRecentSearchesUseCase = GetRecentSearchesUseCase(searchCacheRepository)
 
     val offlineMapRepository: OfflineMapRepository = OsmdroidOfflineMapRepository(context)
+
+    val photoStore: PhotoStore = FilePhotoStore(context)
+    val cameraCaptureFiles = CameraCaptureFiles(context)
+
+    val mushroomLogRepository: MushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
+    val getMushroomLogEntriesUseCase = GetMushroomLogEntriesUseCase(mushroomLogRepository)
+    val createMushroomLogEntryUseCase = CreateMushroomLogEntryUseCase(mushroomLogRepository)
+    val saveMushroomLogEntryUseCase = SaveMushroomLogEntryUseCase(mushroomLogRepository)
+    val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(mushroomLogRepository)
+    val addPhotoToLogEntryUseCase = AddPhotoToLogEntryUseCase(photoStore, mushroomLogRepository)
+    val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(photoStore, mushroomLogRepository)
 }

@@ -41,9 +41,11 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -113,14 +115,20 @@ import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MgrsCoordinate
+import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.NoTripWindowReason
+import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
+import com.forager.app.photo.CameraCaptureFiles
+import com.forager.app.ui.log.LogPanel
+import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.BasemapCoverage
 import com.forager.app.ui.map.MapService
@@ -144,16 +152,21 @@ private enum class ResultsTab(val label: String) {
 }
 
 /**
- * The drawer's three panels — see [AvailabilityScreen]'s doc comment on `drawerPanel` for how
- * they're switched between. [Settings] is reached from the sticky entry at the bottom of [Search];
- * [OfflineMaps] is reached from a row inside [Settings], one level deeper — its own back arrow
- * returns to [Settings], not all the way to [Search], but closing the drawer entirely still resets
- * all the way back to [Search] regardless of which of the three was showing.
+ * The drawer's four panels — see [AvailabilityScreen]'s doc comment on `drawerPanel` for how
+ * they're switched between. [Settings] and [Log] are both reached from sticky entries at the
+ * bottom of [Search] (see [SettingsEntryRow]/`MushroomLogEntryRow`); [OfflineMaps] is reached from
+ * a row inside [Settings], one level deeper — its own back arrow returns to [Settings], not all the
+ * way to [Search]. Closing the drawer entirely resets all the way back to [Search] regardless of
+ * which panel was showing.
+ *
+ * [Log] additionally opens directly — bypassing [Search] — from the map's long-press "Log a find"
+ * option; see [MapTab]'s `onLogFindHere` call site in [AvailabilityScreen].
  */
 private enum class DrawerPanel {
     Search,
     Settings,
     OfflineMaps,
+    Log,
 }
 
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
@@ -246,6 +259,21 @@ fun AvailabilityScreen(
     onOfflineMapRadiusChanged: (Int) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineMaps: () -> Unit,
+    /**
+     * The mushroom log drawer destination's own state — see [com.forager.app.ui.log.LogPanel].
+     * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
+     * to do with the log don't need to pass log-specific state and callbacks just to compile.
+     */
+    logUiState: MushroomLogUiState = MushroomLogUiState(),
+    cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
+    /** Starts and immediately opens a new log entry — the map's long-press "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
+    onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> },
+    onOpenLogEntry: (String) -> Unit = {},
+    onCloseLogEntry: () -> Unit = {},
+    onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
+    onAddLogPhoto: (PhotoSource) -> Unit = {},
+    onRemoveLogPhoto: (LogPhoto) -> Unit = {},
+    onDeleteLogEntry: (String) -> Unit = {},
     /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
@@ -375,6 +403,9 @@ fun AvailabilityScreen(
                             },
                             currentTime = currentTime,
                         )
+                        // Both sticky footer rows: the log is the newer of the two, placed above
+                        // Settings so it isn't the last thing in the sheet — see MushroomLogEntryRow.
+                        MushroomLogEntryRow(onClick = { drawerPanel = DrawerPanel.Log })
                         // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
                         // moved to the bottom of the Settings panel below.
                         SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
@@ -406,6 +437,21 @@ fun AvailabilityScreen(
                             onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
                             onDownloadOfflineMaps = onDownloadOfflineMaps,
                             onDeleteOfflineMaps = onDeleteOfflineMaps,
+                        )
+                    }
+
+                    DrawerPanel.Log -> {
+                        LogPanel(
+                            modifier = Modifier.weight(1f),
+                            uiState = logUiState,
+                            cameraCaptureFiles = cameraCaptureFiles,
+                            onOpenEntry = onOpenLogEntry,
+                            onCloseEntry = onCloseLogEntry,
+                            onEntryChanged = onLogEntryChanged,
+                            onAddPhoto = onAddLogPhoto,
+                            onRemovePhoto = onRemoveLogPhoto,
+                            onDeleteEntry = onDeleteLogEntry,
+                            onBackToSearch = { drawerPanel = DrawerPanel.Search },
                         )
                     }
                 }
@@ -476,6 +522,14 @@ fun AvailabilityScreen(
                         isTopoMode = isTopoMode,
                         onToggleMapMode = { isTopoMode = !isTopoMode },
                         onPlaceTripPin = onPlaceTripPin,
+                        // Opens straight to the log's edit form for the new entry, bypassing
+                        // Search — see DrawerPanel's own doc comment on why Log is reachable both
+                        // ways.
+                        onLogFindHere = { location ->
+                            drawerPanel = DrawerPanel.Log
+                            isDrawerOpen = true
+                            onStartLogEntry(location, LocalDate.now())
+                        },
                         onToggleForagingAreas = onToggleForagingAreas,
                         modifier = Modifier.weight(1f),
                     )
@@ -620,6 +674,28 @@ private fun DrawerHeader(onClose: () -> Unit) {
             .clickable(role = Role.Button, onClick = onClose)
             .semantics { contentDescription = "Close search options" },
     ) {}
+}
+
+/**
+ * The Search panel's sticky-footer entry into the mushroom log, right above [SettingsEntryRow] —
+ * see [DrawerPanel]'s doc comment for the two sticky rows this drawer now has. No
+ * `navigationBarsPadding()` here: [SettingsEntryRow] below is still the last row in the sheet and
+ * carries that inset, so both rows don't independently pad for the same nav-bar gap.
+ */
+@Composable
+private fun MushroomLogEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.MenuBook, contentDescription = null)
+        Text("Mushroom Log", style = MaterialTheme.typography.titleSmall)
+    }
 }
 
 /**
@@ -1053,7 +1129,10 @@ private fun SearchControls(
  * this pattern yet — CLAUDE.md: no speculative generality ahead of a second real caller.
  */
 @Composable
-private fun CollapsibleSection(
+// internal rather than private: com.forager.app.ui.log's own drawer panel reuses this exact
+// "tap header to expand" shape for its record sections, rather than re-implementing the same
+// molecule a second time.
+internal fun CollapsibleSection(
     title: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -1716,11 +1795,15 @@ private fun FruitingLagBucketCounts(buckets: List<FruitingLagBucket>) {
  * and detail below it, which are bounded so they can't repeat the starvation this layout exists
  * to fix.
  *
- * Owns the long-press-to-plan-a-trip flow: [MapSlot] only reports *where* a long-press landed
- * (see its own doc comment for why), so the pending location and the date-picker dialog that
- * turns it into a saved [PlannedTrip] both live here, next to the only place that location can
- * come from. [defaultTripName] is computed from the trip count already in state, here rather than
- * inside the dialog, so the dialog stays a dumb presenter of whatever default it's handed.
+ * Owns the long-press flow: [MapSlot] only reports *where* a long-press landed (see its own doc
+ * comment for why), so the pending location and what it turns into both live here, next to the
+ * only place that location can come from. A long-press now offers two outcomes — plan a trip
+ * ([TripDatePickerDialog], turning it into a saved [PlannedTrip]) or log a find ([onLogFindHere],
+ * which opens the mushroom log's drawer destination — see `docs/plans/mushroom-log.md`'s
+ * Navigation section for why this reuses the gesture rather than adding a second one) — so
+ * [LongPressActionDialog] asks which before either path runs. [defaultTripName] is computed from
+ * the trip count already in state, here rather than inside the dialog, so the dialog stays a dumb
+ * presenter of whatever default it's handed.
  */
 @Composable
 private fun MapTab(
@@ -1730,9 +1813,11 @@ private fun MapTab(
     isTopoMode: Boolean,
     onToggleMapMode: () -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
+    onLogFindHere: (LatLng) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
 
     when {
@@ -1773,7 +1858,7 @@ private fun MapTab(
                             visibleAreas,
                             uiState.plannedTrips,
                             basemap,
-                            { location -> pendingTripLocation = location },
+                            { location -> pendingLongPressLocation = location },
                             Modifier.fillMaxSize(),
                         )
                         MapModeToggle(
@@ -1815,6 +1900,20 @@ private fun MapTab(
         }
     }
 
+    pendingLongPressLocation?.let { location ->
+        LongPressActionDialog(
+            onPlanTrip = {
+                pendingLongPressLocation = null
+                pendingTripLocation = location
+            },
+            onLogFind = {
+                pendingLongPressLocation = null
+                onLogFindHere(location)
+            },
+            onDismiss = { pendingLongPressLocation = null },
+        )
+    }
+
     pendingTripLocation?.let { location ->
         TripDatePickerDialog(
             defaultName = defaultTripName(uiState.plannedTrips.size),
@@ -1825,6 +1924,23 @@ private fun MapTab(
             onDismiss = { pendingTripLocation = null },
         )
     }
+}
+
+/** What a map long-press means — asked before either [TripDatePickerDialog] or `onLogFindHere` runs; see [MapTab]'s own doc comment. */
+@Composable
+private fun LongPressActionDialog(onPlanTrip: () -> Unit, onLogFind: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("What would you like to do here?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                TextButton(onClick = onPlanTrip, modifier = Modifier.fillMaxWidth()) { Text("Plan a trip") }
+                TextButton(onClick = onLogFind, modifier = Modifier.fillMaxWidth()) { Text("Log a find") }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 /**
