@@ -119,6 +119,12 @@ data class AvailabilityUiState(
     val offlineMapLngText: String = "",
     val offlineMapRadiusKm: Int = 15,
     val offlineMapStatus: OfflineMapStatus = OfflineMapStatus.NotDownloaded,
+    /**
+     * The map's GPS/locate-me icon stack button — see [LocateMeStatus]'s doc comment for why this
+     * is a separate field from [locationPermissionDenied], which belongs to the unrelated "use
+     * current location for search region" control.
+     */
+    val locateMeStatus: LocateMeStatus = LocateMeStatus.Idle,
 ) {
     val hasSearched: Boolean get() = region != null
 }

@@ -6,12 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -261,15 +259,34 @@ abstract class AvailabilityScreenLayoutTest {
     private fun rootBounds(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
 
     /**
-     * The bottom edge of the tab row, read from the tabs themselves: a [androidx.compose.material3.Tab]
-     * fills its row's height, so the lower of the two tab bottoms is the row's bottom. Taken from
-     * real nodes rather than the row's documented 48dp, so a Material change can't make this quietly
-     * wrong.
+     * Opens the search drawer via the map icon stack's own "Search" button — the compact drawer's
+     * only entry point now that the app bar (and its tune icon) is gone; species/category search
+     * and "Advanced search" both moved into the drawer itself — see
+     * [CompactSearchDrawerContent]'s doc comment. [setScreen] always lands on the Maps tab by
+     * default, so the icon is already on screen with no tab switch needed.
      */
-    private fun tabRowBottom(): Dp = maxOf(
-        composeRule.onNodeWithText("Map").getUnclippedBoundsInRoot().bottom,
-        composeRule.onNodeWithText("List").getUnclippedBoundsInRoot().bottom,
-    )
+    /**
+     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] shows a real map (and
+     * so the icon stack) from its very first composition, GPS-centred or on a fixed fallback while
+     * that's still pending, not only once a region has been searched.
+     */
+    private fun openSearchDrawer() {
+        composeRule.onNodeWithContentDescription("Search").performClick()
+    }
+
+    /**
+     * The bottom edge of the top strip, read from the "15 km" fragment of [ActiveSearchSummary]'s
+     * own rendered text rather than a hard-coded height, so a Material change can't make this
+     * quietly wrong. Replaces the pre-redesign `tabRowBottom()`, and the app-bar-based
+     * `appBarBottom()` that replaced it in turn: there is no more app bar for compact at all now
+     * — species/category search moved into the drawer (see [CompactSearchDrawerContent]) — so
+     * [ActiveSearchSummary] is the one thing still visible above the map in the default state, and
+     * the sibling this regression test now guards against. [SEARCHED_STATE]'s 15 km radius is
+     * stable text regardless of which month the test happens to run in; the month portion of that
+     * summary is not.
+     */
+    private fun topStripBottom(): Dp =
+        composeRule.onNodeWithText("15 km", substring = true).getUnclippedBoundsInRoot().bottom
 
     /**
      * **Test 1 — the regression test for the original bug.**
@@ -299,50 +316,47 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 2 — the map does not start above the tab row.**
+     * **Test 2 — the map does not start above the top app bar.**
      *
-     * After the map-first fix the tiles were overlapping the tab row. The clip that fixed that is
-     * osmdroid's business, but the slot's own geometry is this screen's, and if the slot itself
-     * starts above the tab row then no clip can save it.
+     * After the map-first fix the tiles were overlapping the (then top) tab row. The clip that
+     * fixed that is osmdroid's business, but the slot's own geometry is this screen's, and if the
+     * slot itself starts above the app bar then no clip can save it. The map redesign removed the
+     * compact top tab row entirely (see [ForagerBottomNav], now at the *bottom* of the screen), so
+     * the app bar is the sibling this regression test now guards against.
      */
     @Test
-    fun `the map slot starts at or below the bottom of the tab row`() {
+    fun `the map slot starts at or below the bottom of the top strip`() {
         setScreen(SEARCHED_STATE)
 
         val mapTop = mapSlotBounds().top
-        val tabsBottom = tabRowBottom()
+        val topBottom = topStripBottom()
 
-        println("MEASURED mapTop=$mapTop tabRowBottom=$tabsBottom")
+        println("MEASURED mapTop=$mapTop topStripBottom=$topBottom")
 
         assertTrue(
-            "The map slot must begin at or below the tab row's bottom edge, but its top is " +
-                "$mapTop and the tab row ends at $tabsBottom — the map's box overlaps the tabs.",
-            mapTop >= tabsBottom,
+            "The map slot must begin at or below the top strip's bottom edge, but its top is " +
+                "$mapTop and the strip ends at $topBottom — the map's box overlaps it.",
+            mapTop >= topBottom,
         )
     }
 
     /**
-     * **Test 3 — the visiting-order caption is below the map, not under it.**
+     * **Test 3 — the visiting-order caption is reachable, wherever it currently lives.**
      *
-     * [VISITING_ORDER_DISCLAIMER] is the whole honesty mechanism for the ordering feature. It was
-     * one of the things the map painted over.
+     * Before the map redesign, [VISITING_ORDER_DISCLAIMER] rendered in a fixed-height box below
+     * the map. The redesign first made it a floating overlay on the map itself, then the project
+     * owner's own later call ("move the foraging areas to the side search panel") moved it again,
+     * into [CompactSearchDrawerContent] alongside the rest of the foraging-areas section — it no
+     * longer touches the map's own bounds at all, so a geometry claim relative to the map slot is
+     * no longer the right invariant. What stays true across all three homes: the caption must
+     * still be reachable, not lost in whichever container currently holds it.
      */
     @Test
-    fun `the visiting order caption starts at or below the bottom of the map slot`() {
+    fun `the visiting order caption is reachable inside the search drawer`() {
         setScreen(SEARCHED_STATE)
+        openSearchDrawer()
 
-        val mapBottom = mapSlotBounds().bottom
-        val captionTop = composeRule.onNodeWithText(VISITING_ORDER_DISCLAIMER)
-            .getUnclippedBoundsInRoot().top
-
-        println("MEASURED mapBottom=$mapBottom captionTop=$captionTop")
-
-        assertTrue(
-            "The visiting-order caption must begin at or below the map slot's bottom edge, but " +
-                "its top is $captionTop and the map ends at $mapBottom — the caption is inside " +
-                "the map's box.",
-            captionTop >= mapBottom,
-        )
+        composeRule.onNodeWithText(VISITING_ORDER_DISCLAIMER).assertIsDisplayed()
     }
 
     /**
@@ -390,7 +404,7 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the drawer's Trip Planner section shows a no-search message before any region is chosen`() {
         setScreen(AvailabilityUiState())
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        openSearchDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNodeWithText("Choose a region in search options to see rain-driven trip windows.")
@@ -403,8 +417,15 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the drawer's Trip Planner section shows the trip windows card once a region is searched`() {
         setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_NO_WINDOWS))
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        openSearchDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
+
+        // Scrolled to the guidance heading below both assertions, not to "Trip Windows" itself:
+        // performScrollTo() bottom-aligns its target flush with the scrollable viewport's edge, and
+        // the whole card is short enough to fit the viewport once scrolled this far — so anchoring
+        // on the last piece brings the earlier two into view with clearance instead of flush against
+        // the boundary, which at this fontScale is exactly where "Trip Windows" itself would land.
+        composeRule.onNodeWithText("Rain and fungi: the general pattern").performScrollTo()
 
         composeRule.onNodeWithText("Trip Windows").assertIsDisplayed()
         composeRule.onNodeWithText(
@@ -436,7 +457,7 @@ abstract class AvailabilityScreenLayoutTest {
         val futureTrip = PlannedTrip(id = "future-trip", name = "Future Trip", location = LatLng(45.50, -122.80), date = today.plusDays(5))
         setScreen(SEARCHED_STATE.copy(plannedTrips = listOf(todayTrip, futureTrip)))
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        openSearchDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNodeWithText("Today").performScrollTo().assertIsDisplayed()
@@ -454,18 +475,12 @@ abstract class AvailabilityScreenLayoutTest {
      * (or behind a collapsed section nobody expanded) is no better than one measured to zero
      * height. Each is scrolled to through the real scroll container and then asserted to be on
      * screen, which is a stronger claim than existing in the tree.
-     *
-     * Species/category search used to be in this list — it was one of the drawer controls this
-     * test guarded. It moved to [AvailabilitySearchTopBar], in the app bar itself, so its
-     * reachability is asserted without opening the drawer at all in the test below instead. The
-     * foraging-areas toggle left this list for the same reason: it moved out of the drawer to sit
-     * directly below the map — see the test below this one.
      */
     @Test
     fun `every advanced-search drawer control is reachable`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        openSearchDrawer()
         composeRule.onNodeWithText("Advanced search").performClick()
 
         listOf(
@@ -479,31 +494,37 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * The foraging-areas toggle's own reachability claim: it used to be one of the drawer controls
-     * guarded above, behind the tune icon and the "Advanced search" section's expand tap. It now
-     * sits directly below the map itself — this asserts it is on screen with no drawer interaction
-     * at all, the same "reachable without the drawer" property [AvailabilitySearchTopBar]'s
-     * species search bar has.
+     * The foraging-areas toggle's own reachability claim. It has moved twice since the map
+     * redesign started: out of the drawer to sit below the map, then to float as an overlay on
+     * the map itself, and finally — the project owner's own later call, "move the foraging areas
+     * to the side search panel" — into [CompactSearchDrawerContent], where it lives now. Unlike
+     * [SearchControls]'s three sections, it's placed outside that composable's own scroll region
+     * (a fixed block below it, mirroring [FORAGING_AREAS_PANEL_MAX_HEIGHT]'s old below-map
+     * treatment — see that composable's doc comment), so it needs no section to expand first.
      */
     @Test
-    fun `the foraging areas toggle is reachable below the map without opening the drawer`() {
+    fun `the foraging areas toggle is reachable inside the search drawer`() {
         setScreen(SEARCHED_STATE)
+
+        openSearchDrawer()
 
         composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
     }
 
     /**
-     * **Test 6 — the species search bar is reachable without opening the drawer.**
+     * **Test 6 — the species search bar is reachable inside the search drawer.**
      *
-     * This is the control the user reported as buried: it used to sit behind the same tune-icon
-     * tap as location and radius, at the same depth as settings people touch once a session, then
-     * moved to a bar of its own above the tab row, and now lives in the app bar itself, replacing
-     * the static "Forager" title. This asserts it is on screen with no drawer interaction at all —
-     * the property the promotion exists to deliver.
+     * This is the control the user originally reported as buried, then promoted out of the drawer
+     * into the app bar — and now, per the project owner's later call ("the whole side panel is
+     * the search feature"), moved back into the drawer, alongside every other search control
+     * rather than split across two surfaces. It's the first thing in the drawer, above
+     * [SearchControls]'s own scroll region, so it needs no scrolling or section-expanding to reach.
      */
     @Test
-    fun `the species search bar is reachable without opening the drawer`() {
+    fun `the species search bar is reachable inside the search drawer`() {
         setScreen(SEARCHED_STATE)
+
+        openSearchDrawer()
 
         listOf(
             "Fungi",
@@ -525,7 +546,7 @@ abstract class AvailabilityScreenLayoutTest {
         val trip = PlannedTrip(id = "reachable-trip", name = "Reachable Trip", location = LatLng(45.40, -122.70), date = LocalDate.now())
         setScreen(SEARCHED_STATE.copy(plannedTrips = listOf(trip)))
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        openSearchDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNodeWithText("Planned Trips").performScrollTo().assertIsDisplayed()
@@ -540,33 +561,17 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * The Settings entry row is pinned below the search controls' scroll rather than inside it —
-     * it's the drawer's sticky way into Settings, so it may not be something the user has to scroll
-     * for. It occupies the exact slot [BuildIdentityFooter] used to (see [AvailabilityScreen]'s
-     * `SettingsEntryRow`), which is why this replaces the old "build footer stays visible" test
-     * rather than sitting alongside it — the footer itself moved to the bottom of the Settings panel,
-     * covered by [the Settings panel shows Choose Maps Service and the build identity footer].
+     * Settings is a bottom-nav destination now, not a drawer panel — moved there, alongside
+     * Journal, per the project owner's own call ("move settings and mushroom log from the side
+     * panel, add them both to the bottom row"). This asserts it's reachable with a single bottom
+     * nav tap, no drawer involved at all, replacing the old "Settings entry row stays visible
+     * without scrolling" and "the Settings panel shows Choose Maps Service and the build identity
+     * footer" tests (both bundled into one now that reaching Settings is one step instead of two).
      */
     @Test
-    fun `the Settings entry row stays visible without scrolling`() {
+    fun `the Settings tab is reachable from the bottom nav, with no drawer involved`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
-
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
-    }
-
-    /**
-     * The build identity footer, and the panel that now hosts it: tapping the sticky Settings entry
-     * row switches the drawer to the Settings panel, where the footer sits at the bottom exactly as
-     * it used to sit at the bottom of the Search panel — see [AvailabilityScreen]'s doc comment on
-     * `drawerPanel` for why the footer moved rather than the entry row growing a second copy of it.
-     */
-    @Test
-    fun `the Settings panel shows Choose Maps Service and the build identity footer`() {
-        setScreen(SEARCHED_STATE)
-
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
         composeRule.onNodeWithText("Settings").performClick()
 
         composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
@@ -578,50 +583,36 @@ abstract class AvailabilityScreenLayoutTest {
      * The drawer's own close affordance. Gestures are off on this drawer (a swipe over the map
      * means "pan", not "close" — see [AvailabilityScreen]'s doc comment), so tapping the scrim was
      * the only way out before this button existed; this asserts the button actually closes it
-     * rather than just existing in the tree.
+     * rather than just existing in the tree. "Recent searches" (the drawer's own first section
+     * header) stands in for "the drawer is open" now — "Settings" no longer works for this, since
+     * it moved to the always-visible bottom nav and would be displayed whether the drawer is open
+     * or not.
      */
     @Test
     fun `the drawer close button closes the drawer`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        openSearchDrawer()
+        composeRule.onNodeWithText("Recent searches").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Close search options").performClick()
 
-        composeRule.onNodeWithText("Settings").assertIsNotDisplayed()
+        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
     }
 
     /**
-     * The Settings panel's own back arrow returns to Search — the only way back from Settings
-     * other than closing and reopening the whole drawer (which resets it the same way; see
-     * [AvailabilityScreen]'s doc comment on `drawerPanel`).
+     * The "use current location" shortcut on the species search field, inside the drawer. It has
+     * to call the same [AvailabilityScreen.onUseCurrentLocation] callback [RegionControls]' own
+     * button calls — not a second location-fetch path — which this proves by wiring a recorder
+     * into that single callback and tapping the species field's icon rather than the drawer's
+     * "Advanced search" button.
      */
     @Test
-    fun `the Settings panel's back arrow returns to the Search panel`() {
-        setScreen(SEARCHED_STATE)
-
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
-
-        composeRule.onNodeWithContentDescription("Back to search options").performClick()
-
-        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Choose Maps Service").assertCountEquals(0)
-    }
-
-    /**
-     * The "use current location" shortcut in the search bar's category row. It has to call the
-     * same [AvailabilityScreen.onUseCurrentLocation] callback the drawer's own button calls — not
-     * a second location-fetch path — which this proves by wiring a recorder into that single
-     * callback and tapping the search-bar icon rather than the drawer's button.
-     */
-    @Test
-    fun `the search bar's location icon calls onUseCurrentLocation`() {
+    fun `the species search field's location icon calls onUseCurrentLocation`() {
         var callCount = 0
         setScreen(SEARCHED_STATE, onUseCurrentLocation = { callCount++ })
 
+        openSearchDrawer()
         composeRule.onNodeWithContentDescription("Use current location").performClick()
 
         assertTrue("onUseCurrentLocation should have been called exactly once", callCount == 1)
@@ -636,6 +627,6 @@ abstract class AvailabilityScreenLayoutTest {
  * which would render anything measurable under Robolectric anyway. This fills the same box and
  * carries a tag, so the box itself can be measured.
  */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag(MAP_SLOT_TAG))
 }

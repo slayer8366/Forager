@@ -33,7 +33,21 @@ typealias MapSlot = @Composable (
     areas: List<ForagingArea>,
     plannedTrips: List<PlannedTrip>,
     basemap: Basemap,
+    /**
+     * When non-null, pans the camera here instead of [region]'s own centre — the map redesign's
+     * GPS/locate-me icon (distinct from [region], which stays the search centre; see that button's
+     * call site in `AvailabilityScreen.kt`'s `CompactMapTab` for why this doesn't touch the search
+     * itself).
+     */
+    focusOverride: LatLng?,
     onLongPress: (LatLng) -> Unit,
+    /**
+     * Fires on a plain tap anywhere on the map — the map redesign's "tap the map to restore
+     * chrome" while fullscreen (see `CompactMapTab`'s call site). `{}` by every caller that has no
+     * fullscreen chrome to restore, same default-ignoring shape as [onLongPress] gets from callers
+     * with nothing to plan.
+     */
+    onTap: () -> Unit,
     modifier: Modifier,
 ) -> Unit
 
@@ -41,14 +55,16 @@ typealias MapSlot = @Composable (
  * The real map. This is the default every production call path gets, so introducing the seam
  * changed no caller: `MainActivity` passes nothing new.
  */
-val SightingsMapSlot: MapSlot = { region, sightings, areas, plannedTrips, basemap, onLongPress, modifier ->
+val SightingsMapSlot: MapSlot = { region, sightings, areas, plannedTrips, basemap, focusOverride, onLongPress, onTap, modifier ->
     SightingsMap(
         region = region,
         sightings = sightings,
         areas = areas,
         plannedTrips = plannedTrips,
         basemap = basemap,
+        focusOverride = focusOverride,
         onLongPress = onLongPress,
+        onTap = onTap,
         modifier = modifier,
     )
 }

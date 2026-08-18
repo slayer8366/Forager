@@ -155,7 +155,7 @@ class AvailabilityScreenOfflineCacheTest {
     fun `the recent searches picker lists its entries on screen`() {
         setScreen(CACHED_STATE.copy(recentSearches = listOf(RECENT_FUNGI, RECENT_PLANTS)))
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithContentDescription("Search").performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText("Fungi · ${monthName(8)}").performScrollTo().assertIsDisplayed()
@@ -171,7 +171,7 @@ class AvailabilityScreenOfflineCacheTest {
     fun `the recent searches picker states when nothing is saved yet`() {
         setScreen(CACHED_STATE.copy(recentSearches = emptyList()))
 
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithContentDescription("Search").performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText(
@@ -187,7 +187,7 @@ class AvailabilityScreenOfflineCacheTest {
     @Test
     fun `tapping a recent search reports that entry and closes the drawer`() {
         setScreen(CACHED_STATE.copy(recentSearches = listOf(RECENT_FUNGI, RECENT_PLANTS)))
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithContentDescription("Search").performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText("Plants · ${monthName(10)}").performScrollTo().performClick()
@@ -255,6 +255,6 @@ class AvailabilityScreenOfflineCacheTest {
 }
 
 /** Stands in for the real map; see [AvailabilityScreenLayoutTest]'s own stub for why. */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag("offline-cache-map-slot"))
 }

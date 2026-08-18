@@ -160,7 +160,7 @@ class AvailabilityScreenTripPlanningFlowTest {
     }
 
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+        composeRule.onNodeWithContentDescription("Search").performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
@@ -285,7 +285,7 @@ private val LONG_PRESS_LOCATION = LatLng(45.40, -122.70)
  * reports one via [com.forager.app.ui.map.SightingsMap]'s `onLongPress` — see that composable's
  * doc comment.
  */
-private val TriggerableMapSlot: MapSlot = { _, _, _, _, _, onLongPress, modifier ->
+private val TriggerableMapSlot: MapSlot = { _, _, _, _, _, _, onLongPress, _, modifier ->
     Column(modifier.testTag("map-slot")) {
         Button(onClick = { onLongPress(LONG_PRESS_LOCATION) }) {
             Text("Simulate long press")

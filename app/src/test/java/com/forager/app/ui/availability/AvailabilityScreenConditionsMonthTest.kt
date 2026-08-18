@@ -161,8 +161,19 @@ class AvailabilityScreenConditionsMonthTest {
         }
     }
 
-    private fun openDrawer() =
-        composeRule.onNodeWithContentDescription("Advanced search options").performClick()
+    /**
+     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] shows a real map (and
+     * so the icon stack) from its very first composition, not only once a region has been searched,
+     * so this works identically before and after the first search.
+     *
+     * That icon lives inside [CompactMapTab], which only composes while the Maps bottom-nav tab is
+     * selected — this test also drives the List tab (to check the Conditions card), so this
+     * switches back to Maps first rather than assuming it's already there.
+     */
+    private fun openDrawer() {
+        composeRule.onNodeWithText("Maps").performClick()
+        composeRule.onNodeWithContentDescription("Search").performClick()
+    }
 
     /**
      * Opens the drawer and expands its "Advanced search" section, exactly as a user would tap it.
@@ -229,7 +240,7 @@ class AvailabilityScreenConditionsMonthTest {
     }
 }
 
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
 
 /** The coordinate path is what this test drives, so the device-location path is never reached. */
 private object UnusedLocationProvider : LocationProvider {

@@ -221,6 +221,36 @@ class AvailabilityViewModel(
     }
 
     /**
+     * The map icon stack's GPS/locate-me button: recenters the map on the device's live location.
+     * Deliberately independent of [useCurrentLocation] above — that one sets the *search region*
+     * and re-runs the search; this one only reports a point for the map to pan to, touching
+     * neither [AvailabilityUiState.region] nor any search state. [LocateMeStatus] carries its own
+     * denied/unavailable states rather than reusing [AvailabilityUiState.locationPermissionDenied],
+     * which belongs to the other control.
+     */
+    fun locateMe() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(locateMeStatus = LocateMeStatus.Loading) }
+            val status = when (val result = locationProvider.getCurrentLocation()) {
+                is LocationResult.Success -> LocateMeStatus.Located(LatLng(result.lat, result.lng), result.altitude)
+                LocationResult.PermissionDenied -> LocateMeStatus.PermissionDenied
+                LocationResult.LocationUnavailable -> LocateMeStatus.Unavailable
+            }
+            _uiState.update { it.copy(locateMeStatus = status) }
+        }
+    }
+
+    /**
+     * The Activity denied the OS permission dialog before [locationProvider] was ever asked — see
+     * [onPermissionDenied] for why that gate is the Activity's job, not this class's. Mirrors it
+     * for [LocateMeStatus] rather than [AvailabilityUiState.locationPermissionDenied], which is the
+     * other control's field.
+     */
+    fun onLocateMePermissionDenied() {
+        _uiState.update { it.copy(locateMeStatus = LocateMeStatus.PermissionDenied) }
+    }
+
+    /**
      * Called when the map tab becomes visible. Sightings are fetched lazily, only for the
      * region+month+filter actually being viewed, rather than on every list search, since a
      * map view the user never opens shouldn't cost an extra API call.

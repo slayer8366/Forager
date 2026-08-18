@@ -15,11 +15,15 @@ more certainty than the data supports. See `AvailabilityForecast` and
 
 ## How it works
 
-1. Search controls live in a **navigation drawer**, opened from the tune
-   icon in the app bar. You pick a region there — either "use current
-   location" (device GPS/network location, with a radius slider) or manually
-   entered latitude/longitude — and a month. The drawer keeps the map, which
-   is the primary content, at full height; a one-line strip under the app bar
+1. Search controls live in a **navigation drawer**. On medium/expanded
+   windows (tablets, landscape, foldables) it's opened from the tune icon in
+   the app bar; on a compact (phone-width) window there is no app bar or tune
+   icon — the drawer is reached from the map's own floating **Search** icon
+   instead (or an **Open Search** button before a first search has run — see
+   item 6 below). You pick a region there — either "use current location"
+   (device GPS/network location, with a radius slider) or manually entered
+   latitude/longitude — and a month. The drawer keeps the map, which is the
+   primary content, at full height; a one-line strip above it
    ("Fungi · August · 15 km") says what the current search is while the
    controls are hidden. See `ui/availability/AvailabilityScreen` for why the
    controls are not stacked above the results.
@@ -81,14 +85,64 @@ more certainty than the data supports. See `AvailabilityForecast` and
    are labelled adjustable assumptions in
    `ClusterForagingAreasUseCase`, not data-derived facts.
 
+   **On a compact (phone-width) window, the Maps tab is full-bleed**, with a
+   bottom nav — **List / Maps / Seasonal / Journal / Settings**, five
+   destinations, replacing the old top tab row — and a right-edge floating
+   icon stack over the map itself: fullscreen (hides the bottom nav and the
+   quick-search strip, leaving only the map and the stack — tap the map or
+   the icon again to bring chrome back), GPS locate-me (recenters the map on
+   the device's live location; distinct from "use current location" above,
+   which sets the *search region* instead — the two never share state), the
+   topo/regular toggle described below, **Search** (the only way to reach the
+   search drawer on compact — there is no app bar or tune icon here; before a
+   first search has run the icon stack doesn't exist yet, so the Maps tab
+   shows an **Open Search** button in its place), and an add (+) button. The
+   add button opens the exact same "Plan a trip / Log a find" chooser the
+   map's long-press gesture opens — it sets the identical pending-location
+   state the gesture sets, not a parallel handler, so the two entry points
+   can't drift apart — centred on the current search region rather than
+   requiring its own GPS fetch. A compass + GPS-altitude strip sits at the
+   top of the map (elevation reads `null`, shown as "unavailable," whenever
+   the location fix didn't report one — e.g. a network-based fix — never a
+   guessed value); the compass reads the device's rotation-vector sensor,
+   falling back to accelerometer + magnetometer, behind an owned
+   `domain/CompassProvider` interface so it's testable without real
+   hardware.
+
+   **The compact search drawer is the whole search feature, not just region
+   and month.** The species/category chips and taxon search field that used
+   to sit in the app bar, the foraging-areas toggle and summary that used to
+   float over the map, and Recent Searches, Advanced Search and Trip Planner
+   all live in this one drawer, reached only from the Maps tab (see above).
+   The "Fungi · August · 15 km" strip above the map stays visible on every
+   compact tab as a read-only summary of the current search, so checking
+   what's currently searched doesn't require opening the drawer — it just
+   can't *change* anything from there any more. **Settings and the mushroom
+   log are their own bottom-nav tabs** (`Journal`, `Settings`) rather than
+   drawer entries — see this item's Settings paragraph below and item 10 for
+   what changed. **Medium/expanded windows (tablets, landscape, foldables)
+   are unaffected** by any of this — they keep the permanent drawer +
+   side-by-side List/Map layout described below, with Settings/Offline
+   Maps/Mushroom Log still reached as drawer panels behind the app bar's tune
+   icon. See `ui/availability/AvailabilityScreen`'s `CompactMapTab`/
+   `CompactSearchDrawerContent`/`CompactSettingsTab` and
+   `docs/plans/map-redesign.md`.
+
    **Which basemap draws the tiles is two separate decisions with two
    different lifetimes.** Which *service* to use — **OpenStreetMap** (the
    default) or **USGS** — is occasional, so it lives in **Settings ▸ Choose
-   Maps Service**, reached from the sticky entry at the bottom of the search
-   drawer. Which *mode* that service is in — topo or regular — is a
-   during-the-walk decision made often, so it's a quick-fire icon overlaid on
-   the map's own top-right corner rather than buried in a menu: "if a map has
-   two modes, toggle the two." OpenStreetMap's two modes are OpenTopoMap and
+   Maps Service** — reached from the sticky entry at the bottom of the search
+   drawer on medium/expanded windows, or the **Settings** bottom-nav tab on
+   compact. Settings also has an **imperial/metric** toggle for how every
+   distance in the app (search radius, offline-download radius, recent
+   searches, forecast summaries) is displayed — the underlying data and API
+   calls are always kilometres; this only changes the label
+   (`ui/availability/DistanceUnit`). Which *mode* that service is in — topo
+   or regular — is a
+   during-the-walk decision made often, so it's a quick-fire icon (on a
+   compact window, the third icon in the floating stack above; on medium+
+   windows, still overlaid on the map's own top-right corner) rather than
+   buried in a menu: "if a map has two modes, toggle the two." OpenStreetMap's two modes are OpenTopoMap and
    the standard OSM street map; USGS's are USGS Topo and USGS Imagery.
    Switching service never resets the mode — leave the icon on regular mode
    under OpenStreetMap and switch the service to USGS, and the map lands on
@@ -266,12 +320,26 @@ more certainty than the data supports. See `AvailabilityForecast` and
    `domain/GetAvailabilityUseCase`.
 10. **A mushroom log lets you record a field find as a structured
     observation — Phase 1 (local only) of this feature; see below for what's
-    deferred.** Reached from the drawer's **Mushroom Log** entry (a sticky
-    row above Settings, the same reach pattern), and a new find is started
-    by long-pressing the map — which now asks "Plan a trip" or "Log a find"
-    instead of going straight to the trip dialog, so the existing gesture
-    grows a second option rather than the app growing a second gesture for
-    the same "I'm pointing at a place" action.
+    deferred.** On medium/expanded windows it's still reached from the
+    drawer's **Mushroom Log** entry (a sticky row above Settings), and a new
+    find is started by long-pressing the map — which asks "Plan a trip" or
+    "Log a find" instead of going straight to the trip dialog, so the
+    existing gesture grows a second option rather than the app growing a
+    second gesture for the same "I'm pointing at a place" action.
+
+    **On compact, the log has its own bottom-nav tab, labelled `Journal`.**
+    It opens a gallery (`ui/log/LogGalleryScreen`, a two-column grid) rather
+    than the drawer's plain list: every existing entry as a tile with its
+    cover photo (or a placeholder icon and an "Incomplete" label if any
+    field is still unrecorded), plus a permanent first tile — a dashed
+    outline with a centered `+` — that starts a new one. Since there's no
+    map to long-press from a bottom-nav tab, tapping that tile opens a small
+    interactive map instead (`ui/log/LogEntryLocationPicker`): long-press to
+    place a pin, "Place entry here" to confirm. It calls the exact same
+    start-entry handler the map's own long-press "Log a find" option calls,
+    so a Journal-started entry and a map-started one are the same code path,
+    not two. `ui/log/JournalTab` is what switches between the gallery, the
+    picker, and an entry's own detail screen.
 
     **The app never identifies the mushroom.** No species suggestion,
     candidate list, "likely," or confidence score anywhere in this feature —
@@ -392,8 +460,9 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `ComputeFruitingLagDistributionUseCase`, `GetSeasonalPatternUseCase`,
   `OfflineMapRepository`/`OfflineMapInfo` (always resolves to USGS Topo — no
   style parameter), and the
-  `MushroomRepository`/`LocationProvider`/`WeatherProvider`/`HistoricalWeatherProvider`/`SearchCacheRepository`/`CurrentTimeProvider`
-  interfaces. No Android imports, so it's unit-testable headless (see
+  `MushroomRepository`/`LocationProvider`/`WeatherProvider`/`HistoricalWeatherProvider`/`SearchCacheRepository`/`CurrentTimeProvider`/`CompassProvider`
+  interfaces (`CompassProvider` is the map redesign's addition — see
+  `sensor/` below). No Android imports, so it's unit-testable headless (see
   `app/src/test/`). `CurrentTimeProvider` is why: the cache's LRU stamps
   and the relative times rendered from them are injected rather than read
   off `System.currentTimeMillis()`, so both are assertable. The mushroom
@@ -430,6 +499,12 @@ more certainty than the data supports. See `AvailabilityForecast` and
   `context.filesDir/photos/`; `CameraCaptureFiles` issues the
   `FileProvider` URI a camera capture writes into (`filesDir/captures/`, a
   scratch handoff area distinct from the persisted photos).
+- `sensor/` — parallel to `location/`/`map/`/`photo/`: the one place that
+  touches `android.hardware.SensorManager` directly, behind the
+  `CompassProvider` interface. `AndroidCompassProvider` prefers the fused
+  rotation-vector sensor and falls back to accelerometer + magnetometer,
+  emitting `null` (not a stale or guessed heading) when neither is
+  available — the map redesign's compass/elevation strip.
 - `ui/availability/` — `AvailabilityViewModel` and the Compose screen: a
   `ModalNavigationDrawer` holding every search control over a map-first
   content area with the List/Map/Seasonal tab switch, plus three further
@@ -442,9 +517,40 @@ more certainty than the data supports. See `AvailabilityForecast` and
   order; `SearchControls` records why the picker is first and a section of
   its own. The List tab's offline banner lives here too, and the Seasonal
   tab's hand-rolled `Canvas` bar chart is `FruitingLagChart`, in the same
-  file. `MapTab`'s long-press now opens `LongPressActionDialog` — "Plan a
-  trip" or "Log a find" — before either the existing `TripDatePickerDialog`
-  or the mushroom log's own start-entry flow runs.
+  file. `MapTab`'s long-press opens `LongPressActionDialog` — "Plan a trip"
+  or "Log a find" — before either the existing `TripDatePickerDialog` or the
+  mushroom log's own start-entry flow runs; `MapTab` itself, and the
+  `ModalNavigationDrawer`/tab-switch description above, is now
+  medium/expanded (tablet, landscape, foldable) width only —
+  `currentWindowWidthClass()` (`ui/adaptive/WindowWidthClass`) is what
+  branches on it, a `PermanentNavigationDrawer` plus side-by-side
+  `CombinedResultsPane` (List and Map together, the M3 "reveal" pattern) at
+  that width instead.
+
+  On a compact window, navigation is a different shape entirely rather than
+  a restyle of the drawer above — see `docs/plans/map-redesign.md`'s "Phase
+  2" section for why. `CompactTab` (`List`/`Maps`/`Seasonal`/`Journal`/
+  `Settings`) drives a 5-item `ForagerBottomNav`, kept in sync with the
+  shared `ResultsTab` only for the three destinations they have in common.
+  `CompactMapTab` is the map redesign's full-bleed replacement for `MapTab`:
+  same long-press flow, plus the right-edge `MapIconStack` and the
+  `CompassElevationStrip`; before a first search it shows an "Open Search"
+  button instead of the icon stack, since the stack (and its Search icon)
+  has nothing to attach to yet. `CompactSearchDrawerContent` is the compact
+  drawer's entire content — species/category search, Recent Searches,
+  Advanced Search, Trip Planner and the foraging-areas toggle all together,
+  reached only from `CompactMapTab`'s Search icon (there is no app bar or
+  tune icon on compact) — replacing the old `ForagingAreasOverlay`, which no
+  longer exists. `CompactSettingsTab` is what the `Settings` bottom-nav tab
+  shows (`SettingsContent` plus `OfflineMapsPanel`, the same composables the
+  medium/expanded drawer's `DrawerPanel.Settings`/`DrawerPanel.OfflineMaps`
+  use, just hosted outside the drawer); `DistanceUnit`
+  (`ui/availability/DistanceUnit.kt`) is the km/mi display toggle it hosts,
+  and `formatDistanceKm` is the one function every distance-displaying
+  composable in this package routes through. `LocateMeStatus` (in this same
+  package) is the icon stack's GPS/locate-me state, deliberately independent
+  of `AvailabilityUiState.locationPermissionDenied`, which belongs to the
+  unrelated "use current location for search region" control.
 - `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
   osmdroid directly (the `MushroomRepository` pattern applied to the UI
   layer, so the screen can be composed in a test without starting tile
@@ -474,6 +580,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
   per-section editors, including the sealed-choice pickers
   (`HymenophoreEditor`, `StipeEditor`, `HostSubstrateEditor`) that make
   choosing a variant the only way its sub-fields come into existence.
+  `JournalTab` is the compact bottom nav's equivalent of `LogPanel`, added
+  in the map redesign's Phase 2 rather than replacing `LogPanel` (see that
+  composable's own doc comment for why both exist): it switches between
+  `LogGalleryScreen` (the two-column grid gallery, plus its `AddEntryTile`),
+  `LogEntryDetailScreen` reused as-is, and `LogEntryLocationPicker` — the
+  minimal long-press-a-point map a new Journal entry needs, since there's no
+  full map to long-press on a bottom-nav tab the way `MapTab`'s gesture
+  works.
 
 These boundaries follow `CLAUDE.md`.
 
@@ -638,6 +752,127 @@ drawer's open/close gestures behave (swipe-to-open is disabled on purpose so
 a horizontal drag over the map pans it instead), whether the `Scaffold`
 insets actually keep content clear of the navigation bar, and how the small
 dot markers for individual observations look at a dense radius.
+
+### The compact map redesign (full-bleed map, bottom nav, icon stack, compass/elevation strip), specifically
+
+This environment started with no Android SDK at all (`sdk.dir`/`ANDROID_HOME`
+unset), unlike the emulator gap below, which is a hardware limitation
+(`/dev/kvm` missing) rather than a missing tool. Command-line tools,
+platform 37, and build-tools 37 were fetched from Google's own repository
+and installed into the session for this task, so — unlike that gap —
+**this one is not merely reasoned about: `./gradlew testDebugUnitTest` and
+`./gradlew assembleDebug` were both run for real.** `testDebugUnitTest`
+reports **428 tests, 0 failures, 0 errors** across all 59 test classes
+(`app/build/test-results/testDebugUnitTest/`), including every test this
+task added or rewrote — `AvailabilityViewModelLocateMeTest` (6),
+`AvailabilityScreenMapIconStackTest` (10), the rewritten
+`AvailabilityScreenLayoutTest` variants (17 each, ×3 configurations), and
+the untouched medium/expanded-window tests
+(`AvailabilityScreenCompactWidthDrawerTest`,
+`AvailabilityScreenWideWindowLayoutTest`), all green. `assembleDebug`
+produced a real, signed `app-debug.apk`. Neither the SDK setup nor these
+runs happened in a CI system — they ran once, in this session, against
+this exact diff — so re-running them in CI or on a real checkout remains
+the independent confirmation worth having, but "compiles and its tests
+pass" is now a measured fact, not an inference from reading the diff.
+
+What the change reasons through, on top of that measured result:
+`LocationResult.altitude` is a new nullable field, read from
+`Location.hasAltitude()`/`getAltitude()`, that extends an existing type
+without touching either of its two existing call sites' behavior for
+callers that don't ask for it (default `null`). The new
+`CompassProvider`/`AndroidCompassProvider` mirror the existing
+`LocationProvider`/`AndroidLocationProvider` seam exactly, so the same
+reasoning that seam has already earned applies. The redesign itself is
+scoped to `WindowWidthClass.COMPACT` only, by construction — a separate
+`CompactMapTab` composable, not a conditional threaded into the existing
+`MapTab` — so the medium/expanded (tablet, landscape, foldable) layout's
+code path is byte-for-byte what it was before this change; its own tests
+(`AvailabilityScreenWideWindowLayoutTest`,
+`AvailabilityScreenCompactWidthDrawerTest`) passing unmodified is now
+measured confirmation of that, not just a claim about shared composables.
+
+Not verifiable headlessly even with a working build, and only a device
+can answer: live compass heading accuracy and smoothness (the fake used
+in tests proves the strip reacts to a heading value, not that a real
+rotation-vector sensor produces a usable one); GPS altitude accuracy in
+practice (a known limitation independent of this app — reported here as
+"the behavior is tested," not as a real-world accuracy number); how the
+full-bleed layout, the floating icon stack, and the floating foraging-areas
+overlay card read on very small or very large screens, or at a large font
+scale (the existing `AvailabilityScreenLayoutTest` measures the compact
+map's geometry headlessly, but visual crowding of five overlapping floating
+elements over a map is not something bounds-checking alone can catch);
+and whether the "tap the map to restore chrome" gesture feels right
+alongside osmdroid's own pan/zoom touch handling, which only a real
+`MapView` receiving real touches can settle.
+
+### Phase 2 — the compact navigation restructure (search-only drawer, 5-tab bottom nav, Journal gallery, distance unit), specifically
+
+Measured the same way as Phase 1 above, in the same session, against this
+exact diff: `./gradlew testDebugUnitTest` reports **422 tests, 0 failures,
+0 errors**, and `./gradlew assembleDebug` produced a real, signed
+`app-debug.apk`. The count is lower than Phase 1's 428 not because coverage
+shrank, but because several tests that asserted the *old* drawer/app-bar
+shape were rewritten in place rather than duplicated alongside new ones —
+`AvailabilityScreenLayoutTest`, `AvailabilityScreenMapIconStackTest`,
+`AvailabilityScreenConditionsMonthTest`,
+`AvailabilityScreenAdaptiveLayoutTest`,
+`AvailabilityScreenTripPlanningFlowTest`,
+`AvailabilityScreenSettingsPanelTest`, and `AvailabilityScreenOfflineCacheTest`
+all needed their drawer-opening helpers changed (the "Advanced search
+options" app-bar icon they clicked no longer exists on compact) and, in a
+few cases, their assertions changed to match where content actually moved
+(the foraging-areas toggle, the "15 km" search summary, a Settings-panel
+map-service switch) rather than where it used to be.
+
+One of those fixes caught a real navigation bug before it reached a device,
+not just a test failure: with the app-bar tune icon removed, the map icon
+stack's Search button was the *only* way to reach search — but that stack
+doesn't render until `uiState.hasSearched`, which is never true on a fresh
+install. A first-time user would have had no way to ever open search. Fixed
+by adding an explicit "Open Search" button to `CompactMapTab`'s pre-search
+state (see `docs/plans/map-redesign.md`'s "Phase 2" section for the full
+account); every test exercising a fresh, unsearched screen was updated to
+use that button rather than assuming the icon stack exists.
+
+Not verifiable headlessly, same limitation as Phase 1: how the Journal
+gallery grid, its dashed "+" tile, and the small long-press map picker
+actually look and feel on a device — Robolectric measures bounds and
+semantics, not whether a two-column grid of cover-photo thumbnails reads
+well at phone width, or whether long-pressing a small embedded map (rather
+than the full-bleed one) is comfortable to hit. Also unverified on a
+device: the metric/imperial Settings toggle's actual on-screen labels
+(`formatDistanceKm`'s output is unit-tested and exercised through
+`AvailabilityScreen`'s Robolectric suite as text, but not seen rendered),
+and whether losing the always-available search affordance outside the Maps
+tab (see "How it works" item 6 above) is a real friction point in practice
+rather than a reasoned tradeoff.
+
+### Phase 4 — back-button navigation, specifically
+
+Measured the same way as the phases above, in the same session: `./gradlew
+testDebugUnitTest` reports **438 tests, 0 failures, 0 errors**, and
+`./gradlew assembleDebug` produced a real, signed `app-debug.apk`. The new
+`AvailabilityScreenBackNavigationTest` (6 tests) is driven through the real
+`ComponentActivity.onBackPressedDispatcher` rather than by calling a
+`BackHandler`'s callback directly — the point of that suite is verifying
+*priority* among several independently-declared `BackHandler`s (the drawer,
+fullscreen chrome, the current tab, a nested Journal entry or Settings
+submenu), which only the real dispatcher's own stack can actually settle;
+reasoning about registration order alone would be exactly the kind of
+unverified claim CLAUDE.md rules out. That includes the one combination
+only compact width can reach — the drawer open while the map is also
+fullscreen, since the icon stack's Search button stays up in fullscreen —
+and the case where a nested Journal entry has to unwind before the tab
+switches away.
+
+**Not verifiable headlessly:** whether the physical back button and
+gesture-nav swipe on a real device actually route through the same
+dispatcher path Robolectric exercises here, and whether the multi-step
+unwind (drawer → fullscreen → tab → home) *feels* right in the hand rather
+than merely being correct step by step — five back presses to leave a deep
+state is a real cost this trades for never accidentally exiting from one.
 
 ### The topographic basemap, specifically
 

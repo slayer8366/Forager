@@ -13,6 +13,7 @@ import com.forager.app.data.repository.RoomPlannedTripRepository
 import com.forager.app.data.repository.RoomSearchCacheRepository
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.ClusterForagingAreasUseCase
+import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
@@ -47,6 +48,7 @@ import com.forager.app.location.AndroidLocationProvider
 import com.forager.app.map.OsmdroidOfflineMapRepository
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.photo.FilePhotoStore
+import com.forager.app.sensor.AndroidCompassProvider
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
 class AppContainer(context: Context) {
@@ -63,6 +65,7 @@ class AppContainer(context: Context) {
     val tripPlanningWeatherProvider: TripPlanningWeatherProvider = openMeteo
     val historicalWeatherProvider: HistoricalWeatherProvider = OpenMeteoHistoricalWeatherProvider(historicalWeatherApi)
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
+    val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
 
     /**
      * The one clock the app reads. Injected rather than called inline so the search cache's LRU
