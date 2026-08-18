@@ -136,6 +136,23 @@ its own uptime, cost, and abuse-surface considerations — see
 to distinguish two offline states (coarse regional extract vs. custom
 downloaded pack) rather than one.
 
+**Refinement (owner, 2026-08-18): build both, activate one.** Both code
+paths ship in this migration — the point of building the endpoint now
+rather than later stands — but the self-hosted tile endpoint is not
+turned on for real users at launch. Only the pre-built regional-extract
+path (free: static file hosting, no running service, no ongoing cost) is
+active. The custom-region long-press download stays wired to it,
+feature-flagged off or pointed at a dev/staging instance, until the app
+has revenue or funding to sustain the endpoint's hosting cost. Flipping it
+on for users at that point is a config/flag change, not new engineering
+— the entire point of building it during this migration instead of
+after. Until then, the user-drawn region picker in production either
+degrades to the nearest pre-built regional extract or reads as
+unavailable — pick the exact fallback in Phase 1b's actual implementation
+(§7), and represent it as a real readiness state, not a silent
+substitution (`CLAUDE.md`'s rule against unlogged fallback applies here
+same as everywhere else in this app).
+
 What the migration does not solve: licensing. See §8.
 
 ## 3. Layers, coverage, and scope
@@ -321,12 +338,15 @@ Two separate questions:
   not money, and `Basemap` already owns attribution as data (verified in
   `ui/map/Basemap`). This is a licensing question with no negotiation
   attached, and it stays that way for the pre-built-extract half of §2's
-  Option C decision. The self-hosted tile-endpoint half is a separate,
-  real operating cost — not a licensing fee, but ongoing hosting/egress
-  spend for the server this migration now stands up (see
-  `maplibre-migration.md` §7's infrastructure risk). Small at this
-  project's scale, but no longer zero, and worth stating as a number once
-  a hosting choice is picked.
+  Option C decision, which is what actually ships active at launch — the
+  app runs on the free path only until it can sustain more. The
+  self-hosted tile-endpoint half is built in the same migration (§2's
+  refinement) but stays dark for real users until then: a real operating
+  cost when it's switched on — not a licensing fee, but ongoing
+  hosting/egress spend for the server this migration stands up (see
+  `maplibre-migration.md` §7's infrastructure risk) — deferred, not
+  avoided. Worth stating as a number once a hosting choice is picked, at
+  activation time rather than now.
 - **Parcel data:** a real spend, or nothing. Nationwide private-parcel
   boundaries are a commercial dataset. This is the one place where
   matching what a funded competitor offers requires funding. It is a
@@ -370,6 +390,11 @@ else, and each is consistent with what the codebase already does.
 - [ ] Phase 2's raster-DEM licensing/availability question
       (`maplibre-migration.md` §9) — establish before scheduling Phase 2,
       not before starting Phase 1a/1b/1.5.
+- [ ] Tile-endpoint activation decision (§2's refinement,
+      `maplibre-migration.md` §3) — a separate, later go/no-go once the
+      app can sustain hosting cost. Not a Phase 1b blocker: 1b ships the
+      endpoint code-complete but dark, active path is the free pre-built
+      extracts only.
 
 Phases 1a, 1b, and 1.5 have no remaining open decisions and can start
 immediately in parallel. Phase 2 has one standing prerequisite (DEM

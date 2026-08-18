@@ -181,6 +181,19 @@ high-zoom pack downloaded," and both are different from "not covered."
 The five-state readiness model in the main plan's §3 needs to represent
 this distinction, not just the offline/online binary.
 
+**Refinement (owner, 2026-08-18): build both, activate one.** Both paths
+are built in this migration, but only the pre-built-extract path — free,
+static hosting, nothing running — is turned on for real users at launch.
+The tile endpoint ships code-complete and reachable from a dev/staging
+config, not a production one, until the app has revenue or funding to
+sustain running it. This is a launch-config decision, not an engineering
+one: no rework needed to flip it on later, which is the entire reason for
+building it now instead of after. What Phase 1b actually has to decide is
+what the user-drawn region picker does in production while the endpoint
+is dark — degrade to the nearest pre-built regional extract, or read as
+unavailable — and represent whichever it is as a real readiness state,
+not a silent substitution.
+
 ## 4. Compose integration
 
 Lowest-risk path: keep the current pattern. `AndroidView` hosting MapLibre's
@@ -259,16 +272,19 @@ The cost of not splitting this way is writing every map overlay twice.
   OpenStreetMap dataset under ODbL, and native apps using them must visibly
   attribute OpenStreetMap. The app already renders attribution; it must
   follow the new source, and `Basemap` already owns attribution as data.
-- **Standing infrastructure, introduced here for the first time.** Option
-  C means this project runs a live tile-serving endpoint (go-pmtiles, or a
-  Worker over R2) from this migration onward — uptime, hosting cost, and
-  an abuse surface with no accounts to gate it. Everything else in this
-  spec is a one-time build cost; this is the one line item that is
-  ongoing. Rate-limit or otherwise bound the endpoint before it ships,
-  the same way iNaturalist's and Open-Meteo's rate limits are already
-  respected elsewhere in this app — this project does not currently own
-  or operate anything that stays running between requests, so this is new
-  operational surface, not an extension of an existing one.
+- **Standing infrastructure, built here, activated later.** Option C
+  means this project builds a live tile-serving endpoint (go-pmtiles, or a
+  Worker over R2), but per the owner's activation refinement above it
+  stays off for real users until the app can sustain it — so the ongoing
+  cost and abuse surface are deferred, not incurred, at this migration's
+  launch. They are not eliminated: whenever activation happens, rate-limit
+  or otherwise bound the endpoint before flipping it on, the same way
+  iNaturalist's and Open-Meteo's rate limits are already respected
+  elsewhere in this app. Track activation as its own decision point with
+  its own go/no-go, not something that happens implicitly once the code
+  exists — this project does not currently own or operate anything that
+  stays running between requests, so turning this on is a deliberate step
+  up in operational surface, not a formality.
 
 ## 8. Verification plan
 
