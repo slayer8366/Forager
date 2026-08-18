@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only manifest overlay, merged with src/main/AndroidManifest.xml for debug builds only —
+  never present in a release build. Exists solely to give
+  com.forager.app.ui.map.MapLibreBasemapPreviewActivity a second home-screen launcher icon
+  ("MapLibre test") on debug builds, so it can be reached by tapping rather than needing adb —
+  the normal path (adb shell am start) hit a real wall on a device with no separate adb host (e.g.
+  Termux running on the same phone, with no wireless-debugging pairing set up).
+
+  This is throwaway scaffolding for one hardware-verification step (see that Activity's own doc
+  comment), not a feature: this file is deleted, along with the activity itself, once step 1 of
+  the osmdroid -> MapLibre migration is confirmed working and the migration moves on.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".ui.map.MapLibreBasemapPreviewActivity"
+            android:label="MapLibre test">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

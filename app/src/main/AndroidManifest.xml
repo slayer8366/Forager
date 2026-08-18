@@ -42,6 +42,22 @@
             </intent-filter>
         </activity>
 
+        <!-- Step 1 of the osmdroid -> MapLibre migration (docs/plans/maplibre-migration.md) — a
+             hardware smoke test, not a screen a real user ever reaches. No LAUNCHER category here,
+             so a release build never gets a second home-screen icon; exported so `adb shell am
+             start` can reach it reliably regardless of a device's non-exported-activity launch
+             policy:
+             adb shell am start -n com.forager.app/com.forager.app.ui.map.MapLibreBasemapPreviewActivity
+             src/debug/AndroidManifest.xml additionally gives this a "MapLibre test" launcher icon
+             on debug builds only, for a device with no separate adb host to drive it from (e.g.
+             Termux running on the same phone, with no wireless-debugging pairing set up) — see
+             that file's own comment. See com.forager.app.ui.map.MapLibreBasemapPreviewActivity's
+             doc comment. -->
+        <activity
+            android:name=".ui.map.MapLibreBasemapPreviewActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Forager" />
+
         <!-- Grants the camera app write access to a file under filesDir/captures/ for
              ActivityResultContracts.TakePicture, without exposing broader file access — see
              com.forager.app.photo.CameraCaptureFiles and res/xml/file_paths.xml. -->

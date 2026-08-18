@@ -197,6 +197,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.osmdroid.android)
+    // Step 1 of the osmdroid -> MapLibre migration (docs/plans/maplibre-migration.md) — a parallel
+    // dependency, not a replacement: osmdroid stays the active renderer for every production
+    // screen until MapLibreBasemapPreviewActivity is confirmed working on real hardware.
+    implementation(libs.maplibre.android.sdk)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
