@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -96,6 +97,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -955,9 +957,15 @@ private fun mapServiceCaption(service: MapService): String {
  */
 @Composable
 private fun OfflineMapsEntryRow(onClick: () -> Unit) {
+    // heightIn(min = 48.dp), not just the vertical padding [MushroomLogEntryRow]/[SettingsEntryRow]
+    // use: those rows' padding(vertical = Spacing.md) around a 24dp icon already clears 48dp, but
+    // this row's original padding(vertical = Spacing.sm) only reached ~40dp — under M3's 48x48dp
+    // minimum touch target, a real miss found by auditing this file's tap targets against that
+    // rule, not a hypothetical one.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(vertical = Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1149,6 +1157,10 @@ private fun OfflineMapStatusContent(status: OfflineMapStatus) {
  */
 @Composable
 private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    // size(MIN_TOUCH_TARGET) rather than sizing this off the icon-plus-padding it draws: the icon
+    // is 24dp and Spacing.sm padding is 8dp a side, which wrapped to a 40dp circle — under M3's
+    // 48x48dp minimum touch target, a real miss found by auditing this file's tap targets against
+    // that rule, not a hypothetical one.
     Surface(
         onClick = onToggle,
         shape = CircleShape,
@@ -1156,19 +1168,23 @@ private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: M
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 3.dp,
         shadowElevation = 2.dp,
-        modifier = modifier,
+        modifier = modifier.size(MIN_TOUCH_TARGET),
     ) {
-        Icon(
-            imageVector = Icons.Filled.Layers,
-            contentDescription = if (isTopoMode) {
-                "Showing topo mode. Switch to regular mode."
-            } else {
-                "Showing regular mode. Switch to topo mode."
-            },
-            modifier = Modifier.padding(Spacing.sm),
-        )
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.Layers,
+                contentDescription = if (isTopoMode) {
+                    "Showing topo mode. Switch to regular mode."
+                } else {
+                    "Showing regular mode. Switch to topo mode."
+                },
+            )
+        }
     }
 }
+
+/** M3's minimum touch target size — see [MapModeToggle]'s doc comment for where this was missed. */
+private val MIN_TOUCH_TARGET = 48.dp
 
 /**
  * Everything set far less than once per search, as three independently collapsible sections:
@@ -1756,39 +1772,62 @@ private fun ResultsSection(uiState: AvailabilityUiState, modifier: Modifier = Mo
  */
 @Composable
 private fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Spacer(Modifier.height(Spacing.xs))
-        when {
-            !uiState.hasSearched -> Text(
-                "Choose a region in search options to test the rain-to-fruiting-lag rule of thumb " +
-                    "against real data.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+    // Unlike List/Map, Seasonal isn't paired into CombinedResultsPane (see AvailabilityScreen's
+    // doc comment on why), so at medium+ width it's the one tab content still stretching to the
+    // window's full remaining width — a rule-of-thumb paragraph at 900+dp is well past M3's
+    // ~40-60-character comfortable reading width. Centering the column and capping it at
+    // READABLE_CONTENT_MAX_WIDTH is that constraint; COMPACT keeps fillMaxWidth exactly as
+    // before, since a phone-width screen never approaches that cap anyway.
+    val windowWidthClass = currentWindowWidthClass()
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .then(
+                    if (windowWidthClass == WindowWidthClass.COMPACT) {
+                        Modifier.fillMaxWidth()
+                    } else {
+                        Modifier.widthIn(max = READABLE_CONTENT_MAX_WIDTH).fillMaxWidth()
+                    },
+                )
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.lg)
+                .testTag(SEASONAL_CONTENT_TAG),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Spacer(Modifier.height(Spacing.xs))
+            when {
+                !uiState.hasSearched -> Text(
+                    "Choose a region in search options to test the rain-to-fruiting-lag rule of thumb " +
+                        "against real data.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
 
-            uiState.isLoadingSeasonalPattern -> Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                CircularProgressIndicator()
+                uiState.isLoadingSeasonalPattern -> Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+
+                uiState.seasonalPatternErrorMessage != null -> Text(
+                    uiState.seasonalPatternErrorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+
+                uiState.seasonalPattern != null -> SeasonalPatternContent(uiState.seasonalPattern)
             }
-
-            uiState.seasonalPatternErrorMessage != null -> Text(
-                uiState.seasonalPatternErrorMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-
-            uiState.seasonalPattern != null -> SeasonalPatternContent(uiState.seasonalPattern)
         }
     }
 }
+
+/** Same readable-width reasoning as [SeasonalTab]; see [CombinedResultsPane] for the drawer/pane analogs. */
+private val READABLE_CONTENT_MAX_WIDTH = 640.dp
+
+/** Lets [AvailabilityScreenAdaptiveLayoutTest] measure the readable-width column directly. */
+const val SEASONAL_CONTENT_TAG = "seasonal-content"
 
 @Composable
 private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
