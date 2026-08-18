@@ -32,8 +32,12 @@ import org.maplibre.android.maps.MapView
  * anything a user already relies on. `SightingsMap`, `Basemap`, and every production screen are
  * completely untouched by this class.
  *
- * Launch it manually once installed:
- * `adb shell am start -n com.forager.app/com.forager.app.ui.map.MapLibreBasemapPreviewActivity`
+ * Launch it manually once installed, either:
+ * `adb shell am start -n com.forager.app/com.forager.app.ui.map.MapLibreBasemapPreviewActivity`,
+ * or — on a debug build, and with no separate adb host available to drive that command (e.g.
+ * Termux running on the same phone, with no wireless-debugging pairing set up) — by tapping the
+ * "MapLibre test" launcher icon `src/debug/AndroidManifest.xml` adds for exactly that case. That
+ * overlay never reaches a release build.
  *
  * Uses MapLibre's own public demo style (`https://demotiles.maplibre.org/style.json` — no key, no
  * account, hosted by the MapLibre project itself) rather than a USGS/OSM style, because the thing
