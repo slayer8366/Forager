@@ -152,13 +152,34 @@ Against: two offline paths, two failure modes, two sets of readiness
 states. Real complexity, and the readiness screen already has five states
 to communicate.
 
-**Recommendation, stated as a recommendation:** Option A for the migration
-itself, with Option B evaluated separately once the renderer swap is proven.
-Rationale — the migration is already large, and A is the only option that
-doesn't add infrastructure to it. But A regresses the user-drawn region
-picker, and that regression is the owner's call to accept or refuse, not
-mine. If the picker is non-negotiable, the answer is B and the migration
-grows a backend.
+**Decision (owner, 2026-08-18): Option C, the hybrid.** Ship coarse
+pre-built regional extracts as the always-available offline floor, and
+build the own-tile-endpoint path for user-drawn custom regions as part of
+this migration rather than deferring it.
+
+Rationale, from the owner: building only Option A now and coming back for
+custom regions later means re-touching every file the migration already
+touches once — the offline package manager, the readiness-state UI, the
+region picker — a second time, on a codebase that will have grown around
+the map layer in the meantime. The custom-region capability is not
+speculative; it is the same long-press "download this area" gesture the
+app already ships today, so this is not new scope invented for the
+migration, it is a scope cut (Option A alone) that this decision declines
+to take. Doing both pieces of infrastructure in the same migration, while
+the renderer swap already has everything opened up, is judged cheaper than
+doing them in two passes.
+
+Rejected alternative: Option A alone (defer B indefinitely). Originally
+recommended for being the only zero-infrastructure option, but rejected
+because the region-picker regression it required was judged a worse
+long-term cost than building the server now.
+
+Accepted consequence of C, explicitly: **two offline code paths and two
+sets of failure states**, both needing readiness-screen representation —
+"coarse regional extract available" is a different state from "custom
+high-zoom pack downloaded," and both are different from "not covered."
+The five-state readiness model in the main plan's §3 needs to represent
+this distinction, not just the offline/online binary.
 
 ## 4. Compose integration
 
@@ -204,7 +225,14 @@ None of it cares which renderer draws the result.
    Verify on hardware before anything else lands on it.
 2. Re-implement sighting dots, area markers, dashed connectors as style
    layers. Re-confirm the dash reads as dashed. Re-open the colour question.
-3. Offline packages per §3's chosen option; retire `PersistentTileWriter`.
+3. Offline packages per §3's resolved decision (Option C): both halves
+   ship in this migration, not staged separately —
+   - the pre-built regional extract path (static hosting, `pmtiles://file://`),
+   - the own-tile-endpoint path (`OfflineManager`/`OfflineRegionDefinition`
+     against a self-hosted PMTiles archive) for the user-drawn region
+     picker, replacing today's `OsmdroidOfflineMapRepository` behavior
+     rather than regressing it.
+   Retire `PersistentTileWriter`.
 4. Delete osmdroid. Only after 1–3 are seen working.
 
 **Converge:** track breadcrumbs, waypoint markers, and the offline readiness
@@ -231,6 +259,16 @@ The cost of not splitting this way is writing every map overlay twice.
   OpenStreetMap dataset under ODbL, and native apps using them must visibly
   attribute OpenStreetMap. The app already renders attribution; it must
   follow the new source, and `Basemap` already owns attribution as data.
+- **Standing infrastructure, introduced here for the first time.** Option
+  C means this project runs a live tile-serving endpoint (go-pmtiles, or a
+  Worker over R2) from this migration onward — uptime, hosting cost, and
+  an abuse surface with no accounts to gate it. Everything else in this
+  spec is a one-time build cost; this is the one line item that is
+  ongoing. Rate-limit or otherwise bound the endpoint before it ships,
+  the same way iNaturalist's and Open-Meteo's rate limits are already
+  respected elsewhere in this app — this project does not currently own
+  or operate anything that stays running between requests, so this is new
+  operational surface, not an extension of an existing one.
 
 ## 8. Verification plan
 

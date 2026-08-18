@@ -113,15 +113,28 @@ MapLibre's PMTiles support and its offline pack manager do not compose
   online-time endpoint for custom regions; more capability, two offline
   code paths and failure states to maintain.
 
-**Resolved: Option A.** Pre-built regional PMTiles extracts, matching
-`maplibre-migration.md` §3's own recommendation. Rationale: the migration
-is already large, and A is the only option that doesn't add
-infrastructure to it. Accepted consequence, explicitly: **the user-drawn
-arbitrary-region download picker is a capability regression** — offline
-downloads move from "any box you draw" to "pick from a pre-built regional
-list." Rejected alternative: Option B, revisit if the picker regression
-proves unacceptable once the migration has shipped and been used —
-evaluated separately, not blocking this migration.
+**Resolved: Option C, the hybrid.** Coarse pre-built regional extracts as
+the always-available offline floor, plus a self-hosted tile endpoint for
+the existing user-drawn arbitrary-region download picker — both built in
+this migration, not staged into a later one.
+
+Rationale, from the owner: deferring the custom-region path (Option A
+alone) means re-touching the same set of files a second time later —
+offline package manager, readiness-state UI, region picker — on a
+codebase that has grown around the map layer in the meantime. The
+custom-region capability isn't new scope; it's the long-press download
+gesture the app already ships today, so building it now rather than
+regressing it and rebuilding it later is judged cheaper end to end.
+Rejected alternative: Option A alone, originally recommended for adding no
+infrastructure; rejected because the region-picker regression it required
+was judged a worse long-term cost than standing up the server now.
+
+Accepted consequence, explicitly: this is the first standing
+infrastructure the project operates (a live tile-serving endpoint with
+its own uptime, cost, and abuse-surface considerations — see
+`maplibre-migration.md` §7), and the offline readiness screen now needs
+to distinguish two offline states (coarse regional extract vs. custom
+downloaded pack) rather than one.
 
 What the migration does not solve: licensing. See §8.
 
@@ -154,7 +167,11 @@ public land here.
   dataset's stated extent — not toggled on and rendered empty.
 - The offline readiness screen gains **not covered** as a fifth state
   alongside available / stale / partial / not downloaded. Different fact,
-  different user response.
+  different user response. Following the Option C decision in §2, "not
+  downloaded" itself now covers two distinct offline paths — a coarse
+  pre-built regional extract and a custom user-drawn downloaded pack —
+  and the screen must say which one a given area has, not just whether
+  something is offline.
 - Coverage extent goes on the layer card beside source agency and
   version. `Basemap`'s doc comment records the precedent: coverage limits
   are stated outright rather than detected and silently fallen back on —
@@ -247,10 +264,12 @@ return-to-start bearing computation. All domain, data, and service work;
 all headless-testable; none of it cares which renderer draws the result.
 
 **Phase 1b — renderer migration (parallel to 1a)**
-Per `maplibre-migration.md`, offline strategy resolved to Option A (§2).
+Per `maplibre-migration.md`, offline strategy resolved to Option C (§2).
 Basemap first and verified on hardware before anything lands on it;
 overlays re-implemented and the dashed connector re-confirmed; offline
-packages rebuilt as pre-built regional extracts; osmdroid deleted last.
+packages rebuilt as both the pre-built regional extract path and the
+self-hosted tile endpoint behind the user-drawn region picker; osmdroid
+deleted last.
 
 **Phase 1c — converge**
 Track breadcrumbs, waypoint markers, offline readiness screen, and the
@@ -297,11 +316,17 @@ posture this project has not scoped).
 
 Two separate questions:
 
-- **Basemap data:** no spend required. Self-hosted OSM-derived vector
-  tiles are free and openly licensed. The obligation is attribution, not
-  money — visible OpenStreetMap credit under ODbL, which `Basemap`
-  already owns as data (verified in `ui/map/Basemap`). This is not a
-  licensing negotiation; it is a build step.
+- **Basemap data:** the data itself is free and openly licensed —
+  OSM-derived vector tiles under ODbL, whose obligation is attribution,
+  not money, and `Basemap` already owns attribution as data (verified in
+  `ui/map/Basemap`). This is a licensing question with no negotiation
+  attached, and it stays that way for the pre-built-extract half of §2's
+  Option C decision. The self-hosted tile-endpoint half is a separate,
+  real operating cost — not a licensing fee, but ongoing hosting/egress
+  spend for the server this migration now stands up (see
+  `maplibre-migration.md` §7's infrastructure risk). Small at this
+  project's scale, but no longer zero, and worth stating as a number once
+  a hosting choice is picked.
 - **Parcel data:** a real spend, or nothing. Nationwide private-parcel
   boundaries are a commercial dataset. This is the one place where
   matching what a funded competitor offers requires funding. It is a
@@ -332,8 +357,11 @@ else, and each is consistent with what the codebase already does.
 
 - [x] `maplibre-migration.md` written and committed to `docs/plans/`.
 - [x] Trip-entity fork resolved: `FieldTrip` as a new entity (§1).
-- [x] Offline-strategy fork resolved: Option A, pre-built regional
-      extracts, region-picker regression accepted (§2).
+- [x] Offline-strategy fork resolved: Option C, the hybrid — pre-built
+      regional extracts as the offline floor plus a self-hosted tile
+      endpoint keeping the user-drawn region picker intact, both built in
+      this migration rather than staged (§2). Accepted: this is the
+      project's first standing infrastructure.
 - [x] Every "already exists" claim (§1 table, §5, §8, §9) verified against
       the actual repository, not inferred from the plan draft.
 - [ ] **README's "Not yet verified" section update** — owner/coder to
