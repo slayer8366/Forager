@@ -849,6 +849,31 @@ and whether losing the always-available search affordance outside the Maps
 tab (see "How it works" item 6 above) is a real friction point in practice
 rather than a reasoned tradeoff.
 
+### Phase 4 — back-button navigation, specifically
+
+Measured the same way as the phases above, in the same session: `./gradlew
+testDebugUnitTest` reports **438 tests, 0 failures, 0 errors**, and
+`./gradlew assembleDebug` produced a real, signed `app-debug.apk`. The new
+`AvailabilityScreenBackNavigationTest` (6 tests) is driven through the real
+`ComponentActivity.onBackPressedDispatcher` rather than by calling a
+`BackHandler`'s callback directly — the point of that suite is verifying
+*priority* among several independently-declared `BackHandler`s (the drawer,
+fullscreen chrome, the current tab, a nested Journal entry or Settings
+submenu), which only the real dispatcher's own stack can actually settle;
+reasoning about registration order alone would be exactly the kind of
+unverified claim CLAUDE.md rules out. That includes the one combination
+only compact width can reach — the drawer open while the map is also
+fullscreen, since the icon stack's Search button stays up in fullscreen —
+and the case where a nested Journal entry has to unwind before the tab
+switches away.
+
+**Not verifiable headlessly:** whether the physical back button and
+gesture-nav swipe on a real device actually route through the same
+dispatcher path Robolectric exercises here, and whether the multi-step
+unwind (drawer → fullscreen → tab → home) *feels* right in the hand rather
+than merely being correct step by step — five back presses to leave a deep
+state is a real cost this trades for never accidentally exiting from one.
+
 ### The topographic basemap, specifically
 
 What **is** established about it, and how: the endpoints serve real tiles and
