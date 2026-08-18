@@ -301,10 +301,19 @@ pipeline, and the thing nobody else builds: Gaia doesn't care about
 mycology, iNaturalist isn't a field navigator.
 
 **Phase 2 — terrain and hydrography**
-Hillshade, slope, aspect, elevation profile, NHD water. Blocked on a
-finding `maplibre-migration.md` §9 flags as unresolved: where raster-DEM
-data comes from and whether it may be redistributed offline. Establish
-that before scheduling.
+Hillshade, slope, aspect, elevation profile, NHD water. No longer
+licensing-blocked (`maplibre-migration.md` §9, resolved 2026-08-18): source
+raw elevation directly from USGS 3DEP (public domain, unsigned public S3
+bucket — the same single-source, US-only footing already used for USGS
+Topo) and self-process into hillshade/slope/aspect PMTiles regional
+extracts via the same `gdalwarp`/`gdaldem`/`pmtiles`-CLI pipeline the
+basemap extracts already use — rather than relying on a pre-built
+third-party composite tileset (AWS's Terrarium tiles) whose multi-country,
+multi-license attribution doesn't apply to a US-only layer anyway. This
+is real, budgetable engineering work — a second self-run processing
+pipeline, and DEM-derived rasters are not small (hillshade+slope+aspect
+roughly triples the raw DEM's footprint per region) — but it is scope and
+storage planning now, not an open licensing question.
 
 **Phase 3 — access and land context**
 Vector pipeline (clip, simplify, version), PAD-US, USFS roads/trails/MVUM,
@@ -387,16 +396,19 @@ else, and each is consistent with what the codebase already does.
 - [ ] **README's "Not yet verified" section update** — owner/coder to
       replace stale caveats with the real on-device findings (§0). Not
       drafted here to avoid inventing specifics not actually captured.
-- [ ] Phase 2's raster-DEM licensing/availability question
-      (`maplibre-migration.md` §9) — establish before scheduling Phase 2,
-      not before starting Phase 1a/1b/1.5.
+- [x] Phase 2's raster-DEM licensing/availability question
+      (`maplibre-migration.md` §9) — resolved 2026-08-18: USGS 3DEP raw
+      elevation, self-processed into PMTiles the same way the basemap
+      extracts are, no third-party redistribution terms in the loop.
+      Remaining: budget the processing pipeline and real regional storage
+      sizes into Phase 2's estimate — engineering scope, not a licensing
+      blocker.
 - [ ] Tile-endpoint activation decision (§2's refinement,
       `maplibre-migration.md` §3) — a separate, later go/no-go once the
       app can sustain hosting cost. Not a Phase 1b blocker: 1b ships the
       endpoint code-complete but dark, active path is the free pre-built
       extracts only.
 
-Phases 1a, 1b, and 1.5 have no remaining open decisions and can start
-immediately in parallel. Phase 2 has one standing prerequisite (DEM
-licensing). Phases 3 and 4 are unblocked in scope but sequenced after 1–2
-by design (§7).
+Phases 1a, 1b, 1.5, and now 2 have no remaining open decisions blocking
+them — Phase 2's raster-DEM sourcing is resolved above. Phases 3 and 4 are
+unblocked in scope but sequenced after 1–2 by design (§7).

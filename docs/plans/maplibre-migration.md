@@ -316,10 +316,60 @@ limitation (MapLibre Android examples); OfflineManager capabilities
 builds (Protomaps site, plus two independent write-ups); ODbL attribution
 terms (protomaps/basemaps README).
 
-Not verified, and not assumed: hillshade/terrain-DEM source availability
-and licensing for offline use — the plan wants slope and aspect in Phase 2
-and this spec has not established where that raster-DEM data comes from or
-whether it may be redistributed offline. Check before Phase 2 is scheduled.
+**Resolved (2026-08-18): raster-DEM sourcing and licensing, scoped.** The
+question was never really "is USGS data licensed" — that was settled
+elsewhere in this repo already (public domain, no restriction, citation
+requested — same basis as USGS Topo). The open question was which actual
+*delivery path* gets from that data to a renderable tile, and whether that
+specific path permits offline redistribution. Researched this session, by
+querying primary/near-primary sources rather than assuming:
+
+- **Source: USGS 3DEP raw elevation, not a third-party pre-built
+  tileset.** 3DEP's 1 arc-second and 1/3 arc-second DEMs are public domain
+  with no use restriction (per USGS's own FAQ page, "Are there any costs or
+  restrictions to usage of data downloaded from The National Map?" — relayed
+  via search, since `usgs.gov` is blocked by this environment's egress proxy
+  the same way `opentopomap.org` was for the basemap research; a
+  primary-source spot-check from a reachable environment is still worth
+  doing before this is fully relied on, same caveat as §9's basemap
+  citations already carry). Bulk access is a plain, unsigned, public AWS S3
+  bucket — `https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/`
+  — pre-tiled GeoTIFF/COG, no API key, no bulk-download prohibition of the
+  kind that ruled out OpenStreetMap/OpenTopoMap for offline map tiles.
+- **Rejected: the AWS `elevation-tiles-prod` / Tilezen "Terrarium"
+  composite tileset**, despite being the obvious pre-built alternative
+  (already packaged, already the tileset most MapLibre terrain tutorials
+  reach for). Its own attribution doc
+  (`tilezen/joerd/docs/attribution.md`) lists per-source terms across
+  SRTM, GMTED2010, NED/3DEP, ETOPO1, ArcticDEM, and several *non-US*
+  regional government datasets (Australia, Canada, Europe, Mexico, New
+  Zealand, Norway, UK), each under its own license, and does not itself
+  state whether bulk redistribution inside a mobile app is permitted.
+  Since Forager's Phase 3 layer catalogue is already US-only by design
+  (§3 of the main plan), none of that composite's non-US complexity is
+  actually needed — pulling single-source USGS 3DEP directly avoids the
+  multi-license question instead of resolving it.
+- **Processing: self-hosted, mirroring the basemap's own Option A/C
+  pipeline exactly**, not a new pattern. `gdalwarp` (reproject to
+  EPSG:3857) → `gdaldem hillshade`/`gdaldem slope`/`gdaldem aspect` or
+  `rio-rgbify` (encode as Terrain-RGB) → the same `pmtiles` CLI already
+  used for basemap regional extracts. This is an established, documented
+  workflow (multiple independent write-ups converge on the same tool
+  chain), not a novel pipeline this project would be first to build.
+  Because the source is public-domain and self-processed, there is no
+  third party's redistribution terms to satisfy at all — the project
+  redistributes its own derived output, the same footing PAD-US/USFS/NHD
+  already stand on in the Phase 3 catalogue.
+
+**What this resolves:** Phase 2 is not licensing-blocked. **What it
+doesn't resolve, and shouldn't be conflated with licensing:** this adds a
+second self-run processing pipeline alongside the basemap's (real
+engineering work, scope it into Phase 2's estimate, not assumed free
+because the data is free), and DEM-derived rasters at useful resolution
+are not small — hillshade+slope+aspect for a region roughly triples the
+raw DEM's footprint, so measure real regional sizes before committing to
+bundling them offline, the same storage discipline §7 already calls for
+on the basemap extracts.
 
 Not verified: everything about how MapLibre performs on this project's
 `minSdk` floor. No MapLibre code has been run in this repo.
