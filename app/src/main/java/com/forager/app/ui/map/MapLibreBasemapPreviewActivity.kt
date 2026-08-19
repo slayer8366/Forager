@@ -119,7 +119,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * two `text-field` layers (`geolines-label`, `countries-label`, both `Open Sans Semibold`), which
  * is exactly the resource-list work that would be happening at that point: MapLibre's offline code
  * resolves the style's glyph ranges as part of building the real resource pyramid, a step entirely
- * independent of the tile bounds/zoom this file already shrank once. [RASTER_STYLE_ASSET_URL] has
+ * independent of the tile bounds/zoom this file already shrank once. [RASTER_STYLE_URL] has
  * no glyphs, no vector source, nothing to resolve there — same bounds, same zoom range, same
  * instrumentation. If it downloads cleanly where the vector style dies at the identical checkpoint,
  * that is real evidence glyph-range resolution is the native crash's cause, not region size — the
@@ -210,7 +210,7 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
                         }
                         Button(
                             onClick = {
-                                startOfflineDownload(context, RASTER_STYLE_ASSET_URL, RASTER_OFFLINE_REGION_NAME) { status ->
+                                startOfflineDownload(context, RASTER_STYLE_URL, RASTER_OFFLINE_REGION_NAME) { status ->
                                     offlineStatus = status
                                 }
                             },
@@ -259,7 +259,7 @@ private fun OfflineDownloadStatus.describe(): String = when (this) {
  * Creates and starts an offline region download against [styleUrl] — see this file's class doc
  * comment ("What step 3's offline download here does and does not prove", and "Isolating the
  * glyph hypothesis") for why there are two callers of this: [DEMO_STYLE_URL] (vector + glyphs) and
- * [RASTER_STYLE_ASSET_URL] (raster only, no glyphs). [OfflineManager] is a process-wide singleton
+ * [RASTER_STYLE_URL] (raster only, no glyphs). [OfflineManager] is a process-wide singleton
  * (not tied to any particular [MapView]), so this needs only a [Context] — the download runs and
  * is persisted independent of whether the preview map itself is still on screen.
  */
@@ -496,25 +496,34 @@ private const val PREVIEW_CENTER_LNG = -122.6
 private const val DEMO_STYLE_URL = "https://demotiles.maplibre.org/style.json"
 
 /**
- * A minimal raster-only style bundled as an app asset ([offline_test_raster_style.json] under
- * `app/src/main/assets/`) — no vector source, no `glyphs` URL, no `sprite`, no `text-field` layer.
- * `asset://` resolves through MapLibre's `AssetFileSource`, the same generic scheme dispatch used
- * for any other resource fetch, so this needs no external hosting the way [DEMO_STYLE_URL] does.
+ * A minimal raster-only style — no vector source, no `glyphs` URL, no `sprite`, no `text-field`
+ * layer — served from GitHub's raw-content host for the same JSON committed at
+ * `app/src/main/assets/offline_test_raster_style.json`. That file is still bundled as an app asset
+ * (harmless, and useful if a later attempt wants to retry `asset://` deliberately), but this
+ * constant does **not** point at it: a hardware repro on the first attempt (`asset://...`) sat at
+ * `completed=0/1` for minutes with no crash, no error, and no progress. An asset read is local and
+ * should resolve near-instantly regardless of network conditions, so a stall that long is itself a
+ * finding — [OfflineManager]'s resource-discovery path most likely does not resolve `asset://` the
+ * way normal `MapView` style loading does, an unsupported combination rather than "just slow." Per
+ * CLAUDE.md, that calls for eliminating the variable rather than waiting out an unexplained hang:
+ * this points at `raw.githubusercontent.com` instead, a real fetchable HTTPS URL requiring no new
+ * infrastructure (the content is already public in this repo), to isolate whether `asset://` was
+ * the actual blocker. If this also stalls at `completed=0/1`, that would point elsewhere (the USGS
+ * tile endpoint itself, MapLibre's raster-resource discovery in general); if it downloads cleanly,
+ * that confirms both things at once: `asset://` is unsupported for offline definitions here, *and*
+ * a raster style survives where the vector one crashed at the identical checkpoint.
  *
- * The tiles it references are USGS Topo's — the one source this codebase already has standing
- * permission to bulk-download (see `docs/plans/maplibre-migration.md` §1: OSM/OpenTopoMap
- * prohibit bulk prefetch, USGS does not), the same tile URL template [PreviewBasemap.USGS_TOPO]
- * uses for the live-render smoke test above.
- *
- * See this file's class doc comment, "Isolating the glyph hypothesis," for why this exists: the
- * third hardware repro's step trace showed the native crash landing right after the first
- * `onStatusChanged` callback for the vector [DEMO_STYLE_URL], at `completed=0/1` — before any real
- * tile volume, but exactly where MapLibre's offline code would start resolving the demo style's
- * `geolines-label`/`countries-label` glyph ranges (`Open Sans Semibold`). A raster style has no
- * glyphs to resolve at all. If this one survives past that same point, that is real evidence for
- * glyph-range resolution as the crash's native cause, independent of another region-size guess.
+ * See this file's class doc comment, "Isolating the glyph hypothesis," for the original crash
+ * evidence this is built to test against: the third hardware repro's step trace showed the native
+ * crash landing right after the first `onStatusChanged` callback for the vector [DEMO_STYLE_URL],
+ * at `completed=0/1` — before any real tile volume, but exactly where MapLibre's offline code would
+ * start resolving the demo style's `geolines-label`/`countries-label` glyph ranges (`Open Sans
+ * Semibold`). The tiles this style references are USGS Topo's — the one source this codebase
+ * already has standing permission to bulk-download (`docs/plans/maplibre-migration.md` §1), the
+ * same tile URL template [PreviewBasemap.USGS_TOPO] uses for the live-render smoke test above.
  */
-private const val RASTER_STYLE_ASSET_URL = "asset://offline_test_raster_style.json"
+private const val RASTER_STYLE_URL =
+    "https://raw.githubusercontent.com/slayer8366/Forager/claude/phase1b-offline-packages/app/src/main/assets/offline_test_raster_style.json"
 
 private const val VECTOR_OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test-vector"
 private const val RASTER_OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test-raster"
