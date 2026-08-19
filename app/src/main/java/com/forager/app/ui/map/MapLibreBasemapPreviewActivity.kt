@@ -110,6 +110,22 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * every `onStatusChanged`/`onError` — to [STEP_LOG_FILE_NAME], so the next hardware repro shows
  * *which specific step* precedes the native crash rather than only the last resource count.
  *
+ * ## Isolating the glyph hypothesis
+ *
+ * The step trace from that build was conclusive about *timing*, not cause: every checkpoint
+ * through `setDownloadState(ACTIVE) returned` is logged, then exactly one `onStatusChanged` fires
+ * at `completed=0/1`, then nothing — the crash lands in native code between the first and second
+ * status callback, before any real tile volume has moved. [DEMO_STYLE_URL] is a vector style with
+ * two `text-field` layers (`geolines-label`, `countries-label`, both `Open Sans Semibold`), which
+ * is exactly the resource-list work that would be happening at that point: MapLibre's offline code
+ * resolves the style's glyph ranges as part of building the real resource pyramid, a step entirely
+ * independent of the tile bounds/zoom this file already shrank once. [RASTER_STYLE_ASSET_URL] has
+ * no glyphs, no vector source, nothing to resolve there — same bounds, same zoom range, same
+ * instrumentation. If it downloads cleanly where the vector style dies at the identical checkpoint,
+ * that is real evidence glyph-range resolution is the native crash's cause, not region size — the
+ * next real fix would then target *what this app asks MapLibre to render offline* (drop the label
+ * layers, or accept raster-only for the real feature) rather than a fifth region-size guess.
+ *
  * Once confirmed on hardware, this class is deleted — it is scaffolding for verification, not a
  * feature.
  */
@@ -183,8 +199,23 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
                                 Text(basemap.label)
                             }
                         }
-                        Button(onClick = { startOfflineDownload(context) { status -> offlineStatus = status } }) {
-                            Text("Download offline region (demo style)")
+                        Button(
+                            onClick = {
+                                startOfflineDownload(context, DEMO_STYLE_URL, VECTOR_OFFLINE_REGION_NAME) { status ->
+                                    offlineStatus = status
+                                }
+                            },
+                        ) {
+                            Text("Download offline region (demo style — vector + glyphs)")
+                        }
+                        Button(
+                            onClick = {
+                                startOfflineDownload(context, RASTER_STYLE_ASSET_URL, RASTER_OFFLINE_REGION_NAME) { status ->
+                                    offlineStatus = status
+                                }
+                            },
+                        ) {
+                            Text("Download offline region (raster style — no glyphs)")
                         }
                         Surface(color = MaterialTheme.colorScheme.errorContainer) {
                             Text(
@@ -225,24 +256,25 @@ private fun OfflineDownloadStatus.describe(): String = when (this) {
 }
 
 /**
- * Creates and starts an offline region download against [DEMO_STYLE_URL] — see this file's class
- * doc comment ("What step 3's offline download here does and does not prove") for why the demo
- * style, not USGS/OSM. [OfflineManager] is a process-wide singleton (not tied to any particular
- * [MapView]), so this needs only a [Context] — the download runs and is persisted independent of
- * whether the preview map itself is still on screen.
+ * Creates and starts an offline region download against [styleUrl] — see this file's class doc
+ * comment ("What step 3's offline download here does and does not prove", and "Isolating the
+ * glyph hypothesis") for why there are two callers of this: [DEMO_STYLE_URL] (vector + glyphs) and
+ * [RASTER_STYLE_ASSET_URL] (raster only, no glyphs). [OfflineManager] is a process-wide singleton
+ * (not tied to any particular [MapView]), so this needs only a [Context] — the download runs and
+ * is persisted independent of whether the preview map itself is still on screen.
  */
-private fun startOfflineDownload(context: Context, onStatus: (OfflineDownloadStatus) -> Unit) {
+private fun startOfflineDownload(context: Context, styleUrl: String, regionName: String, onStatus: (OfflineDownloadStatus) -> Unit) {
     onStatus(OfflineDownloadStatus.Downloading(completedResources = 0, requiredResources = 0))
     // Fresh trace per download attempt — an in-session retry shouldn't blend into an earlier one.
     File(context.filesDir, STEP_LOG_FILE_NAME).delete()
-    appendStepLog(context, "download button tapped, building region definition")
+    appendStepLog(context, "download button tapped ($regionName), building region definition")
 
     val bounds = LatLngBounds.Builder()
         .include(LatLng(PREVIEW_CENTER_LAT + OFFLINE_REGION_HALF_SPAN_DEGREES, PREVIEW_CENTER_LNG + OFFLINE_REGION_HALF_SPAN_DEGREES))
         .include(LatLng(PREVIEW_CENTER_LAT - OFFLINE_REGION_HALF_SPAN_DEGREES, PREVIEW_CENTER_LNG - OFFLINE_REGION_HALF_SPAN_DEGREES))
         .build()
     val definition = OfflineTilePyramidRegionDefinition(
-        DEMO_STYLE_URL,
+        styleUrl,
         bounds,
         OFFLINE_REGION_MIN_ZOOM,
         OFFLINE_REGION_MAX_ZOOM,
@@ -252,7 +284,7 @@ private fun startOfflineDownload(context: Context, onStatus: (OfflineDownloadSta
     appendStepLog(context, "calling OfflineManager.createOfflineRegion")
     OfflineManager.getInstance(context).createOfflineRegion(
         definition,
-        OFFLINE_REGION_NAME.toByteArray(),
+        regionName.toByteArray(),
         object : OfflineManager.CreateOfflineRegionCallback {
             override fun onCreate(offlineRegion: OfflineRegion) {
                 appendStepLog(context, "region created, setting observer")
@@ -462,7 +494,30 @@ private const val PREVIEW_CENTER_LNG = -122.6
 
 /** MapLibre's own public demo style — the same one step 1 confirmed renders. See "What step 3's offline download here does and does not prove" above for why the offline test targets this rather than USGS/OSM. */
 private const val DEMO_STYLE_URL = "https://demotiles.maplibre.org/style.json"
-private const val OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test"
+
+/**
+ * A minimal raster-only style bundled as an app asset ([offline_test_raster_style.json] under
+ * `app/src/main/assets/`) — no vector source, no `glyphs` URL, no `sprite`, no `text-field` layer.
+ * `asset://` resolves through MapLibre's `AssetFileSource`, the same generic scheme dispatch used
+ * for any other resource fetch, so this needs no external hosting the way [DEMO_STYLE_URL] does.
+ *
+ * The tiles it references are USGS Topo's — the one source this codebase already has standing
+ * permission to bulk-download (see `docs/plans/maplibre-migration.md` §1: OSM/OpenTopoMap
+ * prohibit bulk prefetch, USGS does not), the same tile URL template [PreviewBasemap.USGS_TOPO]
+ * uses for the live-render smoke test above.
+ *
+ * See this file's class doc comment, "Isolating the glyph hypothesis," for why this exists: the
+ * third hardware repro's step trace showed the native crash landing right after the first
+ * `onStatusChanged` callback for the vector [DEMO_STYLE_URL], at `completed=0/1` — before any real
+ * tile volume, but exactly where MapLibre's offline code would start resolving the demo style's
+ * `geolines-label`/`countries-label` glyph ranges (`Open Sans Semibold`). A raster style has no
+ * glyphs to resolve at all. If this one survives past that same point, that is real evidence for
+ * glyph-range resolution as the crash's native cause, independent of another region-size guess.
+ */
+private const val RASTER_STYLE_ASSET_URL = "asset://offline_test_raster_style.json"
+
+private const val VECTOR_OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test-vector"
+private const val RASTER_OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test-raster"
 
 // Deliberately small, and NOT starting from minZoom 0 — a first attempt at ~110km across, z0-8,
 // crashed the whole app on real hardware rather than failing gracefully through
