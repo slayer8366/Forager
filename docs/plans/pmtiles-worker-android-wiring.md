@@ -48,6 +48,36 @@ Mapbox-lineage `AssetFileSource` behavior, but was not itself hardware-confirmed
 Spot-check on a real device before trusting this further, per this doc's own "verify this yourself"
 callouts below (still accurate, re-read them) and CLAUDE.md's testing standards.
 
+## Update, 2026-08-19 (later): the `asset://` spot-check above found a real bug — fixed, not yet re-verified
+
+The spot-check the previous update flagged as needed was done. Result: the `asset://` theory in that
+update's "standard `AssetFileSource` behavior" line was wrong. Hardware repro on
+`claude/offline-maps-integration-21uez7`: the real "Offline Maps" screen hangs indefinitely at
+`"0 / 1 tiles"` after tapping Download — the exact `completed=0/1` stall PR #23 already isolated for
+a *different* style (its raster test style, also loaded via `asset://`), not a new, unrelated bug.
+`OfflineManager`'s resource-discovery path doesn't resolve `asset://` style URLs at all, regardless
+of whether the read is a small sequential style-JSON read (this case) or PMTiles' byte-range tile
+reads (the case PR #23's own doc comment named) — the distinction `MapLibreOfflineMapRepository`'s
+original doc comment drew between those two didn't hold up against actual hardware behavior.
+
+Fixed the same way PR #23 fixed it: stopped using `asset://`, host the style at a real HTTPS URL
+instead. Concretely:
+
+- `server/pmtiles-worker/src/index.ts` (branch `claude/pmtiles-cloudflare-worker`, PR #24) now serves
+  the exact same style content at `/style/offline.json`, bundled directly into the Worker (a static
+  38 KB document, not read from R2 per-request).
+- `MapLibreOfflineMapRepository.OFFLINE_STYLE_URL` now points at
+  `https://forager-pmtiles.brandonlee1-894.workers.dev/style/offline.json` instead of
+  `asset://forager_pmtiles_offline_style.json`.
+- `app/src/main/assets/forager_pmtiles_offline_style.json` is deleted — nothing references it anymore
+  (verified: `grep -rn forager_pmtiles_offline_style.json app/src` after the change finds only the
+  two doc-comment mentions of the old, broken approach, kept deliberately as history).
+
+**Still not hardware-verified**: this fix has not itself been re-tested on a device yet. The failure
+mode this fixes (indefinite hang, not a crash) is easy to mistake for "still loading" — confirm the
+tile count actually moves past `0/1` before trusting this, not just that the app doesn't hang
+immediately.
+
 ## What already exists and is verified — don't re-verify, build on it
 
 **The tile-serving infrastructure is live and confirmed working**, per
