@@ -10,39 +10,54 @@ Adapted from Protomaps' own reference Worker
 Cloudflare target, so their multi-backend layout is flattened into `src/index.ts` + `src/shared.ts`
 here instead of reproducing their monorepo structure.
 
-**Status: deployed via Cloudflare Workers Builds (Git-connected), no PMTiles archive uploaded yet.**
-`wrangler login`/`wrangler deploy` from a real terminal turned out to have its own dead end on
-Android: Termux's Node reports `process.platform` as `"android"`, and `workerd` (the Workers runtime
-`wrangler` depends on) hard-rejects any platform outside `linux`/`darwin`/`win32` — not an ABI issue
-rebuilding from source fixes, since Cloudflare doesn't ship an Android build of `workerd` at all.
-Pasting the bundled JS into the dashboard's Quick Edit also didn't work (Monaco's mobile clipboard
-handling). What actually worked: connecting this Worker to `slayer8366/Forager` via Cloudflare's own
-GitHub App (Settings → Build), with **root directory** `server/pmtiles-worker` and **production
-branch** `claude/pmtiles-cloudflare-worker` — Cloudflare's own build infrastructure runs
-`npx wrangler deploy` on every push to that branch, sidestepping the Termux/`workerd` problem
-entirely since none of it runs on-device.
+**Status: fully live and verified.** `https://forager-pmtiles.brandonlee1-894.workers.dev/us/{z}/{x}/{y}.mvt`
+serves real vector tiles (confirmed: a `.mvt` response decoded to genuine `earth`/`landuse`/`roads`/
+`water` layer data — US 191, Big Sandy River) out of a continental-US PMTiles archive in the
+`forager-maps` R2 bucket, deployed via a Worker connected to this repo. The whole path — extract,
+upload, deploy, serve — was built and debugged entirely from an Android phone (Termux + the
+Cloudflare dashboard), no desktop/laptop involved, hitting real problems along the way worth
+recording rather than hiding:
+
+- **`wrangler login`/`wrangler deploy` don't work on Termux at all.** Termux's Node reports
+  `process.platform` as `"android"`, and `workerd` (the Workers runtime `wrangler` depends on)
+  hard-rejects any platform outside `linux`/`darwin`/`win32` — not an ABI issue rebuilding from
+  source fixes, since Cloudflare doesn't ship an Android build of `workerd` at all.
+- **Pasting the bundled JS into the dashboard's Quick Edit also failed** (Monaco's mobile clipboard
+  handling). What actually worked: connecting this Worker to `slayer8366/Forager` via Cloudflare's
+  own GitHub App (Settings → Build), with **root directory** `server/pmtiles-worker` and
+  **production branch** `claude/pmtiles-cloudflare-worker` — Cloudflare's own build infrastructure
+  runs `npx wrangler deploy` on every push to that branch, so none of the Termux-specific problems
+  above apply.
+- **`rclone copy <local-file> r2:bucket/key` doesn't reliably land at `key`.** An interrupted
+  multi-threaded upload (switching networks mid-transfer) left an artifact that made a later
+  `rclone copy` land the object at `key/key` (a nested path) instead of `key` — R2's dashboard
+  bucket summary also showed a stale `Objects: 0` count with real storage used, which was a red
+  herring for an incomplete-multipart-upload state, not the actual final bug. Fixed with
+  `rclone moveto r2:bucket/key/key r2:bucket/key --s3-no-check-bucket` (`moveto`, unlike `move`,
+  treats both sides as exact file paths rather than inferring directories).
+- **Any `rclone` command against R2 that isn't a plain object PUT/GET may need `--s3-no-check-bucket`.**
+  The R2 API token here is deliberately scoped to object-level read/write on `forager-maps` only
+  (no bucket-admin permission), and rclone's default behavior probes bucket existence via
+  `CreateBucket` before some operations (`copy`, `moveto`) — that probe 403s with a scoped token
+  even though the actual operation would have succeeded. `--s3-no-check-bucket` skips the probe.
 
 ## What's already done
 
-- `wrangler.toml` is filled in with the real account ID and R2 bucket name
-  (`forager-maps`) already created on Cloudflare.
-- `npm install` succeeds, `npm run typecheck` (`tsc --noEmit`) is clean, and
-  `npm run build` (`wrangler deploy --dry-run`) successfully bundles the Worker (34.80 KiB) and
-  confirms the R2 binding resolves — all verified in this session. None of that required
-  authenticating against the live account; a dry-run only validates config and bundles code.
+- `wrangler.toml` is filled in with the real account ID and R2 bucket name (`forager-maps`).
+- `npm install`, `npm run typecheck` (`tsc --noEmit`), and `npm run build`
+  (`wrangler deploy --dry-run`) all pass.
+- The Worker is deployed live via Cloudflare Workers Builds, connected to this repo
+  (root directory `server/pmtiles-worker`, branch `claude/pmtiles-cloudflare-worker`) — redeploys
+  automatically on every push.
+- A continental-US PMTiles extract (`20260819.pmtiles` build, `--bbox=-124.85,24.40,-66.87,49.60
+  --maxzoom=14`, 8.8 GB) is uploaded to `forager-maps` as `us.pmtiles`, and the Worker confirmed
+  serving real tiles from it (`GET /us/{z}/{x}/{y}.mvt` returns genuine vector tile data).
 
-## What's left — three steps, all needing a real terminal (not this session)
-
-### 1. Get a PMTiles archive into the `forager-maps` bucket
+## Reproducing this (extract + upload), if the archive ever needs replacing
 
 Protomaps publishes a full-planet OpenStreetMap build daily at `build.protomaps.com`, filename
 `YYYYMMDD.pmtiles` — check [maps.protomaps.com/builds](https://maps.protomaps.com/builds) for
-today's actual filename before running this, since it changes every day and going stale silently
-would just 404.
-
-Install `go-pmtiles` (a single Go binary, from
-[protomaps/go-pmtiles releases](https://github.com/protomaps/go-pmtiles/releases) — pick the build
-for your machine's OS/arch), then extract a US-only slice without downloading the whole planet:
+today's actual filename first, since it changes daily and going stale silently would just 404.
 
 ```sh
 pmtiles extract https://build.protomaps.com/<TODAYS-DATE>.pmtiles us.pmtiles \
@@ -50,47 +65,29 @@ pmtiles extract https://build.protomaps.com/<TODAYS-DATE>.pmtiles us.pmtiles \
   --maxzoom=14
 ```
 
-That bbox is the continental US's rough bounding rectangle — it'll pull in a little of Canada/Mexico
-at the edges, which is harmless. A real US+Mexico extract at full zoom has been reported around
-17 GB; capping `--maxzoom` at 14 (this project's field-use zoom ceiling — see
-`maplibre-migration.md` §1, "Zoom past 15") should land meaningfully smaller than that, though the
-exact size depends on the build. Confirm the resulting file size before uploading — R2's free tier
-is 10 GB-month of storage, so if it lands north of that, storage costs a fraction of a cent per
-GB-month beyond it, not a wall.
+`--maxzoom=14` matches this project's field-use zoom ceiling (`maplibre-migration.md` §1, "Zoom
+past 15"). R2's free tier is 10 GB-month of storage; an 8.8 GB continental-US extract at that zoom
+fits with room to spare.
 
-Upload it to the bucket. R2 is S3-compatible, so `rclone` (configured with an R2 remote) is the
-standard tool for a multi-GB upload — `wrangler r2 object put` works too but is better suited to
-small files. Either way, the object key must match what `wrangler.toml`'s `PMTILES_PATH` expects:
-since that var isn't set here, the Worker defaults to `{name}.pmtiles` (see `pmtilesPath` in
-`src/shared.ts`), so upload it to the bucket as `us.pmtiles` to match the `/us/{z}/{x}/{y}.mvt`
-tile URLs this Worker will serve.
-
-### 2. Deploy the Worker
-
-Already handled — Cloudflare Workers Builds redeploys automatically on every push to
-`claude/pmtiles-cloudflare-worker`. Nothing to run manually. The live URL is
-`https://forager-pmtiles.brandonlee1-894.workers.dev` — that's the base URL the Android side's
-`OfflineTilePyramidRegionDefinition` style JSON will need.
-
-(The `npx wrangler login && npm run deploy` sequence below still works fine from any real terminal —
-Mac/Linux/Windows, not Termux — if the Git-connected build ever needs bypassing.)
+Upload with `rclone` (an R2 remote configured via `rclone config`, provider `Cloudflare`, endpoint
+`https://<account-id>.r2.cloudflarestorage.com`), **as a single command, not a directory copy**:
 
 ```sh
-cd server/pmtiles-worker
-npm install
-npx wrangler login
-npm run deploy
+rclone copyto us.pmtiles r2:forager-maps/us.pmtiles --s3-no-check-bucket
 ```
 
-### 3. Verify it actually serves a tile
+Use `copyto` (or `moveto`), not `copy` — `copy` can land the file nested at `us.pmtiles/us.pmtiles`
+instead of `us.pmtiles` if the destination already looks like a directory to rclone (see the status
+section above for how this actually happened and was fixed). The object key must stay `us.pmtiles`
+to match the `/us/{z}/{x}/{y}.mvt` tile URLs this Worker serves (`pmtilesPath` in `src/shared.ts`).
+
+Verify:
 
 ```sh
-curl -I "https://<worker-subdomain>.workers.dev/us/10/200/380.mvt"
+curl -I "https://forager-pmtiles.brandonlee1-894.workers.dev/us/10/200/380.mvt"
 ```
 
-A `200` with `Content-Type: application/x-protobuf` means it's working; `404` likely means the
-uploaded object's key doesn't match `us.pmtiles`, and `500` means something in the Worker itself —
-check `npx wrangler tail` while re-requesting for the real error.
+A `200` with `Content-Type: application/x-protobuf` means it's working.
 
 ## Not built yet
 
