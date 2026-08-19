@@ -18,6 +18,7 @@ import {
   tileTypeExt,
 } from "pmtiles";
 import { pmtilesPath, tilePath } from "./shared";
+import offlineStyle from "./offline-style.json";
 
 interface Env {
   ALLOWED_ORIGINS?: string;
@@ -88,11 +89,42 @@ class R2Source implements Source {
   }
 }
 
+function resolveAllowedOrigin(request: Request, env: Env): string {
+  let allowedOrigin = "";
+  if (typeof env.ALLOWED_ORIGINS !== "undefined") {
+    for (const o of env.ALLOWED_ORIGINS.split(",")) {
+      if (o === request.headers.get("Origin") || o === "*") allowedOrigin = o;
+    }
+  }
+  return allowedOrigin;
+}
+
+// Served at /style/offline.json — the glyph-stripped style MapLibreOfflineMapRepository (Android)
+// points OfflineTilePyramidRegionDefinition at. It must be a real HTTP(S) URL, not asset://: PR #23
+// (docs/plans/maplibre-migration.md) confirmed on hardware that OfflineManager's resource-discovery
+// path doesn't resolve asset:// style URLs the way normal MapView style loading does — a download
+// against one sits at completed=0/1 indefinitely, no error, no progress, no crash, just stuck.
+// Hosting it here (rather than raw.githubusercontent.com, which PR #23 used for its throwaway test
+// styles) keeps the real app's dependency under this project's own domain instead of GitHub's.
+function offlineStyleResponse(allowedOrigin: string): Response {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    "Cache-Control": "public, max-age=86400",
+  });
+  if (allowedOrigin) headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  return new Response(JSON.stringify(offlineStyle), { headers });
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (request.method.toUpperCase() === "POST") return new Response(undefined, { status: 405 });
 
     const url = new URL(request.url);
+
+    if (url.pathname === "/style/offline.json") {
+      return offlineStyleResponse(resolveAllowedOrigin(request, env));
+    }
+
     const { ok, name, tile, ext } = tilePath(url.pathname);
 
     const cache = caches.default;
@@ -101,14 +133,7 @@ export default {
       return new Response("Invalid URL", { status: 404 });
     }
 
-    let allowedOrigin = "";
-    if (typeof env.ALLOWED_ORIGINS !== "undefined") {
-      for (const o of env.ALLOWED_ORIGINS.split(",")) {
-        if (o === request.headers.get("Origin") || o === "*") {
-          allowedOrigin = o;
-        }
-      }
-    }
+    const allowedOrigin = resolveAllowedOrigin(request, env);
 
     const cached = await cache.match(request.url);
     if (cached) {
