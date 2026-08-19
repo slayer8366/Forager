@@ -48,7 +48,7 @@ Mapbox-lineage `AssetFileSource` behavior, but was not itself hardware-confirmed
 Spot-check on a real device before trusting this further, per this doc's own "verify this yourself"
 callouts below (still accurate, re-read them) and CLAUDE.md's testing standards.
 
-## Update, 2026-08-19 (later): the `asset://` spot-check above found a real bug — fixed, not yet re-verified
+## Update, 2026-08-19 (later): the `asset://` spot-check above found a real bug — fixed and confirmed
 
 The spot-check the previous update flagged as needed was done. Result: the `asset://` theory in that
 update's "standard `AssetFileSource` behavior" line was wrong. Hardware repro on
@@ -73,10 +73,18 @@ instead. Concretely:
   (verified: `grep -rn forager_pmtiles_offline_style.json app/src` after the change finds only the
   two doc-comment mentions of the old, broken approach, kept deliberately as history).
 
-**Still not hardware-verified**: this fix has not itself been re-tested on a device yet. The failure
-mode this fixes (indefinite hang, not a crash) is easy to mistake for "still loading" — confirm the
-tile count actually moves past `0/1` before trusting this, not just that the app doesn't hang
-immediately.
+**Hardware-confirmed on the owner's device**: fresh APK from this fix, real "Offline Maps" screen, a
+6 km radius around a real Portland-area coordinate (45.3368, -122.6016) — completed cleanly at
+**88 tiles, 1.9 MB**, no hang, no native crash. The tile count moved past `0/1` immediately rather
+than sitting there, confirming the `/style/offline.json` route resolves correctly through
+`OfflineTilePyramidRegionDefinition` where `asset://` didn't, and that the glyph-stripped 57-layer
+style avoids PR #23's confirmed native crash on the app's *real* style, not just PR #23's own
+placeholder test styles.
+
+**Still not hardware-verified**: persistence across a full app restart, and offline replay with the
+radio off (airplane mode) — PR #23 confirmed both of these for its own placeholder styles, but this
+project's real style/region combination hasn't been taken through that same restart+airplane-mode
+cycle yet. Worth doing before calling this fully proven, following the same steps PR #23 used.
 
 ## What already exists and is verified — don't re-verify, build on it
 
