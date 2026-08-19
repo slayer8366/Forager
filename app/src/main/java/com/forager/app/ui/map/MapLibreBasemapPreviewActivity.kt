@@ -391,13 +391,18 @@ private const val PREVIEW_CENTER_LNG = -122.6
 private const val DEMO_STYLE_URL = "https://demotiles.maplibre.org/style.json"
 private const val OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test"
 
-// A real region, not a token gesture, but still small enough to download quickly on a phone
-// network and stay well clear of any tile-count limit. The demo style is simplified/low-detail
-// (country outlines), so a wide bounds with a modest zoom ceiling is what actually produces a
-// non-trivial, verifiable resource count rather than near-zero tiles.
-private const val OFFLINE_REGION_HALF_SPAN_DEGREES = 0.5
-private const val OFFLINE_REGION_MIN_ZOOM = 0.0
-private const val OFFLINE_REGION_MAX_ZOOM = 8.0
+// Deliberately small, and NOT starting from minZoom 0 — a first attempt at ~110km across, z0-8,
+// crashed the whole app on real hardware rather than failing gracefully through
+// OfflineRegionObserver.onError, which points at a native-level failure, not a Kotlin exception
+// this code could have caught. maplibre/maplibre-native#2515 documents exactly this class of bug:
+// an out-of-memory crash downloading large bounds via OfflineManager, worse for vector styles
+// (like this demo style) where even a modest tile count can carry real geometry weight. This is
+// also a closer match to what production offline downloads actually look like — a small local
+// area at the zoom range someone would actually use in the field, not the whole tile pyramid down
+// from a global overview.
+private const val OFFLINE_REGION_HALF_SPAN_DEGREES = 0.02 // ~4.4km across
+private const val OFFLINE_REGION_MIN_ZOOM = 10.0
+private const val OFFLINE_REGION_MAX_ZOOM = 14.0
 
 private const val SIGHTING_SOURCE_ID = "preview-sightings"
 private const val SIGHTING_LAYER_ID = "preview-sightings-layer"
