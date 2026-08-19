@@ -101,12 +101,14 @@ import org.maplibre.android.style.sources.GeoJsonSource
  *
  * A third hardware repro confirmed exactly that: crash log empty, still a whole-app crash. Per
  * CLAUDE.md, two failed fix attempts on one symptom (the original 110km/z0-8 region, then the
- * shrink to ~4.4km/z10-14) means stop guessing a fourth region size and get more data instead —
- * [writeProgressLog] does that by persisting the last-observed [OfflineRegionStatus] to
- * [PROGRESS_LOG_FILE_NAME] on every `onStatusChanged` call, so a native crash that the exception
- * handler above cannot see still leaves behind exactly how many resources/bytes had completed at
- * the moment the process died — turning "did it crash" into "how far did it get," which is what
- * the next region-size or concurrency decision should be based on rather than another guess.
+ * shrink to ~4.4km/z10-14) means stop guessing a fourth region size and get more data instead — a
+ * first pass at that (persisting only the last [OfflineRegionStatus] to disk) showed the crash
+ * happening at `completed=0/1 resources`, i.e. essentially immediately, which rules out "OOM from
+ * too many tiles" as the cause: there is no smaller region that explains dying before resource 1
+ * of 1. [appendStepLog] replaces that single overwritten line with an ordered, appended trace of
+ * every lifecycle checkpoint — region created, observer set, `setDownloadState` called/returned,
+ * every `onStatusChanged`/`onError` — to [STEP_LOG_FILE_NAME], so the next hardware repro shows
+ * *which specific step* precedes the native crash rather than only the last resource count.
  *
  * Once confirmed on hardware, this class is deleted — it is scaffolding for verification, not a
  * feature.
@@ -121,7 +123,7 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
         MapLibre.getInstance(this)
 
         val previousCrashLog = readAndClearCrashLog(this)
-        val previousProgressLog = readAndClearProgressLog(this)
+        val previousStepLog = readAndClearStepLog(this)
 
         setContent {
             ForagerTheme {
@@ -132,7 +134,7 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
 
                 Box {
                     MapLibreOverlayPreview(basemap = selectedBasemap, modifier = Modifier)
-                    if (previousCrashLog != null || previousProgressLog != null) {
+                    if (previousCrashLog != null || previousStepLog != null) {
                         Column(
                             modifier = Modifier
                                 .align(Alignment.Center)
@@ -148,10 +150,10 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
                                     )
                                 }
                             }
-                            if (previousProgressLog != null) {
+                            if (previousStepLog != null) {
                                 Surface(color = MaterialTheme.colorScheme.errorContainer) {
                                     Text(
-                                        "Last known download progress before this launch (may predate a crash the logger above didn't catch):\n\n$previousProgressLog",
+                                        "Steps before this launch (last line ran right before a crash the logger above didn't catch):\n\n$previousStepLog",
                                         modifier = Modifier.padding(8.dp),
                                         style = MaterialTheme.typography.bodySmall,
                                     )
@@ -231,6 +233,9 @@ private fun OfflineDownloadStatus.describe(): String = when (this) {
  */
 private fun startOfflineDownload(context: Context, onStatus: (OfflineDownloadStatus) -> Unit) {
     onStatus(OfflineDownloadStatus.Downloading(completedResources = 0, requiredResources = 0))
+    // Fresh trace per download attempt — an in-session retry shouldn't blend into an earlier one.
+    File(context.filesDir, STEP_LOG_FILE_NAME).delete()
+    appendStepLog(context, "download button tapped, building region definition")
 
     val bounds = LatLngBounds.Builder()
         .include(LatLng(PREVIEW_CENTER_LAT + OFFLINE_REGION_HALF_SPAN_DEGREES, PREVIEW_CENTER_LNG + OFFLINE_REGION_HALF_SPAN_DEGREES))
@@ -244,16 +249,18 @@ private fun startOfflineDownload(context: Context, onStatus: (OfflineDownloadSta
         context.resources.displayMetrics.density,
     )
 
+    appendStepLog(context, "calling OfflineManager.createOfflineRegion")
     OfflineManager.getInstance(context).createOfflineRegion(
         definition,
         OFFLINE_REGION_NAME.toByteArray(),
         object : OfflineManager.CreateOfflineRegionCallback {
             override fun onCreate(offlineRegion: OfflineRegion) {
+                appendStepLog(context, "region created, setting observer")
                 offlineRegion.setObserver(object : OfflineRegion.OfflineRegionObserver {
                     override fun onStatusChanged(status: OfflineRegionStatus) {
-                        writeProgressLog(
+                        appendStepLog(
                             context,
-                            "completed=${status.completedResourceCount}/${status.requiredResourceCount} resources, " +
+                            "onStatusChanged: completed=${status.completedResourceCount}/${status.requiredResourceCount} resources, " +
                                 "bytes=${status.completedResourceSize}, isComplete=${status.isComplete}",
                         )
                         onStatus(
@@ -266,17 +273,22 @@ private fun startOfflineDownload(context: Context, onStatus: (OfflineDownloadSta
                     }
 
                     override fun onError(error: OfflineRegionError) {
+                        appendStepLog(context, "onError: reason=${error.reason} message=${error.message}")
                         onStatus(OfflineDownloadStatus.Failed(error.message))
                     }
 
                     override fun mapboxTileCountLimitExceeded(limit: Long) {
+                        appendStepLog(context, "mapboxTileCountLimitExceeded: limit=$limit")
                         onStatus(OfflineDownloadStatus.Failed("tile count limit exceeded ($limit)"))
                     }
                 })
+                appendStepLog(context, "observer set, calling setDownloadState(ACTIVE)")
                 offlineRegion.setDownloadState(OfflineRegion.STATE_ACTIVE)
+                appendStepLog(context, "setDownloadState(ACTIVE) returned")
             }
 
             override fun onError(error: String) {
+                appendStepLog(context, "createOfflineRegion onError: $error")
                 onStatus(OfflineDownloadStatus.Failed(error))
             }
         },
@@ -537,25 +549,30 @@ private fun readAndClearCrashLog(context: Context): String? {
     return runCatching { file.readText() }.getOrNull()?.also { file.delete() }
 }
 
-private const val PROGRESS_LOG_FILE_NAME = "maplibre_preview_progress.txt"
+private const val STEP_LOG_FILE_NAME = "maplibre_preview_steps.txt"
 
 /**
- * Overwrites [PROGRESS_LOG_FILE_NAME] with the latest download status on every
- * [OfflineRegion.OfflineRegionObserver.onStatusChanged] call. This exists because
- * [installCrashLogger] can only catch a Kotlin/Java exception — the two hardware crashes so far
- * show no such exception (see this activity's "Crash capture" doc comment), which points at a
- * native (JNI) failure the JVM handler never sees. A native crash still leaves this file on disk
- * with whatever the last-observed progress was, which turns "did it crash" into "how far did it
- * get before it died" — the resource count and byte count at the moment of death, without needing
+ * Appends one timestamped line to [STEP_LOG_FILE_NAME] at each offline-download lifecycle
+ * checkpoint (button tapped, region created, observer set, `setDownloadState` called and
+ * returned, every `onStatusChanged`/`onError` callback). This exists because [installCrashLogger]
+ * can only catch a Kotlin/Java exception — three hardware repros in a row show no such exception
+ * (see this activity's "Crash capture" doc comment) and the first attempt at reading progress off
+ * a single overwritten status line showed the crash happening at `completed=0/1`, i.e. essentially
+ * immediately, which ruled out the "OOM from a large tile count" theory the region-shrink fix was
+ * built on. A single overwritten line can't say *which* step preceded death, only the last status
+ * value — appending every checkpoint turns that into an ordered trace: whichever line is last in
+ * the file on the next launch is the last thing that ran before the process died, without needing
  * adb or a debugger attached.
  */
-private fun writeProgressLog(context: Context, status: String) {
-    runCatching { File(context.filesDir, PROGRESS_LOG_FILE_NAME).writeText(status) }
+private fun appendStepLog(context: Context, step: String) {
+    runCatching {
+        File(context.filesDir, STEP_LOG_FILE_NAME).appendText("${System.currentTimeMillis()} $step\n")
+    }
 }
 
-/** Reads back and deletes [PROGRESS_LOG_FILE_NAME], so stale progress from an old run is shown exactly once. */
-private fun readAndClearProgressLog(context: Context): String? {
-    val file = File(context.filesDir, PROGRESS_LOG_FILE_NAME)
+/** Reads back and deletes [STEP_LOG_FILE_NAME], so a stale trace from an old run is shown exactly once. */
+private fun readAndClearStepLog(context: Context): String? {
+    val file = File(context.filesDir, STEP_LOG_FILE_NAME)
     if (!file.exists()) return null
     return runCatching { file.readText() }.getOrNull()?.also { file.delete() }
 }
