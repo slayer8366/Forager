@@ -217,6 +217,15 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
                         ) {
                             Text("Download offline region (raster style — no glyphs)")
                         }
+                        Button(
+                            onClick = {
+                                startOfflineDownload(context, VECTOR_NO_GLYPHS_STYLE_URL, VECTOR_NO_GLYPHS_OFFLINE_REGION_NAME) { status ->
+                                    offlineStatus = status
+                                }
+                            },
+                        ) {
+                            Text("Download offline region (vector style — no glyphs)")
+                        }
                         Surface(color = MaterialTheme.colorScheme.errorContainer) {
                             Text(
                                 offlineStatus.describe(),
@@ -508,10 +517,13 @@ private const val DEMO_STYLE_URL = "https://demotiles.maplibre.org/style.json"
  * CLAUDE.md, that calls for eliminating the variable rather than waiting out an unexplained hang:
  * this points at `raw.githubusercontent.com` instead, a real fetchable HTTPS URL requiring no new
  * infrastructure (the content is already public in this repo), to isolate whether `asset://` was
- * the actual blocker. If this also stalls at `completed=0/1`, that would point elsewhere (the USGS
- * tile endpoint itself, MapLibre's raster-resource discovery in general); if it downloads cleanly,
- * that confirms both things at once: `asset://` is unsupported for offline definitions here, *and*
- * a raster style survives where the vector one crashed at the identical checkpoint.
+ * the actual blocker.
+ *
+ * Confirmed on hardware: this downloads cleanly (17 resources, 437,133 bytes), survives a full app
+ * restart, and the downloaded USGS Topo tiles render with the radio in airplane mode — both things
+ * at once: `asset://` was indeed unsupported for offline definitions here, and a raster style
+ * survives past the exact checkpoint where the vector style crashes. See [VECTOR_NO_GLYPHS_STYLE_URL]
+ * below for the follow-up that isolates *glyphs* specifically from "vector source in general."
  *
  * See this file's class doc comment, "Isolating the glyph hypothesis," for the original crash
  * evidence this is built to test against: the third hardware repro's step trace showed the native
@@ -525,8 +537,27 @@ private const val DEMO_STYLE_URL = "https://demotiles.maplibre.org/style.json"
 private const val RASTER_STYLE_URL =
     "https://raw.githubusercontent.com/slayer8366/Forager/claude/phase1b-offline-packages/app/src/main/assets/offline_test_raster_style.json"
 
+/**
+ * The same vector source and geometry/fill/line layers as [DEMO_STYLE_URL] — `maplibre` (the demo
+ * tileset), `background`/`coastline`/`countries-fill`/`countries-boundary`/`geolines` — but with
+ * the two `text-field` symbol layers (`geolines-label`, `countries-label`) and the `glyphs` key
+ * removed, and the `crimea` GeoJSON source/layer dropped (inline data, unrelated to either
+ * hypothesis). [RASTER_STYLE_URL] already showed *something* about the vector demo style crashes
+ * where a plain raster style does not, but it changed two variables at once — no glyphs *and* no
+ * vector tile source. This isolates the remaining one: same vector source, same tile fetching,
+ * same real geometry parsing, only glyphs removed. If this crashes at the same `completed=0/1`
+ * checkpoint as [DEMO_STYLE_URL], the cause is the vector tile source itself, not glyphs. If it
+ * downloads cleanly like [RASTER_STYLE_URL] did, that is real, specific evidence glyph-range
+ * resolution is the crash's cause — and a real, shippable mitigation: strip label/glyph layers from
+ * whichever style variant gets used for offline downloads specifically, independent of what the
+ * live map renders when online.
+ */
+private const val VECTOR_NO_GLYPHS_STYLE_URL =
+    "https://raw.githubusercontent.com/slayer8366/Forager/claude/phase1b-offline-packages/app/src/main/assets/offline_test_vector_no_glyphs_style.json"
+
 private const val VECTOR_OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test-vector"
 private const val RASTER_OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test-raster"
+private const val VECTOR_NO_GLYPHS_OFFLINE_REGION_NAME = "forager-maplibre-step3-smoke-test-vector-no-glyphs"
 
 // Deliberately small, and NOT starting from minZoom 0 — a first attempt at ~110km across, z0-8,
 // crashed the whole app on real hardware rather than failing gracefully through
