@@ -7,6 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import java.io.File
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -83,6 +86,19 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * To actually verify offline replay: download a region, then turn on airplane mode and relaunch
  * this activity — the downloaded area of the demo-style map should still render with no network.
  *
+ * ## Crash capture
+ *
+ * A download attempt has crashed the whole app on real hardware twice, with no `OfflineRegionObserver.onError`
+ * call first — a sign of a native-level failure, not a Kotlin exception, and this environment has
+ * no device to attach a debugger or `adb logcat` to. adb-over-Termux and the OS's own "Take bug
+ * report" tool both proved impractical to get working for the project owner's actual setup. So
+ * this installs its own [Thread.UncaughtExceptionHandler] before anything else runs, writing any
+ * *Kotlin/Java*-level crash to [CRASH_LOG_FILE_NAME] in app-private storage and showing it on
+ * screen the next time this activity launches — no adb, no OS tooling, just this app and a
+ * relaunch. It cannot catch a genuine native (JNI) crash, which bypasses the JVM's exception
+ * mechanism entirely — if the crash log stays empty across another repro, that itself is real
+ * information: it rules out a Kotlin-level cause and points at MapLibre's native code specifically.
+ *
  * Once confirmed on hardware, this class is deleted — it is scaffolding for verification, not a
  * feature.
  */
@@ -90,9 +106,12 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installCrashLogger(this)
         // Required once, before any MapView is created — the same "initialize the vendor SDK
         // before touching it" step every Mapbox-lineage map library needs.
         MapLibre.getInstance(this)
+
+        val previousCrashLog = readAndClearCrashLog(this)
 
         setContent {
             ForagerTheme {
@@ -103,6 +122,21 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
 
                 Box {
                     MapLibreOverlayPreview(basemap = selectedBasemap, modifier = Modifier)
+                    if (previousCrashLog != null) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(16.dp)
+                                .verticalScroll(rememberScrollState()),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                        ) {
+                            Text(
+                                "Crash caught on the previous run:\n\n$previousCrashLog",
+                                modifier = Modifier.padding(8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
                     Surface(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
@@ -446,4 +480,32 @@ private fun connectorLineGeoJson(): String {
     )
     val coordinates = points.joinToString(",") { (dLat, dLng) -> "[${PREVIEW_CENTER_LNG + dLng},${PREVIEW_CENTER_LAT + dLat}]" }
     return """{"type":"Feature","geometry":{"type":"LineString","coordinates":[$coordinates]},"properties":{}}"""
+}
+
+private const val CRASH_LOG_FILE_NAME = "maplibre_preview_crash.txt"
+
+/**
+ * Wraps the process-wide default [Thread.UncaughtExceptionHandler], writing any *Kotlin/Java*
+ * crash to [CRASH_LOG_FILE_NAME] before handing off to whatever handler was previously installed
+ * (Android's own, which shows the "app has a bug" dialog and terminates the process — this does
+ * not suppress that, it only gets a copy of the stack trace onto disk first). See this activity's
+ * "Crash capture" doc comment for why this exists instead of adb/OS tooling. Installed fresh every
+ * `onCreate`, so it always wraps whatever the current default handler is rather than risking
+ * double-wrapping across relaunches within the same process.
+ */
+private fun installCrashLogger(context: Context) {
+    val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+        runCatching {
+            File(context.filesDir, CRASH_LOG_FILE_NAME).writeText(throwable.stackTraceToString())
+        }
+        previousHandler?.uncaughtException(thread, throwable)
+    }
+}
+
+/** Reads back and deletes [CRASH_LOG_FILE_NAME], so a caught crash is shown exactly once, on the next launch after it happened. */
+private fun readAndClearCrashLog(context: Context): String? {
+    val file = File(context.filesDir, CRASH_LOG_FILE_NAME)
+    if (!file.exists()) return null
+    return runCatching { file.readText() }.getOrNull()?.also { file.delete() }
 }
