@@ -1,7 +1,8 @@
 # Handoff: wire the live PMTiles Worker into the real app
 
 Status as of 2026-08-19: written for a fresh coder session to pick up cold, continuing off
-`claude/pmtiles-cloudflare-worker` (this doc's own branch) and PR
+`claude/pmtiles-cloudflare-worker` (this doc's own branch, PR
+[#24](https://github.com/slayer8366/Forager/pull/24), open/unmerged) and PR
 [#23](https://github.com/slayer8366/Forager/pull/23) (open, unmerged, branch
 `claude/phase1b-offline-packages`). Both are prerequisites for what this doc scopes, not this doc's
 own subject — read them before writing code, not after.
@@ -97,4 +98,5 @@ Facts here may have shifted between this doc being written and being picked up:
   should be `200`, `Content-Type: application/x-protobuf`).
 - Whether PR #23 has been merged, closed, or changed since — check its current state rather than
   trusting this doc's description of it.
-- Whether `claude/pmtiles-cloudflare-worker` has a PR open yet, or is still branch-only.
+- Whether PR [#24](https://github.com/slayer8366/Forager/pull/24) (`claude/pmtiles-cloudflare-worker`)
+  has been merged since — check its current state rather than trusting this doc's description of it.
