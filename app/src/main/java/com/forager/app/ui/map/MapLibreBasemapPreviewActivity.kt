@@ -110,7 +110,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * every `onStatusChanged`/`onError` — to [STEP_LOG_FILE_NAME], so the next hardware repro shows
  * *which specific step* precedes the native crash rather than only the last resource count.
  *
- * ## Isolating the glyph hypothesis
+ * ## Isolating the glyph hypothesis — confirmed
  *
  * The step trace from that build was conclusive about *timing*, not cause: every checkpoint
  * through `setDownloadState(ACTIVE) returned` is logged, then exactly one `onStatusChanged` fires
@@ -119,12 +119,18 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * two `text-field` layers (`geolines-label`, `countries-label`, both `Open Sans Semibold`), which
  * is exactly the resource-list work that would be happening at that point: MapLibre's offline code
  * resolves the style's glyph ranges as part of building the real resource pyramid, a step entirely
- * independent of the tile bounds/zoom this file already shrank once. [RASTER_STYLE_URL] has
- * no glyphs, no vector source, nothing to resolve there — same bounds, same zoom range, same
- * instrumentation. If it downloads cleanly where the vector style dies at the identical checkpoint,
- * that is real evidence glyph-range resolution is the native crash's cause, not region size — the
- * next real fix would then target *what this app asks MapLibre to render offline* (drop the label
- * layers, or accept raster-only for the real feature) rather than a fifth region-size guess.
+ * independent of the tile bounds/zoom this file already shrank once.
+ *
+ * Confirmed on hardware with a clean three-way isolation, not just a correlation:
+ * [RASTER_STYLE_URL] (no vector source, no glyphs) downloads cleanly. [VECTOR_NO_GLYPHS_STYLE_URL]
+ * (the *same* vector source as [DEMO_STYLE_URL], same real geometry parsing, glyphs removed) also
+ * downloads cleanly (`completed=0/1 → 1/2 → 2/2`), exonerating the vector tile source itself.
+ * [DEMO_STYLE_URL] — vector source plus glyphs — crashes at the identical `completed=0/1`
+ * checkpoint every time. Glyph-range resolution is the confirmed cause, not region size and not
+ * vector rendering in general. The real fix for later migration work (once `Basemap` becomes a
+ * hosted vector style with labels) is targeted, not speculative: strip label/glyph layers from
+ * whichever style variant is used for *offline downloads* specifically, independent of what the
+ * live map renders when online — not a workaround pending an upstream fix with no clear owner.
  *
  * Once confirmed on hardware, this class is deleted — it is scaffolding for verification, not a
  * feature.
@@ -545,12 +551,15 @@ private const val RASTER_STYLE_URL =
  * hypothesis). [RASTER_STYLE_URL] already showed *something* about the vector demo style crashes
  * where a plain raster style does not, but it changed two variables at once — no glyphs *and* no
  * vector tile source. This isolates the remaining one: same vector source, same tile fetching,
- * same real geometry parsing, only glyphs removed. If this crashes at the same `completed=0/1`
- * checkpoint as [DEMO_STYLE_URL], the cause is the vector tile source itself, not glyphs. If it
- * downloads cleanly like [RASTER_STYLE_URL] did, that is real, specific evidence glyph-range
- * resolution is the crash's cause — and a real, shippable mitigation: strip label/glyph layers from
- * whichever style variant gets used for offline downloads specifically, independent of what the
- * live map renders when online.
+ * same real geometry parsing, only glyphs removed.
+ *
+ * Confirmed on hardware: this downloads cleanly (`completed=0/1 → 1/2 → 2/2, isComplete=true`), no
+ * crash — the same vector tile source [DEMO_STYLE_URL] uses, exonerated. Combined with
+ * [RASTER_STYLE_URL]'s result, this is a clean three-way isolation, not a correlation: raster (no
+ * vector, no glyphs) survives, vector-with-glyphs crashes every time at the same checkpoint,
+ * vector-without-glyphs survives. Glyph-range resolution is the confirmed, specific cause — and a
+ * real, shippable mitigation follows: strip label/glyph layers from whichever style variant gets
+ * used for offline downloads specifically, independent of what the live map renders when online.
  */
 private const val VECTOR_NO_GLYPHS_STYLE_URL =
     "https://raw.githubusercontent.com/slayer8366/Forager/claude/phase1b-offline-packages/app/src/main/assets/offline_test_vector_no_glyphs_style.json"

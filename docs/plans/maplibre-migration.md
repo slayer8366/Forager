@@ -259,20 +259,27 @@ The cost of not splitting this way is writing every map overlay twice.
   referencing remote fonts and sprites renders label-less or fails when the
   user is where they actually need it. Bundle glyphs and sprites; verify
   offline with the radio off, not with a fake network error.
-- **Confirmed on hardware (step 3, PR #23): offline *downloads* of a style
-  with glyphs can crash outright, not just render label-less.** MapLibre's
-  own public vector demo style (two `text-field` layers) reliably crashed
-  the whole app during `OfflineManager.createOfflineRegion`/download — a
-  native (JNI) crash, invisible to both a `Thread.UncaughtExceptionHandler`
-  and `OfflineRegionObserver.onError` — landing consistently right after the
+- **Confirmed on hardware (step 3, PR #23), with a three-way isolation, not
+  just a correlation: offline *downloads* of a style with glyphs crash
+  outright, and the cause is specifically glyph-range resolution, not
+  region size and not vector rendering in general.** MapLibre's own public
+  vector demo style (two `text-field` layers) reliably crashed the whole
+  app during `OfflineManager.createOfflineRegion`/download — a native (JNI)
+  crash, invisible to both a `Thread.UncaughtExceptionHandler` and
+  `OfflineRegionObserver.onError` — landing consistently right after the
   first `onStatusChanged` callback, independent of region size (reproduced
-  from ~110km/z0-8 down to ~4.4km/z10-14, same checkpoint every time). A
-  same-bounds, same-zoom raster-only style with no glyphs downloaded cleanly
-  every time under identical instrumentation. Before shipping offline
-  downloads of any real labeled vector basemap, re-test this specific
-  failure against the MapLibre release in use at that time; if it still
-  reproduces, offline downloads of that style need to ship without the
-  label layer rather than assume region-size tuning will avoid it.
+  from ~110km/z0-8 down to ~4.4km/z10-14, same checkpoint every time). Two
+  controls under identical bounds/zoom/instrumentation both downloaded
+  cleanly: a raster-only style (no vector source, no glyphs), and — the
+  isolating test — the *same vector tile source and real geometry layers*
+  as the crashing style, with only the glyph/label layers removed. That
+  exonerates vector rendering itself and leaves glyph-range resolution as
+  the confirmed cause. The fix this points to is targeted, not
+  speculative: strip label/glyph layers from whichever style variant is
+  used for *offline downloads* specifically, independent of what the live
+  map renders when online — re-verify against the MapLibre release in use
+  at ship time, but this is a known, targeted mitigation now, not an open
+  upstream mystery to re-diagnose from scratch.
 - **Vector rendering is GPU work.** `minSdk` 26 covers old, weak devices —
   precisely what someone carries into the woods as a beater phone. Battery
   draw during multi-hour track recording with a vector map on screen is a
