@@ -10,10 +10,17 @@ Adapted from Protomaps' own reference Worker
 Cloudflare target, so their multi-backend layout is flattened into `src/index.ts` + `src/shared.ts`
 here instead of reproducing their monorepo structure.
 
-**Status: code-complete and dry-run-verified, not yet deployed.** No PMTiles archive has been
-extracted or uploaded yet, and `wrangler deploy` (the real deploy, not `--dry-run`) hasn't been run
-against the live Cloudflare account — that needs interactive `wrangler login`, which only works
-from a real terminal session, not this one.
+**Status: deployed via Cloudflare Workers Builds (Git-connected), no PMTiles archive uploaded yet.**
+`wrangler login`/`wrangler deploy` from a real terminal turned out to have its own dead end on
+Android: Termux's Node reports `process.platform` as `"android"`, and `workerd` (the Workers runtime
+`wrangler` depends on) hard-rejects any platform outside `linux`/`darwin`/`win32` — not an ABI issue
+rebuilding from source fixes, since Cloudflare doesn't ship an Android build of `workerd` at all.
+Pasting the bundled JS into the dashboard's Quick Edit also didn't work (Monaco's mobile clipboard
+handling). What actually worked: connecting this Worker to `slayer8366/Forager` via Cloudflare's own
+GitHub App (Settings → Build), with **root directory** `server/pmtiles-worker` and **production
+branch** `claude/pmtiles-cloudflare-worker` — Cloudflare's own build infrastructure runs
+`npx wrangler deploy` on every push to that branch, sidestepping the Termux/`workerd` problem
+entirely since none of it runs on-device.
 
 ## What's already done
 
@@ -60,15 +67,20 @@ tile URLs this Worker will serve.
 
 ### 2. Deploy the Worker
 
+Already handled — Cloudflare Workers Builds redeploys automatically on every push to
+`claude/pmtiles-cloudflare-worker`. Nothing to run manually. The live URL is
+`https://forager-pmtiles.brandonlee1-894.workers.dev` — that's the base URL the Android side's
+`OfflineTilePyramidRegionDefinition` style JSON will need.
+
+(The `npx wrangler login && npm run deploy` sequence below still works fine from any real terminal —
+Mac/Linux/Windows, not Termux — if the Git-connected build ever needs bypassing.)
+
 ```sh
 cd server/pmtiles-worker
 npm install
-npx wrangler login    # opens a browser for Cloudflare OAuth — interactive, can't be scripted
+npx wrangler login
 npm run deploy
 ```
-
-`wrangler deploy` prints the Worker's `*.workers.dev` URL on success — that's the base URL the
-Android side's `OfflineTilePyramidRegionDefinition` style JSON will need.
 
 ### 3. Verify it actually serves a tile
 
