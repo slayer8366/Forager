@@ -99,6 +99,15 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * mechanism entirely — if the crash log stays empty across another repro, that itself is real
  * information: it rules out a Kotlin-level cause and points at MapLibre's native code specifically.
  *
+ * A third hardware repro confirmed exactly that: crash log empty, still a whole-app crash. Per
+ * CLAUDE.md, two failed fix attempts on one symptom (the original 110km/z0-8 region, then the
+ * shrink to ~4.4km/z10-14) means stop guessing a fourth region size and get more data instead —
+ * [writeProgressLog] does that by persisting the last-observed [OfflineRegionStatus] to
+ * [PROGRESS_LOG_FILE_NAME] on every `onStatusChanged` call, so a native crash that the exception
+ * handler above cannot see still leaves behind exactly how many resources/bytes had completed at
+ * the moment the process died — turning "did it crash" into "how far did it get," which is what
+ * the next region-size or concurrency decision should be based on rather than another guess.
+ *
  * Once confirmed on hardware, this class is deleted — it is scaffolding for verification, not a
  * feature.
  */
@@ -112,6 +121,7 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
         MapLibre.getInstance(this)
 
         val previousCrashLog = readAndClearCrashLog(this)
+        val previousProgressLog = readAndClearProgressLog(this)
 
         setContent {
             ForagerTheme {
@@ -122,19 +132,31 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
 
                 Box {
                     MapLibreOverlayPreview(basemap = selectedBasemap, modifier = Modifier)
-                    if (previousCrashLog != null) {
-                        Surface(
+                    if (previousCrashLog != null || previousProgressLog != null) {
+                        Column(
                             modifier = Modifier
                                 .align(Alignment.Center)
                                 .padding(16.dp)
                                 .verticalScroll(rememberScrollState()),
-                            color = MaterialTheme.colorScheme.errorContainer,
                         ) {
-                            Text(
-                                "Crash caught on the previous run:\n\n$previousCrashLog",
-                                modifier = Modifier.padding(8.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                            if (previousCrashLog != null) {
+                                Surface(color = MaterialTheme.colorScheme.errorContainer) {
+                                    Text(
+                                        "Crash caught on the previous run:\n\n$previousCrashLog",
+                                        modifier = Modifier.padding(8.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            }
+                            if (previousProgressLog != null) {
+                                Surface(color = MaterialTheme.colorScheme.errorContainer) {
+                                    Text(
+                                        "Last known download progress before this launch (may predate a crash the logger above didn't catch):\n\n$previousProgressLog",
+                                        modifier = Modifier.padding(8.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            }
                         }
                     }
                     Surface(
@@ -229,6 +251,11 @@ private fun startOfflineDownload(context: Context, onStatus: (OfflineDownloadSta
             override fun onCreate(offlineRegion: OfflineRegion) {
                 offlineRegion.setObserver(object : OfflineRegion.OfflineRegionObserver {
                     override fun onStatusChanged(status: OfflineRegionStatus) {
+                        writeProgressLog(
+                            context,
+                            "completed=${status.completedResourceCount}/${status.requiredResourceCount} resources, " +
+                                "bytes=${status.completedResourceSize}, isComplete=${status.isComplete}",
+                        )
                         onStatus(
                             if (status.isComplete) {
                                 OfflineDownloadStatus.Complete(status.completedResourceCount, status.completedResourceSize)
@@ -506,6 +533,29 @@ private fun installCrashLogger(context: Context) {
 /** Reads back and deletes [CRASH_LOG_FILE_NAME], so a caught crash is shown exactly once, on the next launch after it happened. */
 private fun readAndClearCrashLog(context: Context): String? {
     val file = File(context.filesDir, CRASH_LOG_FILE_NAME)
+    if (!file.exists()) return null
+    return runCatching { file.readText() }.getOrNull()?.also { file.delete() }
+}
+
+private const val PROGRESS_LOG_FILE_NAME = "maplibre_preview_progress.txt"
+
+/**
+ * Overwrites [PROGRESS_LOG_FILE_NAME] with the latest download status on every
+ * [OfflineRegion.OfflineRegionObserver.onStatusChanged] call. This exists because
+ * [installCrashLogger] can only catch a Kotlin/Java exception — the two hardware crashes so far
+ * show no such exception (see this activity's "Crash capture" doc comment), which points at a
+ * native (JNI) failure the JVM handler never sees. A native crash still leaves this file on disk
+ * with whatever the last-observed progress was, which turns "did it crash" into "how far did it
+ * get before it died" — the resource count and byte count at the moment of death, without needing
+ * adb or a debugger attached.
+ */
+private fun writeProgressLog(context: Context, status: String) {
+    runCatching { File(context.filesDir, PROGRESS_LOG_FILE_NAME).writeText(status) }
+}
+
+/** Reads back and deletes [PROGRESS_LOG_FILE_NAME], so stale progress from an old run is shown exactly once. */
+private fun readAndClearProgressLog(context: Context): String? {
+    val file = File(context.filesDir, PROGRESS_LOG_FILE_NAME)
     if (!file.exists()) return null
     return runCatching { file.readText() }.getOrNull()?.also { file.delete() }
 }
