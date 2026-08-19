@@ -333,11 +333,11 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `the Offline Maps submenu states it always uses USGS topographic maps`() {
+    fun `the Offline Maps submenu states it covers the continental US with vector map data`() {
         setScreen()
         openOfflineMaps()
 
-        composeRule.onAllNodesWithText("USGS topographic", substring = true).assertCountEquals(1)
+        composeRule.onAllNodesWithText("continental United States", substring = true).assertCountEquals(1)
     }
 }
 

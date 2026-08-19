@@ -30,17 +30,21 @@ package com.forager.app.ui.map
  * ## Offline downloading has nothing to do with this enum at all
  *
  * An earlier revision gated Settings' "Offline Maps" section on `selectedMapService == USGS`, since
- * offline downloads only ever fetch USGS tiles. The project owner's own framing, after seeing it
- * built: since offline downloads only ever use USGS regardless, there's no reason for the *feature*
- * to react to which service is currently selected for live browsing — the two are independent
- * decisions, and coupling one's reachability to the other's live value was a leftover of an earlier
- * design where the download style *did* follow the live selection. So "Offline Maps" is reachable
- * unconditionally now; `com.forager.app.domain.OfflineMapRepository` hardcodes USGS Topo rather than
- * accepting a tile source at all, which is what actually keeps the feature USGS-only — see
- * `OsmdroidOfflineMapRepository`'s doc comment for the full citation trail behind *why* it's
- * USGS-only in the first place (osmdroid's own [TileSourcePolicy][org.osmdroid.tileprovider.tilesource.TileSourcePolicy]
- * marks OpenStreetMap's `MAPNIK` source `FLAG_NO_BULK`, and this project's own one-step-removed
- * research found OpenTopoMap's tile server states the same).
+ * offline downloads originally only ever fetched USGS tiles. The project owner's own framing, after
+ * seeing it built: since offline downloads never followed the live selection anyway, there's no
+ * reason for the *feature* to react to which service is currently selected for live browsing — the
+ * two are independent decisions, and coupling one's reachability to the other's live value was a
+ * leftover of an earlier design where the download style *did* follow the live selection. So
+ * "Offline Maps" is reachable unconditionally; `com.forager.app.domain.OfflineMapRepository` takes
+ * no tile-source parameter at all, which is what actually keeps the download target a single fixed
+ * choice regardless of live browsing state.
+ *
+ * That fixed choice is no longer USGS. `com.forager.app.map.MapLibreOfflineMapRepository` downloads
+ * OSM-derived vector tiles from a self-hosted Cloudflare Worker instead — see that class's doc
+ * comment and `docs/plans/pmtiles-worker-android-wiring.md` for why, and for the reasoning this
+ * comment used to carry about osmdroid's [TileSourcePolicy][org.osmdroid.tileprovider.tilesource.TileSourcePolicy]
+ * blocking bulk OSM/OpenTopoMap downloads — no longer the operative constraint, since this project's
+ * own Worker is not subject to a third party's bulk-download policy at all.
  */
 enum class MapService(
     val label: String,

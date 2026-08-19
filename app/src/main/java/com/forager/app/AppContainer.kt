@@ -45,7 +45,7 @@ import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.location.AndroidLocationProvider
-import com.forager.app.map.OsmdroidOfflineMapRepository
+import com.forager.app.map.MapLibreOfflineMapRepository
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.photo.FilePhotoStore
 import com.forager.app.sensor.AndroidCompassProvider
@@ -104,7 +104,7 @@ class AppContainer(context: Context) {
     val getAvailabilityUseCase = GetAvailabilityUseCase(predictAvailabilityUseCase, searchCacheRepository)
     val getRecentSearchesUseCase = GetRecentSearchesUseCase(searchCacheRepository)
 
-    val offlineMapRepository: OfflineMapRepository = OsmdroidOfflineMapRepository(context)
+    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context)
 
     val photoStore: PhotoStore = FilePhotoStore(context)
     val cameraCaptureFiles = CameraCaptureFiles(context)

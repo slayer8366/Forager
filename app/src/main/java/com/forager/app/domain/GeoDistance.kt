@@ -46,9 +46,10 @@ object GeoDistance {
     /**
      * The lat/lng rectangle that circumscribes a circle of [radiusKm] centred on [center] — an
      * equirectangular approximation, not the true circumscribing box of a great-circle radius.
-     * Built for [com.forager.app.map.OsmdroidOfflineMapRepository]'s "Download Maps" region picker,
-     * which needs a rectangle of tiles to hand osmdroid's `CacheManager`, not a precise circle
-     * (there is no such thing as a circular tile download).
+     * Built for the "Download Maps" region picker's offline downloader — osmdroid's
+     * `OsmdroidOfflineMapRepository` originally, now [com.forager.app.map.MapLibreOfflineMapRepository]
+     * — which needs a rectangle of tiles to hand its download API, not a precise circle (there is no
+     * such thing as a circular tile download).
      *
      * A degree of longitude shrinks toward the poles — the same fact [metersBetween] exists to get
      * right for distance — so the north/south span in degrees and the east/west span in degrees are

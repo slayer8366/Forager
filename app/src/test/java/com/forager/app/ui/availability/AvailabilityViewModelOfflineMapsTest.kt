@@ -56,14 +56,15 @@ import org.junit.Test
  * hand-written [OfflineMapRepository] fake this test fully controls — the same "real ViewModel
  * over fakes" style as [AvailabilityViewModelPlannedTripsTest] and [AvailabilityViewModelFilterTest].
  *
- * Always downloads USGS Topo — there is no style choice any more (see
- * [OfflineMapRepository]'s doc comment for why that parameter was removed), so unlike an earlier
- * revision of this file, nothing here asserts on "which style" a download targeted.
+ * Always downloads from the one fixed source [OfflineMapRepository] hardcodes — there is no style
+ * choice any more (see that interface's doc comment for why that parameter was removed and for the
+ * current source's identity), so unlike an earlier revision of this file, nothing here asserts on
+ * "which style" a download targeted.
  *
- * What this cannot cover: actual tile download/delete I/O and osmdroid `CacheManager` behavior —
- * that's Android file and network I/O, unverifiable headlessly, and is [OsmdroidOfflineMapRepository]'s
- * own concern rather than this ViewModel's. This file covers the loading → success/failure state
- * machine the UI actually renders from.
+ * What this cannot cover: actual tile download/delete I/O and MapLibre `OfflineManager` behavior —
+ * that's Android file and network I/O, unverifiable headlessly, and is
+ * `com.forager.app.map.MapLibreOfflineMapRepository`'s own concern rather than this ViewModel's.
+ * This file covers the loading → success/failure state machine the UI actually renders from.
  */
 private val REFERENCE_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 

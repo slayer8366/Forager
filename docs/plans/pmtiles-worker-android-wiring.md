@@ -7,6 +7,47 @@ Status as of 2026-08-19: written for a fresh coder session to pick up cold, cont
 `claude/phase1b-offline-packages`). Both are prerequisites for what this doc scopes, not this doc's
 own subject — read them before writing code, not after.
 
+## Update, 2026-08-19: steps 3-4 done, steps 1-2 deliberately deferred
+
+A later session on `claude/offline-maps-integration-21uez7` picked this doc up and, after asking the
+owner the three open decisions below rather than picking silently, did steps 3 and 4 for real —
+**not** steps 1-2. Concretely:
+
+- **Style JSON (step 1's asset, generated but not wired to a live view)**: both the labeled and
+  glyph-stripped style JSON were generated with Protomaps' own published `@protomaps/basemaps` npm
+  package (`layers(source, LIGHT, options)`), pointed at
+  `https://forager-pmtiles.brandonlee1-894.workers.dev/us.json` — not hand-built, and not a guess at
+  their layer catalogue. The labeled variant (71 layers, 14 with `text-field`/glyphs, for a future
+  live basemap) was generated but **not bundled into the app**, since nothing consumes it yet and an
+  unreferenced asset is exactly the "half-finished implementation" CLAUDE.md flags. The glyph-stripped
+  variant (57 layers, zero symbol layers — confirmed programmatically, not assumed) **is** bundled, at
+  `app/src/main/assets/forager_pmtiles_offline_style.json`.
+- **Step 3 (offline-download style, glyph-stripped)**: done, using the asset above.
+- **Step 4 (`OfflineManager` wired into the real `OfflineMapRepository`)**: done.
+  `com.forager.app.map.MapLibreOfflineMapRepository` replaces `OsmdroidOfflineMapRepository` (deleted,
+  along with `PersistentTileWriter` and `OfflineMapStatusFile` — both now fully unused) in
+  `AppContainer`. Every `OfflineManager`/`OfflineRegion` method and callback shape used was checked
+  with `javap` against the pinned `org.maplibre.gl:android-sdk:13.5.0` artifact rather than assumed
+  from documentation — see that class's own doc comment for specifics.
+- **Steps 1-2 (a live, labeled vector basemap reachable from `MainActivity`/`MapSlot`/
+  `AvailabilityScreen`, `Basemap` becoming a vector-style catalogue)**: **not done.** The owner's
+  decision this round was scoped to offline downloads switching to the PMTiles vector source, not to
+  replacing the four existing osmdroid basemaps live rendering depends on — and this session had no
+  hardware or emulator to verify a live-rendering swap on, unlike PR #23's own hardware-confirmed
+  mechanism proof. Doing steps 1-2 blind would mean shipping an unverified rendering-engine change to
+  the app's primary map screen, which is a real regression risk this repo has no way to catch short of
+  a physical device. Left as explicit future work, not silently dropped.
+
+**Not hardware-verified, flagged rather than assumed working**: the new offline-download path's full
+mechanism — create region → download → persist across restart → the glyph-stripped style actually
+avoiding PR #23's confirmed native crash — was proven by PR #23 against `raw.githubusercontent.com`
+-hosted styles with placeholder content (a demo style, a minimal USGS raster style), not against this
+project's real `asset://forager_pmtiles_offline_style.json` or its real 57-layer Protomaps geometry.
+The `asset://` scheme for a style URL (as opposed to a `pmtiles://` tile source) is standard
+Mapbox-lineage `AssetFileSource` behavior, but was not itself hardware-confirmed by either session.
+Spot-check on a real device before trusting this further, per this doc's own "verify this yourself"
+callouts below (still accurate, re-read them) and CLAUDE.md's testing standards.
+
 ## What already exists and is verified — don't re-verify, build on it
 
 **The tile-serving infrastructure is live and confirmed working**, per
