@@ -1342,10 +1342,10 @@ private fun mapServiceCaption(service: MapService): String {
  * sticky one like [SettingsEntryRow]: this lives inside Settings' own scrolling content, it isn't a
  * second drawer-wide sticky slot.
  *
- * Unconditionally reachable regardless of [MapService] — offline downloads always target USGS
- * regardless of which service is selected for live browsing, so there is nothing to gate this row
- * on; see `com.forager.app.domain.OfflineMapRepository`'s doc comment for why that coupling was
- * removed.
+ * Unconditionally reachable regardless of [MapService] — offline downloads always target this
+ * repository's one fixed source regardless of which service is selected for live browsing, so
+ * there is nothing to gate this row on; see `com.forager.app.domain.OfflineMapRepository`'s doc
+ * comment for why that coupling was removed.
  */
 @Composable
 private fun OfflineMapsEntryRow(onClick: () -> Unit) {
@@ -1386,13 +1386,16 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
 }
 
 /**
- * The "Offline Maps" submenu: an interactive USGS Topo map to pick a download region by long-press,
- * the region's radius, current status, and the Download/Delete actions.
+ * The "Offline Maps" submenu: an interactive topo map to pick a download region by long-press, the
+ * region's radius, current status, and the Download/Delete actions.
  *
- * Always downloads USGS Topo, unconditionally — see
+ * Always downloads from the same one fixed source, unconditionally — see
  * `com.forager.app.domain.OfflineMapRepository`'s doc comment for why this is no longer gated on,
  * or reactive to, [MapService]/the quick-fire map mode: the project owner's own call was that
- * offline downloads should "assume USGS usage and [be] ready to function" regardless of either.
+ * offline downloads should "assume [a fixed source] and [be] ready to function" regardless of
+ * either. That fixed source is `com.forager.app.map.MapLibreOfflineMapRepository`'s Cloudflare
+ * Worker now, not USGS — this panel's own picker map below is unrelated to that choice, see the
+ * next paragraph.
  *
  * ## Picking a region by long-press instead of typing coordinates
  *
@@ -1402,7 +1405,9 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
  * name-and-date dialog in between: a picked point becomes the region's center immediately, since
  * there is nothing else to ask the user for. `SightingsMap` already draws a center marker whose
  * snippet states the radius, so nothing new needs to be drawn for feedback — see that composable's
- * own doc comment.
+ * own doc comment. [Basemap.USGS_TOPO] here is only terrain context for choosing *where* to
+ * download — this picker map is still osmdroid/live-browsing-shaped, unrelated to which source the
+ * download itself actually reads from underneath.
  *
  * Before anything is long-pressed, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank,
  * so the map centres on [OFFLINE_MAP_PICKER_DEFAULT_CENTER] purely so there is a map to navigate
@@ -1431,8 +1436,8 @@ private fun OfflineMapsPanel(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            "Offline downloads always use USGS topographic maps. Long-press the map below to " +
-                "choose where to download.",
+            "Offline downloads cover the continental United States with vector map data. " +
+                "Long-press the map below to choose where to download.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
@@ -1502,7 +1507,8 @@ private fun OfflineMapsPanel(
 /**
  * An arbitrary opening viewport for [OfflineMapsPanel]'s picker map before anything has been
  * long-pressed — the geographic center of the contiguous United States (near Lebanon, Kansas),
- * since offline downloads only ever cover USGS's own coverage area. Not a default region and never
+ * since offline downloads only ever cover the continental-US PMTiles archive
+ * `com.forager.app.map.MapLibreOfflineMapRepository` reads from. Not a default region and never
  * submitted as one: "Download Maps" stays disabled until a real long-press sets a region.
  */
 private val OFFLINE_MAP_PICKER_DEFAULT_CENTER = LatLng(39.8283, -98.5795)

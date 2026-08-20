@@ -3,39 +3,43 @@ package com.forager.app.domain
 import com.forager.app.domain.model.Region
 
 /**
- * Owned abstraction over a persistent, on-disk store of downloaded USGS Topo map tiles for one
- * region — the same pattern as [MushroomRepository]/[WeatherProvider]/[LocationProvider]: domain
- * and UI code depend on this interface, never on osmdroid's `CacheManager` directly. The real
- * implementation, `OsmdroidOfflineMapRepository`, lives in a new `map/` package parallel to
+ * Owned abstraction over a persistent store of a downloaded map region — the same pattern as
+ * [MushroomRepository]/[WeatherProvider]/[LocationProvider]: domain and UI code depend on this
+ * interface, never on a map vendor's download API directly. The real implementation,
+ * `com.forager.app.map.MapLibreOfflineMapRepository`, lives in the `map/` package parallel to
  * `location/`.
  *
- * ## Always USGS Topo, not a configurable choice
+ * ## One fixed source, not a configurable choice
  *
  * An earlier revision of this interface took a style parameter naming which of USGS's two rasters
  * (Topo or Imagery) to fetch, resolved from whichever mode the map's own quick-fire icon happened
  * to be showing. The project owner's own framing, after seeing it built: "since offline maps only
  * loads USGS, then there's no need to have it react to the toggle. have it assume USGS usage and
- * have it ready to function." [download] now always fetches USGS Topo — a parameter with exactly
- * one possible value is dead configurability, not flexibility, so it was removed rather than kept
- * and hardcoded at the call site.
+ * have it ready to function." That reasoning still holds after the underlying source changed:
+ * [download] always fetches the same one thing — a parameter with exactly one possible value is
+ * dead configurability, not flexibility, so this interface still doesn't take one.
  *
- * ## USGS-only is enforced by [OsmdroidOfflineMapRepository], not by a live UI selection
+ * What that one fixed thing *is* has changed. Originally USGS Topo raster tiles via osmdroid's
+ * `CacheManager` (`OsmdroidOfflineMapRepository`, since deleted). Now OSM-derived vector tiles read
+ * from a self-hosted Cloudflare Worker over a continental-US PMTiles archive, via MapLibre's
+ * `OfflineManager` (`MapLibreOfflineMapRepository`) — see that class's doc comment and
+ * `docs/plans/pmtiles-worker-android-wiring.md` for why. The swap changed nothing about this
+ * interface, which is the point of depending on it rather than a concrete implementation.
  *
- * This interface has no way to be pointed at a non-USGS tile source at all — it doesn't take a tile
+ * This interface has no way to be pointed at a different source at all — it doesn't take a tile
  * source or basemap parameter of any kind — so there is structurally nothing here to gate, and
  * nothing upstream needs to condition reachability on which map service is currently selected for
  * live browsing either: offline downloading was never coupled to that selection once it stopped
- * being a configurable choice. See `com.forager.app.ui.map.MapService`'s doc comment for why USGS
- * is the only source this ever downloads from at all — OpenStreetMap's and OpenTopoMap's own
- * tile-usage policies prohibit bulk downloading.
+ * being a configurable choice. See `com.forager.app.ui.map.MapService`'s doc comment for the fuller
+ * history of that decoupling.
  */
 interface OfflineMapRepository {
 
     /**
-     * Downloads every USGS Topo tile covering [region], reporting progress via [onProgress] (tiles
-     * downloaded so far, total tiles). Replaces whatever was previously downloaded, if anything —
-     * there is only ever one downloaded region at a time (see [getStatus]'s doc comment for why
-     * this doesn't need its own Room table).
+     * Downloads every tile covering [region] from this repository's one fixed source, reporting
+     * progress via [onProgress] (tiles downloaded so far, total tiles). Replaces whatever was
+     * previously downloaded, if anything — there is only ever one downloaded region at a time (see
+     * [getStatus]'s doc comment for why this doesn't need its own Room table).
      */
     suspend fun download(
         region: Region,

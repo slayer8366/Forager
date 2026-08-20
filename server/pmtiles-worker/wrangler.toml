@@ -1,0 +1,19 @@
+name = "forager-pmtiles"
+main = "src/index.ts"
+compatibility_date = "2026-08-19"
+account_id = "a6a899e01e2194ef8fff048c20130e14"
+minify = false
+
+# R2 bucket binding — env.BUCKET in src/index.ts. Same bucket for dev and prod for now; split into
+# separate preview_bucket_name/bucket_name later if a staging archive becomes worth keeping apart
+# from production.
+[[r2_buckets]]
+binding = "BUCKET"
+preview_bucket_name = "forager-maps"
+bucket_name = "forager-maps"
+
+[vars]
+# Tightened from MapLibre Android's actual origin once that's known — Android WebView/OkHttp
+# requests typically don't send an Origin header at all, so this is mostly relevant if a browser
+# client (e.g. a future web viewer) ever calls this Worker directly.
+ALLOWED_ORIGINS = "*"
