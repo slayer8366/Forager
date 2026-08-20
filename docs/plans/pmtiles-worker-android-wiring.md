@@ -81,10 +81,35 @@ than sitting there, confirming the `/style/offline.json` route resolves correctl
 style avoids PR #23's confirmed native crash on the app's *real* style, not just PR #23's own
 placeholder test styles.
 
-**Still not hardware-verified**: persistence across a full app restart, and offline replay with the
-radio off (airplane mode) — PR #23 confirmed both of these for its own placeholder styles, but this
-project's real style/region combination hasn't been taken through that same restart+airplane-mode
-cycle yet. Worth doing before calling this fully proven, following the same steps PR #23 used.
+**Still not hardware-verified**: offline replay with the radio off (airplane mode) — PR #23 confirmed
+this for its own placeholder styles, but this project's real style/region combination hasn't been
+taken through it yet.
+
+## Update, 2026-08-19 (later still): a second real bug found by the restart test — fixed
+
+The persistence-across-restart check surfaced a real bug, not a persistence failure:
+`getStatus()` — called automatically when the Offline Maps screen loads, to show the
+"Downloaded: ..." line — never called `MapLibre.getInstance(appContext)`. `download()` did, so the
+bug was invisible whenever a download happened to run first in a process. On a genuinely fresh
+process (force-closed, recents cleared, reopened) where `getStatus()` runs first instead, the
+native library had never been initialized, and `OfflineManager.getInstance()` inside it threw:
+`"Using MapView requires calling MapLibre.getInstance(...) before inflating or creating the view."`
+— shown as an inline error on the Offline Maps screen, region-picker map and Download/Delete buttons
+all disabled.
+
+Fixed by moving the `MapLibre.getInstance(appContext)` call into the private `offlineManager()`
+helper all three public methods (`download`/`delete`/`getStatus`) already call, rather than only in
+`download()` — every entry point now initializes the native library first, instead of relying on
+one particular call happening to run before the others in a given process.
+
+**Not yet re-verified on hardware**: this fix itself hasn't been taken through the same
+force-close-and-reopen cycle that found the bug. The original persistence question this test set out
+to answer (does a completed region survive a restart, once the app can actually *ask* without
+crashing) is also still open — the restart test that found this bug happened at exactly the point
+where the answer would have been visible, so the bug pre-empted the answer rather than the answer
+turning out negative.
+
+Verified: `./gradlew testDebugUnitTest` — 438 tests pass. `./gradlew assembleDebug` — succeeds.
 
 ## What already exists and is verified — don't re-verify, build on it
 

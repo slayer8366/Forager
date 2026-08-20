@@ -80,7 +80,6 @@ class MapLibreOfflineMapRepository(context: Context) : OfflineMapRepository {
         region: Region,
         onProgress: (downloaded: Int, total: Int) -> Unit,
     ): Result<OfflineMapInfo> = runCatchingCancellable {
-        MapLibre.getInstance(appContext)
         offlineManager().listOfflineRegionsSuspend().forEach { it.deleteSuspend() }
 
         val definition = OfflineTilePyramidRegionDefinition(
@@ -145,7 +144,17 @@ class MapLibreOfflineMapRepository(context: Context) : OfflineMapRepository {
         )
     }
 
-    private fun offlineManager(): OfflineManager = OfflineManager.getInstance(appContext)
+    // MapLibre.getInstance() must run before any other MapLibre API call touches the native
+    // library — download() was the only entry point that did this, which worked by accident
+    // whenever it happened to run first in a process. On a fresh process where getStatus() runs
+    // first instead (the real "Offline Maps" screen calls it on load, to show "Downloaded: ...")
+    // the native library was never initialized, and OfflineManager.getInstance() below threw.
+    // Centralized here so every entry point (download/delete/getStatus, all of which call this)
+    // gets it, rather than each call site needing to remember to call it first.
+    private fun offlineManager(): OfflineManager {
+        MapLibre.getInstance(appContext)
+        return OfflineManager.getInstance(appContext)
+    }
 
     /** `System.currentTimeMillis()` behind a seam only so a test could fake it; nothing here does yet. */
     private fun downloadedAtEpochMillisProvider(): Long = System.currentTimeMillis()
