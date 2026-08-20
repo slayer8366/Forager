@@ -97,14 +97,14 @@ class MapLibreOfflineMapRepository(
         val definition = OfflineTilePyramidRegionDefinition(
             OFFLINE_STYLE_URL,
             region.toLatLngBounds(),
-            OFFLINE_MIN_ZOOM,
-            OFFLINE_MAX_ZOOM,
+            OfflineMapRepository.MIN_ZOOM,
+            OfflineMapRepository.MAX_ZOOM,
             appContext.resources.displayMetrics.density,
         )
         // A placeholder timestamp, overwritten by updateMetadataSuspend below once the download
         // actually finishes — see this class's doc comment on why "downloaded at" means completion
         // time, matching this class's own original single-region semantics.
-        val placeholderMetadata = RegionMetadata(name, region, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, downloadedAtEpochMillis = 0L).toBytes()
+        val placeholderMetadata = RegionMetadata(name, region, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM, downloadedAtEpochMillis = 0L).toBytes()
 
         val offlineRegion = offlineManager().createOfflineRegionSuspend(definition, placeholderMetadata)
         val finalStatus = try {
@@ -116,7 +116,7 @@ class MapLibreOfflineMapRepository(
         }
 
         val downloadedAt = downloadedAtEpochMillisProvider()
-        offlineRegion.updateMetadataSuspend(RegionMetadata(name, region, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, downloadedAt).toBytes())
+        offlineRegion.updateMetadataSuspend(RegionMetadata(name, region, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM, downloadedAt).toBytes())
         offlineRegionDao.upsert(
             OfflineRegionEntity(
                 id = offlineRegion.id,
@@ -124,8 +124,8 @@ class MapLibreOfflineMapRepository(
                 lat = region.lat,
                 lng = region.lng,
                 radiusKm = region.radiusKm,
-                minZoom = OFFLINE_MIN_ZOOM,
-                maxZoom = OFFLINE_MAX_ZOOM,
+                minZoom = OfflineMapRepository.MIN_ZOOM,
+                maxZoom = OfflineMapRepository.MAX_ZOOM,
                 createdAtEpochMillis = downloadedAt,
             ),
         )
@@ -134,8 +134,8 @@ class MapLibreOfflineMapRepository(
             id = offlineRegion.id,
             name = name,
             region = region,
-            minZoom = OFFLINE_MIN_ZOOM,
-            maxZoom = OFFLINE_MAX_ZOOM,
+            minZoom = OfflineMapRepository.MIN_ZOOM,
+            maxZoom = OfflineMapRepository.MAX_ZOOM,
             tileCount = finalStatus.completedTileCount.toInt(),
             sizeBytes = finalStatus.completedResourceSize,
             createdAtEpochMillis = downloadedAt,
@@ -233,20 +233,6 @@ class MapLibreOfflineMapRepository(
  * theory didn't predict. Recorded here so the theory doesn't get re-tried.)
  */
 private const val OFFLINE_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/offline.json"
-
-/**
- * The PMTiles archive this style's source ultimately reads from is built to zoom 14 (per PR #24's
- * description of the `us.pmtiles` archive) — [OFFLINE_MAX_ZOOM] stays at that ceiling rather than
- * requesting tiles the archive doesn't have. [OFFLINE_MIN_ZOOM] is an adjustable assumption, the
- * same kind `OsmdroidOfflineMapRepository.ZOOM_LEVELS_BELOW_MAX` was: a wider span means more usable
- * offline zoom range at the cost of more tiles, and this project has no usage data yet on what span
- * foraging trips actually need. Every downloaded region currently shares this one fixed span — see
- * the design doc's "Coverage, not use" section on why per-region zoom adequacy isn't needed: vector
- * tiles overzoom cleanly, so a single fixed zoom-14 ceiling renders sharp well past it regardless of
- * region size.
- */
-private const val OFFLINE_MAX_ZOOM = 14.0
-private const val OFFLINE_MIN_ZOOM = 10.0
 
 private fun Region.toLatLngBounds(): LatLngBounds {
     val box = GeoDistance.boundingBox(LatLng(lat, lng), radiusKm)

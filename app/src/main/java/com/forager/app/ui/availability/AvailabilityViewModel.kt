@@ -18,6 +18,7 @@ import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
@@ -619,6 +620,13 @@ class AvailabilityViewModel(
      * prior download. A blank name defaults to "Region N" rather than blocking the download, the
      * same "default rather than require" pattern [com.forager.app.domain.model.PlannedTrip.name]
      * established for planned trips.
+     *
+     * Refuses before ever calling [offlineMapRepository] if [estimateOfflineTileCount] projects
+     * this region would push the total over [OfflineMapRepository.TILE_COUNT_LIMIT] — see that
+     * constant's doc comment for why this app-side check exists at all: MapLibre's own
+     * `setOfflineMapboxTileCountLimit` does not actually stop an explicit region download from
+     * exceeding it, confirmed on hardware (three regions totalling 9118 tiles downloaded against a
+     * "limit" of 6000). This is the real enforcement.
      */
     fun onDownloadOfflineMaps() {
         val state = _uiState.value
@@ -636,6 +644,21 @@ class AvailabilityViewModel(
         }
         val region = Region(lat, lng, state.offlineMapRadiusKm)
         val name = state.offlineMapNameText.trim().ifBlank { "Region ${state.offlineRegions.size + 1}" }
+
+        val tilesAlreadyUsed = state.offlineRegions.sumOf { it.tileCount }
+        val estimatedTiles = estimateOfflineTileCount(region, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM)
+        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - tilesAlreadyUsed
+        if (estimatedTiles > remainingBudget) {
+            _uiState.update {
+                it.copy(
+                    offlineDownloadStatus = OfflineMapStatus.Failed(
+                        "This region needs about $estimatedTiles tiles, but only $remainingBudget remain in your " +
+                            "${OfflineMapRepository.TILE_COUNT_LIMIT}-tile budget. Delete a region or pick a smaller radius.",
+                    ),
+                )
+            }
+            return
+        }
 
         _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
         viewModelScope.launch {
