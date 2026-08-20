@@ -937,6 +937,56 @@ done, Phase 1 as a whole (1a/1b/1c) is feature-complete and the deferred
 PR #27/#28/`phase1-combined` reconciliation and verification decisions
 come next, per the project owner's own hold on that until then.
 
+### A hardware-driven design pass on the compact map screen, specifically
+
+Three changes made against a real device screenshot mid-Phase-1c, not
+part of the original plan doc: the compass/elevation/return-to-vehicle
+strip now spans the map's full width (previously a narrow centered
+pill); the search summary bar gets a leading magnifying-glass icon and
+opens a quick species-search panel (category chips + a species field,
+reusing `SpeciesSearchControls`) rather than doing nothing when tapped in
+compact mode — "Advanced search" stays exactly where it was, behind the
+drawer; and the map now shows a live "blue dot" that follows the
+device's position continuously, using MapLibre's own `LocationComponent`
+rather than the pre-existing one-shot locate-me fetch (which still
+exists, feeding only the compass strip's own text). Tracking follows by
+default once location permission is granted, breaks on any manual pan/
+zoom (MapLibre's own gesture detection, not code this app wrote), and
+the GPS icon re-engages it.
+
+**Two real regressions were caught and fixed by headless coverage before
+either would have reached hardware.** Widening the strip reintroduced the
+exact touch-swallowing failure `IntrinsicSize.Max` fixed earlier in this
+same cycle — `AvailabilityScreenTripPlanningFlowTest`/
+`AvailabilityScreenWaypointFlowTest` went from green to failing outright
+the moment the strip became full-width again. This time the fix wasn't
+shrinking it back down (the whole point was full width): tracing it down
+showed `Surface`, even with no `onClick`, intercepts pointer input for
+the area it covers — a plain `Box` + `background()` modifier doesn't, so
+switching to that let the map keep receiving touches everywhere except
+the strip's own real interactive children (the return-to-vehicle text,
+the record toggle). Separately, opening the quick-search panel put two
+live instances of `SpeciesSearchControls` in the tree at once —
+`ModalNavigationDrawer` keeps its own copy composed even while closed,
+translated off-screen rather than removed — real duplication a test
+caught as an ambiguous-node failure, not just a test-authoring
+inconvenience; `QUICK_SEARCH_PANEL_TAG` lets the two be addressed
+unambiguously.
+
+**None of the three has been seen running.** Same limitation as the rest
+of this map screen: the full-width strip's actual on-screen legibility,
+the quick-search panel's layout at a small screen size, and — the
+largest gap — whether the live-location puck and camera-follow behavior
+actually work at all are all reasoned through and headlessly verified
+where a JVM test can reach (529/529 passing), not confirmed on a device.
+`LocationComponent`/`MapLibreMap`/`Style` are native-backed types this
+project's own established precedent already documents as unconstructable
+in a JVM unit test (see "The topographic basemap, specifically" above),
+so the live-tracking activation code itself has no test coverage beyond
+compiling — the same boundary `initializeOverlayLayers`/
+`refreshOverlayData` already sit behind, not a new gap this pass
+introduced.
+
 ### Phase 2 — the compact navigation restructure (search-only drawer, 5-tab bottom nav, Journal gallery, distance unit), specifically
 
 Measured the same way as Phase 1 above, in the same session, against this
