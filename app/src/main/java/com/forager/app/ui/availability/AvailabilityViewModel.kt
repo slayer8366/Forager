@@ -524,6 +524,31 @@ class AvailabilityViewModel(
     }
 
     /**
+     * Called when the "Offline Maps" submenu is opened. If no last-picked centre/radius has ever
+     * been restored from [MapPreferencesRepository] (see [loadOfflineMapPreferences]), tries the
+     * device's current location as the picker's opening default instead of the continental-US
+     * centroid fallback — a foraging trip is usually planned near home, not the middle of Kansas.
+     * A no-op if a default is already known, from a prior pick or a prior successful fetch this
+     * session, so this doesn't re-request location on every re-open once it has one.
+     *
+     * Safe to call unconditionally, with no permission-prompt risk:
+     * [LocationProvider.getCurrentLocation] only checks whether permission is already granted (see
+     * `com.forager.app.location.AndroidLocationProvider`), it never triggers the OS permission
+     * dialog itself — that only happens from an explicit tap elsewhere (see [useCurrentLocation]/
+     * [locateMe]). A denial or unavailable fix here just leaves the continental-US-centroid
+     * fallback in place, same as if this had never run.
+     */
+    fun onOfflineMapsOpened() {
+        if (_uiState.value.offlineMapPickerDefaultCenter != null) return
+        viewModelScope.launch {
+            val result = locationProvider.getCurrentLocation()
+            if (result is LocationResult.Success) {
+                _uiState.update { it.copy(offlineMapPickerDefaultCenter = LatLng(result.lat, result.lng)) }
+            }
+        }
+    }
+
+    /**
      * Reads every region currently on disk, once at startup — same reasoning as [loadPlannedTrips]:
      * downloaded regions have nothing to do with the region search, so this isn't gated behind one.
      * A read failure (e.g. a corrupt metadata blob) is reported via [AvailabilityUiState.offlineRegionsErrorMessage]

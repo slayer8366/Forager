@@ -327,6 +327,13 @@ fun AvailabilityScreen(
      * so this stays optional for callers that render neither.
      */
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
+    /**
+     * Called when the "Offline Maps" submenu is opened (drawer entry row, or the compact tab's
+     * own submenu) — tries the device's current location as the picker's opening default instead
+     * of the continental-US centroid fallback. See [AvailabilityViewModel.onOfflineMapsOpened]'s
+     * doc comment for why this carries no permission-prompt risk.
+     */
+    onOfflineMapsOpened: () -> Unit,
     /** Set by long-pressing the picker map in the Offline Maps submenu — see `OfflineMapsPanel`. */
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
@@ -555,7 +562,10 @@ fun AvailabilityScreen(
                     onMapServiceSelected = { selectedMapService = it },
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = { distanceUnit = it },
-                    onOpenOfflineMaps = { drawerPanel = DrawerPanel.OfflineMaps },
+                    onOpenOfflineMaps = {
+                        drawerPanel = DrawerPanel.OfflineMaps
+                        onOfflineMapsOpened()
+                    },
                 )
                 BuildIdentityFooter()
             }
@@ -810,6 +820,7 @@ fun AvailabilityScreen(
                         distanceUnit = distanceUnit,
                         onDistanceUnitSelected = { distanceUnit = it },
                         currentTime = currentTime,
+                        onOfflineMapsOpened = onOfflineMapsOpened,
                         onOfflineMapLatChanged = onOfflineMapLatChanged,
                         onOfflineMapLngChanged = onOfflineMapLngChanged,
                         onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
@@ -1202,6 +1213,7 @@ private fun CompactSettingsTab(
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     currentTime: CurrentTimeProvider,
+    onOfflineMapsOpened: () -> Unit,
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
@@ -1243,7 +1255,10 @@ private fun CompactSettingsTab(
                 onMapServiceSelected = onMapServiceSelected,
                 distanceUnit = distanceUnit,
                 onDistanceUnitSelected = onDistanceUnitSelected,
-                onOpenOfflineMaps = { showOfflineMaps = true },
+                onOpenOfflineMaps = {
+                    showOfflineMaps = true
+                    onOfflineMapsOpened()
+                },
             )
             BuildIdentityFooter()
         }

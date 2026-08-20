@@ -188,8 +188,9 @@ class AvailabilityViewModelOfflineMapsTest {
     private fun viewModel(
         offlineMapRepository: OfflineMapRepository,
         mapPreferencesRepository: MapPreferencesRepository = RecordingMapPreferencesRepository(),
+        locationProvider: LocationProvider = OfflineMapsUnusedLocationProvider,
     ): AvailabilityViewModel = AvailabilityViewModel(
-        locationProvider = OfflineMapsUnusedLocationProvider,
+        locationProvider = locationProvider,
         getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(OfflineMapsEmptyRepository), searchCache),
         getRecentSearches = GetRecentSearchesUseCase(searchCache),
         getSightings = GetSightingsUseCase(OfflineMapsEmptyRepository),
@@ -483,4 +484,49 @@ class AvailabilityViewModelOfflineMapsTest {
 
         assertEquals(30, vm.uiState.value.offlineStaleThresholdDays)
     }
+
+    /** Opening the picker with no last-picked region tries the device's current location as the default. */
+    @Test
+    fun `opening the picker with no last-picked region defaults to the current location`() = runTest(dispatcher) {
+        val locationProvider = OfflineMapsFixedLocationProvider(LocationResult.Success(lat = 45.5, lng = -122.6, altitude = null))
+        val vm = viewModel(RecordingOfflineMapRepository(), locationProvider = locationProvider)
+        advanceUntilIdle()
+
+        vm.onOfflineMapsOpened()
+        advanceUntilIdle()
+
+        assertEquals(LatLng(45.5, -122.6), vm.uiState.value.offlineMapPickerDefaultCenter)
+    }
+
+    /** A denied/unavailable fix leaves the picker's existing continental-US-centroid fallback in place. */
+    @Test
+    fun `a failed current-location fetch leaves the picker default unset, not a fabricated location`() = runTest(dispatcher) {
+        val locationProvider = OfflineMapsFixedLocationProvider(LocationResult.PermissionDenied)
+        val vm = viewModel(RecordingOfflineMapRepository(), locationProvider = locationProvider)
+        advanceUntilIdle()
+
+        vm.onOfflineMapsOpened()
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.offlineMapPickerDefaultCenter)
+    }
+
+    /** A last-picked region already answers "where should the picker open" — current location must not override it. */
+    @Test
+    fun `opening the picker does not touch location when a last-picked region was already restored`() = runTest(dispatcher) {
+        val preferences = RecordingMapPreferencesRepository(lastPickedRegionResult = Result.success(REFERENCE_REGION))
+        val locationProvider = OfflineMapsFixedLocationProvider(LocationResult.Success(lat = 45.5, lng = -122.6, altitude = null))
+        val vm = viewModel(RecordingOfflineMapRepository(), preferences, locationProvider)
+        advanceUntilIdle()
+
+        vm.onOfflineMapsOpened()
+        advanceUntilIdle()
+
+        assertEquals(LatLng(REFERENCE_REGION.lat, REFERENCE_REGION.lng), vm.uiState.value.offlineMapPickerDefaultCenter)
+    }
+}
+
+/** Answers [getCurrentLocation] with a fixed, caller-supplied [result] — for asserting on what the ViewModel does with each outcome. */
+private class OfflineMapsFixedLocationProvider(private val result: LocationResult) : LocationProvider {
+    override suspend fun getCurrentLocation(): LocationResult = result
 }
