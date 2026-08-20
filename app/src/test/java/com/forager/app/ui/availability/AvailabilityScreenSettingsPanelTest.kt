@@ -24,6 +24,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
@@ -313,14 +314,20 @@ class AvailabilityScreenSettingsPanelTest {
     /**
      * Per-region delete replaces the old single "Delete Offline Maps" button — with nothing
      * downloaded, the regions list has no delete button to find at all, not merely a disabled one.
+     *
+     * `performScrollTo()` before each assertion: the whole panel is one scrolling Column now (see
+     * `OfflineMapsPanel`'s doc comment on why the picker map stopped being `weight(1f)`), and this
+     * test's synthetic 360x640dp window is short enough that "Download Maps" and the regions list
+     * both sit below the fold — a real device's screen comfortably fits both without scrolling, per
+     * hardware confirmation, but this window doesn't.
      */
     @Test
     fun `Download Maps is disabled with no region picked, and no regions are listed with nothing downloaded`() {
         setScreen()
         openOfflineMaps()
 
-        composeRule.onNodeWithText("Download Maps").assertIsDisplayed().assertIsNotEnabled()
-        composeRule.onNodeWithText("No regions downloaded yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
+        composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
         composeRule.onAllNodesWithText("Delete").assertCountEquals(0)
     }
 
