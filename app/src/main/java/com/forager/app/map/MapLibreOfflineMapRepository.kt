@@ -173,14 +173,19 @@ class MapLibreOfflineMapRepository(context: Context) : OfflineMapRepository {
 private const val OFFLINE_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/offline.json"
 
 /**
- * The PMTiles archive this style's source ultimately reads from is built to zoom 14 (per PR #24's
- * description of the `us.pmtiles` archive) — [OFFLINE_MAX_ZOOM] stays at that ceiling rather than
- * requesting tiles the archive doesn't have. [OFFLINE_MIN_ZOOM] is an adjustable assumption, the
- * same kind `OsmdroidOfflineMapRepository.ZOOM_LEVELS_BELOW_MAX` was: a wider span means more usable
- * offline zoom range at the cost of more tiles, and this project has no usage data yet on what span
+ * The `us.pmtiles` archive this style's source reads from directly is built to zoom 14 (per PR
+ * #24's description), but the Worker now range-reads and caches individual tiles beyond that
+ * directly from Protomaps' live daily build (zoom 15, that build's own ceiling — see
+ * `server/pmtiles-worker/src/index.ts`'s overflow block), scoped to whatever region an offline
+ * download actually requests rather than a second, much larger flat continental archive.
+ * [OFFLINE_MAX_ZOOM] therefore stays one level ahead of the local archive's own 14, not equal to
+ * it — going further would just 404 against the Worker's own `OVERFLOW_MAX_ZOOM`.
+ * [OFFLINE_MIN_ZOOM] is an adjustable assumption, the same kind
+ * `OsmdroidOfflineMapRepository.ZOOM_LEVELS_BELOW_MAX` was: a wider span means more usable offline
+ * zoom range at the cost of more tiles, and this project has no usage data yet on what span
  * foraging trips actually need.
  */
-private const val OFFLINE_MAX_ZOOM = 14.0
+private const val OFFLINE_MAX_ZOOM = 15.0
 private const val OFFLINE_MIN_ZOOM = 10.0
 
 private fun Region.toLatLngBounds(): LatLngBounds {

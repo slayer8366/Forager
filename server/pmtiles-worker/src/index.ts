@@ -6,10 +6,12 @@
 // Adapted from protomaps/PMTiles serverless/cloudflare/src/index.ts (MIT licensed) — the upstream
 // reference implementation this project's chosen stack (Cloudflare R2 + Workers) is based on. The
 // only changes from upstream: importing the inlined ./shared helpers instead of a sibling
-// monorepo package, and renamed identifiers to match this project's naming conventions.
+// monorepo package, renamed identifiers to match this project's naming conventions, and the
+// z>14 overflow path below (not present upstream at all).
 import {
   Compression,
   EtagMismatch,
+  FetchSource,
   PMTiles,
   type RangeResponse,
   ResolvedValueCache,
@@ -115,6 +117,134 @@ function offlineStyleResponse(allowedOrigin: string): Response {
   return new Response(JSON.stringify(offlineStyle), { headers });
 }
 
+const TILE_CONTENT_TYPES: Partial<Record<TileType, string>> = {
+  [TileType.Mvt]: "application/x-protobuf",
+  [TileType.Png]: "image/png",
+  [TileType.Jpeg]: "image/jpeg",
+  [TileType.Webp]: "image/webp",
+};
+
+// --- z15 overflow: the local `us.pmtiles` archive is built to zoom 14 only (R2's free tier
+// storage budget — see server/pmtiles-worker/README.md), but Protomaps' own daily full-planet
+// build this archive was extracted from goes one level deeper, to zoom 15. Rather than storing a
+// second, much larger flat continental archive to reach it, tiles beyond 14 are range-read
+// directly out of the live daily build on first request and cached into R2 individually
+// (`overflow/{name}/{z}/{x}/{y}.{ext}`) — so R2 only ever ends up holding the specific z15 tiles
+// somebody's offline download actually touched, not a full continental z15 pyramid. This is the
+// "scope to actual search regions" design: OfflineTilePyramidRegionDefinition only ever requests
+// tiles inside the bbox a user downloaded, so that's exactly what ends up cached, at whatever
+// size that region actually costs rather than the continent's.
+//
+// NOT VERIFIED AGAINST REAL INFRASTRUCTURE — written and reasoned through, but this project has no
+// access to a real Cloudflare account/R2 bucket/live network from this session to deploy or
+// exercise it against. Two things worth checking before this ships, beyond ordinary code review:
+//   1. That `build.protomaps.com/<date>.pmtiles` reliably serves range requests the way PMTiles'
+//      FetchSource expects (it should — the whole point of the format — but hasn't been observed
+//      here).
+//   2. Protomaps' tolerance for *sustained per-tile production traffic* against their public daily
+//      build host, as opposed to the occasional bulk `pmtiles extract` this repo's README already
+//      documents. Worth confirming with them directly before this is relied on at real scale.
+// -------------------------------------------------------------------------------------------------
+
+/** How many days back from today to probe for a live build before giving up. */
+const BUILD_RESOLUTION_LOOKBACK_DAYS = 5;
+
+/** How long a resolved build URL is trusted before re-probing — Protomaps publishes daily. */
+const BUILD_RESOLUTION_CACHE_SECONDS = 6 * 60 * 60;
+
+function candidateBuildUrl(daysAgo: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - daysAgo);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `https://build.protomaps.com/${y}${m}${day}.pmtiles`;
+}
+
+/**
+ * Finds today's (or the most recent available) daily Protomaps build URL, since the filename is
+ * dated and changes every day — there is no documented stable "latest" alias (checked; see this
+ * repo's own README on the same builds channel). Result is cached at the edge so this only
+ * actually probes `build.protomaps.com` once per [BUILD_RESOLUTION_CACHE_SECONDS], not per tile
+ * request.
+ */
+async function resolveRemoteBuildUrl(ctx: ExecutionContext): Promise<string> {
+  const cacheKey = new Request("https://forager-pmtiles-worker.internal/.protomaps-latest-build-url");
+  const cache = caches.default;
+  const cached = await cache.match(cacheKey);
+  if (cached) return await cached.text();
+
+  for (let daysAgo = 0; daysAgo < BUILD_RESOLUTION_LOOKBACK_DAYS; daysAgo++) {
+    const url = candidateBuildUrl(daysAgo);
+    const head = await fetch(url, { method: "HEAD" });
+    if (head.ok) {
+      const resp = new Response(url, {
+        headers: { "Cache-Control": `public, max-age=${BUILD_RESOLUTION_CACHE_SECONDS}` },
+      });
+      ctx.waitUntil(cache.put(cacheKey, resp));
+      return url;
+    }
+  }
+  throw new Error(
+    `Could not find a live Protomaps daily build in the last ${BUILD_RESOLUTION_LOOKBACK_DAYS} days`
+  );
+}
+
+function overflowCacheKey(name: string, z: number, x: number, y: number, ext: string): string {
+  return `overflow/${name}/${z}/${x}/${y}.${ext}`;
+}
+
+/**
+ * Serves one tile beyond the local archive's own zoom range by reading it out of Protomaps' live
+ * daily build, caching the result into R2 for every subsequent request of that same tile. See the
+ * block comment above this section for the design and what's unverified.
+ */
+async function overflowTileResponse(
+  env: Env,
+  ctx: ExecutionContext,
+  name: string,
+  tile: [number, number, number],
+  ext: string,
+  cacheableHeaders: Headers,
+  cacheableResponse: (body: ArrayBuffer | string | undefined, headers: Headers, status: number) => Response
+): Promise<Response> {
+  const [z, x, y] = tile;
+  const key = overflowCacheKey(name, z, x, y, ext);
+
+  const cachedObject = await env.BUCKET.get(key);
+  if (cachedObject) {
+    if (cachedObject.httpMetadata?.contentType) {
+      cacheableHeaders.set("Content-Type", cachedObject.httpMetadata.contentType);
+    }
+    return cacheableResponse(await cachedObject.arrayBuffer(), cacheableHeaders, 200);
+  }
+
+  const remoteUrl = await resolveRemoteBuildUrl(ctx);
+  const remoteSource = new FetchSource(remoteUrl);
+  const remotePmtiles = new PMTiles(remoteSource, CACHE, nativeDecompress);
+  const remoteHeader = await remotePmtiles.getHeader();
+
+  if (z < remoteHeader.minZoom || z > remoteHeader.maxZoom) {
+    return cacheableResponse(undefined, cacheableHeaders, 404);
+  }
+
+  const tiledata = await remotePmtiles.getZxy(z, x, y);
+  if (!tiledata) {
+    return cacheableResponse(undefined, cacheableHeaders, 204);
+  }
+
+  const contentType = TILE_CONTENT_TYPES[remoteHeader.tileType];
+  if (contentType) cacheableHeaders.set("Content-Type", contentType);
+
+  ctx.waitUntil(
+    env.BUCKET.put(key, tiledata.data, {
+      httpMetadata: contentType ? { contentType } : undefined,
+    })
+  );
+
+  return cacheableResponse(tiledata.data, cacheableHeaders, 200);
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (request.method.toUpperCase() === "POST") return new Response(undefined, { status: 405 });
@@ -175,11 +305,21 @@ export default {
 
       if (!tile) {
         cacheableHeaders.set("Content-Type", "application/json");
-        const t = await p.getTileJson(`https://${env.PUBLIC_HOSTNAME || url.hostname}/${name}`);
-        return cacheableResponse(JSON.stringify(t), cacheableHeaders, 200);
+        const t = (await p.getTileJson(`https://${env.PUBLIC_HOSTNAME || url.hostname}/${name}`)) as Record<
+          string,
+          unknown
+        >;
+        // Advertise the overflow ceiling, not just the local archive's own maxzoom, so MapLibre's
+        // OfflineManager knows tiles are actually servable past 14 — see the overflow block above.
+        const declaredMaxZoom = typeof t.maxzoom === "number" ? t.maxzoom : pHeader.maxZoom;
+        const advertised = { ...t, maxzoom: Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) };
+        return cacheableResponse(JSON.stringify(advertised), cacheableHeaders, 200);
       }
 
       if (tile[0] < pHeader.minZoom || tile[0] > pHeader.maxZoom) {
+        if (tile[0] > pHeader.maxZoom && tile[0] <= OVERFLOW_MAX_ZOOM) {
+          return await overflowTileResponse(env, ctx, name, tile, ext, cacheableHeaders, cacheableResponse);
+        }
         return cacheableResponse(undefined, cacheableHeaders, 404);
       }
 
@@ -203,20 +343,8 @@ export default {
 
       const tiledata = await p.getZxy(tile[0], tile[1], tile[2]);
 
-      switch (pHeader.tileType) {
-        case TileType.Mvt:
-          cacheableHeaders.set("Content-Type", "application/x-protobuf");
-          break;
-        case TileType.Png:
-          cacheableHeaders.set("Content-Type", "image/png");
-          break;
-        case TileType.Jpeg:
-          cacheableHeaders.set("Content-Type", "image/jpeg");
-          break;
-        case TileType.Webp:
-          cacheableHeaders.set("Content-Type", "image/webp");
-          break;
-      }
+      const contentType = TILE_CONTENT_TYPES[pHeader.tileType];
+      if (contentType) cacheableHeaders.set("Content-Type", contentType);
 
       if (tiledata) {
         return cacheableResponse(tiledata.data, cacheableHeaders, 200);
@@ -230,3 +358,14 @@ export default {
     }
   },
 };
+
+/**
+ * The real ceiling is whatever `remoteHeader.maxZoom` reports at request time (checked in
+ * [overflowTileResponse], and self-correcting if Protomaps' build ever changes) — this constant is
+ * only a cheap upper bound to avoid firing the whole remote-fetch path for a zoom nothing serves,
+ * and to advertise a sane `maxzoom` in the tileset JSON without an extra network round trip on
+ * every `/us.json` request. 15 matches Protomaps' documented full-planet build ceiling as of this
+ * writing (see server/pmtiles-worker/README.md and the resolved offline-strategy note in
+ * docs/plans/maplibre-migration.md) — re-check if their builds ever go deeper.
+ */
+const OVERFLOW_MAX_ZOOM = 15;
