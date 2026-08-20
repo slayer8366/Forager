@@ -339,6 +339,56 @@ class AvailabilityScreenSettingsPanelTest {
 
         composeRule.onAllNodesWithText("continental United States", substring = true).assertCountEquals(1)
     }
+
+    /**
+     * The offline-readiness text a downloaded region shows — the z0-14 local-archive vs. z15
+     * live-fetched-at-download-time distinction `docs/plans/forager-navigator-plan.md`'s Phase 1c
+     * item asks this submenu to surface, per the project owner's own call to extend this existing
+     * panel rather than build a separate live-position readiness check (deferred).
+     */
+    @Test
+    fun `a downloaded region states it is ready to zoom 15, with the z14-archive vs z15-live distinction`() {
+        composeRule.setContent {
+            AvailabilityScreen(
+                uiState = SEARCHED_STATE.copy(
+                    offlineMapStatus = OfflineMapStatus.Downloaded(
+                        region = REGION,
+                        tileCount = 4200,
+                        sizeBytes = 18_500_000L,
+                        downloadedAtEpochMillis = 0L,
+                    ),
+                ),
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onToggleForagingAreas = {},
+                onCategorySelected = {},
+                onTaxonSearchQueryChanged = {},
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = {},
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineMaps = {},
+                mapSlot = CapturingMapSlot,
+            )
+        }
+        openOfflineMaps()
+
+        composeRule.onAllNodesWithText("Ready to zoom 15", substring = true).assertCountEquals(1)
+        composeRule.onAllNodesWithText("zoom 10–14 from the archive", substring = true).assertCountEquals(1)
+        composeRule.onAllNodesWithText("zoom 15 detail fetched live from Protomaps", substring = true).assertCountEquals(1)
+    }
 }
 
 private const val MAP_SLOT_TAG = "settings-panel-test-map-slot"

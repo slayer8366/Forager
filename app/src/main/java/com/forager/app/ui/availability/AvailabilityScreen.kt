@@ -1593,7 +1593,10 @@ private fun OfflineMapStatusContent(status: OfflineMapStatus, distanceUnit: Dist
         is OfflineMapStatus.Downloaded -> Text(
             "Downloaded: ${formatDistanceKm(status.region.radiusKm, distanceUnit)} around " +
                 "${"%.4f".format(status.region.lat)}, ${"%.4f".format(status.region.lng)} — " +
-                "${status.tileCount} tiles, ${"%.1f".format(status.sizeBytes / 1_000_000.0)} MB.",
+                "${status.tileCount} tiles, ${"%.1f".format(status.sizeBytes / 1_000_000.0)} MB. " +
+                "Ready to zoom 15: zoom 10–14 from the archive, zoom 15 detail fetched live from " +
+                "Protomaps at download time — a download that reports as finished has both, since a " +
+                "zoom-15 fetch failure fails the download rather than silently completing without it.",
             style = MaterialTheme.typography.bodySmall,
         )
 
