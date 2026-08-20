@@ -30,6 +30,11 @@ ksp = "2.3.10"
 # NGA's own MGRS conversion library — see the doc comment on domain/MgrsConverter.kt for why an
 # established library was chosen over hand-rolling the UTM/grid-zone math.
 mgrs = "2.1.3"
+# Backs the offline-region picker's "last picked centre/radius" and the staleness-threshold
+# setting — see data/repository/DataStoreMapPreferencesRepository.kt. Pinned to the latest
+# non-alpha release on Google's Maven (dl.google.com/dl/android/maven2), not the 1.3.0-alpha
+# line that maven-metadata.xml currently lists as <latest>.
+datastorePreferences = "1.2.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -67,6 +72,7 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 # NGA's own Military Grid Reference System library — pure Java, no Android dependency, safe to
 # call from domain/. See domain/MgrsConverter.kt.
 nga-mgrs = { group = "mil.nga", name = "mgrs", version.ref = "mgrs" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

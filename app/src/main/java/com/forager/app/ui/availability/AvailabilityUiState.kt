@@ -1,11 +1,14 @@
 package com.forager.app.ui.availability
 
 import com.forager.app.domain.CachedSearchSummary
+import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.ForagingSelection
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagDistribution
+import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -118,7 +121,39 @@ data class AvailabilityUiState(
     val offlineMapLatText: String = "",
     val offlineMapLngText: String = "",
     val offlineMapRadiusKm: Int = 15,
-    val offlineMapStatus: OfflineMapStatus = OfflineMapStatus.NotDownloaded,
+    /**
+     * The picker's optional name for its next download — left blank, [AvailabilityViewModel]
+     * defaults it to "Region N" at download time rather than blocking the download, the same
+     * "default rather than require" pattern [PlannedTrip.name] already established for planned
+     * trips.
+     */
+    val offlineMapNameText: String = "",
+    /** The picker's own last download attempt — see [OfflineMapStatus]'s doc comment. */
+    val offlineDownloadStatus: OfflineMapStatus = OfflineMapStatus.Idle,
+    /**
+     * Every region currently on disk, per [com.forager.app.domain.OfflineMapRepository.listRegions]
+     * — the persisted list the "Offline Maps" submenu renders, independent of
+     * [offlineDownloadStatus]'s in-flight/last-attempt state.
+     */
+    val offlineRegions: List<OfflineRegionSummary> = emptyList(),
+    val offlineRegionsErrorMessage: String? = null,
+    /**
+     * The "Region management" design doc's staleness badge threshold, in days — loaded from
+     * [com.forager.app.domain.MapPreferencesRepository] at start-up, defaulting to
+     * [DEFAULT_STALE_THRESHOLD_DAYS] until that load completes.
+     */
+    val offlineStaleThresholdDays: Int = DEFAULT_STALE_THRESHOLD_DAYS,
+    /**
+     * The offline-region picker map's opening viewport before anything has been long-pressed —
+     * restored from [com.forager.app.domain.MapPreferencesRepository.getLastPickedRegion] at
+     * start-up per the design doc's "Cold-start default" (a returning user should not reopen the
+     * picker ~2000km from anywhere they've actually downloaded). `null` until that load completes
+     * or if nothing has ever been picked, in which case the picker falls back to its own fixed
+     * continental-US-centre default — see `OFFLINE_MAP_PICKER_DEFAULT_CENTER` in
+     * `AvailabilityScreen.kt`. Distinct from [offlineMapLatText]/[offlineMapLngText], which mean
+     * "picked in this session"; this is never itself submitted as a region.
+     */
+    val offlineMapPickerDefaultCenter: LatLng? = null,
     /**
      * The map's GPS/locate-me icon stack button — see [LocateMeStatus]'s doc comment for why this
      * is a separate field from [locationPermissionDenied], which belongs to the unrelated "use
