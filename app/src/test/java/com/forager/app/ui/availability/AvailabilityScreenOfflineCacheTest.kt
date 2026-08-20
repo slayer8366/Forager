@@ -97,8 +97,9 @@ class AvailabilityScreenOfflineCacheTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = StubMapSlot,
             )
         }

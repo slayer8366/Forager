@@ -246,8 +246,9 @@ abstract class AvailabilityScreenLayoutTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = StubMapSlot,
             )
         }

@@ -83,3 +83,36 @@ val MIGRATION_3_4: Migration = object : Migration(3, 4) {
         )
     }
 }
+
+/**
+ * Adds `offline_regions` ([OfflineRegionEntity]) on top of version 4's mushroom log tables — the
+ * index the "Region management" design doc describes: `OfflineManager` owns the actual downloaded
+ * tiles in its own database, this table is only what this app adds on top (name, centre, radius,
+ * zoom range, created timestamp) so multiple downloaded regions can be listed and queried, which a
+ * single opaque `OfflineManager` region list can't do on its own.
+ *
+ * A real, hand-written migration for the same reason [MIGRATION_3_4] is one rather than
+ * `fallbackToDestructiveMigration()`: by the time this ships, a device may already hold real
+ * mushroom-log field notes from [MIGRATION_3_4], and a destructive fallback would drop those to add
+ * an unrelated table. Covered by `OfflineRegionMigrationTest`, mirroring
+ * `MushroomLogMigrationTest`'s "build a real prior-version database, migrate it, assert survival"
+ * shape.
+ */
+val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `offline_regions` (
+            `id` INTEGER NOT NULL,
+            `name` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `radiusKm` INTEGER NOT NULL,
+            `minZoom` REAL NOT NULL,
+            `maxZoom` REAL NOT NULL,
+            `createdAtEpochMillis` INTEGER NOT NULL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+    }
+}

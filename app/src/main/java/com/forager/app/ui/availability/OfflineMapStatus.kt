@@ -1,24 +1,20 @@
 package com.forager.app.ui.availability
 
-import com.forager.app.domain.model.Region
-
 /**
- * What the Settings panel's "Offline Maps" section shows, distinct from
- * [com.forager.app.domain.OfflineMapInfo]: that type is "what's on disk right now", this is "what
- * the UI is displaying", which also has to represent an in-flight download and a failure — neither
- * of which the domain type has any business modelling.
+ * The offline-region picker's own transient state — whether its last download attempt is in
+ * flight, just succeeded, or just failed. Distinct from [AvailabilityUiState.offlineRegions], the
+ * persisted list of what's actually on disk: since a region no longer replaces whatever was
+ * downloaded before it (see [com.forager.app.domain.OfflineMapRepository]'s doc comment), there is
+ * no single "the offline map" for this type to describe any more — only "how did the picker's most
+ * recent download go."
  */
 sealed interface OfflineMapStatus {
-    data object NotDownloaded : OfflineMapStatus
+    data object Idle : OfflineMapStatus
 
     data class Downloading(val downloaded: Int, val total: Int) : OfflineMapStatus
 
-    data class Downloaded(
-        val region: Region,
-        val tileCount: Int,
-        val sizeBytes: Long,
-        val downloadedAtEpochMillis: Long,
-    ) : OfflineMapStatus
+    /** The picker's last download finished; [AvailabilityUiState.offlineRegions] already reflects it. */
+    data object Succeeded : OfflineMapStatus
 
     data class Failed(val message: String) : OfflineMapStatus
 }

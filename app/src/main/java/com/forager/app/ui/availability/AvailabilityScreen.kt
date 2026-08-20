@@ -137,7 +137,10 @@ import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.ForagingWeatherGuidance
 import com.forager.app.domain.FruitingPatternAssumptions
 import com.forager.app.domain.MgrsConverter
+import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.SystemCurrentTimeProvider
+import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
@@ -327,8 +330,10 @@ fun AvailabilityScreen(
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineMaps: () -> Unit,
+    /** Per-region delete, by [com.forager.app.domain.OfflineRegionSummary.id] — see `OfflineMapsPanel`'s region list. */
+    onDeleteOfflineRegion: (Long) -> Unit,
     /**
      * The mushroom log drawer destination's own state — see [com.forager.app.ui.log.LogPanel].
      * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
@@ -562,14 +567,16 @@ fun AvailabilityScreen(
                     modifier = Modifier.weight(1f),
                     uiState = uiState,
                     distanceUnit = distanceUnit,
+                    currentTime = currentTime,
                     mapSlot = mapSlot,
                     onRegionPicked = { location ->
                         onOfflineMapLatChanged(location.lat.toString())
                         onOfflineMapLngChanged(location.lng.toString())
                     },
                     onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = onOfflineMapNameChanged,
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
-                    onDeleteOfflineMaps = onDeleteOfflineMaps,
+                    onDeleteOfflineRegion = onDeleteOfflineRegion,
                 )
             }
 
@@ -801,11 +808,13 @@ fun AvailabilityScreen(
                         onMapServiceSelected = { selectedMapService = it },
                         distanceUnit = distanceUnit,
                         onDistanceUnitSelected = { distanceUnit = it },
+                        currentTime = currentTime,
                         onOfflineMapLatChanged = onOfflineMapLatChanged,
                         onOfflineMapLngChanged = onOfflineMapLngChanged,
                         onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                        onOfflineMapNameChanged = onOfflineMapNameChanged,
                         onDownloadOfflineMaps = onDownloadOfflineMaps,
-                        onDeleteOfflineMaps = onDeleteOfflineMaps,
+                        onDeleteOfflineRegion = onDeleteOfflineRegion,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1191,11 +1200,13 @@ private fun CompactSettingsTab(
     onMapServiceSelected: (MapService) -> Unit,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
+    currentTime: CurrentTimeProvider,
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineMaps: () -> Unit,
+    onDeleteOfflineRegion: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showOfflineMaps by remember { mutableStateOf(false) }
@@ -1213,14 +1224,16 @@ private fun CompactSettingsTab(
                 modifier = Modifier.weight(1f),
                 uiState = uiState,
                 distanceUnit = distanceUnit,
+                currentTime = currentTime,
                 mapSlot = mapSlot,
                 onRegionPicked = { location ->
                     onOfflineMapLatChanged(location.lat.toString())
                     onOfflineMapLngChanged(location.lng.toString())
                 },
                 onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                onOfflineMapNameChanged = onOfflineMapNameChanged,
                 onDownloadOfflineMaps = onDownloadOfflineMaps,
-                onDeleteOfflineMaps = onDeleteOfflineMaps,
+                onDeleteOfflineRegion = onDeleteOfflineRegion,
             )
         } else {
             SettingsContent(
@@ -1410,29 +1423,40 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
  * download itself actually reads from underneath.
  *
  * Before anything is long-pressed, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank,
- * so the map centres on [OFFLINE_MAP_PICKER_DEFAULT_CENTER] purely so there is a map to navigate
- * and long-press on — not a claim about where the user is or wants to download. "Download Maps"
- * stays disabled until a real point has been picked (see `hasValidRegion` below), so that default
- * viewport can never itself be submitted as a region.
+ * so the map centres on [uiState]'s restored `offlineMapPickerDefaultCenter` if one exists, falling
+ * back to [OFFLINE_MAP_PICKER_DEFAULT_CENTER] otherwise — purely so there is a map to navigate and
+ * long-press on, not a claim about where the user is or wants to download. "Download Maps" stays
+ * disabled until a real point has been picked (see `hasValidRegion` below), so neither default
+ * viewport can ever itself be submitted as a region.
  *
  * The map is weighted to fill the space the fixed controls below it don't need, the same
  * map-gets-the-remainder pattern [MapTab] already uses, rather than a fixed dp height: a picker map
  * too small to long-press accurately would defeat the reason this replaced the lat/lng text fields.
+ *
+ * Below the picker, [OfflineRegionsSection] lists every region already on disk — see that
+ * composable's doc comment. A downloaded region is never deleted by picking and downloading a new
+ * one any more (see [com.forager.app.domain.OfflineMapRepository]'s doc comment on why this changed
+ * from an all-or-nothing single download), so the two sections are independent: the picker only
+ * ever adds to what the list below shows.
  */
 @Composable
 private fun OfflineMapsPanel(
     modifier: Modifier = Modifier,
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
+    currentTime: CurrentTimeProvider,
     mapSlot: MapSlot,
     onRegionPicked: (LatLng) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineMaps: () -> Unit,
+    onDeleteOfflineRegion: (Long) -> Unit,
 ) {
     val pickedLat = uiState.offlineMapLatText.toDoubleOrNull()
     val pickedLng = uiState.offlineMapLngText.toDoubleOrNull()
     val hasValidRegion = pickedLat != null && pickedLat in -90.0..90.0 && pickedLng != null && pickedLng in -180.0..180.0
+    val defaultCenter = uiState.offlineMapPickerDefaultCenter ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER
+    val now = currentTime.nowEpochMillis()
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -1443,8 +1467,8 @@ private fun OfflineMapsPanel(
         )
 
         val pickerRegion = Region(
-            lat = pickedLat ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER.lat,
-            lng = pickedLng ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER.lng,
+            lat = pickedLat ?: defaultCenter.lat,
+            lng = pickedLng ?: defaultCenter.lng,
             radiusKm = uiState.offlineMapRadiusKm,
         )
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -1476,6 +1500,14 @@ private fun OfflineMapsPanel(
                 style = MaterialTheme.typography.bodySmall,
             )
 
+            OutlinedTextField(
+                value = uiState.offlineMapNameText,
+                onValueChange = onOfflineMapNameChanged,
+                label = { Text("Name (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             Text("Radius: ${formatDistanceKm(uiState.offlineMapRadiusKm, distanceUnit)}", style = MaterialTheme.typography.bodyMedium)
             Slider(
                 value = uiState.offlineMapRadiusKm.toFloat(),
@@ -1484,23 +1516,26 @@ private fun OfflineMapsPanel(
                 steps = Region.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
             )
 
-            OfflineMapStatusContent(uiState.offlineMapStatus, distanceUnit)
+            OfflineDownloadStatusContent(uiState.offlineDownloadStatus)
 
-            val isDownloading = uiState.offlineMapStatus is OfflineMapStatus.Downloading
-            val isDownloaded = uiState.offlineMapStatus is OfflineMapStatus.Downloaded
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(
-                    onClick = onDownloadOfflineMaps,
-                    enabled = hasValidRegion && !isDownloading,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Download Maps") }
-                OutlinedButton(
-                    onClick = onDeleteOfflineMaps,
-                    enabled = isDownloaded && !isDownloading,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Delete Offline Maps") }
-            }
+            val isDownloading = uiState.offlineDownloadStatus is OfflineMapStatus.Downloading
+            Button(
+                onClick = onDownloadOfflineMaps,
+                enabled = hasValidRegion && !isDownloading,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Download Maps") }
         }
+
+        HorizontalDivider()
+
+        OfflineRegionsSection(
+            regions = uiState.offlineRegions,
+            errorMessage = uiState.offlineRegionsErrorMessage,
+            staleThresholdDays = uiState.offlineStaleThresholdDays,
+            distanceUnit = distanceUnit,
+            nowEpochMillis = now,
+            onDeleteOfflineRegion = onDeleteOfflineRegion,
+        )
     }
 }
 
@@ -1513,6 +1548,9 @@ private fun OfflineMapsPanel(
  */
 private val OFFLINE_MAP_PICKER_DEFAULT_CENTER = LatLng(39.8283, -98.5795)
 
+/** [OfflineRegionsSection]'s own height cap — see that composable's call site for why. */
+private val MAX_REGIONS_LIST_HEIGHT = 220.dp
+
 /**
  * [JournalTab]'s location-picker fallback viewport, for whenever no region has ever been searched
  * — reuses [OFFLINE_MAP_PICKER_DEFAULT_CENTER] rather than inventing a second "nowhere in
@@ -1523,14 +1561,16 @@ private val OFFLINE_MAP_PICKER_DEFAULT_CENTER = LatLng(39.8283, -98.5795)
 private val JOURNAL_PICKER_DEFAULT_REGION =
     Region(lat = OFFLINE_MAP_PICKER_DEFAULT_CENTER.lat, lng = OFFLINE_MAP_PICKER_DEFAULT_CENTER.lng, radiusKm = 15)
 
-/** What [OfflineMapsPanel] shows for each [OfflineMapStatus] — every branch says something, per CLAUDE.md. */
+/**
+ * What [OfflineMapsPanel]'s picker shows for its own last download attempt — every branch says
+ * something, per CLAUDE.md. [OfflineMapStatus.Succeeded] and [OfflineMapStatus.Idle] both render
+ * nothing here: a completed download is already reflected in [OfflineRegionsSection]'s list right
+ * below, so there is nothing left for this transient status to say once it succeeds.
+ */
 @Composable
-private fun OfflineMapStatusContent(status: OfflineMapStatus, distanceUnit: DistanceUnit) {
+private fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
     when (status) {
-        OfflineMapStatus.NotDownloaded -> Text(
-            "No offline region downloaded yet.",
-            style = MaterialTheme.typography.bodySmall,
-        )
+        OfflineMapStatus.Idle, OfflineMapStatus.Succeeded -> Unit
 
         is OfflineMapStatus.Downloading -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             if (status.total > 0) {
@@ -1545,18 +1585,108 @@ private fun OfflineMapStatusContent(status: OfflineMapStatus, distanceUnit: Dist
             }
         }
 
-        is OfflineMapStatus.Downloaded -> Text(
-            "Downloaded: ${formatDistanceKm(status.region.radiusKm, distanceUnit)} around " +
-                "${"%.4f".format(status.region.lat)}, ${"%.4f".format(status.region.lng)} — " +
-                "${status.tileCount} tiles, ${"%.1f".format(status.sizeBytes / 1_000_000.0)} MB.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-
         is OfflineMapStatus.Failed -> Text(
             status.message,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )
+    }
+}
+
+/**
+ * Every region currently on disk, per the design doc's "What the list shows": name, centre, radius,
+ * size, download date, completion state (every region here is complete —
+ * [com.forager.app.map.MapLibreOfflineMapRepository.listRegions] prunes incomplete leftovers before
+ * this ever sees them), and per-region delete. [errorMessage] surfaces a read failure without
+ * clearing whatever was last successfully loaded — see [AvailabilityViewModel.loadOfflineRegions].
+ *
+ * The tile-budget line and the "sizes don't add up" caveat both come straight from the design doc's
+ * own "Tile budget" and "What the list shows" sections: [OfflineMapRepository.TILE_COUNT_LIMIT] is
+ * the ceiling this app sets deliberately (see that constant's doc comment), and the caveat exists
+ * because the resource table dedupes tiles across overlapping regions, so summed per-region tile
+ * counts overstate real disk usage and a delete can free far less than its region's own reported
+ * size — this text deliberately never promises a specific amount reclaimed.
+ */
+@Composable
+private fun OfflineRegionsSection(
+    regions: List<OfflineRegionSummary>,
+    errorMessage: String?,
+    staleThresholdDays: Int,
+    distanceUnit: DistanceUnit,
+    nowEpochMillis: Long,
+    onDeleteOfflineRegion: (Long) -> Unit,
+) {
+    // Capped and independently scrollable, rather than letting this grow the whole panel: the
+    // picker above (map, name field, radius, Download button) must always stay reachable without
+    // scrolling regardless of how many regions are already downloaded.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = MAX_REGIONS_LIST_HEIGHT)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text("Downloaded Regions", style = MaterialTheme.typography.titleSmall)
+
+        val tilesUsed = regions.sumOf { it.tileCount }
+        Text(
+            "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}. Sizes don't add up to " +
+                "total disk usage — overlapping regions share tiles, so deleting one may free less " +
+                "than its own size suggests.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        if (errorMessage != null) {
+            Text(errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+
+        if (regions.isEmpty()) {
+            Text("No regions downloaded yet.", style = MaterialTheme.typography.bodySmall)
+        } else {
+            regions.forEach { region ->
+                OfflineRegionRow(
+                    region = region,
+                    isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
+                    distanceUnit = distanceUnit,
+                    nowEpochMillis = nowEpochMillis,
+                    onDelete = { onDeleteOfflineRegion(region.id) },
+                )
+            }
+        }
+    }
+}
+
+/** One downloaded region's row in [OfflineRegionsSection] — see that composable's doc comment. */
+@Composable
+private fun OfflineRegionRow(
+    region: OfflineRegionSummary,
+    isStale: Boolean,
+    distanceUnit: DistanceUnit,
+    nowEpochMillis: Long,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                Text(region.name, style = MaterialTheme.typography.bodyMedium)
+                if (isStale) {
+                    Text("Stale", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            Text(
+                "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around " +
+                    "${"%.4f".format(region.region.lat)}, ${"%.4f".format(region.region.lng)} — " +
+                    "${region.tileCount} tiles, ${"%.1f".format(region.sizeBytes / 1_000_000.0)} MB — " +
+                    "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        OutlinedButton(onClick = onDelete) { Text("Delete") }
     }
 }
 

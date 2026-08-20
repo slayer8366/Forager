@@ -32,7 +32,8 @@ import com.forager.app.domain.InMemorySearchCacheRepository
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomRepository
-import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.MapPreferencesRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
@@ -128,6 +129,7 @@ class AvailabilityScreenConditionsMonthTest {
                 ComputeFruitingLagDistributionUseCase(),
             ),
             offlineMapRepository = FakeOfflineMapRepository,
+            mapPreferencesRepository = FakeMapPreferencesRepository,
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -154,8 +156,9 @@ class AvailabilityScreenConditionsMonthTest {
                 onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                 onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                 onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 mapSlot = StubMapSlot,
             )
         }
@@ -307,9 +310,16 @@ private object FakePlannedTripRepository : PlannedTripRepository {
 
 /** Not exercised by this test's assertions; getStatus() succeeds with "nothing downloaded" since it runs on every ViewModel init. */
 private object FakeOfflineMapRepository : OfflineMapRepository {
-    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+    override suspend fun download(name: String, region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineRegionSummary> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
-    override suspend fun delete(): Result<Unit> =
+    override suspend fun deleteRegion(id: Long): Result<Unit> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
-    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
+    override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
+}
+
+private object FakeMapPreferencesRepository : MapPreferencesRepository {
+    override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(null)
+    override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
+    override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(60)
+    override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
 }

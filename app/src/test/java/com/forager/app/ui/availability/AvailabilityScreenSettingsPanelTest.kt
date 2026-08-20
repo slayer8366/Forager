@@ -125,8 +125,9 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -163,8 +164,9 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapLatChanged = { text -> current = current.copy(offlineMapLatText = text) },
                 onOfflineMapLngChanged = { text -> current = current.copy(offlineMapLngText = text) },
                 onOfflineMapRadiusChanged = { radius -> current = current.copy(offlineMapRadiusKm = radius) },
+                onOfflineMapNameChanged = { text -> current = current.copy(offlineMapNameText = text) },
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -308,13 +310,18 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
     }
 
+    /**
+     * Per-region delete replaces the old single "Delete Offline Maps" button — with nothing
+     * downloaded, the regions list has no delete button to find at all, not merely a disabled one.
+     */
     @Test
-    fun `Download Maps is disabled with no region picked, and Delete Offline Maps is disabled with nothing downloaded`() {
+    fun `Download Maps is disabled with no region picked, and no regions are listed with nothing downloaded`() {
         setScreen()
         openOfflineMaps()
 
         composeRule.onNodeWithText("Download Maps").assertIsDisplayed().assertIsNotEnabled()
-        composeRule.onNodeWithText("Delete Offline Maps").assertIsNotEnabled()
+        composeRule.onNodeWithText("No regions downloaded yet.").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Delete").assertCountEquals(0)
     }
 
     @Test
