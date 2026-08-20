@@ -35,6 +35,20 @@ data class MapOverlayContent(
     val breadcrumbPoints: List<LatLng> = emptyList(),
     /** Saved waypoints, drawn as markers — independent of any track, per [Waypoint]'s own doc comment. */
     val waypoints: List<Waypoint> = emptyList(),
+    /**
+     * A changing token, not a boolean flag — incrementing it (regardless of the new value) tells
+     * the map to (re-)engage GPS camera tracking, the same "GPS icon re-centers and resumes
+     * following" behavior the project owner asked for. A `Boolean` can't carry a repeat action:
+     * tapping locate-me a second time while already tracking (e.g. after wandering off tracking via
+     * a pan) needs to fire again even though the *value* "tracking wanted" never changed from
+     * `true`; a changing `Int` always represents a fresh request, a toggled `Boolean` would only
+     * fire on every other tap. See [com.forager.app.ui.map.SightingsMap]'s own
+     * `activateLiveLocationIfPermitted` for what actually engaging tracking means, and why this is
+     * a request rather than a live camera-mode readout (this app's map layer doesn't expose the
+     * live/lost-tracking state back up to `AvailabilityScreen` — the compact map icon stack's
+     * locate-me icon looks the same whether or not GPS tracking is currently engaged).
+     */
+    val resumeTrackingRequestId: Int = 0,
 )
 
 /**
@@ -101,6 +115,7 @@ val SightingsMapSlot: MapSlot = { region, content, basemap, focusOverride, onLon
         onTap = onTap,
         breadcrumbPoints = content.breadcrumbPoints,
         waypoints = content.waypoints,
+        resumeTrackingRequestId = content.resumeTrackingRequestId,
         modifier = modifier,
     )
 }

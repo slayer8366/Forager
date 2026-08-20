@@ -2890,6 +2890,10 @@ private fun CompactMapTab(
     var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
+    // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
+    // existing onLocateMe() call below, not instead of it: that call still drives the compass
+    // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
+    var resumeTrackingRequestId by remember { mutableStateOf(0) }
 
     // AddActionTile is a plain overlay, not a real Dialog, so — unlike TripDatePickerDialog below,
     // an M3 DatePickerDialog whose own Dialog window already handles system back for free — this
@@ -2969,6 +2973,7 @@ private fun CompactMapTab(
                         plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList(),
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
+                        resumeTrackingRequestId = resumeTrackingRequestId,
                     ),
                     basemap,
                     focusOverride,
@@ -3001,7 +3006,10 @@ private fun CompactMapTab(
                 MapIconStack(
                     isFullscreen = isFullscreen,
                     onToggleFullscreen = onToggleFullscreen,
-                    onLocateMe = onLocateMe,
+                    onLocateMe = {
+                        resumeTrackingRequestId++
+                        onLocateMe()
+                    },
                     isTopoMode = isTopoMode,
                     onToggleMapMode = onToggleMapMode,
                     onOpenSearchDrawer = onOpenSearchDrawer,

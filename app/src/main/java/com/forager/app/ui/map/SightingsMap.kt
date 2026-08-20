@@ -1,5 +1,9 @@
 package com.forager.app.ui.map
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -26,6 +30,7 @@ import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -38,6 +43,9 @@ import com.forager.app.domain.model.Waypoint
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
+import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.modes.CameraMode
+import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
@@ -145,6 +153,8 @@ fun SightingsMap(
     breadcrumbPoints: List<LatLng> = emptyList(),
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     waypoints: List<Waypoint> = emptyList(),
+    /** See [com.forager.app.ui.map.MapOverlayContent.resumeTrackingRequestId]'s own doc comment. */
+    resumeTrackingRequestId: Int = 0,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -177,14 +187,21 @@ fun SightingsMap(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_RESUME -> {
+                    mapView.onResume()
+                    mapLibreMap?.locationComponent?.onStart()
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    mapView.onPause()
+                    mapLibreMap?.locationComponent?.onStop()
+                }
                 else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            mapLibreMap?.locationComponent?.onDestroy()
             mapView.onDestroy()
         }
     }
@@ -220,6 +237,11 @@ fun SightingsMap(
             initializeOverlayLayers(style, density = context.resources.displayMetrics.density)
             appliedBasemap = basemap
             loadedStyle = style
+            // setStyle discards the previous style's LocationComponent state the same way it does
+            // this composable's own layers (see initializeOverlayLayers' own doc comment on why
+            // that function re-runs here) — so the live-location "puck" needs the same
+            // re-activate-on-every-new-style treatment.
+            activateLiveLocationIfPermitted(map, style, context)
         }
     }
 
@@ -233,15 +255,43 @@ fun SightingsMap(
         val map = mapLibreMap ?: return@LaunchedEffect
         refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints, waypoints)
 
-        val center = MapLibreLatLng(region.lat, region.lng)
-        // focusOverride pans the camera without moving the search-location marker or the
-        // zoom-from-radius heuristic below, both of which stay anchored to region — see
-        // MapSlot's doc comment on this parameter for why the two are kept independent.
-        val cameraTarget = focusOverride?.let { MapLibreLatLng(it.lat, it.lng) } ?: center
-        map.cameraPosition = CameraPosition.Builder()
-            .target(cameraTarget)
-            .zoom(zoomForRadiusKm(region.radiusKm))
-            .build()
+        // Once the live-location "puck" is actively tracking (the default once permission is
+        // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its
+        // own internal update loop, independent of recomposition. Jumping the camera to the search
+        // region here too — on every sightings/area/breadcrumb update this effect already keys on,
+        // which includes roughly every 15s while a track is recording — would fight it, snapping the
+        // view back to the search center out from under a walker watching their live position. Once
+        // a pan/zoom/the CameraMode.NONE break in activateLiveLocationIfPermitted's own doc comment
+        // drops tracking, this resumes controlling the camera exactly as it did before that existed.
+        val isGpsTracking = map.locationComponent.isLocationComponentActivated &&
+            map.locationComponent.cameraMode != CameraMode.NONE
+        if (!isGpsTracking) {
+            val center = MapLibreLatLng(region.lat, region.lng)
+            // focusOverride pans the camera without moving the search-location marker or the
+            // zoom-from-radius heuristic below, both of which stay anchored to region — see
+            // MapSlot's doc comment on this parameter for why the two are kept independent.
+            val cameraTarget = focusOverride?.let { MapLibreLatLng(it.lat, it.lng) } ?: center
+            map.cameraPosition = CameraPosition.Builder()
+                .target(cameraTarget)
+                .zoom(zoomForRadiusKm(region.radiusKm))
+                .build()
+        }
+    }
+
+    // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
+    // either for its first activation or to resume tracking after a manual pan/zoom broke it (see
+    // activateLiveLocationIfPermitted's own doc comment on CameraMode.NONE). Also the natural retry
+    // point if the very first tap only triggered the OS permission dialog: MapOverlayContent's own
+    // doc comment on resumeTrackingRequestId covers why a second tap is what completes activation
+    // in that case, not an automatic one.
+    LaunchedEffect(resumeTrackingRequestId) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        val style = loadedStyle ?: return@LaunchedEffect
+        if (map.locationComponent.isLocationComponentActivated) {
+            map.locationComponent.cameraMode = CameraMode.TRACKING
+        } else {
+            activateLiveLocationIfPermitted(map, style, context)
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -404,6 +454,46 @@ private fun refreshOverlayData(
     style.getSourceAs<GeoJsonSource>(PLANNED_TRIP_SOURCE_ID)?.setGeoJson(plannedTripsFeatureCollection(plannedTrips))
     style.getSourceAs<GeoJsonSource>(BREADCRUMB_SOURCE_ID)?.setGeoJson(breadcrumbFeatureCollection(breadcrumbPoints))
     style.getSourceAs<GeoJsonSource>(WAYPOINT_SOURCE_ID)?.setGeoJson(waypointsFeatureCollection(waypoints))
+}
+
+/**
+ * Turns on MapLibre's own "blue dot" location puck and has the camera follow it — "like regular
+ * GPS," the project owner's own framing, rather than the compass strip's pre-existing one-shot
+ * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
+ * map's camera). A no-op, not a crash or a silent guess, when [Manifest.permission.ACCESS_FINE_LOCATION]/
+ * [Manifest.permission.ACCESS_COARSE_LOCATION] aren't granted — same "explicit unsupported state,
+ * never fabricated" rule [com.forager.app.location.AndroidLocationProvider.hasLocationPermission]
+ * already follows for the one-shot path; the map simply won't show a puck until permission exists
+ * and something re-triggers this (a fresh style load, or the locate-me icon — see
+ * [resumeTrackingRequestId][MapOverlayContent.resumeTrackingRequestId]'s own doc comment).
+ *
+ * [CameraMode.TRACKING] is the mode set immediately on activation, satisfying "follow automatically
+ * on default." Breaking out of it again is built into MapLibre's [LocationComponent][org.maplibre.android.location.LocationComponent]
+ * itself, not code this app wrote: the SDK's own gesture detection drops to [CameraMode.NONE] the
+ * moment the user pans, drags, or zooms, which is also what the data+camera refresh effect above
+ * checks to decide whether it's safe to move the camera itself without fighting an active puck.
+ */
+@SuppressLint("MissingPermission") // hasLocationPermission() below is the real (runtime) check.
+private fun activateLiveLocationIfPermitted(map: MapLibreMap, style: Style, context: Context) {
+    if (!hasLocationPermission(context)) return
+    val locationComponent = map.locationComponent
+    locationComponent.activateLocationComponent(
+        LocationComponentActivationOptions.builder(context, style)
+            .useDefaultLocationEngine(true)
+            .build(),
+    )
+    locationComponent.isLocationComponentEnabled = true
+    // COMPASS, not NORMAL: the puck itself points the device's own heading, the same live sensor
+    // the compass strip's heading text already reads — matching, not duplicating, that readout.
+    locationComponent.renderMode = RenderMode.COMPASS
+    locationComponent.cameraMode = CameraMode.TRACKING
+}
+
+/** Same check, same two permissions, as [com.forager.app.location.AndroidLocationProvider.hasLocationPermission] — not shared code across an app/domain-layer boundary that owns neither Context nor Manifest. */
+private fun hasLocationPermission(context: Context): Boolean {
+    val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+    val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+    return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
 }
 
 private fun emptyFeatureCollection(): FeatureCollection = FeatureCollection.fromFeatures(emptyList())
