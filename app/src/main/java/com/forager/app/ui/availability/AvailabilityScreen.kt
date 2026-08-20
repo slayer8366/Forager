@@ -140,6 +140,7 @@ import com.forager.app.domain.FruitingPatternAssumptions
 import com.forager.app.domain.MgrsConverter
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
+import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AvailabilityEntry
@@ -1536,6 +1537,22 @@ private fun OfflineMapsPanel(
                 onValueChange = { onOfflineMapRadiusChanged(it.toInt()) },
                 valueRange = Region.MIN_RADIUS_KM.toFloat()..Region.MAX_RADIUS_KM.toFloat(),
                 steps = Region.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
+            )
+
+            // So the tile budget is discovered here, while there's still time to pick a smaller
+            // radius, rather than only on a refused download — the design doc's own "a user should
+            // not discover the ceiling at a trailhead."
+            val estimatedTiles = estimateOfflineTileCount(pickerRegion, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM)
+            val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
+            val exceedsBudget = estimatedTiles > remainingBudget
+            Text(
+                if (exceedsBudget) {
+                    "~$estimatedTiles tiles — exceeds your remaining budget of $remainingBudget"
+                } else {
+                    "~$estimatedTiles tiles"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (exceedsBudget) MaterialTheme.colorScheme.error else Color.Unspecified,
             )
 
             OfflineDownloadStatusContent(uiState.offlineDownloadStatus)

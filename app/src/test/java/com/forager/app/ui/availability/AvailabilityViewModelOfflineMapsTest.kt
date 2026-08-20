@@ -296,6 +296,45 @@ class AvailabilityViewModelOfflineMapsTest {
         assertEquals(listOf(REFERENCE_SUMMARY), vm.uiState.value.offlineRegions)
     }
 
+    /**
+     * Hardware finding: MapLibre's own `setOfflineMapboxTileCountLimit` did not stop a real device
+     * from downloading 9118 tiles against a "limit" of 6000 — this app-side pre-flight check is the
+     * real enforcement. A region whose estimated tile count would exceed the remaining budget is
+     * refused before the repository is ever called at all.
+     */
+    @Test
+    fun `a download that would exceed the tile budget is refused without calling the repository`() = runTest(dispatcher) {
+        val almostFullRegion = REFERENCE_SUMMARY.copy(tileCount = (OfflineMapRepository.TILE_COUNT_LIMIT - 5).toInt())
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(almostFullRegion)))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.pickReferenceRegion()
+        vm.onOfflineMapRadiusChanged(Region.MAX_RADIUS_KM)
+
+        vm.onDownloadOfflineMaps()
+        advanceUntilIdle()
+
+        assertFalse(repository.downloadCalled)
+        val status = vm.uiState.value.offlineDownloadStatus
+        assertTrue(status is OfflineMapStatus.Failed)
+        assertTrue((status as OfflineMapStatus.Failed).message.contains("budget"))
+    }
+
+    @Test
+    fun `a download comfortably within the tile budget is not refused`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository().apply {
+            downloadResult = Result.success(REFERENCE_SUMMARY)
+        }
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.pickReferenceRegion()
+
+        vm.onDownloadOfflineMaps()
+        advanceUntilIdle()
+
+        assertTrue(repository.downloadCalled)
+    }
+
     @Test
     fun `a blank name defaults to Region N rather than blocking the download`() = runTest(dispatcher) {
         val repository = RecordingOfflineMapRepository().apply {

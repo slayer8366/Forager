@@ -263,8 +263,11 @@ line can ship with tests; the feature working cannot be established by them.
 - Whether a foreground service with the location type lets the app stay on
   while-in-use location permission and skip background location, avoiding the
   Play Store prominent-disclosure review. Verify against the target SDK.
-- Whether `setOfflineMapboxTileCountLimit` exists under that name in the pinned
-  MapLibre version, and what it is currently set to.
+- ~~Whether `setOfflineMapboxTileCountLimit` exists under that name in the
+  pinned MapLibre version, and what it is currently set to.~~ Resolved: it
+  exists (verified via `javap`), but hardware testing found it does not
+  actually cap explicit `createOfflineRegion` downloads — see the
+  2026-08-20 handoff update below for what replaced it.
 
 ## Handoff, 2026-08-20: Region management phase implemented
 
@@ -345,24 +348,78 @@ being the more obvious place (it broke 171 unrelated Robolectric tests — no
 test had ever exercised real MapLibre code before, and no test should have to
 just because storage init moved).
 
+**Update, 2026-08-20, a second hardware round with several overlapping
+regions:** the owner downloaded three overlapping regions (one at their live
+location, two larger ones nearby) and reported back a batch of findings, each
+handled as follows.
+
+- **Confirmed working, no code change:** no crash deleting one of two
+  overlapping regions. Deleting a region barely moved the device's reported
+  "Data" storage — matches the design doc's own "sizes don't add up to total
+  disk usage" caveat exactly (shared/dedup'd tiles), not a bug. A second
+  download of a similar area was noticeably faster — consistent with the same
+  shared-resource explanation. The offline-map picker's current-location
+  default (see the entry above) was confirmed working.
+- **Fixed: no delete confirmation.** Tapping "Delete" on a region removed it
+  immediately. `OfflineRegionsSection` now shows a confirmation dialog (name,
+  explicit Delete/Cancel) before the delete call goes out.
+- **Fixed: the region list came up empty right after a cold restart** with
+  several regions already on disk — the regions had survived (confirmed via a
+  later download's own refresh correctly showing everything), they just
+  weren't shown yet. Consistent with `OfflineManager`'s native store still
+  finishing initialization when `loadOfflineRegions()` ran once at ViewModel
+  construction, before the user had navigated to the screen.
+  `onOfflineMapsOpened()` now re-reads `listRegions()` on every screen open
+  rather than trusting the construction-time snapshot.
+- **Fixed: the tile budget was never actually enforced.** Three regions
+  totalling 9118 tiles downloaded successfully against a "limit" of 6000.
+  `setOfflineMapboxTileCountLimit` most plausibly caps only the *ambient*
+  cache built from ordinary live-map browsing, not deliberate
+  `createOfflineRegion` downloads — the open question this plan's "Tile
+  budget" section raised ("whether `setOfflineMapboxTileCountLimit` exists...
+  and what it is currently set to") is now answered more fully than the name
+  existing: it exists, but doesn't do what this feature needs. Real
+  enforcement is now app-side: `estimateOfflineTileCount` reimplements the
+  same slippy-map (Web Mercator) tile-grid math `OfflineTilePyramidRegionDefinition`
+  uses internally as a pure, unit-tested function, and
+  `AvailabilityViewModel.onDownloadOfflineMaps` refuses a download that would
+  push the running total over `OfflineMapRepository.TILE_COUNT_LIMIT` before
+  ever calling the repository. The estimate is also shown live in the picker
+  next to the radius slider, per the design doc's own "a user should not
+  discover the ceiling at a trailhead."
+- **Found, not fixed — needs a scope decision:** offline rendering looks
+  pixelated when zoomed in, "hard to use." Confirmed (owner) this was observed
+  on the app's main **Maps** tab. That tab still renders through osmdroid, not
+  MapLibre — as far as this session traced the code, nothing in the app
+  currently displays the vector tiles this feature downloads at all. The
+  pixelation isn't a defect in this phase's code; it's evidence that Steps 1-2
+  of the broader MapLibre migration (`maplibre-migration.md` — a live, labeled
+  vector basemap reachable from the real map screen), already flagged as
+  deliberately deferred in `pmtiles-worker-android-wiring.md`'s own handoff,
+  are still undone. Downloading a region currently has no visible in-app
+  payoff. Not started this session — swapping the live map renderer app-wide
+  is a large, separate task, not a bugfix bundled into this one.
+
 **Not verified, and not claimable from this sandbox** — same reasoning the
 plan's own "Not yet verified" section gives, applied to what actually got
-built: whether a second/third region *overlapping* an existing one behaves
-correctly against the real `OfflineManager` (the two regions confirmed above
-were not overlapping), whether deleting one of two overlapping regions
-actually frees only the bytes it should, and whether a region rebuilt from its
-metadata blob (Room row deliberately dropped) round-trips on hardware. All
-three need a physical device; this sandbox has none.
+built: whether deleting one of two overlapping regions actually frees only
+the bytes it should (no crash confirmed above, but the reclaimed-byte amount
+itself wasn't measured), and whether a region rebuilt from its metadata blob
+(Room row deliberately dropped) round-trips on hardware. Both need a physical
+device with more deliberate measurement than this round's testing did.
 
 **Next, in priority order for whoever picks this up:**
 
-1. Hardware-verify the three items directly above before trusting this phase
-   under real multi-region use.
-2. Resolve the `RecordedTrip`/`TripSession` naming split for real once the
+1. **Steps 1-2 of the MapLibre migration** — connect the main Maps tab to
+   actually render the downloaded vector data. Without this, region
+   management has no visible payoff; it's the single highest-value remaining
+   item, not just next in sequence.
+2. Hardware-verify the two remaining unmeasured items directly above.
+3. Resolve the `RecordedTrip`/`TripSession` naming split for real once the
    Trips entity is actually built — it was decided as a naming convention
    this session, not yet exercised by real code.
-3. Trips: the recorded-session entity, breadcrumb track table, and foreground
+4. Trips: the recorded-session entity, breadcrumb track table, and foreground
    service — the largest remaining piece, and per the plan's own framing, the
    one hardest to verify without a device.
-4. Coverage math, once both regions and trips exist to compute it from.
-5. Privacy/export — independent of the above, could be picked up any time.
+5. Coverage math, once both regions and trips exist to compute it from.
+6. Privacy/export — independent of the above, could be picked up any time.
