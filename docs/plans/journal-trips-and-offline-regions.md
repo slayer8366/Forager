@@ -323,13 +323,36 @@ re-setting.
   itself), the breadcrumb track table, the coverage containment/segment-length
   math, and the backup-exclusion/EXIF-stripping/obscured-export work.
 
+**Update, same day, hardware-confirmed by the owner:** three regions downloaded
+on a real device, force-closed, cleared from recents, and cold-restarted — all
+three survived and listed correctly, not just one. This is the multi-region
+generalization of the single-region restart-persistence check PR #25 already
+confirmed (`pmtiles-worker-android-wiring.md`'s own handoff), now re-confirmed
+against the Room-indexed multi-region path this phase adds.
+
+**Update, same day:** the owner also found, on the same device, that downloaded
+regions were counted under Android's "Cache" storage bucket rather than "Data"
+— confirmed in code (`javap` against the pinned MapLibre artifact: the API is
+literally `FileSource.getResourcesCachePath`/`setResourcesCachePath`) and fixed
+by redirecting MapLibre's resource storage to a subdirectory of `filesDir`. Not
+listed as an open question in the plan's original text, but exactly the kind of
+gap the plan's "Freshness" section (no automatic deletion) depends on not
+existing — Android can clear app cache under storage pressure, and this app's
+own "Clear cache" control would have wiped every downloaded region with it. See
+`com.forager.app.map.MapLibreStorage.ensureMapLibreStorageOutsideCache`'s doc
+comment for the fix and why it isn't in `Application.onCreate()` despite that
+being the more obvious place (it broke 171 unrelated Robolectric tests — no
+test had ever exercised real MapLibre code before, and no test should have to
+just because storage init moved).
+
 **Not verified, and not claimable from this sandbox** — same reasoning the
 plan's own "Not yet verified" section gives, applied to what actually got
-built: whether a second/third region overlapping an existing one behaves
-correctly against the real `OfflineManager`, whether deleting one of two
-overlapping regions actually frees only the bytes it should, and whether a
-region rebuilt from its metadata blob (Room row deliberately dropped) round-trips
-on hardware. All three need a physical device; this sandbox has none.
+built: whether a second/third region *overlapping* an existing one behaves
+correctly against the real `OfflineManager` (the two regions confirmed above
+were not overlapping), whether deleting one of two overlapping regions
+actually frees only the bytes it should, and whether a region rebuilt from its
+metadata blob (Room row deliberately dropped) round-trips on hardware. All
+three need a physical device; this sandbox has none.
 
 **Next, in priority order for whoever picks this up:**
 
