@@ -2780,6 +2780,7 @@ private fun CompactMapTab(
                 CompassElevationStrip(
                     compassProvider = compassProvider,
                     elevationMeters = (uiState.locateMeStatus as? LocateMeStatus.Located)?.altitude,
+                    location = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(Spacing.sm),
@@ -2916,7 +2917,10 @@ private fun MapStackIconButton(
 /**
  * Decisions #7-8: compass heading + GPS elevation folded into one bar at the top of the map — a
  * compass-tape-style heading readout, not a separate elevation/speed stats pill (that would be
- * tied to active track recording, out of scope here — see the plan doc's decision #9).
+ * tied to active track recording, out of scope here — see the plan doc's decision #9). The MGRS
+ * grid reference on its own line below extends this same strip rather than becoming a separate
+ * "navigator screen" — position and heading are the one thing a field navigator needs together at
+ * a glance, and [MgrsConverter] already exists ([PlannedTripRow] uses it the same way).
  *
  * A thin wrapper around [CompassElevationStripContent] that does the one impure thing (collecting
  * [compassProvider]'s [Flow][kotlinx.coroutines.flow.Flow]) so that content composable stays a pure
@@ -2928,16 +2932,23 @@ private fun MapStackIconButton(
 private fun CompassElevationStrip(
     compassProvider: CompassProvider,
     elevationMeters: Double?,
+    location: LatLng?,
     modifier: Modifier = Modifier,
 ) {
     val headingDegrees by compassProvider.heading.collectAsState(initial = null)
-    CompassElevationStripContent(headingDegrees = headingDegrees, elevationMeters = elevationMeters, modifier = modifier)
+    CompassElevationStripContent(
+        headingDegrees = headingDegrees,
+        elevationMeters = elevationMeters,
+        location = location,
+        modifier = modifier,
+    )
 }
 
 @Composable
 private fun CompassElevationStripContent(
     headingDegrees: Float?,
     elevationMeters: Double?,
+    location: LatLng?,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -2947,30 +2958,54 @@ private fun CompassElevationStripContent(
         shadowElevation = 2.dp,
         modifier = modifier,
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Icon(
-                imageVector = Icons.Filled.Navigation,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(20.dp)
-                    .rotate(headingDegrees ?: 0f),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Navigation,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(headingDegrees ?: 0f),
+                )
+                Text(
+                    text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Text("·", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    // Meters, matching this app's existing metric convention (radiusKm) rather than
+                    // introducing feet — nothing else in the app displays imperial units.
+                    text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
             Text(
-                text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
-                style = MaterialTheme.typography.labelLarge,
-            )
-            Text("·", style = MaterialTheme.typography.labelLarge)
-            Text(
-                // Meters, matching this app's existing metric convention (radiusKm) rather than
-                // introducing feet — nothing else in the app displays imperial units.
-                text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
-                style = MaterialTheme.typography.labelLarge,
+                text = mgrsStripText(location),
+                style = MaterialTheme.typography.labelMedium,
             )
         }
+    }
+}
+
+/**
+ * "Coordinates unavailable" before a first fix (distinct wording from [MgrsCoordinate.Unsupported]
+ * — one is "no fix yet", the other is "this location can't be expressed in MGRS at all", and
+ * collapsing them into one message would hide which is actually true). No decimal-degree fallback
+ * the way [PlannedTripRow] keeps one: [MgrsCoordinate.Unsupported] only fires north of 84°N or
+ * south of 80°S, nowhere this app's US-forest use case ever reaches, so a second line earning its
+ * keep for that edge case isn't worth the strip's limited width.
+ */
+private fun mgrsStripText(location: LatLng?): String {
+    if (location == null) return "Coordinates unavailable"
+    return when (val mgrs = MgrsConverter.convert(location)) {
+        is MgrsCoordinate.Grid -> mgrs.value
+        is MgrsCoordinate.Unsupported -> "MGRS unavailable"
     }
 }
 

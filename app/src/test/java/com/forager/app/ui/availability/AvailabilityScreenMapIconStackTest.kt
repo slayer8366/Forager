@@ -105,10 +105,11 @@ class AvailabilityScreenMapIconStackTest {
         compassProvider: CompassProvider = FakeCompassProvider(null),
         onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> },
         mapSlot: MapSlot = CountingStubMapSlot,
+        locationProvider: LocationProvider = IconStackUnusedLocationProvider,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
-            locationProvider = IconStackUnusedLocationProvider,
+            locationProvider = locationProvider,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(IconStackEmptyRepository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(IconStackEmptyRepository),
@@ -296,6 +297,7 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithText("Compass unavailable").assertIsDisplayed()
         composeRule.onNodeWithText("Elevation unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText("Coordinates unavailable").assertIsDisplayed()
     }
 
     @Test
@@ -304,6 +306,21 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithText("90° E").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the compass strip shows a real MGRS grid reference once locate-me resolves a fix`() {
+        // Same Portland-OR point MgrsConverterTest pins, not a value invented for this test — if
+        // MgrsConverter's own logic ever regresses, that test fails; this one only needs to prove
+        // the strip actually renders whatever MgrsConverter.convert(location) returns.
+        setScreen(
+            onLocateMe = { viewModel.locateMe() },
+            locationProvider = IconStackFixedLocationProvider(lat = 45.5152, lng = -122.6784, altitude = 210.0),
+        )
+        searchAReferenceRegion()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
     }
 
     @Test
@@ -356,6 +373,10 @@ private class FakeCompassProvider(initial: Float?) : CompassProvider {
 private object IconStackUnusedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation(): LocationResult =
         error("getCurrentLocation() is not part of this test's path and must not be called")
+}
+
+private class IconStackFixedLocationProvider(private val lat: Double, private val lng: Double, private val altitude: Double?) : LocationProvider {
+    override suspend fun getCurrentLocation(): LocationResult = LocationResult.Success(lat, lng, altitude)
 }
 
 private object IconStackEmptyRepository : MushroomRepository {
