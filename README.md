@@ -58,7 +58,7 @@ more certainty than the data supports. See `AvailabilityForecast` and
    a **topographic** basemap (see the basemap selector below), with a small
    dot per individual verifiable
    observation (`GET /v1/observations`): real reported sighting locations,
-   not just the aggregate ranking. Dots rather than osmdroid's stock pins
+   not just the aggregate ranking. Dots rather than MapLibre's stock pins
    because a dense radius merges a few hundred pins into one unreadable
    mass, which throws away the density that is the signal here.
    Observations iNaturalist doesn't expose a location for (e.g.
@@ -146,9 +146,10 @@ more certainty than the data supports. See `AvailabilityForecast` and
    the standard OSM street map; USGS's are USGS Topo and USGS Imagery.
    Switching service never resets the mode — leave the icon on regular mode
    under OpenStreetMap and switch the service to USGS, and the map lands on
-   USGS Imagery, not USGS Topo. All four tile sources come out of the pinned
-   osmdroid's own `TileSourceFactory`, so there is no API key and no
-   hand-written URL template. See `ui/map/MapService` and `ui/map/Basemap`.
+   USGS Imagery, not USGS Topo. All four tile sources are plain style-URL
+   templates in `ui/map/Basemap`/`ui/map/BasemapStyles` — no API key and no
+   vendor SDK naming a tile source directly. See `ui/map/MapService` and
+   `ui/map/Basemap`.
 
    This replaces an earlier design (still visible in this project's git
    history) where all four basemaps sat in one flat dropdown in the app bar,
@@ -166,11 +167,16 @@ more certainty than the data supports. See `AvailabilityForecast` and
    or GPS.
 
    Zoom ceilings differ per basemap and are applied explicitly: USGS stops at
-   15, OpenTopoMap at 17, OpenStreetMap at 19. This fixed a bug that predated
-   the selector — osmdroid derives a `MapView`'s ceiling as the maximum across
-   its *module providers*, and `MapTileProviderBasic` stacks a
-   `MapTileApproximater` that claims 29, so the app previously let you zoom
-   ten levels past what OpenStreetMap actually serves, into upscaled blur.
+   15, OpenTopoMap at 17, OpenStreetMap at 19, enforced via MapLibre's
+   `setMaxZoomPreference` (`SightingsMap`) rather than trusted from whatever a
+   basemap's own tile source claims. This fixed a real bug in the app's
+   original osmdroid-based renderer (replaced by MapLibre — see "The
+   topographic basemap, specifically" below): osmdroid derived a `MapView`'s
+   ceiling as the maximum across its *module providers*, and
+   `MapTileProviderBasic` stacked a `MapTileApproximater` that claimed 29, so
+   the app let you zoom ten levels past what OpenStreetMap actually serves,
+   into upscaled blur. The explicit-ceiling discipline carried forward into
+   the MapLibre rewrite rather than being re-discovered the same way twice.
    `scripts/verify-usgs-basemap.sh` is the evidence behind the USGS numbers:
    it fetches real tiles and checks the response bodies really are images, so a
    200 carrying an error page can't pass for coverage. It also records that the
@@ -178,44 +184,39 @@ more certainty than the data supports. See `AvailabilityForecast` and
    at 16 — the app trusts the observed ceiling, per `CLAUDE.md`'s rule that a
    reported capability range is not an operating limit.
 
-   **Settings ▸ Offline Maps downloads real OSM-derived vector tiles for a
-   region you pick, for offline use — a different source from any of the
-   four live-browsing basemaps.** Reached via a submenu of its own (a
-   "Offline Maps" row inside Settings, one tap below "Choose Maps Service"),
-   because it holds an interactive map: rather than typing latitude/
-   longitude, you long-press the map shown there (rendered on USGS Topo,
-   purely as a pick surface — see below) to set the download's centre point,
-   the same long-press gesture used elsewhere in this app to drop a
-   planned-trip pin — a marker with the radius in its snippet confirms the
-   pick. The download always pulls from this project's own self-hosted
-   Cloudflare Worker + PMTiles archive (`server/pmtiles-worker`),
-   unconditionally: it doesn't read the quick-fire icon's live mode or which
-   map service is selected for ordinary browsing, the same "one fixed
-   source, no coupling to browsing settings" property this feature always
-   had — only the source itself changed, from USGS Topo raster to this
-   project's own vector tiles. MapLibre's own `OfflineManager` persists the
-   downloaded region in its own on-device database rather than a directory
-   this app manages directly, so the same guarantee holds by construction:
-   neither an OS cache-clear nor ordinary map panning can evict a region the
-   user explicitly asked to keep. See `map/MapLibreOfflineMapRepository`
-   and "Offline map downloads, specifically" below for what's
-   hardware-confirmed about this path.
+   **Settings ▸ Offline Maps downloads OSM-derived vector tiles for a region
+   you pick, for offline use — a different source from any of the four
+   basemaps above, always, regardless of which one is selected for ordinary
+   browsing.** Reached via a submenu of its own (a "Offline Maps" row inside
+   Settings, one tap below "Choose Maps Service"), because it holds an
+   interactive map: rather than typing latitude/longitude, you long-press the
+   map shown there to set the download's centre point, the same long-press
+   gesture used elsewhere in this app to drop a planned-trip pin — a marker
+   with the radius in its snippet confirms the pick. Tiles come from a
+   self-hosted Cloudflare Worker (`server/pmtiles-worker`) reading a
+   continental-US [Protomaps](https://protomaps.com) PMTiles extract out of
+   R2 — not from any of the four live basemaps' own tile providers, all of
+   which either prohibit bulk/prefetch downloading in their usage terms or
+   would cost real money to hit at that volume. MapLibre's own
+   `OfflineManager` persists the downloaded region in its own on-device
+   store under the app's private files directory, not the cache directory
+   ordinary browsing uses, so neither an OS cache-clear nor ordinary map
+   panning can evict a region the user explicitly asked to keep. See
+   `map/MapLibreOfflineMapRepository` and "Offline map downloads,
+   specifically" below for what's hardware-confirmed about this path.
 
-   **Why USGS only, even though the feature no longer visibly gates on the
-   selected map service.** OpenStreetMap's and OpenTopoMap's tile providers
-   both prohibit bulk/prefetch downloading in their usage policies, and
-   USGS's own low zoom ceiling (15) keeps a region download a practical size
-   regardless. osmdroid's pinned artifact encodes the OpenStreetMap half of
-   that directly — the standard map's `TileSourcePolicy` sets `FLAG_NO_BULK`,
-   citing `operations.osmfoundation.org/policies/tiles/` — but carries no such
-   flag for OpenTopoMap, so that half rests on a web search of the same
-   domain and `opentopomap.org`'s own usage text rather than a fetch of
-   either page: this environment's egress proxy blocks both directly. Worth a
-   primary-source spot-check before relying on it further. The enforcement
-   itself is structural rather than a live UI gate: `OfflineMapRepository`
-   only ever downloads USGS Topo and accepts no other tile source as a
-   parameter, so there is nothing for the UI to steer away from — see that
-   interface's doc comment for the full citation trail.
+   **Offline zoom goes one level past the stored archive itself.** The flat
+   `us.pmtiles` extract is built to zoom 14 — a storage-budget choice (fits
+   Cloudflare R2's free tier for continental-US coverage at that depth), not
+   a technical ceiling — but Protomaps' own live daily build (the same
+   dataset this extract was cut from) goes one level deeper, to 15. Rather
+   than re-extracting a much larger flat archive to reach it, the Worker
+   range-reads individual zoom-15 tiles directly out of that live build on
+   first request and caches each into R2, so a region only ever costs what
+   that specific area's tiles actually take up — not the continent's. See
+   the "Not yet verified" section below for what's unconfirmed about this
+   specific piece: it has not been deployed or exercised against a real
+   Cloudflare account from this project's development environment.
 
    **The numbering is a visiting order, not a walking route.** Areas are
    numbered by greedy nearest-neighbour from the search centre — head for
@@ -489,21 +490,19 @@ more certainty than the data supports. See `AvailabilityForecast` and
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
 - `map/` — parallel to `location/`: the one place that touches MapLibre's
-  `OfflineManager` directly, behind the `OfflineMapRepository` interface.
-  `MapLibreOfflineMapRepository` downloads real OSM-derived PMTiles vector
-  tiles for a picked region from this project's own self-hosted Cloudflare
-  Worker (`server/pmtiles-worker`), via a glyph-stripped style deliberately
-  different from what a live map would render (see that class's own doc
-  comment for why — a confirmed native crash on downloads of styles with
-  label layers). It replaces `OsmdroidOfflineMapRepository`, deleted along
-  with `PersistentTileWriter` and `OfflineMapStatusFile`: those existed
-  because osmdroid's `CacheManager` has no persistence story of its own,
-  which `OfflineManager` doesn't need — it owns a real embedded on-device
-  database and reports live tile/byte counts itself, so `getStatus()` reads
-  a downloaded region back directly from it rather than from a hand-rolled
-  sidecar file. Live map browsing (`ui/map/`, below) still renders through
-  osmdroid, unaffected — this migration changed only how offline regions are
-  downloaded, not what draws the map on screen day to day.
+  `OfflineManager`/`OfflineRegion` and the filesystem directly, behind the
+  `OfflineMapRepository` interface. `MapLibreOfflineMapRepository` downloads
+  a picked region's vector tiles from the self-hosted PMTiles Worker (see
+  "How it works" above), via a glyph-stripped style deliberately different
+  from what a live map renders (see that class's own doc comment — PR #23
+  isolated a native crash specific to downloading a style with glyph/label
+  layers), into `OfflineManager`'s own persistent store, which already lives
+  under the app's private files directory rather than the cache directory
+  ordinary browsing uses. `MapLibreOfflineRegionMetadata` is the small
+  `Properties`-over-bytes payload stashed in each `OfflineRegion`'s opaque
+  metadata field — which `Region` the download was for and when it
+  finished, the two facts `OfflineManager`'s own store (tile count/size,
+  read live via `OfflineRegion.getStatus`) doesn't carry.
 - `photo/` — parallel to `location/`/`map/`: the one place that touches
   `ActivityResultContracts`/`Uri`/`FileProvider` directly, behind the
   `PhotoStore` interface. `ContentUriPhotoSource` is the real,
@@ -564,21 +563,24 @@ more certainty than the data supports. See `AvailabilityForecast` and
   of `AvailabilityUiState.locationPermissionDenied`, which belongs to the
   unrelated "use current location for search region" control.
 - `ui/map/` — `MapSlot`, the seam the screen fills instead of naming
-  osmdroid directly (the `MushroomRepository` pattern applied to the UI
-  layer, so the screen can be composed in a test without starting tile
-  threads); `SightingsMap`, the osmdroid `MapView` wrapped for Compose,
-  including the dot marker for individual observations and the numbered
-  foraging-area markers with their dashed order connectors;
-  `ForagingAreaLabels`, which holds the single wording of
-  the "not a walking route" disclaimer so the on-map info window and the
-  on-screen caption can't drift apart; `Basemap`, the same
-  own-the-vendor-boundary idea one level down — the basemap catalogue is pure
-  Kotlin (labels, coverage limits, zoom ceilings, attribution, no osmdroid and
-  no Compose), and `BasemapTileSources.tileSourceFor` is the only place it
-  becomes an `ITileSource`; and `MapService`, which groups those four
-  `Basemap`s into the two services (OpenStreetMap, USGS) Settings' "Choose
-  Maps Service" picks between, each with a topo/regular mode the map's own
-  quick-fire icon toggles.
+  MapLibre directly (the `MushroomRepository` pattern applied to the UI
+  layer, so the screen can be composed in a test without starting a real
+  renderer); `SightingsMap`, a real MapLibre `MapView` wrapped for Compose
+  (replacing an earlier osmdroid-based implementation — see "The
+  topographic basemap, specifically" below for that migration), including
+  the sighting dots and numbered foraging-area markers as MapLibre GeoJSON
+  sources/style layers rather than osmdroid `Overlay`s, and the dashed
+  order connector's `lineDasharray` scaled to preserve its original
+  pixel-based dash:gap ratio exactly; `ForagingAreaLabels`, which holds the
+  single wording of the "not a walking route" disclaimer so the on-map
+  info window and the on-screen caption can't drift apart; `Basemap`, the
+  same own-the-vendor-boundary idea one level down — the basemap catalogue
+  is pure Kotlin (labels, coverage limits, zoom ceilings, attribution, no
+  MapLibre and no Compose), and `BasemapStyles.styleJsonFor` is the only
+  place it becomes a real MapLibre style JSON; and `MapService`, which
+  groups those four `Basemap`s into the two services (OpenStreetMap, USGS)
+  Settings' "Choose Maps Service" picks between, each with a topo/regular
+  mode the map's own quick-fire icon toggles.
 - `ui/log/` — `MushroomLogViewModel` and the log's Compose UI, kept in its
   own package rather than folded into `AvailabilityScreen.kt` alongside
   Settings/OfflineMaps — see `LogPanel`'s doc comment for why. `LogPanel` is
@@ -699,23 +701,27 @@ Installing to a real device or an emulator on a machine with KVM is still
 the verification step for anything about appearance. Layout geometry is a
 separate question and is now measured headlessly; see below.
 
-The foraging-area map layer **has** now been seen once, on a physical
-phone, and two things came out of that. The connectors do render as
-visibly dashed at the zoom a 15 km search opens at, which is the part
-carrying the honesty burden — that much is confirmed. But the map was also
-painting outside its
-own rectangle: tiles over the tab row and over the caption below it, and a
-dashed connector running up into the app bar. Nothing clipped the hosted
-`MapView` to its Compose slot, and osmdroid draws beyond its viewport on
-purpose (whole edge tiles; polyline geometry out to 2.2x the view's
-half-diagonal) because it assumes the host clips. `SightingsMap` now sets
-`Modifier.clipToBounds()` on the `AndroidView` and records the mechanism.
-
-**The clip itself has not been re-checked on hardware.** It is reasoned
-from the osmdroid and Compose sources, not observed. Still unchecked with
-it in place: that tiles now stop at the map's edges, that a connector to an
-area near the edge of the radius is cropped there rather than escaping, and
-that no numbered marker the panel lists is left unreachable by panning.
+**The renderer changed since the paragraph below was written, and the fact
+it once described no longer applies to the code that ships today.** An
+earlier osmdroid-based `SightingsMap` *was* seen once on a physical phone —
+its dashed connectors confirmed visibly dashed, and a real painting-outside-
+its-own-rectangle bug found and fixed with `Modifier.clipToBounds()` (see
+"The topographic basemap, specifically" below for the full migration). That
+osmdroid renderer is gone: `SightingsMap` now hosts a real MapLibre
+`MapView`, built and reasoned through in an environment with no
+`/dev/kvm` and therefore no way to render anything here either. **Nothing
+about the new renderer has been observed on hardware at all** — not that
+tiles paint inside the map's Compose slot, not that the dashed connector
+still reads as dashed, not that MapLibre's own clipping behaviour (which is
+not the same mechanism `clipToBounds()` addressed) actually keeps content
+inside its bounds. This is a real regression in *what's confirmed*, not
+just *what's changed* — the migration traded a hardware-verified renderer
+for an unverified one, deliberately, for the capabilities described in
+`docs/plans/maplibre-migration.md`. `BasemapStyleTest` and
+`SightingsMapOverlayDataTest` establish what a JVM test can about the new
+renderer's non-native-backed logic (style JSON shape, GeoJSON feature
+construction, the dashed-connector ratio) — see "The topographic basemap,
+specifically" for exactly what that does and does not prove.
 
 The map-first layout's **geometry** is now measured, not just reasoned
 about. `AvailabilityScreenLayoutTest` composes the real screen under
@@ -732,9 +738,9 @@ in the unscrolled content column — and the map slot measured 0dp on all
 three configurations, so they fail when the bug is present.
 
 The map inside that slot is **stubbed** in those tests. They prove the
-screen hands the map the right box; they prove nothing about what osmdroid
-paints in it. The clip above is therefore still unverified, and so is
-anything about rendering.
+screen hands the map the right box; they prove nothing about what MapLibre
+paints in it — same limitation the paragraph above already states, for the
+renderer actually running today.
 
 The **offline search cache** is verified headlessly and not on hardware. What
 is measured: the Room round trip, the five-entry LRU and its eviction order
@@ -816,8 +822,20 @@ scale (the existing `AvailabilityScreenLayoutTest` measures the compact
 map's geometry headlessly, but visual crowding of five overlapping floating
 elements over a map is not something bounds-checking alone can catch);
 and whether the "tap the map to restore chrome" gesture feels right
-alongside osmdroid's own pan/zoom touch handling, which only a real
+alongside MapLibre's own pan/zoom touch handling, which only a real
 `MapView` receiving real touches can settle.
+
+**The strip's MGRS line is new, added this project cycle, same
+verification gap as the rest of this strip.** It extends `MgrsConverter`
+(already hardware-independent — see `MgrsConverterTest`'s pinned reference
+points) to show the device's live position, reusing the exact same
+explicit-unavailable-state discipline the heading and elevation text
+already used. `AvailabilityScreenMapIconStackTest` proves all three text
+states render through the real screen, including a real fix resolving to
+the exact grid reference `MgrsConverterTest` already pins for that same
+point — not a value invented for this test. Not verified, and only a
+device can answer: legibility of a denser three-line pill, and whether the
+added line crowds the map's top edge on a small screen.
 
 ### Phase 2 — the compact navigation restructure (search-only drawer, 5-tab bottom nav, Journal gallery, distance unit), specifically
 
@@ -888,42 +906,66 @@ state is a real cost this trades for never accidentally exiting from one.
 
 ### The topographic basemap, specifically
 
-What **is** established about it, and how: the endpoints serve real tiles and
-stop at the US border and above zoom 16, checked against the live services by
-`scripts/verify-usgs-basemap.sh`, which inspects response bodies rather than
-trusting a 200. The osmdroid side — source names, zoom ceilings, copyright
-strings, the ArcGIS `z/y/x` URL order, and the tile-cache separation that keeps
-two basemaps from mixing — is read off the pinned artifact by
-`BasemapTileSourceTest`. That a basemap change leaves every app-drawn overlay
-untouched, and that the zoom ceiling really moves with the basemap, are
-measured against a real osmdroid `MapView` under Robolectric by
-`SightingsMapBasemapSwapTest`; both were confirmed to fail when the swap and
-the ceiling were disabled in turn, so they are not passing vacuously.
+**The renderer migrated from osmdroid to MapLibre this project cycle**
+(`docs/plans/maplibre-migration.md`), and everything below is written
+against the renderer actually running today — osmdroid is fully removed
+(no dependency, no source file references it).
 
-**Nothing about how it looks has been seen.** No topographic tile has been
-rendered by this project. Two specific things follow, and neither is a
-formality:
+What **is** established, and how: the USGS endpoints themselves serve real
+tiles and stop at the US border and above zoom 16 — checked directly
+against the live services by `scripts/verify-usgs-basemap.sh`, which
+inspects response bodies rather than trusting a 200; this check is about
+the raw HTTP endpoints, not which renderer consumes them, so it carried
+over the migration unchanged. The renderer-facing facts that used to be
+read off osmdroid's pinned artifact — zoom ceilings, attribution, the
+ArcGIS `z/y/x` URL order, that a basemap swap leaves overlays untouched —
+are now established differently: `BasemapStyleTest` parses `styleJsonFor`'s
+real output (a plain JVM test, no Robolectric) and asserts the zoom
+ceilings, attribution string, glyphs URL, and ArcGIS row/column-vs-x/y tile
+order for each of the four basemaps. `BasemapTileSourceTest` and
+`SightingsMapBasemapSwapTest`, which read those facts off osmdroid, are
+deleted along with it.
 
-- **That topo tiles render at all** in the `MapView` — the URL is proven to
-  return a JPEG, and osmdroid is proven to build that URL, but the two have
-  never been observed joined up on a device.
-- **Whether the overlay colours still read against topographic terrain.** This
-  is a real, named risk rather than a shrug. The sighting dots are bark brown
-  at ~70% alpha and the order connector is mushroom orange; both were chosen
-  against OpenStreetMap's comparatively flat palette. USGS Topo draws contour
-  lines in browns and tans and forest cover in green, and USGS Imagery is
-  aerial photography where dark green canopy is exactly where mushroom
-  observations cluster. Brown-on-brown and orange-on-contour-line are plausible
-  legibility failures. The numbered area markers (white on forest green, opaque)
-  are the least at risk.
+**MapLibre's real `Style`/`Layer`/`Source` objects cannot be constructed at
+all in this project's development environment** — checked directly via
+`javap` against the pinned `org.maplibre.gl:android-sdk` artifact: every
+`Layer`/`Source` subclass constructor calls a native `initialize()`
+immediately, and `Style` has no public constructor, so nothing short of a
+real Android runtime (an emulator or device — this environment has neither)
+can instantiate one. `SightingsMapOverlayDataTest` therefore tests only the
+non-native-backed logic directly: the GeoJSON `Feature`/`FeatureCollection`
+building functions `SightingsMap` feeds into those (unconstructable-here)
+style layers, and the dashed connector's `lineDasharray` values, asserted to
+hold the exact 18:14 ratio the original osmdroid `DashPathEffect(18f, 14f)`
+used (an intermediate value drifted that ratio during the port and was
+caught by this same assertion before it shipped).
 
-  **The colours were deliberately not changed.** Adjusting them from reasoning
-  alone would be the speculative correction `CLAUDE.md` rules out, and it would
-  also alter the one part of this layer that *has* been confirmed on hardware —
-  that the connector reads as visibly dashed. Re-tinting it unseen could spend
-  that. The right sequence is to look at it on a device first; if the dots or
-  the connector do wash out, the fix is a colour change with a reason, not a
-  guess made in advance of the evidence.
+**Nothing about how any of this looks has been seen — this is now true of
+strictly more than it was before the migration, not less.** The prior
+osmdroid renderer *had* been seen once on a physical phone, with two real
+findings: topo tiles render (a JPEG URL confirmed built and confirmed
+fetchable, then confirmed to actually appear in the `MapView`), and the
+dashed connector reads as visibly dashed at a 15km search's opening zoom.
+Neither finding transfers to MapLibre — a different renderer, different
+draw calls, a different clipping mechanism, a different way of building
+dashed lines (line-width multiples instead of raw pixels, see above). Both
+questions are open again, unasked and unanswered on real hardware:
+
+- **Whether MapLibre topo tiles render at all** in the new `MapView` — the
+  URL is proven fetchable and the style JSON is proven to reference it
+  correctly, but the two have never been observed joined up on a device,
+  same gap as before the migration, now for a different renderer.
+- **Whether the overlay colours still read against topographic terrain.**
+  Unchanged risk, carried forward untouched: the sighting dots are bark
+  brown at ~70% alpha and the order connector is mushroom orange, both
+  chosen against OpenStreetMap's comparatively flat palette; USGS Topo's
+  contour browns/tans and USGS Imagery's dark-canopy aerial photography are
+  both plausible legibility failures for those colours. **Still
+  deliberately not changed** — adjusting them from reasoning alone would be
+  the speculative correction `CLAUDE.md` rules out, and unlike before the
+  migration there is currently no hardware-confirmed fact about this layer
+  left to spend by getting it wrong. Look at it on a device first; a colour
+  change needs a reason, not a guess made in advance of the evidence.
 
 The build-identity footer's version values are verified separately — they
 were read off the packaged APK with `aapt2 dump badging`, not off the Gradle
@@ -985,8 +1027,7 @@ receives — layout and wiring facts, not appearance ones.
 
 ### Offline map downloads, specifically
 
-**The mechanism changed from osmdroid to MapLibre's `OfflineManager` this
-project cycle** (`docs/plans/pmtiles-worker-android-wiring.md`).
+**The mechanism changed from osmdroid to MapLibre's `OfflineManager`.**
 `OsmdroidOfflineMapRepository`, `PersistentTileWriter`, and
 `OfflineMapStatusFile` are deleted; `MapLibreOfflineMapRepository` is the
 sole `OfflineMapRepository` implementation `AppContainer` wires up now,
@@ -1006,39 +1047,54 @@ app from recents, and a cold reopen; `getStatus()` read the persisted region
 back correctly afterward, with no crash and no inline error. An earlier run
 (6 km around 45.3368, -122.6016 — 88 tiles, 1.9 MB) confirmed the download
 itself completes cleanly against the real Worker-hosted style with no hang.
-The two bugs hardware testing caught, not headless coverage: an `asset://`
-style URL that hung `OfflineManager`'s resource discovery indefinitely at
-`completed=0/1` with no error (fixed by hosting the style at a real HTTPS
-URL on the Worker instead of bundling it as an app asset), and `getStatus()`
-never initializing MapLibre's native library on a process where it — rather
-than `download()` — happened to run first, which crashed outright on a
-genuinely fresh process (fixed by centralizing `MapLibre.getInstance()` into
-the one helper every entry point now calls first).
+The two bugs that hardware round caught, not headless coverage: an
+`asset://` style URL that hung `OfflineManager`'s resource discovery
+indefinitely at `completed=0/1` with no error (fixed by hosting the style at
+a real HTTPS URL on the Worker instead of bundling it as an app asset), and
+`getStatus()` never initializing MapLibre's native library on a process
+where it — rather than `download()` — happened to run first, which crashed
+outright on a genuinely fresh process (fixed by centralizing
+`MapLibre.getInstance()` into the one helper every entry point now calls
+first). Separately, PR #23 isolated a native crash specific to downloading a
+style with glyph/label layers — why the download style is deliberately
+glyph-stripped, distinct from what a live map renders.
 
-**Still genuinely open:**
+**Still genuinely open, in priority order:**
 
-- **Airplane-mode offline replay.** A downloaded region is confirmed to
-  persist across a restart with a live connection available; it has not been
-  confirmed to actually render with the radio off. This is the one item that
-  matters most for the "offline" claim, and it stays open on its own — it
-  does not get folded into the persistence confirmation above.
-- **The bounding-box math the region picker feeds to `OfflineManager` is
-  pure and unit-tested** (`GeoDistanceTest`, including the antimeridian-wrap
-  and near-pole cases), and **the ViewModel's loading →
-  success/failure state machine** (`AvailabilityViewModelOfflineMapsTest`)
-  is exercised against a fake `OfflineMapRepository` this project fully
-  controls, covering progress reporting, download/delete failure, and that
-  invalid coordinates never reach the repository at all — both survived the
-  swap from osmdroid unchanged, since neither depends on which repository
-  implementation is behind the interface.
-- That the "Offline Maps" submenu is reachable regardless of the selected
-  map service, that its picker map (a display surface only — see "How it
-  works" above) always resolves to USGS Topo, that its entry row navigates
-  in and its back arrow returns to Settings, and that a long-press on the
-  picker map sets the region and enables "Download Maps" are all measured
-  against the real Compose tree (`AvailabilityScreenSettingsPanelTest`), not
-  just reasoned about — this predates the renderer swap and is unaffected by
-  it.
+1. **Airplane-mode offline replay.** A downloaded region is confirmed to
+   persist across a restart with a live connection available; it has not
+   been confirmed to actually render with the radio off. This is the one
+   item that matters most for the "offline" claim, and it stays open on its
+   own — it does not get folded into the persistence confirmation above.
+2. **The zoom-15 overflow tiles this project cycle added are wholly
+   unverified against real infrastructure.** The Worker now range-reads
+   individual tiles beyond the local archive's zoom-14 ceiling directly out
+   of Protomaps' live daily build and caches them into R2 (see "How it
+   works" above) — written and reasoned through, but never deployed to a
+   real Cloudflare account or exercised against a live network from this
+   project's development environment. Two things worth checking before it's
+   relied on at real scale: that `build.protomaps.com` actually serves the
+   range requests this assumes the way PMTiles' `FetchSource` expects, and
+   Protomaps' tolerance for sustained per-tile production traffic against
+   their public daily-build host, as opposed to the occasional bulk
+   `pmtiles extract` their own docs describe.
+3. **The bounding-box math the region picker feeds to `OfflineManager` is
+   pure and unit-tested** (`GeoDistanceTest`, including the antimeridian-wrap
+   and near-pole cases), and **the ViewModel's loading →
+   success/failure state machine** (`AvailabilityViewModelOfflineMapsTest`)
+   is exercised against a fake `OfflineMapRepository` this project fully
+   controls, covering progress reporting, download/delete failure, and that
+   invalid coordinates never reach the repository at all — both survived the
+   swap from osmdroid unchanged, since neither depends on which repository
+   implementation is behind the interface.
+4. That the "Offline Maps" submenu is reachable regardless of the selected
+   map service, that its entry row navigates in and its back arrow returns
+   to Settings, and that a long-press on the picker map sets the region and
+   enables "Download Maps" are all measured against the real Compose tree
+   (`AvailabilityScreenSettingsPanelTest`), not just reasoned about — this
+   predates the renderer swap and is unaffected by it. What the picker map
+   itself renders on, now that osmdroid is gone, needs re-stating here once
+   confirmed — not carried over unchanged from the pre-swap USGS Topo claim.
 
 ### The mushroom log, specifically
 
