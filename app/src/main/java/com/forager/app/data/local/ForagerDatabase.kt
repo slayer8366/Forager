@@ -38,6 +38,11 @@ import androidx.room.RoomDatabase
  * later migration will need this version's schema history to migrate from. The schema JSON lands
  * under `app/schemas/` (see `room.schemaLocation` in `app/build.gradle.kts`); only version 4 onward
  * is exported, since versions 1-3 were never captured while `exportSchema` was `false`.
+ *
+ * [version] 5 adds `tracks`, `track_points`, and `waypoints` ([TrackEntity], [TrackPointEntity],
+ * [WaypointEntity]) via a real [MIGRATION_4_5], for the same reason [MIGRATION_3_4] exists: a
+ * recorded track or a dropped waypoint is irreplaceable field data, not something a destructive
+ * fallback may drop.
  */
 @Database(
     entities = [
@@ -45,8 +50,11 @@ import androidx.room.RoomDatabase
         CachedSearchEntity::class,
         MushroomLogEntryEntity::class,
         LogPhotoEntity::class,
+        TrackEntity::class,
+        TrackPointEntity::class,
+        WaypointEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -56,11 +64,15 @@ abstract class ForagerDatabase : RoomDatabase() {
 
     abstract fun mushroomLogDao(): MushroomLogDao
 
+    abstract fun trackDao(): TrackDao
+
+    abstract fun waypointDao(): WaypointDao
+
     companion object {
         fun create(context: Context): ForagerDatabase = Room.databaseBuilder(
             context.applicationContext,
             ForagerDatabase::class.java,
             "forager.db",
-        ).addMigrations(MIGRATION_3_4).fallbackToDestructiveMigration(true).build()
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5).fallbackToDestructiveMigration(true).build()
     }
 }
