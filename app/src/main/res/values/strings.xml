@@ -3,4 +3,7 @@
     <string name="track_recording_notification_channel_name">Track recording</string>
     <string name="track_recording_notification_title">Recording a track</string>
     <string name="track_recording_notification_text">Forager is tracking your location in the background.</string>
+    <string name="off_track_notification_channel_name">Off-track alert</string>
+    <string name="off_track_notification_title">Off track</string>
+    <string name="off_track_notification_text">You\'re moving away from your start point, not toward it.</string>
 </resources>

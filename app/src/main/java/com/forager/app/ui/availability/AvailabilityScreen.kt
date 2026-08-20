@@ -388,6 +388,11 @@ fun AvailabilityScreen(
      * comment for why there's no ETA, and [CompassElevationStripContent] for where this renders.
      */
     returnToStart: ReturnToStartInfo? = null,
+    /** Whether the walker has said they're heading back — see [com.forager.app.ui.track.TrackRecordingViewModel.startReturn]'s own doc comment. */
+    isReturning: Boolean = false,
+    /** Set once [isReturning] and the live distance back has been trending up rather than down — see `DetectOffTrackUseCase`. */
+    isOffTrack: Boolean = false,
+    onToggleReturning: () -> Unit = {},
     /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
      * so no production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
@@ -824,6 +829,9 @@ fun AvailabilityScreen(
                         waypoints = waypoints,
                         onDropWaypoint = onDropWaypoint,
                         returnToStart = returnToStart,
+                        isReturning = isReturning,
+                        isOffTrack = isOffTrack,
+                        onToggleReturning = onToggleReturning,
                         compassProvider = compassProvider,
                         modifier = Modifier.weight(1f),
                     )
@@ -2783,6 +2791,9 @@ private fun CompactMapTab(
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
     returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
     compassProvider: CompassProvider,
     modifier: Modifier = Modifier,
 ) {
@@ -2886,6 +2897,9 @@ private fun CompactMapTab(
                     isRecording = isRecording,
                     onToggleRecording = onToggleRecording,
                     returnToStart = returnToStart,
+                    isReturning = isReturning,
+                    isOffTrack = isOffTrack,
+                    onToggleReturning = onToggleReturning,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(Spacing.sm),
@@ -3056,6 +3070,9 @@ private fun CompassElevationStrip(
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val headingDegrees by compassProvider.heading.collectAsState(initial = null)
@@ -3066,6 +3083,9 @@ private fun CompassElevationStrip(
         isRecording = isRecording,
         onToggleRecording = onToggleRecording,
         returnToStart = returnToStart,
+        isReturning = isReturning,
+        isOffTrack = isOffTrack,
+        onToggleReturning = onToggleReturning,
         modifier = modifier,
     )
 }
@@ -3078,6 +3098,9 @@ private fun CompassElevationStripContent(
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -3130,7 +3153,10 @@ private fun CompassElevationStripContent(
             // Return-to-vehicle on the far left, the record start/stop toggle on the far right —
             // opposite ends of the same box, per the project owner's own placement call, rather
             // than a sixth MapIconStack icon (that stack is fixed at exactly five, a settled
-            // decision) or a separate return-to-vehicle screen.
+            // decision) or a separate return-to-vehicle screen. The text itself is the "returning"
+            // toggle — tapping it starts/stops the off-track heuristic (see TrackRecordingViewModel's
+            // own doc comment for why that's a distinct state from isRecording) — disabled while
+            // nothing is recording, since there is nothing yet to return to.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -3139,6 +3165,9 @@ private fun CompassElevationStripContent(
                 Text(
                     text = returnToStartStripText(isRecording, returnToStart),
                     style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isReturning) FontWeight.Bold else null,
+                    color = if (isOffTrack) MaterialTheme.colorScheme.error else Color.White,
+                    modifier = Modifier.clickable(enabled = isRecording, onClick = onToggleReturning),
                 )
                 RecordToggleButton(
                     isRecording = isRecording,

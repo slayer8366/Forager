@@ -19,11 +19,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.forager.app.domain.model.LatLng
-import com.forager.app.domain.model.TrackPoint
 import com.forager.app.service.TrackRecordingService
 import com.forager.app.ui.availability.AvailabilityScreen
 import com.forager.app.ui.availability.AvailabilityViewModel
-import com.forager.app.ui.availability.LocateMeStatus
 import com.forager.app.ui.log.MushroomLogViewModel
 import com.forager.app.ui.theme.ForagerTheme
 import com.forager.app.ui.track.TrackRecordingViewModel
@@ -79,6 +77,8 @@ class MainActivity : ComponentActivity() {
                     container.createWaypointUseCase,
                     container.deleteWaypointUseCase,
                     container.computeReturnToStartUseCase,
+                    container.detectOffTrackUseCase,
+                    container.locationTracker,
                 )
             }
         }
@@ -155,21 +155,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Recomputed on every recomposition where either input changes — a plain function
-                // call over already-collected state, not a side effect, so it needs no LaunchedEffect
-                // of its own (unlike the foreground-service start/stop above).
-                val returnToStartInfo = (uiState.locateMeStatus as? LocateMeStatus.Located)?.let { located ->
-                    trackRecordingViewModel.returnToStart(
-                        TrackPoint(
-                            lat = located.location.lat,
-                            lng = located.location.lng,
-                            altitude = located.altitude,
-                            accuracyMeters = null,
-                            timestampEpochMillis = container.currentTimeProvider.nowEpochMillis(),
-                        ),
-                    )
-                }
-
                 AvailabilityScreen(
                     uiState = uiState,
                     onUseCurrentLocation = {
@@ -236,7 +221,12 @@ class MainActivity : ComponentActivity() {
                     waypoints = trackUiState.waypoints,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
                     onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
-                    returnToStart = returnToStartInfo,
+                    returnToStart = trackUiState.returnToStart,
+                    isReturning = trackUiState.isReturning,
+                    isOffTrack = trackUiState.isOffTrack,
+                    onToggleReturning = {
+                        if (trackUiState.isReturning) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
+                    },
                     compassProvider = container.compassProvider,
                 )
             }

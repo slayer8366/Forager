@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.ComputeReturnToStartUseCase
 import com.forager.app.domain.CreateWaypointUseCase
 import com.forager.app.domain.DeleteWaypointUseCase
+import com.forager.app.domain.DetectOffTrackUseCase
 import com.forager.app.domain.GetWaypointsUseCase
+import com.forager.app.domain.LocationFix
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.TrackRepository
 import com.forager.app.domain.model.ReturnToStartInfo
@@ -46,6 +49,20 @@ import kotlinx.coroutines.launch
  * it — the "resumable/closeable state" [com.forager.app.service.TrackRecordingService]'s own doc
  * comment already flags as the UI's responsibility, deliberately not built here to keep this pass
  * scoped to starting, stopping, and showing a recording that's actually running.
+ *
+ * ## Why return-to-start is fed by [locationTracker], not a one-shot fetch
+ *
+ * The first pass of the return-to-vehicle screen recomputed [ReturnToStartInfo] from
+ * `AvailabilityViewModel`'s `locateMeStatus` — a one-shot "where am I right now" fetch, refreshed
+ * only when the user taps the locate-me icon. That made the bearing/distance shown stale between
+ * taps, and made [DetectOffTrackUseCase] unworkable — it needs a running series of readings, not
+ * one. This ViewModel now collects [LocationTracker.fixes] itself, the same continuous stream
+ * [com.forager.app.service.TrackRecordingService] collects for the track's own points, whenever a
+ * recording is active — so [TrackRecordingUiState.returnToStart] and [TrackRecordingUiState.isOffTrack]
+ * update on every fix, not just on demand. This does mean two independent OS location-listener
+ * registrations while recording (the service's and this one) rather than one shared stream — a
+ * real, accepted duplication, not a hidden one, in exchange for not re-plumbing the service to
+ * publish its fixes back out to the UI layer for this one reader.
  */
 class TrackRecordingViewModel(
     private val trackRepository: TrackRepository,
@@ -54,12 +71,20 @@ class TrackRecordingViewModel(
     private val createWaypoint: CreateWaypointUseCase,
     private val deleteWaypoint: DeleteWaypointUseCase,
     private val computeReturnToStart: ComputeReturnToStartUseCase,
+    private val detectOffTrack: DetectOffTrackUseCase,
+    private val locationTracker: LocationTracker,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
     val uiState: StateFlow<TrackRecordingUiState> = _uiState.asStateFlow()
 
     private var pollingJob: Job? = null
+    private var locationJob: Job? = null
+
+    // Oldest first, cleared on every startReturn()/stopReturn()/stopRecording() — see
+    // returnToStart()'s doc comment for why this lives here rather than in TrackRecordingUiState
+    // itself (it's tracking history feeding a decision, not state the UI reads directly).
+    private val recentReturnDistancesMeters = mutableListOf<Double>()
 
     init {
         loadWaypoints()
@@ -83,6 +108,7 @@ class TrackRecordingViewModel(
                         )
                     }
                     beginPolling(track.id)
+                    beginLocationTracking()
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(startRecordingErrorMessage = error.message ?: "Couldn't start recording.") }
@@ -98,7 +124,29 @@ class TrackRecordingViewModel(
     fun stopRecording() {
         pollingJob?.cancel()
         pollingJob = null
-        _uiState.update { it.copy(activeTrack = null) }
+        locationJob?.cancel()
+        locationJob = null
+        recentReturnDistancesMeters.clear()
+        _uiState.update { it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null) }
+    }
+
+    /**
+     * Marks the walker as now heading back to the track's start — the only state
+     * [DetectOffTrackUseCase] runs against. Outbound travel away from the start isn't "off track"
+     * by any definition available here (there's no planned route to deviate from, only the trail
+     * being made right now), so the heuristic would be meaningless, and noisy, applied to it.
+     * A no-op while nothing is recording — there is nothing to return to yet.
+     */
+    fun startReturn() {
+        if (!uiState.value.isRecording) return
+        recentReturnDistancesMeters.clear()
+        _uiState.update { it.copy(isReturning = true, isOffTrack = false) }
+    }
+
+    /** Clears returning/off-track state without touching the recording itself — see [startReturn]. */
+    fun stopReturn() {
+        recentReturnDistancesMeters.clear()
+        _uiState.update { it.copy(isReturning = false, isOffTrack = false) }
     }
 
     private fun beginPolling(trackId: String) {
@@ -109,6 +157,26 @@ class TrackRecordingViewModel(
                     _uiState.update { it.copy(breadcrumbPoints = track?.points.orEmpty()) }
                 }
                 delay(POLL_INTERVAL_MILLIS)
+            }
+        }
+    }
+
+    /** See this class's own doc comment for why [returnToStart] is driven from here rather than a one-shot fetch. */
+    private fun beginLocationTracking() {
+        locationJob?.cancel()
+        locationJob = viewModelScope.launch {
+            locationTracker.fixes.collect { fix ->
+                if (fix is LocationFix.Update) {
+                    returnToStart(
+                        TrackPoint(
+                            lat = fix.lat,
+                            lng = fix.lng,
+                            altitude = fix.altitude,
+                            accuracyMeters = fix.accuracyMeters,
+                            timestampEpochMillis = fix.timestampEpochMillis,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -137,14 +205,32 @@ class TrackRecordingViewModel(
         }
     }
 
-    /** [ReturnToStartInfo] from [current] back to the active track's first recorded point, or `null` if either is unavailable. */
+    /**
+     * [ReturnToStartInfo] from [current] back to the active track's first recorded point, or
+     * `null` if either is unavailable. Called on every fix [beginLocationTracking] collects, and
+     * also directly by tests — its result is written to [TrackRecordingUiState.returnToStart]
+     * either way, so a direct call and a collected fix behave identically. While
+     * [TrackRecordingUiState.isReturning], this doubles as the off-track heuristic's own data feed:
+     * each call's distance joins [recentReturnDistancesMeters], and [DetectOffTrackUseCase] re-runs
+     * against the updated history, updating [TrackRecordingUiState.isOffTrack]. Not fed at all while
+     * not returning, so the history only ever reflects an actual return attempt, never outbound
+     * travel.
+     */
     fun returnToStart(current: TrackPoint): ReturnToStartInfo? {
         val start = uiState.value.breadcrumbPoints.firstOrNull() ?: return null
-        return computeReturnToStart(current, start)
+        val info = computeReturnToStart(current, start)
+        if (uiState.value.isReturning) {
+            recentReturnDistancesMeters += info.distanceMeters
+            _uiState.update { it.copy(returnToStart = info, isOffTrack = detectOffTrack(recentReturnDistancesMeters)) }
+        } else {
+            _uiState.update { it.copy(returnToStart = info) }
+        }
+        return info
     }
 
     override fun onCleared() {
         pollingJob?.cancel()
+        locationJob?.cancel()
     }
 
     private companion object {

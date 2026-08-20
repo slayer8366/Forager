@@ -27,6 +27,7 @@ import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.DeleteTrackUseCase
 import com.forager.app.domain.DeleteWaypointUseCase
+import com.forager.app.domain.DetectOffTrackUseCase
 import com.forager.app.domain.EndTrackUseCase
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -146,6 +147,7 @@ class AppContainer(context: Context) {
     val deleteTrackUseCase = DeleteTrackUseCase(trackRepository)
     val computeTrackStatisticsUseCase = ComputeTrackStatisticsUseCase()
     val computeReturnToStartUseCase = ComputeReturnToStartUseCase()
+    val detectOffTrackUseCase = DetectOffTrackUseCase()
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)

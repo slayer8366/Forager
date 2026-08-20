@@ -1,5 +1,6 @@
 package com.forager.app.ui.track
 
+import com.forager.app.domain.model.ReturnToStartInfo
 import com.forager.app.domain.model.TrackPoint
 import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.domain.model.Waypoint
@@ -26,6 +27,22 @@ data class TrackRecordingUiState(
     val breadcrumbPoints: List<TrackPoint> = emptyList(),
     val waypoints: List<Waypoint> = emptyList(),
     val waypointsErrorMessage: String? = null,
+    /**
+     * Whether the walker has said they're now heading back, distinct from [isRecording] — outbound
+     * travel is never "off track" (you're the one making the track), so
+     * [com.forager.app.domain.DetectOffTrackUseCase] only runs once this is true. See
+     * [TrackRecordingViewModel.startReturn]'s doc comment for the full reasoning.
+     */
+    val isReturning: Boolean = false,
+    /** Set by [TrackRecordingViewModel.returnToStart] while [isReturning] — see that method's doc comment. */
+    val isOffTrack: Boolean = false,
+    /**
+     * Bearing/distance/elevation back to the track's start, refreshed on every live fix while
+     * recording — see [TrackRecordingViewModel]'s own doc comment for why this is now pushed from
+     * a continuous stream rather than pulled on demand. `null` whenever [isRecording] is false or
+     * no breadcrumb exists yet to compute a start point from.
+     */
+    val returnToStart: ReturnToStartInfo? = null,
 ) {
     val isRecording: Boolean get() = activeTrack != null
 }
