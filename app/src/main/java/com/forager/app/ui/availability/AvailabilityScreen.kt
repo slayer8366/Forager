@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Layers
@@ -61,6 +62,7 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WbSunny
@@ -350,6 +352,15 @@ fun AvailabilityScreen(
      * Activity (see `MainActivity`'s `pendingLocationAction`) rather than requesting it here.
      */
     onLocateMe: () -> Unit = {},
+    /**
+     * Whether a track is currently being recorded, and the compact map's start/stop toggle for it.
+     * Rendered inside the same compass/elevation/MGRS strip box, on its right-hand side, rather than
+     * as a sixth [MapIconStack] icon — `map-redesign.md` §3 fixes that stack at exactly five, a
+     * settled owner decision this doesn't re-litigate. See `MainActivity`'s `LaunchedEffect` on
+     * [isRecording] for what actually starts/stops [com.forager.app.service.TrackRecordingService].
+     */
+    isRecording: Boolean = false,
+    onToggleRecording: () -> Unit = {},
     /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
      * so no production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
@@ -775,6 +786,8 @@ fun AvailabilityScreen(
                         onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
                         onLocateMe = onLocateMe,
                         onOpenSearchDrawer = openSearchDrawer,
+                        isRecording = isRecording,
+                        onToggleRecording = onToggleRecording,
                         compassProvider = compassProvider,
                         modifier = Modifier.weight(1f),
                     )
@@ -2686,6 +2699,8 @@ private fun CompactMapTab(
     onToggleFullscreen: () -> Unit,
     onLocateMe: () -> Unit,
     onOpenSearchDrawer: () -> Unit,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
     compassProvider: CompassProvider,
     modifier: Modifier = Modifier,
 ) {
@@ -2781,6 +2796,8 @@ private fun CompactMapTab(
                     compassProvider = compassProvider,
                     elevationMeters = (uiState.locateMeStatus as? LocateMeStatus.Located)?.altitude,
                     location = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location,
+                    isRecording = isRecording,
+                    onToggleRecording = onToggleRecording,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(Spacing.sm),
@@ -2933,6 +2950,8 @@ private fun CompassElevationStrip(
     compassProvider: CompassProvider,
     elevationMeters: Double?,
     location: LatLng?,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val headingDegrees by compassProvider.heading.collectAsState(initial = null)
@@ -2940,6 +2959,8 @@ private fun CompassElevationStrip(
         headingDegrees = headingDegrees,
         elevationMeters = elevationMeters,
         location = location,
+        isRecording = isRecording,
+        onToggleRecording = onToggleRecording,
         modifier = modifier,
     )
 }
@@ -2949,6 +2970,8 @@ private fun CompassElevationStripContent(
     headingDegrees: Float?,
     elevationMeters: Double?,
     location: LatLng?,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -2984,10 +3007,39 @@ private fun CompassElevationStripContent(
                     text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
                     style = MaterialTheme.typography.labelLarge,
                 )
+                // The track-recording start/stop toggle — same box as the compass/elevation/MGRS
+                // readout, on its right-hand side, per the project owner's own placement call
+                // rather than a sixth MapIconStack icon (that stack is fixed at exactly five, a
+                // settled decision — see this strip's own doc comment above).
+                RecordToggleButton(
+                    isRecording = isRecording,
+                    onClick = onToggleRecording,
+                    modifier = Modifier.padding(start = Spacing.xs),
+                )
             }
             Text(
                 text = mgrsStripText(location),
                 style = MaterialTheme.typography.labelMedium,
+            )
+        }
+    }
+}
+
+/** The compass strip's own start/stop control for [com.forager.app.service.TrackRecordingService] — see [CompassElevationStripContent]'s doc comment on why it lives here rather than in [MapIconStack]. */
+@Composable
+private fun RecordToggleButton(isRecording: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = if (isRecording) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.18f),
+        contentColor = Color.White,
+        modifier = modifier.size(22.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
+                contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
+                modifier = Modifier.size(14.dp),
             )
         }
     }

@@ -1,20 +1,29 @@
 package com.forager.app
 
 import android.Manifest
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.forager.app.service.TrackRecordingService
 import com.forager.app.ui.availability.AvailabilityScreen
 import com.forager.app.ui.availability.AvailabilityViewModel
 import com.forager.app.ui.log.MushroomLogViewModel
 import com.forager.app.ui.theme.ForagerTheme
+import com.forager.app.ui.track.TrackRecordingViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -57,6 +66,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val trackRecordingViewModel: TrackRecordingViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                TrackRecordingViewModel(
+                    container.trackRepository,
+                    container.startTrackUseCase,
+                    container.getWaypointsUseCase,
+                    container.createWaypointUseCase,
+                    container.deleteWaypointUseCase,
+                    container.computeReturnToStartUseCase,
+                )
+            }
+        }
+    }
+
+    /**
+     * Android 13+ only shows a foreground service's notification with this permission granted;
+     * without it the service still runs (recording isn't blocked), it just runs silently. Requested
+     * once, right when a recording actually starts, rather than at app launch — there's nothing to
+     * show a notification for until then. A denial doesn't stop the recording: see
+     * [TrackRecordingService]'s own notification, which the OS simply won't display if this was
+     * never granted.
+     */
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { /* No follow-up either way — see this property's own doc comment. */ }
+
     /**
      * Which action the OS permission dialog is standing in front of — [requestLocationPermission]
      * is one shared launcher (Android only allows one in-flight request per contract per Activity),
@@ -92,6 +128,30 @@ class MainActivity : ComponentActivity() {
             ForagerTheme {
                 val uiState by viewModel.uiState.collectAsState()
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
+                val trackUiState by trackRecordingViewModel.uiState.collectAsState()
+
+                // Starts/stops the actual foreground service as a side effect of
+                // TrackRecordingViewModel's own state, mirroring the locateMeStatus LaunchedEffect
+                // below — the ViewModel owns the Track row (via StartTrackUseCase), this Activity
+                // owns the Context-level action of running the service. hasStartedRecordingOnce
+                // guards against firing a spurious ACTION_STOP on first composition, when
+                // activeTrack is null simply because nothing has ever started yet.
+                var hasStartedRecordingOnce by remember { mutableStateOf(false) }
+                LaunchedEffect(trackUiState.activeTrack) {
+                    val active = trackUiState.activeTrack
+                    val intent = Intent(this@MainActivity, TrackRecordingService::class.java)
+                    if (active != null) {
+                        hasStartedRecordingOnce = true
+                        intent.action = TrackRecordingService.ACTION_START
+                        intent.putExtra(TrackRecordingService.EXTRA_TRACK_ID, active.trackId)
+                        intent.putExtra(TrackRecordingService.EXTRA_MODE, active.mode.name)
+                        ContextCompat.startForegroundService(this@MainActivity, intent)
+                    } else if (hasStartedRecordingOnce) {
+                        intent.action = TrackRecordingService.ACTION_STOP
+                        startService(intent)
+                    }
+                }
+
                 AvailabilityScreen(
                     uiState = uiState,
                     onUseCurrentLocation = {
@@ -143,6 +203,17 @@ class MainActivity : ComponentActivity() {
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
                     onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
+                    isRecording = trackUiState.isRecording,
+                    onToggleRecording = {
+                        if (trackUiState.isRecording) {
+                            trackRecordingViewModel.stopRecording()
+                        } else {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                            trackRecordingViewModel.startRecording()
+                        }
+                    },
                     compassProvider = container.compassProvider,
                 )
             }
