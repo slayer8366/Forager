@@ -524,22 +524,33 @@ class AvailabilityViewModel(
     }
 
     /**
-     * Called every time the "Offline Maps" submenu is opened — always tries the device's current
-     * location as the picker's opening default, overriding whatever centre was showing before
-     * (including a centre [loadOfflineMapPreferences] restored from a prior pick). The project
-     * owner's own call, after using the last-picked-centre default the design doc originally
-     * specified: opening the picker away from home is more common than opening it away from
-     * wherever was last downloaded, so "near me" should win on every open, not just the first.
+     * Called every time the "Offline Maps" submenu is opened. Two things happen:
      *
-     * A denial or unavailable fix leaves whatever centre was already showing in place — a prior
-     * pick's centre, or the continental-US centroid if there was never one — rather than clearing
-     * a good default just because this particular fetch failed.
+     * 1. Always tries the device's current location as the picker's opening default, overriding
+     *    whatever centre was showing before (including a centre [loadOfflineMapPreferences]
+     *    restored from a prior pick). The project owner's own call, after using the
+     *    last-picked-centre default the design doc originally specified: opening the picker away
+     *    from home is more common than opening it away from wherever was last downloaded, so "near
+     *    me" should win on every open, not just the first. A denial or unavailable fix leaves
+     *    whatever centre was already showing in place rather than clearing a good default just
+     *    because this particular fetch failed.
      *
-     * Safe to call unconditionally, with no permission-prompt risk:
-     * [LocationProvider.getCurrentLocation] only checks whether permission is already granted (see
-     * `com.forager.app.location.AndroidLocationProvider`), it never triggers the OS permission
-     * dialog itself — that only happens from an explicit tap elsewhere (see [useCurrentLocation]/
-     * [locateMe]).
+     * 2. Re-reads [OfflineMapRepository.listRegions] rather than trusting whatever
+     *    [loadOfflineRegions] loaded once at ViewModel construction. Hardware testing found the
+     *    list could come up empty right after a cold start with many regions already on disk
+     *    (survived the restart — verified via a subsequent download's own refresh correctly
+     *    showing everything — just not shown yet), consistent with `OfflineManager`'s native store
+     *    still finishing its own initialization when [loadOfflineRegions] ran at construction time,
+     *    before the user ever navigated here. Re-reading on open is a real fix for that specific
+     *    race only if the native side has caught up by the time a user actually taps into this
+     *    screen (plausible — screen navigation takes at least a beat — but not hardware-confirmed
+     *    itself), and is good practice regardless: this screen should show current state whenever
+     *    it's opened, not a snapshot from whenever the ViewModel happened to be constructed.
+     *
+     * Both calls are safe unconditionally: [LocationProvider.getCurrentLocation] only checks
+     * whether permission is already granted (see `com.forager.app.location.AndroidLocationProvider`),
+     * never triggering the OS permission dialog itself, and a `listRegions` re-read has no
+     * side effect beyond what [loadOfflineRegions] already does on every call.
      */
     fun onOfflineMapsOpened() {
         viewModelScope.launch {
@@ -548,10 +559,12 @@ class AvailabilityViewModel(
                 _uiState.update { it.copy(offlineMapPickerDefaultCenter = LatLng(result.lat, result.lng)) }
             }
         }
+        loadOfflineRegions()
     }
 
     /**
-     * Reads every region currently on disk, once at startup — same reasoning as [loadPlannedTrips]:
+     * Reads every region currently on disk — once at startup, and again every time
+     * [onOfflineMapsOpened] fires. Same reasoning as [loadPlannedTrips] for the startup call:
      * downloaded regions have nothing to do with the region search, so this isn't gated behind one.
      * A read failure (e.g. a corrupt metadata blob) is reported via [AvailabilityUiState.offlineRegionsErrorMessage]
      * rather than silently rendering an empty list — CLAUDE.md: a failure is reported, not swallowed

@@ -542,6 +542,30 @@ class AvailabilityViewModelOfflineMapsTest {
 
         assertEquals(LatLng(REFERENCE_REGION.lat, REFERENCE_REGION.lng), vm.uiState.value.offlineMapPickerDefaultCenter)
     }
+
+    /**
+     * Hardware finding: the region list could come up empty right after a cold start with several
+     * regions already on disk, only populating once another download triggered its own refresh.
+     * Re-reading `listRegions()` on every open (not just once at construction) is the fix — this
+     * proves the re-read actually happens, independent of whatever caused the original gap.
+     */
+    @Test
+    fun `opening the picker re-reads the region list rather than trusting the one loaded at construction`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(emptyList()))
+        val locationProvider = OfflineMapsFixedLocationProvider(LocationResult.PermissionDenied)
+        val vm = viewModel(repository, locationProvider = locationProvider)
+        advanceUntilIdle()
+        assertEquals(emptyList<OfflineRegionSummary>(), vm.uiState.value.offlineRegions)
+
+        // Simulates the native store finishing initialization after the ViewModel's own
+        // construction-time read already ran and saw nothing.
+        repository.listRegionsResult = Result.success(listOf(REFERENCE_SUMMARY))
+
+        vm.onOfflineMapsOpened()
+        advanceUntilIdle()
+
+        assertEquals(listOf(REFERENCE_SUMMARY), vm.uiState.value.offlineRegions)
+    }
 }
 
 /** Answers [getCurrentLocation] with a fixed, caller-supplied [result] — for asserting on what the ViewModel does with each outcome. */
