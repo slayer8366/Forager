@@ -1628,6 +1628,10 @@ private fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
  * because the resource table dedupes tiles across overlapping regions, so summed per-region tile
  * counts overstate real disk usage and a delete can free far less than its region's own reported
  * size — this text deliberately never promises a specific amount reclaimed.
+ *
+ * Deleting a downloaded region is not reversible without re-downloading it, so each row's "Delete"
+ * button opens a confirmation dialog ([pendingDeleteRegion]) rather than deleting immediately on tap
+ * — hardware testing found no confirmation step here at all before this.
  */
 @Composable
 private fun OfflineRegionsSection(
@@ -1638,6 +1642,8 @@ private fun OfflineRegionsSection(
     nowEpochMillis: Long,
     onDeleteOfflineRegion: (Long) -> Unit,
 ) {
+    var pendingDeleteRegion by remember { mutableStateOf<OfflineRegionSummary?>(null) }
+
     // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit now
     // (see its doc comment on why the picker map stopped being weight(1f)), so this section just
     // renders at its natural height as the last thing in that scroll.
@@ -1670,10 +1676,27 @@ private fun OfflineRegionsSection(
                     isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
                     distanceUnit = distanceUnit,
                     nowEpochMillis = nowEpochMillis,
-                    onDelete = { onDeleteOfflineRegion(region.id) },
+                    onDelete = { pendingDeleteRegion = region },
                 )
             }
         }
+    }
+
+    pendingDeleteRegion?.let { region ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteRegion = null },
+            title = { Text("Delete \"${region.name}\"?") },
+            text = { Text("This deletes the downloaded map tiles for this region. You can re-download it later.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteOfflineRegion(region.id)
+                        pendingDeleteRegion = null
+                    },
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDeleteRegion = null }) { Text("Cancel") } },
+        )
     }
 }
 
