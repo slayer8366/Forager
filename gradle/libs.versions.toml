@@ -16,11 +16,11 @@ retrofitKotlinxSerializationConverter = "1.0.0"
 kotlinxCoroutines = "1.11.0"
 junit = "4.13.2"
 kotlinxCoroutinesTest = "1.11.0"
-osmdroid = "6.1.20"
-# Step 1 of the osmdroid -> MapLibre migration (docs/plans/maplibre-migration.md) — a parallel
-# basemap smoke test, not a replacement for osmdroid yet. Pinned to the exact version confirmed
-# against Maven Central's own metadata (repo1.maven.org/maven2/org/maplibre/gl/android-sdk/
-# maven-metadata.xml), not a version copied from a tutorial that could already be stale.
+# The osmdroid -> MapLibre migration (docs/plans/maplibre-migration.md) is complete; MapSlot/
+# SightingsMap host a real MapLibre MapView, and the osmdroid dependency itself is gone. Pinned to
+# the exact version confirmed against Maven Central's own metadata (repo1.maven.org/maven2/org/
+# maplibre/gl/android-sdk/maven-metadata.xml), not a version copied from a tutorial that could
+# already be stale.
 maplibre = "13.5.0"
 robolectric = "4.16.1"
 room = "2.8.4"
@@ -52,7 +52,6 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
-osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
 maplibre-android-sdk = { group = "org.maplibre.gl", name = "android-sdk", version.ref = "maplibre" }
 # Local persistence for planned trips — the same "wrap an external integration behind an owned
 # interface" rule CLAUDE.md applies to iNaturalist and Open-Meteo above applies here too; Room is

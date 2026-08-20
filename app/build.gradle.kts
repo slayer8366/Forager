@@ -196,10 +196,9 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.osmdroid.android)
-    // Step 1 of the osmdroid -> MapLibre migration (docs/plans/maplibre-migration.md) — a parallel
-    // dependency, not a replacement: osmdroid stays the active renderer for every production
-    // screen until MapLibreBasemapPreviewActivity is confirmed working on real hardware.
+    // osmdroid was the renderer through the maplibre-migration.md migration; MapSlot/SightingsMap
+    // now host a real MapLibre MapView for every production screen, so the osmdroid dependency
+    // itself is gone — see that plan doc and git history for the swap.
     implementation(libs.maplibre.android.sdk)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
