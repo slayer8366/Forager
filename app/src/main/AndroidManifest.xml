@@ -9,6 +9,16 @@
          uses PickVisualMedia, the modern photo picker. -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- For com.forager.app.service.TrackRecordingService, a foreground service so a multi-hour
+         track recording keeps running (and stays visibly running to the user) while the app is
+         backgrounded. FOREGROUND_SERVICE_LOCATION is required as of API 34 alongside the general
+         FOREGROUND_SERVICE permission for a service declared with foregroundServiceType="location"
+         below. POST_NOTIFICATIONS is a runtime permission as of API 33 — this only declares it;
+         requesting it is UI work for Phase 1c, which is what actually starts this service. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!--
       Without this, PlannedTripRow's "Directions" action always reports no maps app installed,
       even with one present: compileSdk/targetSdk 37 means Android's package-visibility rules
@@ -57,6 +67,11 @@
             android:name=".ui.map.MapLibreBasemapPreviewActivity"
             android:exported="true"
             android:theme="@style/Theme.Forager" />
+
+        <service
+            android:name=".service.TrackRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- Grants the camera app write access to a file under filesDir/captures/ for
              ActivityResultContracts.TakePicture, without exposing broader file access — see

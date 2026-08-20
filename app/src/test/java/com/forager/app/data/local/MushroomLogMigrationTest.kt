@@ -84,7 +84,7 @@ class MushroomLogMigrationTest {
         // fallbackToDestructiveMigration here, so if MIGRATION_3_4 is missing or wrong, this throws
         // rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_3_4)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
             .build()
 
         try {
