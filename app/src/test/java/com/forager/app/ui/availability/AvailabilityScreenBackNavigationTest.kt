@@ -310,7 +310,7 @@ class AvailabilityScreenBackNavigationTest {
     }
 }
 
-private val BackNavStubMapSlot: MapSlot = { _, _, _, _, _, _, onLongPress, _, modifier ->
+private val BackNavStubMapSlot: MapSlot = { _, _, _, _, onLongPress, _, modifier ->
     Column(modifier.testTag("map-slot")) {
         Button(onClick = { onLongPress(LatLng(45.326, -122.634)) }) { Text("Simulate long press") }
     }

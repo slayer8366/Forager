@@ -42,6 +42,7 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
@@ -139,6 +140,8 @@ fun SightingsMap(
     onLongPress: (LatLng) -> Unit = {},
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onTap: () -> Unit = {},
+    /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
+    breadcrumbPoints: List<LatLng> = emptyList(),
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -222,10 +225,10 @@ fun SightingsMap(
     // after a basemap swap) — the same "rebuild content every update, regardless of why the update
     // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
     // because MapLibre's own API separates "style ready" from "camera/property changed".
-    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride) {
+    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride, breadcrumbPoints) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(style, region, sightings, areas, plannedTrips)
+        refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints)
 
         val center = MapLibreLatLng(region.lat, region.lng)
         // focusOverride pans the camera without moving the search-location marker or the
@@ -315,6 +318,20 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
         ),
     )
 
+    // Solid, not dashed — the dashed connector above means "suggested visiting order between
+    // areas"; a breadcrumb trail is where the device actually walked, and reusing the dash would
+    // read as the same kind of line when it isn't. Added after the connector so an active
+    // recording's trail draws on top of it if the two ever geographically overlap.
+    style.addSource(GeoJsonSource(BREADCRUMB_SOURCE_ID, emptyFeatureCollection()))
+    style.addLayer(
+        LineLayer(BREADCRUMB_LAYER_ID, BREADCRUMB_SOURCE_ID).withProperties(
+            PropertyFactory.lineColor(BREADCRUMB_COLOR),
+            PropertyFactory.lineWidth(BREADCRUMB_STROKE_WIDTH_PX),
+            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+        ),
+    )
+
     style.addSource(GeoJsonSource(AREA_MARKER_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         CircleLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
@@ -360,12 +377,14 @@ private fun refreshOverlayData(
     sightings: List<Sighting>,
     areas: List<ForagingArea>,
     plannedTrips: List<PlannedTrip>,
+    breadcrumbPoints: List<LatLng>,
 ) {
     style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCenterFeatureCollection(region))
     style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings))
     style.getSourceAs<GeoJsonSource>(CONNECTOR_SOURCE_ID)?.setGeoJson(connectorFeatureCollection(region, areas))
     style.getSourceAs<GeoJsonSource>(AREA_MARKER_SOURCE_ID)?.setGeoJson(areaMarkersFeatureCollection(areas))
     style.getSourceAs<GeoJsonSource>(PLANNED_TRIP_SOURCE_ID)?.setGeoJson(plannedTripsFeatureCollection(plannedTrips))
+    style.getSourceAs<GeoJsonSource>(BREADCRUMB_SOURCE_ID)?.setGeoJson(breadcrumbFeatureCollection(breadcrumbPoints))
 }
 
 private fun emptyFeatureCollection(): FeatureCollection = FeatureCollection.fromFeatures(emptyList())
@@ -428,6 +447,17 @@ internal fun connectorFeatureCollection(region: Region, areas: List<ForagingArea
     return FeatureCollection.fromFeature(feature)
 }
 
+/**
+ * The active track's recorded points as a single [LineString] feature, oldest first — an empty
+ * [FeatureCollection] when [points] has fewer than two points (nothing recorded yet, or only the
+ * first fix so far), same "a line needs two ends" reasoning as [connectorFeatureCollection].
+ */
+internal fun breadcrumbFeatureCollection(points: List<LatLng>): FeatureCollection {
+    if (points.size < 2) return emptyFeatureCollection()
+    val line = LineString.fromLngLats(points.map { Point.fromLngLat(it.lng, it.lat) })
+    return FeatureCollection.fromFeature(Feature.fromGeometry(line))
+}
+
 internal fun plannedTripsFeatureCollection(plannedTrips: List<PlannedTrip>): FeatureCollection {
     val features = plannedTrips.map { trip ->
         Feature.fromGeometry(Point.fromLngLat(trip.location.lng, trip.location.lat)).apply {
@@ -480,6 +510,8 @@ private const val AREA_MARKER_LABEL_LAYER_ID = "area-markers-label-layer"
 private const val PLANNED_TRIP_SOURCE_ID = "planned-trips"
 private const val PLANNED_TRIP_LAYER_ID = "planned-trips-layer"
 private const val PLANNED_TRIP_ICON_ID = "planned-trip-diamond"
+private const val BREADCRUMB_SOURCE_ID = "breadcrumb-trail"
+private const val BREADCRUMB_LAYER_ID = "breadcrumb-trail-layer"
 
 // Colours match ui/theme/Color.kt and the deleted osmdroid SightingsMap's own constants exactly —
 // see this file's class doc comment, "The overlay colours", for why they are unretouched.
@@ -501,6 +533,15 @@ private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 private val SEARCH_CENTER_COLOR = 0xFFB33B3B.toInt()
 private const val SEARCH_CENTER_RADIUS_PX = 8f
 private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
+
+/**
+ * A saturated blue distinct from the planned-trip diamond's muted [PLANNED_TRIP_MARKER_COLOR] —
+ * both read as "blue" at a glance but this one is meant to pop as the live/just-recorded trail,
+ * matching the near-universal GPS-track convention (Gaia GPS, Strava, etc.) rather than this app's
+ * own quieter marker palette.
+ */
+private val BREADCRUMB_COLOR = 0xFF2979FF.toInt()
+private const val BREADCRUMB_STROKE_WIDTH_PX = 4f
 
 /**
  * Ratio 18:14, preserved exactly from the deleted osmdroid version's `DashPathEffect(floatArrayOf(18f,

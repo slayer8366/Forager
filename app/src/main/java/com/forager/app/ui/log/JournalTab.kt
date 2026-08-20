@@ -25,6 +25,7 @@ import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.Region
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.map.Basemap
+import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 
@@ -175,9 +176,7 @@ internal fun LogEntryLocationPicker(
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             mapSlot(
                 mapRegion,
-                emptyList(),
-                emptyList(),
-                emptyList(),
+                MapOverlayContent(),
                 basemap,
                 null,
                 { location -> pickedLocation = location },

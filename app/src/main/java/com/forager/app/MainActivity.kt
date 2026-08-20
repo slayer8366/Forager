@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.forager.app.domain.model.LatLng
 import com.forager.app.service.TrackRecordingService
 import com.forager.app.ui.availability.AvailabilityScreen
 import com.forager.app.ui.availability.AvailabilityViewModel
@@ -214,6 +215,7 @@ class MainActivity : ComponentActivity() {
                             trackRecordingViewModel.startRecording()
                         }
                     },
+                    breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     compassProvider = container.compassProvider,
                 )
             }

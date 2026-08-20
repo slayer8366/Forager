@@ -148,7 +148,7 @@ class JournalTabTest {
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)
 
-private val StubPickerMapSlot: MapSlot = { _, _, _, _, _, _, onLongPress, _, modifier ->
+private val StubPickerMapSlot: MapSlot = { _, _, _, _, onLongPress, _, modifier ->
     Column(modifier.testTag("picker-map")) {
         Button(onClick = { onLongPress(PICKED_LOCATION) }) { Text("Simulate long press") }
     }

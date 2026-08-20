@@ -89,8 +89,8 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedOfflinePickerBasemap: Basemap? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
-    private val CapturingMapSlot: MapSlot = { _, sightings, areas, plannedTrips, basemap, _, onLongPress, _, modifier ->
-        if (sightings.isEmpty() && areas.isEmpty() && plannedTrips.isEmpty()) {
+    private val CapturingMapSlot: MapSlot = { _, content, basemap, _, onLongPress, _, modifier ->
+        if (content.sightings.isEmpty() && content.areas.isEmpty() && content.plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
                 Button(onClick = { onLongPress(PICKED_LOCATION) }) { Text("Simulate region pick") }

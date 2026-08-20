@@ -167,6 +167,7 @@ import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.BasemapCoverage
+import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapService
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
@@ -361,6 +362,11 @@ fun AvailabilityScreen(
      */
     isRecording: Boolean = false,
     onToggleRecording: () -> Unit = {},
+    /**
+     * The active track's recorded points, oldest first — see [com.forager.app.ui.map.MapSlot]'s own
+     * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
+     */
+    breadcrumbPoints: List<LatLng> = emptyList(),
     /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
      * so no production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
@@ -680,6 +686,7 @@ fun AvailabilityScreen(
                         onPlaceTripPin = onPlaceTripPin,
                         onLogFindHere = onLogFindHere,
                         onToggleForagingAreas = onToggleForagingAreas,
+                        breadcrumbPoints = breadcrumbPoints,
                         modifier = Modifier.weight(1f),
                     )
                     ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
@@ -788,6 +795,7 @@ fun AvailabilityScreen(
                         onOpenSearchDrawer = openSearchDrawer,
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording,
+                        breadcrumbPoints = breadcrumbPoints,
                         compassProvider = compassProvider,
                         modifier = Modifier.weight(1f),
                     )
@@ -949,6 +957,7 @@ private fun CombinedResultsPane(
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
+    breadcrumbPoints: List<LatLng>,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier.fillMaxHeight()) {
@@ -968,6 +977,7 @@ private fun CombinedResultsPane(
             onPlaceTripPin = onPlaceTripPin,
             onLogFindHere = onLogFindHere,
             onToggleForagingAreas = onToggleForagingAreas,
+            breadcrumbPoints = breadcrumbPoints,
             modifier = Modifier.weight(1f).fillMaxHeight(),
         )
     }
@@ -1463,9 +1473,7 @@ private fun OfflineMapsPanel(
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             mapSlot(
                 pickerRegion,
-                emptyList(),
-                emptyList(),
-                emptyList(),
+                MapOverlayContent(),
                 Basemap.USGS_TOPO,
                 null,
                 onRegionPicked,
@@ -2546,6 +2554,7 @@ private fun MapTab(
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
+    breadcrumbPoints: List<LatLng>,
     modifier: Modifier = Modifier,
 ) {
     var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -2585,9 +2594,12 @@ private fun MapTab(
                     Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         mapSlot(
                             region,
-                            uiState.sightings,
-                            visibleAreas,
-                            uiState.plannedTrips,
+                            MapOverlayContent(
+                                sightings = uiState.sightings,
+                                areas = visibleAreas,
+                                plannedTrips = uiState.plannedTrips,
+                                breadcrumbPoints = breadcrumbPoints,
+                            ),
                             basemap,
                             null,
                             { location -> pendingLongPressLocation = location },
@@ -2701,6 +2713,7 @@ private fun CompactMapTab(
     onOpenSearchDrawer: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
+    breadcrumbPoints: List<LatLng>,
     compassProvider: CompassProvider,
     modifier: Modifier = Modifier,
 ) {
@@ -2779,9 +2792,12 @@ private fun CompactMapTab(
             Box(modifier = modifier.fillMaxSize()) {
                 mapSlot(
                     displayRegion,
-                    if (hasSearched) uiState.sightings else emptyList(),
-                    visibleAreas,
-                    if (hasSearched) uiState.plannedTrips else emptyList(),
+                    MapOverlayContent(
+                        sightings = if (hasSearched) uiState.sightings else emptyList(),
+                        areas = visibleAreas,
+                        plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList(),
+                        breadcrumbPoints = breadcrumbPoints,
+                    ),
                     basemap,
                     focusOverride,
                     { location -> pendingLongPressLocation = location },

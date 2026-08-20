@@ -351,7 +351,7 @@ private object CountingStubMapSlotState {
     var compositionCount = 0
 }
 
-private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
+private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
     androidx.compose.runtime.remember { CountingStubMapSlotState.compositionCount++ }
     Column(modifier.testTag("map-slot")) {
         Text("map")
@@ -359,7 +359,7 @@ private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
 }
 
 /** Exposes [onTap] as a clickable surface, for the "tap the map to restore chrome" test. */
-private val TappableStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onTap, modifier ->
+private val TappableStubMapSlot: MapSlot = { _, _, _, _, _, onTap, modifier ->
     Column(modifier.testTag("map-slot").clickable(onClick = onTap)) {
         Text("map")
     }

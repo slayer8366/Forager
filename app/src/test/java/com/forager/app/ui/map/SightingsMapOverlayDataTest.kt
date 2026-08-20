@@ -246,4 +246,35 @@ class SightingsMapOverlayDataTest {
         assertEquals(2, CONNECTOR_DASH_PATTERN.size)
         assertEquals(18f / 14f, CONNECTOR_DASH_PATTERN[0] / CONNECTOR_DASH_PATTERN[1], 0.001f)
     }
+
+    private val breadcrumbPoints = listOf(
+        LatLng(45.326, -122.634),
+        LatLng(45.330, -122.640),
+        LatLng(45.335, -122.645),
+    )
+
+    @Test
+    fun `no breadcrumb points produces no trail feature`() {
+        assertTrue(
+            "A LineString needs at least two points; an empty track must not produce a degenerate one.",
+            breadcrumbFeatureCollection(emptyList()).features()!!.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `a single breadcrumb point produces no trail feature`() {
+        assertTrue(
+            "A LineString needs at least two points; one recorded fix isn't a trail yet.",
+            breadcrumbFeatureCollection(breadcrumbPoints.take(1)).features()!!.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `the breadcrumb trail runs through every recorded point in order`() {
+        val feature = breadcrumbFeatureCollection(breadcrumbPoints).features()!!.single()
+        val line = feature.geometry() as LineString
+
+        val expectedPoints = breadcrumbPoints.map { Point.fromLngLat(it.lng, it.lat) }
+        assertEquals(expectedPoints, line.coordinates())
+    }
 }
