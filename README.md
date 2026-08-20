@@ -837,6 +837,70 @@ point — not a value invented for this test. Not verified, and only a
 device can answer: legibility of a denser three-line pill, and whether the
 added line crowds the map's top edge on a small screen.
 
+### Phase 1a/1c — track recording, waypoints, and the converge screens (breadcrumbs, offline readiness, return-to-vehicle), specifically
+
+**Measured, this project cycle:** `./gradlew testDebugUnitTest` reports
+**510 tests, 0 failures, 0 errors**, including everything Phase 1a and 1c
+added or extended — `TrackRecordingViewModelTest` (8, covering
+start/stop, breadcrumb polling, waypoint CRUD, and return-to-start
+bearing math against an in-memory fake, not a real device fix),
+`AvailabilityScreenWaypointFlowTest` (7, waypoint drop/list/delete through
+the real screen), the extended `AvailabilityScreenSettingsPanelTest`
+(offline readiness state), the extended `SightingsMapOverlayDataTest`
+(breadcrumb and waypoint GeoJSON feature construction), and the extended
+`AvailabilityScreenMapIconStackTest` (the record toggle and the
+return-to-vehicle line's four text states: blank while idle, a waiting
+message before the first fix, and both the over-and-under-a-kilometer
+distance formats once one lands).
+
+**One real regression was caught and fixed by this same headless
+coverage, not by hardware.** The return-to-vehicle row's
+`Modifier.fillMaxWidth()`, with nothing else constraining the strip's
+`Column` width, stretched the whole compass/elevation pill into a
+full-width banner that covered the map underneath and silently swallowed
+the touches `AvailabilityScreenTripPlanningFlowTest` and
+`AvailabilityScreenWaypointFlowTest` send to the stubbed map's long-press
+button — both suites went from green to failing outright, not flaky, the
+moment that row was added, and green again once the `Column` was pinned to
+`IntrinsicSize.Max`. Worth naming here because it is exactly the class of
+layout mistake this section keeps saying only a device can catch: this
+one, a JVM test caught first.
+
+**None of it has been seen running.** Same limitation as the rest of this
+map screen, compounded: the foreground `TrackRecordingService` — its
+notification, whether Android actually keeps it alive through Doze on a
+multi-hour walk, whether `ACTION_START`/`ACTION_STOP` round-trip correctly
+through a real `Context` — has never been started on a device, only
+reasoned through and unit-tested against fakes. The breadcrumb line and
+waypoint pins are GeoJSON source/layer data proven correct by
+`SightingsMapOverlayDataTest`, but MapLibre's native `Layer`/`Source`
+types can't be constructed in this environment at all (see "The
+topographic basemap, specifically" above), so whether either actually
+draws on the map is exactly as unverified as the basemap itself. The
+offline readiness screen's z0–14/z15-overflow distinction is logic-tested
+against the `MapLibreOfflineMapRepository` contract, not against a real
+device pulling real tiles through the Cloudflare Worker. The
+return-to-vehicle line's bearing/distance/elevation math is verified
+against `GeoDistance`'s own pinned test geometry, not against a real GPS
+track walked in the field — whether the numbers it shows while actually
+returning to a vehicle are useful, at a glance, mid-walk, is unasked.
+
+**Next intent, not yet started:** task #15, the off-track alert and
+check-in timer — the last piece of Phase 1c. Design settled this session:
+a check-in timer set when a recording starts, scheduled via
+`AlarmManager` (not `WorkManager`, which is not a project dependency —
+see `TrackRecordingService`'s own doc comment) with a setup-time delivery
+check that routes to the battery-optimization exemption screen if a test
+alarm doesn't actually fire, and wording stating plainly it is a local
+phone reminder, not a monitored service; and an off-track alert scoped to
+an explicit new "returning" state (not general recording, where drifting
+from the start point is normal outbound travel) that fires on a simple
+distance-trending-away heuristic against `ReturnToStartInfo`'s own live
+distance, not real route-deviation detection. Once #15 lands, Phase 1 as a
+whole (1a/1b/1c) is feature-complete and the deferred PR #27/#28/
+`phase1-combined` reconciliation and verification decisions come next, per
+the project owner's own hold on that until then.
+
 ### Phase 2 — the compact navigation restructure (search-only drawer, 5-tab bottom nav, Journal gallery, distance unit), specifically
 
 Measured the same way as Phase 1 above, in the same session, against this
