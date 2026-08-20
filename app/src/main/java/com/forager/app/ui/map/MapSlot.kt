@@ -7,6 +7,7 @@ import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.Waypoint
 
 /**
  * Everything [MapSlot] draws on top of the basemap, bundled into one value rather than one
@@ -32,6 +33,8 @@ data class MapOverlayContent(
      * not a suggested order between areas.
      */
     val breadcrumbPoints: List<LatLng> = emptyList(),
+    /** Saved waypoints, drawn as markers — independent of any track, per [Waypoint]'s own doc comment. */
+    val waypoints: List<Waypoint> = emptyList(),
 )
 
 /**
@@ -97,6 +100,7 @@ val SightingsMapSlot: MapSlot = { region, content, basemap, focusOverride, onLon
         onLongPress = onLongPress,
         onTap = onTap,
         breadcrumbPoints = content.breadcrumbPoints,
+        waypoints = content.waypoints,
         modifier = modifier,
     )
 }

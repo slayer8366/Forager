@@ -216,6 +216,9 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
+                    waypoints = trackUiState.waypoints,
+                    onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
+                    onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
                     compassProvider = container.compassProvider,
                 )
             }

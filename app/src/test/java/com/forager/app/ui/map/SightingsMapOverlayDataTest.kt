@@ -5,6 +5,7 @@ import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.Waypoint
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -276,5 +277,37 @@ class SightingsMapOverlayDataTest {
 
         val expectedPoints = breadcrumbPoints.map { Point.fromLngLat(it.lng, it.lat) }
         assertEquals(expectedPoints, line.coordinates())
+    }
+
+    private val waypoints = listOf(
+        Waypoint(id = "w1", lat = 45.40, lng = -122.70, altitude = null, name = "Trailhead", note = "Gravel lot", createdAtEpochMillis = 1_000L),
+        Waypoint(id = "w2", lat = 45.41, lng = -122.71, altitude = 812.0, name = "Big oak", note = "", createdAtEpochMillis = 2_000L),
+    )
+
+    @Test
+    fun `every waypoint becomes a point feature at its own coordinates`() {
+        val features = waypointsFeatureCollection(waypoints).features()!!
+        assertEquals(2, features.size)
+
+        val points = features.map { it.geometry() as Point }
+        assertEquals(waypoints[0].lng, points[0].longitude(), 0.0)
+        assertEquals(waypoints[0].lat, points[0].latitude(), 0.0)
+        assertEquals(waypoints[1].lng, points[1].longitude(), 0.0)
+        assertEquals(waypoints[1].lat, points[1].latitude(), 0.0)
+    }
+
+    @Test
+    fun `a waypoint's title and snippet are its own name and note`() {
+        val features = waypointsFeatureCollection(waypoints).features()!!
+
+        assertEquals("Trailhead", features[0].getStringProperty("title"))
+        assertEquals("Gravel lot", features[0].getStringProperty("snippet"))
+        assertEquals("Big oak", features[1].getStringProperty("title"))
+        assertEquals("", features[1].getStringProperty("snippet"))
+    }
+
+    @Test
+    fun `no waypoints produces no marker features`() {
+        assertTrue(waypointsFeatureCollection(emptyList()).features()!!.isEmpty())
     }
 }

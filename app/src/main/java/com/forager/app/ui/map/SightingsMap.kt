@@ -34,6 +34,7 @@ import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.Waypoint
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
@@ -142,6 +143,8 @@ fun SightingsMap(
     onTap: () -> Unit = {},
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     breadcrumbPoints: List<LatLng> = emptyList(),
+    /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
+    waypoints: List<Waypoint> = emptyList(),
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -225,10 +228,10 @@ fun SightingsMap(
     // after a basemap swap) — the same "rebuild content every update, regardless of why the update
     // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
     // because MapLibre's own API separates "style ready" from "camera/property changed".
-    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride, breadcrumbPoints) {
+    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride, breadcrumbPoints, waypoints) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints)
+        refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints, waypoints)
 
         val center = MapLibreLatLng(region.lat, region.lng)
         // focusOverride pans the camera without moving the search-location marker or the
@@ -364,6 +367,20 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
             PropertyFactory.iconAnchor("center"),
         ),
     )
+
+    // Last, so a waypoint marker never sits under a planned-trip diamond or an area label if two
+    // ever land on the same point.
+    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density))
+    style.addSource(GeoJsonSource(WAYPOINT_SOURCE_ID, emptyFeatureCollection()))
+    style.addLayer(
+        SymbolLayer(WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID).withProperties(
+            PropertyFactory.iconImage(WAYPOINT_ICON_ID),
+            PropertyFactory.iconAllowOverlap(true),
+            // Bottom, not center like the planned-trip diamond: a pin's drawn tip is what should
+            // sit on the actual coordinate, not the shape's bounding-box center.
+            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM),
+        ),
+    )
 }
 
 /**
@@ -378,6 +395,7 @@ private fun refreshOverlayData(
     areas: List<ForagingArea>,
     plannedTrips: List<PlannedTrip>,
     breadcrumbPoints: List<LatLng>,
+    waypoints: List<Waypoint>,
 ) {
     style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCenterFeatureCollection(region))
     style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings))
@@ -385,6 +403,7 @@ private fun refreshOverlayData(
     style.getSourceAs<GeoJsonSource>(AREA_MARKER_SOURCE_ID)?.setGeoJson(areaMarkersFeatureCollection(areas))
     style.getSourceAs<GeoJsonSource>(PLANNED_TRIP_SOURCE_ID)?.setGeoJson(plannedTripsFeatureCollection(plannedTrips))
     style.getSourceAs<GeoJsonSource>(BREADCRUMB_SOURCE_ID)?.setGeoJson(breadcrumbFeatureCollection(breadcrumbPoints))
+    style.getSourceAs<GeoJsonSource>(WAYPOINT_SOURCE_ID)?.setGeoJson(waypointsFeatureCollection(waypoints))
 }
 
 private fun emptyFeatureCollection(): FeatureCollection = FeatureCollection.fromFeatures(emptyList())
@@ -468,6 +487,17 @@ internal fun plannedTripsFeatureCollection(plannedTrips: List<PlannedTrip>): Fea
     return FeatureCollection.fromFeatures(features)
 }
 
+/** Every saved [Waypoint] as a point feature carrying its own name, for the pin's [SymbolLayer]. */
+internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureCollection {
+    val features = waypoints.map { waypoint ->
+        Feature.fromGeometry(Point.fromLngLat(waypoint.lng, waypoint.lat)).apply {
+            addStringProperty("title", waypoint.name)
+            addStringProperty("snippet", waypoint.note)
+        }
+    }
+    return FeatureCollection.fromFeatures(features)
+}
+
 /**
  * A solid diamond bitmap for the planned-trip [SymbolLayer]'s `icon-image`, distinct in shape and
  * colour from both the translucent sighting-dot circles and the numbered area-marker circles, so
@@ -495,6 +525,43 @@ private fun plannedTripDiamondBitmap(density: Float): Bitmap {
     return bitmap
 }
 
+/**
+ * A teardrop pin bitmap for the waypoint [SymbolLayer]'s `icon-image` — round head, pointed tail
+ * touching the actual coordinate (see [initializeOverlayLayers]'s `iconAnchor(BOTTOM)` for why the
+ * tail, not the shape's center, has to be what's anchored). A distinct amber, the "you dropped a
+ * pin here" colour convention this app hasn't used yet — red is the search centre, orange is the
+ * dashed connector, bark is a sighting, forest green is a numbered area, blue is a planned trip or
+ * the live breadcrumb trail.
+ */
+private fun waypointPinBitmap(density: Float): Bitmap {
+    val widthPx = (WAYPOINT_MARKER_WIDTH_DP * density).toInt().coerceAtLeast(1)
+    val heightPx = (WAYPOINT_MARKER_HEIGHT_DP * density).toInt().coerceAtLeast(1)
+    val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint().apply {
+        color = WAYPOINT_MARKER_COLOR
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    val headRadius = widthPx / 2f
+    val headCenterY = headRadius
+    val path = Path().apply {
+        addCircle(headRadius, headCenterY, headRadius, Path.Direction.CW)
+    }
+    // The tail: a triangle from the circle's sides down to the bottom-center tip, unioned with the
+    // circle above so the whole pin fills as one shape.
+    path.addPath(
+        Path().apply {
+            moveTo(0f, headCenterY)
+            lineTo(headRadius, heightPx.toFloat())
+            lineTo(widthPx.toFloat(), headCenterY)
+            close()
+        },
+    )
+    canvas.drawPath(path, paint)
+    return bitmap
+}
+
 // Source/layer ids. Fixed strings rather than generated, since every one of them is referenced by
 // name from at least two places (initializeOverlayLayers and refreshOverlayData, or a layer
 // referencing its source) and a typo needs to be a compile error, not a silently-missing layer.
@@ -512,6 +579,9 @@ private const val PLANNED_TRIP_LAYER_ID = "planned-trips-layer"
 private const val PLANNED_TRIP_ICON_ID = "planned-trip-diamond"
 private const val BREADCRUMB_SOURCE_ID = "breadcrumb-trail"
 private const val BREADCRUMB_LAYER_ID = "breadcrumb-trail-layer"
+private const val WAYPOINT_SOURCE_ID = "waypoints"
+private const val WAYPOINT_LAYER_ID = "waypoints-layer"
+private const val WAYPOINT_ICON_ID = "waypoint-pin"
 
 // Colours match ui/theme/Color.kt and the deleted osmdroid SightingsMap's own constants exactly —
 // see this file's class doc comment, "The overlay colours", for why they are unretouched.
@@ -542,6 +612,11 @@ private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
  */
 private val BREADCRUMB_COLOR = 0xFF2979FF.toInt()
 private const val BREADCRUMB_STROKE_WIDTH_PX = 4f
+
+/** Amber — see [waypointPinBitmap]'s own doc comment for why this colour, distinct from every other marker on this map. */
+private val WAYPOINT_MARKER_COLOR = 0xFFE0A030.toInt()
+private const val WAYPOINT_MARKER_WIDTH_DP = 22f
+private const val WAYPOINT_MARKER_HEIGHT_DP = 28f
 
 /**
  * Ratio 18:14, preserved exactly from the deleted osmdroid version's `DashPathEffect(floatArrayOf(18f,

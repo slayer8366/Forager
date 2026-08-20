@@ -130,6 +130,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.forager.app.BuildConfig
 import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.ClusterForagingAreasUseCase
@@ -158,6 +160,7 @@ import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
+import com.forager.app.domain.model.Waypoint
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.sensor.AndroidCompassProvider
 import com.forager.app.ui.adaptive.WindowWidthClass
@@ -368,6 +371,15 @@ fun AvailabilityScreen(
      */
     breadcrumbPoints: List<LatLng> = emptyList(),
     /**
+     * Saved waypoints — independent of any track recording, per [Waypoint]'s own doc comment.
+     * Rendered as pins on the map ([com.forager.app.ui.map.MapSlot]) and listed, with delete, in
+     * the search drawer's "Waypoints" section ([WaypointsSection]).
+     */
+    waypoints: List<Waypoint> = emptyList(),
+    /** Called with the dropped location and the confirmed name when "Drop a waypoint" is chosen from the map's long-press menu — see [WaypointNameDialog]. */
+    onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
+    onDeleteWaypoint: (String) -> Unit = {},
+    /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
      * so no production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
      */
@@ -542,6 +554,8 @@ fun AvailabilityScreen(
                     onRadiusChanged = onRadiusChanged,
                     onMonthSelected = onMonthSelected,
                     onDeletePlannedTrip = onDeletePlannedTrip,
+                    waypoints = waypoints,
+                    onDeleteWaypoint = onDeleteWaypoint,
                     onRecentSearchSelected = { summary ->
                         // Closed for the same reason searching from this drawer closes it:
                         // the tap starts a search, and the results are behind the sheet.
@@ -687,6 +701,8 @@ fun AvailabilityScreen(
                         onLogFindHere = onLogFindHere,
                         onToggleForagingAreas = onToggleForagingAreas,
                         breadcrumbPoints = breadcrumbPoints,
+                        waypoints = waypoints,
+                        onDropWaypoint = onDropWaypoint,
                         modifier = Modifier.weight(1f),
                     )
                     ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
@@ -796,6 +812,8 @@ fun AvailabilityScreen(
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording,
                         breadcrumbPoints = breadcrumbPoints,
+                        waypoints = waypoints,
+                        onDropWaypoint = onDropWaypoint,
                         compassProvider = compassProvider,
                         modifier = Modifier.weight(1f),
                     )
@@ -865,6 +883,8 @@ fun AvailabilityScreen(
                         onRadiusChanged = onRadiusChanged,
                         onMonthSelected = onMonthSelected,
                         onDeletePlannedTrip = onDeletePlannedTrip,
+                        waypoints = waypoints,
+                        onDeleteWaypoint = onDeleteWaypoint,
                         onRecentSearchSelected = { summary ->
                             isDrawerOpen = false
                             onRecentSearchSelected(summary)
@@ -958,6 +978,8 @@ private fun CombinedResultsPane(
     onLogFindHere: (LatLng) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
     breadcrumbPoints: List<LatLng>,
+    waypoints: List<Waypoint>,
+    onDropWaypoint: (LatLng, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier.fillMaxHeight()) {
@@ -978,6 +1000,8 @@ private fun CombinedResultsPane(
             onLogFindHere = onLogFindHere,
             onToggleForagingAreas = onToggleForagingAreas,
             breadcrumbPoints = breadcrumbPoints,
+            waypoints = waypoints,
+            onDropWaypoint = onDropWaypoint,
             modifier = Modifier.weight(1f).fillMaxHeight(),
         )
     }
@@ -1661,6 +1685,8 @@ private fun CompactSearchDrawerContent(
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
+    waypoints: List<Waypoint>,
+    onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
     onToggleForagingAreas: (Boolean) -> Unit,
@@ -1690,6 +1716,8 @@ private fun CompactSearchDrawerContent(
             onRadiusChanged = onRadiusChanged,
             onMonthSelected = onMonthSelected,
             onDeletePlannedTrip = onDeletePlannedTrip,
+            waypoints = waypoints,
+            onDeleteWaypoint = onDeleteWaypoint,
             onRecentSearchSelected = onRecentSearchSelected,
             currentTime = currentTime,
         )
@@ -1743,6 +1771,8 @@ private fun SearchControls(
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
+    waypoints: List<Waypoint>,
+    onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
 ) {
@@ -1784,6 +1814,10 @@ private fun SearchControls(
         HorizontalDivider()
         CollapsibleSection(title = "Trip Planner") {
             TripPlannerSection(uiState = uiState, onDeletePlannedTrip = onDeletePlannedTrip)
+        }
+        HorizontalDivider()
+        CollapsibleSection(title = "Waypoints") {
+            WaypointsSection(waypoints = waypoints, onDeleteWaypoint = onDeleteWaypoint)
         }
     }
 }
@@ -2555,10 +2589,13 @@ private fun MapTab(
     onLogFindHere: (LatLng) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
     breadcrumbPoints: List<LatLng>,
+    waypoints: List<Waypoint>,
+    onDropWaypoint: (LatLng, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
+    var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
 
     when {
         !uiState.hasSearched -> MapMessage(
@@ -2599,6 +2636,7 @@ private fun MapTab(
                                 areas = visibleAreas,
                                 plannedTrips = uiState.plannedTrips,
                                 breadcrumbPoints = breadcrumbPoints,
+                                waypoints = waypoints,
                             ),
                             basemap,
                             null,
@@ -2655,6 +2693,10 @@ private fun MapTab(
                 pendingLongPressLocation = null
                 onLogFindHere(location)
             },
+            onDropWaypoint = {
+                pendingLongPressLocation = null
+                pendingWaypointLocation = location
+            },
             onDismiss = { pendingLongPressLocation = null },
         )
     }
@@ -2667,6 +2709,17 @@ private fun MapTab(
                 pendingTripLocation = null
             },
             onDismiss = { pendingTripLocation = null },
+        )
+    }
+
+    pendingWaypointLocation?.let { location ->
+        WaypointNameDialog(
+            defaultName = defaultWaypointName(waypoints.size),
+            onConfirm = { name ->
+                onDropWaypoint(location, name)
+                pendingWaypointLocation = null
+            },
+            onDismiss = { pendingWaypointLocation = null },
         )
     }
 }
@@ -2714,11 +2767,14 @@ private fun CompactMapTab(
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     breadcrumbPoints: List<LatLng>,
+    waypoints: List<Waypoint>,
+    onDropWaypoint: (LatLng, String) -> Unit,
     compassProvider: CompassProvider,
     modifier: Modifier = Modifier,
 ) {
     var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
+    var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
 
     // AddActionTile is a plain overlay, not a real Dialog, so — unlike TripDatePickerDialog below,
     // an M3 DatePickerDialog whose own Dialog window already handles system back for free — this
@@ -2797,6 +2853,7 @@ private fun CompactMapTab(
                         areas = visibleAreas,
                         plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList(),
                         breadcrumbPoints = breadcrumbPoints,
+                        waypoints = waypoints,
                     ),
                     basemap,
                     focusOverride,
@@ -2848,6 +2905,10 @@ private fun CompactMapTab(
                         pendingLongPressLocation?.let { onLogFindHere(it) }
                         pendingLongPressLocation = null
                     },
+                    onDropWaypoint = {
+                        pendingLongPressLocation?.let { pendingWaypointLocation = it }
+                        pendingLongPressLocation = null
+                    },
                     onDismiss = { pendingLongPressLocation = null },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -2863,6 +2924,17 @@ private fun CompactMapTab(
                 pendingTripLocation = null
             },
             onDismiss = { pendingTripLocation = null },
+        )
+    }
+
+    pendingWaypointLocation?.let { location ->
+        WaypointNameDialog(
+            defaultName = defaultWaypointName(waypoints.size),
+            onConfirm = { name ->
+                onDropWaypoint(location, name)
+                pendingWaypointLocation = null
+            },
+            onDismiss = { pendingWaypointLocation = null },
         )
     }
 }
@@ -3086,7 +3158,12 @@ private fun cardinalDirection(headingDegrees: Float): String {
 
 /** What a map long-press means — asked before either [TripDatePickerDialog] or `onLogFindHere` runs; see [MapTab]'s own doc comment. */
 @Composable
-private fun LongPressActionDialog(onPlanTrip: () -> Unit, onLogFind: () -> Unit, onDismiss: () -> Unit) {
+private fun LongPressActionDialog(
+    onPlanTrip: () -> Unit,
+    onLogFind: () -> Unit,
+    onDropWaypoint: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("What would you like to do here?") },
@@ -3094,6 +3171,7 @@ private fun LongPressActionDialog(onPlanTrip: () -> Unit, onLogFind: () -> Unit,
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextButton(onClick = onPlanTrip, modifier = Modifier.fillMaxWidth()) { Text("Plan a trip") }
                 TextButton(onClick = onLogFind, modifier = Modifier.fillMaxWidth()) { Text("Log a find") }
+                TextButton(onClick = onDropWaypoint, modifier = Modifier.fillMaxWidth()) { Text("Drop a waypoint") }
             }
         },
         confirmButton = {},
@@ -3120,6 +3198,7 @@ private fun AddActionTile(
     visible: Boolean,
     onPlanTrip: () -> Unit,
     onLogFind: () -> Unit,
+    onDropWaypoint: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -3162,6 +3241,7 @@ private fun AddActionTile(
                     Text("Add...", style = MaterialTheme.typography.titleMedium)
                     TextButton(onClick = onPlanTrip, modifier = Modifier.fillMaxWidth()) { Text("Plan a trip") }
                     TextButton(onClick = onLogFind, modifier = Modifier.fillMaxWidth()) { Text("Log a find") }
+                    TextButton(onClick = onDropWaypoint, modifier = Modifier.fillMaxWidth()) { Text("Drop a waypoint") }
                     TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
                 }
             }
@@ -3190,6 +3270,9 @@ private val ADD_TILE_ANCHOR_OFFSET = (MAP_ICON_STACK_DIAMETER * 5 + Spacing.sm *
  * it's saved.
  */
 internal fun defaultTripName(existingTripCount: Int): String = "Trip ${existingTripCount + 1}"
+
+/** Same reasoning as [defaultTripName], applied to waypoints — see that function's own doc comment. */
+internal fun defaultWaypointName(existingWaypointCount: Int): String = "Waypoint ${existingWaypointCount + 1}"
 
 /**
  * Confirms a date and name for a trip pin dropped via the map's long-press gesture.
@@ -3248,6 +3331,53 @@ private fun TripDatePickerDialog(
                     .padding(horizontal = Spacing.lg),
             )
             DatePicker(state = datePickerState)
+        }
+    }
+}
+
+/**
+ * Confirms a name for a waypoint dropped via the map's long-press gesture — [TripDatePickerDialog]
+ * without the date, since a waypoint has none ([Waypoint] carries no target date, unlike
+ * [PlannedTrip]). Same blank-name guard, mirroring
+ * [CreateWaypointUseCase][com.forager.app.domain.CreateWaypointUseCase]'s own `require`.
+ */
+@Composable
+private fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf(defaultName) }
+    // usePlatformDefaultWidth = false, matching M3's own DatePickerDialog default rather than
+    // AlertDialog's (true): an AlertDialog/plain Dialog with an OutlinedTextField as its sole
+    // focusable content, reached through the compact scaffold (ModalNavigationDrawer plus its own
+    // BackHandlers), never settles under this Robolectric test setup — real, reproduced
+    // AppNotIdleException, isolated by removing pieces one at a time (the text field alone is fine;
+    // AddActionTile -> this dialog alone is fine; TripDatePickerDialog's own text field, reached
+    // through this exact same scaffold, is fine). The one structural difference from
+    // TripDatePickerDialog left once AlertDialog vs. plain Dialog was ruled out is this property.
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            shape = RoundedCornerShape(Spacing.md),
+            shadowElevation = 4.dp,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier.padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Text("Name this waypoint", style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Waypoint name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(enabled = name.isNotBlank(), onClick = { onConfirm(name) }) { Text("Drop waypoint") }
+                }
+            }
         }
     }
 }
@@ -3360,26 +3490,92 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
     }
 }
 
+/**
+ * The saved-waypoints drawer section — same "list plus delete" shape as [PlannedTripsList], the
+ * one existing precedent for a user-placed-point list in this drawer. Unlike planned trips,
+ * waypoints have no date to sort by, so they're shown newest-first (the order
+ * [com.forager.app.domain.GetWaypointsUseCase] already returns — see that use case for why).
+ */
+@Composable
+private fun WaypointsSection(waypoints: List<Waypoint>, onDeleteWaypoint: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        if (waypoints.isEmpty()) {
+            Text(
+                "No waypoints dropped yet. Long-press the map to drop one.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            waypoints.forEach { waypoint ->
+                WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
+            }
+        }
+    }
+}
+
+/**
+ * One saved waypoint: its user-chosen [Waypoint.name] as the primary identifying text, the same
+ * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses, a "Directions" action
+ * ([launchDirections]) reusing the exact same `geo:` intent machinery, and delete.
+ */
+@Composable
+private fun WaypointRow(waypoint: Waypoint, onDelete: () -> Unit) {
+    val context = LocalContext.current
+    val location = LatLng(waypoint.lat, waypoint.lng)
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.md),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(waypoint.name, style = MaterialTheme.typography.titleSmall)
+                when (val mgrs = MgrsConverter.convert(location)) {
+                    is MgrsCoordinate.Grid -> Text(mgrs.value, style = MaterialTheme.typography.bodySmall)
+                    // No line at all rather than a wrong or truncated one — see PlannedTripRow's
+                    // own use of the same MgrsCoordinate branch for why.
+                    is MgrsCoordinate.Unsupported -> Unit
+                }
+                Text(
+                    "${"%.4f".format(waypoint.lat)}, ${"%.4f".format(waypoint.lng)}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            IconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
+                Icon(Icons.Filled.Directions, contentDescription = "Directions to ${waypoint.name}")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Filled.Delete, contentDescription = "Remove waypoint ${waypoint.name}")
+            }
+        }
+    }
+}
+
 /** Shown when no navigation app can handle [directionsIntent] — CLAUDE.md: report, don't swallow. */
 private const val NO_MAPS_APP_MESSAGE = "No maps app is installed to show directions."
 
 /**
- * The `geo:` intent for [trip]: a `geo:0,0?q=lat,lng(label)` URI resolves to whatever navigation
- * app is installed rather than assuming Google Maps specifically, which is the portable choice —
- * see this file's own doc comment for why this lives here and not in the ViewModel or `domain/`.
- * Exposed as its own function (rather than inlined into [launchDirections]) so a test can assert
- * on its action/data without needing a resolvable package or a running Activity.
+ * The `geo:` intent for a point named [name] at [location]: a `geo:0,0?q=lat,lng(label)` URI
+ * resolves to whatever navigation app is installed rather than assuming Google Maps specifically,
+ * which is the portable choice — see this file's own doc comment for why this lives here and not
+ * in the ViewModel or `domain/`. Exposed as its own function (rather than inlined into
+ * [launchDirections]) so a test can assert on its action/data without needing a resolvable package
+ * or a running Activity.
  */
-internal fun directionsIntent(trip: PlannedTrip): Intent {
-    val label = Uri.encode(trip.name)
-    val uri = Uri.parse("geo:0,0?q=${trip.location.lat},${trip.location.lng}($label)")
+internal fun directionsIntent(name: String, location: LatLng): Intent {
+    val label = Uri.encode(name)
+    val uri = Uri.parse("geo:0,0?q=${location.lat},${location.lng}($label)")
     return Intent(Intent.ACTION_VIEW, uri)
 }
 
+/** [directionsIntent] for a [PlannedTrip] specifically — see [WaypointRow] for the other caller of the shared, name-plus-location overload. */
+internal fun directionsIntent(trip: PlannedTrip): Intent = directionsIntent(trip.name, trip.location)
+
 /**
- * Opens directions to [trip]'s location in whatever navigation app [directionsIntent] resolves
- * to. `Intent`/`Context` are Android framework types, so this launch has to happen from the
- * Compose UI layer — CLAUDE.md keeps both out of `domain/` and the ViewModel.
+ * Opens directions to [location] in whatever navigation app [directionsIntent] resolves to.
+ * `Intent`/`Context` are Android framework types, so this launch has to happen from the Compose UI
+ * layer — CLAUDE.md keeps both out of `domain/` and the ViewModel.
  *
  * Resolves the intent before launching, in addition to catching [ActivityNotFoundException]:
  * checking first is what lets this show one exact, always-correct message rather than depending
@@ -3388,8 +3584,8 @@ internal fun directionsIntent(trip: PlannedTrip): Intent {
  * only maps app is uninstalled between the check and the launch. Either path shows a real message
  * (a [Toast]) rather than crashing or failing silently.
  */
-internal fun launchDirections(context: Context, trip: PlannedTrip) {
-    val intent = directionsIntent(trip)
+internal fun launchDirections(context: Context, name: String, location: LatLng) {
+    val intent = directionsIntent(name, location)
     if (intent.resolveActivity(context.packageManager) == null) {
         Toast.makeText(context, NO_MAPS_APP_MESSAGE, Toast.LENGTH_SHORT).show()
         return
@@ -3400,6 +3596,9 @@ internal fun launchDirections(context: Context, trip: PlannedTrip) {
         Toast.makeText(context, NO_MAPS_APP_MESSAGE, Toast.LENGTH_SHORT).show()
     }
 }
+
+/** [launchDirections] for a [PlannedTrip] specifically — see [WaypointRow] for the other caller of the shared, name-plus-location overload. */
+internal fun launchDirections(context: Context, trip: PlannedTrip) = launchDirections(context, trip.name, trip.location)
 
 @Composable
 private fun MapMessage(
