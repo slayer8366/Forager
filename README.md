@@ -840,10 +840,12 @@ added line crowds the map's top edge on a small screen.
 ### Phase 1a/1c — track recording, waypoints, and the converge screens (breadcrumbs, offline readiness, return-to-vehicle), specifically
 
 **Measured, this project cycle:** `./gradlew testDebugUnitTest` reports
-**510 tests, 0 failures, 0 errors**, including everything Phase 1a and 1c
-added or extended — `TrackRecordingViewModelTest` (8, covering
-start/stop, breadcrumb polling, waypoint CRUD, and return-to-start
-bearing math against an in-memory fake, not a real device fix),
+**525 tests, 0 failures, 0 errors**, including everything Phase 1a and 1c
+added or extended — `TrackRecordingViewModelTest` (15, covering
+start/stop, breadcrumb polling, waypoint CRUD, return-to-start bearing
+math, the reactive live-fix path, and returning/off-track state, all
+against an in-memory fake, not a real device fix), `DetectOffTrackUseCaseTest`
+(5, the distance-trending-away heuristic in isolation),
 `AvailabilityScreenWaypointFlowTest` (7, waypoint drop/list/delete through
 the real screen), the extended `AvailabilityScreenSettingsPanelTest`
 (offline readiness state), the extended `SightingsMapOverlayDataTest`
@@ -885,21 +887,55 @@ against `GeoDistance`'s own pinned test geometry, not against a real GPS
 track walked in the field — whether the numbers it shows while actually
 returning to a vehicle are useful, at a glance, mid-walk, is unasked.
 
-**Next intent, not yet started:** task #15, the off-track alert and
-check-in timer — the last piece of Phase 1c. Design settled this session:
-a check-in timer set when a recording starts, scheduled via
-`AlarmManager` (not `WorkManager`, which is not a project dependency —
-see `TrackRecordingService`'s own doc comment) with a setup-time delivery
-check that routes to the battery-optimization exemption screen if a test
-alarm doesn't actually fire, and wording stating plainly it is a local
-phone reminder, not a monitored service; and an off-track alert scoped to
-an explicit new "returning" state (not general recording, where drifting
-from the start point is normal outbound travel) that fires on a simple
-distance-trending-away heuristic against `ReturnToStartInfo`'s own live
-distance, not real route-deviation detection. Once #15 lands, Phase 1 as a
-whole (1a/1b/1c) is feature-complete and the deferred PR #27/#28/
-`phase1-combined` reconciliation and verification decisions come next, per
-the project owner's own hold on that until then.
+**Task #15 (off-track alert + check-in timer) is in progress — the
+off-track half is built, the check-in timer isn't started.** What
+landed: `DetectOffTrackUseCase` (5 tests), a distance-trending-away
+heuristic — while a new `isReturning` state is active (distinct from
+`isRecording`; outbound travel is never "off track"), if the live
+distance back to the track's start has net increased over the last three
+readings past a small noise threshold, `TrackRecordingUiState.isOffTrack`
+flips true. The return-to-vehicle line is now the toggle for that state
+itself — tapping it calls `startReturn()`/`stopReturn()`; bold marks an
+active return, error-colored text marks off-track — covered by
+`TrackRecordingViewModelTest`'s new returning/off-track tests (7) and
+exercised through the same "real ViewModel over fakes" pattern as the
+rest of that file.
+
+**Building this surfaced and fixed a real bug in the already-shipped
+return-to-vehicle screen, not just a gap in the new work.**
+`TrackRecordingViewModel.returnToStart()` was being recomputed only from
+`AvailabilityViewModel`'s one-shot locate-me fetch — refreshed solely
+when the user tapped that icon, never continuously while walking. That
+made the bearing/distance shown stale between taps, and made the
+off-track heuristic unworkable outright (it needs a running series of
+readings, not one). Fixed by having `TrackRecordingViewModel` collect
+`LocationTracker.fixes` itself — the same continuous stream
+`TrackRecordingService` already collects for the track's own points —
+whenever a recording is active, computing `returnToStart` on every fix.
+Two independent OS location-listener registrations while recording (the
+service's and this one) is the accepted, stated cost of not re-plumbing
+the service to publish its fixes back out to the UI layer for this one
+reader. `TrackRecordingViewModelTest` covers the reactive path directly
+(a fake `LocationTracker` backed by a controllable `MutableSharedFlow`),
+not just the direct-call path the original 8 tests already had.
+
+**Not yet built, still task #15:** firing an actual notification when
+`isOffTrack` transitions to true (the state and UI toggle exist; nothing
+posts a notification on it yet — string resources
+`off_track_notification_*` are added but unreferenced), and the check-in
+timer entirely. Design for the timer, settled but not started: scheduled
+via `AlarmManager` (not `WorkManager`, which is not a project dependency
+— see `TrackRecordingService`'s own doc comment) with a setup-time
+delivery check that routes to the battery-optimization exemption screen
+if a test alarm doesn't actually fire, and wording stating plainly it is
+a local phone reminder, not a monitored service. **Next intent:** build
+the off-track notification (small — reuse the existing
+`POST_NOTIFICATIONS` grant and a `LaunchedEffect` on `isOffTrack` in
+`MainActivity`, matching the pattern already used for the foreground
+service's own start/stop), then the check-in timer. Once #15 is fully
+done, Phase 1 as a whole (1a/1b/1c) is feature-complete and the deferred
+PR #27/#28/`phase1-combined` reconciliation and verification decisions
+come next, per the project owner's own hold on that until then.
 
 ### Phase 2 — the compact navigation restructure (search-only drawer, 5-tab bottom nav, Journal gallery, distance unit), specifically
 
