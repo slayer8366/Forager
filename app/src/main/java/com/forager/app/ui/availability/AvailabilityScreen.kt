@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -156,6 +157,7 @@ import com.forager.app.domain.model.NoTripWindowReason
 import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
+import com.forager.app.domain.model.ReturnToStartInfo
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.TripWindow
@@ -379,6 +381,13 @@ fun AvailabilityScreen(
     /** Called with the dropped location and the confirmed name when "Drop a waypoint" is chosen from the map's long-press menu — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
+    /**
+     * Bearing/distance/elevation difference back to the active track's start point, from the
+     * device's current position — `null` whenever nothing is being recorded, no fix has come in
+     * yet, or no breadcrumb has landed to compute a start from. See [ReturnToStartInfo]'s own doc
+     * comment for why there's no ETA, and [CompassElevationStripContent] for where this renders.
+     */
+    returnToStart: ReturnToStartInfo? = null,
     /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
      * so no production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
@@ -814,6 +823,7 @@ fun AvailabilityScreen(
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
                         onDropWaypoint = onDropWaypoint,
+                        returnToStart = returnToStart,
                         compassProvider = compassProvider,
                         modifier = Modifier.weight(1f),
                     )
@@ -2772,6 +2782,7 @@ private fun CompactMapTab(
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
+    returnToStart: ReturnToStartInfo?,
     compassProvider: CompassProvider,
     modifier: Modifier = Modifier,
 ) {
@@ -2874,6 +2885,7 @@ private fun CompactMapTab(
                     location = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location,
                     isRecording = isRecording,
                     onToggleRecording = onToggleRecording,
+                    returnToStart = returnToStart,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(Spacing.sm),
@@ -3043,6 +3055,7 @@ private fun CompassElevationStrip(
     location: LatLng?,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
+    returnToStart: ReturnToStartInfo?,
     modifier: Modifier = Modifier,
 ) {
     val headingDegrees by compassProvider.heading.collectAsState(initial = null)
@@ -3052,6 +3065,7 @@ private fun CompassElevationStrip(
         location = location,
         isRecording = isRecording,
         onToggleRecording = onToggleRecording,
+        returnToStart = returnToStart,
         modifier = modifier,
     )
 }
@@ -3063,6 +3077,7 @@ private fun CompassElevationStripContent(
     location: LatLng?,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
+    returnToStart: ReturnToStartInfo?,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -3073,7 +3088,16 @@ private fun CompassElevationStripContent(
         modifier = modifier,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            // width(IntrinsicSize.Max): the return-to-vehicle row's fillMaxWidth() below needs
+            // something to fill *up to* — without this, an unconstrained Column would let that
+            // fillMaxWidth() claim the whole screen's width instead of just this pill's own
+            // (widest-row-determined) width, stretching the strip into a full-width banner that
+            // covers the map underneath and swallows touches meant for it (a real regression this
+            // caught: AvailabilityScreenTripPlanningFlowTest's long-press flow stopped reaching
+            // AddActionTile until this was added).
+            modifier = Modifier
+                .width(IntrinsicSize.Max)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(
@@ -3098,22 +3122,52 @@ private fun CompassElevationStripContent(
                     text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
                     style = MaterialTheme.typography.labelLarge,
                 )
-                // The track-recording start/stop toggle — same box as the compass/elevation/MGRS
-                // readout, on its right-hand side, per the project owner's own placement call
-                // rather than a sixth MapIconStack icon (that stack is fixed at exactly five, a
-                // settled decision — see this strip's own doc comment above).
-                RecordToggleButton(
-                    isRecording = isRecording,
-                    onClick = onToggleRecording,
-                    modifier = Modifier.padding(start = Spacing.xs),
-                )
             }
             Text(
                 text = mgrsStripText(location),
                 style = MaterialTheme.typography.labelMedium,
             )
+            // Return-to-vehicle on the far left, the record start/stop toggle on the far right —
+            // opposite ends of the same box, per the project owner's own placement call, rather
+            // than a sixth MapIconStack icon (that stack is fixed at exactly five, a settled
+            // decision) or a separate return-to-vehicle screen.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = returnToStartStripText(isRecording, returnToStart),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                RecordToggleButton(
+                    isRecording = isRecording,
+                    onClick = onToggleRecording,
+                )
+            }
         }
     }
+}
+
+/**
+ * The return-to-vehicle line's text — blank while not recording (nothing to return to), a status
+ * message once recording starts but before the first breadcrumb lands (bearing/distance need a
+ * start point), then bearing, distance, and elevation difference once [info] is real.
+ * [ReturnToStartInfo]'s own doc comment covers why there's no ETA here.
+ */
+internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInfo?): String {
+    if (!isRecording) return ""
+    if (info == null) return "Recording — waiting for a fix to compute the way back"
+    val distanceText = if (info.distanceMeters < 1000) {
+        "${info.distanceMeters.roundToInt()} m"
+    } else {
+        "${"%.1f".format(info.distanceMeters / 1000)} km"
+    }
+    val elevationText = info.elevationDifferenceMeters?.let {
+        "${if (it >= 0) "+" else ""}${it.roundToInt()} m"
+    } ?: "elevation diff. unavailable"
+    val bearing = info.bearingDegrees.roundToInt()
+    return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · $distanceText · $elevationText"
 }
 
 /** The compass strip's own start/stop control for [com.forager.app.service.TrackRecordingService] — see [CompassElevationStripContent]'s doc comment on why it lives here rather than in [MapIconStack]. */

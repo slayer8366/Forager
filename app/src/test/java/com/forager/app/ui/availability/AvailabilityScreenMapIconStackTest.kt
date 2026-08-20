@@ -52,6 +52,7 @@ import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
+import com.forager.app.domain.model.ReturnToStartInfo
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
@@ -106,6 +107,8 @@ class AvailabilityScreenMapIconStackTest {
         onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> },
         mapSlot: MapSlot = CountingStubMapSlot,
         locationProvider: LocationProvider = IconStackUnusedLocationProvider,
+        isRecording: Boolean = false,
+        returnToStart: ReturnToStartInfo? = null,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -155,6 +158,8 @@ class AvailabilityScreenMapIconStackTest {
                 onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
                 onStartLogEntry = onStartLogEntry,
                 onLocateMe = onLocateMe,
+                isRecording = isRecording,
+                returnToStart = returnToStart,
                 compassProvider = compassProvider,
                 mapSlot = mapSlot,
             )
@@ -321,6 +326,46 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the return-to-vehicle line is blank while not recording, and the record toggle still shows`() {
+        setScreen(isRecording = false)
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithContentDescription("Start recording track").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Return:", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `recording with no fix yet shows a waiting message, not a guessed return`() {
+        setScreen(isRecording = true, returnToStart = null)
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("Recording — waiting for a fix to compute the way back").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Stop recording track").assertIsDisplayed()
+    }
+
+    @Test
+    fun `recording with a real fix shows bearing, distance, and elevation difference back to the start`() {
+        setScreen(
+            isRecording = true,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 1200.0, elevationDifferenceMeters = -45.0),
+        )
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("Return: 180° S · 1.2 km · -45 m").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a return distance under a kilometer is shown in meters`() {
+        setScreen(
+            isRecording = true,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 45.0, distanceMeters = 350.0, elevationDifferenceMeters = null),
+        )
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("Return: 45° NE · 350 m · elevation diff. unavailable").assertIsDisplayed()
     }
 
     @Test
