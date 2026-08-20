@@ -511,11 +511,29 @@ class AvailabilityViewModelOfflineMapsTest {
         assertNull(vm.uiState.value.offlineMapPickerDefaultCenter)
     }
 
-    /** A last-picked region already answers "where should the picker open" — current location must not override it. */
+    /**
+     * The project owner's own call: opening the picker away from home is more common than opening
+     * it away from wherever was last downloaded, so a fresh current-location fetch wins over a
+     * previously-restored last-picked centre, not just over the continental-US fallback.
+     */
     @Test
-    fun `opening the picker does not touch location when a last-picked region was already restored`() = runTest(dispatcher) {
+    fun `opening the picker overrides a previously-restored last-picked centre with the current location`() = runTest(dispatcher) {
         val preferences = RecordingMapPreferencesRepository(lastPickedRegionResult = Result.success(REFERENCE_REGION))
         val locationProvider = OfflineMapsFixedLocationProvider(LocationResult.Success(lat = 45.5, lng = -122.6, altitude = null))
+        val vm = viewModel(RecordingOfflineMapRepository(), preferences, locationProvider)
+        advanceUntilIdle()
+
+        vm.onOfflineMapsOpened()
+        advanceUntilIdle()
+
+        assertEquals(LatLng(45.5, -122.6), vm.uiState.value.offlineMapPickerDefaultCenter)
+    }
+
+    /** A failed fetch must not clear a good default that was already showing — only a successful one may replace it. */
+    @Test
+    fun `a failed current-location fetch leaves a previously-restored centre in place`() = runTest(dispatcher) {
+        val preferences = RecordingMapPreferencesRepository(lastPickedRegionResult = Result.success(REFERENCE_REGION))
+        val locationProvider = OfflineMapsFixedLocationProvider(LocationResult.PermissionDenied)
         val vm = viewModel(RecordingOfflineMapRepository(), preferences, locationProvider)
         advanceUntilIdle()
 

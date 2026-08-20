@@ -524,22 +524,24 @@ class AvailabilityViewModel(
     }
 
     /**
-     * Called when the "Offline Maps" submenu is opened. If no last-picked centre/radius has ever
-     * been restored from [MapPreferencesRepository] (see [loadOfflineMapPreferences]), tries the
-     * device's current location as the picker's opening default instead of the continental-US
-     * centroid fallback — a foraging trip is usually planned near home, not the middle of Kansas.
-     * A no-op if a default is already known, from a prior pick or a prior successful fetch this
-     * session, so this doesn't re-request location on every re-open once it has one.
+     * Called every time the "Offline Maps" submenu is opened — always tries the device's current
+     * location as the picker's opening default, overriding whatever centre was showing before
+     * (including a centre [loadOfflineMapPreferences] restored from a prior pick). The project
+     * owner's own call, after using the last-picked-centre default the design doc originally
+     * specified: opening the picker away from home is more common than opening it away from
+     * wherever was last downloaded, so "near me" should win on every open, not just the first.
+     *
+     * A denial or unavailable fix leaves whatever centre was already showing in place — a prior
+     * pick's centre, or the continental-US centroid if there was never one — rather than clearing
+     * a good default just because this particular fetch failed.
      *
      * Safe to call unconditionally, with no permission-prompt risk:
      * [LocationProvider.getCurrentLocation] only checks whether permission is already granted (see
      * `com.forager.app.location.AndroidLocationProvider`), it never triggers the OS permission
      * dialog itself — that only happens from an explicit tap elsewhere (see [useCurrentLocation]/
-     * [locateMe]). A denial or unavailable fix here just leaves the continental-US-centroid
-     * fallback in place, same as if this had never run.
+     * [locateMe]).
      */
     fun onOfflineMapsOpened() {
-        if (_uiState.value.offlineMapPickerDefaultCenter != null) return
         viewModelScope.launch {
             val result = locationProvider.getCurrentLocation()
             if (result is LocationResult.Success) {
@@ -568,11 +570,15 @@ class AvailabilityViewModel(
     }
 
     /**
-     * Restores the picker's cold-start default per the design doc's "Cold-start default": the last
-     * centre/radius someone actually picked, and the staleness badge threshold — both remembered
-     * user intent read from [MapPreferencesRepository] rather than derived state, so this can't live
-     * in [SavedStateHandle][androidx.lifecycle.SavedStateHandle]. A read failure leaves the built-in
-     * fallbacks in place ([AvailabilityUiState.offlineMapPickerDefaultCenter] stays `null`,
+     * Restores the picker's remembered radius and the staleness badge threshold from
+     * [MapPreferencesRepository] — both remembered user intent rather than derived state, so
+     * neither can live in [SavedStateHandle][androidx.lifecycle.SavedStateHandle]. The restored
+     * centre only matters as a fallback now: [onOfflineMapsOpened] overrides it with the device's
+     * current location on every open when that succeeds, per the owner's own call (see that
+     * function's doc comment for why this changed from the design doc's original "restore the last
+     * picked centre" behaviour) — this is what the picker shows before that ever runs, or if a
+     * later location fetch fails. A read failure here leaves the built-in fallbacks in place
+     * ([AvailabilityUiState.offlineMapPickerDefaultCenter] stays `null`,
      * [AvailabilityUiState.offlineStaleThresholdDays] stays [com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS])
      * rather than blocking the picker on a preferences read that isn't essential to using it.
      */
