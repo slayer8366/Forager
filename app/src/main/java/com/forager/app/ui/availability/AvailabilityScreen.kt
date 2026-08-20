@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -1429,15 +1430,21 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
  * disabled until a real point has been picked (see `hasValidRegion` below), so neither default
  * viewport can ever itself be submitted as a region.
  *
- * The map is weighted to fill the space the fixed controls below it don't need, the same
- * map-gets-the-remainder pattern [MapTab] already uses, rather than a fixed dp height: a picker map
- * too small to long-press accurately would defeat the reason this replaced the lat/lng text fields.
+ * The map is a fixed 4:3 box ([MAP_PICKER_ASPECT_RATIO]) rather than weighted to fill leftover
+ * space: an earlier revision gave it `Modifier.weight(1f)` the same "map gets the remainder"
+ * pattern [MapTab] uses, but that meant the map visibly shrank every time a new entry landed in
+ * [OfflineRegionsSection] below it — confirmed on hardware, three downloaded regions measurably
+ * squeezed the picker map smaller than with none. A size derived only from width, independent of
+ * how much content sits below it, can't do that; 4:3 matches this app's other fixed-aspect UI
+ * (see [com.forager.app.ui.log.LogGalleryScreen]'s tile ratio for the same kind of choice).
  *
- * Below the picker, [OfflineRegionsSection] lists every region already on disk — see that
- * composable's doc comment. A downloaded region is never deleted by picking and downloading a new
- * one any more (see [com.forager.app.domain.OfflineMapRepository]'s doc comment on why this changed
- * from an all-or-nothing single download), so the two sections are independent: the picker only
- * ever adds to what the list below shows.
+ * [OfflineRegionsSection] — "Downloaded Maps" — is its own clearly separate area at the bottom of
+ * this panel, not sharing layout space with the picker above it: the whole panel scrolls as one
+ * unit now that nothing inside is weight-based, so a long list only ever pushes itself further
+ * down, never back up into the picker. A downloaded region is never deleted by picking and
+ * downloading a new one (see [com.forager.app.domain.OfflineMapRepository]'s doc comment on why
+ * this changed from an all-or-nothing single download), so the two sections are otherwise
+ * independent: the picker only ever adds to what the list below shows.
  */
 @Composable
 private fun OfflineMapsPanel(
@@ -1458,7 +1465,7 @@ private fun OfflineMapsPanel(
     val defaultCenter = uiState.offlineMapPickerDefaultCenter ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER
     val now = currentTime.nowEpochMillis()
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
         Text(
             "Offline downloads cover the continental United States with vector map data. " +
                 "Long-press the map below to choose where to download.",
@@ -1471,7 +1478,7 @@ private fun OfflineMapsPanel(
             lng = pickedLng ?: defaultCenter.lng,
             radiusKm = uiState.offlineMapRadiusKm,
         )
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        Box(modifier = Modifier.fillMaxWidth().aspectRatio(MAP_PICKER_ASPECT_RATIO)) {
             mapSlot(
                 pickerRegion,
                 emptyList(),
@@ -1539,6 +1546,9 @@ private fun OfflineMapsPanel(
     }
 }
 
+/** The picker map's fixed width:height ratio — see [OfflineMapsPanel]'s doc comment for why this replaced `Modifier.weight(1f)`. */
+private const val MAP_PICKER_ASPECT_RATIO = 4f / 3f
+
 /**
  * An arbitrary opening viewport for [OfflineMapsPanel]'s picker map before anything has been
  * long-pressed — the geographic center of the contiguous United States (near Lebanon, Kansas),
@@ -1547,9 +1557,6 @@ private fun OfflineMapsPanel(
  * submitted as one: "Download Maps" stays disabled until a real long-press sets a region.
  */
 private val OFFLINE_MAP_PICKER_DEFAULT_CENTER = LatLng(39.8283, -98.5795)
-
-/** [OfflineRegionsSection]'s own height cap — see that composable's call site for why. */
-private val MAX_REGIONS_LIST_HEIGHT = 220.dp
 
 /**
  * [JournalTab]'s location-picker fallback viewport, for whenever no region has ever been searched
@@ -1616,18 +1623,16 @@ private fun OfflineRegionsSection(
     nowEpochMillis: Long,
     onDeleteOfflineRegion: (Long) -> Unit,
 ) {
-    // Capped and independently scrollable, rather than letting this grow the whole panel: the
-    // picker above (map, name field, radius, Download button) must always stay reachable without
-    // scrolling regardless of how many regions are already downloaded.
+    // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit now
+    // (see its doc comment on why the picker map stopped being weight(1f)), so this section just
+    // renders at its natural height as the last thing in that scroll.
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = MAX_REGIONS_LIST_HEIGHT)
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text("Downloaded Regions", style = MaterialTheme.typography.titleSmall)
+        Text("Downloaded Maps", style = MaterialTheme.typography.titleSmall)
 
         val tilesUsed = regions.sumOf { it.tileCount }
         Text(
