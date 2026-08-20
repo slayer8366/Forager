@@ -192,20 +192,25 @@ Concretely, in rough dependency order:
    `OfflineManager` API calls (region definition, observer, status handling), not code to keep
    long-term — it's explicitly scaffolding, delete it once this is done.
 
-## Open decisions — surface these, don't pick silently
+## Open decisions — resolved (recorded here, since the sections above never named the answers)
 
-Per `CLAUDE.md`: an unmade architectural decision is a stop-and-ask.
+Per `CLAUDE.md`: record why a decision was made and what alternative was rejected, not just that a
+decision happened. These three were the "surface these, don't pick silently" list this doc originally
+shipped with; the 2026-08-19 update section says the owner was asked and steps 3-4 went ahead, but
+never wrote down the actual answers next to the questions. Answers below are inferred from what
+the rest of this doc already states was built, not new guesses:
 
-- **Does the region picker stay USGS-only, or switch to whatever this US-only PMTiles archive
-  covers?** The current `OsmdroidOfflineMapRepository` is USGS Topo/Imagery, US-only already, so
-  coverage is similar — but the *data* (OSM-derived vector vs. USGS raster) and the resulting look
-  are a real product change the owner should see and approve, not something to swap silently.
-- **Does PR #23 get merged as-is first, or does this work fold into the same branch/PR?** PR #23 is
-  scoped as a smoke test with no production wiring; this doc's work is the production wiring. They
-  could merge separately or together — ask rather than assume either way.
-- **Style JSON sourcing**: hand-building a Protomaps-schema style vs. using their published
-  reference style vs. a simpler custom style — affects both what step 1 needs to build and what
-  step 3's label-stripping needs to filter. Pick this deliberately.
+- **Region picker data source: switched away from USGS-only.** `OsmdroidOfflineMapRepository` (USGS
+  Topo/Imagery) was deleted, not kept alongside the new path — `MapLibreOfflineMapRepository` is the
+  sole `OfflineMapRepository` implementation in `AppContainer` now. The offline region picker covers
+  whatever the continental-US PMTiles archive covers (OSM-derived vector, not USGS raster).
+- **PR #23 stayed separate.** This doc's production wiring landed as its own PR (#25, branch
+  `claude/offline-maps-integration-21uez7`), not folded into #23. As of this writing #23, #24, and #25
+  are all still open, unmerged, separate PRs — confirm this hasn't changed before assuming it.
+- **Style JSON sourcing: Protomaps' own published `@protomaps/basemaps` npm package**, not a
+  hand-built layer list or a simpler custom style — `layers(source, LIGHT, options)` generated both
+  the labeled (71-layer, not yet bundled) and glyph-stripped (57-layer, bundled then later moved to
+  the Worker's `/style/offline.json` route) variants documented above.
 
 ## Verify-this-yourself callouts
 
@@ -218,3 +223,47 @@ Facts here may have shifted between this doc being written and being picked up:
   trusting this doc's description of it.
 - Whether PR [#24](https://github.com/slayer8366/Forager/pull/24) (`claude/pmtiles-cloudflare-worker`)
   has been merged since — check its current state rather than trusting this doc's description of it.
+
+## Handoff, 2026-08-20: where this stands and what's next
+
+As of this writing: PRs #23, #24, and #25 are all still **open and unmerged**, no review threads,
+CI state not re-checked by this session — check `pull_request_read` (`get_status`/`get_check_runs`)
+on all three before assuming green. Re-verify this before acting on anything below; PR state is the
+one thing this doc can't keep current on its own.
+
+**Done and hardware-confirmed this round** (branch `claude/offline-maps-integration-21uez7`, PR #25):
+region create → download → persist across a genuinely cold restart → `getStatus()` reads the
+persisted region back correctly, all against the real Worker-hosted glyph-stripped style and real
+continental-US PMTiles geometry, not placeholder styles. Commit `1d51858` records this in this doc
+and as a PR #25 comment.
+
+**Still open, roughly in priority order for whoever picks this up next:**
+
+1. **Airplane-mode offline replay** — the one item this doc has flagged unverified since the
+   2026-08-19 hardware-confirmed update and still hasn't been closed. PR #23 proved this mechanism
+   works for its own placeholder styles; this project's real style/region combination has not been
+   taken through it. Needs a physical device with radio control, same as every other hardware check
+   in this doc's history — don't try to fake this in the sandbox.
+2. **Steps 1-2 (live, labeled vector basemap)** — still deliberately deferred, not just unstarted.
+   `Basemap`/`BasemapTileSources` still needs to become a vector-style catalogue reachable from
+   `MainActivity`/`MapSlot`/`AvailabilityScreen`; the 71-layer labeled style already exists
+   (generated, not bundled — see the 2026-08-19 update above) but nothing consumes it yet. Re-run the
+   `git log --oneline -- app/src/main/java/com/forager/app/ui/map/Basemap.kt
+   app/src/main/java/com/forager/app/ui/map/SightingsMap.kt` check this doc names above before
+   assuming that's still true. This is a live-rendering engine swap on the app's primary map screen —
+   treat it with the same "don't ship blind" caution steps 3-4 were given, and re-confirm the dashed
+   connector/overlay colours against the new style once it's live, per `maplibre-migration.md` §2b.
+3. **Decide whether PR #23's `MapLibreBasemapPreviewActivity` scaffolding gets deleted now.** This doc
+   said it's reference-only, delete once step 4 is done — step 4 is done (`MapLibreOfflineMapRepository`
+   is the real implementation), but the scaffolding activity itself hasn't been checked for whether it
+   still exists post-#25, or is now dead weight sitting in PR #23 waiting to be cleaned up as part of
+   that PR's own merge.
+4. **Merge sequencing** — #24 (Worker infra) has no dependents left unmerged-blocking except #25's own
+   assumption that the Worker stays live at its current URL; #23 and #25 both build on the same
+   `OfflineManager` mechanism but landed as separate PRs (recorded as a resolved decision above). None
+   of the three have been merged to `main` yet — that's still an open call for the owner, not something
+   to do unprompted.
+
+Nothing else in this doc's task list (the "What this doc scopes" §1-4 above) needs re-litigating —
+steps 3-4 are done and verified twice over (initial hardware pass, then the restart-persistence
+re-check); only step 1-2 and the airplane-mode check remain.
