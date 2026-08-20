@@ -130,6 +130,7 @@ class MainActivity : ComponentActivity() {
                     onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                     onRecentSearchSelected = viewModel::onRecentSearchSelected,
                     currentTime = container.currentTimeProvider,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                     onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                     onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,

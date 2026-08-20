@@ -149,6 +149,7 @@ class AvailabilityScreenMapIconStackTest {
                 onPlaceTripPin = viewModel::onPlaceTripPin,
                 onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                 onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                 onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                 onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                 onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,

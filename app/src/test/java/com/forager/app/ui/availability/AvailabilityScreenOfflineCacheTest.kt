@@ -94,6 +94,7 @@ class AvailabilityScreenOfflineCacheTest {
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = { selectedRecentSearches += it },
                 currentTime = MutableClock(now = NOW),
+                onOfflineMapsOpened = {},
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
