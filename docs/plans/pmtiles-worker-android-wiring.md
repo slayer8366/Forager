@@ -81,10 +81,6 @@ than sitting there, confirming the `/style/offline.json` route resolves correctl
 style avoids PR #23's confirmed native crash on the app's *real* style, not just PR #23's own
 placeholder test styles.
 
-**Still not hardware-verified**: offline replay with the radio off (airplane mode) — PR #23 confirmed
-this for its own placeholder styles, but this project's real style/region combination hasn't been
-taken through it yet.
-
 ## Update, 2026-08-19 (later still): a second real bug found by the restart test — fixed
 
 The persistence-across-restart check surfaced a real bug, not a persistence failure:
@@ -102,14 +98,32 @@ helper all three public methods (`download`/`delete`/`getStatus`) already call, 
 `download()` — every entry point now initializes the native library first, instead of relying on
 one particular call happening to run before the others in a given process.
 
-**Not yet re-verified on hardware**: this fix itself hasn't been taken through the same
-force-close-and-reopen cycle that found the bug. The original persistence question this test set out
-to answer (does a completed region survive a restart, once the app can actually *ask* without
-crashing) is also still open — the restart test that found this bug happened at exactly the point
-where the answer would have been visible, so the bug pre-empted the answer rather than the answer
-turning out negative.
-
 Verified: `./gradlew testDebugUnitTest` — 438 tests pass. `./gradlew assembleDebug` — succeeds.
+
+## Update, 2026-08-20: the restart fix re-verified on hardware — persistence confirmed
+
+The force-close-and-reopen cycle that found the `getStatus()` crash above was re-run against the fix,
+on the owner's device, with a fresh APK built from the `MapLibre.getInstance()` fix. Result: no crash,
+and the original persistence question this whole test chain was chasing is now answered.
+
+Sequence: downloaded a region (5 mi radius around 39.7940, -98.5529), force-closed the app, cleared
+it from recents, reopened it cold. The Offline Maps screen's `getStatus()` line — the exact code path
+that threw before the fix — loaded cleanly and read **"Downloaded: 5 mi around 39.7940, -98.5529 —
+139 tiles, 0.1 MB."**, no inline error, no crash, Download/Delete buttons enabled normally. Confirmed
+directly from two screenshots of the running device, not inferred: the persisted-region text is the
+completed download surviving a genuinely fresh process, distinct from the separate (and expected)
+"No location picked yet" line, which reflects the region-picker's *new-pick* selection state, not the
+persisted download — Download Maps stays greyed out there until a fresh long-press, unrelated to
+whether a previous download persisted.
+
+This closes out the last open item from this doc's update chain: `OfflineManager` region create →
+download → persist across restart → replay all now hardware-confirmed against this project's real
+Worker-hosted style and real PMTiles geometry (not PR #23's placeholder styles). The one item still
+flagged as unverified is below.
+
+**Still not hardware-verified**: offline replay with the radio off (airplane mode) — PR #23 confirmed
+this for its own placeholder styles, but this project's real style/region combination hasn't been
+taken through it yet.
 
 ## What already exists and is verified — don't re-verify, build on it
 
