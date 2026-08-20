@@ -226,16 +226,31 @@ Facts here may have shifted between this doc being written and being picked up:
 
 ## Handoff, 2026-08-20: where this stands and what's next
 
-As of this writing: PRs #23, #24, and #25 are all still **open and unmerged**, no review threads,
-CI state not re-checked by this session — check `pull_request_read` (`get_status`/`get_check_runs`)
-on all three before assuming green. Re-verify this before acting on anything below; PR state is the
-one thing this doc can't keep current on its own.
+**Update, same day, later: #24 and #25 merged to `main`.** The owner explicitly asked for PR #25 to
+be merged. Merged via merge commit `01c7710` (merge_method `merge`, not squash, so the individual
+commits stayed intact). PR #24 was included in #25's diff (the branch was built directly on top of
+it, per the resolved decision recorded above) and GitHub auto-detected its commits as reachable from
+`main` and flipped it to `merged` too — no separate close/merge action was needed for #24.
 
-**Done and hardware-confirmed this round** (branch `claude/offline-maps-integration-21uez7`, PR #25):
+One non-required check on #25 showed red at merge time: "Workers Builds: forager-pmtiles" (Cloudflare's
+Git-integration build for `server/pmtiles-worker`) reported `failure`, while `mergeable_state` was
+`unstable` (not `blocked` — nothing required was failing). Before merging, this was checked against
+the same server code building `success` on PR #24's own branch just hours earlier at the same commit
+content, and the PR's other real check ("Build, test, publish APK") was green. Read as Cloudflare's
+build system reacting to a non-production branch name rather than an actual defect introduced by this
+PR — not independently root-caused beyond that comparison, so revisit if this Worker's deploys look
+wrong going forward.
+
+**PR #23 is still open, unmerged, on its own branch** (`claude/phase1b-offline-packages`) — it was
+deliberately kept separate (recorded above) and nothing in the #25 merge touched it. Its confirmed
+glyph-crash *finding* is now acted on in the merged production code; the PR itself, and its
+`MapLibreBasemapPreviewActivity` scaffolding, still need an explicit decision (item 3 below).
+
+**Done and hardware-confirmed this round** (now on `main` via PR #25):
 region create → download → persist across a genuinely cold restart → `getStatus()` reads the
 persisted region back correctly, all against the real Worker-hosted glyph-stripped style and real
-continental-US PMTiles geometry, not placeholder styles. Commit `1d51858` records this in this doc
-and as a PR #25 comment.
+continental-US PMTiles geometry, not placeholder styles. Commit `1d51858` (on the now-merged branch)
+records this in this doc and as a PR #25 comment.
 
 **Still open, roughly in priority order for whoever picks this up next:**
 
@@ -258,12 +273,11 @@ and as a PR #25 comment.
    is the real implementation), but the scaffolding activity itself hasn't been checked for whether it
    still exists post-#25, or is now dead weight sitting in PR #23 waiting to be cleaned up as part of
    that PR's own merge.
-4. **Merge sequencing** — #24 (Worker infra) has no dependents left unmerged-blocking except #25's own
-   assumption that the Worker stays live at its current URL; #23 and #25 both build on the same
-   `OfflineManager` mechanism but landed as separate PRs (recorded as a resolved decision above). None
-   of the three have been merged to `main` yet — that's still an open call for the owner, not something
-   to do unprompted.
+4. ~~**Merge sequencing**~~ — done: #24 and #25 are both merged to `main` (see the update above). What's
+   left on this front is narrower now: decide what happens to PR #23 (item 3 above) — merge its
+   scaffolding-removal as its own small cleanup PR, or close it now that its finding is applied and its
+   mechanism superseded by the real `MapLibreOfflineMapRepository` on `main`.
 
 Nothing else in this doc's task list (the "What this doc scopes" §1-4 above) needs re-litigating —
-steps 3-4 are done and verified twice over (initial hardware pass, then the restart-persistence
-re-check); only step 1-2 and the airplane-mode check remain.
+steps 3-4 are done, verified twice over (initial hardware pass, then the restart-persistence re-check),
+and now on `main`; only step 1-2 and the airplane-mode check remain unbuilt/unverified.
