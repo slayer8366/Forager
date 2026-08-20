@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -85,6 +84,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -109,6 +109,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -121,6 +122,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -748,6 +750,12 @@ fun AvailabilityScreen(
             isDrawerOpen = true
         }
 
+        // The quick species-search panel under ActiveSearchSummary — see that composable's own
+        // onOpenQuickSearch doc comment. Local to this scaffold, not AvailabilityUiState: which
+        // panel is showing is a display decision the ViewModel has no part in, same reasoning as
+        // isTopoMode/drawerPanel above.
+        var showQuickSearch by remember { mutableStateOf(false) }
+
         // Pings the device's live location once, as soon as the compact Maps experience is shown,
         // so the map opens already centred on it rather than waiting for an explicit locate-me tap
         // — see CompactMapTab's own doc comment on the pre-search display region this feeds. Fires
@@ -785,7 +793,23 @@ fun AvailabilityScreen(
                     .padding(padding),
             ) {
                 if (!isMapFullscreen) {
-                    ActiveSearchSummary(uiState, distanceUnit, onReopenTaxonSuggestions = {})
+                    ActiveSearchSummary(
+                        uiState,
+                        distanceUnit,
+                        onReopenTaxonSuggestions = {},
+                        onOpenQuickSearch = { showQuickSearch = !showQuickSearch },
+                    )
+                    if (showQuickSearch) {
+                        QuickSearchPanel(
+                            uiState = uiState,
+                            onUseCurrentLocation = onUseCurrentLocation,
+                            onCategorySelected = onCategorySelected,
+                            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                            onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+                            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                            onClose = { showQuickSearch = false },
+                        )
+                    }
                     SearchNotice(uiState)
                 }
 
@@ -1046,23 +1070,89 @@ private fun ActiveSearchSummary(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     onReopenTaxonSuggestions: () -> Unit,
+    /**
+     * Compact-only: opens the quick species-search panel instead of [onReopenTaxonSuggestions]
+     * when tapped, and draws a search icon at the far left so the bar reads as tappable-for-search.
+     * `null` on the medium/expanded call site, which already shows [SpeciesSearchControls] directly
+     * in its app bar — a quick-search panel underneath this bar would be a second, redundant way to
+     * do the same thing there.
+     */
+    onOpenQuickSearch: (() -> Unit)? = null,
 ) {
     Surface(
-        onClick = onReopenTaxonSuggestions,
+        onClick = onOpenQuickSearch ?: onReopenTaxonSuggestions,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        Text(
-            text = activeSearchSummary(uiState, distanceUnit),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        ) {
+            if (onOpenQuickSearch != null) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = "Quick species search",
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Text(
+                text = activeSearchSummary(uiState, distanceUnit),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/**
+ * Compact-only quick species search — [SpeciesSearchControls] itself, in a small panel under
+ * [ActiveSearchSummary] rather than behind the full search drawer ("Advanced search" stays where
+ * it is, reachable the same way it always was). Closes itself once a result is picked, so tapping
+ * the bar, picking a species, and being done reads as one action rather than needing an explicit
+ * close step too.
+ *
+ * [ModalNavigationDrawer] keeps its content composed even while closed (translated off-screen, not
+ * removed), so while this panel is open there are briefly two [SpeciesSearchControls] instances in
+ * the tree — this one, and the drawer's own closed-and-off-screen copy. Both read the same
+ * [AvailabilityUiState.taxonSearchQuery], so they never disagree, and the drawer's copy is neither
+ * visible nor reachable while closed — [QUICK_SEARCH_PANEL_TAG] exists so tests can address this
+ * one specifically rather than tripping over that duplication.
+ */
+@Composable
+private fun QuickSearchPanel(
+    uiState: AvailabilityUiState,
+    onUseCurrentLocation: () -> Unit,
+    onCategorySelected: (TaxonFilter) -> Unit,
+    onTaxonSearchQueryChanged: (String) -> Unit,
+    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
+    onDismissTaxonSuggestions: () -> Unit,
+    onClose: () -> Unit,
+) {
+    Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.testTag(QUICK_SEARCH_PANEL_TAG)) {
+        SpeciesSearchControls(
+            uiState = uiState,
+            onUseCurrentLocation = onUseCurrentLocation,
+            onCategorySelected = onCategorySelected,
+            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+            onTaxonSearchResultSelected = { result ->
+                onTaxonSearchResultSelected(result)
+                onClose()
+            },
+            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+            chipRowModifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.sm),
         )
     }
 }
+
+/** See [QuickSearchPanel]'s own doc comment. */
+internal const val QUICK_SEARCH_PANEL_TAG = "quick-search-panel"
 
 private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: DistanceUnit): String {
     val month = Month.of(uiState.selectedMonth).getDisplayName(TextStyle.FULL, Locale.getDefault())
@@ -2900,9 +2990,13 @@ private fun CompactMapTab(
                     isReturning = isReturning,
                     isOffTrack = isOffTrack,
                     onToggleReturning = onToggleReturning,
+                    // Full width, flush against the top of the map — "just below" ActiveSearchSummary
+                    // (the sibling Column entry directly above this Box) rather than a narrow
+                    // floating pill with margins on both sides, per the project owner's own redesign
+                    // call.
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(Spacing.sm),
+                        .fillMaxWidth(),
                 )
                 MapIconStack(
                     isFullscreen = isFullscreen,
@@ -3103,76 +3197,80 @@ private fun CompassElevationStripContent(
     onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = MapIconStackCircleColor,
-        contentColor = Color.White,
-        shape = MaterialTheme.shapes.extraLarge,
-        shadowElevation = 2.dp,
-        modifier = modifier,
-    ) {
-        Column(
-            // width(IntrinsicSize.Max): the return-to-vehicle row's fillMaxWidth() below needs
-            // something to fill *up to* — without this, an unconstrained Column would let that
-            // fillMaxWidth() claim the whole screen's width instead of just this pill's own
-            // (widest-row-determined) width, stretching the strip into a full-width banner that
-            // covers the map underneath and swallows touches meant for it (a real regression this
-            // caught: AvailabilityScreenTripPlanningFlowTest's long-press flow stopped reaching
-            // AddActionTile until this was added).
-            modifier = Modifier
-                .width(IntrinsicSize.Max)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
+    // input for the area it occupies, which — now that this strip is full-width — swallowed the
+    // map's own long-press gesture underneath it (the same failure class IntrinsicSize.Max fixed
+    // for the narrow pill, but that fix meant shrinking the strip back down, which isn't an option
+    // now that full width is the point). A Box with no pointer/click handling of its own doesn't
+    // intercept anything, so the map keeps receiving touches everywhere except this strip's own
+    // real interactive children (the return-to-vehicle text, the record toggle).
+    CompositionLocalProvider(LocalContentColor provides Color.White) {
+        Box(modifier = modifier.background(color = MapIconStackCircleColor, shape = RectangleShape)) {
+            Column(
+                // fillMaxWidth(), not width(IntrinsicSize.Max): this strip is now the full-width bar
+                // itself (see this composable's own call site), so its content should actually span
+                // that width — in particular the return-to-vehicle row's own fillMaxWidth() below
+                // needs to reach the true screen edges to put the record toggle at the far right,
+                // not just the edge of an intrinsic-width column. (IntrinsicSize.Max was the fix for
+                // a real regression when this strip was still a narrow pill — see
+                // AvailabilityScreenTripPlanningFlowTest — not needed now that fillMaxWidth() on the
+                // Box above does that job instead.)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Navigation,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .rotate(headingDegrees ?: 0f),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Navigation,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(headingDegrees ?: 0f),
+                    )
+                    Text(
+                        text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Text("·", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        // Meters, matching this app's existing metric convention (radiusKm) rather
+                        // than introducing feet — nothing else in the app displays imperial units.
+                        text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
                 Text(
-                    text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                Text("·", style = MaterialTheme.typography.labelLarge)
-                Text(
-                    // Meters, matching this app's existing metric convention (radiusKm) rather than
-                    // introducing feet — nothing else in the app displays imperial units.
-                    text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-            Text(
-                text = mgrsStripText(location),
-                style = MaterialTheme.typography.labelMedium,
-            )
-            // Return-to-vehicle on the far left, the record start/stop toggle on the far right —
-            // opposite ends of the same box, per the project owner's own placement call, rather
-            // than a sixth MapIconStack icon (that stack is fixed at exactly five, a settled
-            // decision) or a separate return-to-vehicle screen. The text itself is the "returning"
-            // toggle — tapping it starts/stops the off-track heuristic (see TrackRecordingViewModel's
-            // own doc comment for why that's a distinct state from isRecording) — disabled while
-            // nothing is recording, since there is nothing yet to return to.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = returnToStartStripText(isRecording, returnToStart),
+                    text = mgrsStripText(location),
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isReturning) FontWeight.Bold else null,
-                    color = if (isOffTrack) MaterialTheme.colorScheme.error else Color.White,
-                    modifier = Modifier.clickable(enabled = isRecording, onClick = onToggleReturning),
                 )
-                RecordToggleButton(
-                    isRecording = isRecording,
-                    onClick = onToggleRecording,
-                )
+                // Return-to-vehicle on the far left, the record start/stop toggle on the far right —
+                // opposite ends of the same box, per the project owner's own placement call, rather
+                // than a sixth MapIconStack icon (that stack is fixed at exactly five, a settled
+                // decision) or a separate return-to-vehicle screen. The text itself is the "returning"
+                // toggle — tapping it starts/stops the off-track heuristic (see TrackRecordingViewModel's
+                // own doc comment for why that's a distinct state from isRecording) — disabled while
+                // nothing is recording, since there is nothing yet to return to.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = returnToStartStripText(isRecording, returnToStart),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isReturning) FontWeight.Bold else null,
+                        color = if (isOffTrack) MaterialTheme.colorScheme.error else Color.White,
+                        modifier = Modifier.clickable(enabled = isRecording, onClick = onToggleReturning),
+                    )
+                    RecordToggleButton(
+                        isRecording = isRecording,
+                        onClick = onToggleRecording,
+                    )
+                }
             }
         }
     }

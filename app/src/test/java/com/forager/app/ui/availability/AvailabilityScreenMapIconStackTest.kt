@@ -12,6 +12,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -109,6 +112,7 @@ class AvailabilityScreenMapIconStackTest {
         locationProvider: LocationProvider = IconStackUnusedLocationProvider,
         isRecording: Boolean = false,
         returnToStart: ReturnToStartInfo? = null,
+        mushroomRepository: MushroomRepository = IconStackEmptyRepository,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -116,7 +120,7 @@ class AvailabilityScreenMapIconStackTest {
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(IconStackEmptyRepository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(IconStackEmptyRepository),
-            searchTaxa = SearchTaxaUseCase(IconStackEmptyRepository),
+            searchTaxa = SearchTaxaUseCase(mushroomRepository),
             getConditions = GetConditionsUseCase(IconStackStubWeatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(IconStackStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
@@ -366,6 +370,63 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithText("Return: 45° NE · 350 m · elevation diff. unavailable").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the search summary bar shows a magnifying glass marking it as tappable for search`() {
+        setScreen()
+
+        composeRule.onNodeWithContentDescription("Quick species search").assertIsDisplayed()
+    }
+
+    /**
+     * [ModalNavigationDrawer] keeps the drawer's own [SpeciesSearchControls] composed even while
+     * closed — see [QuickSearchPanel]'s own doc comment — so queries here are scoped to
+     * [QUICK_SEARCH_PANEL_TAG] rather than matching by text/tag alone, which would find both the
+     * (closed, off-screen) drawer copy and this panel's own.
+     */
+    private fun quickSearchNodeWithText(text: String) =
+        composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(QUICK_SEARCH_PANEL_TAG)))
+
+    @Test
+    fun `tapping the search summary bar opens a quick search panel, tapping again closes it`() {
+        setScreen()
+
+        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
+        composeRule.onNodeWithTag(QUICK_SEARCH_PANEL_TAG).assertIsDisplayed()
+
+        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
+        composeRule.onNodeWithTag(QUICK_SEARCH_PANEL_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the quick search panel does not open the full search drawer`() {
+        setScreen()
+
+        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
+
+        // The drawer's "Advanced search" entry point structurally exists either way (see
+        // QuickSearchPanel's own doc comment on ModalNavigationDrawer) — the real assertion is
+        // that it isn't showing, not that it's absent from the tree.
+        composeRule.onNodeWithText("Advanced search").assertIsNotDisplayed()
+    }
+
+    /**
+     * Category selection, not species text search: [SpeciesSearchControls]' category chips apply
+     * synchronously (no debounce, no Popup dropdown), so this exercises quick search wired to the
+     * real [AvailabilityViewModel] without the timing fragility a debounced-search-to-dropdown test
+     * would need — [SearchTaxaUseCase]'s own debounce/dropdown mechanics are shared, pre-existing
+     * logic with no dedicated test anywhere in this codebase yet, compact or otherwise; not a gap
+     * this task introduced.
+     */
+    @Test
+    fun `picking a category chip in quick search applies the filter through the real ViewModel`() {
+        setScreen()
+
+        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
+        quickSearchNodeWithText("Plants").performClick()
+
+        assertEquals(TaxonFilter.PLANTS, viewModel.uiState.value.taxonFilter)
     }
 
     @Test
