@@ -211,6 +211,7 @@ class MapLibreOfflineMapRepository(
     // this class's doc comment), so there is no state to avoid re-setting, and this guarantees the
     // deliberate budget is in force before any offline operation regardless of call order.
     private fun offlineManager(): OfflineManager {
+        ensureMapLibreStorageOutsideCache(appContext)
         MapLibre.getInstance(appContext)
         val manager = OfflineManager.getInstance(appContext)
         manager.setOfflineMapboxTileCountLimit(OfflineMapRepository.TILE_COUNT_LIMIT)
