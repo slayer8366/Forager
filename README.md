@@ -1140,32 +1140,32 @@ hold the exact 18:14 ratio the original osmdroid `DashPathEffect(18f, 14f)`
 used (an intermediate value drifted that ratio during the port and was
 caught by this same assertion before it shipped).
 
-**Nothing about how any of this looks has been seen — this is now true of
-strictly more than it was before the migration, not less.** The prior
-osmdroid renderer *had* been seen once on a physical phone, with two real
-findings: topo tiles render (a JPEG URL confirmed built and confirmed
-fetchable, then confirmed to actually appear in the `MapView`), and the
-dashed connector reads as visibly dashed at a 15km search's opening zoom.
-Neither finding transfers to MapLibre — a different renderer, different
-draw calls, a different clipping mechanism, a different way of building
-dashed lines (line-width multiples instead of raw pixels, see above). Both
-questions are open again, unasked and unanswered on real hardware:
+**The first hardware pass of the MapLibre renderer happened this project
+cycle, and it closed two of the questions this section used to carry as
+fully open.** Portland-metro, USGS Topo, an active search ("Oyster
+Mushrooms · August · 9 mi"), sighting dots, a numbered cluster badge, and a
+dashed connector, all on screen together on a real device:
 
-- **Whether MapLibre topo tiles render at all** in the new `MapView` — the
-  URL is proven fetchable and the style JSON is proven to reference it
-  correctly, but the two have never been observed joined up on a device,
-  same gap as before the migration, now for a different renderer.
-- **Whether the overlay colours still read against topographic terrain.**
-  Unchanged risk, carried forward untouched: the sighting dots are bark
-  brown at ~70% alpha and the order connector is mushroom orange, both
-  chosen against OpenStreetMap's comparatively flat palette; USGS Topo's
-  contour browns/tans and USGS Imagery's dark-canopy aerial photography are
-  both plausible legibility failures for those colours. **Still
-  deliberately not changed** — adjusting them from reasoning alone would be
-  the speculative correction `CLAUDE.md` rules out, and unlike before the
-  migration there is currently no hardware-confirmed fact about this layer
-  left to spend by getting it wrong. Look at it on a device first; a colour
-  change needs a reason, not a guess made in advance of the evidence.
+- **MapLibre topo tiles render, and glyphs load with them.** Contours,
+  hydrography, roads, and place labels ("OREGON") all painted in the
+  `MapView` — the first time this has been seen joined up on a device for
+  this renderer, closing the gap the prior osmdroid pass's own finding
+  didn't transfer across. Glyphs loading also means the confirmed
+  glyph-crash finding from `docs/plans/maplibre-migration.md` §7/PR #23
+  does not reproduce here — worth noting that finding was specific to
+  *offline downloads* of a style with glyph layers
+  (`MapLibreOfflineMapRepository`'s own doc comment), a different code path
+  from this live-rendering confirmation, so the two aren't in tension.
+- **The dashed connector still reads as visibly dashed** at a metro-area
+  search's opening zoom, against varied terrain — the property carrying
+  the "not a walking route" safety disclaimer survived the migration to
+  this renderer, the same way it held on osmdroid.
+
+**Still open, and now with real findings instead of an unasked question.**
+The same screenshot surfaced concrete legibility problems with the overlay
+colours specifically — see the fix-by-fix detail below, added alongside
+each fix as it lands, rather than written speculatively ahead of the
+evidence the way this section previously deferred the question entirely.
 
 The build-identity footer's version values are verified separately — they
 were read off the packaged APK with `aapt2 dump badging`, not off the Gradle
