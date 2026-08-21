@@ -29,8 +29,10 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
@@ -55,6 +57,8 @@ import java.time.LocalDate
 import java.time.Month
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -112,6 +116,7 @@ class AvailabilityScreenConditionsMonthTest {
     private fun setScreen() {
         val viewModel = AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,
+            locationTracker = NoOpLocationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(FakeRepository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(FakeRepository),
@@ -243,6 +248,10 @@ class AvailabilityScreenConditionsMonthTest {
 private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
 
 /** The coordinate path is what this test drives, so the device-location path is never reached. */
+private object NoOpLocationTracker : LocationTracker {
+    override val fixes: Flow<LocationFix> = emptyFlow()
+}
+
 private object UnusedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation(): LocationResult =
         error("getCurrentLocation() is not part of this test's path and must not be called")

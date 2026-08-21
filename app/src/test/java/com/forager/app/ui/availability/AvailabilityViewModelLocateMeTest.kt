@@ -13,8 +13,10 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
@@ -37,6 +39,8 @@ import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -71,6 +75,7 @@ class AvailabilityViewModelLocateMeTest {
         val plannedTripRepository = LocateMeInMemoryPlannedTripRepository()
         return AvailabilityViewModel(
             locationProvider = locationProvider,
+            locationTracker = LocateMeNoOpLocationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(LocateMeEmptyRepository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(LocateMeEmptyRepository),
@@ -161,6 +166,10 @@ private class LocateMeFixedLocationProvider(private val result: LocationResult) 
 private object LocateMeUnusedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation(): LocationResult =
         error("getCurrentLocation() is not part of this test's path and must not be called")
+}
+
+private object LocateMeNoOpLocationTracker : LocationTracker {
+    override val fixes: Flow<LocationFix> = emptyFlow()
 }
 
 private object LocateMeEmptyRepository : MushroomRepository {

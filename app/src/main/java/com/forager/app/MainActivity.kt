@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
             initializer {
                 AvailabilityViewModel(
                     container.locationProvider,
+                    container.locationTracker,
                     container.getAvailabilityUseCase,
                     container.getRecentSearchesUseCase,
                     container.getSightingsUseCase,

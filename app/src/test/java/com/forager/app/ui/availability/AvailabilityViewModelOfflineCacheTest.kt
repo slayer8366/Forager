@@ -13,8 +13,10 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.MutableClock
 import com.forager.app.domain.OfflineMapInfo
@@ -38,6 +40,8 @@ import com.forager.app.domain.model.WeatherSeries
 import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -96,6 +100,10 @@ private class SwitchableMushroomRepository : MushroomRepository {
         Result.success(emptyList())
 }
 
+private object OfflineCacheNoOpLocationTracker : LocationTracker {
+    override val fixes: Flow<LocationFix> = emptyFlow()
+}
+
 private object OfflineCacheUnusedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation() = LocationResult.LocationUnavailable
 }
@@ -147,6 +155,7 @@ class AvailabilityViewModelOfflineCacheTest {
 
     private fun viewModel() = AvailabilityViewModel(
         locationProvider = OfflineCacheUnusedLocationProvider,
+        locationTracker = OfflineCacheNoOpLocationTracker,
         getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(remote), cache),
         getRecentSearches = GetRecentSearchesUseCase(cache),
         getSightings = GetSightingsUseCase(remote),

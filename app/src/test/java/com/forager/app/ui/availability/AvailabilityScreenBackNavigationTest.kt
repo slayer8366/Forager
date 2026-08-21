@@ -35,8 +35,10 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
@@ -62,6 +64,7 @@ import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -118,6 +121,7 @@ class AvailabilityScreenBackNavigationTest {
         val plannedTripRepository = BackNavInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
             locationProvider = BackNavUnusedLocationProvider,
+            locationTracker = BackNavNoOpLocationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(BackNavEmptyRepository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(BackNavEmptyRepository),
@@ -324,6 +328,10 @@ private val BackNavFakeCompassProvider = BackNavFakeCompassProviderImpl()
 private object BackNavUnusedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation(): LocationResult =
         error("getCurrentLocation() is not part of this test's path and must not be called")
+}
+
+private object BackNavNoOpLocationTracker : LocationTracker {
+    override val fixes: Flow<LocationFix> = emptyFlow()
 }
 
 private object BackNavEmptyRepository : MushroomRepository {

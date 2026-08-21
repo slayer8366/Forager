@@ -14,8 +14,10 @@ import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
@@ -36,6 +38,8 @@ import kotlinx.coroutines.launch
 
 class AvailabilityViewModel(
     private val locationProvider: LocationProvider,
+    /** See [AvailabilityUiState.liveLocation]'s own doc comment for why this is collected separately from [locationProvider]'s one-shot fetch. */
+    private val locationTracker: LocationTracker,
     /**
      * The ranked-list search, cache-aware: live first, the offline cache only when live fails.
      * [PredictAvailabilityUseCase] is deliberately *not* a dependency of this class any more — the
@@ -75,6 +79,22 @@ class AvailabilityViewModel(
         // search rather than as a side effect of one.
         loadRecentSearches()
         loadOfflineMapStatus()
+        // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
+        // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
+        // recording: "any time the map is open" was the explicit ask this answers. A denied/
+        // unsupported permission just never emits an Update here — locationTracker.fixes' own doc
+        // comment covers that "explicit unsupported, not a silent empty stream" contract; this
+        // ViewModel doesn't duplicate that signaling, since the strip's own "Coordinates
+        // unavailable" text already covers the null case honestly either way.
+        viewModelScope.launch {
+            locationTracker.fixes.collect { fix ->
+                if (fix is LocationFix.Update) {
+                    _uiState.update {
+                        it.copy(liveLocation = LatLng(fix.lat, fix.lng), liveAltitudeMeters = fix.altitude)
+                    }
+                }
+            }
+        }
     }
 
     fun onRadiusChanged(radiusKm: Int) {

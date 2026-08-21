@@ -13,8 +13,10 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
@@ -38,6 +40,8 @@ import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -74,6 +78,10 @@ private val REFERENCE_INFO = OfflineMapInfo(
     sizeBytes = 4_200_000L,
     downloadedAtEpochMillis = 1_755_000_000_000L,
 )
+
+private object OfflineMapsNoOpLocationTracker : LocationTracker {
+    override val fixes: Flow<LocationFix> = emptyFlow()
+}
 
 private object OfflineMapsUnusedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation(): LocationResult =
@@ -155,6 +163,7 @@ class AvailabilityViewModelOfflineMapsTest {
 
     private fun viewModel(offlineMapRepository: OfflineMapRepository): AvailabilityViewModel = AvailabilityViewModel(
         locationProvider = OfflineMapsUnusedLocationProvider,
+        locationTracker = OfflineMapsNoOpLocationTracker,
         getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(OfflineMapsEmptyRepository), searchCache),
         getRecentSearches = GetRecentSearchesUseCase(searchCache),
         getSightings = GetSightingsUseCase(OfflineMapsEmptyRepository),

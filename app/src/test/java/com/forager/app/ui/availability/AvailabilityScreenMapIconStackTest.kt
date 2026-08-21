@@ -39,8 +39,10 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
@@ -65,7 +67,9 @@ import com.forager.app.domain.model.WeatherSeries
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -110,6 +114,7 @@ class AvailabilityScreenMapIconStackTest {
         onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> },
         mapSlot: MapSlot = CountingStubMapSlot,
         locationProvider: LocationProvider = IconStackUnusedLocationProvider,
+        locationTracker: LocationTracker = IconStackNoOpLocationTracker,
         isRecording: Boolean = false,
         returnToStart: ReturnToStartInfo? = null,
         mushroomRepository: MushroomRepository = IconStackEmptyRepository,
@@ -117,6 +122,7 @@ class AvailabilityScreenMapIconStackTest {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
             locationProvider = locationProvider,
+            locationTracker = locationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(IconStackEmptyRepository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(IconStackEmptyRepository),
@@ -318,18 +324,31 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the compass strip shows a real MGRS grid reference once locate-me resolves a fix`() {
+    fun `the compass strip shows a real MGRS grid reference alongside labeled decimal degrees once a live fix arrives`() {
         // Same Portland-OR point MgrsConverterTest pins, not a value invented for this test — if
         // MgrsConverter's own logic ever regresses, that test fails; this one only needs to prove
-        // the strip actually renders whatever MgrsConverter.convert(location) returns.
-        setScreen(
-            onLocateMe = { viewModel.locateMe() },
-            locationProvider = IconStackFixedLocationProvider(lat = 45.5152, lng = -122.6784, altitude = 210.0),
-        )
+        // the strip actually renders whatever MgrsConverter.convert(location) returns, plus the
+        // labeled decimal pair coordinatesStripText appends alongside it.
+        //
+        // Driven through the continuous LocationTracker, not locate-me's one-shot locationProvider:
+        // the strip's own coordinates now come from AvailabilityUiState.liveLocation, which only
+        // AvailabilityViewModel's locationTracker.fixes collection populates (see that ViewModel's
+        // init block) — locate-me's fetch still drives the map's own GPS pan/camera, but no longer
+        // this strip, per the "any time the map is open" live-tracking scope this redesign answers.
+        // replay = 1 (not a bare MutableSharedFlow()): tryEmit below runs synchronously from the
+        // test body, with no guarantee AvailabilityViewModel's own viewModelScope.launch { fixes.
+        // collect {} } (started inside its init, from setScreen's AvailabilityViewModel(...) call
+        // above) has actually subscribed by the time the emit happens — a bare zero-buffer
+        // SharedFlow's tryEmit silently drops the value with no subscriber ready yet. A one-slot
+        // replay buffer guarantees the fix is delivered whenever the collector does start.
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        setScreen(locationTracker = IconStackFakeLocationTracker(fixes))
         searchAReferenceRegion()
+
+        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L))
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
+        composeRule.onNodeWithText("10T ER 25118 40235 · Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
     }
 
     @Test
@@ -481,9 +500,11 @@ private object IconStackUnusedLocationProvider : LocationProvider {
         error("getCurrentLocation() is not part of this test's path and must not be called")
 }
 
-private class IconStackFixedLocationProvider(private val lat: Double, private val lng: Double, private val altitude: Double?) : LocationProvider {
-    override suspend fun getCurrentLocation(): LocationResult = LocationResult.Success(lat, lng, altitude)
+private object IconStackNoOpLocationTracker : LocationTracker {
+    override val fixes: Flow<LocationFix> = emptyFlow()
 }
+
+private class IconStackFakeLocationTracker(override val fixes: MutableSharedFlow<LocationFix>) : LocationTracker
 
 private object IconStackEmptyRepository : MushroomRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =

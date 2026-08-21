@@ -13,8 +13,10 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
@@ -37,6 +39,8 @@ import com.forager.app.domain.model.WeatherSeries
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -119,6 +123,10 @@ class AvailabilityViewModelSeasonalPatternTest {
             error("getCurrentLocation() is not part of this test's path and must not be called")
     }
 
+    private object NoOpLocationTracker : LocationTracker {
+        override val fixes: Flow<LocationFix> = emptyFlow()
+    }
+
     private object StubWeatherProvider : WeatherProvider {
         override suspend fun getRecentPrecipitation(region: Region) =
             Result.success(ConditionsSummary(region = region, totalPrecipitationMm = 0.0, daysSinceSignificantRain = null))
@@ -151,6 +159,7 @@ class AvailabilityViewModelSeasonalPatternTest {
         val searchCache = InMemorySearchCacheRepository()
         return AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,
+            locationTracker = NoOpLocationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(repository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(repository),

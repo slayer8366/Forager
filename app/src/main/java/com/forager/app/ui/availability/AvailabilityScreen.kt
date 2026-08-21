@@ -2987,8 +2987,8 @@ private fun CompactMapTab(
                 )
                 CompassElevationStrip(
                     compassProvider = compassProvider,
-                    elevationMeters = (uiState.locateMeStatus as? LocateMeStatus.Located)?.altitude,
-                    location = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location,
+                    elevationMeters = uiState.liveAltitudeMeters,
+                    location = uiState.liveLocation,
                     isRecording = isRecording,
                     onToggleRecording = onToggleRecording,
                     returnToStart = returnToStart,
@@ -3228,7 +3228,23 @@ private fun CompassElevationStripContent(
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
+                // Heading, elevation, and coordinates on one line — the project owner's own call
+                // ("have the text all fit in one single line") to make the strip read as a slim bar
+                // rather than a two-line block. labelMedium (down from heading/elevation's earlier
+                // labelLarge) is meant to let a typical phone width show the whole line; on a
+                // narrower screen, the coordinates segment (the longest of the three, and the one
+                // that grew when Lat./Long. were added alongside the MGRS grid) is the one that
+                // gives way — Modifier.weight(1f, fill = false) + TextOverflow.Ellipsis on just that
+                // Text, not horizontalScroll on the whole Row: horizontalScroll installs a real
+                // pointer-input handler even at zero scroll range, which intercepted touches meant
+                // for the map underneath this strip (the same touch-interception class
+                // CompassElevationStripContent's own Box-not-Surface comment above already
+                // documents; AvailabilityScreenTripPlanningFlowTest and
+                // AvailabilityScreenWaypointFlowTest caught this one the same way). Weight-based
+                // sizing truncates with an ellipsis rather than an abrupt hard clip, and adds no
+                // pointer input of its own, so the map stays reachable everywhere under the strip.
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
@@ -3236,25 +3252,31 @@ private fun CompassElevationStripContent(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(18.dp)
                             .rotate(headingDegrees ?: 0f),
                     )
                     Text(
                         text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
                     )
-                    Text("·", style = MaterialTheme.typography.labelLarge)
+                    Text("·", style = MaterialTheme.typography.labelMedium)
                     Text(
                         // Meters, matching this app's existing metric convention (radiusKm) rather
                         // than introducing feet — nothing else in the app displays imperial units.
                         text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                    )
+                    Text("·", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = coordinatesStripText(location),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                 }
-                Text(
-                    text = mgrsStripText(location),
-                    style = MaterialTheme.typography.labelMedium,
-                )
                 // Return-to-vehicle on the far left, the record start/stop toggle on the far right —
                 // opposite ends of the same box, per the project owner's own placement call, rather
                 // than a sixth MapIconStack icon (that stack is fixed at exactly five, a settled
@@ -3328,17 +3350,28 @@ private fun RecordToggleButton(isRecording: Boolean, onClick: () -> Unit, modifi
 /**
  * "Coordinates unavailable" before a first fix (distinct wording from [MgrsCoordinate.Unsupported]
  * — one is "no fix yet", the other is "this location can't be expressed in MGRS at all", and
- * collapsing them into one message would hide which is actually true). No decimal-degree fallback
- * the way [PlannedTripRow] keeps one: [MgrsCoordinate.Unsupported] only fires north of 84°N or
- * south of 80°S, nowhere this app's US-forest use case ever reaches, so a second line earning its
- * keep for that edge case isn't worth the strip's limited width.
+ * collapsing them into one message would hide which is actually true).
+ *
+ * The decimal lat/long pair is labeled ("Lat."/"Long.", the project owner's own wording) rather
+ * than the bare "45.5231, -122.6414" [PlannedTripRow] shows — that row sits next to a named trip,
+ * where the pair reads as "that trip's location" from context; this strip has no such context, so
+ * an unlabeled pair here could as easily read as two unrelated numbers. `"%.4f"` matches the same
+ * precision every other decimal-degree display in this file already uses (`PlannedTripRow`,
+ * `RecentSearchRow`, the offline-map picker), not a new precision invented for this one line.
+ * Always shown alongside the MGRS grid, not instead of it: [MgrsCoordinate.Unsupported] only fires
+ * north of 84°N or south of 80°S, nowhere this app's US-forest use case ever reaches, but the two
+ * formats serve different readers (MGRS for a paper-map/compass workflow, decimal degrees for
+ * pasting into another app), so showing whichever one didn't happen to be unavailable isn't a full
+ * substitute for the other.
  */
-private fun mgrsStripText(location: LatLng?): String {
+private fun coordinatesStripText(location: LatLng?): String {
     if (location == null) return "Coordinates unavailable"
-    return when (val mgrs = MgrsConverter.convert(location)) {
+    val decimalDegrees = "Lat. ${"%.4f".format(location.lat)} Long. ${"%.4f".format(location.lng)}"
+    val mgrsText = when (val mgrs = MgrsConverter.convert(location)) {
         is MgrsCoordinate.Grid -> mgrs.value
         is MgrsCoordinate.Unsupported -> "MGRS unavailable"
     }
+    return "$mgrsText · $decimalDegrees"
 }
 
 /** Nearest 45°-wide compass point for [headingDegrees], `[0, 360)`. */

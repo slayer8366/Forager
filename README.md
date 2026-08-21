@@ -973,19 +973,69 @@ caught as an ambiguous-node failure, not just a test-authoring
 inconvenience; `QUICK_SEARCH_PANEL_TAG` lets the two be addressed
 unambiguously.
 
-**None of the three has been seen running.** Same limitation as the rest
-of this map screen: the full-width strip's actual on-screen legibility,
-the quick-search panel's layout at a small screen size, and — the
-largest gap — whether the live-location puck and camera-follow behavior
-actually work at all are all reasoned through and headlessly verified
-where a JVM test can reach (529/529 passing), not confirmed on a device.
-`LocationComponent`/`MapLibreMap`/`Style` are native-backed types this
-project's own established precedent already documents as unconstructable
-in a JVM unit test (see "The topographic basemap, specifically" above),
-so the live-tracking activation code itself has no test coverage beyond
-compiling — the same boundary `initializeOverlayLayers`/
-`refreshOverlayData` already sit behind, not a new gap this pass
-introduced.
+**The live-location puck and camera-follow behavior have since been
+confirmed on hardware** — a real-device screenshot showed the blue dot
+tracking the device's position on the map. The full-width strip's
+on-screen legibility and the quick-search panel's layout at a small
+screen size are still only reasoned through and headlessly verified
+where a JVM test can reach (529/529 passing at the time), not confirmed
+on a device. `LocationComponent`/`MapLibreMap`/`Style` are native-backed
+types this project's own established precedent already documents as
+unconstructable in a JVM unit test (see "The topographic basemap,
+specifically" above), so the live-tracking activation code itself has no
+test coverage beyond compiling — the same boundary
+`initializeOverlayLayers`/`refreshOverlayData` already sit behind, not a
+new gap this pass introduced.
+
+### A single-line compass strip with labeled decimal coordinates, specifically
+
+A follow-up hardware round after the pass above: the project owner's
+real-device screenshot showed the compass/elevation/coordinates strip
+still wrapping onto two visually blocky lines. Three changes answer
+that, all in `CompassElevationStripContent`/`coordinatesStripText`:
+heading, elevation, and coordinates now render on one shared `Row`
+(`labelMedium`, down from `labelLarge`, to make more likely to fit); the
+coordinates segment gained explicit `Lat.`/`Long.` labels alongside the
+existing MGRS grid reference (`coordinatesStripText`, renamed from
+`mgrsStripText`), at this file's existing `"%.4f"` decimal-degree
+precision; and those coordinates now come from a second, independent
+continuous `LocationTracker.fixes` collection newly added to
+`AvailabilityViewModel`'s own `init` block (`AvailabilityUiState.
+liveLocation`/`liveAltitudeMeters`), replacing the previous one-shot
+`locateMeStatus`-derived values — "any time the map is open," the same
+live-tracking scope the project owner specified earlier in this cycle,
+not gated on tapping the GPS icon or on a track recording being active.
+
+**A real regression was caught and fixed by headless coverage, a third
+instance of the same touch-interception class this file has now hit
+twice before** (`Surface` intercepting pointer input even with no
+`onClick`, documented above and in `CompassElevationStripContent`'s own
+comment). The first attempt at "don't wrap onto a second line" used
+`Modifier.horizontalScroll(rememberScrollState())` on the shared `Row` —
+`AvailabilityScreenTripPlanningFlowTest`/`AvailabilityScreenWaypointFlowTest`
+immediately went from green to failing: `horizontalScroll` installs a
+real pointer-input handler even at zero scroll range, and that handler
+sat, in z-order, on top of the map underneath this full-width strip,
+swallowing the fake map slot's own "Simulate long press" touch in both
+suites' fixtures. The fix was `Modifier.weight(1f, fill = false)` +
+`TextOverflow.Ellipsis` on just the coordinates `Text` instead — the
+longest of the three segments, and the one most likely to need to give
+way on a narrow screen — which adds no pointer input of its own, so the
+map stays reachable everywhere under the strip; an ellipsis at the tail
+end degrades gracefully rather than a hard clip. Root-caused by
+capturing the actual semantics tree mid-test (`onRoot().printToString()`)
+rather than guessing after the first fix attempt didn't hold, per this
+project's own "two failed attempts, stop guessing" rule.
+
+**Not yet seen running.** Same limitation as everything else in this
+section: reasoned through and headlessly verified (529/529 passing) —
+including a new `AvailabilityScreenMapIconStackTest` case that pushes a
+fix through a fake `LocationTracker` and asserts the strip's combined
+MGRS-plus-decimal text renders — but not confirmed on a device. Whether
+the single line actually fits without ellipsis-truncating on a typical
+phone width, and whether the live coordinates genuinely update in step
+with the map and compass as the project owner asked, are both open until
+the next hardware round.
 
 ### Phase 2 — the compact navigation restructure (search-only drawer, 5-tab bottom nav, Journal gallery, distance unit), specifically
 

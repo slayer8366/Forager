@@ -21,8 +21,10 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
+import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PlannedTripRepository
@@ -39,6 +41,8 @@ import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.WeatherSeries
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -141,6 +145,10 @@ private class FixedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation() = LocationResult.Success(lat = 45.326, lng = -122.634)
 }
 
+private object FilterTestNoOpLocationTracker : LocationTracker {
+    override val fixes: Flow<LocationFix> = emptyFlow()
+}
+
 private class StubWeatherProvider : WeatherProvider {
     override suspend fun getRecentPrecipitation(region: Region) =
         Result.success(ConditionsSummary(region = region, totalPrecipitationMm = 12.0, daysSinceSignificantRain = 2))
@@ -198,6 +206,7 @@ class AvailabilityViewModelFilterTest {
         val repository = INaturalistMushroomRepository(LichenAwareApi())
         return AvailabilityViewModel(
             locationProvider = FixedLocationProvider(),
+            locationTracker = FilterTestNoOpLocationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(repository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(repository),

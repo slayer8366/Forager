@@ -6,6 +6,7 @@ import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagDistribution
+import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -125,6 +126,17 @@ data class AvailabilityUiState(
      * current location for search region" control.
      */
     val locateMeStatus: LocateMeStatus = LocateMeStatus.Idle,
+    /**
+     * The compass strip's own live position — continuously refreshed from
+     * [com.forager.app.domain.LocationTracker.fixes] while this ViewModel is alive, distinct from
+     * [locateMeStatus]'s one-shot fetch (still used for the map's own "center on me" action and its
+     * permission-denied/unavailable messaging). `null` before a first fix arrives, or if location
+     * permission isn't granted — the strip's own "Coordinates unavailable" text already covers that
+     * state honestly; there is no separate denied/unavailable case duplicated here.
+     */
+    val liveLocation: LatLng? = null,
+    /** See [liveLocation] — the same fix's altitude, `null` whenever the device didn't report one. */
+    val liveAltitudeMeters: Double? = null,
 ) {
     val hasSearched: Boolean get() = region != null
 }
