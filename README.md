@@ -1178,6 +1178,19 @@ previously deferred the question entirely.
   on hardware, and not yet checked on the imagery basemap specifically** —
   pale topo was the basemap that happened to get screenshotted, and
   dark-on-dark is the likelier failure mode for an opaque dark control.
+- **The sighting dots (bark brown, ~70% alpha) became an unresolvable
+  smudge in a dense cluster** near Lake Oswego, overlapping each other and
+  the numbered cluster badge. **Deliberately not made opaque** — unlike the
+  icon-stack fix above, overlap density here is itself information (a
+  muddle of dots is the signal that several sightings cluster there), so
+  the fix is a light stroke around each dot for boundary definition, not
+  maximum contrast. See `SightingsMap`'s class doc comment, "The overlay
+  colours", for the finding and the fix. Same caveat as the icon stack:
+  not yet re-confirmed on hardware or checked against the imagery basemap.
+  No headless test covers this either — `CircleLayer`'s paint properties
+  are native-backed and unconstructable in this project's dev environment
+  (same limitation this section already documents for the dashed
+  connector and area-marker text).
 
 The build-identity footer's version values are verified separately — they
 were read off the packaged APK with `aapt2 dump badging`, not off the Gradle

@@ -116,13 +116,20 @@ import org.maplibre.geojson.Point
  *   session has no device to confirm it visually, so the clip stays in place regardless (removing a
  *   defensive modifier on an argument alone, with nothing to observe the result on, is not a trade
  *   this migration takes). Flagged in the handoff as still needing an eyes-on check.
- * - *The overlay colours.* Unretouched, on purpose — `docs/plans/maplibre-migration.md` §2b
- *   explicitly re-opens this question ("Bark brown at 70% alpha and mushroom orange were chosen
- *   against a specific palette; a new basemap style is a new palette") but this migration keeps all
- *   four basemaps as the *same* raster tile services osmdroid used (see [Basemap]'s doc comment), so
- *   there is no new palette yet to re-check the colours against — that check becomes real once/if a
- *   live vector basemap replaces these raster ones. Recorded here so this doesn't read as an
- *   oversight.
+ * - *The overlay colours.* Originally left unretouched on the theory that no new palette existed yet
+ *   to re-check them against, since this migration keeps all four basemaps as the *same* raster tile
+ *   services osmdroid used (see [Basemap]'s doc comment). **That theory held for the connector but
+ *   not the sighting dots.** The first real hardware pass of this renderer (Portland-metro, USGS
+ *   Topo) confirmed the dashed connector still reads as dashed — the colour question there really
+ *   was moot. But the same screenshot found the sighting dots (bark brown, [SIGHTING_DOT_OPACITY])
+ *   an unresolvable smudge in a dense cluster near Lake Oswego, overlapping each other and the
+ *   cluster badge — a real legibility failure this migration's "same raster tiles, same palette"
+ *   reasoning didn't predict, because the failure is about density and boundary loss between
+ *   overlapping translucent dots, not about the colour reading against a *different* basemap
+ *   palette. Fixed with [SIGHTING_DOT_STROKE_WIDTH_PX]/[SIGHTING_DOT_STROKE_COLOR] below — a stroke,
+ *   not full opacity: overlap density is itself information (a muddle of dots *is* the signal that
+ *   several sightings cluster there), so the fix is boundary definition, not maximum contrast. Not
+ *   yet re-confirmed on hardware, and not yet checked on the imagery basemap specifically.
  *
  * **Not re-confirmed, and known to have changed:** the tap-to-see-title/snippet popup osmdroid's
  * `Marker.title`/`.snippet` gave for free. Style-layer geometry has no built-in equivalent —
@@ -356,6 +363,9 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
             PropertyFactory.circleColor(SIGHTING_DOT_COLOR),
             PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
             PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
+            PropertyFactory.circleStrokeColor(SIGHTING_DOT_STROKE_COLOR),
+            PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
+            PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
         ),
     )
 
@@ -679,6 +689,14 @@ private val CONNECTOR_COLOR = 0xFFC97B3D.toInt()
 private val SIGHTING_DOT_COLOR = 0xFF3B2E24.toInt() // bark, opaque — translucency comes from SIGHTING_DOT_OPACITY instead of an alpha channel in this int, see this file's history.
 private const val SIGHTING_DOT_OPACITY = 0.7f // ~= the deleted osmdroid version's 0xB3 alpha.
 private const val SIGHTING_DOT_RADIUS_PX = 9f
+
+// The stroke that keeps individual dots distinguishable within a dense cluster — see this file's
+// class doc comment, "The overlay colours", for the hardware finding this fixes. A light, near-
+// opaque stroke (not translucent like the fill) so the boundary itself stays crisp regardless of
+// how many dots overlap or what opacity the fill composites to underneath.
+private val SIGHTING_DOT_STROKE_COLOR = Color.WHITE
+private const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
+private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 private val AREA_MARKER_BACKGROUND_COLOR = 0xFF2E5339.toInt()
 private val AREA_MARKER_FOREGROUND_COLOR = Color.WHITE
 private const val AREA_MARKER_FONT_SIZE_PX = 14f
