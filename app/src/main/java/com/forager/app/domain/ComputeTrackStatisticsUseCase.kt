@@ -27,12 +27,26 @@ import kotlin.math.abs
  * [ComputeTrackStatisticsUseCaseTest] covers both a purely stationary noisy track (asserts ~0) and a
  * staircase with a known total climb spread across many sub-threshold steps (asserts the true total
  * is recovered within one threshold's worth of tolerance — the unavoidable unbanked remainder is
- * whatever partial climb hadn't yet crossed the threshold when the track ended).
+ * whatever partial climb hadn't yet crossed the threshold when the track ended, and stays under one
+ * threshold regardless of how long the staircase is — banking resets the reference every time it
+ * fires, so the unbanked tail never compounds with track length).
+ *
+ * [TrackStatistics.elevationCoverage] carries what a bare gain/loss number can't: a track missing
+ * altitude on part of its points reports a real, lower gain — the same conservative under-report a
+ * gap already gets, not a fabricated bridge across the missing readings (see the gap-reset note
+ * above) — and coverage is what turns that into a reportable fact instead of a silently-too-low one.
  */
 class ComputeTrackStatisticsUseCase {
     operator fun invoke(points: List<TrackPoint>): TrackStatistics {
         if (points.isEmpty()) {
-            return TrackStatistics(distanceMeters = 0.0, durationMillis = 0L, elevationGainMeters = null, elevationLossMeters = null)
+            return TrackStatistics(
+                distanceMeters = 0.0,
+                durationMillis = 0L,
+                elevationGainMeters = null,
+                elevationLossMeters = null,
+                pointsWithAltitude = 0,
+                totalPoints = 0,
+            )
         }
 
         var distanceMeters = 0.0
@@ -80,6 +94,8 @@ class ComputeTrackStatisticsUseCase {
             durationMillis = durationMillis,
             elevationGainMeters = if (sawElevationDelta) gainMeters else null,
             elevationLossMeters = if (sawElevationDelta) lossMeters else null,
+            pointsWithAltitude = points.count { it.altitude != null },
+            totalPoints = points.size,
         )
     }
 }

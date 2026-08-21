@@ -20,6 +20,7 @@ class ComputeTrackStatisticsUseCaseTest {
         assertNull(stats.elevationGainMeters)
         assertNull(stats.elevationLossMeters)
         assertNull(stats.averageSpeedMetersPerSecond)
+        assertNull(stats.elevationCoverage)
     }
 
     @Test
@@ -64,6 +65,9 @@ class ComputeTrackStatisticsUseCaseTest {
 
         assertEquals(50.0, stats.elevationGainMeters!!, 1e-9)
         assertEquals(30.0, stats.elevationLossMeters!!, 1e-9)
+        // 4 of the 5 points report an altitude (only the gap point doesn't) — coverage counts
+        // points, not banked deltas, so it's unaffected by the gap being skipped above.
+        assertEquals(0.8, stats.elevationCoverage!!, 1e-9)
     }
 
     @Test
@@ -87,6 +91,7 @@ class ComputeTrackStatisticsUseCaseTest {
 
         assertEquals(0.0, stats.elevationGainMeters!!, 1e-9)
         assertEquals(0.0, stats.elevationLossMeters!!, 1e-9)
+        assertEquals(1.0, stats.elevationCoverage!!, 1e-9)
     }
 
     @Test
@@ -105,6 +110,50 @@ class ComputeTrackStatisticsUseCaseTest {
 
         assertEquals(30.0, stats.elevationGainMeters!!, ElevationHysteresis.THRESHOLD_METERS)
         assertEquals(0.0, stats.elevationLossMeters!!, 1e-9)
+        assertEquals(1.0, stats.elevationCoverage!!, 1e-9)
+    }
+
+    @Test
+    fun `a much longer staircase keeps its unbanked tail under one threshold, regardless of track length`() {
+        // The property a single short staircase can't demonstrate on its own: the unbanked
+        // remainder is bounded by ElevationHysteresis.THRESHOLD_METERS because banking resets the
+        // reference every time it fires, not because the track happened to be short. 200 steps of
+        // +1.5m each — 10x the other staircase test's length, same per-step size — for a true total
+        // climb of 300.0m. If the implementation accumulated drift instead of resetting on each
+        // bank, the shortfall here would grow with length instead of staying pinned under one
+        // threshold.
+        val altitudes = generateSequence(100.0) { it + 1.5 }.take(201).toList()
+        val points = altitudes.mapIndexed { index, altitude ->
+            point(lat = 0.0, lng = index * 0.001, altitude = altitude, t = index * 1_000L)
+        }
+
+        val stats = useCase(points)
+
+        val trueGain = 200 * 1.5
+        val shortfall = trueGain - stats.elevationGainMeters!!
+        assertTrue(
+            "shortfall ($shortfall) should be under one threshold (${ElevationHysteresis.THRESHOLD_METERS})",
+            shortfall < ElevationHysteresis.THRESHOLD_METERS,
+        )
+        assertEquals(0.0, stats.elevationLossMeters!!, 1e-9)
+    }
+
+    @Test
+    fun `elevation coverage reports the real fraction of points with altitude, not zero and not null`() {
+        // 3 of 5 points report an altitude; the other 2 (including a leading and a trailing gap)
+        // don't. Coverage should read a plain 0.6, not collapse into either of elevationGainMeters'
+        // two special cases (null for "no data at all," 0.0 for "flat").
+        val points = listOf(
+            point(lat = 0.0, lng = 0.000, altitude = null, t = 0L),
+            point(lat = 0.0, lng = 0.001, altitude = 100.0, t = 1_000L),
+            point(lat = 0.0, lng = 0.002, altitude = 108.0, t = 2_000L),
+            point(lat = 0.0, lng = 0.003, altitude = 116.0, t = 3_000L),
+            point(lat = 0.0, lng = 0.004, altitude = null, t = 4_000L),
+        )
+
+        val stats = useCase(points)
+
+        assertEquals(0.6, stats.elevationCoverage!!, 1e-9)
     }
 
     @Test
@@ -118,6 +167,7 @@ class ComputeTrackStatisticsUseCaseTest {
 
         assertNull(stats.elevationGainMeters)
         assertNull(stats.elevationLossMeters)
+        assertEquals(0.0, stats.elevationCoverage!!, 1e-9)
     }
 
     @Test
