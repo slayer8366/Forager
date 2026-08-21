@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -181,6 +182,7 @@ import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import com.forager.app.ui.map.foragingAreaSummary
+import com.forager.app.ui.motion.MotionTokens
 import com.forager.app.ui.theme.Bark
 import java.time.Instant
 import java.time.LocalDate
@@ -3491,10 +3493,13 @@ private fun AddActionTile(
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
+        // docs/motion-spec.md §2 "Panels and navigation": ease-out, grounded; no springy
+        // overshoot. MotionTokens.panelMotionSpec is tween-based, never spring, so passing it
+        // explicitly here removes any dependence on AnimatedVisibility's own default spec.
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn(),
-            exit = fadeOut(),
+            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec),
+            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec),
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(
@@ -3511,8 +3516,16 @@ private fun AddActionTile(
 
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn() + expandIn(expandFrom = Alignment.BottomEnd),
-            exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.BottomEnd),
+            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec) +
+                expandIn(
+                    animationSpec = tween(durationMillis = MotionTokens.PANEL_MOTION_DURATION_MS, easing = MotionTokens.EaseOut),
+                    expandFrom = Alignment.BottomEnd,
+                ),
+            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec) +
+                shrinkOut(
+                    animationSpec = tween(durationMillis = MotionTokens.PANEL_MOTION_DURATION_MS, easing = MotionTokens.EaseOut),
+                    shrinkTowards = Alignment.BottomEnd,
+                ),
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .offset(x = -Spacing.sm, y = ADD_TILE_ANCHOR_OFFSET),

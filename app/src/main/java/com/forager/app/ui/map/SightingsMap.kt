@@ -41,10 +41,12 @@ import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.Waypoint
+import com.forager.app.ui.motion.MotionTokens
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.LocationComponentOptions
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
@@ -493,12 +495,39 @@ private fun refreshOverlayData(
  * moment the user pans, drags, or zooms, which is also what the data+camera refresh effect above
  * checks to decide whether it's safe to move the camera itself without fighting an active puck.
  */
+/**
+ * MapLibre's own puck-movement animation runs on a fixed internal base duration
+ * ([org.maplibre.android.location.LocationComponentOptions.trackingAnimationDurationMultiplier]
+ * scales it, rather than taking an absolute millisecond value) — verified against the pinned
+ * `13.5.0` artifact with `javap -v` on the package-private `LocationComponentConstants` class,
+ * since it isn't part of the public API surface: `TRANSITION_ANIMATION_DURATION_MS = 750L`. Not
+ * guaranteed stable across SDK versions; re-verify the same way after any MapLibre bump.
+ */
+internal const val LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS = 750f
+
+/**
+ * docs/motion-spec.md §2 "User location": animate only on meaningful GPS change, avoid jitter.
+ * [LocationComponentOptions.trackingAnimationDurationMultiplier] is the one knob MapLibre
+ * exposes for how long the puck takes to glide to a new fix -- a multiplier on
+ * [LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS], not an absolute millisecond value -- so this
+ * scales [MotionTokens.LOCATION_INDICATOR_MOVE_DURATION_MS] against that base rather than
+ * leaving the SDK default in place. A plain function, not inlined into
+ * [activateLiveLocationIfPermitted], so the computed value is unit-testable without the native
+ * MapLibre objects that function needs.
+ */
+internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
+    MotionTokens.LOCATION_INDICATOR_MOVE_DURATION_MS / LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS
+
 @SuppressLint("MissingPermission") // hasLocationPermission() below is the real (runtime) check.
 private fun activateLiveLocationIfPermitted(map: MapLibreMap, style: Style, context: Context) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
+    val locationComponentOptions = LocationComponentOptions.builder(context)
+        .trackingAnimationDurationMultiplier(locationIndicatorTrackingAnimationMultiplier())
+        .build()
     locationComponent.activateLocationComponent(
         LocationComponentActivationOptions.builder(context, style)
+            .locationComponentOptions(locationComponentOptions)
             .useDefaultLocationEngine(true)
             .build(),
     )
