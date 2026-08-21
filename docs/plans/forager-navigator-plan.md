@@ -338,6 +338,41 @@ automatic public sharing of exact productive sites · shared trip packages
 and live location sharing (need accounts, a server, and a security
 posture this project has not scoped).
 
+**Boundary note, 2026-08-21 — motion spec and the toxic-look-alike
+reference page.** A motion spec (`docs/motion-spec.md`) was implemented
+this session covering object motion (durations, easings, degradation,
+Reduce Motion). An earlier draft of that spec included an
+identification-confidence/harm state machine as an input to motion
+emphasis; it was rejected before implementation specifically because it
+would have reintroduced "AI identification or edibility advice" above
+under a different name. `docs/motion-spec.md`'s own "Scope boundary"
+section states this plainly and points back to this section.
+
+Separately, the project owner has indicated a **toxic-look-alike
+reference page** is planned — this is not the deferred feature above, and
+the distinction is recorded here so it isn't collapsed back into it by a
+future reader:
+
+> The page is a **lookup keyed on a search term**, not an identification.
+> The user names a taxon; the app returns known toxic look-alikes for
+> that name.
+>
+> Permitted input: a search term the user typed or selected.
+>
+> Prohibited inputs: photographs, `MushroomLogEntry` records, GPS or
+> habitat data, or anything else derived from a specific observation. The
+> page must not narrow, rank, or personalize its list based on
+> observation data. Doing so converts a reference lookup into the
+> deferred identification feature under a different name.
+>
+> When built, it inherits from the motion spec: high-contrast static
+> treatment, no playful motion on toxic content, redundant non-hue
+> encoding, offline availability with a staleness threshold on the
+> underlying dataset.
+
+This is documentation only — the page itself is not implemented and is
+not yet scoped by the owner.
+
 ## 8. Licensing, honestly scoped
 
 Two separate questions:
