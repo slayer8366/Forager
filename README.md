@@ -178,21 +178,28 @@ more certainty than the data supports. See `AvailabilityForecast` and
    at 16 — the app trusts the observed ceiling, per `CLAUDE.md`'s rule that a
    reported capability range is not an operating limit.
 
-   **Settings ▸ Offline Maps downloads USGS Topo tiles for a region you pick,
-   for offline use.** Reached via a submenu of its own (a "Offline Maps" row
-   inside Settings, one tap below "Choose Maps Service"), because it holds an
-   interactive map: rather than typing latitude/longitude, you long-press the
-   map shown there to set the download's centre point, the same long-press
-   gesture used elsewhere in this app to drop a planned-trip pin — a marker
-   with the radius in its snippet confirms the pick. The download always
-   fetches USGS Topo specifically, unconditionally: it doesn't read the
-   quick-fire icon's live mode or which map service is selected for ordinary
-   browsing, both of which were considered and dropped as needless coupling
-   for a feature that only ever needs one fixed source. Downloaded tiles are
-   stored under the app's private files directory, not the cache directory
-   ordinary browsing uses, so neither an OS cache-clear nor ordinary map
-   panning can evict a region the user explicitly asked to keep. See
-   `map/OsmdroidOfflineMapRepository`.
+   **Settings ▸ Offline Maps downloads real OSM-derived vector tiles for a
+   region you pick, for offline use — a different source from any of the
+   four live-browsing basemaps.** Reached via a submenu of its own (a
+   "Offline Maps" row inside Settings, one tap below "Choose Maps Service"),
+   because it holds an interactive map: rather than typing latitude/
+   longitude, you long-press the map shown there (rendered on USGS Topo,
+   purely as a pick surface — see below) to set the download's centre point,
+   the same long-press gesture used elsewhere in this app to drop a
+   planned-trip pin — a marker with the radius in its snippet confirms the
+   pick. The download always pulls from this project's own self-hosted
+   Cloudflare Worker + PMTiles archive (`server/pmtiles-worker`),
+   unconditionally: it doesn't read the quick-fire icon's live mode or which
+   map service is selected for ordinary browsing, the same "one fixed
+   source, no coupling to browsing settings" property this feature always
+   had — only the source itself changed, from USGS Topo raster to this
+   project's own vector tiles. MapLibre's own `OfflineManager` persists the
+   downloaded region in its own on-device database rather than a directory
+   this app manages directly, so the same guarantee holds by construction:
+   neither an OS cache-clear nor ordinary map panning can evict a region the
+   user explicitly asked to keep. See `map/MapLibreOfflineMapRepository`
+   and "Offline map downloads, specifically" below for what's
+   hardware-confirmed about this path.
 
    **Why USGS only, even though the feature no longer visibly gates on the
    selected map service.** OpenStreetMap's and OpenTopoMap's tile providers
@@ -481,17 +488,22 @@ more certainty than the data supports. See `AvailabilityForecast` and
   ordering — see `AddAndRemovePhotoUseCaseTest`).
 - `location/` — the one place that touches `android.location` directly,
   behind the `LocationProvider` interface.
-- `map/` — parallel to `location/`: the one place that touches osmdroid's
-  `CacheManager` and the filesystem directly, behind the `OfflineMapRepository`
-  interface. `OsmdroidOfflineMapRepository` downloads tiles for a picked
-  region into a persistent store under the app's private files directory
-  (not the cache directory `SightingsMap`'s ordinary browsing uses, so
-  neither an OS cache-clear nor ordinary panning can evict it) and records
-  what's downloaded in a small sidecar file rather than a Room table, read
-  back by `getStatus()`; `PersistentTileWriter` is the hand-rolled
-  `IFilesystemCache` that writes there instead of through either of
-  osmdroid's own writers, both of which resolve their storage path from a
-  process-wide `Configuration` singleton the browsing map already claims.
+- `map/` — parallel to `location/`: the one place that touches MapLibre's
+  `OfflineManager` directly, behind the `OfflineMapRepository` interface.
+  `MapLibreOfflineMapRepository` downloads real OSM-derived PMTiles vector
+  tiles for a picked region from this project's own self-hosted Cloudflare
+  Worker (`server/pmtiles-worker`), via a glyph-stripped style deliberately
+  different from what a live map would render (see that class's own doc
+  comment for why — a confirmed native crash on downloads of styles with
+  label layers). It replaces `OsmdroidOfflineMapRepository`, deleted along
+  with `PersistentTileWriter` and `OfflineMapStatusFile`: those existed
+  because osmdroid's `CacheManager` has no persistence story of its own,
+  which `OfflineManager` doesn't need — it owns a real embedded on-device
+  database and reports live tile/byte counts itself, so `getStatus()` reads
+  a downloaded region back directly from it rather than from a hand-rolled
+  sidecar file. Live map browsing (`ui/map/`, below) still renders through
+  osmdroid, unaffected — this migration changed only how offline regions are
+  downloaded, not what draws the map on screen day to day.
 - `photo/` — parallel to `location/`/`map/`: the one place that touches
   `ActivityResultContracts`/`Uri`/`FileProvider` directly, behind the
   `PhotoStore` interface. `ContentUriPhotoSource` is the real,
@@ -973,57 +985,60 @@ receives — layout and wiring facts, not appearance ones.
 
 ### Offline map downloads, specifically
 
-**Actual tile download/delete I/O is unverified.** Everything about
-`OsmdroidOfflineMapRepository` that touches the network or the filesystem —
-whether `CacheManager.downloadAreaAsyncNoUI` really writes through
-`PersistentTileWriter` end to end, whether a downloaded region survives an OS
-cache-clear the way it's designed to, what actually happens on a real network
-failure partway through a download — is Android file and network I/O and
-cannot be exercised on the JVM. What *is* verified, and how:
+**The mechanism changed from osmdroid to MapLibre's `OfflineManager` this
+project cycle** (`docs/plans/pmtiles-worker-android-wiring.md`).
+`OsmdroidOfflineMapRepository`, `PersistentTileWriter`, and
+`OfflineMapStatusFile` are deleted; `MapLibreOfflineMapRepository` is the
+sole `OfflineMapRepository` implementation `AppContainer` wires up now,
+downloading real vector tiles from this project's own Cloudflare Worker + R2
+archive rather than bulk-fetching any third-party basemap's live tile
+servers. That sidesteps the OpenTopoMap/OSM bulk-download-policy question
+this section used to carry entirely — this project's own Worker has no such
+usage terms to worry about — though the underlying Protomaps/OSM data itself
+still carries the ODbL attribution obligation `Basemap` already owns as data.
 
-- The `CacheManager` API surface this class calls — the `(ITileSource,
-  IFilesystemCache, minZoom, maxZoom)` constructor needing no live `MapView`,
-  the `downloadAreaAsyncNoUI` progress-callback shape, and that osmdroid's own
-  bulk-download policy check does not, by itself, block OpenTopoMap — was read
-  directly from `osmdroid-android-6.1.20`'s attached sources, not assumed from
-  its sparse Javadoc. See `OsmdroidOfflineMapRepository`'s doc comment for the
-  citations.
-- The sidecar-file format `getStatus()` reads is pulled out as pure
-  `Properties` conversion functions and round-trip tested headlessly
-  (`OfflineMapStatusFileTest`), including that a corrupted or partial file
-  reads as "nothing downloaded" rather than crashing or guessing.
-- The bounding-box math the region picker feeds to `CacheManager` is pure and
-  unit-tested (`GeoDistanceTest`), including the antimeridian-wrap and
-  near-pole cases.
-- The ViewModel's loading → success/failure state machine
-  (`AvailabilityViewModelOfflineMapsTest`) is exercised against a fake
-  `OfflineMapRepository` this project fully controls, covering progress
-  reporting, download/delete failure, and that invalid coordinates never
-  reach the repository at all.
+**Unlike most of this file, this piece has real hardware confirmation** —
+see `docs/plans/pmtiles-worker-android-wiring.md` for the full record,
+including two real bugs it caught before shipping. What was directly
+observed, on the owner's device: a downloaded region (5 mi radius around
+39.7940, -98.5529 — 139 tiles, 0.1 MB) survived a force-close, clearing the
+app from recents, and a cold reopen; `getStatus()` read the persisted region
+back correctly afterward, with no crash and no inline error. An earlier run
+(6 km around 45.3368, -122.6016 — 88 tiles, 1.9 MB) confirmed the download
+itself completes cleanly against the real Worker-hosted style with no hang.
+The two bugs hardware testing caught, not headless coverage: an `asset://`
+style URL that hung `OfflineManager`'s resource discovery indefinitely at
+`completed=0/1` with no error (fixed by hosting the style at a real HTTPS
+URL on the Worker instead of bundling it as an app asset), and `getStatus()`
+never initializing MapLibre's native library on a process where it — rather
+than `download()` — happened to run first, which crashed outright on a
+genuinely fresh process (fixed by centralizing `MapLibre.getInstance()` into
+the one helper every entry point now calls first).
+
+**Still genuinely open:**
+
+- **Airplane-mode offline replay.** A downloaded region is confirmed to
+  persist across a restart with a live connection available; it has not been
+  confirmed to actually render with the radio off. This is the one item that
+  matters most for the "offline" claim, and it stays open on its own — it
+  does not get folded into the persistence confirmation above.
+- **The bounding-box math the region picker feeds to `OfflineManager` is
+  pure and unit-tested** (`GeoDistanceTest`, including the antimeridian-wrap
+  and near-pole cases), and **the ViewModel's loading →
+  success/failure state machine** (`AvailabilityViewModelOfflineMapsTest`)
+  is exercised against a fake `OfflineMapRepository` this project fully
+  controls, covering progress reporting, download/delete failure, and that
+  invalid coordinates never reach the repository at all — both survived the
+  swap from osmdroid unchanged, since neither depends on which repository
+  implementation is behind the interface.
 - That the "Offline Maps" submenu is reachable regardless of the selected
-  map service, that its picker map always resolves to USGS Topo, that its
-  entry row navigates in and its back arrow returns to Settings, and that a
-  long-press on the picker map sets the region and enables "Download Maps"
-  are all measured against the real Compose tree
-  (`AvailabilityScreenSettingsPanelTest`), not just reasoned about.
-
-**The OpenTopoMap tile-usage-policy finding is one step removed from its
-primary source.** osmdroid's pinned artifact encodes the OpenStreetMap half
-of decision #7 directly — `TileSourceFactory.MAPNIK`'s `TileSourcePolicy` sets
-`FLAG_NO_BULK`, citing `operations.osmfoundation.org/policies/tiles/` by name
-in the library's own source comment — but carries no such flag for
-`TileSourceFactory.OpenTopo` at all, so nothing in the library blocks a bulk
-request against it. The claim that OpenTopoMap's own tile server (a distinct
-service, `tile.openmaps.fr`, run separately from the OpenTopoMap map style
-itself) also prohibits bulk/prefetch downloading rests on a web search of
-`opentopomap.org`'s and the OSM Foundation's own policy text, not a direct
-fetch of either page — this environment's egress proxy blocks both
-`opentopomap.org` and `operations.osmfoundation.org` directly, on both the
-attempt during this task and an earlier one. Worth a primary-source
-spot-check in an environment that can reach them before this is relied on
-further; the enforcement in this app does not depend on osmdroid's own
-(incomplete) policy check either way — see `OfflineMapRepository`'s doc
-comment.
+  map service, that its picker map (a display surface only — see "How it
+  works" above) always resolves to USGS Topo, that its entry row navigates
+  in and its back arrow returns to Settings, and that a long-press on the
+  picker map sets the region and enables "Download Maps" are all measured
+  against the real Compose tree (`AvailabilityScreenSettingsPanelTest`), not
+  just reasoned about — this predates the renderer swap and is unaffected by
+  it.
 
 ### The mushroom log, specifically
 
