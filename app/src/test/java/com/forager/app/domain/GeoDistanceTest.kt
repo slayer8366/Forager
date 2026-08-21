@@ -166,4 +166,33 @@ class GeoDistanceTest {
         // The box crosses the seam: numerically, its "east" edge is a smaller value than "west".
         assertTrue(box.east < box.west)
     }
+
+    @Test
+    fun `bearing due north is zero`() {
+        val bearing = GeoDistance.initialBearingDegrees(LatLng(45.0, -122.0), LatLng(46.0, -122.0))
+
+        assertEquals(0.0, bearing, 0.5)
+    }
+
+    @Test
+    fun `bearing due east is ninety degrees`() {
+        val bearing = GeoDistance.initialBearingDegrees(LatLng(0.0, 0.0), LatLng(0.0, 1.0))
+
+        assertEquals(90.0, bearing, 0.5)
+    }
+
+    @Test
+    fun `bearing due south is 180 degrees`() {
+        val bearing = GeoDistance.initialBearingDegrees(LatLng(45.0, -122.0), LatLng(44.0, -122.0))
+
+        assertEquals(180.0, bearing, 0.5)
+    }
+
+    @Test
+    fun `bearing due west is 270 degrees, never negative`() {
+        val bearing = GeoDistance.initialBearingDegrees(LatLng(0.0, 1.0), LatLng(0.0, 0.0))
+
+        assertEquals(270.0, bearing, 0.5)
+        assertTrue(bearing in 0.0..360.0)
+    }
 }
