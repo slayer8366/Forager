@@ -324,11 +324,13 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the compass strip shows a real MGRS grid reference alongside labeled decimal degrees once a live fix arrives`() {
+    fun `the compass strip shows a real MGRS grid reference by default once a live fix arrives, not the combined line`() {
         // Same Portland-OR point MgrsConverterTest pins, not a value invented for this test — if
         // MgrsConverter's own logic ever regresses, that test fails; this one only needs to prove
-        // the strip actually renders whatever MgrsConverter.convert(location) returns, plus the
-        // labeled decimal pair coordinatesStripText appends alongside it.
+        // the strip actually renders whatever MgrsConverter.convert(location) returns. The combined
+        // "<mgrs> · Lat. X Long. Y" line this strip used to show is gone — it truncated mid-
+        // coordinate on a metro-width screen, a real hardware finding (see coordinatesStripText's
+        // own doc comment) — so this also asserts the old combined string is *not* what's displayed.
         //
         // Driven through the continuous LocationTracker, not locate-me's one-shot locationProvider:
         // the strip's own coordinates now come from AvailabilityUiState.liveLocation, which only
@@ -348,7 +350,37 @@ class AvailabilityScreenMapIconStackTest {
         fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L))
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("10T ER 25118 40235 · Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
+        composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
+        composeRule.onNodeWithText("10T ER 25118 40235 · Lat. 45.5152 Long. -122.6784").assertDoesNotExist()
+        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping the coordinates segment reveals labeled decimal degrees, and tapping again returns to MGRS`() {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        setScreen(locationTracker = IconStackFakeLocationTracker(fixes))
+        searchAReferenceRegion()
+
+        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L))
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("10T ER 25118 40235").performClick()
+        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
+        composeRule.onNodeWithText("10T ER 25118 40235").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").performClick()
+        composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the coordinates segment is not tappable before a first fix arrives`() {
+        setScreen(compassProvider = FakeCompassProvider(null))
+        searchAReferenceRegion()
+
+        // "Coordinates unavailable" has nothing to toggle between — clicking it should be a no-op,
+        // not silently reveal a fabricated decimal-degree pair for a location that was never fixed.
+        composeRule.onNodeWithText("Coordinates unavailable").performClick()
+        composeRule.onNodeWithText("Coordinates unavailable").assertIsDisplayed()
     }
 
     @Test

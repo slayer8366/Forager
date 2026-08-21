@@ -1192,6 +1192,21 @@ previously deferred the question entirely.
   (same limitation this section already documents for the dashed
   connector and area-marker text).
 
+Two more fixes from the same hardware pass, unrelated to the colour
+question:
+
+- **The coordinate strip truncated mid-coordinate** ("Lat. 45.3262
+  Lon…") on a metro-width screen — half a coordinate is not a coordinate,
+  on the one element whose job is telling you where you are. Fixed: MGRS
+  by default (compact, unambiguous), with a tap on the coordinates segment
+  to reveal the labeled decimal-degree pair — see `coordinatesStripText`'s
+  doc comment for why decimal degrees stay reachable rather than deleted,
+  and for the check performed before landing this (no configurable
+  coordinate-format setting or "emergency card" exists anywhere in this
+  project yet to honor instead — confirmed by grep, not assumed). Covered
+  by `AvailabilityScreenMapIconStackTest`: the combined line no longer
+  renders, and the tap toggle works both directions.
+
 The build-identity footer's version values are verified separately — they
 were read off the packaged APK with `aapt2 dump badging`, not off the Gradle
 config.

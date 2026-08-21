@@ -3248,7 +3248,14 @@ private fun CompassElevationStripContent(
     // for the narrow pill, but that fix meant shrinking the strip back down, which isn't an option
     // now that full width is the point). A Box with no pointer/click handling of its own doesn't
     // intercept anything, so the map keeps receiving touches everywhere except this strip's own
-    // real interactive children (the return-to-vehicle text, the record toggle).
+    // real interactive children (the return-to-vehicle text, the record toggle, and now the
+    // coordinates segment below).
+    //
+    // Local state, not AvailabilityUiState: this is purely which of two always-computable string
+    // representations of the same fix to display, nothing the ViewModel or a future session needs
+    // to remember — the same reasoning showQuickSearch elsewhere in this file already applies to a
+    // similar tap-to-reveal toggle.
+    var showDecimalDegrees by remember { mutableStateOf(false) }
     CompositionLocalProvider(LocalContentColor provides Color.White) {
         Box(modifier = modifier.background(color = CompassStripBackgroundColor, shape = RectangleShape)) {
             Column(
@@ -3307,11 +3314,16 @@ private fun CompassElevationStripContent(
                     )
                     Text("·", style = MaterialTheme.typography.labelMedium)
                     Text(
-                        text = coordinatesStripText(location),
+                        text = coordinatesStripText(location, showDecimalDegrees),
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clickable(
+                                enabled = location != null,
+                                onClick = { showDecimalDegrees = !showDecimalDegrees },
+                            ),
                     )
                 }
                 // Return-to-vehicle on the far left, the record start/stop toggle on the far right —
@@ -3389,26 +3401,40 @@ private fun RecordToggleButton(isRecording: Boolean, onClick: () -> Unit, modifi
  * — one is "no fix yet", the other is "this location can't be expressed in MGRS at all", and
  * collapsing them into one message would hide which is actually true).
  *
- * The decimal lat/long pair is labeled ("Lat."/"Long.", the project owner's own wording) rather
- * than the bare "45.5231, -122.6414" [PlannedTripRow] shows — that row sits next to a named trip,
- * where the pair reads as "that trip's location" from context; this strip has no such context, so
- * an unlabeled pair here could as easily read as two unrelated numbers. `"%.4f"` matches the same
- * precision every other decimal-degree display in this file already uses (`PlannedTripRow`,
- * `RecentSearchRow`, the offline-map picker), not a new precision invented for this one line.
- * Always shown alongside the MGRS grid, not instead of it: [MgrsCoordinate.Unsupported] only fires
- * north of 84°N or south of 80°S, nowhere this app's US-forest use case ever reaches, but the two
- * formats serve different readers (MGRS for a paper-map/compass workflow, decimal degrees for
- * pasting into another app), so showing whichever one didn't happen to be unavailable isn't a full
- * substitute for the other.
+ * **MGRS by default; decimal degrees only on tap ([showDecimalDegrees]).** This strip used to show
+ * both at once ("`<mgrs> · Lat. X Long. Y`"), but a real hardware pass found the combined line
+ * truncates mid-coordinate on a metro-width screen ("Lat. 45.3262 Lon…") — half a coordinate is not
+ * a coordinate, on the one element whose job is telling you where you are. MGRS is the better fit
+ * for a strip this narrow: compact, unambiguous, built for grid work.
+ *
+ * **Decimal degrees stay reachable, not deleted** — tapping the coordinates segment toggles
+ * [showDecimalDegrees] (see [CompassElevationStripContent]) — because the two formats serve
+ * different readers and neither substitutes for the other: MGRS suits a paper-map/compass workflow,
+ * decimal degrees is what everything else speaks (pasting a point into another app, giving
+ * coordinates to a dispatcher, sharing a location by text). Checked before this landed: this
+ * project has no configurable-coordinate-format setting (lat/lon vs. UTM vs. MGRS vs. decimal
+ * degrees) wired anywhere yet, and no "emergency card" or share/copy path exists to keep the pair
+ * reachable through instead — `grep -rn "CoordinateFormat"` finds nothing, and `docs/plans/` doesn't
+ * specify either as built. Tap-to-reveal is what's actually shippable today, per the project's own
+ * instruction for exactly this case: if the setting isn't wired, hardcode MGRS and say so, rather
+ * than build the setting or the emergency card as unplanned scope here.
+ *
+ * The decimal pair is labeled ("Lat."/"Long.", the project owner's own wording) rather than the bare
+ * "45.5231, -122.6414" [PlannedTripRow] shows — that row sits next to a named trip, where the pair
+ * reads as "that trip's location" from context; this strip has no such context, so an unlabeled pair
+ * here could as easily read as two unrelated numbers. `"%.4f"` matches the same precision every
+ * other decimal-degree display in this file already uses (`PlannedTripRow`, `RecentSearchRow`, the
+ * offline-map picker), not a new precision invented for this one line.
  */
-private fun coordinatesStripText(location: LatLng?): String {
+private fun coordinatesStripText(location: LatLng?, showDecimalDegrees: Boolean): String {
     if (location == null) return "Coordinates unavailable"
-    val decimalDegrees = "Lat. ${"%.4f".format(location.lat)} Long. ${"%.4f".format(location.lng)}"
-    val mgrsText = when (val mgrs = MgrsConverter.convert(location)) {
+    if (showDecimalDegrees) {
+        return "Lat. ${"%.4f".format(location.lat)} Long. ${"%.4f".format(location.lng)}"
+    }
+    return when (val mgrs = MgrsConverter.convert(location)) {
         is MgrsCoordinate.Grid -> mgrs.value
         is MgrsCoordinate.Unsupported -> "MGRS unavailable"
     }
-    return "$mgrsText · $decimalDegrees"
 }
 
 /** Nearest 45°-wide compass point for [headingDegrees], `[0, 360)`. */
