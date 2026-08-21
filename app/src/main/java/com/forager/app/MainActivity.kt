@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
                     container.deletePlannedTripUseCase,
                     container.getSeasonalPatternUseCase,
                     container.offlineMapRepository,
+                    container.mapPreferencesRepository,
                 )
             }
         }
@@ -129,11 +130,13 @@ class MainActivity : ComponentActivity() {
                     onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                     onRecentSearchSelected = viewModel::onRecentSearchSelected,
                     currentTime = container.currentTimeProvider,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                     onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                     onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                    onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,

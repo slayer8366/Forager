@@ -1,10 +1,12 @@
 package com.forager.app.map
 
 import android.content.Context
+import com.forager.app.data.local.OfflineRegionDao
+import com.forager.app.data.local.OfflineRegionEntity
 import com.forager.app.data.repository.runCatchingCancellable
 import com.forager.app.domain.GeoDistance
-import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import kotlin.coroutines.resume
@@ -21,19 +23,30 @@ import org.maplibre.android.offline.OfflineTilePyramidRegionDefinition
 /**
  * [OfflineMapRepository] backed by MapLibre's own `OfflineManager`, downloading real OSM-derived
  * vector tiles from the live Cloudflare Worker `docs/plans/pmtiles-worker-android-wiring.md`
- * describes — replacing `OsmdroidOfflineMapRepository`'s USGS-only raster downloader per the owner's
- * decision to switch offline downloads to the PMTiles vector source (see that doc's "Open decisions").
+ * describes.
+ *
+ * ## Many regions, one index
+ *
+ * This class used to model "the one downloaded region": `download()` deleted everything already on
+ * disk first, and `getStatus()` answered a single nullable info. Per
+ * `docs/plans/journal-trips-and-offline-regions.md`'s "Region management" section, it now manages
+ * many: [download] adds a region, [deleteRegion] removes one, [listRegions] answers all of them.
+ * [offlineRegionDao] is the index this needs and `OfflineManager`'s own opaque region list can't
+ * provide on its own (see [com.forager.app.data.local.OfflineRegionEntity]'s doc comment for why the
+ * Room table is the source of truth and the region's own metadata blob is the recovery copy, not
+ * the other way around).
+ *
+ * Every `OfflineRegion`'s native [OfflineRegion.getId] doubles as this app's own region id — see
+ * [OfflineRegionEntity]'s doc comment for why that's reused rather than inventing a second id.
  *
  * ## Why no hand-rolled tile writer this time
  *
- * `OsmdroidOfflineMapRepository` needed [PersistentTileWriter] and a sidecar status file because
- * osmdroid's `CacheManager` has no persistence story of its own beyond a caller-supplied
- * `IFilesystemCache`. `OfflineManager` is the opposite: it owns a real embedded database
- * (`OfflineRegion`s survive an app restart on its own, confirmed on hardware by PR #23) and reports
- * live tile/byte counts via [OfflineRegion.getStatus] — nothing here re-derives or re-stores that.
- * The only thing `OfflineManager`'s own store *doesn't* know is which [Region] a download was for
- * (it only knows a [LatLngBounds]) and this app's own "when did this finish" timestamp, so those two
- * fields are all [RegionMetadata] carries, in the `OfflineRegion`'s own opaque metadata bytes.
+ * `OfflineManager` owns a real embedded database (`OfflineRegion`s survive an app restart on their
+ * own, confirmed on hardware by PR #23) and reports live tile/byte counts via
+ * [OfflineRegion.getStatus] — nothing here re-derives or re-stores that. The only things
+ * `OfflineManager`'s own store doesn't know are this region's user-facing name and zoom range, so
+ * those, plus a redundant copy of centre/radius/created-at, are what [RegionMetadata] carries in the
+ * `OfflineRegion`'s own opaque metadata bytes.
  *
  * ## Offline downloads use the label-stripped style, not the one a live map would render
  *
@@ -61,99 +74,148 @@ import org.maplibre.android.offline.OfflineTilePyramidRegionDefinition
  *
  * ## Verified against the pinned `org.maplibre.gl:android-sdk:13.5.0` artifact
  *
- * Every method called below (`OfflineManager.listOfflineRegions`/`createOfflineRegion`,
- * `OfflineRegion.setObserver`/`setDownloadState`/`getStatus`/`delete`/`updateMetadata`, and the
- * exact callback interface shapes) was checked with `javap` against that artifact's `classes.jar`
- * rather than assumed from documentation, the same discipline `OsmdroidOfflineMapRepository`'s own
- * doc comment used for its pinned osmdroid artifact. Not verified, and impossible to from this
- * sandbox: hardware behavior of a *second* offline region replacing a first. [OFFLINE_STYLE_URL]
- * being resolved correctly *was* hardware-tested (that's how the `asset://` stall this class's
- * history section describes was found) but the fix (this real HTTPS URL) has not itself been
- * re-tested on a device yet — spot-check the full download → persist → replay-offline cycle before
- * relying on this further.
+ * Every method called below (`OfflineManager.listOfflineRegions`/`createOfflineRegion`/
+ * `setOfflineMapboxTileCountLimit`, `OfflineRegion.getId`/`setObserver`/`setDownloadState`/
+ * `getStatus`/`delete`/`updateMetadata`, and the exact callback interface shapes) was checked with
+ * `javap` against that artifact's `classes.jar` rather than assumed from documentation, the same
+ * discipline this class's history always used. Not verified, and impossible to from this sandbox:
+ * hardware behavior of overlapping regions and of a region rebuilt from its metadata blob after its
+ * Room row is deliberately dropped.
  */
-class MapLibreOfflineMapRepository(context: Context) : OfflineMapRepository {
+class MapLibreOfflineMapRepository(
+    context: Context,
+    private val offlineRegionDao: OfflineRegionDao,
+) : OfflineMapRepository {
 
     private val appContext = context.applicationContext
 
     override suspend fun download(
+        name: String,
         region: Region,
         onProgress: (downloaded: Int, total: Int) -> Unit,
-    ): Result<OfflineMapInfo> = runCatchingCancellable {
-        offlineManager().listOfflineRegionsSuspend().forEach { it.deleteSuspend() }
-
+    ): Result<OfflineRegionSummary> = runCatchingCancellable {
         val definition = OfflineTilePyramidRegionDefinition(
             OFFLINE_STYLE_URL,
             region.toLatLngBounds(),
-            OFFLINE_MIN_ZOOM,
-            OFFLINE_MAX_ZOOM,
+            OfflineMapRepository.MIN_ZOOM,
+            OfflineMapRepository.MAX_ZOOM,
             appContext.resources.displayMetrics.density,
         )
         // A placeholder timestamp, overwritten by updateMetadataSuspend below once the download
         // actually finishes — see this class's doc comment on why "downloaded at" means completion
-        // time, matching OsmdroidOfflineMapRepository's exact semantics, not creation time.
-        val placeholderMetadata = RegionMetadata(region, downloadedAtEpochMillis = 0L).toBytes()
+        // time, matching this class's own original single-region semantics.
+        val placeholderMetadata = RegionMetadata(name, region, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM, downloadedAtEpochMillis = 0L).toBytes()
 
         val offlineRegion = offlineManager().createOfflineRegionSuspend(definition, placeholderMetadata)
         val finalStatus = try {
             offlineRegion.downloadToCompletionSuspend(onProgress)
         } catch (e: Exception) {
-            // Never leave a half-downloaded region looking like a complete one — the same reasoning
-            // OsmdroidOfflineMapRepository's download() catch block carries, applied to
-            // OfflineManager's own store instead of a tiles directory this class doesn't own.
+            // Never leave a half-downloaded region looking like a complete one.
             offlineRegion.deleteSuspend()
             throw e
         }
 
         val downloadedAt = downloadedAtEpochMillisProvider()
-        offlineRegion.updateMetadataSuspend(RegionMetadata(region, downloadedAt).toBytes())
+        offlineRegion.updateMetadataSuspend(RegionMetadata(name, region, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM, downloadedAt).toBytes())
+        offlineRegionDao.upsert(
+            OfflineRegionEntity(
+                id = offlineRegion.id,
+                name = name,
+                lat = region.lat,
+                lng = region.lng,
+                radiusKm = region.radiusKm,
+                minZoom = OfflineMapRepository.MIN_ZOOM,
+                maxZoom = OfflineMapRepository.MAX_ZOOM,
+                createdAtEpochMillis = downloadedAt,
+            ),
+        )
 
-        OfflineMapInfo(
+        OfflineRegionSummary(
+            id = offlineRegion.id,
+            name = name,
             region = region,
+            minZoom = OfflineMapRepository.MIN_ZOOM,
+            maxZoom = OfflineMapRepository.MAX_ZOOM,
             tileCount = finalStatus.completedTileCount.toInt(),
             sizeBytes = finalStatus.completedResourceSize,
-            downloadedAtEpochMillis = downloadedAt,
+            createdAtEpochMillis = downloadedAt,
         )
     }
 
-    override suspend fun delete(): Result<Unit> = runCatchingCancellable {
-        offlineManager().listOfflineRegionsSuspend().forEach { it.deleteSuspend() }
+    override suspend fun deleteRegion(id: Long): Result<Unit> = runCatchingCancellable {
+        offlineManager().listOfflineRegionsSuspend().firstOrNull { it.id == id }?.deleteSuspend()
+        offlineRegionDao.deleteById(id)
     }
 
-    override suspend fun getStatus(): Result<OfflineMapInfo?> = runCatchingCancellable {
-        val region = offlineManager().listOfflineRegionsSuspend().firstOrNull()
-            ?: return@runCatchingCancellable null
-        val metadata = region.metadata.toRegionMetadata() ?: return@runCatchingCancellable null
-        val status = region.getStatusSuspend()
+    override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = runCatchingCancellable {
+        val offlineRegions = offlineManager().listOfflineRegionsSuspend()
+        val liveIds = offlineRegions.map { it.id }.toSet()
 
-        // A region OfflineManager still has on file but never finished — e.g. the process was
-        // killed mid-download — is exactly the "half-downloaded region looking complete" case
-        // download()'s own catch block prevents within one run. A restart bypasses that catch
-        // block entirely, so the same invariant is re-checked here: an incomplete leftover reads
-        // as nothing downloaded, and is cleaned up rather than left to keep confusing future reads.
-        if (!status.isComplete) {
-            region.deleteSuspend()
-            return@runCatchingCancellable null
+        // A Room row whose OfflineManager-backed region is simply gone (deleted by something other
+        // than deleteRegion, e.g. OfflineManager's own database being reset) describes a download
+        // that no longer exists — pruned rather than kept as a phantom entry with no real tiles
+        // behind it.
+        offlineRegionDao.getAll().filter { it.id !in liveIds }.forEach { offlineRegionDao.deleteById(it.id) }
+
+        offlineRegions.mapNotNull { offlineRegion ->
+            val status = offlineRegion.getStatusSuspend()
+
+            // A region OfflineManager still has on file but never finished — e.g. the process was
+            // killed mid-download — is the same "half-downloaded region looking complete" case
+            // download()'s own catch block prevents within one run. A restart bypasses that catch
+            // block entirely, so the same invariant is re-checked here, per region.
+            if (!status.isComplete) {
+                offlineRegion.deleteSuspend()
+                offlineRegionDao.deleteById(offlineRegion.id)
+                return@mapNotNull null
+            }
+
+            val row = offlineRegionDao.getById(offlineRegion.id)
+                ?: offlineRegion.metadata.toRegionMetadata()?.let { metadata ->
+                    // The Room row is missing but the region's own metadata blob survived — rebuild
+                    // the row from it rather than dropping a real, on-disk, tile-budget-consuming
+                    // region from the list. See OfflineRegionEntity's doc comment.
+                    OfflineRegionEntity(
+                        id = offlineRegion.id,
+                        name = metadata.name,
+                        lat = metadata.region.lat,
+                        lng = metadata.region.lng,
+                        radiusKm = metadata.region.radiusKm,
+                        minZoom = metadata.minZoom,
+                        maxZoom = metadata.maxZoom,
+                        createdAtEpochMillis = metadata.downloadedAtEpochMillis,
+                    ).also { offlineRegionDao.upsert(it) }
+                }
+                // Neither the table nor the blob can say what this region is — nothing usable to show.
+                ?: return@mapNotNull null
+
+            OfflineRegionSummary(
+                id = row.id,
+                name = row.name,
+                region = Region(row.lat, row.lng, row.radiusKm),
+                minZoom = row.minZoom,
+                maxZoom = row.maxZoom,
+                tileCount = status.completedTileCount.toInt(),
+                sizeBytes = status.completedResourceSize,
+                createdAtEpochMillis = row.createdAtEpochMillis,
+            )
         }
-
-        OfflineMapInfo(
-            region = metadata.region,
-            tileCount = status.completedTileCount.toInt(),
-            sizeBytes = status.completedResourceSize,
-            downloadedAtEpochMillis = metadata.downloadedAtEpochMillis,
-        )
     }
 
     // MapLibre.getInstance() must run before any other MapLibre API call touches the native
-    // library — download() was the only entry point that did this, which worked by accident
-    // whenever it happened to run first in a process. On a fresh process where getStatus() runs
-    // first instead (the real "Offline Maps" screen calls it on load, to show "Downloaded: ...")
-    // the native library was never initialized, and OfflineManager.getInstance() below threw.
-    // Centralized here so every entry point (download/delete/getStatus, all of which call this)
-    // gets it, rather than each call site needing to remember to call it first.
+    // library — centralized here so every entry point (download/deleteRegion/listRegions, all of
+    // which call this) gets it, rather than each call site needing to remember to.
+    //
+    // setOfflineMapboxTileCountLimit is likewise applied on every call rather than once at startup:
+    // it's a cheap, idempotent native call with no callback and no getter (verified via javap — see
+    // this class's doc comment), so there is no state to avoid re-setting, and this guarantees the
+    // deliberate budget is in force before any offline operation regardless of call order.
     private fun offlineManager(): OfflineManager {
+        ensureMapLibreStorageOutsideCache(appContext)
         MapLibre.getInstance(appContext)
-        return OfflineManager.getInstance(appContext)
+        val manager = OfflineManager.getInstance(appContext)
+        manager.setOfflineMapboxTileCountLimit(OfflineMapRepository.TILE_COUNT_LIMIT)
+        return manager
     }
 
     /** `System.currentTimeMillis()` behind a seam only so a test could fake it; nothing here does yet. */
@@ -171,17 +233,6 @@ class MapLibreOfflineMapRepository(context: Context) : OfflineMapRepository {
  * theory didn't predict. Recorded here so the theory doesn't get re-tried.)
  */
 private const val OFFLINE_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/offline.json"
-
-/**
- * The PMTiles archive this style's source ultimately reads from is built to zoom 14 (per PR #24's
- * description of the `us.pmtiles` archive) — [OFFLINE_MAX_ZOOM] stays at that ceiling rather than
- * requesting tiles the archive doesn't have. [OFFLINE_MIN_ZOOM] is an adjustable assumption, the
- * same kind `OsmdroidOfflineMapRepository.ZOOM_LEVELS_BELOW_MAX` was: a wider span means more usable
- * offline zoom range at the cost of more tiles, and this project has no usage data yet on what span
- * foraging trips actually need.
- */
-private const val OFFLINE_MAX_ZOOM = 14.0
-private const val OFFLINE_MIN_ZOOM = 10.0
 
 private fun Region.toLatLngBounds(): LatLngBounds {
     val box = GeoDistance.boundingBox(LatLng(lat, lng), radiusKm)

@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.forager.app.map.ensureMapLibreStorageOutsideCache
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -65,6 +66,10 @@ class MapLibreBasemapPreviewActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Must run before MapLibre.getInstance() below — see ensureMapLibreStorageOutsideCache's
+        // doc comment for why this app has two such call sites and why whichever runs first has to
+        // win the race.
+        ensureMapLibreStorageOutsideCache(this)
         // Required once, before any MapView is created — the same "initialize the vendor SDK
         // before touching it" step every Mapbox-lineage map library needs.
         MapLibre.getInstance(this)

@@ -96,11 +96,13 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
+                onOfflineMapsOpened = {},
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -136,11 +138,13 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
+                onOfflineMapsOpened = {},
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -198,11 +202,13 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
+                onOfflineMapsOpened = {},
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = StubMapSlot,
             )
         }
