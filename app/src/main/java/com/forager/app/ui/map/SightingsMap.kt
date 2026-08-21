@@ -479,23 +479,6 @@ private fun refreshOverlayData(
 }
 
 /**
- * Turns on MapLibre's own "blue dot" location puck and has the camera follow it — "like regular
- * GPS," the project owner's own framing, rather than the compass strip's pre-existing one-shot
- * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
- * map's camera). A no-op, not a crash or a silent guess, when [Manifest.permission.ACCESS_FINE_LOCATION]/
- * [Manifest.permission.ACCESS_COARSE_LOCATION] aren't granted — same "explicit unsupported state,
- * never fabricated" rule [com.forager.app.location.AndroidLocationProvider.hasLocationPermission]
- * already follows for the one-shot path; the map simply won't show a puck until permission exists
- * and something re-triggers this (a fresh style load, or the locate-me icon — see
- * [resumeTrackingRequestId][MapOverlayContent.resumeTrackingRequestId]'s own doc comment).
- *
- * [CameraMode.TRACKING] is the mode set immediately on activation, satisfying "follow automatically
- * on default." Breaking out of it again is built into MapLibre's [LocationComponent][org.maplibre.android.location.LocationComponent]
- * itself, not code this app wrote: the SDK's own gesture detection drops to [CameraMode.NONE] the
- * moment the user pans, drags, or zooms, which is also what the data+camera refresh effect above
- * checks to decide whether it's safe to move the camera itself without fighting an active puck.
- */
-/**
  * MapLibre's own puck-movement animation runs on a fixed internal base duration
  * ([org.maplibre.android.location.LocationComponentOptions.trackingAnimationDurationMultiplier]
  * scales it, rather than taking an absolute millisecond value) — verified against the pinned
@@ -518,11 +501,31 @@ internal const val LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS = 750f
 internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
     MotionTokens.LOCATION_INDICATOR_MOVE_DURATION_MS / LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS
 
+/**
+ * Turns on MapLibre's own "blue dot" location puck and has the camera follow it — "like regular
+ * GPS," the project owner's own framing, rather than the compass strip's pre-existing one-shot
+ * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
+ * map's camera). A no-op, not a crash or a silent guess, when [Manifest.permission.ACCESS_FINE_LOCATION]/
+ * [Manifest.permission.ACCESS_COARSE_LOCATION] aren't granted — same "explicit unsupported state,
+ * never fabricated" rule [com.forager.app.location.AndroidLocationProvider.hasLocationPermission]
+ * already follows for the one-shot path; the map simply won't show a puck until permission exists
+ * and something re-triggers this (a fresh style load, or the locate-me icon — see
+ * [resumeTrackingRequestId][MapOverlayContent.resumeTrackingRequestId]'s own doc comment).
+ *
+ * [CameraMode.TRACKING] is the mode set immediately on activation, satisfying "follow automatically
+ * on default." Breaking out of it again is built into MapLibre's [LocationComponent][org.maplibre.android.location.LocationComponent]
+ * itself, not code this app wrote: the SDK's own gesture detection drops to [CameraMode.NONE] the
+ * moment the user pans, drags, or zooms, which is also what the data+camera refresh effect above
+ * checks to decide whether it's safe to move the camera itself without fighting an active puck.
+ */
 @SuppressLint("MissingPermission") // hasLocationPermission() below is the real (runtime) check.
 private fun activateLiveLocationIfPermitted(map: MapLibreMap, style: Style, context: Context) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
     val locationComponentOptions = LocationComponentOptions.builder(context)
+        // Duration ratio, not an absolute value: see locationIndicatorTrackingAnimationMultiplier()
+        // above — its base (750ms) came from javap-inspecting the pinned MapLibre artifact, not
+        // public API or documentation, so it can silently go stale on a MapLibre version bump.
         .trackingAnimationDurationMultiplier(locationIndicatorTrackingAnimationMultiplier())
         .build()
     locationComponent.activateLocationComponent(
