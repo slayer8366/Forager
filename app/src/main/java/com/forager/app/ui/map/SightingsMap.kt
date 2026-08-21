@@ -9,6 +9,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.view.Gravity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -228,6 +229,15 @@ fun SightingsMap(
                 currentOnLongPress(LatLng(latLng.latitude, latLng.longitude))
                 true
             }
+            // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
+            // corner this composable's own always-visible Basemap.attribution caption occupies (see
+            // below), so the two painted over each other: MapLibre's control and this app's own
+            // basemap-specific credit, both real and both required, neither readable. Moved to
+            // bottom-end so each has its own corner rather than trying to stack them, which would
+            // need a margin computed from this caption's own (basemap-dependent) text height to stay
+            // correct — confirmed via javap against the pinned org.maplibre.gl:android-sdk artifact
+            // that UiSettings exposes setAttributionGravity/setAttributionMargins for exactly this.
+            map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
             mapLibreMap = map
         }
         onDispose { }

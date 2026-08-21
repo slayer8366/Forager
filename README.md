@@ -1206,6 +1206,20 @@ question:
   project yet to honor instead — confirmed by grep, not assumed). Covered
   by `AvailabilityScreenMapIconStackTest`: the combined line no longer
   renders, and the tap toggle works both directions.
+- **MapLibre's own attribution control and this app's `Basemap.attribution`
+  caption painted over each other**, bottom-left — "© MapLibre ©" and
+  "USGS The National Map — public domain" both illegible where they
+  overlapped. Fixed by moving MapLibre's control to bottom-end via
+  `UiSettings.setAttributionGravity` (confirmed via `javap` against the
+  pinned SDK — see `SightingsMap`'s `getMapAsync` block), so each
+  attribution keeps its own corner rather than needing a margin computed
+  from the other's basemap-dependent text height to stack correctly.
+  **The attribution content itself was checked, not assumed**: the string
+  says USGS, and the screenshot's basemap really was USGS Topo, so
+  `Basemap.USGS_TOPO.attribution` matches what's actually being served —
+  this is a different question from the one still open above, about what
+  the *offline region-picker* map renders on (a different screen from the
+  live search map this screenshot is of), which stays unanswered.
 
 The build-identity footer's version values are verified separately — they
 were read off the packaged APK with `aapt2 dump badging`, not off the Gradle
