@@ -12,6 +12,7 @@ import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -2838,8 +2839,43 @@ private fun MapTab(
 /** Diameter shared by every icon in [MapIconStack]. */
 private val MAP_ICON_STACK_DIAMETER = 48.dp
 
-/** Dark translucent circle color for the stack's four non-primary icons — see [MapStackIconButton]. */
-private val MapIconStackCircleColor = Bark.copy(alpha = 0.78f)
+/**
+ * Dark, fully **opaque** circle color for [MapIconStack]'s four non-primary icons (recenter,
+ * layers, search, fullscreen) — see [MapStackIconButton].
+ *
+ * **Decision: opaque, plus a hairline edge, replacing the translucent fill these circles used
+ * before.** Confirmed on real hardware (Portland-metro, USGS Topo): at the previous 78%-alpha
+ * fill, map data underneath — contour lines, place labels — composited straight through the
+ * buttons, reading as barely-there smudges; the stack's one already-opaque icon (the green "add"
+ * button, [MaterialTheme.colorScheme.primary]) read perfectly on the same terrain in the same
+ * screenshot. Opacity was the only difference.
+ *
+ * **Rejected alternative: tuning the alpha per basemap.** A single translucency value can be tuned
+ * to look right against one basemap's palette, but this app ships pale topo, dark aerial imagery,
+ * and (later) hillshade — a fill that reads on one will not read on the others, and per-basemap
+ * tuning means re-solving this every time a basemap is added. The principle instead: **map controls
+ * never composite with map data.** Full opacity occludes the map outright, by construction,
+ * regardless of what's under it — that's what makes a control a control rather than an overlay.
+ *
+ * The hairline border ([MAP_ICON_STACK_BORDER_COLOR]) is what keeps the fix working on imagery
+ * specifically: an opaque dark circle alone reads fine against pale topo but risks merging into
+ * imagery, which is dark nearly everywhere. A light edge separates control from map regardless of
+ * what's underneath, rather than needing a second opaque-color decision for the dark case. Not
+ * independently confirmed on hardware yet — see this project's README, "The topographic basemap,
+ * specifically", for what's re-verified and what's still owed a second look on the imagery basemap.
+ *
+ * This is the overlay-colour decision this section's own history had left deliberately unmade
+ * pending a first hardware look (`CLAUDE.md`'s rule against a speculative correction made in advance
+ * of evidence) — that look happened, found a real problem, and this is the fix landing as a
+ * recorded decision rather than a silent style tweak.
+ */
+private val MapIconStackButtonColor = Bark.copy(alpha = 1f)
+
+/** The hairline edge on [MapIconStackButtonColor] circles — see that color's own doc comment. */
+private val MAP_ICON_STACK_BORDER_COLOR = Color.White.copy(alpha = 0.4f)
+
+/** Dark translucent background for [CompassElevationStripContent] — unaffected by the FAB stack's opaque-fill decision above; this bar sits over the map the same way, but was not reported as illegible in the same hardware pass, so it is deliberately left as-is rather than changed on the strength of a fix aimed at a different element. */
+private val CompassStripBackgroundColor = Bark.copy(alpha = 0.78f)
 
 /**
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
@@ -3139,9 +3175,10 @@ private fun MapStackIconButton(
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = if (filled) MaterialTheme.colorScheme.primary else MapIconStackCircleColor,
+        color = if (filled) MaterialTheme.colorScheme.primary else MapIconStackButtonColor,
         contentColor = Color.White,
         shadowElevation = 2.dp,
+        border = if (filled) null else BorderStroke(1.dp, MAP_ICON_STACK_BORDER_COLOR),
         modifier = modifier.size(MAP_ICON_STACK_DIAMETER),
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -3213,7 +3250,7 @@ private fun CompassElevationStripContent(
     // intercept anything, so the map keeps receiving touches everywhere except this strip's own
     // real interactive children (the return-to-vehicle text, the record toggle).
     CompositionLocalProvider(LocalContentColor provides Color.White) {
-        Box(modifier = modifier.background(color = MapIconStackCircleColor, shape = RectangleShape)) {
+        Box(modifier = modifier.background(color = CompassStripBackgroundColor, shape = RectangleShape)) {
             Column(
                 // fillMaxWidth(), not width(IntrinsicSize.Max): this strip is now the full-width bar
                 // itself (see this composable's own call site), so its content should actually span

@@ -1163,9 +1163,21 @@ dashed connector, all on screen together on a real device:
 
 **Still open, and now with real findings instead of an unasked question.**
 The same screenshot surfaced concrete legibility problems with the overlay
-colours specifically — see the fix-by-fix detail below, added alongside
-each fix as it lands, rather than written speculatively ahead of the
-evidence the way this section previously deferred the question entirely.
+colours specifically — recorded here fix-by-fix as each lands, rather than
+written speculatively ahead of the evidence the way this section
+previously deferred the question entirely.
+
+- **The map control icon stack's four dark-translucent circles let map
+  data (contour lines, place labels) composite straight through them**,
+  reading as barely-there smudges — the stack's one already-opaque icon
+  (the green "add" button) read perfectly on the same terrain in the same
+  screenshot. Fixed: opaque fill plus a hairline edge, as a recorded
+  decision rather than a style tweak — see `MapIconStackButtonColor`'s doc
+  comment in `AvailabilityScreen.kt` for the finding, the fix, and the
+  rejected alternative (per-basemap alpha tuning). **Not yet re-confirmed
+  on hardware, and not yet checked on the imagery basemap specifically** —
+  pale topo was the basemap that happened to get screenshotted, and
+  dark-on-dark is the likelier failure mode for an opaque dark control.
 
 The build-identity footer's version values are verified separately — they
 were read off the packaged APK with `aapt2 dump badging`, not off the Gradle
