@@ -3,6 +3,7 @@ package com.forager.app.domain
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.TrackPoint
 import com.forager.app.domain.model.TrackStatistics
+import kotlin.math.abs
 
 /**
  * Derives [TrackStatistics] from a track's recorded points. Pure domain, no dependency on how the
@@ -11,8 +12,22 @@ import com.forager.app.domain.model.TrackStatistics
  * Distance sums [GeoDistance.metersBetween] over consecutive points rather than any straight-line
  * shortcut — the whole reason a track is worth recording is that it is not a straight line.
  * Elevation gain/loss only considers consecutive pairs where *both* points reported an altitude;
- * a gap in altitude reporting is skipped rather than treated as a zero-elevation change, since a
- * skipped delta and a genuinely flat one are different facts.
+ * a gap in altitude reporting resets the running elevation reference rather than being bridged, so
+ * a real change is never invented from two readings that aren't actually adjacent — a skipped delta
+ * and a genuinely flat one are different facts.
+ *
+ * Ascent/descent is hysteresis-filtered, not a raw delta sum: consumer GPS altitude noise runs
+ * roughly ±10-15 m, so a phone sitting still for an hour would otherwise accumulate hundreds of
+ * metres of fictional climb (see [ElevationHysteresis]). A delta only banks into
+ * [TrackStatistics.elevationGainMeters]/[elevationLossMeters] once the *cumulative* change since the
+ * last banked point (or the start of the current unbroken run of altitude readings, if nothing has
+ * banked yet) exceeds [ElevationHysteresis.THRESHOLD_METERS] — until then the running reference
+ * stays put, so small back-and-forth jitter around one spot never banks at all, while a sustained
+ * climb or descent still accumulates and is eventually recovered once it crosses the threshold.
+ * [ComputeTrackStatisticsUseCaseTest] covers both a purely stationary noisy track (asserts ~0) and a
+ * staircase with a known total climb spread across many sub-threshold steps (asserts the true total
+ * is recovered within one threshold's worth of tolerance — the unavoidable unbanked remainder is
+ * whatever partial climb hadn't yet crossed the threshold when the track ended).
  */
 class ComputeTrackStatisticsUseCase {
     operator fun invoke(points: List<TrackPoint>): TrackStatistics {
@@ -25,6 +40,12 @@ class ComputeTrackStatisticsUseCase {
         var lossMeters = 0.0
         var sawElevationDelta = false
 
+        // The altitude a bank is measured from — null whenever the current run of consecutive,
+        // both-altitude-present pairs hasn't banked anything yet, in which case the *previous*
+        // point's altitude is used as the reference (see below). Reset to null on any gap so a
+        // change spanning missing data is never compared as if it were adjacent.
+        var referenceAltitude: Double? = null
+
         for (i in 1 until points.size) {
             val previous = points[i - 1]
             val current = points[i]
@@ -35,10 +56,19 @@ class ComputeTrackStatisticsUseCase {
 
             val previousAltitude = previous.altitude
             val currentAltitude = current.altitude
-            if (previousAltitude != null && currentAltitude != null) {
-                sawElevationDelta = true
-                val delta = currentAltitude - previousAltitude
+            if (previousAltitude == null || currentAltitude == null) {
+                referenceAltitude = null
+                continue
+            }
+
+            sawElevationDelta = true
+            val reference = referenceAltitude ?: previousAltitude
+            val delta = currentAltitude - reference
+            if (abs(delta) >= ElevationHysteresis.THRESHOLD_METERS) {
                 if (delta > 0) gainMeters += delta else lossMeters += -delta
+                referenceAltitude = currentAltitude
+            } else {
+                referenceAltitude = reference
             }
         }
 
@@ -52,4 +82,15 @@ class ComputeTrackStatisticsUseCase {
             elevationLossMeters = if (sawElevationDelta) lossMeters else null,
         )
     }
+}
+
+/**
+ * 4 m, the midpoint of the 3-5 m range typical for filtering consumer GPS altitude noise (which
+ * itself runs roughly ±10-15 m per reading) without also filtering out a real, if gentle, sustained
+ * climb. An adjustable assumption in the same spirit as [ClusterForagingAreasUseCase]'s clustering
+ * thresholds — not a data-derived constant, since this project has no field data yet on real
+ * device altitude-noise characteristics to derive one from.
+ */
+object ElevationHysteresis {
+    const val THRESHOLD_METERS = 4.0
 }
