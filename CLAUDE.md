@@ -71,3 +71,24 @@ here.
 
 - Record why a non-obvious decision was made and what alternative was
   rejected — not just what was chosen.
+
+## Known pitfalls
+
+- **A `Surface` (or any composable that draws a background or attaches
+  pointer input) intercepts touches across its full layout bounds, not just
+  where something is visually drawn.** An unconstrained `fillMaxWidth()`/
+  `fillMaxSize()` child inside a `Column`/`Row` that has no width or height
+  constraint of its own stretches the whole container — and the `Surface`
+  wrapping it — to fill the available space, silently swallowing touches
+  meant for content underneath (a map's long-press, in particular) even in
+  regions that look empty. Bound such a container explicitly — e.g.
+  `Modifier.width(IntrinsicSize.Max)` on the parent, so it sizes to its
+  content instead of expanding to fill — rather than trusting that nothing
+  drawn there means nothing intercepted there. This has recurred twice
+  within the same project cycle (the compact map's compass strip, then
+  independently the return-to-vehicle row added right after it), both times
+  over a map surface the UI is meant to let touches pass through to; both
+  times a Robolectric test driving the real screen's long-press caught the
+  regression outright (green-to-failing, not flaky) before it reached
+  hardware. Any layout composed over a map needs at least one such test, not
+  just visual review — visual review is exactly what missed this twice.
