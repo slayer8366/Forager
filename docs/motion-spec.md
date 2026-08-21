@@ -123,9 +123,8 @@ this spec, not guessed:
    (`MotionPrecedence.MARKER_CLUSTERING_THRESHOLD`); not yet validated
    against real hardware or real dense-map fixtures. Revisit before this
    spec is treated as final.
-2. **Named owner role for `CODEOWNERS` and PR sign-off.** Not yet
-   assigned — `.github/CODEOWNERS` currently names a placeholder handle
-   that must be replaced with a real reviewer before it takes effect.
-   `scripts/verify-codeowners-placeholders.sh` fails loudly as a
-   reminder until that happens; see the script's header for why it
-   exists and why it isn't wired into `ci.yml`.
+2. **Named owner role for `CODEOWNERS` and PR sign-off.**
+   **Resolved 2026-08-21:** the reviewer handle is `@slayer8366`.
+   `.github/CODEOWNERS` now names it in place of the former
+   `@TODO-motion-owner` placeholder, and
+   `scripts/verify-codeowners-placeholders.sh` passes.

@@ -1,13 +1,14 @@
 # Motion spec paths require review from the named motion-owner role, per
 # .github/PULL_REQUEST_TEMPLATE.md's "Motion spec compliance" section.
 #
-# @TODO-motion-owner is a placeholder, not a real GitHub user or team -- see
-# docs/motion-spec.md §6 open question 2. GitHub does not error on an unrecognized
-# CODEOWNERS entry, it just silently skips it, so a placeholder alone would not actually
-# require review from anyone. Run scripts/verify-codeowners-placeholders.sh before treating
-# this file as taking effect -- it fails loudly while a placeholder remains. Not wired into
-# .github/workflows/ci.yml: that pipeline gates every PR in this repo, and this file's own
-# open question shouldn't block unrelated changes from merging.
-/app/src/main/java/com/forager/app/ui/motion/** @TODO-motion-owner
-/docs/motion-spec.md @TODO-motion-owner
-/docs/adr/0001-motion-precedence.md @TODO-motion-owner
+# Motion spec and UI theme changes route to @slayer8366.
+#
+# GitHub does not error on an unrecognized CODEOWNERS entry, it just silently skips it, so a
+# placeholder alone (as this file once had) would not actually require review from anyone. Run
+# scripts/verify-codeowners-placeholders.sh before treating this file as taking effect -- it
+# fails loudly while a placeholder remains. Not wired into .github/workflows/ci.yml: that
+# pipeline gates every PR in this repo, and a stray placeholder here shouldn't block unrelated
+# changes from merging.
+/app/src/main/java/com/forager/app/ui/motion/** @slayer8366
+/docs/motion-spec.md @slayer8366
+/docs/adr/0001-motion-precedence.md @slayer8366
