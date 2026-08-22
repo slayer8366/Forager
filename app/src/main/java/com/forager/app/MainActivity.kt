@@ -223,6 +223,7 @@ class MainActivity : ComponentActivity() {
                     waypoints = trackUiState.waypoints,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
                     onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
+                    waypointsErrorMessage = trackUiState.waypointsErrorMessage,
                     returnToStart = trackUiState.returnToStart,
                     isReturning = trackUiState.isReturning,
                     isOffTrack = trackUiState.isOffTrack,
