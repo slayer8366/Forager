@@ -1,5 +1,6 @@
 package com.forager.app.ui.track
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.ComputeReturnToStartUseCase
@@ -111,7 +112,8 @@ class TrackRecordingViewModel(
                     beginLocationTracking()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(startRecordingErrorMessage = error.message ?: "Couldn't start recording.") }
+                    Log.w(TAG, "Couldn't start recording.", error)
+                    _uiState.update { it.copy(startRecordingErrorMessage = "Couldn't start recording.") }
                 }
         }
     }
@@ -201,7 +203,10 @@ class TrackRecordingViewModel(
         viewModelScope.launch {
             getWaypoints()
                 .onSuccess { waypoints -> _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null) } }
-                .onFailure { error -> _uiState.update { it.copy(waypointsErrorMessage = error.message ?: "Couldn't load waypoints.") } }
+                .onFailure { error ->
+                    Log.w(TAG, "Couldn't load waypoints.", error)
+                    _uiState.update { it.copy(waypointsErrorMessage = "Couldn't load waypoints.") }
+                }
         }
     }
 
@@ -209,7 +214,10 @@ class TrackRecordingViewModel(
         viewModelScope.launch {
             createWaypoint(lat, lng, altitude = null, name = name, note = note)
                 .onSuccess { loadWaypoints() }
-                .onFailure { error -> _uiState.update { it.copy(waypointsErrorMessage = error.message ?: "Couldn't save waypoint.") } }
+                .onFailure { error ->
+                    Log.w(TAG, "Couldn't save waypoint.", error)
+                    _uiState.update { it.copy(waypointsErrorMessage = "Couldn't save waypoint.") }
+                }
         }
     }
 
@@ -217,7 +225,10 @@ class TrackRecordingViewModel(
         viewModelScope.launch {
             deleteWaypoint(id)
                 .onSuccess { loadWaypoints() }
-                .onFailure { error -> _uiState.update { it.copy(waypointsErrorMessage = error.message ?: "Couldn't delete waypoint.") } }
+                .onFailure { error ->
+                    Log.w(TAG, "Couldn't delete waypoint.", error)
+                    _uiState.update { it.copy(waypointsErrorMessage = "Couldn't delete waypoint.") }
+                }
         }
     }
 
@@ -251,5 +262,6 @@ class TrackRecordingViewModel(
 
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
+        const val TAG = "TrackRecordingViewModel"
     }
 }

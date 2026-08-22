@@ -1,5 +1,6 @@
 package com.forager.app.ui.availability
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.AvailabilitySearchResult
@@ -133,11 +134,12 @@ class AvailabilityViewModel(
             searchTaxa(query).fold(
                 onSuccess = { results -> _uiState.update { it.copy(isSearchingTaxa = false, taxonSearchResults = results) } },
                 onFailure = { error ->
+                    Log.w(TAG, "Species search failed.", error)
                     _uiState.update {
                         it.copy(
                             isSearchingTaxa = false,
                             taxonSearchResults = emptyList(),
-                            taxonSearchErrorMessage = error.message ?: "Species search failed.",
+                            taxonSearchErrorMessage = "Species search failed.",
                         )
                     }
                 },
@@ -294,11 +296,12 @@ class AvailabilityViewModel(
                     }
                 },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't load sightings for the map.", error)
                     _uiState.update {
                         it.copy(
                             isLoadingSightings = false,
                             foragingAreas = null,
-                            sightingsErrorMessage = error.message ?: "Couldn't load sightings for the map.",
+                            sightingsErrorMessage = "Couldn't load sightings for the map.",
                         )
                     }
                 },
@@ -332,11 +335,12 @@ class AvailabilityViewModel(
                     _uiState.update { it.copy(isLoadingSeasonalPattern = false, seasonalPattern = distribution) }
                 },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't load the seasonal pattern.", error)
                     _uiState.update {
                         it.copy(
                             isLoadingSeasonalPattern = false,
                             seasonalPattern = null,
-                            seasonalPatternErrorMessage = error.message ?: "Couldn't load the seasonal pattern.",
+                            seasonalPatternErrorMessage = "Couldn't load the seasonal pattern.",
                         )
                     }
                 },
@@ -385,12 +389,13 @@ class AvailabilityViewModel(
                     // Live failed and nothing was cached for this exact search, so there are no
                     // results on screen at all: the cached-results flags are cleared rather than
                     // left over from a previous search the banner would then mislabel.
+                    Log.w(TAG, "Search failed.", error)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isShowingCachedResults = false,
                             cachedResultsAsOfEpochMillis = null,
-                            errorMessage = error.message ?: "Request failed. Check your connection and try again.",
+                            errorMessage = "Request failed. Check your connection and try again.",
                         )
                     }
                 },
@@ -411,11 +416,12 @@ class AvailabilityViewModel(
                 getConditions(region).fold(
                     onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
                     onFailure = { error ->
+                        Log.w(TAG, "Couldn't load recent rainfall.", error)
                         _uiState.update {
                             it.copy(
                                 isLoadingConditions = false,
                                 conditions = null,
-                                conditionsErrorMessage = error.message ?: "Couldn't load recent rainfall.",
+                                conditionsErrorMessage = "Couldn't load recent rainfall.",
                             )
                         }
                     },
@@ -434,11 +440,12 @@ class AvailabilityViewModel(
             getTripWindows(region).fold(
                 onSuccess = { report -> _uiState.update { it.copy(isLoadingTripWindows = false, tripWindowReport = report) } },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't load trip-window weather.", error)
                     _uiState.update {
                         it.copy(
                             isLoadingTripWindows = false,
                             tripWindowReport = null,
-                            tripWindowsErrorMessage = error.message ?: "Couldn't load trip-window weather.",
+                            tripWindowsErrorMessage = "Couldn't load trip-window weather.",
                         )
                     }
                 },
@@ -490,8 +497,9 @@ class AvailabilityViewModel(
             getPlannedTrips().fold(
                 onSuccess = { trips -> _uiState.update { it.copy(plannedTrips = trips, plannedTripsErrorMessage = null) } },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't load planned trips.", error)
                     _uiState.update {
-                        it.copy(plannedTripsErrorMessage = error.message ?: "Couldn't load planned trips.")
+                        it.copy(plannedTripsErrorMessage = "Couldn't load planned trips.")
                     }
                 },
             )
@@ -504,8 +512,9 @@ class AvailabilityViewModel(
             savePlannedTrip(location, date, name).fold(
                 onSuccess = { loadPlannedTrips() },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't save the planned trip.", error)
                     _uiState.update {
-                        it.copy(plannedTripsErrorMessage = error.message ?: "Couldn't save the planned trip.")
+                        it.copy(plannedTripsErrorMessage = "Couldn't save the planned trip.")
                     }
                 },
             )
@@ -517,8 +526,9 @@ class AvailabilityViewModel(
             deletePlannedTrip(id).fold(
                 onSuccess = { loadPlannedTrips() },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't delete the planned trip.", error)
                     _uiState.update {
-                        it.copy(plannedTripsErrorMessage = error.message ?: "Couldn't delete the planned trip.")
+                        it.copy(plannedTripsErrorMessage = "Couldn't delete the planned trip.")
                     }
                 },
             )
@@ -553,8 +563,9 @@ class AvailabilityViewModel(
                     }
                 },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't read offline map status.", error)
                     _uiState.update {
-                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't read offline map status."))
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed("Couldn't read offline map status."))
                     }
                 },
             )
@@ -590,8 +601,9 @@ class AvailabilityViewModel(
             }.fold(
                 onSuccess = { info -> _uiState.update { it.copy(offlineMapStatus = info.toUiStatus()) } },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't download offline maps.", error)
                     _uiState.update {
-                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't download offline maps."))
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed("Couldn't download offline maps."))
                     }
                 },
             )
@@ -603,8 +615,9 @@ class AvailabilityViewModel(
             offlineMapRepository.delete().fold(
                 onSuccess = { _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.NotDownloaded) } },
                 onFailure = { error ->
+                    Log.w(TAG, "Couldn't delete offline maps.", error)
                     _uiState.update {
-                        it.copy(offlineMapStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't delete offline maps."))
+                        it.copy(offlineMapStatus = OfflineMapStatus.Failed("Couldn't delete offline maps."))
                     }
                 },
             )
@@ -613,6 +626,7 @@ class AvailabilityViewModel(
 
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 300L
+        const val TAG = "AvailabilityViewModel"
     }
 }
 

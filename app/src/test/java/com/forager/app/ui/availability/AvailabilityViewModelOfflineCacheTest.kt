@@ -229,8 +229,33 @@ class AvailabilityViewModelOfflineCacheTest {
             val state = vm.uiState.value
             assertFalse(state.isShowingCachedResults)
             assertNull(state.cachedResultsAsOfEpochMillis)
-            assertEquals("Unable to resolve host api.inaturalist.org", state.errorMessage)
+            assertEquals("Request failed. Check your connection and try again.", state.errorMessage)
         }
+
+    /**
+     * The error-presentation spec's absolute rule, regression-guarded: no exception text reaches
+     * a state field, however recognizable that text is. `error.message` used to win over the fixed
+     * fallback whenever it was non-null (the `?:` operator's default behavior) — this is exactly the
+     * shape that let `Unable to resolve host "api.inaturalist.org": No address associated with
+     * hostname` reach the List tab verbatim. Asserting the fixed string's *content*, not just that
+     * the raw text is absent, is what catches a regression to `error.message ?: fallback` even if
+     * someone reintroduces it with a different fallback string.
+     */
+    @Test
+    fun `the exception's own message never reaches errorMessage, however recognizable it is`() = runTest(dispatcher) {
+        val vm = viewModel()
+        remote.failure = IOException("Unable to resolve host \"api.inaturalist.org\": No address associated with hostname")
+
+        vm.searchTestRegion()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("Request failed. Check your connection and try again.", state.errorMessage)
+        assertFalse(
+            "the exception's own message text must never reach a user-facing state field",
+            state.errorMessage.orEmpty().contains("api.inaturalist.org"),
+        )
+    }
 
     /** Coming back online has to take the banner down again, not leave it stuck on. */
     @Test
