@@ -2405,6 +2405,8 @@ private fun ListTab(
         }
         if (uiState.conditions != null) {
             ConditionsCard(conditions = uiState.conditions)
+        } else if (uiState.conditionsErrorMessage != null) {
+            ConditionsCard(errorMessage = uiState.conditionsErrorMessage)
         }
         // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
         // bounded height rather than whatever the card above it happens to leave.
@@ -4122,27 +4124,37 @@ private fun noAreasMessage(none: ForagingAreas.None): String {
  * Recent rainfall, shown as a standalone fact at the top of the ranked list — never described as
  * having factored into it. See [com.forager.app.domain.GetConditionsUseCase]'s doc comment for
  * why this stays unfused with the ranked list.
+ *
+ * [errorMessage] is the non-belief-changing empty state for a failed fetch — the user wanted
+ * rainfall data, not a report on the network, so it renders with the same neutral (no `color`
+ * argument) treatment [WaypointsSection]'s empty state and [MapMessage]'s default use — never
+ * `colorScheme.error` — per docs/error-presentation-spec.md's per-field table. Exactly one of
+ * [conditions]/[errorMessage] is non-null at any call site (see [ListTab]).
  */
 @Composable
-private fun ConditionsCard(conditions: ConditionsSummary) {
+private fun ConditionsCard(conditions: ConditionsSummary? = null, errorMessage: String? = null) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text("Current Conditions", style = MaterialTheme.typography.titleSmall)
-            val totalMm = conditions.totalPrecipitationMm
-            Text(
-                "${"%.1f".format(totalMm)}mm of rain in the last 14 days",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            val daysSince = conditions.daysSinceSignificantRain
-            Text(
-                when {
-                    daysSince == null -> "No significant rain in the last 14 days."
-                    daysSince == 0 -> "Rain today."
-                    daysSince == 1 -> "1 day since last rain."
-                    else -> "$daysSince days since last rain."
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (conditions != null) {
+                val totalMm = conditions.totalPrecipitationMm
+                Text(
+                    "${"%.1f".format(totalMm)}mm of rain in the last 14 days",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                val daysSince = conditions.daysSinceSignificantRain
+                Text(
+                    when {
+                        daysSince == null -> "No significant rain in the last 14 days."
+                        daysSince == 0 -> "Rain today."
+                        daysSince == 1 -> "1 day since last rain."
+                        else -> "$daysSince days since last rain."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else if (errorMessage != null) {
+                Text(errorMessage, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }

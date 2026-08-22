@@ -63,7 +63,10 @@ class MushroomLogViewModel(
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't load the mushroom log.", error)
                     _uiState.update {
-                        it.copy(isLoadingEntries = false, loadErrorMessage = "Couldn't load your log entries.")
+                        // Not belief-changing — the entries are on disk; only the read failed. See
+                        // docs/error-presentation-spec.md's per-field table: neutral "unavailable"
+                        // wording that doesn't imply anything was lost, not "Couldn't load...".
+                        it.copy(isLoadingEntries = false, loadErrorMessage = "Log entries unavailable.")
                     }
                 },
             )

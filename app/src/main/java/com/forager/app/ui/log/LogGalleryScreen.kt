@@ -87,6 +87,13 @@ internal fun LogGalleryScreen(
     onOpenEntry: (String) -> Unit,
     onAddEntry: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Set when the last load failed — see [LogEntryListScreen]'s own [loadErrorMessage] parameter
+     * for why this never hides [entries] that are already showing, only shown above the grid (the
+     * "+" tile stays first regardless, same as the empty-but-no-error case) when there is nothing
+     * to show because the read failed, per docs/error-presentation-spec.md.
+     */
+    loadErrorMessage: String? = null,
 ) {
     if (isLoading && entries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -95,16 +102,25 @@ internal fun LogGalleryScreen(
         return
     }
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(LogSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
-    ) {
-        item { AddEntryTile(onClick = onAddEntry) }
-        items(entries, key = { it.id }) { entry ->
-            LogEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) })
+    Column(modifier = modifier.fillMaxSize()) {
+        if (entries.isEmpty() && loadErrorMessage != null) {
+            Text(
+                loadErrorMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().padding(LogSpacing.lg),
+            )
+        }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(LogSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+        ) {
+            item { AddEntryTile(onClick = onAddEntry) }
+            items(entries, key = { it.id }) { entry ->
+                LogEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) })
+            }
         }
     }
 }

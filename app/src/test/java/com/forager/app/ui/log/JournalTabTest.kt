@@ -144,6 +144,35 @@ class JournalTabTest {
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
         assertEquals(LatLng(45.5, -122.5), startedEntryAt)
     }
+
+    /**
+     * [MushroomLogUiState.loadErrorMessage]'s neutral, non-belief-changing empty state — see
+     * [LogGalleryScreen]'s own doc comment on the parameter. Driven through [JournalTab] with a
+     * real [MushroomLogUiState] rather than calling [LogGalleryScreen] directly, so this exercises
+     * the same threading [MainActivity] relies on.
+     */
+    @Test
+    fun `a set loadErrorMessage shows the unavailable text when there are no entries to show`() {
+        setScreen(MushroomLogUiState(loadErrorMessage = "Log entries unavailable."))
+
+        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `with loadErrorMessage unset, no unavailable text appears`() {
+        setScreen(MushroomLogUiState())
+
+        composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
+    }
+
+    /** The "not belief-changing" half of the doc comment: a failed refresh never hides entries already on screen. */
+    @Test
+    fun `a set loadErrorMessage does not hide entries already showing`() {
+        setScreen(MushroomLogUiState(entries = listOf(existingEntry), loadErrorMessage = "Log entries unavailable."))
+
+        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").assertIsDisplayed()
+        composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
+    }
 }
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)

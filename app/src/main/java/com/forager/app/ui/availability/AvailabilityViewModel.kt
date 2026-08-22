@@ -429,7 +429,10 @@ class AvailabilityViewModel(
                             it.copy(
                                 isLoadingConditions = false,
                                 conditions = null,
-                                conditionsErrorMessage = "Couldn't load recent rainfall.",
+                                // Not belief-changing — the user wanted rainfall data, not a report
+                                // on the network. See docs/error-presentation-spec.md's per-field
+                                // table: neutral "unavailable" wording, not "Couldn't load...".
+                                conditionsErrorMessage = "Rainfall data unavailable.",
                             )
                         }
                     },

@@ -128,6 +128,7 @@ internal fun JournalTab(
             },
             onAddEntry = { pickingLocation = true },
             modifier = modifier,
+            loadErrorMessage = uiState.loadErrorMessage,
         )
     }
 }
