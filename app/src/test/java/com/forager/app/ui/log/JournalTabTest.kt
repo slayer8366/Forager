@@ -144,6 +144,22 @@ class JournalTabTest {
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
         assertEquals(LatLng(45.5, -122.5), startedEntryAt)
     }
+
+    @Test
+    fun `loadErrorMessage shows in the gallery in place of the entries grid`() {
+        setScreen(MushroomLogUiState(entries = listOf(existingEntry), loadErrorMessage = "Couldn't load your log entries."))
+
+        composeRule.onNodeWithText("Couldn't load your log entries.").assertIsDisplayed()
+        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").assertDoesNotExist()
+    }
+
+    @Test
+    fun `no load error text shows in the gallery when loadErrorMessage is null`() {
+        setScreen(MushroomLogUiState(entries = listOf(existingEntry), loadErrorMessage = null))
+
+        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").assertIsDisplayed()
+        composeRule.onNodeWithText("Couldn't load your log entries.").assertDoesNotExist()
+    }
 }
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)

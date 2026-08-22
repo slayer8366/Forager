@@ -122,6 +122,7 @@ internal fun JournalTab(
         else -> LogGalleryScreen(
             entries = uiState.entries,
             isLoading = uiState.isLoadingEntries,
+            loadErrorMessage = uiState.loadErrorMessage,
             onOpenEntry = { id ->
                 mode = JournalEntryMode.REPORT
                 onOpenEntry(id)
