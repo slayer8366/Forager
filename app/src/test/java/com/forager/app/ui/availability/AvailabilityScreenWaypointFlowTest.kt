@@ -12,9 +12,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -107,7 +109,7 @@ class AvailabilityScreenWaypointFlowTest {
     private var droppedWaypoints = mutableListOf<Pair<LatLng, String>>()
     private var deletedWaypointIds = mutableListOf<String>()
 
-    private fun setScreen(initialWaypoints: List<Waypoint> = emptyList()) {
+    private fun setScreen(initialWaypoints: List<Waypoint> = emptyList(), waypointsErrorMessage: String? = null) {
         val plannedTripRepository = WaypointFlowInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
             locationProvider = WaypointFlowUnusedLocationProvider,
@@ -173,6 +175,7 @@ class AvailabilityScreenWaypointFlowTest {
                     deletedWaypointIds += id
                     waypoints = waypoints.filterNot { it.id == id }
                 },
+                waypointsErrorMessage = waypointsErrorMessage,
                 mapSlot = TriggerableWaypointMapSlot,
             )
         }
@@ -268,6 +271,29 @@ class AvailabilityScreenWaypointFlowTest {
     @Test
     fun `the drawer's Waypoints section shows a no-waypoints message when empty`() {
         setScreen()
+
+        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Waypoints").performClick()
+
+        composeRule.onNodeWithText("No waypoints dropped yet. Long-press the map to drop one.")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `the drawer's Waypoints section shows waypointsErrorMessage when set, in place of the empty message`() {
+        setScreen(waypointsErrorMessage = "Couldn't load waypoints.")
+
+        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Waypoints").performClick()
+
+        composeRule.onNodeWithText("Couldn't load waypoints.").assertIsDisplayed()
+        composeRule.onAllNodesWithText("No waypoints dropped yet. Long-press the map to drop one.")
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `the drawer's Waypoints section shows no error text when waypointsErrorMessage is null`() {
+        setScreen(waypointsErrorMessage = null)
 
         composeRule.onNodeWithContentDescription("Search").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
