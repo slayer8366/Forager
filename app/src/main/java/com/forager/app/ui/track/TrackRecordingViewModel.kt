@@ -1,12 +1,12 @@
 package com.forager.app.ui.track
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.ComputeReturnToStartUseCase
 import com.forager.app.domain.CreateWaypointUseCase
 import com.forager.app.domain.DeleteWaypointUseCase
 import com.forager.app.domain.DetectOffTrackUseCase
+import com.forager.app.domain.ErrorLog
 import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
@@ -74,6 +74,14 @@ class TrackRecordingViewModel(
     private val computeReturnToStart: ComputeReturnToStartUseCase,
     private val detectOffTrack: DetectOffTrackUseCase,
     private val locationTracker: LocationTracker,
+    /**
+     * Logs a failure's throwable for diagnosis, without ever exposing its text to the user — see
+     * [ErrorLog]'s own doc comment for why this exists rather than calling [android.util.Log]
+     * directly. Defaults to discarding the throwable, which is exactly what makes every existing
+     * test safe under a plain JVM run with no per-test setup; `MainActivity` wires the real
+     * `Log.w`-backed one for production.
+     */
+    private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -112,7 +120,7 @@ class TrackRecordingViewModel(
                     beginLocationTracking()
                 }
                 .onFailure { error ->
-                    Log.w(TAG, "Couldn't start recording.", error)
+                    errorLog.w(TAG, "Couldn't start recording.", error)
                     _uiState.update { it.copy(startRecordingErrorMessage = "Couldn't start recording.") }
                 }
         }
@@ -204,7 +212,7 @@ class TrackRecordingViewModel(
             getWaypoints()
                 .onSuccess { waypoints -> _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null) } }
                 .onFailure { error ->
-                    Log.w(TAG, "Couldn't load waypoints.", error)
+                    errorLog.w(TAG, "Couldn't load waypoints.", error)
                     _uiState.update { it.copy(waypointsErrorMessage = "Couldn't load waypoints.") }
                 }
         }
@@ -215,7 +223,7 @@ class TrackRecordingViewModel(
             createWaypoint(lat, lng, altitude = null, name = name, note = note)
                 .onSuccess { loadWaypoints() }
                 .onFailure { error ->
-                    Log.w(TAG, "Couldn't save waypoint.", error)
+                    errorLog.w(TAG, "Couldn't save waypoint.", error)
                     _uiState.update { it.copy(waypointsErrorMessage = "Couldn't save waypoint.") }
                 }
         }
@@ -226,7 +234,7 @@ class TrackRecordingViewModel(
             deleteWaypoint(id)
                 .onSuccess { loadWaypoints() }
                 .onFailure { error ->
-                    Log.w(TAG, "Couldn't delete waypoint.", error)
+                    errorLog.w(TAG, "Couldn't delete waypoint.", error)
                     _uiState.update { it.copy(waypointsErrorMessage = "Couldn't delete waypoint.") }
                 }
         }
