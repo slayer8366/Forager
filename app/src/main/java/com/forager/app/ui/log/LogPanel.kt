@@ -65,6 +65,7 @@ internal fun LogPanel(
             LogEntryListScreen(
                 entries = uiState.entries,
                 isLoading = uiState.isLoadingEntries,
+                loadErrorMessage = uiState.loadErrorMessage,
                 onOpenEntry = onOpenEntry,
                 modifier = Modifier.weight(1f),
             )

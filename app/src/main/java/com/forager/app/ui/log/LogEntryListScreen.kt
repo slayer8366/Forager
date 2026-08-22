@@ -47,6 +47,7 @@ private fun MushroomLogEntry.hasUnrecordedFields(): Boolean =
 internal fun LogEntryListScreen(
     entries: List<MushroomLogEntry>,
     isLoading: Boolean,
+    loadErrorMessage: String?,
     onOpenEntry: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -54,6 +55,13 @@ internal fun LogEntryListScreen(
         isLoading -> Column(modifier = modifier.fillMaxWidth().padding(LogSpacing.lg)) {
             CircularProgressIndicator()
         }
+
+        loadErrorMessage != null -> Text(
+            loadErrorMessage,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            modifier = modifier.fillMaxWidth().padding(LogSpacing.lg),
+        )
 
         entries.isEmpty() -> Text(
             "No finds logged yet. Long-press the map to log one.",

@@ -84,6 +84,7 @@ private fun MushroomLogEntry.hasUnrecordedFields(): Boolean =
 internal fun LogGalleryScreen(
     entries: List<MushroomLogEntry>,
     isLoading: Boolean,
+    loadErrorMessage: String?,
     onOpenEntry: (String) -> Unit,
     onAddEntry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -91,6 +92,13 @@ internal fun LogGalleryScreen(
     if (isLoading && entries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (loadErrorMessage != null) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(loadErrorMessage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
         }
         return
     }
