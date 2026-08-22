@@ -9,3 +9,4 @@ Audits are committed here so they survive the session that produced them.
 | Date | Scope | File |
 |---|---|---|
 | 2026-08-21 | Code quality and structure (Phase 1) | `2026-08-21-phase1-code-audit.md` |
+| 2026-08-22 | Session handoff: error-presentation spec implementation (PR #34) | `2026-08-22-error-presentation-handoff.md` |
