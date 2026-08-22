@@ -113,7 +113,7 @@ class AvailabilityScreenConditionsMonthTest {
      */
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun setScreen() {
+    private fun setScreen(weatherProvider: WeatherProvider = FakeWeatherProvider) {
         val viewModel = AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,
             locationTracker = NoOpLocationTracker,
@@ -121,7 +121,7 @@ class AvailabilityScreenConditionsMonthTest {
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(FakeRepository),
             searchTaxa = SearchTaxaUseCase(FakeRepository),
-            getConditions = GetConditionsUseCase(FakeWeatherProvider),
+            getConditions = GetConditionsUseCase(weatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(FakeTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(FakePlannedTripRepository),
@@ -243,6 +243,28 @@ class AvailabilityScreenConditionsMonthTest {
         val now = LocalDate.now().monthValue
         return Month.of(if (now == 1) 2 else 1)
     }
+
+    @Test
+    fun `conditionsErrorMessage shows in place of the conditions card when the fetch fails`() {
+        setScreen(weatherProvider = FailingWeatherProvider)
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("List").performClick()
+
+        composeRule.onNodeWithText("Couldn't reach the rainfall service.").assertIsDisplayed()
+        composeRule.onNodeWithText("Current Conditions").assertDoesNotExist()
+    }
+
+    @Test
+    fun `no conditions error text shows when the fetch succeeds`() {
+        setScreen()
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("List").performClick()
+
+        composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
+        composeRule.onNodeWithText("Couldn't reach the rainfall service.").assertDoesNotExist()
+    }
 }
 
 private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
@@ -303,6 +325,12 @@ private object FakeTripPlanningWeatherProvider : TripPlanningWeatherProvider {
 private object FakeHistoricalWeatherProvider : HistoricalWeatherProvider {
     override suspend fun getHistoricalPrecipitation(region: Region, from: LocalDate, through: LocalDate): Result<List<DailyWeather>> =
         Result.failure(UnsupportedOperationException("seasonal pattern not exercised by this test"))
+}
+
+/** A conditions fetch that always fails, with a real message — see [AvailabilityViewModel.refresh]'s onFailure branch, which uses [Throwable.message] directly, not a hardcoded fallback string. */
+private object FailingWeatherProvider : WeatherProvider {
+    override suspend fun getRecentPrecipitation(region: Region) =
+        Result.failure<ConditionsSummary>(IllegalStateException("Couldn't reach the rainfall service."))
 }
 
 /** Not exercised by this test's assertions; empty rather than failing, since it loads on every ViewModel init. */

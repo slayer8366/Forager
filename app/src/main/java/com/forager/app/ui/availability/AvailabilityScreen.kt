@@ -2357,8 +2357,14 @@ private fun ListTab(
                 nowEpochMillis = currentTime.nowEpochMillis(),
             )
         }
-        if (uiState.conditions != null) {
-            ConditionsCard(conditions = uiState.conditions)
+        when {
+            uiState.conditionsErrorMessage != null -> Text(
+                uiState.conditionsErrorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            uiState.conditions != null -> ConditionsCard(conditions = uiState.conditions)
         }
         // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
         // bounded height rather than whatever the card above it happens to leave.
