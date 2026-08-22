@@ -1,5 +1,6 @@
 package com.forager.app.service
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,11 +8,13 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.forager.app.AppContainer
 import com.forager.app.ForagerApplication
 import com.forager.app.MainActivity
@@ -75,7 +78,18 @@ class TrackRecordingService : Service() {
                 val trackId = intent.getStringExtra(EXTRA_TRACK_ID)
                 val modeName = intent.getStringExtra(EXTRA_MODE)
                 val mode = TrackRecordingMode.entries.firstOrNull { it.name == modeName } ?: TrackRecordingMode.BALANCED
-                if (trackId != null && recordingJob == null) startRecording(trackId, mode)
+                if (trackId != null && recordingJob == null) {
+                    // Defence in depth against the confirmed FGS-location-type crash: MainActivity
+                    // already gates on this before ever sending ACTION_START (see its own
+                    // hasLocationPermission()), but this service must never crash regardless of how
+                    // it gets told to start — see startForegroundWithLocationType()'s doc comment.
+                    if (hasLocationPermission()) {
+                        startRecording(trackId, mode)
+                    } else {
+                        Log.w(TAG, "Refusing to start recording for track '$trackId': no location permission.")
+                        stopSelf()
+                    }
+                }
             }
             ACTION_STOP -> stopRecording()
         }
@@ -191,6 +205,13 @@ class TrackRecordingService : Service() {
      * `Service.startForeground(Int, Notification)` is `final` — cannot be overridden, unlike the
      * one-shot [android.location.LocationManager]/[android.hardware.SensorManager] wrapping this
      * project does elsewhere. This calls the type-carrying overload directly instead.
+     *
+     * As of `targetSdk` 34+, starting a `FOREGROUND_SERVICE_TYPE_LOCATION` service without either
+     * runtime location permission granted throws a `SecurityException` here — a confirmed crash
+     * (captured stack trace: `startForegroundWithLocationType` -> `startRecording` ->
+     * `onStartCommand`, an uncaught `RuntimeException: Unable to start service` on the main
+     * thread). [onStartCommand]'s [hasLocationPermission] check is what prevents this method from
+     * ever being reached without the permission it needs.
      */
     private fun startForegroundWithLocationType() {
         val notification = buildNotification()
@@ -199,6 +220,19 @@ class TrackRecordingService : Service() {
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+    }
+
+    /**
+     * Same check, same two permissions, as
+     * [com.forager.app.location.AndroidLocationProvider.hasLocationPermission] — not shared code
+     * across a service/domain-layer boundary that owns neither Context nor Manifest, matching that
+     * class's own doc comment on why (see also `MainActivity`'s own copy, and
+     * `com.forager.app.ui.map.SightingsMap.kt`'s).
+     */
+    private fun hasLocationPermission(): Boolean {
+        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
     }
 
     companion object {

@@ -117,6 +117,22 @@ class TrackRecordingViewModel(
     }
 
     /**
+     * The Activity's location-permission gate refused to even attempt starting the recording —
+     * see `MainActivity`'s `onToggleRecording`/`LaunchedEffect(trackUiState.activeTrack)`. Mirrors
+     * [com.forager.app.ui.availability.AvailabilityViewModel.onLocateMePermissionDenied]: the
+     * permission check itself belongs to the Activity/Context layer, not here, so this only
+     * records the outcome onto the existing [TrackRecordingUiState.startRecordingErrorMessage]
+     * field — the same one [startRecording]'s own failure path writes to — for
+     * `AvailabilityScreen`'s existing Toast-on-error-message rendering to pick up. Never touches
+     * [TrackRecordingUiState.activeTrack]: either recording never began (the caller checked before
+     * calling [startRecording] at all), or the caller is rolling one back via [stopRecording]
+     * immediately after this — either way this method only ever reports the reason.
+     */
+    fun onStartRecordingPermissionDenied(message: String) {
+        _uiState.update { it.copy(startRecordingErrorMessage = message) }
+    }
+
+    /**
      * Clears local recording state. Ending the track's own row (`endedAtEpochMillis`) is the
      * foreground service's job once it receives the stop intent — see
      * [com.forager.app.service.TrackRecordingService.stopRecording] — not duplicated here.
