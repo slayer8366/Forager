@@ -275,6 +275,7 @@ class MainActivity : ComponentActivity() {
                     startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     waypoints = trackUiState.waypoints,
+                    waypointsErrorMessage = trackUiState.waypointsErrorMessage,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
                     onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
                     returnToStart = trackUiState.returnToStart,

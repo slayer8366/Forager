@@ -389,6 +389,8 @@ fun AvailabilityScreen(
      * the search drawer's "Waypoints" section ([WaypointsSection]).
      */
     waypoints: List<Waypoint> = emptyList(),
+    /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
+    waypointsErrorMessage: String? = null,
     /** Called with the dropped location and the confirmed name when "Drop a waypoint" is chosen from the map's long-press menu — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
@@ -585,6 +587,7 @@ fun AvailabilityScreen(
                     onMonthSelected = onMonthSelected,
                     onDeletePlannedTrip = onDeletePlannedTrip,
                     waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
                     onRecentSearchSelected = { summary ->
                         // Closed for the same reason searching from this drawer closes it:
@@ -953,6 +956,7 @@ fun AvailabilityScreen(
                         onMonthSelected = onMonthSelected,
                         onDeletePlannedTrip = onDeletePlannedTrip,
                         waypoints = waypoints,
+                        waypointsErrorMessage = waypointsErrorMessage,
                         onDeleteWaypoint = onDeleteWaypoint,
                         onRecentSearchSelected = { summary ->
                             isDrawerOpen = false
@@ -1845,6 +1849,7 @@ private fun CompactSearchDrawerContent(
     onMonthSelected: (Int) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
     waypoints: List<Waypoint>,
+    waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
@@ -1876,6 +1881,7 @@ private fun CompactSearchDrawerContent(
             onMonthSelected = onMonthSelected,
             onDeletePlannedTrip = onDeletePlannedTrip,
             waypoints = waypoints,
+            waypointsErrorMessage = waypointsErrorMessage,
             onDeleteWaypoint = onDeleteWaypoint,
             onRecentSearchSelected = onRecentSearchSelected,
             currentTime = currentTime,
@@ -1931,6 +1937,7 @@ private fun SearchControls(
     onMonthSelected: (Int) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
     waypoints: List<Waypoint>,
+    waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
@@ -1976,7 +1983,11 @@ private fun SearchControls(
         }
         HorizontalDivider()
         CollapsibleSection(title = "Waypoints") {
-            WaypointsSection(waypoints = waypoints, onDeleteWaypoint = onDeleteWaypoint)
+            WaypointsSection(
+                waypoints = waypoints,
+                errorMessage = waypointsErrorMessage,
+                onDeleteWaypoint = onDeleteWaypoint,
+            )
         }
     }
 }
@@ -3849,17 +3860,28 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
  * one existing precedent for a user-placed-point list in this drawer. Unlike planned trips,
  * waypoints have no date to sort by, so they're shown newest-first (the order
  * [com.forager.app.domain.GetWaypointsUseCase] already returns — see that use case for why).
+ *
+ * [errorMessage] takes priority over the list, same branch order [TripWindowsCard] uses for
+ * [AvailabilityUiState.tripWindowsErrorMessage] — a failed load/add/remove is belief-changing (the
+ * list on screen may not be what's actually saved), so it replaces the list rather than sitting
+ * beside it.
  */
 @Composable
-private fun WaypointsSection(waypoints: List<Waypoint>, onDeleteWaypoint: (String) -> Unit) {
+private fun WaypointsSection(waypoints: List<Waypoint>, errorMessage: String?, onDeleteWaypoint: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (waypoints.isEmpty()) {
-            Text(
+        when {
+            errorMessage != null -> Text(
+                errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            waypoints.isEmpty() -> Text(
                 "No waypoints dropped yet. Long-press the map to drop one.",
                 style = MaterialTheme.typography.bodySmall,
             )
-        } else {
-            waypoints.forEach { waypoint ->
+
+            else -> waypoints.forEach { waypoint ->
                 WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
             }
         }
