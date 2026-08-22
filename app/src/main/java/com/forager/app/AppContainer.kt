@@ -1,6 +1,7 @@
 package com.forager.app
 
 import android.content.Context
+import com.forager.app.crash.CrashFileStore
 import com.forager.app.data.local.ForagerDatabase
 import com.forager.app.data.remote.INaturalistClient
 import com.forager.app.data.remote.OpenMeteoArchiveClient
@@ -84,6 +85,8 @@ class AppContainer(context: Context) {
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
     val locationTracker: LocationTracker = AndroidLocationTracker(context.applicationContext)
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
+
+    val crashFileStore = CrashFileStore.forContext(context.applicationContext)
 
     /**
      * The one clock the app reads. Injected rather than called inline so the search cache's LRU
