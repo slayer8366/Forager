@@ -229,6 +229,7 @@ class MainActivity : ComponentActivity() {
                         if (trackUiState.isReturning) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
                     },
                     compassProvider = container.compassProvider,
+                    crashFileStore = container.crashFileStore,
                 )
             }
         }
