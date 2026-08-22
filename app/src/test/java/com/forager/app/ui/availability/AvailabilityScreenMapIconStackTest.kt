@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -79,6 +81,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 /**
  * The map redesign's right-edge icon stack, bottom nav, fullscreen toggle, and compass/elevation
@@ -117,6 +120,7 @@ class AvailabilityScreenMapIconStackTest {
         locationTracker: LocationTracker = IconStackNoOpLocationTracker,
         isRecording: Boolean = false,
         returnToStart: ReturnToStartInfo? = null,
+        startRecordingErrorMessage: String? = null,
         mushroomRepository: MushroomRepository = IconStackEmptyRepository,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
@@ -170,8 +174,69 @@ class AvailabilityScreenMapIconStackTest {
                 onLocateMe = onLocateMe,
                 isRecording = isRecording,
                 returnToStart = returnToStart,
+                startRecordingErrorMessage = startRecordingErrorMessage,
                 compassProvider = compassProvider,
                 mapSlot = mapSlot,
+            )
+        }
+    }
+
+    /**
+     * Same wiring as [setScreen], except `startRecordingErrorMessage` is read from [errorMessage]
+     * on every composition instead of fixed at setup — the one test that needs to change it after
+     * the screen is already up, to prove the Toast effect keys on the value itself rather than
+     * re-firing on any recomposition.
+     */
+    private fun setScreenWithMutableStartRecordingError(errorMessage: () -> String?) {
+        val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
+        viewModel = AvailabilityViewModel(
+            locationProvider = IconStackUnusedLocationProvider,
+            locationTracker = IconStackNoOpLocationTracker,
+            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(IconStackEmptyRepository), searchCache),
+            getRecentSearches = GetRecentSearchesUseCase(searchCache),
+            getSightings = GetSightingsUseCase(IconStackEmptyRepository),
+            searchTaxa = SearchTaxaUseCase(IconStackEmptyRepository),
+            getConditions = GetConditionsUseCase(IconStackStubWeatherProvider),
+            clusterForagingAreas = ClusterForagingAreasUseCase(),
+            getTripWindows = GetTripWindowsUseCase(IconStackStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
+            getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
+            savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
+            deletePlannedTrip = DeletePlannedTripUseCase(plannedTripRepository),
+            getSeasonalPattern = GetSeasonalPatternUseCase(
+                GetSightingsUseCase(IconStackEmptyRepository),
+                IconStackStubHistoricalWeatherProvider,
+                ComputeFruitingLagDistributionUseCase(),
+            ),
+            offlineMapRepository = IconStackStubOfflineMapRepository,
+        )
+        composeRule.setContent {
+            val uiState by viewModel.uiState.collectAsState()
+            AvailabilityScreen(
+                uiState = uiState,
+                onUseCurrentLocation = viewModel::useCurrentLocation,
+                onManualLatChanged = viewModel::onManualLatChanged,
+                onManualLngChanged = viewModel::onManualLngChanged,
+                onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                onRadiusChanged = viewModel::onRadiusChanged,
+                onMonthSelected = viewModel::onMonthSelected,
+                onMapTabSelected = viewModel::onMapTabSelected,
+                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                onToggleForagingAreas = viewModel::onToggleForagingAreas,
+                onCategorySelected = viewModel::onCategorySelected,
+                onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                onPlaceTripPin = viewModel::onPlaceTripPin,
+                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                startRecordingErrorMessage = errorMessage(),
+                mapSlot = CountingStubMapSlot,
             )
         }
     }
@@ -421,6 +486,62 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithText("Return: 45° NE · 350 m · elevation diff. unavailable").assertIsDisplayed()
+    }
+
+    /**
+     * The warning is a real [android.widget.Toast], not Compose UI — read back via [ShadowToast],
+     * the same pattern [AvailabilityScreenBackNavigationTest] uses for its own double-back-to-exit
+     * Toast — rather than `onNodeWithText`, which only sees the Compose semantics tree. It must not
+     * also show as on-screen Compose text: a failed recording start is a one-shot event, not the
+     * kind of persistent condition [SearchNotice]-style banners exist for (see
+     * `TrackRecordingViewModel`'s doc comment: the field only clears on the next successful
+     * `startRecording()`, so a banner would outlive the moment it's relevant).
+     */
+    @Test
+    fun `startRecordingErrorMessage shows as a one-shot Toast, not on-screen text`() {
+        setScreen(startRecordingErrorMessage = "Couldn't start recording.")
+        searchAReferenceRegion()
+
+        assertEquals("Couldn't start recording.", ShadowToast.getTextOfLatestToast())
+        composeRule.onNodeWithText("Couldn't start recording.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `no startRecordingErrorMessage toast shows when the field is null`() {
+        setScreen(startRecordingErrorMessage = null)
+        searchAReferenceRegion()
+
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
+    }
+
+    /**
+     * [LaunchedEffect]'s own contract only restarts its block when the key it's given actually
+     * changes — this proves this project's code actually relies on that (keys the effect on
+     * `startRecordingErrorMessage` itself, not on something that changes more often), by forcing a
+     * real recomposition (a second search) while the field's value stays fixed, and confirming no
+     * second Toast fires from it.
+     */
+    @Test
+    fun `the startRecordingErrorMessage toast does not re-fire on an unrelated recomposition`() {
+        var errorMessage by mutableStateOf<String?>(null)
+        setScreenWithMutableStartRecordingError { errorMessage }
+        searchAReferenceRegion()
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
+
+        errorMessage = "Couldn't start recording."
+        composeRule.waitForIdle()
+        assertEquals("Couldn't start recording.", ShadowToast.getTextOfLatestToast())
+
+        ShadowToast.reset()
+        // A second search recomposes the screen (a new region, a new forecast) without touching
+        // errorMessage at all -- an unrelated recomposition, not a new failed recording.
+        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("46.0")
+        composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-123.0")
+        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 
     @Test

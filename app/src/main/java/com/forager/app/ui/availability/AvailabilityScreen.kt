@@ -138,6 +138,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.forager.app.BuildConfig
+import com.forager.app.crash.CrashFileStore
 import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
@@ -171,6 +172,8 @@ import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.sensor.AndroidCompassProvider
 import com.forager.app.ui.adaptive.WindowWidthClass
 import com.forager.app.ui.adaptive.currentWindowWidthClass
+import com.forager.app.ui.crash.CrashLogPanel
+import com.forager.app.ui.crash.CrashLogsEntryRow
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
@@ -249,6 +252,7 @@ private enum class DrawerPanel {
     Search,
     Settings,
     OfflineMaps,
+    CrashLogs,
     Log,
 }
 
@@ -372,6 +376,8 @@ fun AvailabilityScreen(
      */
     isRecording: Boolean = false,
     onToggleRecording: () -> Unit = {},
+    /** Set when the most recent [onToggleRecording]-triggered start failed — see [CompactMapTab]'s own doc comment on how this reaches the user. */
+    startRecordingErrorMessage: String? = null,
     /**
      * The active track's recorded points, oldest first — see [com.forager.app.ui.map.MapSlot]'s own
      * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
@@ -386,6 +392,8 @@ fun AvailabilityScreen(
     /** Called with the dropped location and the confirmed name when "Drop a waypoint" is chosen from the map's long-press menu — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
+    /** Set when the most recent waypoint load/add/delete failed — rendered in [WaypointsSection]. */
+    waypointsErrorMessage: String? = null,
     /**
      * Bearing/distance/elevation difference back to the active track's start point, from the
      * device's current position — `null` whenever nothing is being recorded, no fix has come in
@@ -408,6 +416,11 @@ fun AvailabilityScreen(
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
     mapSlot: MapSlot = SightingsMapSlot,
+    /**
+     * The Settings tab's crash-log diagnostic surface — see [CrashLogPanel]. Defaults to the real
+     * on-device store, same [mapSlot]/[cameraCaptureFiles]/[compassProvider] pattern above.
+     */
+    crashFileStore: CrashFileStore = CrashFileStore.forContext(LocalContext.current),
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
@@ -575,6 +588,7 @@ fun AvailabilityScreen(
                     onDeletePlannedTrip = onDeletePlannedTrip,
                     waypoints = waypoints,
                     onDeleteWaypoint = onDeleteWaypoint,
+                    waypointsErrorMessage = waypointsErrorMessage,
                     onRecentSearchSelected = { summary ->
                         // Closed for the same reason searching from this drawer closes it:
                         // the tap starts a search, and the results are behind the sheet.
@@ -600,6 +614,7 @@ fun AvailabilityScreen(
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = { distanceUnit = it },
                     onOpenOfflineMaps = { drawerPanel = DrawerPanel.OfflineMaps },
+                    onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
                 )
                 BuildIdentityFooter()
             }
@@ -620,6 +635,16 @@ fun AvailabilityScreen(
                     onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
                     onDeleteOfflineMaps = onDeleteOfflineMaps,
+                )
+            }
+
+            DrawerPanel.CrashLogs -> {
+                // Back returns to Settings, one level up — not all the way to Search. Same
+                // reasoning as DrawerPanel.OfflineMaps above.
+                CrashLogPanel(
+                    modifier = Modifier.weight(1f),
+                    files = crashFileStore.list(),
+                    onBack = { drawerPanel = DrawerPanel.Settings },
                 )
             }
 
@@ -852,6 +877,7 @@ fun AvailabilityScreen(
                         onOpenSearchDrawer = openSearchDrawer,
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording,
+                        startRecordingErrorMessage = startRecordingErrorMessage,
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
                         onDropWaypoint = onDropWaypoint,
@@ -890,6 +916,7 @@ fun AvailabilityScreen(
                         onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
                         onDownloadOfflineMaps = onDownloadOfflineMaps,
                         onDeleteOfflineMaps = onDeleteOfflineMaps,
+                        crashFileStore = crashFileStore,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -930,6 +957,7 @@ fun AvailabilityScreen(
                         onDeletePlannedTrip = onDeletePlannedTrip,
                         waypoints = waypoints,
                         onDeleteWaypoint = onDeleteWaypoint,
+                        waypointsErrorMessage = waypointsErrorMessage,
                         onRecentSearchSelected = { summary ->
                             isDrawerOpen = false
                             onRecentSearchSelected(summary)
@@ -1354,42 +1382,60 @@ private fun CompactSettingsTab(
     onOfflineMapRadiusChanged: (Int) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineMaps: () -> Unit,
+    crashFileStore: CrashFileStore,
     modifier: Modifier = Modifier,
 ) {
     var showOfflineMaps by remember { mutableStateOf(false) }
+    var showCrashLogs by remember { mutableStateOf(false) }
 
     // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
     // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
     BackHandler(enabled = showOfflineMaps) {
         showOfflineMaps = false
     }
+    BackHandler(enabled = showCrashLogs) {
+        showCrashLogs = false
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
-        if (showOfflineMaps) {
-            OfflineMapsHeader(onBack = { showOfflineMaps = false })
-            OfflineMapsPanel(
-                modifier = Modifier.weight(1f),
-                uiState = uiState,
-                distanceUnit = distanceUnit,
-                mapSlot = mapSlot,
-                onRegionPicked = { location ->
-                    onOfflineMapLatChanged(location.lat.toString())
-                    onOfflineMapLngChanged(location.lng.toString())
-                },
-                onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                onDownloadOfflineMaps = onDownloadOfflineMaps,
-                onDeleteOfflineMaps = onDeleteOfflineMaps,
-            )
-        } else {
-            SettingsContent(
-                modifier = Modifier.weight(1f),
-                selectedMapService = selectedMapService,
-                onMapServiceSelected = onMapServiceSelected,
-                distanceUnit = distanceUnit,
-                onDistanceUnitSelected = onDistanceUnitSelected,
-                onOpenOfflineMaps = { showOfflineMaps = true },
-            )
-            BuildIdentityFooter()
+        when {
+            showOfflineMaps -> {
+                OfflineMapsHeader(onBack = { showOfflineMaps = false })
+                OfflineMapsPanel(
+                    modifier = Modifier.weight(1f),
+                    uiState = uiState,
+                    distanceUnit = distanceUnit,
+                    mapSlot = mapSlot,
+                    onRegionPicked = { location ->
+                        onOfflineMapLatChanged(location.lat.toString())
+                        onOfflineMapLngChanged(location.lng.toString())
+                    },
+                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onDownloadOfflineMaps = onDownloadOfflineMaps,
+                    onDeleteOfflineMaps = onDeleteOfflineMaps,
+                )
+            }
+
+            showCrashLogs -> {
+                CrashLogPanel(
+                    modifier = Modifier.weight(1f),
+                    files = crashFileStore.list(),
+                    onBack = { showCrashLogs = false },
+                )
+            }
+
+            else -> {
+                SettingsContent(
+                    modifier = Modifier.weight(1f),
+                    selectedMapService = selectedMapService,
+                    onMapServiceSelected = onMapServiceSelected,
+                    distanceUnit = distanceUnit,
+                    onDistanceUnitSelected = onDistanceUnitSelected,
+                    onOpenOfflineMaps = { showOfflineMaps = true },
+                    onOpenCrashLogs = { showCrashLogs = true },
+                )
+                BuildIdentityFooter()
+            }
         }
     }
 }
@@ -1415,6 +1461,7 @@ private fun SettingsContent(
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onOpenOfflineMaps: () -> Unit,
+    onOpenCrashLogs: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -1427,6 +1474,8 @@ private fun SettingsContent(
         DistanceUnitSection(distanceUnit = distanceUnit, onDistanceUnitSelected = onDistanceUnitSelected)
         HorizontalDivider()
         OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
+        HorizontalDivider()
+        CrashLogsEntryRow(onClick = onOpenCrashLogs)
     }
 }
 
@@ -1801,6 +1850,7 @@ private fun CompactSearchDrawerContent(
     onDeletePlannedTrip: (String) -> Unit,
     waypoints: List<Waypoint>,
     onDeleteWaypoint: (String) -> Unit,
+    waypointsErrorMessage: String?,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
     onToggleForagingAreas: (Boolean) -> Unit,
@@ -1832,6 +1882,7 @@ private fun CompactSearchDrawerContent(
             onDeletePlannedTrip = onDeletePlannedTrip,
             waypoints = waypoints,
             onDeleteWaypoint = onDeleteWaypoint,
+            waypointsErrorMessage = waypointsErrorMessage,
             onRecentSearchSelected = onRecentSearchSelected,
             currentTime = currentTime,
         )
@@ -1887,6 +1938,7 @@ private fun SearchControls(
     onDeletePlannedTrip: (String) -> Unit,
     waypoints: List<Waypoint>,
     onDeleteWaypoint: (String) -> Unit,
+    waypointsErrorMessage: String?,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
 ) {
@@ -1931,7 +1983,7 @@ private fun SearchControls(
         }
         HorizontalDivider()
         CollapsibleSection(title = "Waypoints") {
-            WaypointsSection(waypoints = waypoints, onDeleteWaypoint = onDeleteWaypoint)
+            WaypointsSection(waypoints = waypoints, onDeleteWaypoint = onDeleteWaypoint, waypointsErrorMessage = waypointsErrorMessage)
         }
     }
 }
@@ -2347,8 +2399,14 @@ private fun ListTab(
                 nowEpochMillis = currentTime.nowEpochMillis(),
             )
         }
-        if (uiState.conditions != null) {
-            ConditionsCard(conditions = uiState.conditions)
+        when {
+            uiState.conditionsErrorMessage != null -> Text(
+                uiState.conditionsErrorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            uiState.conditions != null -> ConditionsCard(conditions = uiState.conditions)
         }
         // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
         // bounded height rather than whatever the card above it happens to leave.
@@ -2915,6 +2973,7 @@ private fun CompactMapTab(
     onOpenSearchDrawer: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
+    startRecordingErrorMessage: String?,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
@@ -2950,6 +3009,13 @@ private fun CompactMapTab(
                 Toast.makeText(context, "Couldn't determine your location.", Toast.LENGTH_SHORT).show()
             else -> Unit
         }
+    }
+    // Same one-shot-per-transition shape as the locateMeStatus effect above: a failed
+    // startRecording() is an event ("the action you just took failed"), not a persistent
+    // condition — the field only clears on the next successful startRecording() (see
+    // TrackRecordingViewModel), so a banner would outlive the moment it's relevant.
+    LaunchedEffect(startRecordingErrorMessage) {
+        startRecordingErrorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
     }
 
     when {
@@ -3798,16 +3864,24 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
  * [com.forager.app.domain.GetWaypointsUseCase] already returns — see that use case for why).
  */
 @Composable
-private fun WaypointsSection(waypoints: List<Waypoint>, onDeleteWaypoint: (String) -> Unit) {
+private fun WaypointsSection(waypoints: List<Waypoint>, onDeleteWaypoint: (String) -> Unit, waypointsErrorMessage: String?) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (waypoints.isEmpty()) {
-            Text(
+        when {
+            waypointsErrorMessage != null -> Text(
+                waypointsErrorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            waypoints.isEmpty() -> Text(
                 "No waypoints dropped yet. Long-press the map to drop one.",
                 style = MaterialTheme.typography.bodySmall,
             )
-        } else {
-            waypoints.forEach { waypoint ->
-                WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
+
+            else -> {
+                waypoints.forEach { waypoint ->
+                    WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
+                }
             }
         }
     }

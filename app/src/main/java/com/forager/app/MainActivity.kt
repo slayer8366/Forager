@@ -218,10 +218,12 @@ class MainActivity : ComponentActivity() {
                             trackRecordingViewModel.startRecording()
                         }
                     },
+                    startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     waypoints = trackUiState.waypoints,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
                     onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
+                    waypointsErrorMessage = trackUiState.waypointsErrorMessage,
                     returnToStart = trackUiState.returnToStart,
                     isReturning = trackUiState.isReturning,
                     isOffTrack = trackUiState.isOffTrack,
@@ -229,6 +231,7 @@ class MainActivity : ComponentActivity() {
                         if (trackUiState.isReturning) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
                     },
                     compassProvider = container.compassProvider,
+                    crashFileStore = container.crashFileStore,
                 )
             }
         }
