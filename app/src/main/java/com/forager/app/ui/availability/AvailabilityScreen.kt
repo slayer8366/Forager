@@ -138,6 +138,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.forager.app.BuildConfig
+import com.forager.app.crash.CrashFileStore
 import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
@@ -171,6 +172,8 @@ import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.sensor.AndroidCompassProvider
 import com.forager.app.ui.adaptive.WindowWidthClass
 import com.forager.app.ui.adaptive.currentWindowWidthClass
+import com.forager.app.ui.crash.CrashLogPanel
+import com.forager.app.ui.crash.CrashLogsEntryRow
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
@@ -249,6 +252,7 @@ private enum class DrawerPanel {
     Search,
     Settings,
     OfflineMaps,
+    CrashLogs,
     Log,
 }
 
@@ -410,6 +414,11 @@ fun AvailabilityScreen(
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
     mapSlot: MapSlot = SightingsMapSlot,
+    /**
+     * The Settings tab's crash-log diagnostic surface — see [CrashLogPanel]. Defaults to the real
+     * on-device store, same [mapSlot]/[cameraCaptureFiles]/[compassProvider] pattern above.
+     */
+    crashFileStore: CrashFileStore = CrashFileStore.forContext(LocalContext.current),
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
@@ -602,6 +611,7 @@ fun AvailabilityScreen(
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = { distanceUnit = it },
                     onOpenOfflineMaps = { drawerPanel = DrawerPanel.OfflineMaps },
+                    onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
                 )
                 BuildIdentityFooter()
             }
@@ -622,6 +632,16 @@ fun AvailabilityScreen(
                     onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
                     onDeleteOfflineMaps = onDeleteOfflineMaps,
+                )
+            }
+
+            DrawerPanel.CrashLogs -> {
+                // Back returns to Settings, one level up — not all the way to Search. Same
+                // reasoning as DrawerPanel.OfflineMaps above.
+                CrashLogPanel(
+                    modifier = Modifier.weight(1f),
+                    files = crashFileStore.list(),
+                    onBack = { drawerPanel = DrawerPanel.Settings },
                 )
             }
 
@@ -893,6 +913,7 @@ fun AvailabilityScreen(
                         onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
                         onDownloadOfflineMaps = onDownloadOfflineMaps,
                         onDeleteOfflineMaps = onDeleteOfflineMaps,
+                        crashFileStore = crashFileStore,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1357,42 +1378,60 @@ private fun CompactSettingsTab(
     onOfflineMapRadiusChanged: (Int) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineMaps: () -> Unit,
+    crashFileStore: CrashFileStore,
     modifier: Modifier = Modifier,
 ) {
     var showOfflineMaps by remember { mutableStateOf(false) }
+    var showCrashLogs by remember { mutableStateOf(false) }
 
     // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
     // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
     BackHandler(enabled = showOfflineMaps) {
         showOfflineMaps = false
     }
+    BackHandler(enabled = showCrashLogs) {
+        showCrashLogs = false
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
-        if (showOfflineMaps) {
-            OfflineMapsHeader(onBack = { showOfflineMaps = false })
-            OfflineMapsPanel(
-                modifier = Modifier.weight(1f),
-                uiState = uiState,
-                distanceUnit = distanceUnit,
-                mapSlot = mapSlot,
-                onRegionPicked = { location ->
-                    onOfflineMapLatChanged(location.lat.toString())
-                    onOfflineMapLngChanged(location.lng.toString())
-                },
-                onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                onDownloadOfflineMaps = onDownloadOfflineMaps,
-                onDeleteOfflineMaps = onDeleteOfflineMaps,
-            )
-        } else {
-            SettingsContent(
-                modifier = Modifier.weight(1f),
-                selectedMapService = selectedMapService,
-                onMapServiceSelected = onMapServiceSelected,
-                distanceUnit = distanceUnit,
-                onDistanceUnitSelected = onDistanceUnitSelected,
-                onOpenOfflineMaps = { showOfflineMaps = true },
-            )
-            BuildIdentityFooter()
+        when {
+            showOfflineMaps -> {
+                OfflineMapsHeader(onBack = { showOfflineMaps = false })
+                OfflineMapsPanel(
+                    modifier = Modifier.weight(1f),
+                    uiState = uiState,
+                    distanceUnit = distanceUnit,
+                    mapSlot = mapSlot,
+                    onRegionPicked = { location ->
+                        onOfflineMapLatChanged(location.lat.toString())
+                        onOfflineMapLngChanged(location.lng.toString())
+                    },
+                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onDownloadOfflineMaps = onDownloadOfflineMaps,
+                    onDeleteOfflineMaps = onDeleteOfflineMaps,
+                )
+            }
+
+            showCrashLogs -> {
+                CrashLogPanel(
+                    modifier = Modifier.weight(1f),
+                    files = crashFileStore.list(),
+                    onBack = { showCrashLogs = false },
+                )
+            }
+
+            else -> {
+                SettingsContent(
+                    modifier = Modifier.weight(1f),
+                    selectedMapService = selectedMapService,
+                    onMapServiceSelected = onMapServiceSelected,
+                    distanceUnit = distanceUnit,
+                    onDistanceUnitSelected = onDistanceUnitSelected,
+                    onOpenOfflineMaps = { showOfflineMaps = true },
+                    onOpenCrashLogs = { showCrashLogs = true },
+                )
+                BuildIdentityFooter()
+            }
         }
     }
 }
@@ -1418,6 +1457,7 @@ private fun SettingsContent(
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onOpenOfflineMaps: () -> Unit,
+    onOpenCrashLogs: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -1430,6 +1470,8 @@ private fun SettingsContent(
         DistanceUnitSection(distanceUnit = distanceUnit, onDistanceUnitSelected = onDistanceUnitSelected)
         HorizontalDivider()
         OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
+        HorizontalDivider()
+        CrashLogsEntryRow(onClick = onOpenCrashLogs)
     }
 }
 

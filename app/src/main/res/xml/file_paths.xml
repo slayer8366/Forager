@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Only `captures/` is exposed: it's the sole directory this app ever hands a content:// URI for
-  (a camera capture's temporary destination — see com.forager.app.photo.CameraCaptureFiles).
-  `photos/`, where FilePhotoStore persists finished log photos, never needs a FileProvider URI —
-  this app only ever reads and writes it directly as files, it never grants another app access
-  to it.
+  `captures/` is a camera capture's temporary destination — see
+  com.forager.app.photo.CameraCaptureFiles. `photos/`, where FilePhotoStore persists finished log
+  photos, never needs a FileProvider URI — this app only ever reads and writes it directly as
+  files, it never grants another app access to it.
+
+  `crashes/` is com.forager.app.crash.CrashFileStore's directory, under app-external storage
+  (Context.getExternalFilesDir(null), hence external-files-path rather than files-path) rather
+  than internal filesDir — see that class's own doc comment for why. Exposed here so the Settings
+  crash-log viewer can hand a captured trace to another app (email, a text editor) via
+  Intent.ACTION_SEND.
 -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="captures" path="captures/" />
+    <external-files-path name="crashes" path="crashes/" />
 </paths>
