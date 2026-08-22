@@ -63,7 +63,10 @@ class MushroomLogViewModel(
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't load the mushroom log.", error)
                     _uiState.update {
-                        it.copy(isLoadingEntries = false, loadErrorMessage = "Couldn't load your log entries.")
+                        // Not belief-changing — the entries are on disk; only the read failed. See
+                        // docs/error-presentation-spec.md's per-field table: neutral "unavailable"
+                        // wording that doesn't imply anything was lost, not "Couldn't load...".
+                        it.copy(isLoadingEntries = false, loadErrorMessage = "Log entries unavailable.")
                     }
                 },
             )
@@ -75,7 +78,7 @@ class MushroomLogViewModel(
         viewModelScope.launch {
             createEntry(location, date).fold(
                 onSuccess = { entry ->
-                    _uiState.update { it.copy(entries = it.entries + entry, editingEntry = entry) }
+                    _uiState.update { it.copy(entries = it.entries + entry, editingEntry = entry, saveErrorMessage = null) }
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't start a new log entry.", error)
@@ -99,10 +102,13 @@ class MushroomLogViewModel(
     fun onEntryEdited(updated: MushroomLogEntry) {
         _uiState.update { it.replacing(updated) }
         viewModelScope.launch {
-            saveEntry(updated).onFailure { error ->
-                Log.w(TAG, "Couldn't save entry '${updated.id}'.", error)
-                _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
-            }
+            saveEntry(updated).fold(
+                onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't save entry '${updated.id}'.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
+                },
+            )
         }
     }
 
@@ -114,6 +120,7 @@ class MushroomLogViewModel(
                         state.copy(
                             entries = state.entries.filterNot { it.id == id },
                             editingEntry = state.editingEntry?.takeUnless { it.id == id },
+                            saveErrorMessage = null,
                         )
                     }
                 },
@@ -131,7 +138,7 @@ class MushroomLogViewModel(
             _uiState.update { it.copy(isSavingPhoto = true) }
             addPhoto(entry, source).fold(
                 onSuccess = { updated ->
-                    _uiState.update { it.replacing(updated).copy(isSavingPhoto = false) }
+                    _uiState.update { it.replacing(updated).copy(isSavingPhoto = false, saveErrorMessage = null) }
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't attach a photo to entry '${entry.id}'.", error)
@@ -147,13 +154,23 @@ class MushroomLogViewModel(
         val entry = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
             removePhoto(entry, photo).fold(
-                onSuccess = { updated -> _uiState.update { it.replacing(updated) } },
+                onSuccess = { updated -> _uiState.update { it.replacing(updated).copy(saveErrorMessage = null) } },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't remove a photo from entry '${entry.id}'.", error)
                     _uiState.update { it.copy(saveErrorMessage = "Couldn't remove that photo.") }
                 },
             )
         }
+    }
+
+    /**
+     * Clears [MushroomLogUiState.saveErrorMessage] once its one-shot Toast has been shown — see
+     * that field's own render site (`LogPanel`/`JournalTab`'s `LaunchedEffect`) for the other half
+     * of the "cleared on dismiss or next successful save, whichever comes first" rule; the five
+     * write sites above cover the "next successful save" half themselves.
+     */
+    fun onSaveErrorDismissed() {
+        _uiState.update { it.copy(saveErrorMessage = null) }
     }
 
     /** [updated] replacing its counterpart in both [MushroomLogUiState.entries] and, if it's the open one, [MushroomLogUiState.editingEntry]. */

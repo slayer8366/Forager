@@ -284,7 +284,7 @@ class AvailabilityViewModelSeasonalPatternTest {
     }
 
     @Test
-    fun `a seasonal pattern fetch failure is reported, not swallowed`() = runTest(dispatcher) {
+    fun `a seasonal pattern fetch failure is reported, not swallowed, without the provider's own message`() = runTest(dispatcher) {
         val vm = viewModel(RecordingRepository(), FailingHistoricalWeatherProvider("archive api down"))
         vm.searchReferenceRegion()
         advanceUntilIdle()
@@ -294,6 +294,8 @@ class AvailabilityViewModelSeasonalPatternTest {
 
         assertNull(vm.uiState.value.seasonalPattern)
         assertEquals(false, vm.uiState.value.isLoadingSeasonalPattern)
-        assertEquals("archive api down", vm.uiState.value.seasonalPatternErrorMessage)
+        // Error-presentation spec's absolute rule: "archive api down" must never reach state,
+        // however recognizable it is.
+        assertEquals("Couldn't load the seasonal pattern.", vm.uiState.value.seasonalPatternErrorMessage)
     }
 }

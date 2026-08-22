@@ -113,7 +113,7 @@ class AvailabilityScreenConditionsMonthTest {
      */
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun setScreen() {
+    private fun setScreen(weatherProvider: WeatherProvider = FakeWeatherProvider) {
         val viewModel = AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,
             locationTracker = NoOpLocationTracker,
@@ -121,7 +121,7 @@ class AvailabilityScreenConditionsMonthTest {
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(FakeRepository),
             searchTaxa = SearchTaxaUseCase(FakeRepository),
-            getConditions = GetConditionsUseCase(FakeWeatherProvider),
+            getConditions = GetConditionsUseCase(weatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(FakeTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(FakePlannedTripRepository),
@@ -243,6 +243,34 @@ class AvailabilityScreenConditionsMonthTest {
         val now = LocalDate.now().monthValue
         return Month.of(if (now == 1) 2 else 1)
     }
+
+    /**
+     * [AvailabilityUiState.conditionsErrorMessage]'s neutral, non-belief-changing empty state — see
+     * docs/error-presentation-spec.md's per-field table and [ConditionsCard]'s own doc comment. The
+     * card's own "Current Conditions" heading stays (same branch order [TripWindowsCard] uses for
+     * its own error case), only the body swaps from rain figures to the fixed unavailable text.
+     */
+    @Test
+    fun `a failed rainfall fetch shows the neutral unavailable text, not the exception's own message`() {
+        setScreen(weatherProvider = FailingWeatherProvider)
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("List").performClick()
+
+        composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
+        composeRule.onNodeWithText("Rainfall data unavailable.").assertIsDisplayed()
+        composeRule.onNodeWithText("archive api down for this fetch", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `with a successful rainfall fetch, no unavailable text appears`() {
+        setScreen()
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("List").performClick()
+
+        composeRule.onNodeWithText("Rainfall data unavailable.").assertDoesNotExist()
+    }
 }
 
 private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
@@ -291,6 +319,17 @@ private object FakeWeatherProvider : WeatherProvider {
             daysSinceSignificantRain = 2,
         ),
     )
+}
+
+/**
+ * The exception's own message is a recognizable, distinctive string on purpose — the regression
+ * guard for [AvailabilityScreenConditionsMonthTest]'s failed-fetch test needs something that would
+ * be unmistakable if it leaked into the rendered text, the same shape as
+ * `AvailabilityViewModelOfflineCacheTest`'s own DNS-failure regression guard.
+ */
+private object FailingWeatherProvider : WeatherProvider {
+    override suspend fun getRecentPrecipitation(region: Region) =
+        Result.failure<ConditionsSummary>(IllegalStateException("archive api down for this fetch"))
 }
 
 /** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */

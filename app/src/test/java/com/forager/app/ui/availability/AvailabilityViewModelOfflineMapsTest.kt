@@ -219,7 +219,9 @@ class AvailabilityViewModelOfflineMapsTest {
 
         val status = vm.uiState.value.offlineMapStatus
         assertTrue(status is OfflineMapStatus.Failed)
-        assertEquals("corrupt sidecar", (status as OfflineMapStatus.Failed).message)
+        // Error-presentation spec's absolute rule: the exception's own message never reaches a
+        // user-facing field, however recognizable — this used to read "corrupt sidecar" verbatim.
+        assertEquals("Couldn't read offline map status.", (status as OfflineMapStatus.Failed).message)
     }
 
     @Test
@@ -310,7 +312,7 @@ class AvailabilityViewModelOfflineMapsTest {
     }
 
     @Test
-    fun `a failed download is reported as Failed with the repository's message, not silently as success`() = runTest(dispatcher) {
+    fun `a failed download is reported as Failed, not silently as success, without the repository's raw message`() = runTest(dispatcher) {
         val repository = RecordingOfflineMapRepository().apply {
             downloadResult = Result.failure(IOException("3 of 40 tiles failed to download."))
         }
@@ -323,7 +325,7 @@ class AvailabilityViewModelOfflineMapsTest {
 
         val status = vm.uiState.value.offlineMapStatus
         assertTrue(status is OfflineMapStatus.Failed)
-        assertEquals("3 of 40 tiles failed to download.", (status as OfflineMapStatus.Failed).message)
+        assertEquals("Couldn't download offline maps.", (status as OfflineMapStatus.Failed).message)
     }
 
     @Test
@@ -352,7 +354,7 @@ class AvailabilityViewModelOfflineMapsTest {
 
         val status = vm.uiState.value.offlineMapStatus
         assertTrue(status is OfflineMapStatus.Failed)
-        assertEquals("couldn't delete tiles", (status as OfflineMapStatus.Failed).message)
+        assertEquals("Couldn't delete offline maps.", (status as OfflineMapStatus.Failed).message)
     }
 
     @Test

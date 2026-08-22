@@ -107,7 +107,7 @@ class AvailabilityScreenWaypointFlowTest {
     private var droppedWaypoints = mutableListOf<Pair<LatLng, String>>()
     private var deletedWaypointIds = mutableListOf<String>()
 
-    private fun setScreen(initialWaypoints: List<Waypoint> = emptyList()) {
+    private fun setScreen(initialWaypoints: List<Waypoint> = emptyList(), waypointsErrorMessage: String? = null) {
         val plannedTripRepository = WaypointFlowInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
             locationProvider = WaypointFlowUnusedLocationProvider,
@@ -157,6 +157,7 @@ class AvailabilityScreenWaypointFlowTest {
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
                 waypoints = waypoints,
+                waypointsErrorMessage = waypointsErrorMessage,
                 onDropWaypoint = { location, name ->
                     droppedWaypoints += location to name
                     waypoints = waypoints + Waypoint(
@@ -303,6 +304,53 @@ class AvailabilityScreenWaypointFlowTest {
         composeRule.waitForIdle()
 
         assertEquals(listOf("reachable-waypoint"), deletedWaypointIds)
+    }
+
+    /**
+     * The error-presentation spec's belief-changing branch for `waypointsErrorMessage`: a failed
+     * load/add/remove replaces the list entirely, same [TripWindowsCard]-shape branch order
+     * `WaypointsSection` now uses, rather than showing a possibly-stale list beside the error.
+     */
+    @Test
+    fun `a set waypointsErrorMessage replaces the list, not just adds to it`() {
+        val waypoint = Waypoint(
+            id = "hidden-waypoint",
+            lat = 45.40,
+            lng = -122.70,
+            altitude = null,
+            name = "Hidden Waypoint",
+            note = "",
+            createdAtEpochMillis = 0L,
+        )
+        setScreen(initialWaypoints = listOf(waypoint), waypointsErrorMessage = "Couldn't load waypoints.")
+
+        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Waypoints").performClick()
+
+        composeRule.onNodeWithText("Couldn't load waypoints.").assertIsDisplayed()
+        composeRule.onNodeWithText("Hidden Waypoint").assertDoesNotExist()
+        composeRule.onNodeWithText("No waypoints dropped yet. Long-press the map to drop one.").assertDoesNotExist()
+    }
+
+    /** The absence side of the same branch: no error set, the list renders exactly as before this task. */
+    @Test
+    fun `with waypointsErrorMessage unset, the list renders and no error text appears`() {
+        val waypoint = Waypoint(
+            id = "reachable-waypoint",
+            lat = 45.40,
+            lng = -122.70,
+            altitude = null,
+            name = "Reachable Waypoint",
+            note = "",
+            createdAtEpochMillis = 0L,
+        )
+        setScreen(initialWaypoints = listOf(waypoint))
+
+        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Waypoints").performClick()
+
+        composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Couldn't load waypoints.").assertDoesNotExist()
     }
 }
 

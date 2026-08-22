@@ -1,6 +1,7 @@
 package com.forager.app.map
 
 import android.content.Context
+import android.util.Log
 import com.forager.app.data.repository.runCatchingCancellable
 import com.forager.app.domain.GeoDistance
 import com.forager.app.domain.OfflineMapInfo
@@ -187,6 +188,7 @@ private const val OFFLINE_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.w
  */
 private const val OFFLINE_MAX_ZOOM = 15.0
 private const val OFFLINE_MIN_ZOOM = 10.0
+private const val TAG = "MapLibreOfflineMapRepo"
 
 private fun Region.toLatLngBounds(): LatLngBounds {
     val box = GeoDistance.boundingBox(LatLng(lat, lng), radiusKm)
@@ -252,7 +254,13 @@ private suspend fun OfflineRegion.downloadToCompletionSuspend(
 
         override fun onError(error: OfflineRegionError) {
             if (continuation.isActive) {
-                continuation.resumeWithException(java.io.IOException("${error.reason}: ${error.message}"))
+                // MapLibre's own diagnostic fields — kept for logging only, per the error-presentation
+                // spec's "no user-facing string is ever derived from an exception, at any layer": the
+                // exception this throws must carry a fixed message of its own, not SDK text, since a
+                // caller further up reads only `.message` and has no way to tell SDK diagnostic text
+                // apart from a message this app wrote on purpose.
+                Log.w(TAG, "Offline region download failed: ${error.reason}: ${error.message}")
+                continuation.resumeWithException(java.io.IOException("Offline map download failed."))
             }
         }
 

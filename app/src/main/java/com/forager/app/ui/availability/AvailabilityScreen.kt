@@ -361,6 +361,8 @@ fun AvailabilityScreen(
     onAddLogPhoto: (PhotoSource) -> Unit = {},
     onRemoveLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
+    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
+    onSaveLogErrorDismissed: () -> Unit = {},
     /**
      * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
      * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
@@ -389,6 +391,8 @@ fun AvailabilityScreen(
      * the search drawer's "Waypoints" section ([WaypointsSection]).
      */
     waypoints: List<Waypoint> = emptyList(),
+    /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
+    waypointsErrorMessage: String? = null,
     /** Called with the dropped location and the confirmed name when "Drop a waypoint" is chosen from the map's long-press menu — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
@@ -585,6 +589,7 @@ fun AvailabilityScreen(
                     onMonthSelected = onMonthSelected,
                     onDeletePlannedTrip = onDeletePlannedTrip,
                     waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
                     onRecentSearchSelected = { summary ->
                         // Closed for the same reason searching from this drawer closes it:
@@ -657,6 +662,7 @@ fun AvailabilityScreen(
                     onRemovePhoto = onRemoveLogPhoto,
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
+                    onSaveErrorDismissed = onSaveLogErrorDismissed,
                 )
             }
         }
@@ -899,6 +905,7 @@ fun AvailabilityScreen(
                         onAddPhoto = onAddLogPhoto,
                         onRemovePhoto = onRemoveLogPhoto,
                         onDeleteEntry = onDeleteLogEntry,
+                        onSaveErrorDismissed = onSaveLogErrorDismissed,
                         modifier = Modifier.weight(1f),
                     )
                     CompactTab.SETTINGS -> CompactSettingsTab(
@@ -953,6 +960,7 @@ fun AvailabilityScreen(
                         onMonthSelected = onMonthSelected,
                         onDeletePlannedTrip = onDeletePlannedTrip,
                         waypoints = waypoints,
+                        waypointsErrorMessage = waypointsErrorMessage,
                         onDeleteWaypoint = onDeleteWaypoint,
                         onRecentSearchSelected = { summary ->
                             isDrawerOpen = false
@@ -1845,6 +1853,7 @@ private fun CompactSearchDrawerContent(
     onMonthSelected: (Int) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
     waypoints: List<Waypoint>,
+    waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
@@ -1876,6 +1885,7 @@ private fun CompactSearchDrawerContent(
             onMonthSelected = onMonthSelected,
             onDeletePlannedTrip = onDeletePlannedTrip,
             waypoints = waypoints,
+            waypointsErrorMessage = waypointsErrorMessage,
             onDeleteWaypoint = onDeleteWaypoint,
             onRecentSearchSelected = onRecentSearchSelected,
             currentTime = currentTime,
@@ -1931,6 +1941,7 @@ private fun SearchControls(
     onMonthSelected: (Int) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
     waypoints: List<Waypoint>,
+    waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
@@ -1976,7 +1987,11 @@ private fun SearchControls(
         }
         HorizontalDivider()
         CollapsibleSection(title = "Waypoints") {
-            WaypointsSection(waypoints = waypoints, onDeleteWaypoint = onDeleteWaypoint)
+            WaypointsSection(
+                waypoints = waypoints,
+                errorMessage = waypointsErrorMessage,
+                onDeleteWaypoint = onDeleteWaypoint,
+            )
         }
     }
 }
@@ -2394,6 +2409,8 @@ private fun ListTab(
         }
         if (uiState.conditions != null) {
             ConditionsCard(conditions = uiState.conditions)
+        } else if (uiState.conditionsErrorMessage != null) {
+            ConditionsCard(errorMessage = uiState.conditionsErrorMessage)
         }
         // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
         // bounded height rather than whatever the card above it happens to leave.
@@ -3849,17 +3866,28 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
  * one existing precedent for a user-placed-point list in this drawer. Unlike planned trips,
  * waypoints have no date to sort by, so they're shown newest-first (the order
  * [com.forager.app.domain.GetWaypointsUseCase] already returns — see that use case for why).
+ *
+ * [errorMessage] takes priority over the list, same branch order [TripWindowsCard] uses for
+ * [AvailabilityUiState.tripWindowsErrorMessage] — a failed load/add/remove is belief-changing (the
+ * list on screen may not be what's actually saved), so it replaces the list rather than sitting
+ * beside it.
  */
 @Composable
-private fun WaypointsSection(waypoints: List<Waypoint>, onDeleteWaypoint: (String) -> Unit) {
+private fun WaypointsSection(waypoints: List<Waypoint>, errorMessage: String?, onDeleteWaypoint: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (waypoints.isEmpty()) {
-            Text(
+        when {
+            errorMessage != null -> Text(
+                errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            waypoints.isEmpty() -> Text(
                 "No waypoints dropped yet. Long-press the map to drop one.",
                 style = MaterialTheme.typography.bodySmall,
             )
-        } else {
-            waypoints.forEach { waypoint ->
+
+            else -> waypoints.forEach { waypoint ->
                 WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
             }
         }
@@ -4100,27 +4128,37 @@ private fun noAreasMessage(none: ForagingAreas.None): String {
  * Recent rainfall, shown as a standalone fact at the top of the ranked list — never described as
  * having factored into it. See [com.forager.app.domain.GetConditionsUseCase]'s doc comment for
  * why this stays unfused with the ranked list.
+ *
+ * [errorMessage] is the non-belief-changing empty state for a failed fetch — the user wanted
+ * rainfall data, not a report on the network, so it renders with the same neutral (no `color`
+ * argument) treatment [WaypointsSection]'s empty state and [MapMessage]'s default use — never
+ * `colorScheme.error` — per docs/error-presentation-spec.md's per-field table. Exactly one of
+ * [conditions]/[errorMessage] is non-null at any call site (see [ListTab]).
  */
 @Composable
-private fun ConditionsCard(conditions: ConditionsSummary) {
+private fun ConditionsCard(conditions: ConditionsSummary? = null, errorMessage: String? = null) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text("Current Conditions", style = MaterialTheme.typography.titleSmall)
-            val totalMm = conditions.totalPrecipitationMm
-            Text(
-                "${"%.1f".format(totalMm)}mm of rain in the last 14 days",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            val daysSince = conditions.daysSinceSignificantRain
-            Text(
-                when {
-                    daysSince == null -> "No significant rain in the last 14 days."
-                    daysSince == 0 -> "Rain today."
-                    daysSince == 1 -> "1 day since last rain."
-                    else -> "$daysSince days since last rain."
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (conditions != null) {
+                val totalMm = conditions.totalPrecipitationMm
+                Text(
+                    "${"%.1f".format(totalMm)}mm of rain in the last 14 days",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                val daysSince = conditions.daysSinceSignificantRain
+                Text(
+                    when {
+                        daysSince == null -> "No significant rain in the last 14 days."
+                        daysSince == 0 -> "Rain today."
+                        daysSince == 1 -> "1 day since last rain."
+                        else -> "$daysSince days since last rain."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else if (errorMessage != null) {
+                Text(errorMessage, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }

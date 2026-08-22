@@ -49,19 +49,20 @@ internal fun LogEntryListScreen(
     isLoading: Boolean,
     onOpenEntry: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Set when the last load failed — see [MushroomLogViewModel.loadEntries]'s `onFailure` branch.
+     * Not belief-changing (the entries are on disk; only the read failed), so this never hides
+     * [entries] that are already showing — only replaces the "nothing logged yet" empty state when
+     * there is nothing to show *because* the read failed, per docs/error-presentation-spec.md.
+     */
+    loadErrorMessage: String? = null,
 ) {
     when {
         isLoading -> Column(modifier = modifier.fillMaxWidth().padding(LogSpacing.lg)) {
             CircularProgressIndicator()
         }
 
-        entries.isEmpty() -> Text(
-            "No finds logged yet. Long-press the map to log one.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(LogSpacing.lg),
-        )
-
-        else -> Column(
+        entries.isNotEmpty() -> Column(
             modifier = modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
@@ -72,6 +73,18 @@ internal fun LogEntryListScreen(
             // order rather than recomputing it.
             entries.forEach { entry -> LogEntryRow(entry = entry, onClick = { onOpenEntry(entry.id) }) }
         }
+
+        loadErrorMessage != null -> Text(
+            loadErrorMessage,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = modifier.fillMaxWidth().padding(LogSpacing.lg),
+        )
+
+        else -> Text(
+            "No finds logged yet. Long-press the map to log one.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = modifier.fillMaxWidth().padding(LogSpacing.lg),
+        )
     }
 }
 
