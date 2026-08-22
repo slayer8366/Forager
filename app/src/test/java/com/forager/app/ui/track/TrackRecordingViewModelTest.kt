@@ -104,6 +104,38 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
+    fun `a permission-denied start is reported without ever setting an active track`() = runTest(dispatcher) {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository)
+
+        vm.onStartRecordingPermissionDenied("Track recording needs location access.")
+
+        assertNull(vm.uiState.value.activeTrack)
+        assertFalse(vm.uiState.value.isRecording)
+        assertEquals("Track recording needs location access.", vm.uiState.value.startRecordingErrorMessage)
+        assertTrue("the Track row must never be created when the start is refused", trackRepository.createdTrackIds.isEmpty())
+    }
+
+    @Test
+    fun `a permission-denied report after an active recording rolls it back, matching stopRecording`() = runTest(dispatcher) {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository)
+        vm.startRecording()
+        runCurrent()
+        assertTrue(vm.uiState.value.isRecording)
+
+        // Mirrors MainActivity's own sequence for the narrow permission-revoked-mid-flight case:
+        // report the reason, then roll the active track back — see
+        // onStartRecordingPermissionDenied's own doc comment for why the caller does both.
+        vm.onStartRecordingPermissionDenied("Track recording needs location access.")
+        vm.stopRecording()
+
+        assertNull(vm.uiState.value.activeTrack)
+        assertFalse(vm.uiState.value.isRecording)
+        assertEquals("Track recording needs location access.", vm.uiState.value.startRecordingErrorMessage)
+    }
+
+    @Test
     fun `stopping clears active state and the poll loop stops scheduling further work`() = runTest(dispatcher) {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)

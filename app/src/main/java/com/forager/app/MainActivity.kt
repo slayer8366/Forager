@@ -2,6 +2,7 @@ package com.forager.app
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -120,6 +121,27 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Same check, same two permissions, as
+     * [com.forager.app.location.AndroidLocationProvider.hasLocationPermission] — not shared code
+     * across an Activity/domain-layer boundary that owns neither Context nor Manifest, matching
+     * that class's own doc comment on why (see also [TrackRecordingService]'s own copy, and
+     * `com.forager.app.ui.map.SightingsMap.kt`'s).
+     *
+     * Two call sites below both gate on this rather than trusting a single check: this one, right
+     * before [TrackRecordingViewModel.startRecording] is called at all (the confirmed crash's
+     * fix — recording never begins without permission, so [TrackRecordingUiState.activeTrack]
+     * never gets set), and a second inside the `LaunchedEffect` that actually issues
+     * `startForegroundService` (defence against permission being revoked in the narrow window
+     * between the two — that path also rolls the ViewModel's state back if it fires, so
+     * `isRecording` can never report true for a service that didn't actually start).
+     */
+    private fun hasLocationPermission(): Boolean {
+        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Without this, the system nav bar stays whatever the platform default is — light on
@@ -145,11 +167,25 @@ class MainActivity : ComponentActivity() {
                     val active = trackUiState.activeTrack
                     val intent = Intent(this@MainActivity, TrackRecordingService::class.java)
                     if (active != null) {
-                        hasStartedRecordingOnce = true
-                        intent.action = TrackRecordingService.ACTION_START
-                        intent.putExtra(TrackRecordingService.EXTRA_TRACK_ID, active.trackId)
-                        intent.putExtra(TrackRecordingService.EXTRA_MODE, active.mode.name)
-                        ContextCompat.startForegroundService(this@MainActivity, intent)
+                        // Re-checked here, not just in onToggleRecording below: this is the exact
+                        // call that would otherwise reproduce the confirmed FGS-location-type
+                        // crash, and it runs asynchronously after that first check — see
+                        // hasLocationPermission()'s own doc comment on why both exist. Rolling
+                        // back through the ViewModel (rather than only skipping the service start)
+                        // is what keeps isRecording from reporting true for a service that never
+                        // actually started.
+                        if (hasLocationPermission()) {
+                            hasStartedRecordingOnce = true
+                            intent.action = TrackRecordingService.ACTION_START
+                            intent.putExtra(TrackRecordingService.EXTRA_TRACK_ID, active.trackId)
+                            intent.putExtra(TrackRecordingService.EXTRA_MODE, active.mode.name)
+                            ContextCompat.startForegroundService(this@MainActivity, intent)
+                        } else {
+                            trackRecordingViewModel.onStartRecordingPermissionDenied(
+                                getString(R.string.track_recording_needs_location),
+                            )
+                            trackRecordingViewModel.stopRecording()
+                        }
                     } else if (hasStartedRecordingOnce) {
                         intent.action = TrackRecordingService.ACTION_STOP
                         startService(intent)
@@ -211,6 +247,14 @@ class MainActivity : ComponentActivity() {
                     onToggleRecording = {
                         if (trackUiState.isRecording) {
                             trackRecordingViewModel.stopRecording()
+                        } else if (!hasLocationPermission()) {
+                            // Confirmed crash's primary fix: never even ask the ViewModel to start
+                            // (never creates the Track row, never sets activeTrack) when the
+                            // foreground service could not possibly start without crashing — see
+                            // hasLocationPermission()'s own doc comment.
+                            trackRecordingViewModel.onStartRecordingPermissionDenied(
+                                getString(R.string.track_recording_needs_location),
+                            )
                         } else {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -218,6 +262,7 @@ class MainActivity : ComponentActivity() {
                             trackRecordingViewModel.startRecording()
                         }
                     },
+                    startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     waypoints = trackUiState.waypoints,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
