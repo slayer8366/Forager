@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import android.widget.Toast
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.LogPhoto
@@ -45,8 +48,26 @@ internal fun LogPanel(
     onRemovePhoto: (LogPhoto) -> Unit,
     onDeleteEntry: (String) -> Unit,
     onBackToSearch: () -> Unit,
+    /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — see [MushroomLogViewModel.onSaveErrorDismissed]. */
+    onSaveErrorDismissed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Same one-shot-per-transition Toast shape as CompactMapTab's startRecordingErrorMessage
+    // effect (AvailabilityScreen.kt) — belief-changing per docs/error-presentation-spec.md, so it
+    // is told rather than absorbed. Unlike that field, this one also clears itself right after
+    // showing: saveErrorMessage has no dismiss affordance to clear it from (the spec calls the
+    // Toast provisional, explicitly ruling one out), so "cleared on dismiss" means clearing it the
+    // moment the one-shot Toast has been shown — the other half of "dismiss or next successful
+    // save, whichever comes first" is the five write sites in MushroomLogViewModel clearing it
+    // themselves on success.
+    val context = LocalContext.current
+    LaunchedEffect(uiState.saveErrorMessage) {
+        uiState.saveErrorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            onSaveErrorDismissed()
+        }
+    }
+
     val editing = uiState.editingEntry
     if (editing != null) {
         LogEntryDetailScreen(

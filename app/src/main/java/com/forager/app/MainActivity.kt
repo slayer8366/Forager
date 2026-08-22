@@ -253,6 +253,7 @@ class MainActivity : ComponentActivity() {
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
                     onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
+                    onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
                         if (trackUiState.isRecording) {

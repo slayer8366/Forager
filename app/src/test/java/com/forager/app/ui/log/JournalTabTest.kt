@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
+import org.robolectric.shadows.ShadowToast
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Region
@@ -91,6 +92,7 @@ class JournalTabTest {
                 onAddPhoto = {},
                 onRemovePhoto = {},
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
+                onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
             )
         }
     }
@@ -172,6 +174,31 @@ class JournalTabTest {
 
         composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").assertIsDisplayed()
         composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
+    }
+
+    /**
+     * [MushroomLogUiState.saveErrorMessage]'s Toast — PR #32's `startRecordingErrorMessage`
+     * shape (`AvailabilityScreen.kt`'s `CompactMapTab`), reused here. The clearing half of
+     * "dismiss or next successful save, whichever first" is [MushroomLogViewModelTest]'s to prove
+     * (it owns [MushroomLogViewModel.onSaveErrorDismissed]); this only proves the render wiring:
+     * the message reaches a Toast when set, and none shows when it's null.
+     */
+    @Test
+    fun `a set saveErrorMessage shows a Toast with that text`() {
+        setScreen(MushroomLogUiState(saveErrorMessage = "Couldn't save your changes."))
+
+        composeRule.waitForIdle()
+
+        assertEquals("Couldn't save your changes.", ShadowToast.getTextOfLatestToast())
+    }
+
+    @Test
+    fun `with saveErrorMessage unset, no Toast shows`() {
+        setScreen(MushroomLogUiState())
+
+        composeRule.waitForIdle()
+
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 }
 

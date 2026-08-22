@@ -1,5 +1,6 @@
 package com.forager.app.ui.log
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,11 +14,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
@@ -61,8 +64,19 @@ internal fun JournalTab(
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
     onDeleteEntry: (String) -> Unit,
+    /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — see [LogPanel]'s identical parameter for the full reasoning. */
+    onSaveErrorDismissed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // See LogPanel's identical effect for why this both shows and immediately clears the field.
+    val context = LocalContext.current
+    LaunchedEffect(uiState.saveErrorMessage) {
+        uiState.saveErrorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            onSaveErrorDismissed()
+        }
+    }
+
     var pickingLocation by remember { mutableStateOf(false) }
     // REPORT for an entry opened from the gallery (there's something to compile a report from and
     // no reason to assume an edit is wanted), EDIT for one just started (nothing to report yet, so

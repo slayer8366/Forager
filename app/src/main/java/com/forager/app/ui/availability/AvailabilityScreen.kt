@@ -361,6 +361,8 @@ fun AvailabilityScreen(
     onAddLogPhoto: (PhotoSource) -> Unit = {},
     onRemoveLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
+    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
+    onSaveLogErrorDismissed: () -> Unit = {},
     /**
      * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
      * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
@@ -660,6 +662,7 @@ fun AvailabilityScreen(
                     onRemovePhoto = onRemoveLogPhoto,
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
+                    onSaveErrorDismissed = onSaveLogErrorDismissed,
                 )
             }
         }
@@ -902,6 +905,7 @@ fun AvailabilityScreen(
                         onAddPhoto = onAddLogPhoto,
                         onRemovePhoto = onRemoveLogPhoto,
                         onDeleteEntry = onDeleteLogEntry,
+                        onSaveErrorDismissed = onSaveLogErrorDismissed,
                         modifier = Modifier.weight(1f),
                     )
                     CompactTab.SETTINGS -> CompactSettingsTab(
