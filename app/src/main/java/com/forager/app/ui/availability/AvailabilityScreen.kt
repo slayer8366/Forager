@@ -388,6 +388,8 @@ fun AvailabilityScreen(
     /** Called with the dropped location and the confirmed name when "Drop a waypoint" is chosen from the map's long-press menu — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
+    /** Set when the most recent waypoint load/add/delete failed — rendered in [WaypointsSection]. */
+    waypointsErrorMessage: String? = null,
     /**
      * Bearing/distance/elevation difference back to the active track's start point, from the
      * device's current position — `null` whenever nothing is being recorded, no fix has come in
@@ -577,6 +579,7 @@ fun AvailabilityScreen(
                     onDeletePlannedTrip = onDeletePlannedTrip,
                     waypoints = waypoints,
                     onDeleteWaypoint = onDeleteWaypoint,
+                    waypointsErrorMessage = waypointsErrorMessage,
                     onRecentSearchSelected = { summary ->
                         // Closed for the same reason searching from this drawer closes it:
                         // the tap starts a search, and the results are behind the sheet.
@@ -933,6 +936,7 @@ fun AvailabilityScreen(
                         onDeletePlannedTrip = onDeletePlannedTrip,
                         waypoints = waypoints,
                         onDeleteWaypoint = onDeleteWaypoint,
+                        waypointsErrorMessage = waypointsErrorMessage,
                         onRecentSearchSelected = { summary ->
                             isDrawerOpen = false
                             onRecentSearchSelected(summary)
@@ -1804,6 +1808,7 @@ private fun CompactSearchDrawerContent(
     onDeletePlannedTrip: (String) -> Unit,
     waypoints: List<Waypoint>,
     onDeleteWaypoint: (String) -> Unit,
+    waypointsErrorMessage: String?,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
     onToggleForagingAreas: (Boolean) -> Unit,
@@ -1835,6 +1840,7 @@ private fun CompactSearchDrawerContent(
             onDeletePlannedTrip = onDeletePlannedTrip,
             waypoints = waypoints,
             onDeleteWaypoint = onDeleteWaypoint,
+            waypointsErrorMessage = waypointsErrorMessage,
             onRecentSearchSelected = onRecentSearchSelected,
             currentTime = currentTime,
         )
@@ -1890,6 +1896,7 @@ private fun SearchControls(
     onDeletePlannedTrip: (String) -> Unit,
     waypoints: List<Waypoint>,
     onDeleteWaypoint: (String) -> Unit,
+    waypointsErrorMessage: String?,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
 ) {
@@ -1934,7 +1941,7 @@ private fun SearchControls(
         }
         HorizontalDivider()
         CollapsibleSection(title = "Waypoints") {
-            WaypointsSection(waypoints = waypoints, onDeleteWaypoint = onDeleteWaypoint)
+            WaypointsSection(waypoints = waypoints, onDeleteWaypoint = onDeleteWaypoint, waypointsErrorMessage = waypointsErrorMessage)
         }
     }
 }
@@ -3809,16 +3816,24 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
  * [com.forager.app.domain.GetWaypointsUseCase] already returns — see that use case for why).
  */
 @Composable
-private fun WaypointsSection(waypoints: List<Waypoint>, onDeleteWaypoint: (String) -> Unit) {
+private fun WaypointsSection(waypoints: List<Waypoint>, onDeleteWaypoint: (String) -> Unit, waypointsErrorMessage: String?) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (waypoints.isEmpty()) {
-            Text(
+        when {
+            waypointsErrorMessage != null -> Text(
+                waypointsErrorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            waypoints.isEmpty() -> Text(
                 "No waypoints dropped yet. Long-press the map to drop one.",
                 style = MaterialTheme.typography.bodySmall,
             )
-        } else {
-            waypoints.forEach { waypoint ->
-                WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
+
+            else -> {
+                waypoints.forEach { waypoint ->
+                    WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
+                }
             }
         }
     }
