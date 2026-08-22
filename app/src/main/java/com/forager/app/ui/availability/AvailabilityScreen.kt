@@ -372,6 +372,8 @@ fun AvailabilityScreen(
      */
     isRecording: Boolean = false,
     onToggleRecording: () -> Unit = {},
+    /** Set when the most recent [onToggleRecording]-triggered start failed — see [CompactMapTab]'s own doc comment on how this reaches the user. */
+    startRecordingErrorMessage: String? = null,
     /**
      * The active track's recorded points, oldest first — see [com.forager.app.ui.map.MapSlot]'s own
      * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
@@ -852,6 +854,7 @@ fun AvailabilityScreen(
                         onOpenSearchDrawer = openSearchDrawer,
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording,
+                        startRecordingErrorMessage = startRecordingErrorMessage,
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
                         onDropWaypoint = onDropWaypoint,
@@ -2915,6 +2918,7 @@ private fun CompactMapTab(
     onOpenSearchDrawer: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
+    startRecordingErrorMessage: String?,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
@@ -2950,6 +2954,13 @@ private fun CompactMapTab(
                 Toast.makeText(context, "Couldn't determine your location.", Toast.LENGTH_SHORT).show()
             else -> Unit
         }
+    }
+    // Same one-shot-per-transition shape as the locateMeStatus effect above: a failed
+    // startRecording() is an event ("the action you just took failed"), not a persistent
+    // condition — the field only clears on the next successful startRecording() (see
+    // TrackRecordingViewModel), so a banner would outlive the moment it's relevant.
+    LaunchedEffect(startRecordingErrorMessage) {
+        startRecordingErrorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
     }
 
     when {
