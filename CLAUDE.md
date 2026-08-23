@@ -74,6 +74,66 @@ here.
 
 ## Known pitfalls
 
+- **Push before you tidy.** Work that exists only in a local commit or an
+  uncommitted working tree is one session loss away from gone. This project
+  has already lost a Phase 1 code audit outright — run on another account,
+  never committed, never pushed, unrecoverable from any reachable session —
+  and separately had a test file appear in a working tree with no known
+  author, nearly absorbed into another task's commit before its provenance
+  was established. A later Phase 2 working environment was archived with no
+  unarchive path and survived only by luck; in that same at-risk session,
+  four clean local commits were reset to un-bundle a file for correct
+  attribution, briefly leaving the only copy of that work in an uncommitted
+  tree, inside an unrecoverable environment, for a cosmetic gain. Commit and
+  push at every natural stopping point, including work in progress — a
+  rough commit on a working branch beats a clean one that does not exist
+  yet. Never reset, rebase, amend, or un-bundle unpushed commits to improve
+  history, attribution, or commit boundaries: push first, since history is
+  editable forever once it's on a remote but unpushed work is not — if
+  attribution needs recording before a push, put it in the commit message
+  instead, which costs nothing and risks nothing. This applies to artifacts
+  as much as code: an audit, a review, a design decision, or a handoff note
+  that lives only in a session transcript is not recorded — `docs/audits/`
+  exists for exactly this reason.
+- **Verify your base branch before you start.** Confirm what your branch is
+  cut from and that the base is current before writing code — don't assume
+  `main` is up to date. This project has had `main` sit multiple phases
+  behind an active branch, and PR #26 and the Phase 1 branch each
+  independently declared `ForagerDatabase.version = 5` with a different
+  `MIGRATION_4_5` body from the same v4 base (one adding track/waypoint
+  tables, one adding offline-region tables) — a collision file-level git
+  merges cannot detect, since a schema version, a migration number, a port
+  assignment, a feature flag, or any other globally-unique claim can have
+  two branches each individually correct, merge without conflict, and still
+  produce a broken result. As of this writing that specific collision is
+  still unresolved, with 51 commits of drift between the two. Where a
+  change asserts a globally-unique value, check it against the base's
+  current state, not the state you started from. If a dispatch names a
+  branch and the session defaults to a different one, that is a
+  stop-and-ask, not something to resolve alone — say which two disagree and
+  wait.
+- **Room for data that relates; DataStore for flat settings.** The deciding
+  question is what the data will be queried for, not what it looks like
+  today: if a value will be referenced by, joined to, or filtered against
+  another entity, it belongs in Room, with its foreign key and index
+  designed at creation rather than retrofitted; if it's a standalone
+  preference — a threshold, a toggle, a last-used value — it goes in
+  DataStore, where adding a key costs no migration and stays out of the
+  migration-number sequence. `OfflineRegionEntity` is a flat list with no
+  foreign key and no index today, and would be misfiled as a settings table
+  by anyone judging on present structure — it's correctly in Room because
+  log entries are intended to reference it, and a table that will acquire
+  relationships should be designed relationally from the start. This split
+  was reasoned from scratch twice — PR #26 arrived at it independently
+  (`OfflineRegionEntity` in Room, `MapPreferencesRepository` in DataStore)
+  and a later session re-derived the same line for the permission flow's
+  explainer flag — so DataStore usage now follows the pattern
+  `DataStoreMapPreferencesRepository` established: namespaced keys, a
+  `Result`-returning suspend interface matching this repo's other
+  repositories, and a per-instance `PreferenceDataStoreFactory.create`
+  rather than the `by preferencesDataStore(name = ...)` singleton delegate,
+  which caches per-process and breaks Robolectric isolation across `@Test`
+  methods.
 - **A `Surface` (or any composable that draws a background or attaches
   pointer input) intercepts touches across its full layout bounds, not just
   where something is visually drawn.** An unconstrained `fillMaxWidth()`/
