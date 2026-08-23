@@ -26,7 +26,7 @@ picking a different answer.
 
 ## Sequencing
 
-Six workstreams, one dispatch each, **a build-and-test gate between every one** — bundling them
+Seven workstreams, one dispatch each, **a build-and-test gate between every one** — bundling them
 means a 45+-file diff nobody can review. Workstream 6 (the entry-level tile-capture feature) is
 new relative to the original scoping and depends on Workstreams 2 and 5 being done first (it
 needs the renumbered migration and the relational `OfflineRegionEntity`/log-entry link to exist).
