@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.forager.app.domain.ErrorLog
 import com.forager.app.domain.model.LatLng
 import com.forager.app.service.TrackRecordingService
 import com.forager.app.ui.availability.AvailabilityScreen
@@ -30,6 +32,12 @@ import com.forager.app.ui.track.TrackRecordingViewModel
 class MainActivity : ComponentActivity() {
 
     private val container: AppContainer get() = (application as ForagerApplication).container
+
+    /**
+     * The real [ErrorLog] production wires in — see that interface's own doc comment for why
+     * [AvailabilityViewModel]/[TrackRecordingViewModel] don't call [Log] directly.
+     */
+    private val androidErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
 
     private val viewModel: AvailabilityViewModel by viewModels {
         viewModelFactory {
@@ -49,6 +57,7 @@ class MainActivity : ComponentActivity() {
                     container.deletePlannedTripUseCase,
                     container.getSeasonalPatternUseCase,
                     container.offlineMapRepository,
+                    androidErrorLog,
                 )
             }
         }
@@ -81,6 +90,7 @@ class MainActivity : ComponentActivity() {
                     container.computeReturnToStartUseCase,
                     container.detectOffTrackUseCase,
                     container.locationTracker,
+                    androidErrorLog,
                 )
             }
         }
@@ -243,6 +253,7 @@ class MainActivity : ComponentActivity() {
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
                     onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
+                    onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
                         if (trackUiState.isRecording) {
@@ -265,6 +276,7 @@ class MainActivity : ComponentActivity() {
                     startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     waypoints = trackUiState.waypoints,
+                    waypointsErrorMessage = trackUiState.waypointsErrorMessage,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
                     onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
                     returnToStart = trackUiState.returnToStart,

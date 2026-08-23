@@ -93,14 +93,16 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `a failed start surfaces an error and leaves no active track`() = runTest(dispatcher) {
+    fun `a failed start surfaces an error and leaves no active track, without the exception's own message`() = runTest(dispatcher) {
         val vm = viewModel(FailingTrackRepository())
 
         vm.startRecording()
         runCurrent()
 
         assertNull(vm.uiState.value.activeTrack)
-        assertEquals("boom", vm.uiState.value.startRecordingErrorMessage)
+        // Error-presentation spec's absolute rule: FailingTrackRepository.create() throws
+        // RuntimeException("boom") — that text must never reach state, however recognizable it is.
+        assertEquals("Couldn't start recording.", vm.uiState.value.startRecordingErrorMessage)
     }
 
     @Test

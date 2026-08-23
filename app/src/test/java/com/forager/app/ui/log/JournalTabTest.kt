@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
+import org.robolectric.shadows.ShadowToast
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Region
@@ -91,6 +92,7 @@ class JournalTabTest {
                 onAddPhoto = {},
                 onRemovePhoto = {},
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
+                onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
             )
         }
     }
@@ -143,6 +145,60 @@ class JournalTabTest {
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
         assertEquals(LatLng(45.5, -122.5), startedEntryAt)
+    }
+
+    /**
+     * [MushroomLogUiState.loadErrorMessage]'s neutral, non-belief-changing empty state — see
+     * [LogGalleryScreen]'s own doc comment on the parameter. Driven through [JournalTab] with a
+     * real [MushroomLogUiState] rather than calling [LogGalleryScreen] directly, so this exercises
+     * the same threading [MainActivity] relies on.
+     */
+    @Test
+    fun `a set loadErrorMessage shows the unavailable text when there are no entries to show`() {
+        setScreen(MushroomLogUiState(loadErrorMessage = "Log entries unavailable."))
+
+        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `with loadErrorMessage unset, no unavailable text appears`() {
+        setScreen(MushroomLogUiState())
+
+        composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
+    }
+
+    /** The "not belief-changing" half of the doc comment: a failed refresh never hides entries already on screen. */
+    @Test
+    fun `a set loadErrorMessage does not hide entries already showing`() {
+        setScreen(MushroomLogUiState(entries = listOf(existingEntry), loadErrorMessage = "Log entries unavailable."))
+
+        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").assertIsDisplayed()
+        composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
+    }
+
+    /**
+     * [MushroomLogUiState.saveErrorMessage]'s Toast — PR #32's `startRecordingErrorMessage`
+     * shape (`AvailabilityScreen.kt`'s `CompactMapTab`), reused here. The clearing half of
+     * "dismiss or next successful save, whichever first" is [MushroomLogViewModelTest]'s to prove
+     * (it owns [MushroomLogViewModel.onSaveErrorDismissed]); this only proves the render wiring:
+     * the message reaches a Toast when set, and none shows when it's null.
+     */
+    @Test
+    fun `a set saveErrorMessage shows a Toast with that text`() {
+        setScreen(MushroomLogUiState(saveErrorMessage = "Couldn't save your changes."))
+
+        composeRule.waitForIdle()
+
+        assertEquals("Couldn't save your changes.", ShadowToast.getTextOfLatestToast())
+    }
+
+    @Test
+    fun `with saveErrorMessage unset, no Toast shows`() {
+        setScreen(MushroomLogUiState())
+
+        composeRule.waitForIdle()
+
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 }
 
