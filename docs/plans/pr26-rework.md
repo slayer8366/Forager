@@ -18,7 +18,7 @@ by 51 commits as of the pulse this plan is built from.
 **Decisions this plan assumes** — made by the project owner on 2026-08-23, recorded in full in
 [`docs/audits/2026-08-23-pr26-rework-scoping-decisions.md`](../audits/2026-08-23-pr26-rework-scoping-decisions.md)
 plus follow-ups answered directly against this plan's own open-questions list (see that file's
-"What is still open" section, now resolved below in Workstream 6). Do not re-litigate these; if
+"What is still open" section, now resolved below in Workstream D). Do not re-litigate these; if
 one turns out to be wrong once implementation starts, stop and report rather than silently
 picking a different answer.
 
@@ -238,7 +238,7 @@ decision pending.**
 ## What explicitly does not change
 
 - `MapPreferencesRepository`/`DataStoreMapPreferencesRepository` stay as PR #26 built them,
-  including the `PreferenceDataStoreFactory` doc comment verbatim (see Workstream 1).
+  including the `PreferenceDataStoreFactory` doc comment verbatim (see Workstream 0).
 - The feature set from the original scoping doc's §1 stays — per-region download, per-region
   delete, the Downloaded Maps list, staleness badging. None of it is up for renegotiation.
 - `onOfflineMapsOpened()`'s GPS re-centering and cold-start region-list refresh stay — both
