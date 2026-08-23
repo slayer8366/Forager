@@ -50,6 +50,37 @@ would mean redoing it).
 
 ## Workstream 1 — Reapply onto `main`
 
+**Status: closed at Part A.** `claude/task-hwj91a` @ `1726b90`.
+
+- **Landed:** ten files ported verbatim (`OfflineRegionDao.kt`, `OfflineRegionEntity.kt`,
+  `MapPreferencesRepository.kt`, `DataStoreMapPreferencesRepository.kt` + test,
+  `EstimateOfflineTileCount.kt` + test, `OfflineRegionStaleness.kt` + test, `MapLibreStorage.kt`),
+  plus `androidx.datastore:datastore-preferences:1.2.1`, which `main`'s build config was missing
+  and Part A's own file required. Compile green (`:app:compileDebugKotlin` and
+  `:app:compileDebugUnitTestKotlin`); the three new test classes verified against JUnit XML, not
+  just the build log (`DataStoreMapPreferencesRepositoryTest` 5/5, `EstimateOfflineTileCountTest`
+  6/6, `OfflineRegionStalenessTest` 5/5, zero failures/errors).
+- **Deferred to Workstream 3, with the blocking declaration named in each case:**
+  - `OfflineRegionsSection` (new), and replacement of `OfflineMapsPanel` /
+    `OfflineMapStatusContent` — blocked on `OfflineRegionSummary` and the redesigned four-case
+    `OfflineMapStatus` (`Idle`/`Succeeded`/`Downloading`/`Failed`, replacing `main`'s
+    `NotDownloaded`/`Downloading`/`Downloaded`/`Failed`), both declared in
+    `domain/OfflineMapRepository.kt`.
+  - `AvailabilityUiState.kt`'s `offlineRegions: List<OfflineRegionSummary>` and
+    `offlineDownloadStatus: OfflineMapStatus` fields — same blockers.
+  - `AvailabilityUiState.kt`'s other four new fields (`offlineMapNameText`,
+    `offlineRegionsErrorMessage`, `offlineStaleThresholdDays`, `offlineMapPickerDefaultCenter`) —
+    **not blocked**, held back deliberately rather than landing as dead state with no consumer.
+    They move as one diff together with the composables above.
+  - `MapLibreOfflineRegionMetadataTest.kt`'s 3-line edit, and the production file it exercises,
+    `MapLibreOfflineRegionMetadata.kt` — that class's `RegionMetadata` widens from 2 to 5 fields,
+    which breaks three call sites in `MapLibreOfflineMapRepository.kt`.
+- **Correction to record:** the third composable is named `OfflineDownloadStatusContent` on #26's
+  branch, not `OfflineMapStatusContent` — the bullet below uses `main`'s pre-#26 name for a
+  function #26 replaces, not adds to. Left as originally written below since this section records
+  what the plan said going in; the deferred-work list above uses `main`'s name for the same
+  reason its blocker (`domain/OfflineMapRepository.kt`) is what actually governs the rename.
+
 **Decision:** reapply, not rebase (owner decision, 2026-08-23). Take current `main`
 (`3b6021b`), port PR #26's feature across as fresh commits, using
 `claude/plan-implementation-rjzmkr` as reference material only — do not `git rebase` or replay
@@ -135,8 +166,27 @@ literal should describe what failed in the same neutral, state-describing regist
 `"Offline map download failed."` — e.g. a status-check failure, a delete failure, a region-list
 read failure — not a single reused string for all five.
 
+**Inherited from Workstream 1 (added when WS1 closed at Part A, 2026-08-22):** this workstream
+now also carries everything Workstream 1 deferred, all of it blocked on the same
+`domain/OfflineMapRepository.kt` declarations this workstream already reconciles —
+`OfflineRegionsSection`, the replacement of `OfflineMapsPanel`/`OfflineMapStatusContent`,
+`AvailabilityUiState.kt`'s `offlineRegions`/`offlineDownloadStatus` fields (plus its four
+unblocked fields, held back to move with these), and `MapLibreOfflineRegionMetadata.kt`'s 2→5
+field widening together with its test. See Workstream 1's own status note for the full list and
+why each item is blocked here. This paragraph records the inheritance; it does not restate or
+re-scope the work itself.
+
 **Gate:** grep `MapLibreOfflineMapRepository.kt` for `error.reason`/`error.message`/any raw SDK
 string reaching an `IOException`'s message — zero hits. `:app:testDebugUnitTest` passes.
+
+### Ownership gap
+
+`domain/OfflineMapRepository.kt` is not claimed by name by any workstream in this plan, but
+declares `OfflineRegionSummary`, `OfflineMapStatus`, the repository interface, and the zoom
+constants that Workstream 1's deferred surface, Workstream 4, Workstream 6, and Workstream 7 all
+type against. A dependency-graph pulse (2026-08-22) found it to be the trunk of the rework.
+Assigning it is part of a proposed workstream redraw that has not yet been approved; this note
+records the gap so it is not rediscovered.
 
 ---
 
