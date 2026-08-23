@@ -11,3 +11,4 @@ Audits are committed here so they survive the session that produced them.
 | 2026-08-21 | Code quality and structure (Phase 1) | `2026-08-21-phase1-code-audit.md` |
 | 2026-08-22 | Session handoff: error-presentation spec implementation (PR #34) | `2026-08-22-error-presentation-handoff.md` |
 | 2026-08-23 | Scoping decisions: PR #26 rework (multi-region offline map management) | `2026-08-23-pr26-rework-scoping-decisions.md` |
+| 2026-08-23 | Session handoff: PR #34/#35/#36 merged, PR #26 rework plan, phase-stack convention, PR #27 found stale | `2026-08-23-session-handoff.md` |

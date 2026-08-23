@@ -176,8 +176,10 @@ table itself.
 
 **How the link is set (owner decision, 2026-08-23):** automatic, not user-chosen. A log entry
 created while its coordinates fall inside a downloaded region's bounds references that region.
-The user should not have to think about offline-map bookkeeping while logging a find. If an
-entry's coordinates fall inside more than one downloaded region, or inside none, that's this
+The user should not have to think about offline-map bookkeeping while logging a find — the link
+is inferred so the whole feature stays invisible until it actually matters (at delete time, per
+the flow below), rather than surfacing as one more decision on every entry. If an entry's
+coordinates fall inside more than one downloaded region, or inside none, that's this
 workstream's to resolve with an explicit rule (e.g. nearest-center, or first-match, or simply
 "no region, no link") — don't leave it undefined.
 
@@ -191,8 +193,11 @@ workstream's to resolve with an explicit rule (e.g. nearest-center, or first-mat
    - Edit or remove the referencing log entries directly (clears the reference; delete then
      proceeds normally through the existing `OfflineRegionsSection` confirmation dialog).
    - Or: a **separate, explicit confirmation** (owner decision, 2026-08-23) — not a silent
-     auto-capture-then-delete. The dialog states which entries are affected and what will
-     happen: *"This region is used by [named entries]. Delete it and keep their maps?"* Only on
+     auto-capture-then-delete. The user is usually deleting a region *because storage is the
+     problem*; silent capture-then-delete is more magical than helpful in exactly that
+     situation — they should see what will be kept before committing. The dialog states which
+     entries are affected and what will happen: *"This region is used by [named entries].
+     Delete it and keep their maps?"* Only on
      confirmation does Workstream 6's capture mechanism run per referencing entry, followed by
      the region delete. Extend `OfflineRegionsSection`'s existing `pendingDeleteRegion`
      confirmation dialog (PR #26) for this rather than building a new one.
@@ -276,9 +281,10 @@ PR #34 treated the equivalent sites elsewhere in this same file.
   `startRecordingErrorMessage`'s Toast-with-clearing shape, or `waypointsErrorMessage`'s inline
   error-color render — pick whichever this UI's existing `OfflineDownloadStatusContent` shape
   fits better), not a plain empty state.
-- **A failed region-list load is not belief-changing.** Neutral empty state is sufficient —
-  matching `conditionsErrorMessage`/`loadErrorMessage`'s "X unavailable" vocabulary from PR #34,
-  not an error-colored render.
+- **A failed region-list load is not belief-changing** — the user is missing a list, not
+  carrying a false belief about what the app has already done for them. Neutral empty state is
+  sufficient — matching `conditionsErrorMessage`/`loadErrorMessage`'s "X unavailable" vocabulary
+  from PR #34, not an error-colored render.
 - **A failed entry-level tile capture is belief-changing** (Workstream 6) — covered there, not
   duplicated here; both workstreams' error sites should read as one consistent treatment by the
   time this workstream is done, not two independently-invented ones.
