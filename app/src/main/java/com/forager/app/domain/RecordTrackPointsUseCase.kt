@@ -4,7 +4,7 @@ import com.forager.app.domain.model.TrackPoint
 
 /**
  * Appends already-sampled points to a track. A one-line wrapper, kept as its own class per the
- * one-class-one-job pattern used throughout `domain/` (see [DeleteMushroomLogEntryUseCase]) — the
+ * one-class-one-job pattern used throughout `domain/` (see [DeletePlannedTripUseCase]) — the
  * sampling decision itself belongs to [LocationSampler], upstream of this call, not here.
  */
 class RecordTrackPointsUseCase(

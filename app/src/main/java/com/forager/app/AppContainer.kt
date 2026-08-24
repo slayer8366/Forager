@@ -137,7 +137,7 @@ class AppContainer(context: Context) {
     val getMushroomLogEntriesUseCase = GetMushroomLogEntriesUseCase(mushroomLogRepository)
     val createMushroomLogEntryUseCase = CreateMushroomLogEntryUseCase(mushroomLogRepository)
     val saveMushroomLogEntryUseCase = SaveMushroomLogEntryUseCase(mushroomLogRepository)
-    val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(mushroomLogRepository)
+    val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(photoStore, mushroomLogRepository)
     val addPhotoToLogEntryUseCase = AddPhotoToLogEntryUseCase(photoStore, mushroomLogRepository)
     val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(photoStore, mushroomLogRepository)
 

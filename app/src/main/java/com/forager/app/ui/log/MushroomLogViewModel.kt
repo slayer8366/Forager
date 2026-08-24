@@ -112,9 +112,23 @@ class MushroomLogViewModel(
         }
     }
 
+    /**
+     * The photo list comes from [MushroomLogUiState.entries], already loaded — no new query, per
+     * [DeleteMushroomLogEntryUseCase]'s own doc comment on why cleanup doesn't need one. If [id]
+     * isn't found there (shouldn't happen: every caller sources it from this same state), the
+     * entry still gets deleted by id — the row deletion the user asked for never depends on photo
+     * lookup succeeding — just with nothing to clean up, since there's nothing here to look up.
+     */
     fun onDeleteEntry(id: String) {
+        val photos = _uiState.value.entries.firstOrNull { it.id == id }?.photos.orEmpty()
         viewModelScope.launch {
-            deleteEntry(id).fold(
+            deleteEntry(
+                id,
+                photos,
+                onPhotoDeleteFailed = { photo, error ->
+                    Log.w(TAG, "Couldn't delete photo file '${photo.relativePath}' for entry '$id'.", error)
+                },
+            ).fold(
                 onSuccess = {
                     _uiState.update { state ->
                         state.copy(

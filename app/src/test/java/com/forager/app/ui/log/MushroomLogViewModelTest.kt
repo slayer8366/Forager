@@ -60,7 +60,7 @@ class MushroomLogViewModelTest {
         getEntries = GetMushroomLogEntriesUseCase(repository),
         createEntry = CreateMushroomLogEntryUseCase(repository, today = { LocalDate.of(2026, 8, 1) }, idGenerator = { "new-entry" }),
         saveEntry = SaveMushroomLogEntryUseCase(repository),
-        deleteEntry = DeleteMushroomLogEntryUseCase(repository),
+        deleteEntry = DeleteMushroomLogEntryUseCase(photoStore, repository),
         addPhoto = AddPhotoToLogEntryUseCase(photoStore, repository),
         removePhoto = RemovePhotoFromLogEntryUseCase(photoStore, repository),
     )
@@ -120,6 +120,57 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
         assertNull(vm.uiState.value.saveErrorMessage)
     }
+
+    @Test
+    fun `deleting an entry with photos deletes both its row and its photo files`() = runTest(dispatcher) {
+        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg")
+        val entryWithPhoto = entry.copy(photos = listOf(photo))
+        val repository = FakeMushroomLogRepository(initial = listOf(entryWithPhoto))
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+
+        vm.onDeleteEntry(entryWithPhoto.id)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<MushroomLogEntry>(), vm.uiState.value.entries)
+        assertEquals(listOf(photo), photoStore.deletedPhotos)
+    }
+
+    @Test
+    fun `deleting an entry with no photos succeeds and touches the photo store not at all`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+
+        vm.onDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<MushroomLogEntry>(), vm.uiState.value.entries)
+        assertEquals(emptyList<LogPhoto>(), photoStore.deletedPhotos)
+    }
+
+    @Test
+    fun `a photo file that fails to delete still lets the entry deletion succeed`() = runTest(dispatcher) {
+        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg")
+        val entryWithPhoto = entry.copy(photos = listOf(photo))
+        val repository = FakeMushroomLogRepository(initial = listOf(entryWithPhoto))
+        val photoStore = FakePhotoStore(deleteShouldFail = true)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+
+        vm.onDeleteEntry(entryWithPhoto.id)
+        advanceUntilIdle()
+
+        // The entry is gone despite the photo file failing to delete — a filesystem problem is
+        // never the user's concern once they've asked for the entry deleted (see
+        // DeleteMushroomLogEntryUseCase's own doc comment). No user-visible message either: this
+        // isn't belief-changing, per docs/error-presentation-spec.md.
+        assertEquals(emptyList<MushroomLogEntry>(), vm.uiState.value.entries)
+        assertNull(vm.uiState.value.saveErrorMessage)
+        assertEquals(1, photoStore.failedDeleteAttempts)
+    }
 }
 
 private class FakeMushroomLogRepository(
@@ -142,11 +193,20 @@ private class FakeMushroomLogRepository(
     }
 }
 
-/** Not exercised by these tests' assertions — none of them add or remove a photo. */
-private class FakePhotoStore : PhotoStore {
+private class FakePhotoStore(private val deleteShouldFail: Boolean = false) : PhotoStore {
+    val deletedPhotos = mutableListOf<LogPhoto>()
+    var failedDeleteAttempts = 0
+        private set
+
     override suspend fun persist(source: PhotoSource): Result<LogPhoto> =
         Result.failure(UnsupportedOperationException("photo persistence not exercised by this test"))
 
-    override suspend fun delete(photo: LogPhoto): Result<Unit> =
-        Result.failure(UnsupportedOperationException("photo deletion not exercised by this test"))
+    override suspend fun delete(photo: LogPhoto): Result<Unit> {
+        if (deleteShouldFail) {
+            failedDeleteAttempts++
+            return Result.failure(java.io.IOException("delete failed"))
+        }
+        deletedPhotos += photo
+        return Result.success(Unit)
+    }
 }
