@@ -74,7 +74,9 @@ class OfflineRegionMigrationTest {
             // statement, so dropping the column while the index still references it fails with
             // "no such column" instead. No other entity in this fixture needed this treatment —
             // mushroom_log_entries is the first table any migration in this codebase has added a
-            // column to, rather than only adding new tables.
+            // column to, rather than only adding new tables. This is not leftover debugging — see
+            // docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md for why any future
+            // migration that alters an existing entity will need the same treatment here.
             legacyDb.openHelper.writableDatabase.execSQL("DROP INDEX `index_mushroom_log_entries_offlineRegionId`")
             legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `mushroom_log_entries` DROP COLUMN `offlineRegionId`")
         } finally {

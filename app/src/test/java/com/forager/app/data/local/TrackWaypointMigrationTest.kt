@@ -71,7 +71,9 @@ class TrackWaypointMigrationTest {
             // real version-4 install never had. Drop both here so the file reaches MIGRATION_5_6 in
             // its true pre-migration shape — see OfflineRegionMigrationTest's identical fix for the
             // full reasoning; the index has to go first, or dropping the column while it's still
-            // referenced fails with "no such column."
+            // referenced fails with "no such column." This is not leftover debugging — see
+            // docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md for why any future
+            // migration that alters an existing entity will need the same treatment here.
             legacyDb.openHelper.writableDatabase.execSQL("DROP INDEX `index_mushroom_log_entries_offlineRegionId`")
             legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `mushroom_log_entries` DROP COLUMN `offlineRegionId`")
         } finally {
