@@ -56,6 +56,14 @@ import androidx.room.RoomDatabase
  * location, since L4 routes entry creation to the entry page rather than through a
  * location-placement step first. Existing entries and their coordinates are not something a
  * schema bump may drop, same reasoning as every hand-written migration above.
+ *
+ * [version] 8 inverts photo ownership via a real [MIGRATION_7_8] — owner decision, 2026-08-22:
+ * "photos live in a gallery in their own right; log entries reference them, they do not own them."
+ * `log_photos` loses its required `entryId` and gains [LogPhotoEntity.createdAtEpochMillis]; a new
+ * [LogEntryPhotoCrossRef] table (`log_entry_photos`) carries the entry↔photo relationship,
+ * many-to-many rather than one-to-many (owner decision: "the album model"). Every existing
+ * relationship is preserved as a cross-reference row before the old column is gone, same
+ * no-data-loss reasoning as every hand-written migration above.
  */
 @Database(
     entities = [
@@ -63,12 +71,13 @@ import androidx.room.RoomDatabase
         CachedSearchEntity::class,
         MushroomLogEntryEntity::class,
         LogPhotoEntity::class,
+        LogEntryPhotoCrossRef::class,
         TrackEntity::class,
         TrackPointEntity::class,
         WaypointEntity::class,
         OfflineRegionEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -89,6 +98,6 @@ abstract class ForagerDatabase : RoomDatabase() {
             context.applicationContext,
             ForagerDatabase::class.java,
             "forager.db",
-        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).fallbackToDestructiveMigration(true).build()
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).fallbackToDestructiveMigration(true).build()
     }
 }

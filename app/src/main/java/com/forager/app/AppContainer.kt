@@ -137,9 +137,9 @@ class AppContainer(context: Context) {
     val getMushroomLogEntriesUseCase = GetMushroomLogEntriesUseCase(mushroomLogRepository)
     val createMushroomLogEntryUseCase = CreateMushroomLogEntryUseCase(mushroomLogRepository)
     val saveMushroomLogEntryUseCase = SaveMushroomLogEntryUseCase(mushroomLogRepository)
-    val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(photoStore, mushroomLogRepository)
+    val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(mushroomLogRepository)
     val addPhotoToLogEntryUseCase = AddPhotoToLogEntryUseCase(photoStore, mushroomLogRepository)
-    val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(photoStore, mushroomLogRepository)
+    val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(mushroomLogRepository)
 
     // Phase 1a of the Forager Navigator plan (docs/plans/forager-navigator-plan.md) — track
     // recording and waypoints. TrackRecordingService (com.forager.app.service) reaches these

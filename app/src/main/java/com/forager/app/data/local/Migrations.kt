@@ -302,3 +302,99 @@ val MIGRATION_6_7: Migration = object : Migration(6, 7) {
         )
     }
 }
+
+/**
+ * Photo gallery ownership — owner decision, 2026-08-22: "photos live in a gallery in their own
+ * right; log entries reference them, they do not own them." Before this migration, `log_photos`
+ * carried a required `entryId` column — one row per photo, always exactly one owning entry, gone
+ * (both the row and the file) the moment that entry was deleted ([MIGRATION_3_4]'s original shape).
+ * That model is why L1 (photo file cleanup on entry delete) made sense at the time it landed — it
+ * was the correct behavior for the model that then existed, not a bug this migration is fixing.
+ *
+ * `log_photos` loses `entryId` and gains `createdAtEpochMillis` (nullable — see
+ * [com.forager.app.domain.model.LogPhoto]'s own doc comment for why a migrated row's creation time
+ * is left an honest unknown rather than fabricated). A new join table,
+ * [LogEntryPhotoCrossRef]'s `log_entry_photos`, carries the entry↔photo relationship instead —
+ * **many-to-many** (owner decision: "the album model," matching how photo apps behave, and
+ * avoiding a second migration over the same tables to get there later), not one-to-many. Every
+ * pre-existing `log_photos` row's `(id, entryId)` pair is preserved as a `log_entry_photos` row
+ * before the old table is dropped, so no existing entry↔photo relationship is lost — only the
+ * *ownership* direction inverts, not the data.
+ *
+ * `log_photos` gets a full SQLite table rebuild (create the new shape, copy by explicit column
+ * list, drop the old table, rename) rather than `ALTER TABLE ... DROP COLUMN` — this project's own
+ * standing practice already favors the rebuild shape uniformly (L3's `MIGRATION_6_7` used it for a
+ * nullability change `DROP COLUMN` couldn't have expressed at all), and `DROP COLUMN` itself needs
+ * SQLite 3.35.0+, unverified against every Android SQLite build this app must run on. Every
+ * pre-existing entry<->photo relationship is captured into `log_entry_photos` while the old
+ * `log_photos` (the only place that relationship was recorded) is still intact, before it's
+ * dropped. `mushroom_log_entries` itself is untouched by this migration — only `log_photos` changes
+ * shape; `log_entry_photos` is a brand-new table, the same "just `CREATE TABLE`" shape
+ * [MIGRATION_5_6]'s `offline_regions` used.
+ *
+ * **The legacy-fixture problem, third occurrence — recurred, in the opposite direction, and L3's
+ * narrowed rule missed it.** L3 narrowed the rule from "any migration that alters an existing
+ * entity" to specifically `ALTER TABLE ... ADD COLUMN` against an entity a legacy test fixture
+ * already declares (see `docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`) — this
+ * migration contains no `ALTER TABLE ... ADD COLUMN` at all, so that narrowed rule predicted no
+ * recurrence. **Checked anyway, not trusted on the rule's say-so — and the check found a real
+ * failure the rule didn't predict.** [LogPhotoEntity] no longer declares `entryId` on the shared
+ * production class as of this migration, so every legacy fixture that reuses it (`LegacyForagerDatabaseV4`/
+ * `V5`/`V6`/`V7`, one per existing migration test plus `LogPhotoMigrationTest`'s own) builds
+ * `log_photos` *without* that column — a column a real install at any of those versions always
+ * had. This migration's own `SELECT entryId, id FROM log_photos` then fails at runtime with
+ * `no such column: entryId` against every one of them. Not a duplicate-column failure (the
+ * `ADD COLUMN` shape L3's rule covers) — a *missing*-column failure, the mirror image, caused by a
+ * column *leaving* the shared class rather than joining it. Fixed the same way as the original
+ * `offlineRegionId` case, just inverted: each legacy fixture restores `log_photos.entryId` with a
+ * plain `ALTER TABLE ... ADD COLUMN` (no `DROP INDEX` needed first this time — nothing leaked in to
+ * conflict with) before being handed to the real migration chain. `log_entry_photos` needed no such
+ * correction: this migration's own `CREATE TABLE IF NOT EXISTS` already tolerates every fixture
+ * having built that table too early (via the same `LogEntryPhotoCrossRef` reuse, needed purely so
+ * `MushroomLogDao`'s cross-reference methods compile against each fixture's `@Database` at all).
+ * The takeaway for the next migration that hits this: narrow rules about *when* the legacy-fixture
+ * problem recurs are worth having, but don't skip running the fixtures because a rule says a
+ * particular shape of migration shouldn't need it.
+ */
+val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `log_photos_new` (
+            `id` TEXT NOT NULL,
+            `relativePath` TEXT NOT NULL,
+            `createdAtEpochMillis` INTEGER,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `log_photos_new` (`id`, `relativePath`, `createdAtEpochMillis`)
+            SELECT `id`, `relativePath`, NULL FROM `log_photos`
+            """.trimIndent(),
+        )
+
+        // Preserve every existing entry<->photo relationship as a cross-reference row before the
+        // old log_photos (the only place that relationship is currently recorded) is dropped.
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `log_entry_photos` (
+            `entryId` TEXT NOT NULL,
+            `photoId` TEXT NOT NULL,
+            PRIMARY KEY(`entryId`, `photoId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `log_entry_photos` (`entryId`, `photoId`)
+            SELECT `entryId`, `id` FROM `log_photos`
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_log_entry_photos_photoId` ON `log_entry_photos` (`photoId`)",
+        )
+
+        db.execSQL("DROP TABLE `log_photos`")
+        db.execSQL("ALTER TABLE `log_photos_new` RENAME TO `log_photos`")
+    }
+}

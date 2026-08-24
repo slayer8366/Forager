@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,9 +61,9 @@ class MushroomLogViewModelTest {
         getEntries = GetMushroomLogEntriesUseCase(repository),
         createEntry = CreateMushroomLogEntryUseCase(repository, today = { LocalDate.of(2026, 8, 1) }, idGenerator = { "new-entry" }),
         saveEntry = SaveMushroomLogEntryUseCase(repository),
-        deleteEntry = DeleteMushroomLogEntryUseCase(photoStore, repository),
+        deleteEntry = DeleteMushroomLogEntryUseCase(repository),
         addPhoto = AddPhotoToLogEntryUseCase(photoStore, repository),
-        removePhoto = RemovePhotoFromLogEntryUseCase(photoStore, repository),
+        removePhoto = RemovePhotoFromLogEntryUseCase(repository),
     )
 
     private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
@@ -121,9 +122,16 @@ class MushroomLogViewModelTest {
         assertNull(vm.uiState.value.saveErrorMessage)
     }
 
+    /**
+     * L1's reversal, at the ViewModel level (see [DeleteMushroomLogEntryUseCase]'s own doc comment
+     * for the full history) — under gallery ownership, deleting an entry removes it from the list
+     * and drops its photo *references*, but the gallery photo itself survives, and
+     * [com.forager.app.domain.PhotoStore] is never called at all any more. Was:
+     * "deleting an entry with photos deletes both its row and its photo files."
+     */
     @Test
-    fun `deleting an entry with photos deletes both its row and its photo files`() = runTest(dispatcher) {
-        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg")
+    fun `deleting an entry with photos removes it from the list but leaves the gallery photo and PhotoStore untouched`() = runTest(dispatcher) {
+        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
         val entryWithPhoto = entry.copy(photos = listOf(photo))
         val repository = FakeMushroomLogRepository(initial = listOf(entryWithPhoto))
         val photoStore = FakePhotoStore()
@@ -134,11 +142,12 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         assertEquals(emptyList<MushroomLogEntry>(), vm.uiState.value.entries)
-        assertEquals(listOf(photo), photoStore.deletedPhotos)
+        assertTrue("the gallery photo itself must survive the entry that referenced it being deleted", repository.galleryPhotoIds.contains(photo.id))
+        assertEquals("PhotoStore.delete must never be called by entry deletion any more", emptyList<LogPhoto>(), photoStore.deletedPhotos)
     }
 
     @Test
-    fun `deleting an entry with no photos succeeds and touches the photo store not at all`() = runTest(dispatcher) {
+    fun `deleting an entry with no photos succeeds and never touches PhotoStore`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository(initial = listOf(entry))
         val photoStore = FakePhotoStore()
         val vm = viewModel(repository, photoStore)
@@ -151,26 +160,10 @@ class MushroomLogViewModelTest {
         assertEquals(emptyList<LogPhoto>(), photoStore.deletedPhotos)
     }
 
-    @Test
-    fun `a photo file that fails to delete still lets the entry deletion succeed`() = runTest(dispatcher) {
-        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg")
-        val entryWithPhoto = entry.copy(photos = listOf(photo))
-        val repository = FakeMushroomLogRepository(initial = listOf(entryWithPhoto))
-        val photoStore = FakePhotoStore(deleteShouldFail = true)
-        val vm = viewModel(repository, photoStore)
-        advanceUntilIdle()
-
-        vm.onDeleteEntry(entryWithPhoto.id)
-        advanceUntilIdle()
-
-        // The entry is gone despite the photo file failing to delete — a filesystem problem is
-        // never the user's concern once they've asked for the entry deleted (see
-        // DeleteMushroomLogEntryUseCase's own doc comment). No user-visible message either: this
-        // isn't belief-changing, per docs/error-presentation-spec.md.
-        assertEquals(emptyList<MushroomLogEntry>(), vm.uiState.value.entries)
-        assertNull(vm.uiState.value.saveErrorMessage)
-        assertEquals(1, photoStore.failedDeleteAttempts)
-    }
+    // "a photo file that fails to delete still lets the entry deletion succeed" — removed, not
+    // rewritten: the scenario it covered is no longer reachable. DeleteMushroomLogEntryUseCase
+    // never calls PhotoStore at all any more (see its own doc comment on why), so there is no
+    // photo-file-deletion step left for this test to prove resilience against.
 }
 
 private class FakeMushroomLogRepository(
@@ -178,8 +171,26 @@ private class FakeMushroomLogRepository(
     var saveShouldFail: Boolean = false,
 ) : MushroomLogRepository {
     private val entries = initial.associateByTo(LinkedHashMap()) { it.id }
+    private val galleryPhotos = mutableMapOf<String, LogPhoto>()
+    private val crossRefs = mutableSetOf<Pair<String, String>>()
 
-    override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(entries.values.toList())
+    val galleryPhotoIds: Set<String> get() = galleryPhotos.keys
+
+    init {
+        initial.forEach { entry ->
+            entry.photos.forEach { photo ->
+                galleryPhotos[photo.id] = photo
+                crossRefs += entry.id to photo.id
+            }
+        }
+    }
+
+    override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(
+        entries.values.map { entry ->
+            val photos = crossRefs.filter { it.first == entry.id }.mapNotNull { galleryPhotos[it.second] }
+            entry.copy(photos = photos)
+        },
+    )
 
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> {
         if (saveShouldFail) return Result.failure(RuntimeException("save failed"))
@@ -189,23 +200,33 @@ private class FakeMushroomLogRepository(
 
     override suspend fun delete(id: String): Result<Unit> {
         entries.remove(id)
+        crossRefs.removeAll { it.first == id }
+        return Result.success(Unit)
+    }
+
+    override suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit> {
+        galleryPhotos[photo.id] = photo
+        return Result.success(Unit)
+    }
+
+    override suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit> {
+        crossRefs += entryId to photoId
+        return Result.success(Unit)
+    }
+
+    override suspend fun detachPhotoFromEntry(entryId: String, photoId: String): Result<Unit> {
+        crossRefs -= entryId to photoId
         return Result.success(Unit)
     }
 }
 
-private class FakePhotoStore(private val deleteShouldFail: Boolean = false) : PhotoStore {
+private class FakePhotoStore : PhotoStore {
     val deletedPhotos = mutableListOf<LogPhoto>()
-    var failedDeleteAttempts = 0
-        private set
 
     override suspend fun persist(source: PhotoSource): Result<LogPhoto> =
         Result.failure(UnsupportedOperationException("photo persistence not exercised by this test"))
 
     override suspend fun delete(photo: LogPhoto): Result<Unit> {
-        if (deleteShouldFail) {
-            failedDeleteAttempts++
-            return Result.failure(java.io.IOException("delete failed"))
-        }
         deletedPhotos += photo
         return Result.success(Unit)
     }

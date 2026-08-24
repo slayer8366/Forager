@@ -72,13 +72,20 @@ class OfflineRegionMigrationTest {
             // "duplicate column" against a database that was never actually missing it. The index
             // must go first — SQLite validates it against the column set on every subsequent
             // statement, so dropping the column while the index still references it fails with
-            // "no such column" instead. No other entity in this fixture needed this treatment —
-            // mushroom_log_entries is the first table any migration in this codebase has added a
-            // column to, rather than only adding new tables. This is not leftover debugging — see
+            // "no such column" instead. This is not leftover debugging — see
             // docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md for why any future
             // migration that alters an existing entity will need the same treatment here.
             legacyDb.openHelper.writableDatabase.execSQL("DROP INDEX `index_mushroom_log_entries_offlineRegionId`")
             legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `mushroom_log_entries` DROP COLUMN `offlineRegionId`")
+
+            // The same pattern's third occurrence, in the opposite direction: LogPhotoEntity no
+            // longer declares entryId as of MIGRATION_7_8 (gallery ownership), so this "legacy"
+            // log_photos table is missing a column a real version-5 install always had — restored
+            // here (a plain ADD COLUMN, not a drop, since nothing leaked in this time; something
+            // leaked away) so MIGRATION_7_8's own `SELECT entryId, id FROM log_photos` doesn't fail
+            // with "no such column" further down the same migration chain. See LogPhotoMigrationTest's
+            // own doc comment for the general reasoning.
+            legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `log_photos` ADD COLUMN `entryId` TEXT")
         } finally {
             legacyDb.close()
         }
@@ -87,7 +94,7 @@ class OfflineRegionMigrationTest {
         // fallbackToDestructiveMigration here, so if MIGRATION_5_6 is missing or wrong, this throws
         // rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
 
         try {
@@ -145,6 +152,7 @@ class OfflineRegionMigrationTest {
         CachedSearchEntity::class,
         MushroomLogEntryEntity::class,
         LogPhotoEntity::class,
+        LogEntryPhotoCrossRef::class,
         TrackEntity::class,
         TrackPointEntity::class,
         WaypointEntity::class,

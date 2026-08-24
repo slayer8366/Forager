@@ -8,6 +8,7 @@ import com.forager.app.domain.model.PhotoSource
 import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -97,8 +98,18 @@ class FilePhotoStoreTest {
 
     @Test
     fun `deleting a photo whose file is already gone is a no-op, not a failure`() = runTest {
-        val result = store.delete(LogPhoto(id = "never-persisted", relativePath = "photos/does-not-exist.jpg"))
+        val result = store.delete(LogPhoto(id = "never-persisted", relativePath = "photos/does-not-exist.jpg", createdAtEpochMillis = 0L))
 
         assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `persist stamps the injected clock's time, not left null`() = runTest {
+        val clockedStore = FilePhotoStore(context, now = { 1_700_000_000_000L })
+        val sourceFile = File(sourceDir, "capture.jpg").apply { writeBytes(byteArrayOf(7)) }
+
+        val photo = clockedStore.persist(ContentUriPhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+
+        assertEquals(1_700_000_000_000L, photo.createdAtEpochMillis)
     }
 }

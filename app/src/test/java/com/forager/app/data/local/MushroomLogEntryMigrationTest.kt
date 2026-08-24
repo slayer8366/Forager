@@ -62,6 +62,16 @@ class MushroomLogEntryMigrationTest {
         try {
             legacyDb.plannedTripDao().upsert(legacyTrip)
             RoomMushroomLogRepository(legacyDb.mushroomLogDao()).save(legacyEntry).getOrThrow()
+
+            // The legacy-fixture problem's third occurrence, in the opposite direction from the
+            // offlineRegionId case: LogPhotoEntity no longer declares entryId as of MIGRATION_7_8
+            // (gallery ownership), so this "legacy" log_photos table is missing a column a real
+            // version-6 install always had — restored here (a plain ADD COLUMN, not a drop, since
+            // nothing leaked in this time; something leaked away) so MIGRATION_7_8's own
+            // `SELECT entryId, id FROM log_photos` doesn't fail with "no such column" further down
+            // the same migration chain. See LogPhotoMigrationTest's own doc comment for the
+            // general reasoning.
+            legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `log_photos` ADD COLUMN `entryId` TEXT")
         } finally {
             legacyDb.close()
         }
@@ -70,7 +80,7 @@ class MushroomLogEntryMigrationTest {
         // fallbackToDestructiveMigration here, so if MIGRATION_6_7 is missing or wrong, this throws
         // rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
 
         try {
@@ -138,6 +148,7 @@ class MushroomLogEntryMigrationTest {
         CachedSearchEntity::class,
         MushroomLogEntryEntity::class,
         LogPhotoEntity::class,
+        LogEntryPhotoCrossRef::class,
         TrackEntity::class,
         TrackPointEntity::class,
         WaypointEntity::class,

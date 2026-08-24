@@ -18,8 +18,15 @@ import java.util.UUID
  * gallery pick's `content://` URI (from the system photo picker) isn't a file this app owns at all,
  * so a copy is required there regardless, and using the same copy path for a camera capture too
  * means there is exactly one persistence code path to get right and test, not two.
+ *
+ * [now] is injected — same reasoning as [com.forager.app.domain.CreateMushroomLogEntryUseCase]'s
+ * `today` — so a test can fix [LogPhoto.createdAtEpochMillis] instead of asserting against a live
+ * clock.
  */
-class FilePhotoStore(private val context: Context) : PhotoStore {
+class FilePhotoStore(
+    private val context: Context,
+    private val now: () -> Long = System::currentTimeMillis,
+) : PhotoStore {
 
     private val photosDir: File get() = File(context.filesDir, PHOTOS_SUBDIR).apply { mkdirs() }
 
@@ -31,7 +38,7 @@ class FilePhotoStore(private val context: Context) : PhotoStore {
         val input = context.contentResolver.openInputStream(uri)
             ?: error("Could not open $uri for reading")
         input.use { stream -> destination.outputStream().use { stream.copyTo(it) } }
-        LogPhoto(id = id, relativePath = "$PHOTOS_SUBDIR/$id.jpg")
+        LogPhoto(id = id, relativePath = "$PHOTOS_SUBDIR/$id.jpg", createdAtEpochMillis = now())
     }
 
     override suspend fun delete(photo: LogPhoto): Result<Unit> = runCatchingCancellable {

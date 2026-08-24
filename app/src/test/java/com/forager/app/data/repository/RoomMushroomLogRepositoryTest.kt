@@ -54,7 +54,9 @@ import org.robolectric.annotation.Config
  * reasoning as [RoomPlannedTripRepositoryTest]: the thing worth verifying is the mapping Room
  * itself is responsible for, here considerably larger than [com.forager.app.data.local.PlannedTripEntity]'s:
  * every [Observed]/[Feature] column encoding described in [com.forager.app.data.local.MushroomLogEntryEntity]'s
- * doc comment, the sealed-choice discriminators, and the entry/photos two-table write.
+ * doc comment, the sealed-choice discriminators, and — across the entry table, the gallery's photo
+ * table, and the entry-photo cross-reference table (`MIGRATION_7_8`, gallery ownership) — that
+ * `save()` never touches a photo reference and `delete()` never touches a gallery photo.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -91,7 +93,15 @@ class RoomMushroomLogRepositoryTest {
     fun `a fully-populated entry round-trips every field exactly, including nested sealed choices and photos`() = runTest {
         val entry = fullyPopulatedEntry()
 
+        // save() never touches photo references (see MushroomLogRepository.save's own doc
+        // comment) — a photo becomes part of what getAll() returns for this entry only once it's
+        // been added to the gallery and attached, the same two steps AddPhotoToLogEntryUseCase
+        // performs in production.
         repository.save(entry).getOrThrow()
+        entry.photos.forEach { photo ->
+            repository.addPhotoToGallery(photo).getOrThrow()
+            repository.attachPhotoToEntry(entry.id, photo.id).getOrThrow()
+        }
         val all = repository.getAll().getOrThrow()
 
         assertEquals(listOf(entry), all)
@@ -121,32 +131,64 @@ class RoomMushroomLogRepositoryTest {
         assertEquals(listOf(updated), all)
     }
 
+    /**
+     * The structural fact G1 exists to fix: before `MIGRATION_7_8`, `save()` deleted and
+     * reinserted an entry's *entire* photo row set on every call — this test used to be named
+     * "saving replaces the photo set rather than appending to it" and proved exactly that. Under
+     * gallery ownership `save()` must never touch photo references at all (autosave on every field
+     * edit would otherwise churn cross-reference rows on every keystroke) — proved here by calling
+     * `save()` with a stale `photos` list after attaching a real one, and confirming `getAll()`
+     * still reflects only what was actually attached, not whatever `save()`'s argument happened to
+     * carry in its own `photos` field.
+     */
     @Test
-    fun `saving replaces the photo set rather than appending to it`() = runTest {
-        val withOnePhoto = MushroomLogEntry.draft(id = "e1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
-            .copy(photos = listOf(LogPhoto(id = "p1", relativePath = "photos/p1.jpg")))
-        val withDifferentPhoto = withOnePhoto.copy(photos = listOf(LogPhoto(id = "p2", relativePath = "photos/p2.jpg")))
+    fun `save never touches photo references, however stale the entry argument's own photos field is`() = runTest {
+        val entry = MushroomLogEntry.draft(id = "e1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val attachedPhoto = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
+        val neverAttachedPhoto = LogPhoto(id = "p2", relativePath = "photos/p2.jpg", createdAtEpochMillis = 2_000L)
 
-        repository.save(withOnePhoto).getOrThrow()
-        repository.save(withDifferentPhoto).getOrThrow()
+        repository.save(entry).getOrThrow()
+        repository.addPhotoToGallery(attachedPhoto).getOrThrow()
+        repository.attachPhotoToEntry(entry.id, attachedPhoto.id).getOrThrow()
+
+        // A field-only save, carrying an entirely different (never-attached) photos list — save()
+        // must ignore it completely, not replace the real cross-references with it.
+        repository.save(entry.copy(notes = "field-only edit", photos = listOf(neverAttachedPhoto))).getOrThrow()
         val roundTripped = repository.getAll().getOrThrow().single()
 
-        assertEquals(listOf(LogPhoto(id = "p2", relativePath = "photos/p2.jpg")), roundTripped.photos)
+        assertEquals(listOf(attachedPhoto), roundTripped.photos)
     }
 
+    /**
+     * L1's reversal, at the Room level (see [com.forager.app.domain.DeleteMushroomLogEntryUseCase]'s
+     * own doc comment for the full history) — was "deleting an entry removes its photos too,
+     * leaving other entries' photos intact." Under gallery ownership a photo survives the deletion
+     * of any entry that referenced it, including — the many-to-many case one-to-many couldn't even
+     * represent — an entry that shared it with another entry still holding a reference.
+     */
     @Test
-    fun `deleting an entry removes its photos too, leaving other entries' photos intact`() = runTest {
+    fun `deleting an entry drops only its own photo references, including one shared with another entry`() = runTest {
+        val shared = LogPhoto(id = "shared-photo", relativePath = "photos/shared.jpg", createdAtEpochMillis = 1_000L)
+        val removedOnly = LogPhoto(id = "removed-only-photo", relativePath = "photos/removed-only.jpg", createdAtEpochMillis = 2_000L)
         val keep = MushroomLogEntry.draft(id = "keep", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
-            .copy(photos = listOf(LogPhoto(id = "keep-photo", relativePath = "photos/keep.jpg")))
         val remove = MushroomLogEntry.draft(id = "remove", location = LatLng(46.0, -123.0), date = LocalDate.of(2026, 8, 2))
-            .copy(photos = listOf(LogPhoto(id = "remove-photo", relativePath = "photos/remove.jpg")))
         repository.save(keep).getOrThrow()
         repository.save(remove).getOrThrow()
+        repository.addPhotoToGallery(shared).getOrThrow()
+        repository.addPhotoToGallery(removedOnly).getOrThrow()
+        repository.attachPhotoToEntry(keep.id, shared.id).getOrThrow()
+        repository.attachPhotoToEntry(remove.id, shared.id).getOrThrow()
+        repository.attachPhotoToEntry(remove.id, removedOnly.id).getOrThrow()
 
         repository.delete("remove").getOrThrow()
         val all = repository.getAll().getOrThrow()
 
-        assertEquals(listOf(keep), all)
+        assertEquals(listOf(keep.copy(photos = listOf(shared))), all)
+        // The gallery rows themselves — not just what's still referenced — survive the entry
+        // deletion; database is this test class's own field, the same real Room instance the
+        // repository sits on.
+        val remainingGalleryPhotoIds = database.mushroomLogDao().getAllPhotos().map { it.id }.toSet()
+        assertEquals(setOf(shared.id, removedOnly.id), remainingGalleryPhotoIds)
     }
 
     @Test
@@ -236,8 +278,8 @@ private fun fullyPopulatedEntry(): MushroomLogEntry = MushroomLogEntry(
     notes = "found after the first real rain of the season",
     ownIdentification = "possibly Amanita",
     photos = listOf(
-        LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg"),
-        LogPhoto(id = "photo-2", relativePath = "photos/photo-2.jpg"),
+        LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 3_000L),
+        LogPhoto(id = "photo-2", relativePath = "photos/photo-2.jpg", createdAtEpochMillis = 4_000L),
     ),
     syncState = LogSyncState.Draft,
 )
