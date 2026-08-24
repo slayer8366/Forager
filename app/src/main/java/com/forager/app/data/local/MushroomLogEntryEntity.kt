@@ -42,8 +42,9 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "mushroom_log_entries", indices = [Index("offlineRegionId")])
 data class MushroomLogEntryEntity(
     @PrimaryKey val id: String,
-    val lat: Double,
-    val lng: Double,
+    /** `null` together with [lng] exactly when [com.forager.app.domain.model.MushroomLogEntry.foundAt] is `null` — see that field's own doc comment. Nullable as of [MIGRATION_6_7]. */
+    val lat: Double?,
+    val lng: Double?,
     /** ISO-8601 (`yyyy-MM-dd`) — see [PlannedTripEntity.date]. */
     val foundOn: String,
     val entryNotes: String,

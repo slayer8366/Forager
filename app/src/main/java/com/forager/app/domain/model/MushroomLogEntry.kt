@@ -30,7 +30,14 @@ import java.time.LocalDate
  */
 data class MushroomLogEntry(
     val id: String,
-    val foundAt: LatLng,
+    /**
+     * `null` for an entry created with no location — L4 (`docs/plans/pr26-rework.md`'s Workstream
+     * L) routes entry creation to the entry page rather than through a location-placement step
+     * first, so an entry will routinely start without one. Nothing in this codebase constructs a
+     * location-less entry yet ([draft] still takes [LatLng] wherever a caller passes one); L3 only
+     * makes the type able to represent it.
+     */
+    val foundAt: LatLng?,
     val foundOn: LocalDate,
     val cap: CapSection,
     val hymenophore: HymenophoreSection,
@@ -46,8 +53,16 @@ data class MushroomLogEntry(
     val syncState: LogSyncState,
 ) {
     companion object {
-        /** A freshly-started entry at [location] on [date], with every section unrecorded. */
-        fun draft(id: String, location: LatLng, date: LocalDate): MushroomLogEntry = MushroomLogEntry(
+        /**
+         * A freshly-started entry at [location] on [date], with every section unrecorded.
+         *
+         * [location] is `LatLng?`, not defaulted — every call in this codebase today passes a
+         * concrete [LatLng] (nothing yet constructs a location-less entry; that's L4's job), so
+         * widening the parameter type alone required no call-site changes. No default value: a
+         * caller that wants `foundAt == null` says `location = null` explicitly rather than falling
+         * into it by omitting the argument.
+         */
+        fun draft(id: String, location: LatLng?, date: LocalDate): MushroomLogEntry = MushroomLogEntry(
             id = id,
             foundAt = location,
             foundOn = date,

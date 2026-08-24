@@ -72,6 +72,23 @@ class LogEntryListScreenTest {
         composeRule.onNodeWithText("No finds logged yet. Tap the add button on the map to log one.").assertIsDisplayed()
     }
 
+    /**
+     * L3 (`docs/plans/pr26-rework.md`'s Workstream L) makes [MushroomLogEntry.foundAt] nullable —
+     * this is the display side of that: a location-less entry shows the owner-decided "No location
+     * set." text (see [MushroomLogEntry.draft]'s own doc comment on why nothing yet constructs one
+     * this way in production; the test still needs to prove the render path itself is correct).
+     */
+    @Test
+    fun `an entry with no location shows the no-location text instead of coordinates`() {
+        val locationLessEntry = MushroomLogEntry.draft(id = "no-location-1", location = null, date = LocalDate.of(2026, 8, 1))
+
+        composeRule.setContent {
+            LogEntryListScreen(entries = listOf(locationLessEntry), isLoading = false, onOpenEntry = {})
+        }
+
+        composeRule.onNodeWithText("No location set.").assertIsDisplayed()
+    }
+
     @Test
     fun `a set loadErrorMessage does not hide entries already showing`() {
         composeRule.setContent {

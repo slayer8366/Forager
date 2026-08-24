@@ -43,7 +43,9 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.forager.app.R
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
@@ -99,7 +101,8 @@ internal fun LogEntryDetailScreen(
             verticalArrangement = Arrangement.spacedBy(LogSpacing.lg),
         ) {
             Text(
-                "Found at ${"%.4f".format(entry.foundAt.lat)}, ${"%.4f".format(entry.foundAt.lng)}",
+                entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
+                    ?: stringResource(R.string.log_entry_no_location),
                 style = MaterialTheme.typography.bodySmall,
             )
 

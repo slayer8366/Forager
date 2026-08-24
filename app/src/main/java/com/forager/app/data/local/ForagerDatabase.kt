@@ -50,6 +50,12 @@ import androidx.room.RoomDatabase
  * bump. [OfflineRegionEntity] and [OfflineRegionDao] were added to this codebase before this
  * version but never registered here, so `offline_regions` has never existed in a real install
  * until this bump.
+ *
+ * [version] 7 makes `mushroom_log_entries.lat`/`.lng` nullable via a real [MIGRATION_6_7] —
+ * Workstream L3 (`docs/plans/pr26-rework.md`): a log entry must be able to exist with no
+ * location, since L4 routes entry creation to the entry page rather than through a
+ * location-placement step first. Existing entries and their coordinates are not something a
+ * schema bump may drop, same reasoning as every hand-written migration above.
  */
 @Database(
     entities = [
@@ -62,7 +68,7 @@ import androidx.room.RoomDatabase
         WaypointEntity::class,
         OfflineRegionEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -83,6 +89,6 @@ abstract class ForagerDatabase : RoomDatabase() {
             context.applicationContext,
             ForagerDatabase::class.java,
             "forager.db",
-        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).fallbackToDestructiveMigration(true).build()
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).fallbackToDestructiveMigration(true).build()
     }
 }

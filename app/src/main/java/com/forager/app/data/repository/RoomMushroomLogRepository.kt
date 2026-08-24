@@ -130,8 +130,8 @@ private fun MushroomLogEntry.toEntity(): MushroomLogEntryEntity {
 
     return MushroomLogEntryEntity(
         id = id,
-        lat = foundAt.lat,
-        lng = foundAt.lng,
+        lat = foundAt?.lat,
+        lng = foundAt?.lng,
         foundOn = foundOn.toString(),
         entryNotes = notes,
         ownIdentification = ownIdentification,
@@ -252,7 +252,9 @@ private fun LogPhoto.toEntity(entryId: String) = LogPhotoEntity(id = id, entryId
 
 private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): MushroomLogEntry = MushroomLogEntry(
     id = id,
-    foundAt = LatLng(lat = lat, lng = lng),
+    // lat/lng are stored and read together — see MushroomLogEntryEntity.lat's own doc comment for
+    // why null is only ever a paired state, never one set without the other.
+    foundAt = if (lat != null && lng != null) LatLng(lat = lat, lng = lng) else null,
     foundOn = LocalDate.parse(foundOn),
     cap = CapSection(
         shape = capShape.toObservedEnum<CapShape>(),

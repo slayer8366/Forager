@@ -14,8 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.semantics.Role
+import com.forager.app.R
 import com.forager.app.domain.model.Feature
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Observed
@@ -101,7 +103,8 @@ private fun LogEntryRow(entry: MushroomLogEntry, onClick: () -> Unit) {
         Column {
             Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.bodyLarge)
             Text(
-                "${"%.4f".format(entry.foundAt.lat)}, ${"%.4f".format(entry.foundAt.lng)}",
+                entry.foundAt?.let { location -> "${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
+                    ?: stringResource(R.string.log_entry_no_location),
                 style = MaterialTheme.typography.bodySmall,
             )
             if (entry.hasUnrecordedFields()) {

@@ -113,6 +113,22 @@ class LogEntryReportScreenTest {
         composeRule.onAllNodesWithText("Not recorded yet.").assertCountEquals(4)
     }
 
+    /**
+     * L3 (`docs/plans/pr26-rework.md`'s Workstream L) makes [MushroomLogEntry.foundAt] nullable —
+     * this is the display side of that: a location-less entry shows the owner-decided "No location
+     * set." text rather than the "Found at ..." coordinate line.
+     */
+    @Test
+    fun `an entry with no location shows the no-location text instead of coordinates`() {
+        val locationLessEntry = MushroomLogEntry.draft(id = "no-location-1", location = null, date = LocalDate.of(2026, 8, 1))
+
+        composeRule.setContent {
+            LogEntryReportScreen(entry = locationLessEntry, onEdit = {}, onDeleteEntry = {}, onBack = {})
+        }
+
+        composeRule.onNodeWithText("No location set.").assertIsDisplayed()
+    }
+
     @Test
     fun `the overflow menu's Edit entry option calls onEdit`() {
         var editCalls = 0

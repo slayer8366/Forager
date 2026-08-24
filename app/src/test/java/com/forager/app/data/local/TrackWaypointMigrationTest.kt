@@ -84,7 +84,7 @@ class TrackWaypointMigrationTest {
         // fallbackToDestructiveMigration here, so if MIGRATION_4_5 is missing or wrong, this throws
         // rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .build()
 
         try {

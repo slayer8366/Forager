@@ -193,3 +193,112 @@ val MIGRATION_5_6: Migration = object : Migration(5, 6) {
         )
     }
 }
+
+/**
+ * Makes `mushroom_log_entries.lat`/`.lng` nullable — Workstream L3
+ * (`docs/plans/pr26-rework.md`), so a log entry can exist with no location at all. L4 routes entry
+ * creation to the entry page rather than through a location-placement step first, so an entry will
+ * routinely start without one; see [com.forager.app.domain.model.MushroomLogEntry.foundAt]'s own
+ * doc comment.
+ *
+ * SQLite has no `ALTER TABLE ... ALTER COLUMN`, so a `NOT NULL` constraint cannot be dropped in
+ * place — this uses the standard SQLite table-rebuild instead: create the new shape under a
+ * temporary name, copy every row across by explicit column list (never `SELECT *`, so a future
+ * column reorder can't silently misalign the copy), drop the old table, then rename. Every other
+ * column, and the [MushroomLogEntryEntity.offlineRegionId] index Workstream A added in
+ * [MIGRATION_5_6], must survive this rebuild unchanged — the index is dropped along with the old
+ * table (SQLite indices don't survive a table drop) and explicitly recreated on the new one below.
+ */
+val MIGRATION_6_7: Migration = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `mushroom_log_entries_new` (
+            `id` TEXT NOT NULL,
+            `lat` REAL,
+            `lng` REAL,
+            `foundOn` TEXT NOT NULL,
+            `entryNotes` TEXT NOT NULL,
+            `ownIdentification` TEXT,
+            `syncStateKind` TEXT NOT NULL,
+            `syncProgress` REAL,
+            `syncRemoteObservationId` TEXT,
+            `syncUploadedAtEpochMillis` INTEGER,
+            `syncFailureReason` TEXT,
+            `capShape` TEXT,
+            `capSurface` TEXT,
+            `capDecorationsState` TEXT NOT NULL,
+            `capDecorationsValue` TEXT,
+            `capMargin` TEXT,
+            `capNotes` TEXT NOT NULL,
+            `hymenophoreKind` TEXT,
+            `gillAttachment` TEXT,
+            `gillSpacing` TEXT,
+            `gillEdge` TEXT,
+            `hymenophoreNotes` TEXT NOT NULL,
+            `stipeKind` TEXT,
+            `stipePosition` TEXT,
+            `stipeInterior` TEXT,
+            `stipeBase` TEXT,
+            `stipeNotes` TEXT NOT NULL,
+            `annulusState` TEXT NOT NULL,
+            `annulusValue` TEXT,
+            `volvaState` TEXT NOT NULL,
+            `volvaValue` TEXT,
+            `veilNotes` TEXT NOT NULL,
+            `fleshTexture` TEXT,
+            `colorChangeState` TEXT NOT NULL,
+            `colorChangeValue` TEXT,
+            `exudateState` TEXT NOT NULL,
+            `exudateValue` TEXT,
+            `contextFleshNotes` TEXT NOT NULL,
+            `sporePrintColorKind` TEXT,
+            `sporePrintOtherText` TEXT,
+            `sporePrintReadOn` TEXT,
+            `sporePrintNotes` TEXT NOT NULL,
+            `associationKind` TEXT,
+            `associationHostSpecies` TEXT,
+            `associationOtherText` TEXT,
+            `forestType` TEXT,
+            `hostHealth` TEXT,
+            `hostSubstrateNotes` TEXT NOT NULL,
+            `offlineRegionId` INTEGER,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `mushroom_log_entries_new` (
+            `id`, `lat`, `lng`, `foundOn`, `entryNotes`, `ownIdentification`,
+            `syncStateKind`, `syncProgress`, `syncRemoteObservationId`, `syncUploadedAtEpochMillis`, `syncFailureReason`,
+            `capShape`, `capSurface`, `capDecorationsState`, `capDecorationsValue`, `capMargin`, `capNotes`,
+            `hymenophoreKind`, `gillAttachment`, `gillSpacing`, `gillEdge`, `hymenophoreNotes`,
+            `stipeKind`, `stipePosition`, `stipeInterior`, `stipeBase`, `stipeNotes`,
+            `annulusState`, `annulusValue`, `volvaState`, `volvaValue`, `veilNotes`,
+            `fleshTexture`, `colorChangeState`, `colorChangeValue`, `exudateState`, `exudateValue`, `contextFleshNotes`,
+            `sporePrintColorKind`, `sporePrintOtherText`, `sporePrintReadOn`, `sporePrintNotes`,
+            `associationKind`, `associationHostSpecies`, `associationOtherText`, `forestType`, `hostHealth`, `hostSubstrateNotes`,
+            `offlineRegionId`
+            )
+            SELECT
+            `id`, `lat`, `lng`, `foundOn`, `entryNotes`, `ownIdentification`,
+            `syncStateKind`, `syncProgress`, `syncRemoteObservationId`, `syncUploadedAtEpochMillis`, `syncFailureReason`,
+            `capShape`, `capSurface`, `capDecorationsState`, `capDecorationsValue`, `capMargin`, `capNotes`,
+            `hymenophoreKind`, `gillAttachment`, `gillSpacing`, `gillEdge`, `hymenophoreNotes`,
+            `stipeKind`, `stipePosition`, `stipeInterior`, `stipeBase`, `stipeNotes`,
+            `annulusState`, `annulusValue`, `volvaState`, `volvaValue`, `veilNotes`,
+            `fleshTexture`, `colorChangeState`, `colorChangeValue`, `exudateState`, `exudateValue`, `contextFleshNotes`,
+            `sporePrintColorKind`, `sporePrintOtherText`, `sporePrintReadOn`, `sporePrintNotes`,
+            `associationKind`, `associationHostSpecies`, `associationOtherText`, `forestType`, `hostHealth`, `hostSubstrateNotes`,
+            `offlineRegionId`
+            FROM `mushroom_log_entries`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `mushroom_log_entries`")
+        db.execSQL("ALTER TABLE `mushroom_log_entries_new` RENAME TO `mushroom_log_entries`")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_offlineRegionId` " +
+                "ON `mushroom_log_entries` (`offlineRegionId`)",
+        )
+    }
+}
