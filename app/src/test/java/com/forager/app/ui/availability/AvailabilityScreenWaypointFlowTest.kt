@@ -77,7 +77,7 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * The long-press-to-drop-a-waypoint flow end to end, and the drawer's Waypoints section — the
+ * The drop-a-waypoint flow end to end, and the drawer's Waypoints section — the
  * waypoint counterpart to [AvailabilityScreenTripPlanningFlowTest], same harness shape. Waypoint
  * state isn't owned by [AvailabilityViewModel] (see [com.forager.app.ui.track.TrackRecordingViewModel],
  * already covered by its own `TrackRecordingViewModelTest`), so this drives [AvailabilityScreen]'s
@@ -193,20 +193,28 @@ class AvailabilityScreenWaypointFlowTest {
         composeRule.waitForIdle()
     }
 
+    /** Opens the chooser, picks "Drop a waypoint", pans the stub map to [WAYPOINT_TEST_LOCATION], and confirms the centre-pin picker with OK. */
+    private fun openChooserPanAndConfirm() {
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.waitForIdle()
+    }
+
     @Test
-    fun `long-pressing the map and confirming a name drops a waypoint at that location`() {
+    fun `choosing Drop a waypoint, panning to a location, and confirming a name drops a waypoint at that location`() {
         setScreen()
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        openChooserPanAndConfirm()
         composeRule.onNodeWithText("Drop waypoint").assertIsDisplayed()
 
         composeRule.onNodeWithText("Drop waypoint").performClick()
         composeRule.waitForIdle()
 
         val (location, name) = droppedWaypoints.single()
-        assertEquals(WAYPOINT_LONG_PRESS_LOCATION, location)
+        assertEquals(WAYPOINT_TEST_LOCATION, location)
         // No waypoint existed before this one, so the name field's computed default is
         // "Waypoint 1" — see defaultWaypointName. Confirming without editing it proves that
         // default actually reaches the callback, not just the text field.
@@ -218,8 +226,7 @@ class AvailabilityScreenWaypointFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        openChooserPanAndConfirm()
         composeRule.onNodeWithText("Waypoint name").performTextReplacement("Trailhead")
         composeRule.onNodeWithText("Drop waypoint").performClick()
         composeRule.waitForIdle()
@@ -232,13 +239,11 @@ class AvailabilityScreenWaypointFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        openChooserPanAndConfirm()
         composeRule.onNodeWithText("Drop waypoint").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        openChooserPanAndConfirm()
         composeRule.onNodeWithText("Waypoint name").assertIsDisplayed()
         composeRule.onNodeWithText("Drop waypoint").performClick()
         composeRule.waitForIdle()
@@ -251,8 +256,7 @@ class AvailabilityScreenWaypointFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        openChooserPanAndConfirm()
         composeRule.onNodeWithText("Waypoint name").performTextReplacement("")
 
         composeRule.onNodeWithText("Drop waypoint").assertIsNotEnabled()
@@ -263,8 +267,7 @@ class AvailabilityScreenWaypointFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        openChooserPanAndConfirm()
         composeRule.onNodeWithText("Cancel").performClick()
         composeRule.waitForIdle()
 
@@ -278,7 +281,7 @@ class AvailabilityScreenWaypointFlowTest {
         composeRule.onNodeWithContentDescription("Search").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
-        composeRule.onNodeWithText("No waypoints dropped yet. Long-press the map to drop one.")
+        composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
             .assertIsDisplayed()
     }
 
@@ -334,7 +337,7 @@ class AvailabilityScreenWaypointFlowTest {
 
         composeRule.onNodeWithText("Couldn't load waypoints.").assertIsDisplayed()
         composeRule.onNodeWithText("Hidden Waypoint").assertDoesNotExist()
-        composeRule.onNodeWithText("No waypoints dropped yet. Long-press the map to drop one.").assertDoesNotExist()
+        composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.").assertDoesNotExist()
     }
 
     /** The absence side of the same branch: no error set, the list renders exactly as before this task. */
@@ -359,13 +362,13 @@ class AvailabilityScreenWaypointFlowTest {
     }
 }
 
-private val WAYPOINT_LONG_PRESS_LOCATION = LatLng(45.40, -122.70)
+private val WAYPOINT_TEST_LOCATION = LatLng(45.40, -122.70)
 
 /** Same shape as [AvailabilityScreenTripPlanningFlowTest]'s `TriggerableMapSlot` — see that file's own doc comment. */
-private val TriggerableWaypointMapSlot: MapSlot = { _, _, _, _, onLongPress, _, modifier ->
+private val TriggerableWaypointMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onLongPress(WAYPOINT_LONG_PRESS_LOCATION) }) {
-            Text("Simulate long press")
+        Button(onClick = { onCameraIdle(WAYPOINT_TEST_LOCATION) }) {
+            Text("Simulate pan to test location")
         }
     }
 }

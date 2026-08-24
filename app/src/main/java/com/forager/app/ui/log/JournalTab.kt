@@ -28,7 +28,7 @@ import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.Region
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.map.Basemap
-import com.forager.app.ui.map.MapOverlayContent
+import com.forager.app.ui.map.CentrePinLocationPicker
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 
@@ -46,9 +46,9 @@ import java.time.LocalDate
  * from the bottom nav instead of the drawer, so it owns no "back to search" affordance — there is no
  * drawer to return to, only another bottom nav tab to tap.
  *
- * [onStartEntry] is the exact same handler the map's long-press "Log a find" option calls (see
+ * [onStartEntry] is the exact same handler the map's "Log a find" option calls (see
  * `AvailabilityScreen.kt`'s `onLogFindHere`) — the location picker below hands it a point the same
- * shape a long-press would, rather than a parallel entry-creation path.
+ * shape that option would, rather than a parallel entry-creation path.
  */
 @Composable
 internal fun JournalTab(
@@ -159,15 +159,22 @@ internal fun JournalTab(
 private enum class JournalEntryMode { REPORT, EDIT }
 
 /**
- * A minimal map picker for the gallery's "+" tile — long-press to place a pin, then confirm, the
- * same long-press-to-point gesture [OfflineMapsPanel] in `AvailabilityScreen.kt` already uses for
- * picking a download region, reused here rather than a new gesture. No radius, no download: this
- * picks exactly one point and hands it straight to [onLocationConfirmed].
+ * A minimal map picker for the gallery's "+" tile — pan the map under the fixed centre pin, then
+ * confirm. Its own screen's worth of the same [CentrePinLocationPicker] idiom every location-placing
+ * site in this app uses now — see that composable's own class doc comment for why long-press (what
+ * this picker used before this rework) was replaced everywhere, not just here. No radius, no
+ * download: this picks exactly one point and hands it straight to [onLocationConfirmed].
+ *
+ * **L4 removes this composable entirely** (`docs/plans/pr26-rework.md`'s Workstream L) once the
+ * journal's "+" routes straight to the entry page instead of a dedicated location-placement screen
+ * — converted here, not deleted, so the app has no long-press left anywhere in the interim even
+ * though this screen's own days are numbered. Kept as its own named function rather than inlining
+ * [CentrePinLocationPicker] at the call site precisely so that removal has one obvious place to
+ * happen.
  *
  * [region] is the picker's opening viewport only, not a claim about where the entry belongs — it
  * starts centred on the current search region (or a fallback if none has been searched yet) purely
- * so there is a map to navigate before anything is placed; "Place entry here" stays disabled until
- * a real long-press sets a point, so that opening viewport can never itself be submitted.
+ * so there is a map to navigate before anything is placed.
  */
 @Composable
 internal fun LogEntryLocationPicker(
@@ -178,47 +185,12 @@ internal fun LogEntryLocationPicker(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var pickedLocation by remember(region) { mutableStateOf<LatLng?>(null) }
-
-    Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            "Long-press the map to place this entry.",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = LogSpacing.lg, vertical = LogSpacing.sm),
-        )
-
-        val mapRegion = pickedLocation?.let { region.copy(lat = it.lat, lng = it.lng) } ?: region
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            mapSlot(
-                mapRegion,
-                MapOverlayContent(),
-                basemap,
-                null,
-                { location -> pickedLocation = location },
-                {},
-                Modifier.fillMaxSize(),
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LogSpacing.lg, vertical = LogSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
-        ) {
-            Text(
-                pickedLocation?.let { "Selected: ${"%.4f".format(it.lat)}, ${"%.4f".format(it.lng)}" }
-                    ?: "No location picked yet — long-press the map above.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
-                Button(
-                    onClick = { pickedLocation?.let(onLocationConfirmed) },
-                    enabled = pickedLocation != null,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Place entry here") }
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
-            }
-        }
-    }
+    CentrePinLocationPicker(
+        mapSlot = mapSlot,
+        region = region,
+        basemap = basemap,
+        onConfirm = onLocationConfirmed,
+        onCancel = onCancel,
+        modifier = modifier,
+    )
 }

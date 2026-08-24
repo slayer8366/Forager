@@ -220,4 +220,4 @@ private val DISTRIBUTION = FruitingLagDistribution(
     totalResultsOnServer = 1847,
 )
 
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }

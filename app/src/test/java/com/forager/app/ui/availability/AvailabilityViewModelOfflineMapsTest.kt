@@ -211,7 +211,7 @@ class AvailabilityViewModelOfflineMapsTest {
         mapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
     )
 
-    /** Mirrors how [AvailabilityScreen]'s picker map now sets these — a long-press, not typing. */
+    /** Mirrors how [AvailabilityScreen]'s picker map now sets these — panning and confirming with OK, not typing. */
     private fun AvailabilityViewModel.pickReferenceRegion() {
         onOfflineMapLatChanged(REFERENCE_REGION.lat.toString())
         onOfflineMapLngChanged(REFERENCE_REGION.lng.toString())

@@ -96,6 +96,16 @@ typealias MapSlot = @Composable (
      * with nothing to plan.
      */
     onTap: () -> Unit,
+    /**
+     * Fires with the geographic point under the screen's centre every time the camera finishes
+     * moving (a pan, a fling settling, a programmatic jump) — the read side of [region]/
+     * [focusOverride]'s write-only camera control, added for [CentrePinLocationPicker]: a picker
+     * that keeps a marker fixed at screen centre while the map pans underneath it needs to know
+     * *where* centre currently points to answer "what did the user pick," which nothing before
+     * this parameter existed could report. `{}` by every caller that isn't tracking the camera —
+     * the same default-ignoring shape [onTap] already established.
+     */
+    onCameraIdle: (LatLng) -> Unit,
     modifier: Modifier,
 ) -> Unit
 
@@ -103,7 +113,7 @@ typealias MapSlot = @Composable (
  * The real map. This is the default every production call path gets, so introducing the seam
  * changed no caller: `MainActivity` passes nothing new.
  */
-val SightingsMapSlot: MapSlot = { region, content, basemap, focusOverride, onLongPress, onTap, modifier ->
+val SightingsMapSlot: MapSlot = { region, content, basemap, focusOverride, onLongPress, onTap, onCameraIdle, modifier ->
     SightingsMap(
         region = region,
         sightings = content.sightings,
@@ -113,6 +123,7 @@ val SightingsMapSlot: MapSlot = { region, content, basemap, focusOverride, onLon
         focusOverride = focusOverride,
         onLongPress = onLongPress,
         onTap = onTap,
+        onCameraIdle = onCameraIdle,
         breadcrumbPoints = content.breadcrumbPoints,
         waypoints = content.waypoints,
         resumeTrackingRequestId = content.resumeTrackingRequestId,

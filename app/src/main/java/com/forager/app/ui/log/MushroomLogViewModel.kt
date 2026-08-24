@@ -25,8 +25,8 @@ import kotlinx.coroutines.launch
  * into [com.forager.app.ui.availability.AvailabilityViewModel]: the log is reachable from the
  * drawer as its own destination (see `docs/plans/mushroom-log.md`'s Navigation section) and is
  * functionally independent of the availability search — the two never need to observe each other's
- * state, only [com.forager.app.MainActivity] wires them together (the map's long-press "log a find"
- * option calls into this ViewModel with a location the availability screen reported).
+ * state, only [com.forager.app.MainActivity] wires them together (the map's "Log a find" option
+ * calls into this ViewModel with a location the availability screen reported).
  *
  * ## Autosave, not an explicit save button
  *

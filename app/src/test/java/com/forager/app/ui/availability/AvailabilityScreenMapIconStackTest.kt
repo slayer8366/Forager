@@ -236,7 +236,7 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the add button opens the same plan-or-log chooser the long-press gesture opens, at the region center`() {
+    fun `the add button opens the same plan-or-log chooser the long-press gesture used to, then the centre-pin picker, seeded at the region center`() {
         var startedLogEntryAt: LatLng? = null
         setScreen(onStartLogEntry = { location, _ -> startedLogEntryAt = location })
         searchAReferenceRegion()
@@ -244,6 +244,10 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
         composeRule.onNodeWithText("Add...").assertIsDisplayed()
         composeRule.onNodeWithText("Log a find").performClick()
+        composeRule.waitForIdle()
+        // Choosing an action opens the centre-pin picker rather than firing immediately — the
+        // stub map never pans, so the pin stays at the seeded region center and OK confirms it.
+        composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
         assertEquals(LatLng(45.326, -122.634), startedLogEntryAt)
@@ -513,7 +517,7 @@ private object CountingStubMapSlotState {
     var compositionCount = 0
 }
 
-private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
     androidx.compose.runtime.remember { CountingStubMapSlotState.compositionCount++ }
     Column(modifier.testTag("map-slot")) {
         Text("map")
@@ -521,7 +525,7 @@ private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
 }
 
 /** Exposes [onTap] as a clickable surface, for the "tap the map to restore chrome" test. */
-private val TappableStubMapSlot: MapSlot = { _, _, _, _, _, onTap, modifier ->
+private val TappableStubMapSlot: MapSlot = { _, _, _, _, _, onTap, _, modifier ->
     Column(modifier.testTag("map-slot").clickable(onClick = onTap)) {
         Text("map")
     }

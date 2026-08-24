@@ -69,7 +69,7 @@ class LogEntryListScreenTest {
             LogEntryListScreen(entries = emptyList(), isLoading = false, onOpenEntry = {})
         }
 
-        composeRule.onNodeWithText("No finds logged yet. Long-press the map to log one.").assertIsDisplayed()
+        composeRule.onNodeWithText("No finds logged yet. Tap the add button on the map to log one.").assertIsDisplayed()
     }
 
     @Test

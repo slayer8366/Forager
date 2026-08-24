@@ -113,8 +113,8 @@ data class AvailabilityUiState(
     /**
      * The standalone region picker in the "Offline Maps" submenu — independent of [region], per
      * this project's own decision: a downloaded region has nothing to do with whatever's currently
-     * searched in the List/Map tabs. Set by long-pressing the picker map there (see
-     * `OfflineMapsPanel` in `AvailabilityScreen.kt`), not by typing — `String`, same representation
+     * searched in the List/Map tabs. Set by panning the picker map there to the centre pin and
+     * confirming with OK (see `OfflineMapsPanel` in `AvailabilityScreen.kt`), not by typing — `String`, same representation
      * [manualLatText]/[manualLngText] use, rather than a nullable `Double`, so "nothing picked yet"
      * and "picked" are both representable without a separate flag.
      */
@@ -151,7 +151,7 @@ data class AvailabilityUiState(
      */
     val offlineStaleThresholdDays: Int = DEFAULT_STALE_THRESHOLD_DAYS,
     /**
-     * The offline-region picker map's opening viewport before anything has been long-pressed —
+     * The offline-region picker map's opening viewport before a region has been picked —
      * restored from [com.forager.app.domain.MapPreferencesRepository.getLastPickedRegion] at
      * startup, then overridden by the device's current location every time the picker is opened
      * (see [AvailabilityViewModel.onOfflineMapsOpened][com.forager.app.ui.availability.AvailabilityViewModel.onOfflineMapsOpened]),

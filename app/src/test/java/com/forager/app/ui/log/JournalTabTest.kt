@@ -139,8 +139,8 @@ class JournalTabTest {
         setScreen(MushroomLogUiState())
 
         composeRule.onNodeWithContentDescription("New log entry").performClick()
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Place entry here").performClick()
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
 
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
@@ -204,8 +204,8 @@ class JournalTabTest {
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)
 
-private val StubPickerMapSlot: MapSlot = { _, _, _, _, onLongPress, _, modifier ->
+private val StubPickerMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("picker-map")) {
-        Button(onClick = { onLongPress(PICKED_LOCATION) }) { Text("Simulate long press") }
+        Button(onClick = { onCameraIdle(PICKED_LOCATION) }) { Text("Simulate pan to test location") }
     }
 }

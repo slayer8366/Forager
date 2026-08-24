@@ -277,8 +277,8 @@ class AvailabilityScreenBackNavigationTest {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Place entry here").performClick()
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
         pressBack()
@@ -319,9 +319,9 @@ class AvailabilityScreenBackNavigationTest {
     }
 }
 
-private val BackNavStubMapSlot: MapSlot = { _, _, _, _, onLongPress, _, modifier ->
+private val BackNavStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onLongPress(LatLng(45.326, -122.634)) }) { Text("Simulate long press") }
+        Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
     }
 }
 

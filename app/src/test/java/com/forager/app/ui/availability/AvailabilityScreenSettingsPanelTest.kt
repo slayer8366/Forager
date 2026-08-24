@@ -58,8 +58,9 @@ import org.robolectric.annotation.Config
  * 3. The "Offline Maps" submenu: reachable regardless of the selected [com.forager.app.ui.map.MapService]
  *    (offline downloads always target USGS internally, so nothing about reaching the submenu depends
  *    on the live service selection — see `com.forager.app.domain.OfflineMapRepository`'s doc comment),
- *    its navigation (entry row in → back arrow out), and picking a region by long-pressing its map
- *    instead of typing coordinates.
+ *    its navigation (entry row in → back arrow out), and picking a region by panning its
+ *    [com.forager.app.ui.map.CentrePinLocationPicker] map and confirming with OK, instead of typing
+ *    coordinates.
  *
  * The map is stubbed, same reasoning as [AvailabilityScreenLayoutTest]: composing the real one
  * starts osmdroid. [CapturingMapSlot] backs *both* the main Map tab's map and the Offline Maps
@@ -92,11 +93,11 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedOfflinePickerBasemap: Basemap? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
-    private val CapturingMapSlot: MapSlot = { _, content, basemap, _, onLongPress, _, modifier ->
+    private val CapturingMapSlot: MapSlot = { _, content, basemap, _, _, _, onCameraIdle, modifier ->
         if (content.sightings.isEmpty() && content.areas.isEmpty() && content.plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
-                Button(onClick = { onLongPress(PICKED_LOCATION) }) { Text("Simulate region pick") }
+                Button(onClick = { onCameraIdle(PICKED_LOCATION) }) { Text("Simulate pan to test location") }
             }
         } else {
             capturedBasemap = basemap
@@ -138,10 +139,11 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     /**
-     * Unlike [setScreen], wires the offline-map callbacks to real local state so a long-press on
-     * the picker map (see [CapturingMapSlot]) actually round-trips into [AvailabilityUiState] the
-     * same way [AvailabilityViewModel]'s real `onOfflineMapLatChanged`/`onOfflineMapLngChanged` do —
-     * needed for the "long-press sets the region" test, which otherwise has nothing to observe.
+     * Unlike [setScreen], wires the offline-map callbacks to real local state so panning and
+     * confirming the picker map (see [CapturingMapSlot]) actually round-trips into
+     * [AvailabilityUiState] the same way [AvailabilityViewModel]'s real
+     * `onOfflineMapLatChanged`/`onOfflineMapLngChanged` do — needed for the "picking a region sets
+     * it" test, which otherwise has nothing to observe.
      */
     private fun setScreenWithOfflineMapsState(initial: AvailabilityUiState = SEARCHED_STATE) {
         composeRule.setContent {
@@ -328,16 +330,17 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `long-pressing the picker map sets the region and enables Download Maps`() {
+    fun `panning the picker map and confirming with OK sets the region and enables Download Maps`() {
         setScreenWithOfflineMapsState()
         openOfflineMaps()
         composeRule.onNodeWithText("Download Maps").assertIsNotEnabled()
 
-        composeRule.onNodeWithText("Simulate region pick").performClick()
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText(
-            "Selected: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
+            "Download region: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Download Maps").assertIsEnabled()
     }

@@ -520,7 +520,7 @@ class AvailabilityViewModel(
         }
     }
 
-    /** Called from the map's long-press flow once a date and name are confirmed; see [com.forager.app.ui.map.SightingsMap]. */
+    /** Called from the trip-planning flow once a date and name are confirmed for a pin placed via [com.forager.app.ui.map.CentrePinLocationPicker]. */
     fun onPlaceTripPin(location: LatLng, date: LocalDate, name: String) {
         viewModelScope.launch {
             savePlannedTrip(location, date, name).fold(

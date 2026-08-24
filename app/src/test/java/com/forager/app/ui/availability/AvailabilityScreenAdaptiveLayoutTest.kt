@@ -4,6 +4,9 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
@@ -29,6 +32,7 @@ import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -181,7 +185,11 @@ class AvailabilityScreenWideWindowLayoutTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private fun setScreen(uiState: AvailabilityUiState) {
+    private fun setScreen(
+        uiState: AvailabilityUiState,
+        onPlaceTripPin: (LatLng, LocalDate, String) -> Unit = { _, _, _ -> },
+        mapSlot: MapSlot = StubMapSlot,
+    ) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
@@ -199,7 +207,7 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
                 onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
+                onPlaceTripPin = onPlaceTripPin,
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
                 onOfflineMapLatChanged = {},
@@ -209,7 +217,7 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                mapSlot = StubMapSlot,
+                mapSlot = mapSlot,
             )
         }
     }
@@ -246,6 +254,51 @@ class AvailabilityScreenWideWindowLayoutTest {
      * the actual capped column rather than trusting the constant alone — a regression here would
      * be the cap silently not applying, not just the number changing.
      */
+    /**
+     * `MapTab` (medium/expanded, shared for both window classes — see this class's own doc
+     * comment) has no icon stack for a tile to grow out of, so its own add button (added alongside
+     * this rework — see `MapTab`'s doc comment in `AvailabilityScreen.kt`) opens
+     * [ThreeWayActionDialog] rather than [AddActionTile]'s corner-anchored tile, unlike the compact
+     * layout's icon stack — see `AvailabilityScreenMapIconStackTest`'s equivalent for that layout.
+     */
+    @Test
+    fun `the add button opens the three-way chooser on the medium and expanded layout too`() {
+        setScreen(SEARCHED_STATE)
+
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+
+        composeRule.onNodeWithText("What would you like to do here?").assertIsDisplayed()
+        composeRule.onNodeWithText("Plan a trip").assertIsDisplayed()
+        composeRule.onNodeWithText("Log a find").assertIsDisplayed()
+        composeRule.onNodeWithText("Drop a waypoint").assertIsDisplayed()
+    }
+
+    /**
+     * `MapTab`'s own coordinate path end to end: the add button opens [ThreeWayActionDialog],
+     * choosing "Plan a trip" opens [com.forager.app.ui.map.CentrePinLocationPickerOverlay], a real
+     * pan reported by [MapSlot.onCameraIdle] moves the pin, OK confirms it, and the real
+     * [androidx.compose.material3.DatePickerDialog] confirmation hands that exact coordinate to
+     * [onPlaceTripPin] — the medium/expanded counterpart to
+     * [AvailabilityScreenTripPlanningFlowTest]'s compact-layout version of the same round trip.
+     */
+    @Test
+    fun `MapTab's add button carries a panned location all the way to onPlaceTripPin`() {
+        var placedAt: LatLng? = null
+        setScreen(
+            SEARCHED_STATE,
+            onPlaceTripPin = { location, _, _ -> placedAt = location },
+            mapSlot = TriggerableWideStubMapSlot,
+        )
+
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.onNodeWithText("Plan a trip").performClick()
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.onNodeWithText("Plan trip").performClick()
+
+        assertEquals(WIDE_WINDOW_TEST_LOCATION, placedAt)
+    }
+
     @Test
     fun `the seasonal tab's content is capped to a readable width, not stretched to the window`() {
         setScreen(SEARCHED_STATE.copy(seasonalPattern = DISTRIBUTION))
@@ -317,6 +370,17 @@ private val DISTRIBUTION = FruitingLagDistribution(
 )
 
 /** Same stub as [AvailabilityScreenLayoutTest]'s — see that file for why the real map isn't used here. */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag("map-slot"))
+}
+
+private val WIDE_WINDOW_TEST_LOCATION = LatLng(45.40, -122.70)
+
+/** Exposes [MapSlot.onCameraIdle] as a button — same pattern [AvailabilityScreenTripPlanningFlowTest]'s `TriggerableMapSlot` uses. */
+private val TriggerableWideStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+    Column(modifier.testTag("map-slot")) {
+        Button(onClick = { onCameraIdle(WIDE_WINDOW_TEST_LOCATION) }) {
+            Text("Simulate pan to test location")
+        }
+    }
 }

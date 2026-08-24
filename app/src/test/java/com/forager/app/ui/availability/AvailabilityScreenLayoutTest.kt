@@ -629,6 +629,6 @@ abstract class AvailabilityScreenLayoutTest {
  * which would render anything measurable under Robolectric anyway. This fills the same box and
  * carries a tag, so the box itself can be measured.
  */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag(MAP_SLOT_TAG))
 }

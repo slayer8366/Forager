@@ -81,7 +81,7 @@ internal fun LogEntryListScreen(
         )
 
         else -> Text(
-            "No finds logged yet. Long-press the map to log one.",
+            "No finds logged yet. Tap the add button on the map to log one.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = modifier.fillMaxWidth().padding(LogSpacing.lg),
         )
