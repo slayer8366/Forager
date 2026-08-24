@@ -39,9 +39,11 @@ import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
+import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.MushroomRepository
-import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -138,6 +140,7 @@ class AvailabilityScreenBackNavigationTest {
                 ComputeFruitingLagDistributionUseCase(),
             ),
             offlineMapRepository = BackNavStubOfflineMapRepository,
+            mapPreferencesRepository = BackNavStubMapPreferencesRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -164,8 +167,10 @@ class AvailabilityScreenBackNavigationTest {
                 onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                 onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                 onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 logUiState = logState,
                 onStartLogEntry = { location, date ->
                     logState = logState.copy(
@@ -372,9 +377,16 @@ private class BackNavInMemoryPlannedTripRepository : PlannedTripRepository {
 }
 
 private object BackNavStubOfflineMapRepository : OfflineMapRepository {
-    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+    override suspend fun download(name: String, region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineRegionSummary> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
-    override suspend fun delete(): Result<Unit> =
+    override suspend fun deleteRegion(id: Long): Result<Unit> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
-    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
+    override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
+}
+
+private object BackNavStubMapPreferencesRepository : MapPreferencesRepository {
+    override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(null)
+    override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
+    override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
+    override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
 }

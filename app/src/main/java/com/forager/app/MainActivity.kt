@@ -58,6 +58,7 @@ class MainActivity : ComponentActivity() {
                     container.getSeasonalPatternUseCase,
                     container.offlineMapRepository,
                     androidErrorLog,
+                    container.mapPreferencesRepository,
                 )
             }
         }
@@ -242,8 +243,10 @@ class MainActivity : ComponentActivity() {
                     onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                     onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                     onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                    onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,

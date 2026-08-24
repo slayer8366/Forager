@@ -19,11 +19,12 @@ import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.LocationTracker
-import com.forager.app.domain.OfflineMapInfo
+import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
@@ -67,6 +68,7 @@ class AvailabilityViewModel(
      * `Log.w`-backed one for production.
      */
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
+    private val mapPreferencesRepository: MapPreferencesRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -87,7 +89,8 @@ class AvailabilityViewModel(
         // connection gets back to a result at all, so it has to be populated before the first
         // search rather than as a side effect of one.
         loadRecentSearches()
-        loadOfflineMapStatus()
+        loadOfflineRegions()
+        loadOfflineMapPreferences()
         // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
         // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
         // recording: "any time the map is open" was the explicit ask this answers. A denied/
@@ -558,36 +561,124 @@ class AvailabilityViewModel(
         _uiState.update { it.copy(offlineMapRadiusKm = Region.clampRadiusKm(radiusKm)) }
     }
 
+    fun onOfflineMapNameChanged(text: String) {
+        _uiState.update { it.copy(offlineMapNameText = text) }
+    }
+
     /**
-     * Reads whatever's on disk right now, once at startup — same reasoning as [loadPlannedTrips]:
-     * a downloaded region has nothing to do with the region search, so it isn't gated behind one.
-     * A read failure (e.g. a corrupt sidecar file) is reported through the same [OfflineMapStatus]
-     * channel Download/Delete use, rather than silently defaulting to "nothing downloaded" — CLAUDE.md:
-     * a failure is reported, not swallowed into a plausible-looking default.
+     * Called every time the "Offline Maps" submenu is opened. Two things happen:
+     *
+     * 1. Always tries the device's current location as the picker's opening default, overriding
+     *    whatever centre was showing before (including a centre [loadOfflineMapPreferences]
+     *    restored from a prior pick). The project owner's own call, after using the
+     *    last-picked-centre default the design doc originally specified: opening the picker away
+     *    from home is more common than opening it away from wherever was last downloaded, so "near
+     *    me" should win on every open, not just the first. A denial or unavailable fix leaves
+     *    whatever centre was already showing in place rather than clearing a good default just
+     *    because this particular fetch failed.
+     *
+     * 2. Re-reads [OfflineMapRepository.listRegions] rather than trusting whatever
+     *    [loadOfflineRegions] loaded once at ViewModel construction. Hardware testing found the
+     *    list could come up empty right after a cold start with many regions already on disk
+     *    (survived the restart), consistent with `OfflineManager`'s native store still finishing
+     *    its own initialization at construction time. Re-reading on open is good practice
+     *    regardless: this screen should show current state whenever it's opened.
+     *
+     * Both calls are safe unconditionally: [LocationProvider.getCurrentLocation] only checks
+     * whether permission is already granted, never triggering the OS permission dialog itself, and
+     * a `listRegions` re-read has no side effect beyond what [loadOfflineRegions] already does on
+     * every call.
      */
-    private fun loadOfflineMapStatus() {
+    fun onOfflineMapsOpened() {
         viewModelScope.launch {
-            offlineMapRepository.getStatus().fold(
-                onSuccess = { info ->
-                    _uiState.update {
-                        it.copy(offlineMapStatus = info?.toUiStatus() ?: OfflineMapStatus.NotDownloaded)
-                    }
-                },
+            val result = locationProvider.getCurrentLocation()
+            if (result is LocationResult.Success) {
+                _uiState.update { it.copy(offlineMapPickerDefaultCenter = LatLng(result.lat, result.lng)) }
+            }
+        }
+        loadOfflineRegions()
+    }
+
+    /**
+     * Reads every region currently on disk — once at startup, and again every time
+     * [onOfflineMapsOpened] fires. Same reasoning as [loadPlannedTrips] for the startup call:
+     * downloaded regions have nothing to do with the region search, so this isn't gated behind one.
+     *
+     * A read failure (e.g. a corrupt metadata blob) is reported via
+     * [AvailabilityUiState.offlineRegionsErrorMessage] — but per the error-presentation spec's
+     * belief-changing rule, this is a region-*list-load* failure, not a download failure: the user
+     * isn't in the middle of an action here, they just want to see what's already on disk, so this
+     * renders as an absorbed, neutral read-failure the same way [conditionsErrorMessage]/
+     * [plannedTripsErrorMessage] do, not with the error-red treatment [onDownloadOfflineMaps]'s
+     * failure gets. The prior list is kept on a failed refresh rather than cleared, so a transient
+     * read error doesn't make regions that are still on disk disappear.
+     */
+    private fun loadOfflineRegions() {
+        viewModelScope.launch {
+            offlineMapRepository.listRegions().fold(
+                onSuccess = { regions -> _uiState.update { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = null) } },
                 onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't read offline map status.", error)
-                    _uiState.update {
-                        it.copy(offlineMapStatus = OfflineMapStatus.Failed("Couldn't read offline map status."))
-                    }
+                    errorLog.w(TAG, "Couldn't read offline regions.", error)
+                    _uiState.update { it.copy(offlineRegionsErrorMessage = "Couldn't read offline regions.") }
                 },
             )
         }
     }
 
     /**
-     * Always downloads USGS Topo — see [com.forager.app.domain.OfflineMapRepository]'s doc comment
-     * for why this no longer takes a style parameter. It used to be resolved from whichever mode
-     * the quick-fire map icon was showing; the project owner's own call, after seeing that built,
-     * was that offline downloads should just always target USGS regardless of that live toggle.
+     * Restores the picker's remembered radius and the staleness badge threshold from
+     * [MapPreferencesRepository] — both remembered user intent rather than derived state. The
+     * restored centre only matters as a fallback now: [onOfflineMapsOpened] overrides it with the
+     * device's current location on every open when that succeeds — this is what the picker shows
+     * before that ever runs, or if a later location fetch fails.
+     *
+     * A read failure here leaves the built-in fallbacks in place
+     * ([AvailabilityUiState.offlineMapPickerDefaultCenter] stays `null`,
+     * [AvailabilityUiState.offlineStaleThresholdDays] stays [com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS])
+     * rather than blocking the picker on a preferences read that isn't essential to using it — this
+     * is deliberately not surfaced to [AvailabilityUiState] at all, since there is no belief for the
+     * user to hold about a preference they never see; the throwable is still logged, not silently
+     * discarded, per CLAUDE.md.
+     */
+    private fun loadOfflineMapPreferences() {
+        viewModelScope.launch {
+            mapPreferencesRepository.getLastPickedRegion().fold(
+                onSuccess = { region ->
+                    if (region != null) {
+                        _uiState.update {
+                            it.copy(
+                                offlineMapPickerDefaultCenter = LatLng(region.lat, region.lng),
+                                offlineMapRadiusKm = region.radiusKm,
+                            )
+                        }
+                    }
+                },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the last-picked offline region.", error) },
+            )
+            mapPreferencesRepository.getStaleThresholdDays().fold(
+                onSuccess = { days -> _uiState.update { it.copy(offlineStaleThresholdDays = days) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the offline staleness threshold.", error) },
+            )
+        }
+    }
+
+    /**
+     * Adds a region to whatever's already downloaded — see
+     * [com.forager.app.domain.OfflineMapRepository]'s doc comment for why this no longer replaces a
+     * prior download. A blank name defaults to "Region N" rather than blocking the download, the
+     * same "default rather than require" pattern [com.forager.app.domain.model.PlannedTrip.name]
+     * established for planned trips.
+     *
+     * Refuses before ever calling [offlineMapRepository] if [estimateOfflineTileCount] projects
+     * this region would push the total over [OfflineMapRepository.TILE_COUNT_LIMIT] — see that
+     * constant's doc comment for why this app-side check exists at all: MapLibre's own
+     * `setOfflineMapboxTileCountLimit` does not actually stop an explicit region download from
+     * exceeding it, confirmed on hardware (three regions totalling 9118 tiles downloaded against a
+     * "limit" of 6000). This is the real enforcement.
+     *
+     * A download failure is belief-changing — the user just tapped Download and is owed a yes or
+     * no — so it's reported through [AvailabilityUiState.offlineDownloadStatus] with the error-red
+     * treatment, unlike [loadOfflineRegions]'s neutral read-failure.
      */
     fun onDownloadOfflineMaps() {
         val state = _uiState.value
@@ -596,7 +687,7 @@ class AvailabilityViewModel(
         if (lat == null || lat !in -90.0..90.0 || lng == null || lng !in -180.0..180.0) {
             _uiState.update {
                 it.copy(
-                    offlineMapStatus = OfflineMapStatus.Failed(
+                    offlineDownloadStatus = OfflineMapStatus.Failed(
                         "Enter a valid latitude (-90 to 90) and longitude (-180 to 180).",
                     ),
                 )
@@ -604,31 +695,65 @@ class AvailabilityViewModel(
             return
         }
         val region = Region(lat, lng, state.offlineMapRadiusKm)
+        val name = state.offlineMapNameText.trim().ifBlank { "Region ${state.offlineRegions.size + 1}" }
 
-        _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
+        val tilesAlreadyUsed = state.offlineRegions.sumOf { it.tileCount }
+        val estimatedTiles = estimateOfflineTileCount(region, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM)
+        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - tilesAlreadyUsed
+        if (estimatedTiles > remainingBudget) {
+            _uiState.update {
+                it.copy(
+                    offlineDownloadStatus = OfflineMapStatus.Failed(
+                        "This region needs about $estimatedTiles tiles, but only $remainingBudget remain in your " +
+                            "${OfflineMapRepository.TILE_COUNT_LIMIT}-tile budget. Delete a region or pick a smaller radius.",
+                    ),
+                )
+            }
+            return
+        }
+
+        _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
         viewModelScope.launch {
-            offlineMapRepository.download(region) { downloaded, total ->
-                _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.Downloading(downloaded, total)) }
+            offlineMapRepository.download(name, region) { downloaded, total ->
+                _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
             }.fold(
-                onSuccess = { info -> _uiState.update { it.copy(offlineMapStatus = info.toUiStatus()) } },
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(
+                            offlineDownloadStatus = OfflineMapStatus.Succeeded,
+                            offlineMapLatText = "",
+                            offlineMapLngText = "",
+                            offlineMapNameText = "",
+                        )
+                    }
+                    loadOfflineRegions()
+                    viewModelScope.launch { mapPreferencesRepository.setLastPickedRegion(region) }
+                },
                 onFailure = { error ->
                     errorLog.w(TAG, "Couldn't download offline maps.", error)
                     _uiState.update {
-                        it.copy(offlineMapStatus = OfflineMapStatus.Failed("Couldn't download offline maps."))
+                        it.copy(offlineDownloadStatus = OfflineMapStatus.Failed("Couldn't download offline maps."))
                     }
                 },
             )
         }
     }
 
-    fun onDeleteOfflineMaps() {
+    /**
+     * Per-region delete, replacing the old all-or-nothing delete. A failure here is reported
+     * through the same neutral, non-belief-changing channel [loadOfflineRegions] uses
+     * ([AvailabilityUiState.offlineRegionsErrorMessage]), not [AvailabilityUiState.offlineDownloadStatus]
+     * — deletion isn't a download, and the region simply staying in the list on failure already
+     * shows the delete didn't take effect, the same signal a stale list already carries.
+     */
+    fun onDeleteOfflineRegion(id: Long) {
         viewModelScope.launch {
-            offlineMapRepository.delete().fold(
-                onSuccess = { _uiState.update { it.copy(offlineMapStatus = OfflineMapStatus.NotDownloaded) } },
+            offlineMapRepository.deleteRegion(id).fold(
+                onSuccess = { loadOfflineRegions() },
                 onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't delete offline maps.", error)
+                    errorLog.w(TAG, "Couldn't delete that region.", error)
                     _uiState.update {
-                        it.copy(offlineMapStatus = OfflineMapStatus.Failed("Couldn't delete offline maps."))
+                        it.copy(offlineRegionsErrorMessage = "Couldn't delete that region.")
                     }
                 },
             )
@@ -640,10 +765,3 @@ class AvailabilityViewModel(
         const val TAG = "AvailabilityViewModel"
     }
 }
-
-private fun OfflineMapInfo.toUiStatus() = OfflineMapStatus.Downloaded(
-    region = region,
-    tileCount = tileCount,
-    sizeBytes = sizeBytes,
-    downloadedAtEpochMillis = downloadedAtEpochMillis,
-)

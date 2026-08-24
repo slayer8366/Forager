@@ -27,6 +27,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
+import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
@@ -125,8 +127,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -163,8 +167,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapLatChanged = { text -> current = current.copy(offlineMapLatText = text) },
                 onOfflineMapLngChanged = { text -> current = current.copy(offlineMapLngText = text) },
                 onOfflineMapRadiusChanged = { radius -> current = current.copy(offlineMapRadiusKm = radius) },
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -345,17 +351,29 @@ class AvailabilityScreenSettingsPanelTest {
      * live-fetched-at-download-time distinction `docs/plans/forager-navigator-plan.md`'s Phase 1c
      * item asks this submenu to surface, per the project owner's own call to extend this existing
      * panel rather than build a separate live-position readiness check (deferred).
+     *
+     * This text moved with Workstream B from the picker's own transient download status (main's
+     * single-region `OfflineMapStatusContent`) to each region's own row in `OfflineRegionsSection` —
+     * see that composable's doc comment for why: [OfflineMapStatus.Succeeded] is a bare marker with
+     * no region data left to attach the text to, once a region can no longer replace whatever was
+     * downloaded before it.
      */
     @Test
     fun `a downloaded region states it is ready to zoom 15, with the z14-archive vs z15-live distinction`() {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = SEARCHED_STATE.copy(
-                    offlineMapStatus = OfflineMapStatus.Downloaded(
-                        region = REGION,
-                        tileCount = 4200,
-                        sizeBytes = 18_500_000L,
-                        downloadedAtEpochMillis = 0L,
+                    offlineRegions = listOf(
+                        OfflineRegionSummary(
+                            id = 1L,
+                            name = "Chanterelle Ridge",
+                            region = REGION,
+                            minZoom = OfflineMapRepository.MIN_ZOOM,
+                            maxZoom = OfflineMapRepository.MAX_ZOOM,
+                            tileCount = 4200,
+                            sizeBytes = 18_500_000L,
+                            createdAtEpochMillis = 0L,
+                        ),
                     ),
                 ),
                 onUseCurrentLocation = {},
@@ -378,8 +396,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = CapturingMapSlot,
             )
         }

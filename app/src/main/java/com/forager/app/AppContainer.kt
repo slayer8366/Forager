@@ -6,6 +6,7 @@ import com.forager.app.data.local.ForagerDatabase
 import com.forager.app.data.remote.INaturalistClient
 import com.forager.app.data.remote.OpenMeteoArchiveClient
 import com.forager.app.data.remote.OpenMeteoClient
+import com.forager.app.data.repository.DataStoreMapPreferencesRepository
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.data.repository.OpenMeteoHistoricalWeatherProvider
 import com.forager.app.data.repository.OpenMeteoWeatherProvider
@@ -43,6 +44,7 @@ import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.MushroomLogRepository
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapRepository
@@ -125,7 +127,8 @@ class AppContainer(context: Context) {
     val getAvailabilityUseCase = GetAvailabilityUseCase(predictAvailabilityUseCase, searchCacheRepository)
     val getRecentSearchesUseCase = GetRecentSearchesUseCase(searchCacheRepository)
 
-    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context)
+    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
+    val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
 
     val photoStore: PhotoStore = FilePhotoStore(context)
     val cameraCaptureFiles = CameraCaptureFiles(context)

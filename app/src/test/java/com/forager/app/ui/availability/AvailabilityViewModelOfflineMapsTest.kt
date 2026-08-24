@@ -3,6 +3,7 @@ package com.forager.app.ui.availability
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
+import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -17,9 +18,10 @@ import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.MushroomRepository
-import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -72,11 +74,15 @@ import org.junit.Test
  */
 private val REFERENCE_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
-private val REFERENCE_INFO = OfflineMapInfo(
+private val REFERENCE_REGION_SUMMARY = OfflineRegionSummary(
+    id = 1L,
+    name = "Chanterelle Ridge",
     region = REFERENCE_REGION,
+    minZoom = OfflineMapRepository.MIN_ZOOM,
+    maxZoom = OfflineMapRepository.MAX_ZOOM,
     tileCount = 234,
     sizeBytes = 4_200_000L,
-    downloadedAtEpochMillis = 1_755_000_000_000L,
+    createdAtEpochMillis = 1_755_000_000_000L,
 )
 
 private object OfflineMapsNoOpLocationTracker : LocationTracker {
@@ -119,34 +125,56 @@ private object OfflineMapsStubPlannedTripRepository : PlannedTripRepository {
         Result.failure(UnsupportedOperationException("planned trips not exercised by this test"))
 }
 
+/** Always Idle/absent — this ViewModel's own preferences-load failure path is log-only (see [AvailabilityViewModel.loadOfflineMapPreferences]), nothing here exercises it. */
+private object OfflineMapsStubMapPreferencesRepository : MapPreferencesRepository {
+    override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(null)
+    override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
+    override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
+    override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
+}
+
 /**
- * Fully controlled by each test: [statusResult] answers `getStatus()` (called once on every
- * ViewModel init), [downloadResult] and [progressSteps] answer `download()`, [deleteResult]
- * answers `delete()`. [downloadCalled] proves invalid input never reaches the repository at all.
+ * Fully controlled by each test: [listRegionsResult] answers `listRegions()` (called once on every
+ * ViewModel init, and again after every successful download/delete), [downloadResult] and
+ * [progressSteps] answer `download()`, [deleteRegionResult] answers `deleteRegion()`.
+ * [downloadCalled] proves invalid input never reaches the repository at all. A successful
+ * `download()`/`deleteRegion()` updates [listRegionsResult] itself, mirroring how the real
+ * Room-backed implementation makes a completed write immediately visible to the next read.
  */
 private class RecordingOfflineMapRepository(
-    var statusResult: Result<OfflineMapInfo?> = Result.success(null),
+    var listRegionsResult: Result<List<OfflineRegionSummary>> = Result.success(emptyList()),
 ) : OfflineMapRepository {
-    var downloadResult: Result<OfflineMapInfo> = Result.failure(IllegalStateException("downloadResult not configured"))
+    var downloadResult: Result<OfflineRegionSummary> = Result.failure(IllegalStateException("downloadResult not configured"))
     var progressSteps: List<Pair<Int, Int>> = emptyList()
-    var deleteResult: Result<Unit> = Result.success(Unit)
+    var deleteRegionResult: Result<Unit> = Result.success(Unit)
 
     var downloadCalled = false
+    var lastName: String? = null
     var lastRegion: Region? = null
+    var lastDeletedId: Long? = null
 
     override suspend fun download(
+        name: String,
         region: Region,
         onProgress: (downloaded: Int, total: Int) -> Unit,
-    ): Result<OfflineMapInfo> {
+    ): Result<OfflineRegionSummary> {
         downloadCalled = true
+        lastName = name
         lastRegion = region
         progressSteps.forEach { (downloaded, total) -> onProgress(downloaded, total) }
+        downloadResult.onSuccess { summary -> listRegionsResult = Result.success((listRegionsResult.getOrNull().orEmpty()) + summary) }
         return downloadResult
     }
 
-    override suspend fun delete(): Result<Unit> = deleteResult
+    override suspend fun deleteRegion(id: Long): Result<Unit> {
+        lastDeletedId = id
+        deleteRegionResult.onSuccess {
+            listRegionsResult = Result.success(listRegionsResult.getOrNull().orEmpty().filterNot { it.id == id })
+        }
+        return deleteRegionResult
+    }
 
-    override suspend fun getStatus(): Result<OfflineMapInfo?> = statusResult
+    override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = listRegionsResult
 }
 
 class AvailabilityViewModelOfflineMapsTest {
@@ -180,6 +208,7 @@ class AvailabilityViewModelOfflineMapsTest {
             ComputeFruitingLagDistributionUseCase(),
         ),
         offlineMapRepository = offlineMapRepository,
+        mapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
     )
 
     /** Mirrors how [AvailabilityScreen]'s picker map now sets these — a long-press, not typing. */
@@ -190,38 +219,38 @@ class AvailabilityViewModelOfflineMapsTest {
     }
 
     @Test
-    fun `starts as NotDownloaded when nothing is on disk`() = runTest(dispatcher) {
-        val vm = viewModel(RecordingOfflineMapRepository(statusResult = Result.success(null)))
+    fun `starts Idle with no regions when nothing is on disk`() = runTest(dispatcher) {
+        val vm = viewModel(RecordingOfflineMapRepository(listRegionsResult = Result.success(emptyList())))
         advanceUntilIdle()
 
-        assertEquals(OfflineMapStatus.NotDownloaded, vm.uiState.value.offlineMapStatus)
+        assertEquals(OfflineMapStatus.Idle, vm.uiState.value.offlineDownloadStatus)
+        assertTrue(vm.uiState.value.offlineRegions.isEmpty())
     }
 
     @Test
-    fun `reflects what getStatus reports as already downloaded, on startup`() = runTest(dispatcher) {
-        val vm = viewModel(RecordingOfflineMapRepository(statusResult = Result.success(REFERENCE_INFO)))
+    fun `reflects what listRegions reports as already downloaded, on startup`() = runTest(dispatcher) {
+        val vm = viewModel(RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY))))
         advanceUntilIdle()
 
-        val status = vm.uiState.value.offlineMapStatus
-        assertTrue(status is OfflineMapStatus.Downloaded)
-        status as OfflineMapStatus.Downloaded
-        assertEquals(REFERENCE_INFO.region, status.region)
-        assertEquals(REFERENCE_INFO.tileCount, status.tileCount)
-        assertEquals(REFERENCE_INFO.sizeBytes, status.sizeBytes)
-        assertEquals(REFERENCE_INFO.downloadedAtEpochMillis, status.downloadedAtEpochMillis)
+        assertEquals(listOf(REFERENCE_REGION_SUMMARY), vm.uiState.value.offlineRegions)
+        assertNull(vm.uiState.value.offlineRegionsErrorMessage)
     }
 
-    /** CLAUDE.md: a failure is reported, not swallowed into a plausible-looking "nothing downloaded". */
+    /**
+     * CLAUDE.md: a failure is reported, not swallowed into a plausible-looking empty list. Per the
+     * error-presentation spec's belief-changing rule, a region-list-load failure isn't the same
+     * category as a download failure — it's reported via [AvailabilityUiState.offlineRegionsErrorMessage],
+     * not [AvailabilityUiState.offlineDownloadStatus].
+     */
     @Test
-    fun `a getStatus read failure is reported as Failed rather than defaulting to NotDownloaded`() = runTest(dispatcher) {
-        val vm = viewModel(RecordingOfflineMapRepository(statusResult = Result.failure(IOException("corrupt sidecar"))))
+    fun `a listRegions read failure is reported via offlineRegionsErrorMessage, not silently as an empty list`() = runTest(dispatcher) {
+        val vm = viewModel(RecordingOfflineMapRepository(listRegionsResult = Result.failure(IOException("corrupt metadata blob"))))
         advanceUntilIdle()
 
-        val status = vm.uiState.value.offlineMapStatus
-        assertTrue(status is OfflineMapStatus.Failed)
         // Error-presentation spec's absolute rule: the exception's own message never reaches a
-        // user-facing field, however recognizable — this used to read "corrupt sidecar" verbatim.
-        assertEquals("Couldn't read offline map status.", (status as OfflineMapStatus.Failed).message)
+        // user-facing field, however recognizable — this used to read "corrupt metadata blob" verbatim.
+        assertEquals("Couldn't read offline regions.", vm.uiState.value.offlineRegionsErrorMessage)
+        assertTrue(vm.uiState.value.offlineRegions.isEmpty())
     }
 
     @Test
@@ -236,7 +265,7 @@ class AvailabilityViewModelOfflineMapsTest {
         advanceUntilIdle()
 
         assertFalse(repository.downloadCalled)
-        val status = vm.uiState.value.offlineMapStatus
+        val status = vm.uiState.value.offlineDownloadStatus
         assertTrue(status is OfflineMapStatus.Failed)
         assertTrue((status as OfflineMapStatus.Failed).message.contains("valid latitude"))
     }
@@ -253,14 +282,14 @@ class AvailabilityViewModelOfflineMapsTest {
         advanceUntilIdle()
 
         assertFalse(repository.downloadCalled)
-        assertTrue(vm.uiState.value.offlineMapStatus is OfflineMapStatus.Failed)
+        assertTrue(vm.uiState.value.offlineDownloadStatus is OfflineMapStatus.Failed)
     }
 
     @Test
-    fun `a successful download ends Downloaded, targeting the picked region`() = runTest(dispatcher) {
+    fun `a successful download ends Succeeded, targeting the picked region under a default name`() = runTest(dispatcher) {
         val repository = RecordingOfflineMapRepository().apply {
             progressSteps = listOf(0 to 10, 5 to 10, 10 to 10)
-            downloadResult = Result.success(REFERENCE_INFO)
+            downloadResult = Result.success(REFERENCE_REGION_SUMMARY)
         }
         val vm = viewModel(repository)
         advanceUntilIdle()
@@ -271,7 +300,10 @@ class AvailabilityViewModelOfflineMapsTest {
 
         assertTrue(repository.downloadCalled)
         assertEquals(REFERENCE_REGION, repository.lastRegion)
-        assertTrue(vm.uiState.value.offlineMapStatus is OfflineMapStatus.Downloaded)
+        // The name field was never typed into (see pickReferenceRegion) — a blank name defaults to
+        // "Region N" rather than blocking the download.
+        assertEquals("Region 1", repository.lastName)
+        assertEquals(OfflineMapStatus.Succeeded, vm.uiState.value.offlineDownloadStatus)
     }
 
     /**
@@ -287,16 +319,17 @@ class AvailabilityViewModelOfflineMapsTest {
     fun `an in-flight download reports Downloading with the latest progress reported so far`() = runTest(dispatcher) {
         val repository = object : OfflineMapRepository {
             override suspend fun download(
+                name: String,
                 region: Region,
                 onProgress: (downloaded: Int, total: Int) -> Unit,
-            ): Result<OfflineMapInfo> {
+            ): Result<OfflineRegionSummary> {
                 onProgress(0, 10)
                 onProgress(4, 10)
                 awaitCancellation()
             }
 
-            override suspend fun delete(): Result<Unit> = Result.success(Unit)
-            override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
+            override suspend fun deleteRegion(id: Long): Result<Unit> = Result.success(Unit)
+            override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
         }
         val vm = viewModel(repository)
         advanceUntilIdle()
@@ -305,7 +338,7 @@ class AvailabilityViewModelOfflineMapsTest {
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
-        val status = vm.uiState.value.offlineMapStatus
+        val status = vm.uiState.value.offlineDownloadStatus
         assertTrue(status is OfflineMapStatus.Downloading)
         assertEquals(4, (status as OfflineMapStatus.Downloading).downloaded)
         assertEquals(10, status.total)
@@ -323,38 +356,44 @@ class AvailabilityViewModelOfflineMapsTest {
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
-        val status = vm.uiState.value.offlineMapStatus
+        val status = vm.uiState.value.offlineDownloadStatus
         assertTrue(status is OfflineMapStatus.Failed)
         assertEquals("Couldn't download offline maps.", (status as OfflineMapStatus.Failed).message)
     }
 
     @Test
-    fun `deleting a downloaded region moves status back to NotDownloaded`() = runTest(dispatcher) {
-        val repository = RecordingOfflineMapRepository(statusResult = Result.success(REFERENCE_INFO))
+    fun `deleting a region removes it from offlineRegions`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY)))
         val vm = viewModel(repository)
         advanceUntilIdle()
-        assertTrue(vm.uiState.value.offlineMapStatus is OfflineMapStatus.Downloaded)
+        assertEquals(listOf(REFERENCE_REGION_SUMMARY), vm.uiState.value.offlineRegions)
 
-        vm.onDeleteOfflineMaps()
+        vm.onDeleteOfflineRegion(REFERENCE_REGION_SUMMARY.id)
         advanceUntilIdle()
 
-        assertEquals(OfflineMapStatus.NotDownloaded, vm.uiState.value.offlineMapStatus)
+        assertEquals(REFERENCE_REGION_SUMMARY.id, repository.lastDeletedId)
+        assertTrue(vm.uiState.value.offlineRegions.isEmpty())
     }
 
+    /**
+     * Per the error-presentation spec's belief-changing rule, a failed delete is reported the same
+     * neutral way a region-list-load failure is (via [AvailabilityUiState.offlineRegionsErrorMessage]),
+     * not through [AvailabilityUiState.offlineDownloadStatus] — deletion isn't a download, and the
+     * region simply staying in the list already shows the delete didn't take effect.
+     */
     @Test
-    fun `a delete failure is reported as Failed rather than silently staying Downloaded`() = runTest(dispatcher) {
-        val repository = RecordingOfflineMapRepository(statusResult = Result.success(REFERENCE_INFO)).apply {
-            deleteResult = Result.failure(IOException("couldn't delete tiles"))
+    fun `a delete failure is reported via offlineRegionsErrorMessage rather than silently leaving the region`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY))).apply {
+            deleteRegionResult = Result.failure(IOException("couldn't delete tiles"))
         }
         val vm = viewModel(repository)
         advanceUntilIdle()
 
-        vm.onDeleteOfflineMaps()
+        vm.onDeleteOfflineRegion(REFERENCE_REGION_SUMMARY.id)
         advanceUntilIdle()
 
-        val status = vm.uiState.value.offlineMapStatus
-        assertTrue(status is OfflineMapStatus.Failed)
-        assertEquals("Couldn't delete offline maps.", (status as OfflineMapStatus.Failed).message)
+        assertEquals("Couldn't delete that region.", vm.uiState.value.offlineRegionsErrorMessage)
+        assertEquals(listOf(REFERENCE_REGION_SUMMARY), vm.uiState.value.offlineRegions)
     }
 
     @Test
@@ -372,7 +411,7 @@ class AvailabilityViewModelOfflineMapsTest {
     @Test
     fun `the offline map region is independent of the main search region`() = runTest(dispatcher) {
         val repository = RecordingOfflineMapRepository().apply {
-            downloadResult = Result.success(REFERENCE_INFO)
+            downloadResult = Result.success(REFERENCE_REGION_SUMMARY)
         }
         val vm = viewModel(repository)
         advanceUntilIdle()
