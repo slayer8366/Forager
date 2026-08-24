@@ -2,17 +2,6 @@ package com.forager.app.ui.log
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,19 +25,32 @@ import java.time.LocalDate
  * The compact bottom nav's Journal destination: [LogGalleryScreen] by default, an entry's own
  * [LogEntryReportScreen] once one is opened from the gallery, [LogEntryDetailScreen] once "Edit
  * entry" is chosen from the report (or immediately, for a brand-new entry — see [mode]'s doc
- * comment), and — the one state none of those needs — [LogEntryLocationPicker] while placing a
- * brand new entry.
+ * comment), and — the one state none of those needs — [CentrePinLocationPicker] while placing a
+ * location for the entry currently open in [LogEntryDetailScreen].
+ *
+ * Workstream L4 (`docs/plans/pr26-rework.md`): the gallery's "+" tile now goes straight to the edit
+ * form with no location placed at all — [MushroomLogEntry.foundAt]'s own doc comment covers why
+ * that's representable since L3. [LogEntryLocationPicker] (the old "pick a location, *then* create
+ * the entry" screen) is deleted, not converted — there is no step left before the entry page for it
+ * to occupy. The centre-pin picker still exists here, just retargeted: it now sets a location on an
+ * *already-open* entry, reached via [LogEntryDetailScreen]'s own "Add Location" button rather than
+ * the gallery's "+".
  *
  * This exists alongside [LogPanel] rather than replacing it: [LogPanel] is still what the
  * medium/expanded window's drawer shows (`DrawerPanel.Log` in `AvailabilityScreen.kt`, untouched by
  * the map redesign — see `docs/plans/map-redesign.md`'s "Scope decision" section for why that
  * window class stays on its existing navigation shape). This is the compact-only equivalent, reached
  * from the bottom nav instead of the drawer, so it owns no "back to search" affordance — there is no
- * drawer to return to, only another bottom nav tab to tap.
+ * drawer to return to, only another bottom nav tab to tap. [LogPanel] gained the identical
+ * Add-Location picker state as part of this same workstream, since it shares [LogEntryDetailScreen].
  *
  * [onStartEntry] is the exact same handler the map's "Log a find" option calls (see
- * `AvailabilityScreen.kt`'s `onLogFindHere`) — the location picker below hands it a point the same
- * shape that option would, rather than a parallel entry-creation path.
+ * `AvailabilityScreen.kt`'s `onLogFindHere`) — that option still collects a location via its own map
+ * confirmation before calling it (owner decision, 2026-08-22: "'Log a find' keeps its map
+ * confirmation and arrives at the entry page with the location filled in. Journal '+' arrives with
+ * none. Both end on the entry page — that is what 'same flow' meant."), so [onStartEntry]'s
+ * `location` parameter is nullable to serve both callers, not because this tab itself ever passes a
+ * non-null one.
  */
 @Composable
 internal fun JournalTab(
@@ -59,7 +61,7 @@ internal fun JournalTab(
     basemap: Basemap,
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
-    onStartEntry: (LatLng, LocalDate) -> Unit,
+    onStartEntry: (LatLng?, LocalDate) -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
@@ -77,36 +79,53 @@ internal fun JournalTab(
         }
     }
 
-    var pickingLocation by remember { mutableStateOf(false) }
     // REPORT for an entry opened from the gallery (there's something to compile a report from and
     // no reason to assume an edit is wanted), EDIT for one just started (nothing to report yet, so
-    // reporting first would just be an empty screen between the picker and the form the user is
-    // there for). Reset to REPORT whenever a *different* entry becomes the open one, so returning
-    // to an entry after editing shows the freshly-recompiled report rather than staying in edit mode.
+    // reporting first would just be an empty screen between creation and the form the user is there
+    // for). Reset to REPORT whenever a *different* entry becomes the open one, so returning to an
+    // entry after editing shows the freshly-recompiled report rather than staying in edit mode.
     var mode by remember { mutableStateOf(JournalEntryMode.REPORT) }
     val editing = uiState.editingEntry
+
+    // Only meaningful while editing — set by LogEntryDetailScreen's own "Add Location" button, read
+    // back down here rather than hoisted into MushroomLogUiState, since no other consumer of that
+    // state needs to know a location picker happens to be open mid-edit.
+    var pickingLocationForEditingEntry by remember { mutableStateOf(false) }
 
     // System back unwinds one of this tab's own nested states before AvailabilityScreen's
     // top-level "switch away from a non-Maps tab" handler ever sees it — Compose's
     // OnBackPressedDispatcher tries the most-recently-composed enabled callback first, so this one
     // (composed as part of the Journal tab's own content) naturally takes priority. Mirrors the
-    // `when` below's own branch order: out of the edit form to the report, out of the report to the
-    // gallery, out of the picker to the gallery.
-    BackHandler(enabled = editing != null || pickingLocation) {
+    // `when` below's own branch order: out of the picker to the edit form, out of the edit form to
+    // the report, out of the report to the gallery.
+    BackHandler(enabled = editing != null || pickingLocationForEditingEntry) {
         when {
+            pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
             editing != null && mode == JournalEntryMode.EDIT -> mode = JournalEntryMode.REPORT
             editing != null -> onCloseEntry()
-            else -> pickingLocation = false
         }
     }
 
     when {
+        editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
+            mapSlot = mapSlot,
+            region = pickerRegion,
+            basemap = basemap,
+            onConfirm = { location ->
+                pickingLocationForEditingEntry = false
+                onEntryChanged(editing.copy(foundAt = location))
+            },
+            onCancel = { pickingLocationForEditingEntry = false },
+            modifier = modifier,
+        )
+
         editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(
             entry = editing,
             cameraCaptureFiles = cameraCaptureFiles,
             onEntryChanged = onEntryChanged,
             onAddPhoto = onAddPhoto,
             onRemovePhoto = onRemovePhoto,
+            onAddLocation = { pickingLocationForEditingEntry = true },
             onDeleteEntry = { onDeleteEntry(editing.id) },
             onBack = { mode = JournalEntryMode.REPORT },
             modifier = modifier,
@@ -120,19 +139,6 @@ internal fun JournalTab(
             modifier = modifier,
         )
 
-        pickingLocation -> LogEntryLocationPicker(
-            mapSlot = mapSlot,
-            region = pickerRegion,
-            basemap = basemap,
-            onLocationConfirmed = { location ->
-                pickingLocation = false
-                mode = JournalEntryMode.EDIT
-                onStartEntry(location, LocalDate.now())
-            },
-            onCancel = { pickingLocation = false },
-            modifier = modifier,
-        )
-
         else -> LogGalleryScreen(
             entries = uiState.entries,
             isLoading = uiState.isLoadingEntries,
@@ -140,7 +146,10 @@ internal fun JournalTab(
                 mode = JournalEntryMode.REPORT
                 onOpenEntry(id)
             },
-            onAddEntry = { pickingLocation = true },
+            onAddEntry = {
+                mode = JournalEntryMode.EDIT
+                onStartEntry(null, LocalDate.now())
+            },
             modifier = modifier,
             loadErrorMessage = uiState.loadErrorMessage,
         )
@@ -157,40 +166,3 @@ internal fun JournalTab(
  * not).
  */
 private enum class JournalEntryMode { REPORT, EDIT }
-
-/**
- * A minimal map picker for the gallery's "+" tile — pan the map under the fixed centre pin, then
- * confirm. Its own screen's worth of the same [CentrePinLocationPicker] idiom every location-placing
- * site in this app uses now — see that composable's own class doc comment for why long-press (what
- * this picker used before this rework) was replaced everywhere, not just here. No radius, no
- * download: this picks exactly one point and hands it straight to [onLocationConfirmed].
- *
- * **L4 removes this composable entirely** (`docs/plans/pr26-rework.md`'s Workstream L) once the
- * journal's "+" routes straight to the entry page instead of a dedicated location-placement screen
- * — converted here, not deleted, so the app has no long-press left anywhere in the interim even
- * though this screen's own days are numbered. Kept as its own named function rather than inlining
- * [CentrePinLocationPicker] at the call site precisely so that removal has one obvious place to
- * happen.
- *
- * [region] is the picker's opening viewport only, not a claim about where the entry belongs — it
- * starts centred on the current search region (or a fallback if none has been searched yet) purely
- * so there is a map to navigate before anything is placed.
- */
-@Composable
-internal fun LogEntryLocationPicker(
-    mapSlot: MapSlot,
-    region: Region,
-    basemap: Basemap,
-    onLocationConfirmed: (LatLng) -> Unit,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    CentrePinLocationPicker(
-        mapSlot = mapSlot,
-        region = region,
-        basemap = basemap,
-        onConfirm = onLocationConfirmed,
-        onCancel = onCancel,
-        modifier = modifier,
-    )
-}

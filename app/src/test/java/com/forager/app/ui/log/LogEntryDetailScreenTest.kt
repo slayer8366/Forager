@@ -6,11 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.photo.CameraCaptureFiles
 import java.time.LocalDate
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -43,7 +45,7 @@ class LogEntryDetailScreenTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private fun setScreen(entry: MushroomLogEntry) {
+    private fun setScreen(entry: MushroomLogEntry, onAddLocation: () -> Unit = {}) {
         composeRule.setContent {
             LogEntryDetailScreen(
                 entry = entry,
@@ -51,6 +53,7 @@ class LogEntryDetailScreenTest {
                 onEntryChanged = {},
                 onAddPhoto = {},
                 onRemovePhoto = {},
+                onAddLocation = onAddLocation,
                 onDeleteEntry = {},
                 onBack = {},
             )
@@ -73,5 +76,40 @@ class LogEntryDetailScreenTest {
         setScreen(locationLessEntry)
 
         composeRule.onNodeWithText("No location set.").assertIsDisplayed()
+    }
+
+    /**
+     * Workstream L4: [entry] routinely arrives with [MushroomLogEntry.foundAt] `null` now that
+     * entry creation routes straight here — the button reads "Add Location" for that case and
+     * "Change Location" once one is set, joining the Camera/Gallery row (see this screen's own
+     * doc comment on why it lives there).
+     */
+    @Test
+    fun `the location button reads Add Location when the entry has none set`() {
+        val locationLessEntry = MushroomLogEntry.draft(id = "no-location-1", location = null, date = LocalDate.of(2026, 8, 1))
+
+        setScreen(locationLessEntry)
+
+        composeRule.onNodeWithText("Add Location").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the location button reads Change Location once the entry has one set`() {
+        val locatedEntry = MushroomLogEntry.draft(id = "with-location-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+
+        setScreen(locatedEntry)
+
+        composeRule.onNodeWithText("Change Location").assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping the location button invokes onAddLocation`() {
+        val locationLessEntry = MushroomLogEntry.draft(id = "no-location-1", location = null, date = LocalDate.of(2026, 8, 1))
+        var invoked = false
+        setScreen(locationLessEntry, onAddLocation = { invoked = true })
+
+        composeRule.onNodeWithText("Add Location").performClick()
+
+        assertEquals(true, invoked)
     }
 }

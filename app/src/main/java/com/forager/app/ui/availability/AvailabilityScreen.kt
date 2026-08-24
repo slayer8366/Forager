@@ -364,7 +364,7 @@ fun AvailabilityScreen(
     logUiState: MushroomLogUiState = MushroomLogUiState(),
     cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
     /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
-    onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> },
+    onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
     onOpenLogEntry: (String) -> Unit = {},
     onCloseLogEntry: () -> Unit = {},
     onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
@@ -670,6 +670,9 @@ fun AvailabilityScreen(
                     modifier = Modifier.weight(1f),
                     uiState = logUiState,
                     cameraCaptureFiles = cameraCaptureFiles,
+                    mapSlot = mapSlot,
+                    region = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
+                    basemap = basemap,
                     onOpenEntry = onOpenLogEntry,
                     onCloseEntry = onCloseLogEntry,
                     onEntryChanged = onLogEntryChanged,

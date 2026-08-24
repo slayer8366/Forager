@@ -113,7 +113,7 @@ class AvailabilityScreenTripPlanningFlowTest {
      */
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun setScreen(onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> }) {
+    private fun setScreen(onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> }) {
         // A fresh instance per test, not a shared singleton: this repository is mutable, and each
         // test's assertions depend on starting from an empty store.
         val plannedTripRepository = TripFlowInMemoryPlannedTripRepository()

@@ -277,8 +277,6 @@ class AvailabilityScreenBackNavigationTest {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
-        composeRule.onNodeWithText("Simulate pan to test location").performClick()
-        composeRule.onNodeWithText("OK").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
         pressBack()

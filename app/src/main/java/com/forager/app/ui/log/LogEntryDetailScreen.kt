@@ -63,6 +63,16 @@ import kotlinx.coroutines.withContext
  * section is a [CollapsibleSection] (reused from `AvailabilityScreen`) so the form doesn't dump
  * every field on screen at once — the same "single line until tapped" shape the drawer's own
  * Search/Trip Planner sections use.
+ *
+ * Workstream L4 (`docs/plans/pr26-rework.md`): entry creation routes here directly now, so [entry]
+ * routinely arrives with [MushroomLogEntry.foundAt] `null`. [onAddLocation] is this screen's own
+ * way to set one — it joins [PhotosSection]'s Camera/Gallery row rather than living beside the
+ * "Found at .../No location set." text above it, so the one action this screen can't itself carry
+ * out (it hosts no map) reads as a peer of the other two "bring something in from outside this
+ * form" actions, not as a fourth kind of thing.  Invoking the picker itself — full-screen, its own
+ * state in [JournalTab]/[LogPanel], not embedded here — is the caller's job; see either composable's
+ * own doc comment for why a centre-pin picker needs real screen space, the same reasoning
+ * `OfflineMapsPanel` already established for the Offline Maps submenu.
  */
 @Composable
 internal fun LogEntryDetailScreen(
@@ -71,6 +81,7 @@ internal fun LogEntryDetailScreen(
     onEntryChanged: (MushroomLogEntry) -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
+    onAddLocation: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -119,6 +130,8 @@ internal fun LogEntryDetailScreen(
                 cameraCaptureFiles = cameraCaptureFiles,
                 onPhotoSourceSelected = onAddPhoto,
                 onRemovePhoto = onRemovePhoto,
+                hasLocation = entry.foundAt != null,
+                onAddLocation = onAddLocation,
             )
 
             HorizontalDivider()
@@ -158,6 +171,8 @@ private fun PhotosSection(
     cameraCaptureFiles: CameraCaptureFiles,
     onPhotoSourceSelected: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
+    hasLocation: Boolean,
+    onAddLocation: () -> Unit,
 ) {
     var pendingCapture by remember { mutableStateOf<CameraCaptureFiles.Capture?>(null) }
 
@@ -190,6 +205,7 @@ private fun PhotosSection(
                     pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
             ) { Text("Gallery") }
+            Button(onClick = onAddLocation) { Text(if (hasLocation) "Change Location" else "Add Location") }
         }
         if (photos.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {

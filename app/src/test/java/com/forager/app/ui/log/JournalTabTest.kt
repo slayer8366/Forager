@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -37,9 +38,10 @@ import org.robolectric.annotation.Config
 
 /**
  * [JournalTab]'s own navigation state — which of [LogGalleryScreen]/[LogEntryReportScreen]/
- * [LogEntryDetailScreen]/[LogEntryLocationPicker] shows for a given [MushroomLogUiState] and how a
- * user gets from one to another. Exercised through the real composable and its real callbacks
- * (`onOpenEntry`/`onStartEntry`/back arrows), not by reaching into private state, per CLAUDE.md.
+ * [LogEntryDetailScreen]/the centre-pin location picker shows for a given [MushroomLogUiState] and
+ * how a user gets from one to another. Exercised through the real composable and its real
+ * callbacks (`onOpenEntry`/`onStartEntry`/back arrows), not by reaching into private state, per
+ * CLAUDE.md.
  *
  * A real, non-fake [MushroomLogViewModel] isn't used here — this is deliberately a state-machine
  * test of [JournalTab] itself, wiring callbacks to plain local state the same way
@@ -88,7 +90,12 @@ class JournalTabTest {
                     val started = MushroomLogEntry.draft(id = "new-entry", location = location, date = date)
                     uiState = uiState.copy(entries = uiState.entries + started, editingEntry = started)
                 },
-                onEntryChanged = {},
+                onEntryChanged = { updated ->
+                    uiState = uiState.copy(
+                        entries = uiState.entries.map { if (it.id == updated.id) updated else it },
+                        editingEntry = updated,
+                    )
+                },
                 onAddPhoto = {},
                 onRemovePhoto = {},
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
@@ -134,17 +141,42 @@ class JournalTabTest {
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
     }
 
+    /**
+     * Workstream L4: the gallery's "+" no longer collects a location first — it opens the edit
+     * form directly, with no picker step in between at all. [startedEntryAt] proves the callback
+     * itself was invoked with `null`, not just that some form appeared.
+     */
     @Test
-    fun `starting a brand-new entry from the gallery's plus tile goes straight to the edit form`() {
+    fun `starting a brand-new entry from the gallery's plus tile goes straight to the edit form with no location`() {
         setScreen(MushroomLogUiState())
 
         composeRule.onNodeWithContentDescription("New log entry").performClick()
-        composeRule.onNodeWithText("Simulate pan to test location").performClick()
-        composeRule.onNodeWithText("OK").performClick()
 
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
-        assertEquals(LatLng(45.5, -122.5), startedEntryAt)
+        composeRule.onNodeWithText("No location set.").assertIsDisplayed()
+        assertEquals(null, startedEntryAt)
+    }
+
+    /**
+     * The centre-pin picker survives L4, just retargeted: [LogEntryDetailScreen]'s own "Add
+     * Location" button (in [JournalTab]'s [MushroomLogUiState.editingEntry] state) opens it, and
+     * confirming a pan sets [MushroomLogEntry.foundAt] on the already-open entry.
+     */
+    @Test
+    fun `Add Location on the edit form opens the centre-pin picker and sets the entry's location on confirm`() {
+        setScreen(MushroomLogUiState())
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+
+        composeRule.onNodeWithText("Add Location").performClick()
+        composeRule.onNodeWithTag("picker-map").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Photos").assertIsDisplayed()
+        composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertExists()
     }
 
     /**

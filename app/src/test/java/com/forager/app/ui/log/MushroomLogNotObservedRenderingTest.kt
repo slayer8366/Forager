@@ -91,6 +91,7 @@ class MushroomLogNotObservedRenderingTest {
                 onEntryChanged = {},
                 onAddPhoto = {},
                 onRemovePhoto = {},
+                onAddLocation = {},
                 onDeleteEntry = {},
                 onBack = {},
             )

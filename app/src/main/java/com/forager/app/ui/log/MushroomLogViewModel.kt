@@ -73,8 +73,8 @@ class MushroomLogViewModel(
         }
     }
 
-    /** Starts and immediately persists a new, entirely-unrecorded entry at [location], then opens it for editing. */
-    fun onStartNewEntry(location: LatLng, date: LocalDate = LocalDate.now()) {
+    /** Starts and immediately persists a new, entirely-unrecorded entry — at [location] if one is already known, or with none at all — then opens it for editing. */
+    fun onStartNewEntry(location: LatLng?, date: LocalDate = LocalDate.now()) {
         viewModelScope.launch {
             createEntry(location, date).fold(
                 onSuccess = { entry ->

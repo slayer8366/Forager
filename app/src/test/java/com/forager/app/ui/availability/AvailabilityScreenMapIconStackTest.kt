@@ -113,7 +113,7 @@ class AvailabilityScreenMapIconStackTest {
     private fun setScreen(
         onLocateMe: () -> Unit = {},
         compassProvider: CompassProvider = FakeCompassProvider(null),
-        onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> },
+        onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
         mapSlot: MapSlot = CountingStubMapSlot,
         locationProvider: LocationProvider = IconStackUnusedLocationProvider,
         locationTracker: LocationTracker = IconStackNoOpLocationTracker,

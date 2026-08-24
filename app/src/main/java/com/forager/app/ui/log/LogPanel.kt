@@ -1,5 +1,6 @@
 package com.forager.app.ui.log
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,7 +28,11 @@ import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
+import com.forager.app.domain.model.Region
 import com.forager.app.photo.CameraCaptureFiles
+import com.forager.app.ui.map.Basemap
+import com.forager.app.ui.map.CentrePinLocationPicker
+import com.forager.app.ui.map.MapSlot
 
 /**
  * The mushroom log's drawer destination — one of the ModalNavigationDrawer's panels in
@@ -36,11 +45,22 @@ import com.forager.app.photo.CameraCaptureFiles
  *
  * [uiState].editingEntry is this panel's own list/detail navigation state — see
  * [MushroomLogUiState]'s doc comment.
+ *
+ * [mapSlot]/[region]/[basemap] exist purely to host [LogEntryDetailScreen]'s "Add Location" picker
+ * (Workstream L4, `docs/plans/pr26-rework.md`) — [JournalTab]'s own identical addition, mirrored
+ * here since both composables render the same [LogEntryDetailScreen]. This window class has no
+ * entry-creation entry point of its own (`LogEntryListScreen`, this panel's list state, has no "+"
+ * tile — see that composable's own doc comment); an entry only ever arrives here already created,
+ * via the map's "Log a find" option, so the picker below only ever edits an existing entry's
+ * location, never places one for a not-yet-created entry the way it once did.
  */
 @Composable
 internal fun LogPanel(
     uiState: MushroomLogUiState,
     cameraCaptureFiles: CameraCaptureFiles,
+    mapSlot: MapSlot,
+    region: Region,
+    basemap: Basemap,
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
@@ -68,14 +88,34 @@ internal fun LogPanel(
         }
     }
 
+    var pickingLocationForEditingEntry by remember { mutableStateOf(false) }
+    // This panel had no BackHandler before this state existed — nothing here previously needed to
+    // intercept system back, since the drawer's own chrome handled it. A modal-shaped state does:
+    // without this, system back while the picker is open would fall through to whatever
+    // AvailabilityScreen's top-level handling does instead of just closing the picker.
+    BackHandler(enabled = pickingLocationForEditingEntry) { pickingLocationForEditingEntry = false }
+
     val editing = uiState.editingEntry
-    if (editing != null) {
+    if (editing != null && pickingLocationForEditingEntry) {
+        CentrePinLocationPicker(
+            mapSlot = mapSlot,
+            region = region,
+            basemap = basemap,
+            onConfirm = { location ->
+                pickingLocationForEditingEntry = false
+                onEntryChanged(editing.copy(foundAt = location))
+            },
+            onCancel = { pickingLocationForEditingEntry = false },
+            modifier = modifier,
+        )
+    } else if (editing != null) {
         LogEntryDetailScreen(
             entry = editing,
             cameraCaptureFiles = cameraCaptureFiles,
             onEntryChanged = onEntryChanged,
             onAddPhoto = onAddPhoto,
             onRemovePhoto = onRemovePhoto,
+            onAddLocation = { pickingLocationForEditingEntry = true },
             onDeleteEntry = { onDeleteEntry(editing.id) },
             onBack = onCloseEntry,
             modifier = modifier,
