@@ -24,6 +24,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
@@ -315,12 +316,15 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `Download Maps is disabled with no region picked, and Delete Offline Maps is disabled with nothing downloaded`() {
+    fun `Download Maps is disabled with no region picked, and no regions or delete buttons show with nothing downloaded`() {
         setScreen()
         openOfflineMaps()
 
-        composeRule.onNodeWithText("Download Maps").assertIsDisplayed().assertIsNotEnabled()
-        composeRule.onNodeWithText("Delete Offline Maps").assertIsNotEnabled()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
+        // Delete is per-region now (OfflineRegionRow), not a standalone always-present button — with
+        // nothing downloaded there is no row to show one on.
+        composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("Delete").assertCountEquals(0)
     }
 
     @Test
