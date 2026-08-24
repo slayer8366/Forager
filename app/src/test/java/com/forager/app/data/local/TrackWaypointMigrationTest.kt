@@ -65,6 +65,15 @@ class TrackWaypointMigrationTest {
         try {
             legacyDb.plannedTripDao().upsert(legacyTrip)
             RoomMushroomLogRepository(legacyDb.mushroomLogDao()).save(legacyEntry).getOrThrow()
+
+            // LegacyForagerDatabaseV4 reuses the *production* MushroomLogEntryEntity class — but
+            // that class now has offlineRegionId (plus its index), added in MIGRATION_5_6, which a
+            // real version-4 install never had. Drop both here so the file reaches MIGRATION_5_6 in
+            // its true pre-migration shape — see OfflineRegionMigrationTest's identical fix for the
+            // full reasoning; the index has to go first, or dropping the column while it's still
+            // referenced fails with "no such column."
+            legacyDb.openHelper.writableDatabase.execSQL("DROP INDEX `index_mushroom_log_entries_offlineRegionId`")
+            legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `mushroom_log_entries` DROP COLUMN `offlineRegionId`")
         } finally {
             legacyDb.close()
         }
@@ -73,7 +82,7 @@ class TrackWaypointMigrationTest {
         // fallbackToDestructiveMigration here, so if MIGRATION_4_5 is missing or wrong, this throws
         // rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .build()
 
         try {

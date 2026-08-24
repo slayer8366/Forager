@@ -43,6 +43,13 @@ import androidx.room.RoomDatabase
  * [WaypointEntity]) via a real [MIGRATION_4_5], for the same reason [MIGRATION_3_4] exists: a
  * recorded track or a dropped waypoint is irreplaceable field data, not something a destructive
  * fallback may drop.
+ *
+ * [version] 6 adds `offline_regions` ([OfflineRegionEntity]) and
+ * [MushroomLogEntryEntity.offlineRegionId] via a real [MIGRATION_5_6] — same reasoning as
+ * [MIGRATION_4_5]: a downloaded region is costly to recreate, not something to drop on a schema
+ * bump. [OfflineRegionEntity] and [OfflineRegionDao] were added to this codebase before this
+ * version but never registered here, so `offline_regions` has never existed in a real install
+ * until this bump.
  */
 @Database(
     entities = [
@@ -53,8 +60,9 @@ import androidx.room.RoomDatabase
         TrackEntity::class,
         TrackPointEntity::class,
         WaypointEntity::class,
+        OfflineRegionEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -68,11 +76,13 @@ abstract class ForagerDatabase : RoomDatabase() {
 
     abstract fun waypointDao(): WaypointDao
 
+    abstract fun offlineRegionDao(): OfflineRegionDao
+
     companion object {
         fun create(context: Context): ForagerDatabase = Room.databaseBuilder(
             context.applicationContext,
             ForagerDatabase::class.java,
             "forager.db",
-        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5).fallbackToDestructiveMigration(true).build()
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).fallbackToDestructiveMigration(true).build()
     }
 }

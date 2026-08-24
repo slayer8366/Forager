@@ -140,3 +140,56 @@ val MIGRATION_4_5: Migration = object : Migration(4, 5) {
         )
     }
 }
+
+/**
+ * Adds `offline_regions` on top of version 5's tables — the region index the design doc's
+ * "Region management" section calls for (see [OfflineRegionEntity]'s own doc comment for the
+ * table's purpose and why its `id` is MapLibre's native region id, not a generated one). A real,
+ * hand-written migration, not `fallbackToDestructiveMigration()`, for the same reason
+ * [MIGRATION_3_4] and [MIGRATION_4_5] are: a downloaded region is costly to recreate (network,
+ * time), so a schema bump must not casually wipe the table that indexes them.
+ *
+ * `offline_regions` was never wired into [ForagerDatabase]'s entity list before this version —
+ * `OfflineRegionEntity`/`OfflineRegionDao` landed in an earlier pass but weren't registered with
+ * Room, so this table has never existed in a real install. `isEntryCapture` distinguishes the
+ * small, automatic per-log-entry tile captures (added when a log entry is created, see
+ * `docs/plans/pr26-rework.md`'s Workstream B) from user-picked regions, so the region-management
+ * list can filter them out without a second table — `INTEGER NOT NULL DEFAULT 0` here must match
+ * [OfflineRegionEntity.isEntryCapture]'s `@ColumnInfo(defaultValue = "0")` exactly, or Room's
+ * schema validation at app startup sees a declared-default mismatch and fails to open the database
+ * — this is a runtime failure, not a compile-time one, which is why the two sides are called out
+ * together rather than trusted to stay in sync.
+ *
+ * Also adds `mushroom_log_entries.offlineRegionId` — a nullable reference to the region an entry's
+ * capture belongs to (or that it happened to be inside, once that linkage exists) — and its index.
+ * **Deliberately not a `@ForeignKey`.** See [MushroomLogEntryEntity.offlineRegionId]'s own doc
+ * comment for the full rationale; the short version is that nothing about a log entry may change
+ * as a side effect of something happening to a region, and any FK action (`SET_NULL`, `RESTRICT`,
+ * cascading delete) would do exactly that.
+ */
+val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `offline_regions` (
+            `id` INTEGER NOT NULL,
+            `name` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `radiusKm` INTEGER NOT NULL,
+            `minZoom` REAL NOT NULL,
+            `maxZoom` REAL NOT NULL,
+            `createdAtEpochMillis` INTEGER NOT NULL,
+            `isEntryCapture` INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "ALTER TABLE `mushroom_log_entries` ADD COLUMN `offlineRegionId` INTEGER",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_offlineRegionId` " +
+                "ON `mushroom_log_entries` (`offlineRegionId`)",
+        )
+    }
+}

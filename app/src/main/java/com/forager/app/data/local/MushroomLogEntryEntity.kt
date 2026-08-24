@@ -1,6 +1,7 @@
 package com.forager.app.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -38,7 +39,7 @@ import androidx.room.PrimaryKey
  *   silently accepted, and they don't: `toDomain()` reads only the sub-fields that apply to the
  *   `*Kind` it dispatches on.
  */
-@Entity(tableName = "mushroom_log_entries")
+@Entity(tableName = "mushroom_log_entries", indices = [Index("offlineRegionId")])
 data class MushroomLogEntryEntity(
     @PrimaryKey val id: String,
     val lat: Double,
@@ -121,4 +122,22 @@ data class MushroomLogEntryEntity(
     val forestType: String?,
     val hostHealth: String?,
     val hostSubstrateNotes: String,
+
+    // --- Offline region reference (Workstream A, docs/plans/pr26-rework.md)
+    /**
+     * The [OfflineRegionEntity] this entry's tile capture belongs to, if any — `null` until
+     * Workstream B's capture mechanism sets it, and left `null` permanently for an entry that
+     * never gets one (e.g. logged offline and never re-synced).
+     *
+     * **Deliberately an indexed column, not a `@ForeignKey`** (owner decision, 2026-08-22) —
+     * matching this database's only other precedent for a cross-table reference,
+     * `track_points.trackId` in [MIGRATION_4_5]. Nothing about a log entry may change as a side
+     * effect of something happening to a region it references: a mushroom log entry is removed
+     * only by direct deletion from the log itself. `SET_NULL` would have the database edit an
+     * entry as a side effect of a region delete; `RESTRICT` would throw where the app wants to
+     * show a dialog instead. Leaving this column unconstrained means a region delete can proceed
+     * (or be handled entirely in app code, per Workstream C) without SQLite ever touching this
+     * table — a dangling id here is accepted and expected, not a corruption to guard against.
+     */
+    val offlineRegionId: Long? = null,
 )

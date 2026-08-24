@@ -1,5 +1,6 @@
 package com.forager.app.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -32,4 +33,13 @@ data class OfflineRegionEntity(
     val minZoom: Double,
     val maxZoom: Double,
     val createdAtEpochMillis: Long,
+    /**
+     * `true` for the small, automatic per-log-entry tile captures (Workstream B); `false` for a
+     * region the user picked and downloaded themselves. Lets the region-management list filter
+     * captures out without a second table. `@ColumnInfo(defaultValue = "0")` must match
+     * `MIGRATION_5_6`'s `INTEGER NOT NULL DEFAULT 0` exactly — see that migration's doc comment for
+     * why a mismatch here fails Room's schema validation at app startup rather than at compile time.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val isEntryCapture: Boolean = false,
 )
