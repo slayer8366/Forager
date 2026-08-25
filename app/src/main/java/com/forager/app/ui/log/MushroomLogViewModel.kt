@@ -490,10 +490,17 @@ class MushroomLogViewModel(
     }
 
     fun onAddPhoto(source: PhotoSource) {
-        val entry = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingPhoto = true) }
             editingEntryMutex.withLock {
+                // Read fresh, inside the critical section — not before acquiring it. Two photo
+                // operations issued back to back must apply in the order issued: if this captured
+                // editingEntry at call time instead, a second operation queued behind this one would
+                // compute its own result from the *same* pre-this-operation snapshot, and its later
+                // apply would silently discard this one's photo when it lands. See this class's own
+                // "Serialized editing-entry mutations" doc comment — the same principle
+                // onStartEditingEntry's guard applies, extended to every photo mutator.
+                val entry = _uiState.value.editingEntry ?: return@withLock
                 addPhoto(entry, source).fold(
                     onSuccess = { updated ->
                         _uiState.update { it.copy(editingEntry = updated, isSavingPhoto = false, saveErrorMessage = null) }
@@ -515,9 +522,10 @@ class MushroomLogViewModel(
     }
 
     fun onRemovePhoto(photo: LogPhoto) {
-        val entry = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
             editingEntryMutex.withLock {
+                // See onAddPhoto's own comment on reading fresh inside the lock — same reasoning.
+                val entry = _uiState.value.editingEntry ?: return@withLock
                 removePhoto(entry, photo).fold(
                     onSuccess = { updated -> _uiState.update { it.copy(editingEntry = updated, saveErrorMessage = null) } },
                     onFailure = { error ->
@@ -531,9 +539,10 @@ class MushroomLogViewModel(
 
     /** Workstream G3: references an existing gallery [photo] from the currently-editing entry — a reference only, never a new file (see [PullPhotoIntoEntryUseCase]'s own doc comment). */
     fun onPullPhoto(photo: LogPhoto) {
-        val entry = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
             editingEntryMutex.withLock {
+                // See onAddPhoto's own comment on reading fresh inside the lock — same reasoning.
+                val entry = _uiState.value.editingEntry ?: return@withLock
                 pullPhotoIntoEntry(entry, photo).fold(
                     onSuccess = { updated -> _uiState.update { it.copy(editingEntry = updated, saveErrorMessage = null) } },
                     onFailure = { error ->

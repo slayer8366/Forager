@@ -248,6 +248,121 @@ class MushroomLogViewModelTest {
         assertEquals(listOf(newPhoto), vm.uiState.value.galleryPhotos.map { it.photo })
     }
 
+    /**
+     * The mirror of §3's race, on the photo-attach path (L4c §2) — the verification pulse's own
+     * finding: if `loadEntries()` starts a read before a photo attach lands, but only *applies* its
+     * result after the attach's own state update has already landed, the merge can clobber a
+     * just-attached photo with the stale, pre-attach snapshot the read captured — and this is one
+     * race the photos-only merge cannot itself defend against, since `photos` is exactly the field
+     * it copies from that same stale read. Under [MushroomLogViewModel]'s serialization this can no
+     * longer happen: `loadEntries()` acquiring [editingEntryMutex] first means [onAddPhoto]'s own
+     * attach cannot even start until `loadEntries()` releases the lock, so by the time the attach
+     * runs, `loadEntries()`'s update has already landed (or not started at all) — never in a
+     * position to overwrite it afterward.
+     */
+    @Test
+    fun `a photo attach queued behind a loadEntries read is never lost to that read's stale snapshot`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "new-photo", relativePath = "photos/new-photo.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+
+        // Armed only now — see FakeMushroomLogRepository.readGate's own doc comment for why arming
+        // it any earlier would block the setup above's own loads forever.
+        val readGate = CompletableDeferred<Unit>()
+        repository.readGate = readGate
+
+        // loadEntries() acquires editingEntryMutex first (nothing else holds it yet), captures its
+        // (still photo-less) snapshot, then suspends on readGate — while still holding the lock.
+        vm.loadEntries()
+        // onAddPhoto's own coroutine can only queue behind the held lock; the attach cannot start.
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(
+            "the attach must not have started yet — it's queued behind loadEntries' held lock",
+            emptyList<LogPhoto>(),
+            vm.uiState.value.editingEntry?.photos,
+        )
+
+        // Release the gate: loadEntries applies its (still-accurate, since nothing had attached yet)
+        // merge and releases the lock; only then can onAddPhoto's own queued attach run.
+        readGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            "the photo attach must not be lost to loadEntries' earlier, now-stale snapshot",
+            listOf(newPhoto),
+            vm.uiState.value.editingEntry?.photos,
+        )
+        assertTrue(
+            "the attach must actually be persisted, not just reflected in memory",
+            repository.crossRefEntryIds().contains(draftId),
+        )
+    }
+
+    /**
+     * L4c §2's second required test: two photo operations issued back to back must apply in the
+     * order issued, not have the second's completion silently discard the first's. This is *not*
+     * automatic from serialization alone — a handler that captured `editingEntry` at call time,
+     * before its own turn in the lock, would compute its result from a snapshot that predates the
+     * other operation's effect regardless of execution order. [onAddPhoto]/[onPullPhoto] read
+     * `editingEntry` fresh, inside their own critical section, specifically so the second of two
+     * queued operations builds on the first's already-applied result rather than overwriting it.
+     * [FakeMushroomLogRepository.photoGate] holds the *first* issued operation (pulling
+     * [galleryPhotoA]) suspended while
+     * already holding the lock, so the second (attaching [newPhotoB]) is issued and queued before
+     * the first ever completes — proving the ordering is enforced by the queue, not by coincidental
+     * timing.
+     */
+    @Test
+    fun `two photo operations issued back to back apply in the order issued`() = runTest(dispatcher) {
+        val galleryPhotoA = LogPhoto(id = "gallery-photo-a", relativePath = "photos/a.jpg", createdAtEpochMillis = 1_000L)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        repository.addPhotoToGallery(galleryPhotoA)
+        val photoStore = FakePhotoStore()
+        val newPhotoB = LogPhoto(id = "new-photo-b", relativePath = "photos/b.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhotoB)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+
+        val pullGate = CompletableDeferred<Unit>()
+        repository.photoGate = pullGate
+
+        // Issued first: pulling galleryPhotoA. Acquires the lock, then suspends mid-attach, still
+        // holding it.
+        vm.onPullPhoto(galleryPhotoA)
+        // Issued second, immediately after, before the first has completed: attaching newPhotoB.
+        // Queues behind the held lock — cannot even read editingEntry yet, let alone apply.
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(
+            "neither operation has completed yet — both queued/suspended",
+            emptyList<LogPhoto>(),
+            vm.uiState.value.editingEntry?.photos,
+        )
+
+        pullGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            "both photos must be present — the second-issued operation must build on the " +
+                "first's result, not discard it",
+            listOf(galleryPhotoA, newPhotoB),
+            vm.uiState.value.editingEntry?.photos,
+        )
+    }
+
     /** Workstream G3: pulling a gallery photo into the currently-editing draft references it only — never a new file, never a new gallery row. Reworked (Workstream L4b-R) to open a real draft session first — see the "adding a photo" test above for why. */
     @Test
     fun `pulling a gallery photo into the editing draft adds a reference only`() = runTest(dispatcher) {
@@ -784,13 +899,17 @@ private class FakeMushroomLogRepository(
     }
 
     override suspend fun getAll(): Result<List<MushroomLogEntry>> {
+        // Snapshotted before the gate, not after: a real slow read returns the data it saw when it
+        // started, not whatever the table looks like by the time it happens to return. Gating after
+        // the snapshot instead would mean a released gate always sees the *current* table — which
+        // can never be stale — defeating the "read started early, applied late" race a test gates
+        // this to reproduce.
+        val snapshot = entries.values.map { entry ->
+            val photos = crossRefs.filter { it.first == entry.id }.mapNotNull { galleryPhotos[it.second] }
+            entry.copy(photos = photos)
+        }
         readGate?.await()
-        return Result.success(
-            entries.values.map { entry ->
-                val photos = crossRefs.filter { it.first == entry.id }.mapNotNull { galleryPhotos[it.second] }
-                entry.copy(photos = photos)
-            },
-        )
+        return Result.success(snapshot)
     }
 
     override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(
@@ -827,7 +946,11 @@ private class FakeMushroomLogRepository(
         return Result.success(Unit)
     }
 
+    /** Held open by a test to reproduce the mirror of the §3 race on the photo-attach path — the `saveGate`/`readGate` mechanism, applied to the last write [AddPhotoToLogEntryUseCase] makes rather than to `save()`. `null` (the default) never gates anything. */
+    var photoGate: CompletableDeferred<Unit>? = null
+
     override suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit> {
+        photoGate?.await()
         crossRefs += entryId to photoId
         return Result.success(Unit)
     }
