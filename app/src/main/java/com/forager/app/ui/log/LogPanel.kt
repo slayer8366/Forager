@@ -61,10 +61,17 @@ internal fun LogPanel(
     mapSlot: MapSlot,
     region: Region,
     basemap: Basemap,
-    onOpenEntry: (String) -> Unit,
+    /**
+     * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
+     * ViewModel operation ([MushroomLogViewModel.onOpenEntryForEditing]), not this composable
+     * calling separate open/start-editing callbacks itself. This panel has no report step (see its
+     * own doc comment), so opening a row always means "edit it" — see
+     * [MushroomLogViewModel.onOpenEntryForEditing]'s own doc comment for why that combination lives
+     * in the ViewModel rather than being composed here from two calls.
+     */
+    onOpenEntryForEditing: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
-    onStartEditingEntry: () -> Unit,
     onSaveEntry: () -> Unit,
     onCancelEditing: () -> Unit,
     onLeaveEditingIncidentally: () -> Unit,
@@ -158,9 +165,11 @@ internal fun LogPanel(
                 isLoading = uiState.isLoadingEntries,
                 // This panel has no separate report step (see its own doc comment) — opening an
                 // entry goes straight to LogEntryDetailScreen below, so it must already be a draft
-                // by the time that happens. onStartEditingEntry is a no-op for a row opened from
-                // the Drafts tab (already one) and creates the draft row for a committed one.
-                onOpenEntry = { id -> onOpenEntry(id); onStartEditingEntry() },
+                // by the time that happens. onOpenEntryForEditing is a no-op-shaped success for a
+                // row already a draft and creates the draft row for a committed one — correct for
+                // either case on its own, so LogEntryListScreen's onOpenDraftEntry can default to
+                // this same callback (its own default) rather than needing an override here.
+                onOpenEntry = onOpenEntryForEditing,
                 modifier = Modifier.weight(1f),
                 loadErrorMessage = uiState.loadErrorMessage,
             )

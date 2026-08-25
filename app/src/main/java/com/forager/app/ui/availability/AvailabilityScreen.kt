@@ -398,6 +398,14 @@ fun AvailabilityScreen(
     onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
     /** Begins editing the currently-open (committed) entry — see [com.forager.app.ui.log.MushroomLogViewModel.onStartEditingEntry]'s own doc comment. A no-op if it's already a draft. */
     onStartEditingLogEntry: () -> Unit = {},
+    /**
+     * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
+     * ViewModel operation ([com.forager.app.ui.log.MushroomLogViewModel.onOpenEntryForEditing]),
+     * not [onOpenLogEntry] and [onStartEditingLogEntry] chained here. [LogPanel]'s own entry list
+     * is the one caller (see that composable's own doc comment on why its "no report step" shape
+     * needs this instead of the two-callback chain [JournalTab] still uses).
+     */
+    onOpenLogEntryForEditing: (String) -> Unit = {},
     /** Save — commits the currently-open entry. See [com.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
     onSaveLogEntry: () -> Unit = {},
     /** Cancel — the only exit that discards anything. See [com.forager.app.ui.log.MushroomLogViewModel.onCancelEditing]'s own doc comment. */
@@ -746,10 +754,9 @@ fun AvailabilityScreen(
                     mapSlot = mapSlot,
                     region = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
                     basemap = basemap,
-                    onOpenEntry = onOpenLogEntry,
+                    onOpenEntryForEditing = onOpenLogEntryForEditing,
                     onCloseEntry = onCloseLogEntry,
                     onEntryChanged = onLogEntryChanged,
-                    onStartEditingEntry = onStartEditingLogEntry,
                     onSaveEntry = onSaveLogEntry,
                     onCancelEditing = onCancelLogEntryEditing,
                     // Workstream L4b-R2: shares the same wrapped callback as the compact bottom

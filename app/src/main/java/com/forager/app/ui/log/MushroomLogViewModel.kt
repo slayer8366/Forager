@@ -113,7 +113,33 @@ import kotlinx.coroutines.sync.withLock
  * **No handler acquires [editingEntryMutex] while already holding it.** Checked directly, not
  * assumed: the one place a handler calls another editing-entry mutator
  * ([onDeleteGalleryPhoto] → [loadEntries]) is exactly the case above, where the caller never holds
- * the lock itself first.
+ * the lock itself first. [onOpenEntryForEditing] below is deliberately its own critical section
+ * with its own inline logic, not `withLock { onOpenEntry(id); onStartEditingEntry() }` calling the
+ * two existing public methods — that shape would have this function's own lock acquisition wait on
+ * itself, a guaranteed deadlock on first use, since Kotlin's `Mutex` is not reentrant.
+ *
+ * **One caller composition this design does not trust, and why:** [LogPanel]'s own entry list used
+ * to call [onOpenEntry] immediately followed by [onStartEditingEntry] — the same shape this
+ * paragraph's own opening race was found in. That composition's correctness rests on
+ * [onOpenEntry]'s write having already landed by the time [onStartEditingEntry]'s guard reads
+ * state — true today only because both enqueue via `Dispatchers.Main.immediate`, which runs an
+ * *uncontended* `launch` synchronously. Under contention (another editing-entry operation genuinely
+ * in flight) that guarantee doesn't hold, and [onStartEditingEntry] would silently no-op against
+ * stale state — restoring correctness through the exact implicit-ordering assumption that hid the
+ * original race, not by closing it. [onOpenEntryForEditing] replaces that composition for
+ * [LogPanel]'s one call site with a single atomic operation; [onStartEditingEntry]'s own guard was
+ * *also* moved inside its lock (rather than relying on [onOpenEntryForEditing] alone) so a future
+ * caller that chains the two old methods independently gets a guard that is correct on its own
+ * terms, not one that merely happens to work for today's callers.
+ *
+ * **Rejected: exempting [onOpenEntry]/[onCloseEntry] from [editingEntryMutex] entirely** (owner
+ * decision, 2026-08-25) — the alternative fix for the composition problem above, since neither
+ * function has any suspension of its own to race internally. Rejected because it narrows the
+ * guarantee this workstream exists to establish rather than closing it: an un-serialized
+ * [onCloseEntry] could still be resurrected by a slower, already-in-flight [onSaveEntry]'s late
+ * write landing afterward — precisely the "nobody notices when it's applied properly; when it
+ * isn't, confidence is lost" class of bug this workstream was scoped to close everywhere, not just
+ * at the one pairing a pulse happened to find. Do not restore this exemption as a simplification.
  */
 class MushroomLogViewModel(
     private val getEntries: GetMushroomLogEntriesUseCase,
@@ -260,15 +286,61 @@ class MushroomLogViewModel(
      * switches [MushroomLogUiState.editingEntry] to that row. A no-op if nothing is open.
      */
     fun onStartEditingEntry() {
-        val current = _uiState.value.editingEntry ?: return
-        if (current.isDraft) return
         viewModelScope.launch {
             editingEntryMutex.withLock {
+                // Workstream L4c, refinement to the serialization design: this guard used to read
+                // _uiState.value.editingEntry *before* acquiring the lock. That reads correctly only
+                // because every caller today happens to enqueue its own launch in an order that
+                // guarantees any preceding write already landed — an implicit ordering guarantee
+                // resting on Dispatchers.Main.immediate semantics and Mutex fairness, the same
+                // species of assumption that let the photo/loadEntries race (this workstream's own
+                // finding) go unnoticed. Reading inside the lock instead means this guard is correct
+                // on its own terms, independent of what any caller does before calling it — including
+                // a caller nobody has written yet. [onOpenEntryForEditing] below is the *other* half
+                // of this fix: the one production call site that used to chain onOpenEntry() then
+                // this function now does both atomically in one critical section instead of relying
+                // on this guard alone.
+                val current = _uiState.value.editingEntry ?: return@withLock
+                if (current.isDraft) return@withLock
                 startEditingEntry(current).fold(
                     onSuccess = { draft -> _uiState.update { it.copy(editingEntry = draft, saveErrorMessage = null) } },
                     onFailure = { error ->
                         Log.w(TAG, "Couldn't start editing entry '${current.id}'.", error)
                         _uiState.update { it.copy(saveErrorMessage = "Couldn't start editing that entry.") }
+                    },
+                )
+            }
+        }
+    }
+
+    /**
+     * Opens [id] for viewing and, if it turns out to be a genuinely committed entry, immediately
+     * begins editing it — atomically, in one [editingEntryMutex] critical section, not
+     * [onOpenEntry] and [onStartEditingEntry] chained by the caller (see this class's own doc
+     * comment, "Serialized editing-entry mutations," for why that chain is not an equivalent, safe
+     * substitute: its correctness would depend on the first call's write already having landed by
+     * the time the second's guard reads state, which is exactly the implicit-ordering hazard this
+     * workstream exists to close, not something to keep relying on for a new caller). [LogPanel]'s
+     * own entry list is the one caller: it has no separate report step, so opening a row always
+     * means "edit it." A no-op-shaped success on an already-draft row (no [startEditingEntry] call
+     * needed, matching [onStartEditingEntry]'s own no-op case) and a failed [startEditingEntry]
+     * still leave the found entry showing as a report (matching what the old two-call chain left
+     * behind on the same failure), with [MushroomLogUiState.saveErrorMessage] set.
+     */
+    fun onOpenEntryForEditing(id: String) {
+        viewModelScope.launch {
+            editingEntryMutex.withLock {
+                val state = _uiState.value
+                val entry = state.entries.firstOrNull { it.id == id } ?: state.draftEntries.firstOrNull { it.id == id }
+                if (entry == null || entry.isDraft) {
+                    _uiState.update { it.copy(editingEntry = entry) }
+                    return@withLock
+                }
+                startEditingEntry(entry).fold(
+                    onSuccess = { draft -> _uiState.update { it.copy(editingEntry = draft, saveErrorMessage = null) } },
+                    onFailure = { error ->
+                        Log.w(TAG, "Couldn't start editing entry '${entry.id}'.", error)
+                        _uiState.update { it.copy(editingEntry = entry, saveErrorMessage = "Couldn't start editing that entry.") }
                     },
                 )
             }

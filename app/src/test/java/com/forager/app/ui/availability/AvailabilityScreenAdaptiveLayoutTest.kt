@@ -381,13 +381,14 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onOpenLogEntry = { id ->
                     logUiState = logUiState.copy(editingEntry = logUiState.entries.first { it.id == id })
                 },
-                onStartEditingLogEntry = {
+                onOpenLogEntryForEditing = { id ->
                     // Same in-place stand-in as LogPanelTest's own harness: this test only needs a
                     // draft to exist to open the form, not the real new-row/id mechanics
-                    // StartEditingLogEntryUseCase owns.
-                    logUiState.editingEntry?.let { current ->
-                        if (!current.isDraft) logUiState = logUiState.copy(editingEntry = current.copy(isDraft = true))
-                    }
+                    // StartEditingLogEntryUseCase owns. Combines what onOpenLogEntry/
+                    // onStartEditingLogEntry did separately before Workstream L4c gave LogPanel one
+                    // atomic callback instead.
+                    val opened = logUiState.entries.first { it.id == id }
+                    logUiState = logUiState.copy(editingEntry = if (opened.isDraft) opened else opened.copy(isDraft = true))
                 },
                 onLeaveLogEntryEditingIncidentally = {
                     logUiState = logUiState.copy(editingEntry = null)

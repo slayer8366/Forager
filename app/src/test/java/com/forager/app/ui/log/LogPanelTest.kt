@@ -67,21 +67,21 @@ class LogPanelTest {
                 mapSlot = StubPickerMapSlot,
                 region = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
                 basemap = Basemap.DEFAULT,
-                onOpenEntry = { id -> uiState = uiState.copy(editingEntry = uiState.entries.first { it.id == id }) },
+                onOpenEntryForEditing = { id ->
+                    // See JournalTabTest's identical stand-in for the full reasoning — this file's
+                    // own tests set editingEntry directly rather than through this callback, so the
+                    // "start editing" half never actually fires, but LogPanel still requires the
+                    // parameter. Combines what onOpenEntry+onStartEditingEntry used to do separately
+                    // (Workstream L4c: LogPanel now takes the one atomic ViewModel operation).
+                    val opened = uiState.entries.first { it.id == id }
+                    uiState = uiState.copy(editingEntry = if (opened.isDraft) opened else opened.copy(isDraft = true))
+                },
                 onCloseEntry = { uiState = uiState.copy(editingEntry = null) },
                 onEntryChanged = { updated ->
                     uiState = uiState.copy(
                         entries = uiState.entries.map { if (it.id == updated.id) updated else it },
                         editingEntry = updated,
                     )
-                },
-                onStartEditingEntry = {
-                    // See JournalTabTest's identical stand-in for the full reasoning — this file's
-                    // own tests set editingEntry directly rather than through onOpenEntry, so this
-                    // never actually fires, but LogPanel still requires the parameter.
-                    uiState.editingEntry?.let { current ->
-                        if (!current.isDraft) uiState = uiState.copy(editingEntry = current.copy(isDraft = true))
-                    }
                 },
                 onSaveEntry = {
                     uiState.editingEntry?.let { current ->

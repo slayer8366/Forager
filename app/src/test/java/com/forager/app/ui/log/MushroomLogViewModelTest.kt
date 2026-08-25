@@ -457,6 +457,7 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
 
         assertTrue("an incidental exit must never commit an unsaved entry to the log", vm.uiState.value.entries.isEmpty())
         assertEquals(listOf("new-entry"), vm.uiState.value.draftEntries.map { it.id })
@@ -482,6 +483,7 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
 
         assertTrue("nothing appears in the log", vm.uiState.value.entries.isEmpty())
         assertEquals(listOf("new-entry"), vm.uiState.value.draftEntries.map { it.id })
@@ -637,6 +639,7 @@ class MushroomLogViewModelTest {
         assertEquals(listOf(orphanedDraft.id), vm.uiState.value.draftEntries.map { it.id })
 
         vm.onOpenEntry(orphanedDraft.id)
+        advanceUntilIdle()
 
         assertEquals("typed before the crash", vm.uiState.value.editingEntry?.notes)
     }
@@ -662,10 +665,12 @@ class MushroomLogViewModelTest {
         assertFalse(vm.uiState.value.entries.single().isDraft)
 
         vm.onOpenEntry(orphanedDraft.id)
+        advanceUntilIdle()
         assertEquals("typed right before the crash", vm.uiState.value.editingEntry?.notes)
 
         vm.onCloseEntry()
         vm.onOpenEntry(committed.id)
+        advanceUntilIdle()
         assertEquals("last saved before the crash", vm.uiState.value.editingEntry?.notes)
     }
 }
@@ -675,6 +680,8 @@ private class FakeMushroomLogRepository(
     var saveShouldFail: Boolean = false,
     /** Held open by a test to reproduce the specific race [loadEntries]'s merge exists for: a read landing while an earlier keystroke's own write is still in flight. `null` (the default) never gates anything, so every other test here still runs a plain, immediate save. */
     private val saveGate: CompletableDeferred<Unit>? = null,
+    /** Held open by a test to reproduce the *other* ordering of the same race — [loadEntries]'s own read acquiring [MushroomLogViewModel]'s serializing lock before a pending keystroke's write does. `null` (the default) never gates anything. */
+    private val readGate: CompletableDeferred<Unit>? = null,
 ) : MushroomLogRepository {
     private val entries = initial.associateByTo(LinkedHashMap()) { it.id }
     private val galleryPhotos = mutableMapOf<String, LogPhoto>()
@@ -694,12 +701,15 @@ private class FakeMushroomLogRepository(
         }
     }
 
-    override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(
-        entries.values.map { entry ->
-            val photos = crossRefs.filter { it.first == entry.id }.mapNotNull { galleryPhotos[it.second] }
-            entry.copy(photos = photos)
-        },
-    )
+    override suspend fun getAll(): Result<List<MushroomLogEntry>> {
+        readGate?.await()
+        return Result.success(
+            entries.values.map { entry ->
+                val photos = crossRefs.filter { it.first == entry.id }.mapNotNull { galleryPhotos[it.second] }
+                entry.copy(photos = photos)
+            },
+        )
+    }
 
     override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(
         galleryPhotos.values.map { photo ->
