@@ -798,70 +798,24 @@ class MushroomLogViewModelTest {
     }
 
     /**
-     * L4b-R2 (the dispatch's own §3): the test above proves the merge's list-search matters, but
-     * doesn't by itself prove the *photos-only* scope of the merge matters, since
-     * [MushroomLogViewModel.onEntryEdited]'s per-keystroke write had already landed in the fake
-     * repository by the time `loadEntries()` ran there — a wholesale replace sourced from the
-     * correct list would have shown the same (already-persisted) text. This test closes that gap:
-     * [saveGate] holds the keystroke's own write suspended — never landing in the repository at
-     * all — while `loadEntries()` runs and returns its (still-stale) read in the same window. Under
-     * the real code, [MushroomLogViewModel.loadEntries]'s photos-only merge leaves `editingEntry`'s
-     * other fields exactly as the in-memory, not-yet-persisted [MushroomLogViewModel.onEntryEdited]
-     * call left them, so the freshly-typed text survives; a wholesale replace sourced from either
-     * list would instead show the stale, still-on-disk text, since that's genuinely all a fresh read
-     * can see while the write is still in flight. This is the answer to §3: yes, the merge protects
-     * something the list-search fix alone does not — the in-flight window between a keystroke's own
-     * local state update and that keystroke's write actually landing.
+     * §3 (L4b-R2), re-verified for Workstream L4c rather than assumed: the original version of this
+     * test forced a keystroke's *write* to acquire the lock first (via a gate on `save()`), which
+     * proved the photos-only merge protected the in-flight window between a keystroke's synchronous
+     * state update and that write landing. **Once editing-entry mutations serialize behind one
+     * [kotlinx.coroutines.sync.Mutex], that specific test no longer discriminates**: forcing the
+     * write to acquire the lock first means `loadEntries()`'s own critical section can't even start
+     * until the write's critical section has already released it, so the disk `loadEntries()` reads
+     * is never stale to begin with — the merge code never runs before the assertion, under either a
+     * real merge or a wholesale replace. Confirmed by mutation, not assumed: reverting the merge to a
+     * wholesale replace left that version of this test passing, identically (see the L4c report for
+     * the exact mutation-check output). Rather than leave a test that can no longer fail sitting in
+     * the suite as apparent coverage, it was replaced outright by the one below, which forces the
+     * *opposite* order — `loadEntries()`'s own read wins the race to the lock — and does still
+     * discriminate correctly, because that ordering survives serialization intact. This is the
+     * answer to §3: the merge is redundant for the write-first ordering, but load-bearing for the
+     * read-first one below.
      *
-     * **L4c correction, re-verified rather than assumed:** [MushroomLogViewModel]'s editing-entry
-     * serialization means [MushroomLogViewModel.loadEntries] and [MushroomLogViewModel.onEntryEdited]'s
-     * write now share one [kotlinx.coroutines.sync.Mutex] — so **this specific test no longer
-     * discriminates**. [saveGate] forces the write to acquire that lock first (it's called before
-     * `loadEntries()` below), which means `loadEntries()`'s own critical section can't even start
-     * until the gate opens and the write's critical section releases the lock — by which point the
-     * write has already landed, so the disk `loadEntries()` reads is never stale in the first place.
-     * Confirmed by mutation, not assumed: reverting the merge to a wholesale replace left this test
-     * green, identically — it was passing because `loadEntries()`'s own merge code never ran before
-     * the assertion, under either version. See `loadEntries racing ahead of a keystroke's own write
-     * while loadEntries' own read wins the race to the lock` below for the ordering that *does* still
-     * need the photos-only merge, and the L4c report for the full account of why this one stopped.
-     */
-    @Test
-    fun `loadEntries racing ahead of a keystroke's own not-yet-landed write still shows the freshly typed field`() = runTest(dispatcher) {
-        val saveGate = CompletableDeferred<Unit>()
-        val original = entry.copy(notes = "original")
-        val repository = FakeMushroomLogRepository(initial = listOf(original), saveGate = saveGate)
-        val vm = viewModel(repository)
-        advanceUntilIdle()
-        vm.onOpenEntry(original.id)
-        vm.onStartEditingEntry()
-        advanceUntilIdle()
-        val draftId = vm.uiState.value.editingEntry!!.id
-
-        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "typing, write not yet landed"))
-        vm.loadEntries()
-        advanceUntilIdle()
-
-        assertEquals(
-            "editingEntry's in-memory field must survive even though its own write is still pending",
-            "typing, write not yet landed",
-            vm.uiState.value.editingEntry?.notes,
-        )
-        assertEquals(
-            "the repository itself must still be pre-write — this test is only meaningful if the race is real",
-            "original",
-            repository.getAll().getOrThrow().single { it.id == draftId }.notes,
-        )
-
-        // Let the gated write land before the test ends, so nothing is left suspended.
-        saveGate.complete(Unit)
-        advanceUntilIdle()
-    }
-
-    /**
-     * The surviving half of §3, after Workstream L4c serialized editing-entry mutations: the test
-     * above forces the *write* to acquire [MushroomLogViewModel]'s lock first, which serialization
-     * alone now closes. This test forces the opposite order — `loadEntries()`'s own read wins the
+     * The surviving half of §3: this test forces `loadEntries()`'s own read to win the race to the
      * race to the lock, and only *then* does a keystroke's write get queued behind it. [readGate]
      * holds `loadEntries()`'s disk read suspended *while it already holds the lock*, so
      * [MushroomLogViewModel.onEntryEdited]'s write — called after `loadEntries()`, per this test's
@@ -973,8 +927,6 @@ class MushroomLogViewModelTest {
 private class FakeMushroomLogRepository(
     initial: List<MushroomLogEntry> = emptyList(),
     var saveShouldFail: Boolean = false,
-    /** Held open by a test to reproduce the specific race [loadEntries]'s merge exists for: a read landing while an earlier keystroke's own write is still in flight. `null` (the default) never gates anything, so every other test here still runs a plain, immediate save. */
-    private val saveGate: CompletableDeferred<Unit>? = null,
     /**
      * Held open by a test to reproduce the *other* ordering of the same race — [loadEntries]'s own
      * read acquiring [MushroomLogViewModel]'s serializing lock before a pending keystroke's write
@@ -1024,7 +976,6 @@ private class FakeMushroomLogRepository(
     )
 
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> {
-        saveGate?.await()
         if (saveShouldFail) return Result.failure(RuntimeException("save failed"))
         entries[entry.id] = entry
         return Result.success(Unit)
