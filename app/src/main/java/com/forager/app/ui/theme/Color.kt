@@ -144,7 +144,14 @@ val SurfaceContainerHighestDark = Color(0xFF373737)
  * non-text bar rather than the 4.5:1 body-text bar -- see ThemeContrastTest, which asserts them
  * against that threshold explicitly rather than exempting them.
  */
-val OutlineLight = Color(0xFF8C8577)
+/**
+ * 0xFF847D70, not the 0xFF8C8577 this started as. That value cleared 3:1 against `surface`
+ * (3.45:1) but landed at 2.88:1 against `surfaceVariant`, which is the darker of the two
+ * backgrounds an outline actually sits on -- below WCAG 1.4.11 and caught by ThemeContrastTest
+ * rather than by eye. Three percent darker at the same hue and saturation; 3.20:1 and 3.84:1
+ * respectively, so it clears the bar with margin rather than sitting on it.
+ */
+val OutlineLight = Color(0xFF847D70)
 val OutlineVariantLight = Color(0xFFD5CEBF)
 val OutlineDark = Color(0xFF8E8E8E)
 val OutlineVariantDark = Color(0xFF444444)
