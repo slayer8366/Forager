@@ -143,14 +143,30 @@ data class MushroomLogEntryEntity(
     val offlineRegionId: Long? = null,
 
     /**
-     * Persisted-uncommitted state — owner decision, 2026-08-22 (Workstream L4b): "a draft is an
-     * entry row marked uncommitted," a discriminator column on this table rather than a second
-     * table or a change-list. **Unrelated to [com.forager.app.domain.model.LogSyncState.Draft]**,
-     * which is an iNaturalist upload-sync state — this column is about whether the row itself has
-     * been committed to the log at all, independent of sync. `true` while an edit session is live
+     * Persisted-uncommitted state — owner decision, 2026-08-22 (Workstream L4b), corrected
+     * 2026-08-25 (L4b-R): a draft is a **standalone row**, not this same row wearing a flag — see
+     * [draftOfEntryId]. **Unrelated to [com.forager.app.domain.model.LogSyncState.Draft]**, which is
+     * an iNaturalist upload-sync state — this column is about whether the row itself has been
+     * committed to the log at all, independent of sync. `true` while an edit session is live
      * (autosaved on every field change, same cadence as before this column existed) or while a
-     * crash left one orphaned; `false` once Save, an incidental exit, or a pre-[MIGRATION_8_9] row
-     * commits it. See [MushroomLogViewModel]'s own doc comment for the full state machine.
+     * crash left one orphaned; `false` for a committed entry, including one currently being
+     * re-edited (its draft is a *different* row — the committed row itself is never touched until
+     * Save). See [MushroomLogViewModel]'s own doc comment for the full state machine.
      */
     val isDraft: Boolean,
+
+    /**
+     * `null` for a committed entry, or for a brand-new entry's own draft (nothing to point at yet —
+     * Save flips this exact row to committed in place, same [id]). Non-null only for a draft that is
+     * a re-edit of an already-committed entry: the [id] of that committed row, which this draft is a
+     * *separate* row seeded as a copy of. Save copies this draft's fields onto the parent, repoints
+     * this draft's [LogEntryPhotoCrossRef] rows onto the parent's [id], and deletes this row, all
+     * transactionally (see `MushroomLogDao.commitDraft`) — Cancel simply deletes this row and its own
+     * cross-references, leaving the parent (and every other row) untouched. This is what lets the
+     * committed entry keep showing its last-saved values in the log for the entire time it's open
+     * for editing (L4b-R, 2026-08-25) — the property the single-flagged-row shape (L4b, 2026-08-22)
+     * could not provide, since flipping the same row to draft made it briefly disappear/overwritable
+     * mid-edit.
+     */
+    val draftOfEntryId: String? = null,
 )

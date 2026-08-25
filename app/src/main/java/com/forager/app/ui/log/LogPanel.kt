@@ -64,6 +64,7 @@ internal fun LogPanel(
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
+    onStartEditingEntry: () -> Unit,
     onSaveEntry: () -> Unit,
     onCancelEditing: () -> Unit,
     onLeaveEditingIncidentally: () -> Unit,
@@ -155,7 +156,11 @@ internal fun LogPanel(
                 entries = uiState.entries,
                 draftEntries = uiState.draftEntries,
                 isLoading = uiState.isLoadingEntries,
-                onOpenEntry = onOpenEntry,
+                // This panel has no separate report step (see its own doc comment) — opening an
+                // entry goes straight to LogEntryDetailScreen below, so it must already be a draft
+                // by the time that happens. onStartEditingEntry is a no-op for a row opened from
+                // the Drafts tab (already one) and creates the draft row for a committed one.
+                onOpenEntry = { id -> onOpenEntry(id); onStartEditingEntry() },
                 modifier = Modifier.weight(1f),
                 loadErrorMessage = uiState.loadErrorMessage,
             )

@@ -17,9 +17,12 @@ import java.util.UUID
  * by design (see [MushroomLogEntry.draft]).
  *
  * The id is assigned here, before the entry is ever committed — Workstream L4b's own "draft
- * identity" decision — so `log_entry_photos` cross-references work unchanged for a photo pulled
- * into a still-uncommitted entry: the id a photo attaches to today is the same id the entry
- * commits under later, never reassigned.
+ * identity" decision, kept by L4b-R's standalone-draft correction (2026-08-25) specifically for
+ * *this* case: a brand-new entry's [MushroomLogEntry.draftOfEntryId] is `null`, so [CommitDraftEntryUseCase]
+ * commits it in place, same id — a photo pulled into it here attaches under the id it will keep
+ * forever, no repoint ever needed. This is the one path where that holds; a *re-edit's* draft (see
+ * [StartEditingLogEntryUseCase]) gets a fresh id of its own, and Save repoints its photo references
+ * onto the parent it's a draft of.
  *
  * Persisting immediately, rather than only once the forager finishes filling it in, is what makes
  * the deferred-observation edit flow possible: the entry exists in storage from the moment it's

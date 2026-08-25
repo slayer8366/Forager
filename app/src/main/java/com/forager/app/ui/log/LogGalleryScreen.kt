@@ -19,16 +19,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Tab
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.Feature
@@ -65,6 +69,12 @@ private fun MushroomLogEntry.hasUnrecordedFields(): Boolean =
  * [LogEntryListScreen]'s plain list for the compact bottom nav (see [JournalTab]'s doc comment for
  * why that composable, and the drawer-hosted [LogPanel] it belongs to, stay untouched for the
  * medium/expanded window instead of being reused here).
+ *
+ * **Log / Drafts toggle (Workstream L4b-R, owner decision 2026-08-25):** a draft never appears
+ * alongside committed entries — "unsaved work is held in a Drafts section." Implemented here as a
+ * filter/toggle on this same screen rather than a separate destination, per the owner's own choice:
+ * [showingDrafts] selects which of [entries]/[draftEntries] the grid below actually shows, never
+ * both at once.
  */
 @Composable
 internal fun LogGalleryScreen(
@@ -73,12 +83,7 @@ internal fun LogGalleryScreen(
     onOpenEntry: (String) -> Unit,
     onAddEntry: () -> Unit,
     modifier: Modifier = Modifier,
-    /**
-     * Orphaned drafts (Workstream L4b crash recovery — see [MushroomLogUiState.draftEntries]'s own
-     * doc comment) — rendered first, ahead of every committed [entries] tile, each with its own
-     * "Draft" badge, so a recovered entry is reassuring to spot rather than indistinguishable from
-     * one the user finished normally. Empty in the overwhelmingly common case (no crash happened).
-     */
+    /** Every current draft — live edit sessions, incidentally-exited ones, and crash-orphaned ones alike (see [MushroomLogUiState.draftEntries]'s own doc comment) — shown only when [showingDrafts] is selected. */
     draftEntries: List<MushroomLogEntry> = emptyList(),
     onOpenDraftEntry: (String) -> Unit = onOpenEntry,
     /**
@@ -89,6 +94,9 @@ internal fun LogGalleryScreen(
      */
     loadErrorMessage: String? = null,
 ) {
+    var showingDrafts by remember { mutableStateOf(false) }
+    val visibleEntries = if (showingDrafts) draftEntries else entries
+
     if (isLoading && entries.isEmpty() && draftEntries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -97,7 +105,15 @@ internal fun LogGalleryScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        if (entries.isEmpty() && draftEntries.isEmpty() && loadErrorMessage != null) {
+        SecondaryTabRow(selectedTabIndex = if (showingDrafts) 1 else 0) {
+            Tab(selected = !showingDrafts, onClick = { showingDrafts = false }, text = { Text("Log") })
+            Tab(
+                selected = showingDrafts,
+                onClick = { showingDrafts = true },
+                text = { Text(if (draftEntries.isEmpty()) "Drafts" else "Drafts (${draftEntries.size})") },
+            )
+        }
+        if (visibleEntries.isEmpty() && loadErrorMessage != null) {
             Text(
                 loadErrorMessage,
                 style = MaterialTheme.typography.bodyMedium,
@@ -111,12 +127,15 @@ internal fun LogGalleryScreen(
             horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
         ) {
-            item { AddEntryTile(onClick = onAddEntry) }
-            items(draftEntries, key = { "draft-${it.id}" }) { entry ->
-                LogEntryTile(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true)
-            }
-            items(entries, key = { it.id }) { entry ->
-                LogEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) })
+            // The "+" tile only makes sense against the committed log — a new entry starts as a
+            // draft either way (see MushroomLogViewModel.onStartNewEntry), but tapping "+" while
+            // looking at Drafts would read as "add a draft," which isn't a distinct action from
+            // "add an entry."
+            if (!showingDrafts) item { AddEntryTile(onClick = onAddEntry) }
+            if (showingDrafts) {
+                items(visibleEntries, key = { it.id }) { entry -> LogEntryTile(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true) }
+            } else {
+                items(visibleEntries, key = { it.id }) { entry -> LogEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) }) }
             }
         }
     }
@@ -155,8 +174,8 @@ private fun AddEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
 /**
  * One logged find in the gallery grid — a cover photo when one exists, otherwise a placeholder
  * icon. [isDraft] renders a "Draft" badge instead of (never alongside) the "Incomplete" one —
- * Workstream L4b crash recovery; a recovered entry is always incomplete by
- * [hasUnrecordedFields]'s own definition too, so showing both would be redundant, not additive.
+ * Workstream L4b-R's Drafts filter; a draft is always incomplete by [hasUnrecordedFields]'s own
+ * definition too, so showing both would be redundant, not additive.
  */
 @Composable
 private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {

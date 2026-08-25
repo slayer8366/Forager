@@ -4,15 +4,17 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
+import com.forager.app.domain.CommitDraftEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.forager.app.domain.GetDraftEntriesUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
-import com.forager.app.domain.GetOrphanedDraftEntriesUseCase
 import com.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
+import com.forager.app.domain.StartEditingLogEntryUseCase
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
@@ -33,47 +35,64 @@ import kotlinx.coroutines.launch
  * state, only [com.forager.app.MainActivity] wires them together (the map's "Log a find" option
  * calls into this ViewModel with a location the availability screen reported).
  *
- * ## Persisted drafts, not autosave-always-commits (Workstream L4b, owner decision 2026-08-22)
+ * ## Standalone drafts (Workstream L4b, owner decision 2026-08-22; corrected 2026-08-25, L4b-R)
  *
- * Autosave-on-every-keystroke does not go away as *infrastructure* — [onEntryEdited] still writes
- * on every call, the same cheap-local-SQLite-write reasoning that motivated it in the first place
- * (a field app has no guarantee of a graceful exit). What changes is *what* that write commits to:
- * every write while an entry is open for editing lands with [MushroomLogEntry.isDraft] `true`, and
- * the entry is only visible via [GetMushroomLogEntriesUseCase] — "the log" — once one of the three
- * exits below resolves it. Storage shape is a single discriminator column, not a second table or a
- * change-list (owner decision: a flag fails loudly — a query that forgets to filter shows a stray
- * entry — where the rejected alternatives fail silently; see [com.forager.app.data.local.MushroomLogEntryEntity.isDraft]'s
- * own doc comment for the full reasoning).
+ * A draft is a **separate row**, not the committed entry itself wearing a flag — the first L4b pass
+ * shipped the single-row shape and it was rejected on its consequences, not just its merits: it let
+ * an interrupted edit overwrite a committed entry in place, and made the committed entry vanish from
+ * the log for the entire time it was being edited. See [MushroomLogEntry.draftOfEntryId]'s own doc
+ * comment for the storage shape this drives.
  *
- * **The three exits** — [onSaveEntry], [onCancelEditing], [onLeaveEditingIncidentally] — are the
- * only ways an open edit session resolves:
- * - **Save** commits whatever is currently in the form (`isDraft = false`) and keeps the form open,
- *   showing the committed result.
- * - **Cancel** is the only exit that discards anything. For an entry that was never committed
- *   before this session ([editingEntryIsFreshlyCreated]), it deletes the row outright — there is no
- *   "last saved state" to revert to. For an entry reopened from an already-committed row, it
- *   restores [editingEntrySnapshot] — the entry exactly as it looked the moment it was opened,
- *   held only in this ViewModel's memory, never a second persisted table — and reverses any photo
- *   attach/detach made during the session by diffing the snapshot's photo set against the current
- *   one (attach/detach already write live cross-reference rows; this undoes exactly the rows this
- *   session changed, never touching the gallery photo itself — see [revertPhotosToSnapshot]).
- * - **Leaving without answering** (tab switch, backgrounding, the back arrow — never the explicit
- *   Cancel button) auto-saves: commits current content, or — if the entry was never committed and
- *   is still byte-for-byte the pristine draft it started as — deletes it, so tapping "+" and
- *   leaving immediately leaves nothing visible (owner decision #6).
+ * **The lifecycle of an edit session:**
+ * - [onStartNewEntry] creates a brand-new draft immediately (`draftOfEntryId = null`) and opens it
+ *   for editing directly — there is no separate "start editing" step for something that doesn't
+ *   exist yet.
+ * - [onOpenEntry] opens an existing row (committed or already-draft) for *viewing* — a report, not
+ *   an edit form. No new row is created here.
+ * - [onStartEditingEntry] is the actual "begin editing" action, called when the user taps into the
+ *   edit form for a row [onOpenEntry] showed. If that row is already a draft, this is a no-op (it's
+ *   already editable). If it's a genuinely committed entry, this creates a **new** draft row seeded
+ *   as a copy of it, `draftOfEntryId` pointing back at the committed entry's id, and switches
+ *   [MushroomLogUiState.editingEntry] to that new row. From this point on, the committed row is
+ *   completely untouched — still visible in [MushroomLogUiState.entries] with its last-saved values
+ *   — until Save.
+ * - [onEntryEdited] autosaves on every field change, same cadence as before this model existed, but
+ *   always onto whatever draft row is currently open — never the committed parent.
+ *
+ * **The three exits**, once a draft is open:
+ * - [onSaveEntry] commits: for a brand-new entry's draft, flips it to committed in place (same id);
+ *   for a re-edit's draft, copies its fields onto the parent, repoints its photo references onto the
+ *   parent (merging with what the parent already had), and removes the draft row — transactionally
+ *   (see [CommitDraftEntryUseCase]/`MushroomLogDao.commitDraft`). The form stays open, now showing
+ *   the committed result.
+ * - [onCancelEditing] is the only exit that discards anything: it deletes the draft row and its own
+ *   photo references outright. For a brand-new entry this deletes the whole entry, leaving nothing
+ *   in the log or the Drafts section. For a re-edit, the parent — untouched this whole time — is
+ *   completely unaffected.
+ * - [onLeaveEditingIncidentally] (tab switch, backgrounding, the back arrow, or any other way of
+ *   leaving besides tapping Save or Cancel) does **not** commit and does **not** discard — the draft
+ *   is already durably persisted (every [onEntryEdited] call wrote it), so this just closes the form.
+ *   The draft surfaces in the Drafts filter ([MushroomLogUiState.draftEntries]) until the user
+ *   returns to resolve it. (Correction from the first L4b pass, which auto-committed here — the
+ *   owner's 2026-08-25 decision is explicit: an incidental exit must never put an unsaved entry in
+ *   the log.)
  *
  * **The known hazard, resolved deliberately:** [loadEntries] used to re-derive [MushroomLogUiState.editingEntry]
  * wholesale from a fresh repository read (G3) — safe only because nothing uncommitted existed to
  * lose at the time. Under this model that would silently discard in-progress typing on every
  * refresh, including [onDeleteGalleryPhoto]'s own success-path refresh. [loadEntries] now merges in
  * only [MushroomLogEntry.photos] — the one field G3's refresh existed to keep current — onto
- * whatever [MushroomLogUiState.editingEntry] already holds, never replacing the rest of it.
+ * whatever [MushroomLogUiState.editingEntry] already holds, never replacing the rest of it. This
+ * still holds under the standalone-draft model: the merge searches both [MushroomLogUiState.entries]
+ * and [MushroomLogUiState.draftEntries] for the open row's id, since it may now be either.
  */
 class MushroomLogViewModel(
     private val getEntries: GetMushroomLogEntriesUseCase,
-    private val getOrphanedDraftEntries: GetOrphanedDraftEntriesUseCase,
+    private val getDraftEntries: GetDraftEntriesUseCase,
     private val createEntry: CreateMushroomLogEntryUseCase,
+    private val startEditingEntry: StartEditingLogEntryUseCase,
     private val saveEntry: SaveMushroomLogEntryUseCase,
+    private val commitDraftEntry: CommitDraftEntryUseCase,
     private val deleteEntry: DeleteMushroomLogEntryUseCase,
     private val addPhoto: AddPhotoToLogEntryUseCase,
     private val removePhoto: RemovePhotoFromLogEntryUseCase,
@@ -85,27 +104,6 @@ class MushroomLogViewModel(
     private val _uiState = MutableStateFlow(MushroomLogUiState())
     val uiState: StateFlow<MushroomLogUiState> = _uiState.asStateFlow()
 
-    /**
-     * [MushroomLogUiState.editingEntry] exactly as it looked the moment it was opened for editing
-     * (via [onOpenEntry]) or created (via [onStartNewEntry]) — this session's only "last saved
-     * state," held in memory only. `null` whenever nothing is open. Never persisted: a crash loses
-     * it the same way it loses any other in-memory ViewModel state, which is why a crash-recovered
-     * draft (see [GetOrphanedDraftEntriesUseCase]) re-opens with *itself* as the new baseline rather
-     * than promising a revert further back than where the user resumed from — that older state was
-     * never recoverable under the "no second table" storage shape, and reinstating a draft as-is is
-     * still strictly non-destructive (nothing is deleted without an explicit [onDeleteEntry]).
-     */
-    private var editingEntrySnapshot: MushroomLogEntry? = null
-
-    /**
-     * `true` exactly when the currently-open entry was created by *this* session's [onStartNewEntry]
-     * and has never been committed — the one case [onCancelEditing] deletes outright instead of
-     * restoring [editingEntrySnapshot]. Reopening any existing row, committed or an orphaned draft,
-     * always sets this `false`: only direct deletion ([onDeleteEntry]) may remove a row this
-     * ViewModel didn't itself just create moments ago.
-     */
-    private var editingEntryIsFreshlyCreated = false
-
     init {
         loadEntries()
         loadGalleryPhotos()
@@ -116,16 +114,16 @@ class MushroomLogViewModel(
             _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
             getEntries().fold(
                 onSuccess = { entries ->
-                    val drafts = getOrphanedDraftEntries().getOrElse { error ->
-                        Log.w(TAG, "Couldn't load orphaned drafts.", error)
+                    val drafts = getDraftEntries().getOrElse { error ->
+                        Log.w(TAG, "Couldn't load drafts.", error)
                         _uiState.value.draftEntries
                     }
                     _uiState.update { state ->
                         // Merges in only the freshest `photos` for the open entry (found in either
-                        // list, regardless of its own draft state) — never replaces the rest of
+                        // list — a report view lives in entries, an open draft in draftEntries, and
+                        // which one it is can change mid-session) — never replaces the rest of
                         // editingEntry, so in-progress typing survives a refresh. See this class's
-                        // own doc comment on the loadEntries hazard for why a wholesale replacement
-                        // (G3's original shape) is no longer safe once drafts exist.
+                        // own doc comment on the loadEntries hazard for the full reasoning.
                         val editing = state.editingEntry
                         val freshPhotos = editing?.let { (entries + drafts).firstOrNull { fresh -> fresh.id == editing.id }?.photos }
                         state.copy(
@@ -171,19 +169,15 @@ class MushroomLogViewModel(
 
     /**
      * Starts and immediately persists a new, entirely-unrecorded entry — at [location] if one is
-     * already known, or with none at all — as an uncommitted draft, then opens it for editing.
-     * Deliberately never added to [MushroomLogUiState.entries]: that list is committed-only
-     * (owner decision #6), so a brand-new entry stays invisible there until one of the three exits
-     * commits it.
+     * already known, or with none at all — as its own standalone draft, then opens it for editing
+     * directly (no separate [onStartEditingEntry] step; nothing committed exists yet to view a
+     * report of). Deliberately never added to [MushroomLogUiState.entries]: that list is
+     * committed-only (owner decision #6), so a brand-new entry stays invisible there until Save.
      */
     fun onStartNewEntry(location: LatLng?, date: LocalDate = LocalDate.now()) {
         viewModelScope.launch {
             createEntry(location, date).fold(
-                onSuccess = { entry ->
-                    editingEntrySnapshot = entry
-                    editingEntryIsFreshlyCreated = true
-                    _uiState.update { it.copy(editingEntry = entry, saveErrorMessage = null) }
-                },
+                onSuccess = { entry -> _uiState.update { it.copy(editingEntry = entry, saveErrorMessage = null) } },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't start a new log entry.", error)
                     _uiState.update { it.copy(saveErrorMessage = "Couldn't start a new entry.") }
@@ -193,34 +187,48 @@ class MushroomLogViewModel(
     }
 
     /**
-     * Opens an already-loaded entry for viewing/editing — found in either [MushroomLogUiState.entries]
-     * (the normal case) or [MushroomLogUiState.draftEntries] (reinstating a crash-recovered draft).
-     * Either way this is reopening a row that already existed before this call, never one this
-     * session just created, so [editingEntryIsFreshlyCreated] is always `false` here — see that
-     * field's own doc comment for why that's the correct baseline for a resumed crash-recovered
-     * draft as well as a normal re-edit.
+     * Opens an already-loaded row for *viewing* — found in either [MushroomLogUiState.entries] (a
+     * committed entry, shown as a report) or [MushroomLogUiState.draftEntries] (a draft reopened
+     * from the Drafts filter, resumed directly into editing — see [JournalTab]'s own mode logic).
+     * Creates nothing; see [onStartEditingEntry] for the action that actually begins an edit session
+     * on a committed entry.
      */
     fun onOpenEntry(id: String) {
         val state = _uiState.value
         val entry = state.entries.firstOrNull { it.id == id } ?: state.draftEntries.firstOrNull { it.id == id }
-        editingEntrySnapshot = entry
-        editingEntryIsFreshlyCreated = false
         _uiState.update { it.copy(editingEntry = entry) }
     }
 
-    /** Returns to the list without resolving whatever is open — see [onSaveEntry]/[onCancelEditing]/[onLeaveEditingIncidentally] for the ways an edit session actually resolves; this alone is only correct for closing a *report* (nothing edited) view. */
+    /** Returns to the list without resolving anything — correct only for closing a *report* (nothing editable was ever touched). An open edit session resolves via [onSaveEntry]/[onCancelEditing]/[onLeaveEditingIncidentally] instead. */
     fun onCloseEntry() {
-        editingEntrySnapshot = null
-        editingEntryIsFreshlyCreated = false
         _uiState.update { it.copy(editingEntry = null) }
     }
 
-    /** Persists [updated] as a draft (`isDraft = true`) and reflects it in [MushroomLogUiState.editingEntry] — never in [MushroomLogUiState.entries] while a draft, per [replacing]. See this class's doc comment on the persisted-draft model. */
-    fun onEntryEdited(updated: MushroomLogEntry) {
-        val draft = updated.copy(isDraft = true)
-        _uiState.update { it.replacing(draft) }
+    /**
+     * Begins editing [MushroomLogUiState.editingEntry] — see this class's own doc comment for why
+     * this is a distinct step from [onOpenEntry]. A no-op if it's already a draft (a brand-new entry,
+     * or one reopened from the Drafts filter); otherwise creates a new draft row pointing at it and
+     * switches [MushroomLogUiState.editingEntry] to that row. A no-op if nothing is open.
+     */
+    fun onStartEditingEntry() {
+        val current = _uiState.value.editingEntry ?: return
+        if (current.isDraft) return
         viewModelScope.launch {
-            saveEntry(draft).fold(
+            startEditingEntry(current).fold(
+                onSuccess = { draft -> _uiState.update { it.copy(editingEntry = draft, saveErrorMessage = null) } },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't start editing entry '${current.id}'.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't start editing that entry.") }
+                },
+            )
+        }
+    }
+
+    /** Autosaves [updated] — always onto whatever draft row is currently open (see this class's own doc comment); never touches [MushroomLogUiState.entries] or [MushroomLogUiState.draftEntries], since a committed parent (if any) stays untouched until Save. */
+    fun onEntryEdited(updated: MushroomLogEntry) {
+        _uiState.update { it.copy(editingEntry = updated) }
+        viewModelScope.launch {
+            saveEntry(updated).fold(
                 onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't save entry '${updated.id}'.", error)
@@ -230,19 +238,30 @@ class MushroomLogViewModel(
         }
     }
 
-    /** Save — commits the currently-open entry (`isDraft = false`) and keeps it open, now showing the committed result. A no-op if nothing is open. */
+    /**
+     * Save — commits the currently-open draft (see [CommitDraftEntryUseCase]) and keeps the form
+     * open, now showing the committed result under its committed id. A no-op if nothing is open.
+     */
     fun onSaveEntry() {
-        val current = _uiState.value.editingEntry ?: return
-        val committed = current.copy(isDraft = false)
+        val draft = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
-            saveEntry(committed).fold(
-                onSuccess = {
-                    editingEntrySnapshot = committed
-                    editingEntryIsFreshlyCreated = false
-                    _uiState.update { it.replacing(committed).copy(saveErrorMessage = null) }
+            commitDraftEntry(draft).fold(
+                onSuccess = { committed ->
+                    _uiState.update { state ->
+                        state.copy(
+                            entries = if (state.entries.any { it.id == committed.id }) {
+                                state.entries.map { if (it.id == committed.id) committed else it }
+                            } else {
+                                state.entries + committed
+                            },
+                            draftEntries = state.draftEntries.filterNot { it.id == draft.id },
+                            editingEntry = committed,
+                            saveErrorMessage = null,
+                        )
+                    }
                 },
                 onFailure = { error ->
-                    Log.w(TAG, "Couldn't save entry '${current.id}'.", error)
+                    Log.w(TAG, "Couldn't save entry '${draft.id}'.", error)
                     _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
                 },
             )
@@ -250,61 +269,53 @@ class MushroomLogViewModel(
     }
 
     /**
-     * Cancel — the only exit that throws anything away. A freshly-created, never-committed entry
-     * is deleted outright (there is no prior state to revert to); an entry reopened from an
-     * already-committed row is restored to [editingEntrySnapshot], including reversing any photo
-     * attach/detach made this session (see [revertPhotosToSnapshot]) — the gallery photo itself is
-     * never touched either way, only the reference. A no-op if nothing is open.
+     * Cancel — the only exit that discards anything. Deletes the currently-open draft's own row and
+     * its own photo references (see [DeleteMushroomLogEntryUseCase]) — for a brand-new entry this is
+     * the whole entry, gone from the log and the Drafts filter both; for a re-edit, the committed
+     * parent was never touched and is completely unaffected. A no-op if nothing is open.
      */
     fun onCancelEditing() {
-        val current = _uiState.value.editingEntry ?: return
-        if (editingEntryIsFreshlyCreated) {
-            onDeleteEntry(current.id)
-            return
-        }
-        val snapshot = editingEntrySnapshot ?: return
+        val draft = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
-            val restoredPhotos = revertPhotosToSnapshot(current, snapshot)
-            val restored = snapshot.copy(photos = restoredPhotos)
-            saveEntry(restored).fold(
+            deleteEntry(draft.id).fold(
                 onSuccess = {
-                    editingEntrySnapshot = null
-                    editingEntryIsFreshlyCreated = false
-                    _uiState.update { it.replacing(restored).copy(editingEntry = null, saveErrorMessage = null) }
+                    _uiState.update { state ->
+                        state.copy(
+                            draftEntries = state.draftEntries.filterNot { it.id == draft.id },
+                            editingEntry = null,
+                            saveErrorMessage = null,
+                        )
+                    }
                 },
                 onFailure = { error ->
-                    Log.w(TAG, "Couldn't undo changes to entry '${current.id}'.", error)
-                    _uiState.update { it.copy(saveErrorMessage = "Couldn't undo your changes.") }
+                    Log.w(TAG, "Couldn't discard draft '${draft.id}'.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't discard that draft.") }
                 },
             )
         }
     }
 
     /**
-     * Leaving without answering — tab switch, backgrounding, or the back arrow, never the explicit
-     * Cancel button. Auto-saves: commits whatever is currently in the form, unless the entry was
-     * never committed and is still byte-for-byte the pristine draft it started as, in which case it
-     * is deleted instead — so tapping "+" and leaving immediately leaves nothing visible (owner
-     * decision #6). A no-op if nothing is open.
+     * Leaving without answering — tab switch, backgrounding, the back arrow, or any other exit
+     * besides tapping Save or Cancel. Never commits, never discards (owner decision, 2026-08-25,
+     * correcting the first L4b pass's auto-save-on-exit behavior): the draft is already durably
+     * persisted by [onEntryEdited]'s own per-keystroke writes, so this only closes the form and — if
+     * the open row is a draft — makes sure it's reflected in [MushroomLogUiState.draftEntries]
+     * immediately, without waiting for a fresh [loadEntries]. Synchronous and unconditional: never
+     * blocks the exit on anything, and never inspects whether the draft was actually touched (that
+     * auto-delete existed in the first pass, was never authorized, and is gone — see the L4b-R
+     * dispatch). A no-op if nothing is open.
      */
     fun onLeaveEditingIncidentally() {
         val current = _uiState.value.editingEntry ?: return
-        if (editingEntryIsFreshlyCreated && current == editingEntrySnapshot) {
-            onDeleteEntry(current.id)
-            return
-        }
-        val committed = current.copy(isDraft = false)
-        viewModelScope.launch {
-            saveEntry(committed).fold(
-                onSuccess = {
-                    editingEntrySnapshot = null
-                    editingEntryIsFreshlyCreated = false
-                    _uiState.update { it.replacing(committed).copy(editingEntry = null, saveErrorMessage = null) }
+        _uiState.update { state ->
+            state.copy(
+                draftEntries = when {
+                    !current.isDraft -> state.draftEntries
+                    state.draftEntries.any { it.id == current.id } -> state.draftEntries.map { if (it.id == current.id) current else it }
+                    else -> state.draftEntries + current
                 },
-                onFailure = { error ->
-                    Log.w(TAG, "Couldn't save entry '${current.id}'.", error)
-                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
-                },
+                editingEntry = null,
             )
         }
     }
@@ -319,10 +330,6 @@ class MushroomLogViewModel(
         viewModelScope.launch {
             deleteEntry(id).fold(
                 onSuccess = {
-                    if (_uiState.value.editingEntry?.id == id) {
-                        editingEntrySnapshot = null
-                        editingEntryIsFreshlyCreated = false
-                    }
                     _uiState.update { state ->
                         state.copy(
                             entries = state.entries.filterNot { it.id == id },
@@ -346,7 +353,7 @@ class MushroomLogViewModel(
             _uiState.update { it.copy(isSavingPhoto = true) }
             addPhoto(entry, source).fold(
                 onSuccess = { updated ->
-                    _uiState.update { it.replacing(updated).copy(isSavingPhoto = false, saveErrorMessage = null) }
+                    _uiState.update { it.copy(editingEntry = updated, isSavingPhoto = false, saveErrorMessage = null) }
                     // A freshly added photo is a new gallery row PhotoGalleryScreen's already-loaded
                     // state doesn't know about yet — without this, it wouldn't appear there until
                     // the ViewModel is recreated. Detach has no equivalent need: it never removes a
@@ -367,7 +374,7 @@ class MushroomLogViewModel(
         val entry = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
             removePhoto(entry, photo).fold(
-                onSuccess = { updated -> _uiState.update { it.replacing(updated).copy(saveErrorMessage = null) } },
+                onSuccess = { updated -> _uiState.update { it.copy(editingEntry = updated, saveErrorMessage = null) } },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't remove a photo from entry '${entry.id}'.", error)
                     _uiState.update { it.copy(saveErrorMessage = "Couldn't remove that photo.") }
@@ -381,7 +388,7 @@ class MushroomLogViewModel(
         val entry = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
             pullPhotoIntoEntry(entry, photo).fold(
-                onSuccess = { updated -> _uiState.update { it.replacing(updated).copy(saveErrorMessage = null) } },
+                onSuccess = { updated -> _uiState.update { it.copy(editingEntry = updated, saveErrorMessage = null) } },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't pull photo '${photo.id}' into entry '${entry.id}'.", error)
                     _uiState.update { it.copy(saveErrorMessage = "Couldn't add that photo.") }
@@ -420,58 +427,13 @@ class MushroomLogViewModel(
     /**
      * Clears [MushroomLogUiState.saveErrorMessage] once its one-shot Toast has been shown — see
      * that field's own render site (`LogPanel`/`JournalTab`'s `LaunchedEffect`) for the other half
-     * of the "cleared on dismiss or next successful save, whichever comes first" rule; the nine
-     * write sites above (start/edit/save/cancel/delete/add photo/remove photo/pull photo/delete
-     * gallery photo) cover the "next successful save" half themselves.
+     * of the "cleared on dismiss or next successful save, whichever comes first" rule; the ten write
+     * sites above (start/start-editing/edit/save/cancel/delete/add photo/remove photo/pull photo/
+     * delete gallery photo) cover the "next successful save" half themselves.
      */
     fun onSaveErrorDismissed() {
         _uiState.update { it.copy(saveErrorMessage = null) }
     }
-
-    /**
-     * Reverses [current]'s photo attachments back to [snapshot]'s set — detaching anything attached
-     * during the session, reattaching anything detached — and returns the fully-reverted photo
-     * list. Never touches a gallery photo's own row: [RemovePhotoFromLogEntryUseCase]/
-     * [PullPhotoIntoEntryUseCase] both only ever attach/detach a reference, matching the "What NOT
-     * to do" rule this exists to satisfy (Cancel must never let a photo vanish from the album).
-     * A failure on any one photo is logged and otherwise ignored — best-effort revert, since the
-     * alternative (leaving the whole cancel unresolved) would strand the user's edit session
-     * entirely over one photo's transient failure.
-     */
-    private suspend fun revertPhotosToSnapshot(current: MushroomLogEntry, snapshot: MushroomLogEntry): List<LogPhoto> {
-        var working = current
-        val toDetach = current.photos.filterNot { photo -> snapshot.photos.any { it.id == photo.id } }
-        val toReattach = snapshot.photos.filterNot { photo -> current.photos.any { it.id == photo.id } }
-        toDetach.forEach { photo ->
-            removePhoto(working, photo).fold(
-                onSuccess = { working = it },
-                onFailure = { error -> Log.w(TAG, "Couldn't revert photo '${photo.id}' on entry '${working.id}'.", error) },
-            )
-        }
-        toReattach.forEach { photo ->
-            pullPhotoIntoEntry(working, photo).fold(
-                onSuccess = { working = it },
-                onFailure = { error -> Log.w(TAG, "Couldn't revert photo '${photo.id}' on entry '${working.id}'.", error) },
-            )
-        }
-        return working.photos
-    }
-
-    /**
-     * [updated] replacing its counterpart in [MushroomLogUiState.editingEntry], and in
-     * [MushroomLogUiState.entries] according to [MushroomLogEntry.isDraft]: removed from the list
-     * if now a draft, updated in place if already present and now committed, or appended if this is
-     * its first-ever commit (a brand-new entry was never added to [entries] at creation — see
-     * [onStartNewEntry]'s own doc comment).
-     */
-    private fun MushroomLogUiState.replacing(updated: MushroomLogEntry): MushroomLogUiState = copy(
-        entries = when {
-            updated.isDraft -> entries.filterNot { it.id == updated.id }
-            entries.any { it.id == updated.id } -> entries.map { if (it.id == updated.id) updated else it }
-            else -> entries + updated
-        },
-        editingEntry = editingEntry?.let { if (it.id == updated.id) updated else it },
-    )
 
     private companion object {
         const val TAG = "MushroomLog"

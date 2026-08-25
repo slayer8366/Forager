@@ -53,16 +53,20 @@ import com.forager.app.ui.availability.CollapsibleSection
  * `AvailabilityScreen`) so the form doesn't dump every field on screen at once — the same "single
  * line until tapped" shape the drawer's own Search/Trip Planner sections use.
  *
- * ## Persisted drafts, not autosave-always-commits (Workstream L4b, owner decision 2026-08-22)
+ * ## Standalone drafts (Workstream L4b, owner decision 2026-08-22; corrected 2026-08-25, L4b-R)
  *
- * [onEntryChanged] still fires — and still writes to disk — on every field change, but the write
- * lands as an uncommitted draft (see [MushroomLogViewModel]'s own doc comment) rather than
- * committing outright. [onSave]/[onCancel] are the two deliberate exits this screen exposes
- * directly: Save commits the current form content; Cancel discards it (deleting a never-before-
- * committed entry outright, or restoring an already-committed one to how it looked when opened).
- * [onBack] — the navigation arrow, not a labeled action — is the *incidental* exit instead: leaving
- * without answering auto-saves, the same as a tab switch or the app backgrounding (see
- * [MushroomLogViewModel.onLeaveEditingIncidentally]). Only the explicit Cancel button ever discards.
+ * [entry] here is always the **draft row** — [MushroomLogViewModel.onStartEditingEntry] created it
+ * (or it's a brand-new entry's own row) before this screen ever opens; a committed entry's own row
+ * is never bound to this form directly. [onEntryChanged] fires — and writes to disk — on every
+ * field change, always onto that draft row. [onSave]/[onCancel] are the two deliberate exits this
+ * screen exposes directly: Save commits the draft's current content (onto the parent's id, when
+ * there is one) and removes the draft row; Cancel deletes the draft row outright and its own photo
+ * references — for a re-edit, the parent is untouched throughout, so there is nothing to "restore."
+ * [onBack] — the navigation arrow, not a labeled action — is the *incidental* exit instead: the
+ * draft is already durably persisted (every [onEntryChanged] call wrote it), so leaving without
+ * answering neither commits nor discards, just closes the form, the same as a tab switch or the app
+ * backgrounding (see [MushroomLogViewModel.onLeaveEditingIncidentally]). Only the explicit Cancel
+ * button ever discards.
  *
  * Workstream L4 (`docs/plans/pr26-rework.md`): entry creation routes here directly now, so [entry]
  * routinely arrives with [MushroomLogEntry.foundAt] `null`. [onAddLocation] is this screen's own

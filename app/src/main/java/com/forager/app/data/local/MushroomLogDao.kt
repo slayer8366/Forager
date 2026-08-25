@@ -12,13 +12,15 @@ import androidx.room.Transaction
  * [CachedSearchDao]) rather than three, since deleting an entry has to remove its own
  * cross-reference rows in the same transaction as the entry row itself.
  *
- * **Saving an entry never touches [LogPhotoEntity]/[LogEntryPhotoCrossRef] rows at all** — the
+ * **[upsertEntry] never touches [LogPhotoEntity]/[LogEntryPhotoCrossRef] rows at all** — the
  * pre-`MIGRATION_7_8` shape (`upsertEntryWithPhotos`) deleted and reinserted every photo row for an
  * entry on every save, which was correct when a photo row *was* the entry's own claim to a photo,
  * but would churn cross-reference rows on every autosaved field edit once a photo exists
- * independent of any entry (owner decision, 2026-08-22: gallery ownership). [attachPhoto]/
- * [detachPhoto] are the only writes to [LogEntryPhotoCrossRef] now, each touching exactly the one
- * row a user action (add a photo, remove a photo) actually changed.
+ * independent of any entry (owner decision, 2026-08-22: gallery ownership). [insertCrossRef]/
+ * [deleteCrossRef] are the only per-action writes to [LogEntryPhotoCrossRef] — each touching
+ * exactly the one row a user action (add a photo, remove a photo) actually changed — and
+ * [commitDraft] (Workstream L4b-R) is the only writer that moves a whole set of them at once, from
+ * a draft's id onto its parent's, as part of Save.
  */
 @Dao
 abstract class MushroomLogDao {
@@ -31,6 +33,10 @@ abstract class MushroomLogDao {
 
     @Query("SELECT * FROM log_entry_photos")
     abstract suspend fun getAllCrossRefs(): List<LogEntryPhotoCrossRef>
+
+    /** Every cross-reference row for one entry — Workstream L4b-R, the read [commitDraft] repoints from a draft's own id onto its parent's. */
+    @Query("SELECT * FROM log_entry_photos WHERE entryId = :entryId")
+    abstract suspend fun getCrossRefsForEntry(entryId: String): List<LogEntryPhotoCrossRef>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun upsertEntry(entity: MushroomLogEntryEntity)
@@ -63,6 +69,31 @@ abstract class MushroomLogDao {
     open suspend fun deleteEntryAndCrossRefs(id: String) {
         deleteCrossRefsForEntry(id)
         deleteEntryById(id)
+    }
+
+    /**
+     * Workstream L4b-R: commits [committedEntity] — Save. When [draftId] equals [committedEntity]'s
+     * own id (a brand-new entry's draft, no parent), this is just the upsert: the row flips to
+     * committed in place, and its cross-reference rows are already correct since they were always
+     * keyed on this same id. When [draftId] differs (a re-edit's draft, a *separate* row from the
+     * committed parent [committedEntity] represents), this additionally repoints every one of
+     * [draftId]'s cross-reference rows onto [committedEntity]'s id — merging with, never duplicating,
+     * whatever the parent already referenced, since [insertCrossRef]'s own composite primary key
+     * makes a repeat insert a no-op — then deletes the now-empty draft row. All in one transaction:
+     * a crash or failure partway through must never leave a photo reference repointed without its
+     * draft row gone, or vice versa (see the L4b-R dispatch's own "one place this can silently drop
+     * data" warning).
+     */
+    @Transaction
+    open suspend fun commitDraft(committedEntity: MushroomLogEntryEntity, draftId: String) {
+        upsertEntry(committedEntity)
+        if (committedEntity.id != draftId) {
+            getCrossRefsForEntry(draftId).forEach { crossRef ->
+                insertCrossRef(LogEntryPhotoCrossRef(entryId = committedEntity.id, photoId = crossRef.photoId))
+            }
+            deleteCrossRefsForEntry(draftId)
+            deleteEntryById(draftId)
+        }
     }
 
     /** Every cross-reference row for one gallery photo removed — every entry losing its reference to it. */

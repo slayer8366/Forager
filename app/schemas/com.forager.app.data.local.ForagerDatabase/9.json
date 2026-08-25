@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 9,
-    "identityHash": "01895bc6efe01f7914f635c2a22019a0",
+    "identityHash": "dce8b707fafa1b6dfae483b20f2e1a2c",
     "entities": [
       {
         "tableName": "planned_trips",
@@ -129,7 +129,7 @@
       },
       {
         "tableName": "mushroom_log_entries",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `lat` REAL, `lng` REAL, `foundOn` TEXT NOT NULL, `entryNotes` TEXT NOT NULL, `ownIdentification` TEXT, `syncStateKind` TEXT NOT NULL, `syncProgress` REAL, `syncRemoteObservationId` TEXT, `syncUploadedAtEpochMillis` INTEGER, `syncFailureReason` TEXT, `capShape` TEXT, `capSurface` TEXT, `capDecorationsState` TEXT NOT NULL, `capDecorationsValue` TEXT, `capMargin` TEXT, `capNotes` TEXT NOT NULL, `hymenophoreKind` TEXT, `gillAttachment` TEXT, `gillSpacing` TEXT, `gillEdge` TEXT, `hymenophoreNotes` TEXT NOT NULL, `stipeKind` TEXT, `stipePosition` TEXT, `stipeInterior` TEXT, `stipeBase` TEXT, `stipeNotes` TEXT NOT NULL, `annulusState` TEXT NOT NULL, `annulusValue` TEXT, `volvaState` TEXT NOT NULL, `volvaValue` TEXT, `veilNotes` TEXT NOT NULL, `fleshTexture` TEXT, `colorChangeState` TEXT NOT NULL, `colorChangeValue` TEXT, `exudateState` TEXT NOT NULL, `exudateValue` TEXT, `contextFleshNotes` TEXT NOT NULL, `sporePrintColorKind` TEXT, `sporePrintOtherText` TEXT, `sporePrintReadOn` TEXT, `sporePrintNotes` TEXT NOT NULL, `associationKind` TEXT, `associationHostSpecies` TEXT, `associationOtherText` TEXT, `forestType` TEXT, `hostHealth` TEXT, `hostSubstrateNotes` TEXT NOT NULL, `offlineRegionId` INTEGER, `isDraft` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `lat` REAL, `lng` REAL, `foundOn` TEXT NOT NULL, `entryNotes` TEXT NOT NULL, `ownIdentification` TEXT, `syncStateKind` TEXT NOT NULL, `syncProgress` REAL, `syncRemoteObservationId` TEXT, `syncUploadedAtEpochMillis` INTEGER, `syncFailureReason` TEXT, `capShape` TEXT, `capSurface` TEXT, `capDecorationsState` TEXT NOT NULL, `capDecorationsValue` TEXT, `capMargin` TEXT, `capNotes` TEXT NOT NULL, `hymenophoreKind` TEXT, `gillAttachment` TEXT, `gillSpacing` TEXT, `gillEdge` TEXT, `hymenophoreNotes` TEXT NOT NULL, `stipeKind` TEXT, `stipePosition` TEXT, `stipeInterior` TEXT, `stipeBase` TEXT, `stipeNotes` TEXT NOT NULL, `annulusState` TEXT NOT NULL, `annulusValue` TEXT, `volvaState` TEXT NOT NULL, `volvaValue` TEXT, `veilNotes` TEXT NOT NULL, `fleshTexture` TEXT, `colorChangeState` TEXT NOT NULL, `colorChangeValue` TEXT, `exudateState` TEXT NOT NULL, `exudateValue` TEXT, `contextFleshNotes` TEXT NOT NULL, `sporePrintColorKind` TEXT, `sporePrintOtherText` TEXT, `sporePrintReadOn` TEXT, `sporePrintNotes` TEXT NOT NULL, `associationKind` TEXT, `associationHostSpecies` TEXT, `associationOtherText` TEXT, `forestType` TEXT, `hostHealth` TEXT, `hostSubstrateNotes` TEXT NOT NULL, `offlineRegionId` INTEGER, `isDraft` INTEGER NOT NULL, `draftOfEntryId` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -397,6 +397,11 @@
             "columnName": "isDraft",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "draftOfEntryId",
+            "columnName": "draftOfEntryId",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -702,7 +707,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '01895bc6efe01f7914f635c2a22019a0')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dce8b707fafa1b6dfae483b20f2e1a2c')"
     ]
   }
 }

@@ -64,6 +64,7 @@ private class PullFakeMushroomLogRepository(
     override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(emptyList())
     override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(emptyList())
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> = Result.success(Unit)
+    override suspend fun commitDraft(draftId: String, committed: MushroomLogEntry): Result<Unit> = Result.success(Unit)
     override suspend fun delete(id: String): Result<Unit> = Result.success(Unit)
 
     override suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit> {

@@ -38,15 +38,38 @@ interface MushroomLogRepository {
     suspend fun getAllPhotos(): Result<List<GalleryPhoto>>
 
     /**
-     * Inserts [entry], or replaces the stored entry with the same id if one already exists — how
-     * both creation and the deferred-observation edit flow are saved. **Never touches [entry.photos]** —
-     * a photo reference is added or removed only through [attachPhotoToEntry]/[detachPhotoFromEntry],
-     * one row at a time, so an unrelated field edit (autosaved on every keystroke) never rewrites
-     * the entry's whole photo-reference set the way the pre-gallery-ownership shape did.
+     * Inserts [entry], or replaces the stored entry with the same id if one already exists — the
+     * per-keystroke autosave write for whatever row is currently open (Workstream L4b-R: always a
+     * *draft* row — either a brand-new entry's own row, or the separate draft row a re-edit creates,
+     * never the committed parent it points at until [commitDraft] runs). **Never touches
+     * [entry.photos]** — a photo reference is added or removed only through
+     * [attachPhotoToEntry]/[detachPhotoFromEntry], one row at a time, so an unrelated field edit
+     * never rewrites the entry's whole photo-reference set the way the pre-gallery-ownership shape
+     * did. This stays true under the standalone-draft model too: repointing photo references from a
+     * draft onto its parent is [commitDraft]'s job specifically, not something [save] ever does.
      */
     suspend fun save(entry: MushroomLogEntry): Result<Unit>
 
-    /** Removes the entry with this id and its own photo *references* — never the referenced photos themselves. A no-op, not a failure, if no such entry is stored. */
+    /**
+     * Commits a draft — Save (Workstream L4b-R). [draftId] is the draft row's own id; [committed] is
+     * the final content to persist, under the *parent's* id when there is one (same as [draftId]
+     * when there isn't — a brand-new entry's first commit). Transactionally: upserts [committed],
+     * and — only when [draftId] differs from [committed]'s id — repoints [draftId]'s own photo
+     * cross-references onto [committed]'s id (merging with whatever the parent already referenced,
+     * never duplicating) and removes the draft row. See `MushroomLogDao.commitDraft`'s own doc
+     * comment for why this must be one transaction: a photo reference repointed without its draft
+     * row removed, or vice versa, is exactly the silent data loss this operation exists to prevent.
+     */
+    suspend fun commitDraft(draftId: String, committed: MushroomLogEntry): Result<Unit>
+
+    /**
+     * Removes the entry with this id and its own photo *references* — never the referenced photos
+     * themselves. Doubles as Cancel (Workstream L4b-R): called with a draft's own id, this discards
+     * exactly that row and the photo references it gained during the session, leaving any parent
+     * entry (a re-edit's draft has one; a brand-new entry's does not) or any other row untouched — no
+     * separate "cancel" operation is needed, since a draft and a committed entry are both just rows
+     * in this same table. A no-op, not a failure, if no such entry is stored.
+     */
     suspend fun delete(id: String): Result<Unit>
 
     /** Adds [photo] to the gallery — the photo existing at all, independent of any entry referencing it. */

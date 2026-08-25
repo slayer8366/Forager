@@ -21,6 +21,7 @@ import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeReturnToStartUseCase
 import com.forager.app.domain.ComputeTrackStatisticsUseCase
+import com.forager.app.domain.CommitDraftEntryUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.forager.app.domain.CreateWaypointUseCase
@@ -34,9 +35,9 @@ import com.forager.app.domain.DetectOffTrackUseCase
 import com.forager.app.domain.EndTrackUseCase
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
+import com.forager.app.domain.GetDraftEntriesUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
-import com.forager.app.domain.GetOrphanedDraftEntriesUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
@@ -61,6 +62,7 @@ import com.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchCacheRepository
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.StartEditingLogEntryUseCase
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.TrackRepository
@@ -139,9 +141,11 @@ class AppContainer(context: Context) {
 
     val mushroomLogRepository: MushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
     val getMushroomLogEntriesUseCase = GetMushroomLogEntriesUseCase(mushroomLogRepository)
-    val getOrphanedDraftEntriesUseCase = GetOrphanedDraftEntriesUseCase(mushroomLogRepository)
+    val getDraftEntriesUseCase = GetDraftEntriesUseCase(mushroomLogRepository)
     val createMushroomLogEntryUseCase = CreateMushroomLogEntryUseCase(mushroomLogRepository)
+    val startEditingLogEntryUseCase = StartEditingLogEntryUseCase(mushroomLogRepository)
     val saveMushroomLogEntryUseCase = SaveMushroomLogEntryUseCase(mushroomLogRepository)
+    val commitDraftEntryUseCase = CommitDraftEntryUseCase(mushroomLogRepository)
     val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(mushroomLogRepository)
     val addPhotoToLogEntryUseCase = AddPhotoToLogEntryUseCase(photoStore, mushroomLogRepository)
     val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(mushroomLogRepository)

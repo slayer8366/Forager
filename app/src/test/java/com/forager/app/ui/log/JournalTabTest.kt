@@ -67,11 +67,13 @@ class JournalTabTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
+    // isDraft = false: represents a genuinely committed entry already in the list, the realistic
+    // starting point for this file's report/edit navigation tests (Workstream L4b-R).
     private val existingEntry = MushroomLogEntry.draft(
         id = "existing-1",
         location = LatLng(45.326, -122.634),
         date = LocalDate.of(2026, 8, 1),
-    )
+    ).copy(isDraft = false)
 
     private var startedEntryAt: LatLng? = null
 
@@ -100,6 +102,17 @@ class JournalTabTest {
                         entries = uiState.entries.map { if (it.id == updated.id) updated else it },
                         editingEntry = updated,
                     )
+                },
+                onStartEditingEntry = {
+                    // Workstream L4b-R: a simplified local-state stand-in for
+                    // MushroomLogViewModel.onStartEditingEntry — this harness models navigation, not
+                    // draft-row/parent-pointer mechanics (that's MushroomLogViewModelTest's job), so
+                    // "starting to edit" is just flipping isDraft in place rather than creating a
+                    // separate row under a new id. A no-op if already a draft, matching the real
+                    // ViewModel's own guard.
+                    uiState.editingEntry?.let { current ->
+                        if (!current.isDraft) uiState = uiState.copy(editingEntry = current.copy(isDraft = true))
+                    }
                 },
                 onSaveEntry = {
                     uiState.editingEntry?.let { current ->

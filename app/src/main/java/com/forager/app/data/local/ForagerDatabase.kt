@@ -65,13 +65,16 @@ import androidx.room.RoomDatabase
  * relationship is preserved as a cross-reference row before the old column is gone, same
  * no-data-loss reasoning as every hand-written migration above.
  *
- * [version] 9 adds [MushroomLogEntryEntity.isDraft] via a real [MIGRATION_8_9] — Workstream L4b,
- * owner decision, 2026-08-22: persisted drafts. "A draft is an entry row marked uncommitted" — a
- * discriminator column, not a second table or a change-list; see [MIGRATION_8_9]'s own doc comment
- * for the full reasoning, including why this codebase's legacy-fixture pitfall (see
- * `docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`) does not recur here. Every
- * pre-existing row is a real, previously-committed entry, never a draft under the old model, so this
- * migration marks every one of them `isDraft = 0` explicitly.
+ * [version] 9 adds [MushroomLogEntryEntity.isDraft]/[MushroomLogEntryEntity.draftOfEntryId] via a
+ * real [MIGRATION_8_9] — Workstream L4b, owner decision, 2026-08-22: persisted drafts, **corrected
+ * 2026-08-25 (L4b-R)**: a draft is a standalone row with a nullable pointer to the entry it drafts,
+ * not the committed entry itself wearing a flag — see [MIGRATION_8_9]'s own doc comment for the full
+ * reasoning, including why the single-row shape was rejected and why this codebase's legacy-fixture
+ * pitfall (see `docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`) does not recur
+ * here. Nothing shipped between the two passes, so this amends `MIGRATION_8_9` in place rather than
+ * stacking a 9→10 on a version that was never released. Every pre-existing row is a real,
+ * previously-committed entry, never a draft under the pre-L4b model, so this migration marks every
+ * one of them `isDraft = 0`/`draftOfEntryId = NULL` explicitly.
  */
 @Database(
     entities = [
