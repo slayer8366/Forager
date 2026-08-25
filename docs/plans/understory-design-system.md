@@ -1,8 +1,9 @@
 # Understory — an M3 Expressive design system for Forager
 
-Status: **accepted as the basis for the work**, revision 2. Reviewed by the
-project owner 2026-08-25; seven corrections applied below, and three
-decisions recorded in "Decisions". Nothing here is implemented.
+Status: **accepted as the basis for the work**, revision 3. Reviewed by the
+project owner 2026-08-25 (seven corrections, three decisions) and again on
+the corrections themselves (R1 sharpened, R7 restated, one finding
+reopened). Nothing here is implemented.
 
 Read against `claude/l4c-serialized-editing-state` at `353d256`. Every
 count, line number and file reference below came from reading that tree
@@ -18,13 +19,14 @@ A rendered version of this document exists as an artifact:
 
 | # | Correction | Gated |
 |---|---|---|
-| R1 | The damping-1.0 no-overshoot claim was overstated — critical damping guarantees no overshoot for a step **from rest**, not under nonzero initial velocity. Restated in §2S. | Blocked ADR-0002 |
+| R1 | The damping-1.0 no-overshoot claim was overstated. Corrected once toward "interruption-carried velocity," which overshot in the other direction; **now settled**: a critically damped spring can never overshoot from any point on its own path, and **retargeting** is the sole exposure. §2S. | Blocked ADR-0002 |
 | R2 | Promoting map accents to *be* `tertiary`/`error` re-creates tag 08's defect class semantically. `MapPalette` now **derives from** the scheme rather than being it. | Blocked step 1 |
 | R3 | "Four call sites" is evidence the change is **cheap to write**, not that it is low risk. All four are `panelMotionSpec`. Separated wherever the number appears. | Wording |
 | R4 | No hardware gate existed anywhere in the order. An explicit device gate now sits between steps 4 and 5, with four named questions. | Blocks step 5 |
 | R5 | `MapPaletteTest` asserted difference, not legibility. Non-equality no longer stands in for the property that matters. | — |
 | R6 | The experimental-status caveat gated the wrong step. Moved from step 2 to step 5. Symbol names corrected. | Blocks step 5 |
-| R7 | Stop-and-ask on the continuous-animation budget, answered below before ADR-0002 is drafted. | Blocked ADR-0002 |
+| R7 | Stop-and-ask on the continuous-animation budget, answered before ADR-0002 is drafted: not duration-derived, but **never enforced**, so the ADR records it as unimplemented rather than "unchanged." §3S. | Blocked ADR-0002 |
+| R8 | Removing the expanded navigation rail closed a finding instead of deferring it. The question of where the six destinations live in expanded is now recorded in `map-redesign.md`. | — |
 
 ---
 
@@ -286,35 +288,66 @@ one-parameter substitution and not a re-derivation.
 
 #### R1 — what the effects specs actually guarantee
 
-The earlier revision claimed effects specs are "mathematically incapable of
-overshoot." That is overstated, and ADR-0002 cannot rest on it.
+The first revision claimed effects specs are "mathematically incapable of
+overshoot." That is overstated. The second revision corrected it toward
+"interruption-carried velocity," which is overstated in the other
+direction. Review supplied the sharp version:
 
-Critical damping (ζ = 1) guarantees no overshoot **for a step response
-from rest**. It does not guarantee it under nonzero initial velocity. For a
-unit-mass critically damped system with displacement-from-target `x₀` and
-initial velocity `v₀`, the solution is `x(t) = (x₀ + (v₀ + ωx₀)t)e^(−ωt)`
-with `ω = √k`. That crosses zero — overshoots — at a positive time exactly
-when `v₀` opposes `x₀` **and** `|v₀| > ω|x₀|`. Velocity continuity on
-interruption is the whole reason Compose prefers springs, so a nonzero
-`v₀` is the normal case here, not an edge case.
+Critical damping (ζ = 1) gives `x(t) = (x₀ + (v₀ + ωx₀)t)e^(−ωt)` with
+`ω = √k` at Compose's unit mass. That crosses zero — overshoots — only when
+`v₀` opposes `x₀` **and** `|v₀| > ω|x₀|`. Now evaluate that ratio along the
+system's own from-rest trajectory: `v(t) = −x₀ω²t·e^(−ωt)` and
+`x(t) = x₀(1+ωt)e^(−ωt)`, so
 
-The corrected claim, which is what ADR-0002 will record:
+```
+|v| / (ω|x|)  =  ωt / (1 + ωt)
+```
 
-> Effects specs do not overshoot on a step from rest, and
-> interruption-carried velocity is bounded by the clamp on the animated
-> property.
+which is **strictly below 1 for every finite t**, approaching it only
+asymptotically. A critically damped spring therefore can never overshoot
+its own target from any point on its own path. **Interrupting an in-flight
+effects animation and letting it continue to the same target is provably
+safe, always.** Interruption is not the hazard.
 
-Both halves are needed, and the second is a statement about the *visible*
-result rather than the numeric state: alpha and colour components are
-clamped by the renderer, so a numeric excursion past the target is not a
-visible overshoot. The threshold is also high — `ω` is 40 rad/s at
-stiffness 1600 and ≈61.6 rad/s at 3800, so an interrupting velocity has to
-be large relative to the remaining distance before the crossing happens at
-all, and the excursion decays on the same exponential.
+**Retargeting is.** `x₀` is the distance to the *new* target. Retarget to
+something nearby in the direction of travel and `|x₀|` collapses while
+`|v₀|` does not, so the ratio crosses 1 easily. The hazard is a moving
+destination, not a moving object.
 
-The conclusion survives, narrowed: this argument licenses dropping the
-tween-only rule **for alpha and colour**. It says nothing about panels, and
-ADR-0002 must not use it as though it did. See Decisions.
+That narrows the clamp argument further than the second revision had it.
+Clamping to `[0, 1]` rescues a retarget whose destination *is* 0 or 1. It
+does nothing for an overlay fading in that gets retargeted to a partial
+opacity — overshoot past that value is reachable and visible.
+
+**Checked against the code, since the ADR was about to lean on the clamp.**
+Today the app has no `Animatable`, no `animateFloatAsState`, no
+`animateColorAsState` and no `updateTransition` anywhere in
+`app/src/main`. The only animated alpha is `AnimatedVisibility`'s fade at
+`AvailabilityScreen.kt:4065` and `:4083`, and both take `fadeIn`/`fadeOut`
+with default `initialAlpha`/`targetAlpha`, so both animate between 0 and 1.
+The five intermediate alpha values in the codebase (0.18, 0.32, 0.4, 0.55,
+0.78 — including the add-tile scrim's 0.32) are static colour alphas
+composited *under* the animated layer alpha, not animation targets. **The
+clamp holds for every animated alpha in the app as it stands.**
+
+But that is a property of the call sites, not of the spec.
+`fadeIn(initialAlpha = …)` and `fadeOut(targetAlpha = …)` accept non-bound
+values as parameters, and the design's data-layer-overlay row is
+aspirational — `dataLayerOverlaySpec` has no caller, so the first overlay
+anyone writes is the first chance to target 0.55 instead of 1. Five
+plausible intermediate targets are already sitting in the file.
+
+So the property gets an assertion rather than an assumption:
+`verify-design-tokens.sh` gains a check that no effects-spec animation
+names a non-bound `initialAlpha`/`targetAlpha` (§4S). **ADR-0002 must not
+present the clamp as the backstop** — it records that effects specs cannot
+overshoot under interruption at all, that retargeting is the only exposure,
+that today every animated alpha targets a bound, and that a check now holds
+that true rather than trusting it.
+
+The conclusion survives, and is stronger than the version it replaces: this
+argument licenses dropping the tween-only rule **for alpha and colour**. It
+says nothing about panels, and ADR-0002 must not use it as though it did.
 
 ---
 
@@ -353,24 +386,48 @@ and contains no duration of any kind. `activeTiers()` takes
 `Map<DegradationTier, Int>` — a **count** of objects currently wanting to
 animate in each tier — and drops tiers in `DEGRADATION_ORDER` until the
 remaining counts sum to at most `MAX_CONTINUOUS_ANIMATED_OBJECTS = 12`.
-The accounting is over object counts, not over time. It survives ADR-0002
-unchanged and stays in the ADR's "unchanged" list.
+The accounting is over object counts, not over time.
 
-**But the budget has no production caller.** `activeTiers`,
-`shouldClusterMarkers`, `MAX_CONTINUOUS_ANIMATED_OBJECTS` and
-`DEGRADATION_ORDER` appear only in `MotionPrecedence.kt` and
-`MotionPrecedenceTest.kt`. Nothing supplies the counts. So the accounting
-logic is safe under springs, and the part that would have been unsafe —
-deciding *whether a given object is currently animating* — does not exist
-yet in any form.
+**But the budget has no production caller, which makes it more than a
+second instance of tag 09.** `activeTiers`, `shouldClusterMarkers`,
+`MAX_CONTINUOUS_ANIMATED_OBJECTS` and `DEGRADATION_ORDER` appear only in
+`MotionPrecedence.kt` and `MotionPrecedenceTest.kt`. Nothing supplies the
+counts. **The 8–12 budget has therefore never been enforced.** Listing it
+under "keeps unchanged" would preserve a property that has never operated,
+and a future reader would take that line as evidence the budget is live.
 
-That is where duration-versus-asymptote actually bites, so ADR-0002
-records it as a constraint on whoever wires the budget rather than as a
-change to the budget: **the count must come from a spring-aware running
-signal (e.g. `Animatable.isRunning`), never from a timer or an elapsed
-duration.** With a tween, "has it finished" and "has its duration elapsed"
-are the same question; with a spring they are not, and a timer-derived
-counter would under-count long tails and over-count settled objects.
+So ADR-0002 says it plainly instead:
+
+> The 8–12 continuous-animation budget is a stated policy with no
+> enforcement path — unchanged in intent, unimplemented in fact. The
+> spring-aware counting constraint below is a condition on **first
+> implementation**, not on a modification.
+
+And the constraint itself: **the count must come from a spring-aware
+running signal (e.g. `Animatable.isRunning`), never from a timer or an
+elapsed duration.** With a tween, "has it finished" and "has its duration
+elapsed" are the same question; with a spring they are not, and a
+timer-derived counter would under-count long tails and over-count settled
+objects. That is where duration-versus-asymptote actually bites, and it
+bites whoever writes the first caller.
+
+#### The asymmetry, stated rather than left incidental
+
+This design deletes six dead animation specs (tag 09) and keeps one dead
+policy file (`MotionPrecedence.kt`). That is deliberate, not an oversight
+about which unused code is worth keeping:
+
+- **A curve carries no decision.** `markerEntranceSpec` being
+  `tween(250, EaseOut)` records nothing a reader needs; it is a value, and
+  an unused one is just a value nobody chose. Deleting it loses nothing.
+- **A precedence order does.** `DEGRADATION_ORDER`, the 12-object ceiling
+  and the never-degrade rule on the location indicator are ADR-0001's
+  accepted decisions in executable form, with a test pinning them. Deleting
+  them would discard the decision along with the unused code.
+
+The rule this implies, for anyone applying the same Sort pass later:
+**dead code that encodes a decision gets documented as unenforced; dead
+code that encodes only a value gets removed.**
 
 Predictive back sits outside the budget entirely: motion-spec §3's budget
 is scoped to simultaneously animated objects *on the map*, and a
@@ -408,11 +465,20 @@ version:
   `standard()` damping values written down alongside (§2S table) so
   switching later is a substitution rather than a re-derivation.
 - **Unchanged:** the precedence order (legibility → performance → calm),
-  the four-tier degradation order, the 8–12 continuous-animation budget
-  (per R7), and the whole Reduce Motion mapping table.
-  `MotionPrecedence.kt` needs no change.
-- **Adds, per R7:** a constraint that any future budget caller derives its
-  counts from a spring-aware running signal, never from a duration.
+  the four-tier degradation order, and the whole Reduce Motion mapping
+  table. `MotionPrecedence.kt` needs no change.
+- **Restates rather than preserves, per R7:** the 8–12 budget is recorded
+  as a stated policy with no enforcement path — unchanged in intent,
+  unimplemented in fact — so no reader mistakes the "unchanged" line for
+  evidence it is live. The spring-aware counting constraint is a condition
+  on first implementation, not on a modification.
+- **Records, per R1:** effects specs cannot overshoot under interruption at
+  all; retargeting is the only exposure; every animated alpha in the app
+  today targets a bound; and a check now holds that true. The clamp is
+  **not** presented as the backstop.
+- **Records the Sort asymmetry:** six dead curves deleted, one dead policy
+  file kept and marked unenforced, because a curve carries no decision and
+  a precedence order does.
 - **Adds:** a Reduce Motion mapping for springs. `ReducedMotionTreatment`
   already maps every treatment to a still-visible equivalent rather than
   to nothing; springs map the same way, to `snap()` or a cross-fade, never
@@ -526,7 +592,7 @@ fail on the code as it stands today, which is the point.
 | `MapPaletteTest` | See R5 below — **not** mere light/dark difference | Tag 04, and the coupling R2 removes |
 | `ExpressiveThemeTest` | `ForagerTheme` supplies non-default `Typography`, `Shapes` and `MotionScheme`, and the scheme is `expressive()` not `standard()` | Tags 02, 03, and the motion scheme silently reverting |
 | `MotionTokensTest` (inverted) | No exposed spec is a `TweenSpec`; each maps to the `MotionScheme` spec its category calls for; effects-category specs have `dampingRatio >= 1.0` | Tag 09, and a spring with overshoot landing on an overlay's alpha |
-| `verify-design-tokens.sh` | No `Color(0x` literal outside `ui/theme/`; no palette constant imported outside the theme package; no `tween(` in `ui/` | Tag 05, the next twenty like it, and tween creeping back one call site at a time |
+| `verify-design-tokens.sh` | No `Color(0x` literal outside `ui/theme/`; no palette constant imported outside the theme package; no `tween(` in `ui/`; **no effects-spec animation naming a non-bound `initialAlpha`/`targetAlpha`** | Tag 05, the next twenty like it, tween creeping back one call site at a time, and (per R1) the first overlay that retargets alpha to an intermediate value where the clamp cannot save it |
 
 ### R5 — `MapPaletteTest` must not let non-equality stand in for legibility
 
