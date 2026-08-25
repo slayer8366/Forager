@@ -690,10 +690,18 @@ not as new ADRs and not as silent edits.
 
 ### Before any of it — the base branch
 
-`main` and the design branch `claude/forager-m3-expressive-design-dguw4e`
-sit 9 commits behind `claude/l4c-serialized-editing-state`, with 1 commit
-L4c does not have. Everything in this document was read against L4c at
-`353d256`, not against `main`.
+**This document sits on `claude/l4c-serialized-editing-state`, the tree it
+was read against.** It is cut from `353d256`, so every file reference, line
+number and count below is against the code directly beneath it rather than
+against a base that does not have that code yet.
+
+That was not true of the first attempt. The work was originally branched
+from `main` and opened as PR #43 against `main` — accurate in content,
+wrong in base: `main` is 9 commits behind L4c, so the line numbers cited
+throughout pointed at code `main` did not contain. L4c is itself an open
+PR (#42) into `main` and is not an ancestor of it, so the fix was to replay
+the work onto L4c rather than to merge the two. PR #43 is superseded by the
+PR for this branch.
 
 `CLAUDE.md` records why this is not pedantry: PR #26 and the Phase 1
 branch each independently declared `ForagerDatabase.version = 5` with
