@@ -189,10 +189,12 @@ class AvailabilityScreenWideWindowLayoutTest {
         uiState: AvailabilityUiState,
         onPlaceTripPin: (LatLng, LocalDate, String) -> Unit = { _, _, _ -> },
         mapSlot: MapSlot = StubMapSlot,
+        logUiState: com.forager.app.ui.log.MushroomLogUiState = com.forager.app.ui.log.MushroomLogUiState(),
     ) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
+                logUiState = logUiState,
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},
@@ -232,6 +234,28 @@ class AvailabilityScreenWideWindowLayoutTest {
         setScreen(SEARCHED_STATE)
 
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
+    }
+
+    /**
+     * Workstream G2 (`docs/plans/pr26-rework.md`): the gallery is a top-level destination on both
+     * window classes, not just compact — see `PhotoGalleryScreen`'s own doc comment. This is the
+     * medium/expanded half; `AvailabilityScreenBackNavigationTest`'s own "Album" tab test covers
+     * the compact half.
+     */
+    @Test
+    fun `the drawer's Photo Gallery entry is shown without opening the drawer, and opens the gallery`() {
+        val photo = com.forager.app.domain.model.GalleryPhoto(
+            photo = com.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = emptyList(),
+        )
+        setScreen(SEARCHED_STATE, logUiState = com.forager.app.ui.log.MushroomLogUiState(galleryPhotos = listOf(photo)))
+        composeRule.onNodeWithText("Photo Gallery").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Photo Gallery").performClick()
+
+        // Proves the real PhotoGalleryScreen is hosted here, with the real gallery state — not
+        // just that a panel switched to some empty placeholder.
+        composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
     }
 
     /**

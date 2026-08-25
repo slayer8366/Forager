@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
@@ -44,6 +45,7 @@ class MushroomLogViewModel(
     private val deleteEntry: DeleteMushroomLogEntryUseCase,
     private val addPhoto: AddPhotoToLogEntryUseCase,
     private val removePhoto: RemovePhotoFromLogEntryUseCase,
+    private val getGalleryPhotos: GetGalleryPhotosUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -51,6 +53,7 @@ class MushroomLogViewModel(
 
     init {
         loadEntries()
+        loadGalleryPhotos()
     }
 
     fun loadEntries() {
@@ -67,6 +70,26 @@ class MushroomLogViewModel(
                         // docs/error-presentation-spec.md's per-field table: neutral "unavailable"
                         // wording that doesn't imply anything was lost, not "Couldn't load...".
                         it.copy(isLoadingEntries = false, loadErrorMessage = "Log entries unavailable.")
+                    }
+                },
+            )
+        }
+    }
+
+    /** Loads [MushroomLogUiState.galleryPhotos] for [PhotoGalleryScreen] — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
+    fun loadGalleryPhotos() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingGalleryPhotos = true, galleryLoadErrorMessage = null) }
+            getGalleryPhotos().fold(
+                onSuccess = { photos ->
+                    _uiState.update { it.copy(galleryPhotos = photos, isLoadingGalleryPhotos = false) }
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't load the photo gallery.", error)
+                    _uiState.update {
+                        // Same "not belief-changing" reasoning as loadEntries' own failure path —
+                        // the photos are on disk; only the read failed.
+                        it.copy(isLoadingGalleryPhotos = false, galleryLoadErrorMessage = "Photo gallery unavailable.")
                     }
                 },
             )
@@ -145,6 +168,11 @@ class MushroomLogViewModel(
             addPhoto(entry, source).fold(
                 onSuccess = { updated ->
                     _uiState.update { it.replacing(updated).copy(isSavingPhoto = false, saveErrorMessage = null) }
+                    // A freshly added photo is a new gallery row PhotoGalleryScreen's already-loaded
+                    // state doesn't know about yet — without this, it wouldn't appear there until
+                    // the ViewModel is recreated. Detach has no equivalent need: it never removes a
+                    // gallery row, only a reference nothing in this screen currently displays.
+                    loadGalleryPhotos()
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't attach a photo to entry '${entry.id}'.", error)

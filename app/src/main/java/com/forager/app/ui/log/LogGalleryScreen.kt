@@ -1,8 +1,6 @@
 package com.forager.app.ui.log
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,26 +26,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.Feature
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Observed
-import java.io.File
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * True when any of [entry]'s characteristic fields are still [Observed.NotObserved]/
@@ -169,7 +155,7 @@ private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier:
             Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
                 val coverPhoto = entry.photos.firstOrNull()
                 if (coverPhoto != null) {
-                    GalleryCoverThumbnail(relativePath = coverPhoto.relativePath)
+                    DecodedPhoto(relativePath = coverPhoto.relativePath, modifier = Modifier.fillMaxSize())
                 } else {
                     Box(
                         modifier = Modifier
@@ -205,34 +191,6 @@ private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier:
     }
 }
 
-/** Same decode-a-thumbnail-off-disk pattern [LogEntryDetailScreen]'s own photo thumbnail uses. */
-@Composable
-private fun GalleryCoverThumbnail(relativePath: String) {
-    val context = LocalContext.current
-    var bitmap by remember(relativePath) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(relativePath) {
-        bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                val options = BitmapFactory.Options().apply { inSampleSize = GALLERY_THUMBNAIL_SAMPLE_SIZE }
-                BitmapFactory.decodeFile(File(context.filesDir, relativePath).absolutePath, options)?.asImageBitmap()
-            }.getOrNull()
-        }
-    }
-
-    val loaded = bitmap
-    if (loaded != null) {
-        Image(
-            bitmap = loaded,
-            contentDescription = "Log photo",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-        )
-    } else {
-        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
-    }
-}
-
 /** A little taller than wide, reading as a card/page rather than a square photo tile. */
 private const val GALLERY_TILE_ASPECT_RATIO = 0.85f
 private const val ADD_TILE_ICON_SIZE_DP = 40
-private const val GALLERY_THUMBNAIL_SAMPLE_SIZE = 4

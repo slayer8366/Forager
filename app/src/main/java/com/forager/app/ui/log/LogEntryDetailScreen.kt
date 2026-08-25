@@ -1,12 +1,9 @@
 package com.forager.app.ui.log
 
 import android.Manifest
-import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,17 +29,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.forager.app.R
@@ -52,9 +44,6 @@ import com.forager.app.domain.model.PhotoSource
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.photo.ContentUriPhotoSource
 import com.forager.app.ui.availability.CollapsibleSection
-import java.io.File
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
@@ -216,34 +205,11 @@ private fun PhotosSection(
 }
 
 private const val PHOTO_THUMBNAIL_SIZE_DP = 88
-private const val PHOTO_THUMBNAIL_SAMPLE_SIZE = 4
 
 @Composable
 private fun LogPhotoThumbnail(photo: LogPhoto, onRemove: () -> Unit) {
-    val context = LocalContext.current
-    var bitmap by remember(photo.id) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(photo.id) {
-        bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                val options = BitmapFactory.Options().apply { inSampleSize = PHOTO_THUMBNAIL_SAMPLE_SIZE }
-                BitmapFactory.decodeFile(File(context.filesDir, photo.relativePath).absolutePath, options)
-                    ?.asImageBitmap()
-            }.getOrNull()
-        }
-    }
-
     Box(modifier = Modifier.size(PHOTO_THUMBNAIL_SIZE_DP.dp)) {
-        val loaded = bitmap
-        if (loaded != null) {
-            Image(
-                bitmap = loaded,
-                contentDescription = "Log photo",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
-        }
+        DecodedPhoto(relativePath = photo.relativePath, modifier = Modifier.fillMaxSize())
         IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd)) {
             Icon(Icons.Filled.Close, contentDescription = "Remove photo")
         }

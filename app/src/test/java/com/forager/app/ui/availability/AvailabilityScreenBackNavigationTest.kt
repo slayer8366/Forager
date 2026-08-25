@@ -289,6 +289,26 @@ class AvailabilityScreenBackNavigationTest {
     }
 
     /**
+     * Workstream G2 (`docs/plans/pr26-rework.md`): the gallery is a top-level destination on both
+     * window classes — this is the compact half (a bottom-nav tab); the medium/expanded half (a
+     * drawer entry) is `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. Labelled
+     * "Album" rather than "Photos" — see `CompactTab`'s own doc comment for why that exact string
+     * collides with existing on-screen text elsewhere in this same feature.
+     */
+    @Test
+    fun `the Album tab shows the photo gallery`() {
+        val photo = com.forager.app.domain.model.GalleryPhoto(
+            photo = com.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = emptyList(),
+        )
+        setScreen(logUiState = MushroomLogUiState(galleryPhotos = listOf(photo)))
+
+        composeRule.onNodeWithText("Album").performClick()
+
+        composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
+    }
+
+    /**
      * The warning is a real [android.widget.Toast], not Compose UI, so it's read back via
      * [ShadowToast] — the same pattern `DirectionsIntentTest` uses — rather than
      * `onNodeWithText`, which only sees the Compose semantics tree.

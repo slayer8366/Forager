@@ -1,5 +1,6 @@
 package com.forager.app.domain
 
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
@@ -110,6 +111,8 @@ private class FakeMushroomLogRepository(
     val detached = mutableListOf<Pair<String, String>>()
 
     override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(emptyList())
+    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> =
+        Result.failure(UnsupportedOperationException("getAllPhotos is not exercised by either use case under test here"))
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> = Result.success(Unit)
     override suspend fun delete(id: String): Result<Unit> = Result.success(Unit)
 

@@ -1,5 +1,6 @@
 package com.forager.app.domain
 
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 
@@ -24,6 +25,17 @@ import com.forager.app.domain.model.MushroomLogEntry
 interface MushroomLogRepository {
     /** Every log entry currently stored, in no particular order, with its referenced photos joined in — ordering is a use-case concern. */
     suspend fun getAll(): Result<List<MushroomLogEntry>>
+
+    /**
+     * Every gallery photo, each paired with the entries (if any) currently referencing it —
+     * Workstream G2. Deliberately the richer [GalleryPhoto] shape rather than a bare
+     * `List<LogPhoto>`: G3's gallery-deletion flow must warn "used in N entries" before removing
+     * one, and a thin read path here would just mean G3 building a second one — see
+     * `docs/plans/pr26-rework.md`'s G2 dispatch for the reasoning this survives from. In no
+     * particular order — [MushroomLogDao.getAllPhotos]'s own query has none, and imposing one is a
+     * use-case concern the same way [getAll]'s ordering is.
+     */
+    suspend fun getAllPhotos(): Result<List<GalleryPhoto>>
 
     /**
      * Inserts [entry], or replaces the stored entry with the same id if one already exists — how

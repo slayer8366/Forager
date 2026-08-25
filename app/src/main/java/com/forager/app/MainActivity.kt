@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
                     container.deleteMushroomLogEntryUseCase,
                     container.addPhotoToLogEntryUseCase,
                     container.removePhotoFromLogEntryUseCase,
+                    container.getGalleryPhotosUseCase,
                 )
             }
         }

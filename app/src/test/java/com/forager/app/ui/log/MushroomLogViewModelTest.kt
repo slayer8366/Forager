@@ -3,11 +3,13 @@ package com.forager.app.ui.log
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.forager.app.domain.MushroomLogRepository
 import com.forager.app.domain.PhotoStore
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
@@ -64,6 +66,7 @@ class MushroomLogViewModelTest {
         deleteEntry = DeleteMushroomLogEntryUseCase(repository),
         addPhoto = AddPhotoToLogEntryUseCase(photoStore, repository),
         removePhoto = RemovePhotoFromLogEntryUseCase(repository),
+        getGalleryPhotos = GetGalleryPhotosUseCase(repository),
     )
 
     private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
@@ -164,6 +167,41 @@ class MushroomLogViewModelTest {
     // rewritten: the scenario it covered is no longer reachable. DeleteMushroomLogEntryUseCase
     // never calls PhotoStore at all any more (see its own doc comment on why), so there is no
     // photo-file-deletion step left for this test to prove resilience against.
+
+    /** Workstream G2: [MushroomLogViewModel.loadGalleryPhotos] runs alongside [MushroomLogViewModel.loadEntries] on init, independently populating [MushroomLogUiState.galleryPhotos]. */
+    @Test
+    fun `the gallery photos load on init, independent of the entry list`() = runTest(dispatcher) {
+        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
+        val entryWithPhoto = entry.copy(photos = listOf(photo))
+        val repository = FakeMushroomLogRepository(initial = listOf(entryWithPhoto))
+        val vm = viewModel(repository)
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(photo), vm.uiState.value.galleryPhotos.map { it.photo })
+        assertEquals(false, vm.uiState.value.isLoadingGalleryPhotos)
+    }
+
+    /**
+     * Without this, a freshly added photo would only show up in [PhotoGalleryScreen] after the
+     * ViewModel is recreated — see [MushroomLogViewModel.onAddPhoto]'s own inline comment on why
+     * this refresh exists.
+     */
+    @Test
+    fun `adding a photo refreshes the gallery so the new photo appears without a restart`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "new-photo", relativePath = "photos/new-photo.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(listOf(newPhoto), vm.uiState.value.galleryPhotos.map { it.photo })
+    }
 }
 
 private class FakeMushroomLogRepository(
@@ -189,6 +227,12 @@ private class FakeMushroomLogRepository(
         entries.values.map { entry ->
             val photos = crossRefs.filter { it.first == entry.id }.mapNotNull { galleryPhotos[it.second] }
             entry.copy(photos = photos)
+        },
+    )
+
+    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(
+        galleryPhotos.values.map { photo ->
+            GalleryPhoto(photo = photo, referencingEntryIds = crossRefs.filter { it.second == photo.id }.map { it.first })
         },
     )
 
@@ -220,11 +264,12 @@ private class FakeMushroomLogRepository(
     }
 }
 
-private class FakePhotoStore : PhotoStore {
+private class FakePhotoStore(
+    var persistResult: Result<LogPhoto> = Result.failure(UnsupportedOperationException("photo persistence not exercised by this test")),
+) : PhotoStore {
     val deletedPhotos = mutableListOf<LogPhoto>()
 
-    override suspend fun persist(source: PhotoSource): Result<LogPhoto> =
-        Result.failure(UnsupportedOperationException("photo persistence not exercised by this test"))
+    override suspend fun persist(source: PhotoSource): Result<LogPhoto> = persistResult
 
     override suspend fun delete(photo: LogPhoto): Result<Unit> {
         deletedPhotos += photo

@@ -219,6 +219,56 @@ class RoomMushroomLogRepositoryTest {
         assertEquals(uploaded.syncState, all.getValue("e1").syncState)
         assertEquals(failed.syncState, all.getValue("e2").syncState)
     }
+
+    /**
+     * Workstream G2: [MushroomLogRepository.getAllPhotos]'s own richer shape, against the real
+     * Room-backed join — not a fake — including a photo shared by two entries (a gallery photo
+     * with more than one referencing entry, only representable since G1's many-to-many).
+     */
+    @Test
+    fun `getAllPhotos returns every gallery photo paired with the entries currently referencing it`() = runTest {
+        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -122.1), date = LocalDate.of(2026, 8, 2))
+        val shared = com.forager.app.domain.model.LogPhoto(id = "shared", relativePath = "photos/shared.jpg", createdAtEpochMillis = 1_000L)
+        val onlyA = com.forager.app.domain.model.LogPhoto(id = "only-a", relativePath = "photos/only-a.jpg", createdAtEpochMillis = 2_000L)
+        repository.save(entryA).getOrThrow()
+        repository.save(entryB).getOrThrow()
+        repository.addPhotoToGallery(shared).getOrThrow()
+        repository.addPhotoToGallery(onlyA).getOrThrow()
+        repository.attachPhotoToEntry(entryA.id, shared.id).getOrThrow()
+        repository.attachPhotoToEntry(entryB.id, shared.id).getOrThrow()
+        repository.attachPhotoToEntry(entryA.id, onlyA.id).getOrThrow()
+
+        val galleryPhotos = repository.getAllPhotos().getOrThrow().associateBy { it.photo.id }
+
+        assertEquals(setOf(entryA.id, entryB.id), galleryPhotos.getValue("shared").referencingEntryIds.toSet())
+        assertEquals(listOf(entryA.id), galleryPhotos.getValue("only-a").referencingEntryIds)
+    }
+
+    /**
+     * The dispatch's own required case: `attachPhotoToEntry` failing after `addPhotoToGallery`
+     * succeeds is the one reachable path to a photo with zero references (see
+     * [AddPhotoToLogEntryUseCase]'s own doc comment) — `getAllPhotos` must still return it, not
+     * drop it or crash reconstructing an empty referencing-entries list.
+     */
+    @Test
+    fun `getAllPhotos includes a photo with zero referencing entries`() = runTest {
+        val orphaned = com.forager.app.domain.model.LogPhoto(id = "orphaned", relativePath = "photos/orphaned.jpg", createdAtEpochMillis = 5_000L)
+        repository.addPhotoToGallery(orphaned).getOrThrow()
+
+        val galleryPhotos = repository.getAllPhotos().getOrThrow()
+
+        assertEquals(1, galleryPhotos.size)
+        assertEquals(orphaned, galleryPhotos.single().photo)
+        assertTrue(galleryPhotos.single().referencingEntryIds.isEmpty())
+    }
+
+    @Test
+    fun `getAllPhotos on an empty database returns an empty list, not a failure`() = runTest {
+        val galleryPhotos = repository.getAllPhotos().getOrThrow()
+
+        assertTrue(galleryPhotos.isEmpty())
+    }
 }
 
 private fun fullyPopulatedEntry(): MushroomLogEntry = MushroomLogEntry(

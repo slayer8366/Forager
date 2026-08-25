@@ -64,6 +64,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Settings
@@ -182,6 +183,7 @@ import com.forager.app.ui.crash.CrashLogsEntryRow
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
+import com.forager.app.ui.log.PhotoGalleryScreen
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.BasemapCoverage
 import com.forager.app.ui.map.CentrePinLocationPicker
@@ -224,6 +226,15 @@ private enum class CompactTab(val label: String) {
     MAP("Maps"),
     SEASONAL("Seasonal"),
     JOURNAL("Journal"),
+    // Workstream G2 (`docs/plans/pr26-rework.md`): a top-level destination on both window classes
+    // (owner decision, 2026-08-22), not a branch inside JOURNAL — see PhotoGalleryScreen's own doc
+    // comment. Placed next to JOURNAL, the other mushroom-log destination, rather than at the end.
+    // Labelled "Album" rather than "Photos"/"Gallery": both of those exact strings are already
+    // on-screen text elsewhere in this feature (LogEntryDetailScreen's "Photos" section header and
+    // its own "Gallery" picker button), which made an existing Compose test's onNodeWithText query
+    // ambiguous the moment this tab's label rendered alongside them. "Album" also echoes G1's own
+    // "the album model" framing for many-to-many photo ownership, not picked arbitrarily.
+    PHOTOS("Album"),
     SETTINGS("Settings"),
 }
 
@@ -233,6 +244,7 @@ private fun CompactTab.icon(): ImageVector = when (this) {
     CompactTab.MAP -> Icons.Filled.Map
     CompactTab.SEASONAL -> Icons.Filled.WbSunny
     CompactTab.JOURNAL -> Icons.Filled.MenuBook
+    CompactTab.PHOTOS -> Icons.Filled.PhotoLibrary
     CompactTab.SETTINGS -> Icons.Filled.Settings
 }
 
@@ -262,6 +274,10 @@ private enum class DrawerPanel {
     OfflineMaps,
     CrashLogs,
     Log,
+    // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
+    // top-level, both-window-classes destination — see PhotoGalleryScreen's own doc comment and
+    // CompactTab.PHOTOS, its compact counterpart.
+    PhotoGallery,
 }
 
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
@@ -609,9 +625,12 @@ fun AvailabilityScreen(
                     },
                     currentTime = currentTime,
                 )
-                // Both sticky footer rows: the log is the newer of the two, placed above
-                // Settings so it isn't the last thing in the sheet — see MushroomLogEntryRow.
+                // Sticky footer rows: the log is the newer of the two pre-existing ones, placed
+                // above Settings so it isn't the last thing in the sheet — see
+                // MushroomLogEntryRow. The photo gallery (Workstream G2) joins right below it,
+                // the other mushroom-log-area destination.
                 MushroomLogEntryRow(onClick = { drawerPanel = DrawerPanel.Log })
+                PhotoGalleryEntryRow(onClick = { drawerPanel = DrawerPanel.PhotoGallery })
                 // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
                 // moved to the bottom of the Settings panel below.
                 SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
@@ -681,6 +700,18 @@ fun AvailabilityScreen(
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
                     onSaveErrorDismissed = onSaveLogErrorDismissed,
+                )
+            }
+
+            DrawerPanel.PhotoGallery -> {
+                // Back returns all the way to Search, same as DrawerPanel.Log — there's no
+                // intermediate panel between this and Search the way Settings has OfflineMaps.
+                PhotoGalleryHeader(onBack = { drawerPanel = DrawerPanel.Search })
+                PhotoGalleryScreen(
+                    modifier = Modifier.weight(1f),
+                    photos = logUiState.galleryPhotos,
+                    isLoading = logUiState.isLoadingGalleryPhotos,
+                    loadErrorMessage = logUiState.galleryLoadErrorMessage,
                 )
             }
         }
@@ -827,7 +858,7 @@ fun AvailabilityScreen(
                                 CompactTab.LIST -> selectedTab = ResultsTab.LIST
                                 CompactTab.MAP -> selectedTab = ResultsTab.MAP
                                 CompactTab.SEASONAL -> selectedTab = ResultsTab.SEASONAL
-                                CompactTab.JOURNAL, CompactTab.SETTINGS -> Unit
+                                CompactTab.JOURNAL, CompactTab.PHOTOS, CompactTab.SETTINGS -> Unit
                             }
                         },
                     )
@@ -925,6 +956,12 @@ fun AvailabilityScreen(
                         onDeleteEntry = onDeleteLogEntry,
                         onSaveErrorDismissed = onSaveLogErrorDismissed,
                         modifier = Modifier.weight(1f),
+                    )
+                    CompactTab.PHOTOS -> PhotoGalleryScreen(
+                        photos = logUiState.galleryPhotos,
+                        isLoading = logUiState.isLoadingGalleryPhotos,
+                        modifier = Modifier.weight(1f),
+                        loadErrorMessage = logUiState.galleryLoadErrorMessage,
                     )
                     CompactTab.SETTINGS -> CompactSettingsTab(
                         uiState = uiState,
@@ -1364,6 +1401,28 @@ private fun SettingsEntryRow(onClick: () -> Unit) {
 }
 
 /**
+ * The Search panel's sticky-footer entry into the photo gallery (Workstream G2) — same shape as
+ * [MushroomLogEntryRow] right above it, since both are entries into mushroom-log-area
+ * destinations. No `navigationBarsPadding()` here for the same reason [MushroomLogEntryRow] has
+ * none: [SettingsEntryRow] below is still the last row in the sheet and carries that inset.
+ */
+@Composable
+private fun PhotoGalleryEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
+        Text("Photo Gallery", style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
  * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
  * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
  * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
@@ -1381,6 +1440,23 @@ private fun SettingsHeader(onBack: () -> Unit) {
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
         Text("Settings", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/** [DrawerPanel.PhotoGallery]'s header — mirrors [SettingsHeader]'s back-arrow-plus-title shape exactly, for the same reason: there's nothing else on screen suggesting how to get back to Search. */
+@Composable
+private fun PhotoGalleryHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onBack)
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
+        Text("Photo Gallery", style = MaterialTheme.typography.titleMedium)
     }
 }
 

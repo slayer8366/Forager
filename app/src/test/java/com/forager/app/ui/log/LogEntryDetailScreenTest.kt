@@ -5,10 +5,13 @@ import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.photo.CameraCaptureFiles
 import java.time.LocalDate
@@ -111,5 +114,24 @@ class LogEntryDetailScreenTest {
         composeRule.onNodeWithText("Add Location").performClick()
 
         assertEquals(true, invoked)
+    }
+
+    /**
+     * Workstream G2: [LogPhotoThumbnail] now delegates to the shared [DecodedPhoto] rather than
+     * its own hand-rolled decode — this proves the converted call site still renders a photo
+     * (rather than asserting anything G2-specific, which [DecodedPhotoTest]/[PhotoGalleryScreenTest]
+     * already own).
+     */
+    @Test
+    fun `an entry with a photo still renders it`() {
+        val entryWithPhoto = MushroomLogEntry.draft(id = "with-photo-1", location = null, date = LocalDate.of(2026, 8, 1))
+            .copy(photos = listOf(LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)))
+
+        setScreen(entryWithPhoto)
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithContentDescription("Log photo").assertIsDisplayed()
     }
 }

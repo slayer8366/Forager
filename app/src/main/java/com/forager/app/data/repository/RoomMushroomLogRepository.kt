@@ -16,6 +16,7 @@ import com.forager.app.domain.model.ContextFleshSection
 import com.forager.app.domain.model.Feature
 import com.forager.app.domain.model.FleshTexture
 import com.forager.app.domain.model.ForestType
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.GillAttachment
 import com.forager.app.domain.model.GillEdge
 import com.forager.app.domain.model.GillSpacing
@@ -58,6 +59,16 @@ class RoomMushroomLogRepository(
         dao.getAllEntries().map { entity ->
             val photos = photoIdsByEntry[entity.id].orEmpty().mapNotNull { photosById[it] }
             entity.toDomain(photos)
+        }
+    }
+
+    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = runCatchingCancellable {
+        val entryIdsByPhoto = dao.getAllCrossRefs().groupBy({ it.photoId }) { it.entryId }
+        dao.getAllPhotos().map { entity ->
+            GalleryPhoto(
+                photo = LogPhoto(id = entity.id, relativePath = entity.relativePath, createdAtEpochMillis = entity.createdAtEpochMillis),
+                referencingEntryIds = entryIdsByPhoto[entity.id].orEmpty(),
+            )
         }
     }
 
