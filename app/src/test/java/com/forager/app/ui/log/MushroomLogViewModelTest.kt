@@ -661,6 +661,111 @@ class MushroomLogViewModelTest {
     }
 
     /**
+     * Workstream L4c §5: [LogEntryDetailScreen]'s "Add Location"/"Change Location" button (wired in
+     * both [LogPanel] and [JournalTab]) reaches [MushroomLogViewModel.onEntryEdited] the same way
+     * every other field edit does — `onEntryChanged(editing.copy(foundAt = location))` — so a
+     * location set mid-edit is subject to exactly the same draft-only-write guarantee already proven
+     * above for photos. This test proves it for `foundAt` specifically rather than assuming the
+     * shared mechanism covers it.
+     */
+    @Test
+    fun `setting a location during a re-edit writes to the draft row only, never the committed entry`() = runTest(dispatcher) {
+        val originalLocation = entry.foundAt
+        val newLocation = LatLng(46.0, -123.0)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        assertTrue("a re-edit's draft is a separate row", draftId != entry.id)
+
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(foundAt = newLocation))
+        advanceUntilIdle()
+
+        assertEquals("the draft reflects the new location", newLocation, vm.uiState.value.editingEntry?.foundAt)
+        assertEquals(
+            "the committed row's own location must be untouched while the draft is being edited",
+            originalLocation,
+            vm.uiState.value.entries.single { it.id == entry.id }.foundAt,
+        )
+        assertEquals(
+            "on disk, the new location must land on the draft row, not the parent",
+            newLocation,
+            repository.getAll().getOrThrow().single { it.id == draftId }.foundAt,
+        )
+        assertEquals(
+            "on disk, the parent row's location must be untouched",
+            originalLocation,
+            repository.getAll().getOrThrow().single { it.id == entry.id }.foundAt,
+        )
+    }
+
+    /** The Cancel counterpart of the test above — see its own doc comment. */
+    @Test
+    fun `Cancelling an edit discards a location changed during the session, leaving the committed entry's location untouched`() = runTest(dispatcher) {
+        val originalLocation = entry.foundAt
+        val newLocation = LatLng(46.0, -123.0)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(foundAt = newLocation))
+        advanceUntilIdle()
+
+        vm.onCancelEditing()
+        advanceUntilIdle()
+
+        assertEquals(
+            "the committed entry's location must be exactly what it was before the edit session",
+            originalLocation,
+            vm.uiState.value.entries.single { it.id == entry.id }.foundAt,
+        )
+        assertTrue("the draft row itself must be gone", repository.getAll().getOrThrow().none { it.id == draftId })
+    }
+
+    /**
+     * The incidental-exit counterpart of the two tests above: leaving without answering (the form's
+     * back arrow, a tab switch, or backgrounding — never Cancel) must persist a location change the
+     * same way it already persists every other field, per [MushroomLogViewModel.onLeaveEditingIncidentally].
+     */
+    @Test
+    fun `an incidental exit persists a location changed during a re-edit into the draft row`() = runTest(dispatcher) {
+        val newLocation = LatLng(46.0, -123.0)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(foundAt = newLocation))
+        advanceUntilIdle()
+
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+
+        assertNull("the form closes on an incidental exit", vm.uiState.value.editingEntry)
+        assertEquals(
+            "the committed entry must be untouched — an incidental exit never commits",
+            entry.foundAt,
+            vm.uiState.value.entries.single { it.id == entry.id }.foundAt,
+        )
+        assertEquals(listOf(draftId), vm.uiState.value.draftEntries.map { it.id })
+        assertEquals(
+            "the new location must be durably on the draft row, not just held in memory",
+            newLocation,
+            repository.getAll().getOrThrow().single { it.id == draftId }.foundAt,
+        )
+    }
+
+    /**
      * The known hazard this dispatch calls out by name: G3's [MushroomLogViewModel.loadEntries]
      * used to re-derive [MushroomLogUiState.editingEntry] wholesale from a fresh repository read —
      * safe only because nothing uncommitted existed to lose at the time. A refresh firing mid-edit

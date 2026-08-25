@@ -228,7 +228,14 @@ private fun PhotosSection(
             Button(onClick = onAddLocation) { Text(if (hasLocation) "Change Location" else "Add Location") }
         }
         if (photos.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+            // fillMaxWidth is load-bearing here, not decorative: without it this FlowRow sizes to
+            // wrap its own content (the thumbnails plus their spacing) with no leftover width for
+            // horizontalArrangement's Alignment.CenterHorizontally to center within, so the group
+            // would sit flush left regardless of the arrangement passed here.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm, Alignment.CenterHorizontally),
+            ) {
                 photos.forEach { photo -> LogPhotoThumbnail(photo = photo, onRemove = { onRemovePhoto(photo) }) }
             }
         }
