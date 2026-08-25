@@ -655,15 +655,20 @@ class MushroomLogViewModelTest {
      */
     @Test
     fun `loadEntries racing ahead of a keystroke's own write while loadEntries' own read wins the race to the lock`() = runTest(dispatcher) {
-        val readGate = CompletableDeferred<Unit>()
         val original = entry.copy(notes = "original")
-        val repository = FakeMushroomLogRepository(initial = listOf(original), readGate = readGate)
+        val repository = FakeMushroomLogRepository(initial = listOf(original))
         val vm = viewModel(repository)
         advanceUntilIdle()
         vm.onOpenEntry(original.id)
         vm.onStartEditingEntry()
         advanceUntilIdle()
         val draftId = vm.uiState.value.editingEntry!!.id
+
+        // Armed only now, after the ViewModel's own init-time loadEntries() and the setup above have
+        // already completed normally — see FakeMushroomLogRepository.readGate's own doc comment for
+        // why arming it any earlier would block that initial load forever.
+        val readGate = CompletableDeferred<Unit>()
+        repository.readGate = readGate
 
         // loadEntries() is called first, so its coroutine acquires editingEntryMutex first (nothing
         // else holds it yet) and then suspends on readGate — while still holding the lock.
@@ -750,8 +755,15 @@ private class FakeMushroomLogRepository(
     var saveShouldFail: Boolean = false,
     /** Held open by a test to reproduce the specific race [loadEntries]'s merge exists for: a read landing while an earlier keystroke's own write is still in flight. `null` (the default) never gates anything, so every other test here still runs a plain, immediate save. */
     private val saveGate: CompletableDeferred<Unit>? = null,
-    /** Held open by a test to reproduce the *other* ordering of the same race — [loadEntries]'s own read acquiring [MushroomLogViewModel]'s serializing lock before a pending keystroke's write does. `null` (the default) never gates anything. */
-    private val readGate: CompletableDeferred<Unit>? = null,
+    /**
+     * Held open by a test to reproduce the *other* ordering of the same race — [loadEntries]'s own
+     * read acquiring [MushroomLogViewModel]'s serializing lock before a pending keystroke's write
+     * does. `null` (the default) never gates anything. A `var`, not a constructor-only `val`: this
+     * gates every [getAll] call, including [MushroomLogViewModel]'s own `init`-time [loadEntries]
+     * call — a test needs to let that first load complete normally (so `entries`/`draftEntries` are
+     * actually populated) before arming this for the specific [loadEntries] call it means to test.
+     */
+    var readGate: CompletableDeferred<Unit>? = null,
 ) : MushroomLogRepository {
     private val entries = initial.associateByTo(LinkedHashMap()) { it.id }
     private val galleryPhotos = mutableMapOf<String, LogPhoto>()
