@@ -58,6 +58,7 @@ class MainActivity : ComponentActivity() {
                     container.getSeasonalPatternUseCase,
                     container.offlineMapRepository,
                     androidErrorLog,
+                    container.mapPreferencesRepository,
                 )
             }
         }
@@ -68,11 +69,17 @@ class MainActivity : ComponentActivity() {
             initializer {
                 MushroomLogViewModel(
                     container.getMushroomLogEntriesUseCase,
+                    container.getDraftEntriesUseCase,
                     container.createMushroomLogEntryUseCase,
+                    container.startEditingLogEntryUseCase,
                     container.saveMushroomLogEntryUseCase,
+                    container.commitDraftEntryUseCase,
                     container.deleteMushroomLogEntryUseCase,
                     container.addPhotoToLogEntryUseCase,
                     container.removePhotoFromLogEntryUseCase,
+                    container.getGalleryPhotosUseCase,
+                    container.pullPhotoIntoEntryUseCase,
+                    container.deleteGalleryPhotoUseCase,
                 )
             }
         }
@@ -242,17 +249,26 @@ class MainActivity : ComponentActivity() {
                     onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                     onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                     onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                    onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
                     onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
                     onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
                     onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
+                    onStartEditingLogEntry = mushroomLogViewModel::onStartEditingEntry,
+                    onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
+                    onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
+                    onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,
+                    onDiscardLogDraft = mushroomLogViewModel::onDeleteEntry,
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
+                    onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
                     onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
+                    onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
                     onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {

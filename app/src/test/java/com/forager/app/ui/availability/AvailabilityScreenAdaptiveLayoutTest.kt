@@ -4,11 +4,19 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -24,11 +32,14 @@ import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
+import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -99,8 +110,10 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -139,8 +152,10 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -177,10 +192,16 @@ class AvailabilityScreenWideWindowLayoutTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private fun setScreen(uiState: AvailabilityUiState) {
+    private fun setScreen(
+        uiState: AvailabilityUiState,
+        onPlaceTripPin: (LatLng, LocalDate, String) -> Unit = { _, _, _ -> },
+        mapSlot: MapSlot = StubMapSlot,
+        logUiState: com.forager.app.ui.log.MushroomLogUiState = com.forager.app.ui.log.MushroomLogUiState(),
+    ) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
+                logUiState = logUiState,
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},
@@ -195,15 +216,17 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
                 onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
+                onPlaceTripPin = onPlaceTripPin,
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
-                mapSlot = StubMapSlot,
+                onDeleteOfflineRegion = {},
+                mapSlot = mapSlot,
             )
         }
     }
@@ -218,6 +241,28 @@ class AvailabilityScreenWideWindowLayoutTest {
         setScreen(SEARCHED_STATE)
 
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
+    }
+
+    /**
+     * Workstream G2 (`docs/plans/pr26-rework.md`): the gallery is a top-level destination on both
+     * window classes, not just compact — see `PhotoGalleryScreen`'s own doc comment. This is the
+     * medium/expanded half; `AvailabilityScreenBackNavigationTest`'s own "Album" tab test covers
+     * the compact half.
+     */
+    @Test
+    fun `the drawer's Photo Gallery entry is shown without opening the drawer, and opens the gallery`() {
+        val photo = com.forager.app.domain.model.GalleryPhoto(
+            photo = com.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = emptyList(),
+        )
+        setScreen(SEARCHED_STATE, logUiState = com.forager.app.ui.log.MushroomLogUiState(galleryPhotos = listOf(photo)))
+        composeRule.onNodeWithText("Photo Gallery").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Photo Gallery").performClick()
+
+        // Proves the real PhotoGalleryScreen is hosted here, with the real gallery state — not
+        // just that a panel switched to some empty placeholder.
+        composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
     }
 
     /**
@@ -240,6 +285,126 @@ class AvailabilityScreenWideWindowLayoutTest {
      * the actual capped column rather than trusting the constant alone — a regression here would
      * be the cap silently not applying, not just the number changing.
      */
+    /**
+     * `MapTab` (medium/expanded, shared for both window classes — see this class's own doc
+     * comment) has no icon stack for a tile to grow out of, so its own add button (added alongside
+     * this rework — see `MapTab`'s doc comment in `AvailabilityScreen.kt`) opens
+     * [ThreeWayActionDialog] rather than [AddActionTile]'s corner-anchored tile, unlike the compact
+     * layout's icon stack — see `AvailabilityScreenMapIconStackTest`'s equivalent for that layout.
+     */
+    @Test
+    fun `the add button opens the three-way chooser on the medium and expanded layout too`() {
+        setScreen(SEARCHED_STATE)
+
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+
+        composeRule.onNodeWithText("What would you like to do here?").assertIsDisplayed()
+        composeRule.onNodeWithText("Plan a trip").assertIsDisplayed()
+        composeRule.onNodeWithText("Log a find").assertIsDisplayed()
+        composeRule.onNodeWithText("Drop a waypoint").assertIsDisplayed()
+    }
+
+    /**
+     * `MapTab`'s own coordinate path end to end: the add button opens [ThreeWayActionDialog],
+     * choosing "Plan a trip" opens [com.forager.app.ui.map.CentrePinLocationPickerOverlay], a real
+     * pan reported by [MapSlot.onCameraIdle] moves the pin, OK confirms it, and the real
+     * [androidx.compose.material3.DatePickerDialog] confirmation hands that exact coordinate to
+     * [onPlaceTripPin] — the medium/expanded counterpart to
+     * [AvailabilityScreenTripPlanningFlowTest]'s compact-layout version of the same round trip.
+     */
+    @Test
+    fun `MapTab's add button carries a panned location all the way to onPlaceTripPin`() {
+        var placedAt: LatLng? = null
+        setScreen(
+            SEARCHED_STATE,
+            onPlaceTripPin = { location, _, _ -> placedAt = location },
+            mapSlot = TriggerableWideStubMapSlot,
+        )
+
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.onNodeWithText("Plan a trip").performClick()
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.onNodeWithText("Plan trip").performClick()
+
+        assertEquals(WIDE_WINDOW_TEST_LOCATION, placedAt)
+    }
+
+    /**
+     * Workstream L4b-R2: the L4b-R2 dispatch's own correction — the discard-offer Snackbar was
+     * wired for the compact bottom nav's JournalTab but the medium/expanded drawer's LogPanel (this
+     * window class's only log-editing surface — see [AvailabilityScreenWideWindowLayoutTest]'s own
+     * doc comment on window-class equivalence) was left on the raw, un-wrapped callback. Drives the
+     * real drawer end to end (open the log, open an existing entry so it's a re-edit rather than a
+     * brand-new draft, leave via the form's own back arrow) rather than a stand-in `LogPanel`
+     * harness, so a regression that wires the Snackbar for one caller but not the other shows up
+     * here specifically.
+     */
+    @Test
+    fun `leaving a re-opened log entry's edit form incidentally on a medium window offers a Discard Snackbar`() {
+        val existingEntry = MushroomLogEntry.draft(
+            id = "existing-1",
+            location = LatLng(45.326, -122.634),
+            date = LocalDate.of(2026, 8, 1),
+        ).copy(isDraft = false)
+
+        composeRule.setContent {
+            var logUiState by remember { mutableStateOf(MushroomLogUiState(entries = listOf(existingEntry))) }
+            AvailabilityScreen(
+                uiState = SEARCHED_STATE,
+                logUiState = logUiState,
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onToggleForagingAreas = {},
+                onCategorySelected = {},
+                onTaxonSearchQueryChanged = {},
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = {},
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+                mapSlot = StubMapSlot,
+                onOpenLogEntry = { id ->
+                    logUiState = logUiState.copy(editingEntry = logUiState.entries.first { it.id == id })
+                },
+                onStartEditingLogEntry = {
+                    // Same in-place stand-in as LogPanelTest's own harness: this test only needs a
+                    // draft to exist to open the form, not the real new-row/id mechanics
+                    // StartEditingLogEntryUseCase owns.
+                    logUiState.editingEntry?.let { current ->
+                        if (!current.isDraft) logUiState = logUiState.copy(editingEntry = current.copy(isDraft = true))
+                    }
+                },
+                onLeaveLogEntryEditingIncidentally = {
+                    logUiState = logUiState.copy(editingEntry = null)
+                },
+            )
+        }
+
+        composeRule.onNodeWithText("Mushroom Log").performClick()
+        composeRule.onNodeWithText("Find on 2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Back to your log").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Saved to Drafts").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Discard").assertIsDisplayed()
+    }
+
     @Test
     fun `the seasonal tab's content is capped to a readable width, not stretched to the window`() {
         setScreen(SEARCHED_STATE.copy(seasonalPattern = DISTRIBUTION))
@@ -311,6 +476,17 @@ private val DISTRIBUTION = FruitingLagDistribution(
 )
 
 /** Same stub as [AvailabilityScreenLayoutTest]'s — see that file for why the real map isn't used here. */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag("map-slot"))
+}
+
+private val WIDE_WINDOW_TEST_LOCATION = LatLng(45.40, -122.70)
+
+/** Exposes [MapSlot.onCameraIdle] as a button — same pattern [AvailabilityScreenTripPlanningFlowTest]'s `TriggerableMapSlot` uses. */
+private val TriggerableWideStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+    Column(modifier.testTag("map-slot")) {
+        Button(onClick = { onCameraIdle(WIDE_WINDOW_TEST_LOCATION) }) {
+            Text("Simulate pan to test location")
+        }
+    }
 }

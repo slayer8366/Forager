@@ -24,9 +24,12 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
+import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
@@ -55,8 +58,9 @@ import org.robolectric.annotation.Config
  * 3. The "Offline Maps" submenu: reachable regardless of the selected [com.forager.app.ui.map.MapService]
  *    (offline downloads always target USGS internally, so nothing about reaching the submenu depends
  *    on the live service selection — see `com.forager.app.domain.OfflineMapRepository`'s doc comment),
- *    its navigation (entry row in → back arrow out), and picking a region by long-pressing its map
- *    instead of typing coordinates.
+ *    its navigation (entry row in → back arrow out), and picking a region by panning its
+ *    [com.forager.app.ui.map.CentrePinLocationPicker] map and confirming with OK, instead of typing
+ *    coordinates.
  *
  * The map is stubbed, same reasoning as [AvailabilityScreenLayoutTest]: composing the real one
  * starts osmdroid. [CapturingMapSlot] backs *both* the main Map tab's map and the Offline Maps
@@ -89,11 +93,11 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedOfflinePickerBasemap: Basemap? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
-    private val CapturingMapSlot: MapSlot = { _, content, basemap, _, onLongPress, _, modifier ->
+    private val CapturingMapSlot: MapSlot = { _, content, basemap, _, _, _, onCameraIdle, modifier ->
         if (content.sightings.isEmpty() && content.areas.isEmpty() && content.plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
-                Button(onClick = { onLongPress(PICKED_LOCATION) }) { Text("Simulate region pick") }
+                Button(onClick = { onCameraIdle(PICKED_LOCATION) }) { Text("Simulate pan to test location") }
             }
         } else {
             capturedBasemap = basemap
@@ -125,18 +129,21 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = CapturingMapSlot,
             )
         }
     }
 
     /**
-     * Unlike [setScreen], wires the offline-map callbacks to real local state so a long-press on
-     * the picker map (see [CapturingMapSlot]) actually round-trips into [AvailabilityUiState] the
-     * same way [AvailabilityViewModel]'s real `onOfflineMapLatChanged`/`onOfflineMapLngChanged` do —
-     * needed for the "long-press sets the region" test, which otherwise has nothing to observe.
+     * Unlike [setScreen], wires the offline-map callbacks to real local state so panning and
+     * confirming the picker map (see [CapturingMapSlot]) actually round-trips into
+     * [AvailabilityUiState] the same way [AvailabilityViewModel]'s real
+     * `onOfflineMapLatChanged`/`onOfflineMapLngChanged` do — needed for the "picking a region sets
+     * it" test, which otherwise has nothing to observe.
      */
     private fun setScreenWithOfflineMapsState(initial: AvailabilityUiState = SEARCHED_STATE) {
         composeRule.setContent {
@@ -163,8 +170,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapLatChanged = { text -> current = current.copy(offlineMapLatText = text) },
                 onOfflineMapLngChanged = { text -> current = current.copy(offlineMapLngText = text) },
                 onOfflineMapRadiusChanged = { radius -> current = current.copy(offlineMapRadiusKm = radius) },
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -309,25 +318,29 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `Download Maps is disabled with no region picked, and Delete Offline Maps is disabled with nothing downloaded`() {
+    fun `Download Maps is disabled with no region picked, and no regions or delete buttons show with nothing downloaded`() {
         setScreen()
         openOfflineMaps()
 
-        composeRule.onNodeWithText("Download Maps").assertIsDisplayed().assertIsNotEnabled()
-        composeRule.onNodeWithText("Delete Offline Maps").assertIsNotEnabled()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
+        // Delete is per-region now (OfflineRegionRow), not a standalone always-present button — with
+        // nothing downloaded there is no row to show one on.
+        composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("Delete").assertCountEquals(0)
     }
 
     @Test
-    fun `long-pressing the picker map sets the region and enables Download Maps`() {
+    fun `panning the picker map and confirming with OK sets the region and enables Download Maps`() {
         setScreenWithOfflineMapsState()
         openOfflineMaps()
         composeRule.onNodeWithText("Download Maps").assertIsNotEnabled()
 
-        composeRule.onNodeWithText("Simulate region pick").performClick()
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText(
-            "Selected: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
+            "Download region: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Download Maps").assertIsEnabled()
     }
@@ -345,17 +358,29 @@ class AvailabilityScreenSettingsPanelTest {
      * live-fetched-at-download-time distinction `docs/plans/forager-navigator-plan.md`'s Phase 1c
      * item asks this submenu to surface, per the project owner's own call to extend this existing
      * panel rather than build a separate live-position readiness check (deferred).
+     *
+     * This text moved with Workstream B from the picker's own transient download status (main's
+     * single-region `OfflineMapStatusContent`) to each region's own row in `OfflineRegionsSection` —
+     * see that composable's doc comment for why: [OfflineMapStatus.Succeeded] is a bare marker with
+     * no region data left to attach the text to, once a region can no longer replace whatever was
+     * downloaded before it.
      */
     @Test
     fun `a downloaded region states it is ready to zoom 15, with the z14-archive vs z15-live distinction`() {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = SEARCHED_STATE.copy(
-                    offlineMapStatus = OfflineMapStatus.Downloaded(
-                        region = REGION,
-                        tileCount = 4200,
-                        sizeBytes = 18_500_000L,
-                        downloadedAtEpochMillis = 0L,
+                    offlineRegions = listOf(
+                        OfflineRegionSummary(
+                            id = 1L,
+                            name = "Chanterelle Ridge",
+                            region = REGION,
+                            minZoom = OfflineMapRepository.MIN_ZOOM,
+                            maxZoom = OfflineMapRepository.MAX_ZOOM,
+                            tileCount = 4200,
+                            sizeBytes = 18_500_000L,
+                            createdAtEpochMillis = 0L,
+                        ),
                     ),
                 ),
                 onUseCurrentLocation = {},
@@ -378,8 +403,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapLatChanged = {},
                 onOfflineMapLngChanged = {},
                 onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineMaps = {},
+                onDeleteOfflineRegion = {},
                 mapSlot = CapturingMapSlot,
             )
         }

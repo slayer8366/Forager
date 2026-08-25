@@ -160,6 +160,8 @@ fun SightingsMap(
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onTap: () -> Unit = {},
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
+    onCameraIdle: (LatLng) -> Unit = {},
+    /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     breadcrumbPoints: List<LatLng> = emptyList(),
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     waypoints: List<Waypoint> = emptyList(),
@@ -182,6 +184,7 @@ fun SightingsMap(
     // onTap/onLongPress lambda instance was current at registration time, not the caller's latest.
     val currentOnTap by rememberUpdatedState(onTap)
     val currentOnLongPress by rememberUpdatedState(onLongPress)
+    val currentOnCameraIdle by rememberUpdatedState(onCameraIdle)
 
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     // The Style instance from the most recently completed setStyle callback. Distinct from
@@ -230,6 +233,21 @@ fun SightingsMap(
             map.addOnMapLongClickListener { latLng ->
                 currentOnLongPress(LatLng(latLng.latitude, latLng.longitude))
                 true
+            }
+            // OnCameraIdleListener.onCameraIdle() takes no argument (verified via javap against
+            // the pinned org.maplibre.gl:android-sdk:13.5.0 artifact — MapLibreMap$OnCameraIdleListener
+            // declares only `void onCameraIdle()`), so the position has to be read back explicitly
+            // via getCameraPosition() inside the callback, not received as a parameter the way
+            // addOnMapLongClickListener's latLng is.
+            map.addOnCameraIdleListener {
+                // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
+                // javap: the vendor's own constructor carries an org.jetbrains.annotations.Nullable
+                // on this parameter) — null before the map has finished laying out a first camera
+                // position, which an idle event can fire for. Nothing to report yet in that case, so
+                // this skips the callback rather than fabricating a coordinate.
+                map.cameraPosition.target?.let { target ->
+                    currentOnCameraIdle(LatLng(target.latitude, target.longitude))
+                }
             }
             // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
             // corner this composable's own always-visible Basemap.attribution caption occupies (see

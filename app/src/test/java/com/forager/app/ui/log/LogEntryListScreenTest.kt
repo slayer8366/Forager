@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MushroomLogEntry
@@ -69,7 +70,24 @@ class LogEntryListScreenTest {
             LogEntryListScreen(entries = emptyList(), isLoading = false, onOpenEntry = {})
         }
 
-        composeRule.onNodeWithText("No finds logged yet. Long-press the map to log one.").assertIsDisplayed()
+        composeRule.onNodeWithText("No finds logged yet. Tap the add button on the map to log one.").assertIsDisplayed()
+    }
+
+    /**
+     * L3 (`docs/plans/pr26-rework.md`'s Workstream L) makes [MushroomLogEntry.foundAt] nullable —
+     * this is the display side of that: a location-less entry shows the owner-decided "No location
+     * set." text (see [MushroomLogEntry.draft]'s own doc comment on why nothing yet constructs one
+     * this way in production; the test still needs to prove the render path itself is correct).
+     */
+    @Test
+    fun `an entry with no location shows the no-location text instead of coordinates`() {
+        val locationLessEntry = MushroomLogEntry.draft(id = "no-location-1", location = null, date = LocalDate.of(2026, 8, 1))
+
+        composeRule.setContent {
+            LogEntryListScreen(entries = listOf(locationLessEntry), isLoading = false, onOpenEntry = {})
+        }
+
+        composeRule.onNodeWithText("No location set.").assertIsDisplayed()
     }
 
     @Test
@@ -84,5 +102,39 @@ class LogEntryListScreenTest {
         }
 
         composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").assertIsDisplayed()
+    }
+
+    /**
+     * Workstream L4b-R's Log/Drafts toggle — same coverage as [LogGalleryScreenTest]'s identical
+     * pair, for this screen's own copy of the toggle.
+     */
+    @Test
+    fun `by default the Log tab shows only committed entries, and no draft is visible`() {
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
+
+        composeRule.setContent {
+            LogEntryListScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {})
+        }
+
+        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithText("Find on 2026-08-02").assertDoesNotExist()
+        composeRule.onNodeWithText("Draft — not yet saved").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping the Drafts tab shows only the draft, hides the committed entry`() {
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
+
+        composeRule.setContent {
+            LogEntryListScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {})
+        }
+
+        composeRule.onNodeWithText("Drafts (1)").performClick()
+
+        composeRule.onNodeWithText("Find on 2026-08-02").assertIsDisplayed()
+        composeRule.onNodeWithText("Draft — not yet saved").assertIsDisplayed()
+        composeRule.onNodeWithText("Find on 2026-08-01").assertDoesNotExist()
     }
 }

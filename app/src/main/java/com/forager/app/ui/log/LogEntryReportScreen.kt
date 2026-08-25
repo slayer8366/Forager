@@ -1,8 +1,5 @@
 package com.forager.app.ui.log
 
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,18 +25,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.forager.app.R
 import com.forager.app.domain.model.Association
 import com.forager.app.domain.model.CapSection
 import com.forager.app.domain.model.ContextFleshSection
@@ -55,9 +49,6 @@ import com.forager.app.domain.model.StipeDetails
 import com.forager.app.domain.model.StipeSection
 import com.forager.app.domain.model.VeilSection
 import com.forager.app.domain.model.valueOrNull
-import java.io.File
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * The Journal gallery's default view for an *existing* entry — a compiled, readable report of
@@ -128,7 +119,8 @@ internal fun LogEntryReportScreen(
             verticalArrangement = Arrangement.spacedBy(LogSpacing.lg),
         ) {
             Text(
-                "Found at ${"%.4f".format(entry.foundAt.lat)}, ${"%.4f".format(entry.foundAt.lng)}",
+                entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
+                    ?: stringResource(R.string.log_entry_no_location),
                 style = MaterialTheme.typography.bodySmall,
             )
 
@@ -276,34 +268,9 @@ private fun hostSubstrateReportLines(hostSubstrate: HostSubstrateSection): List<
 }
 
 private const val REPORT_PHOTO_SIZE_DP = 88
-private const val REPORT_PHOTO_SAMPLE_SIZE = 4
 
-/** Read-only counterpart to [LogEntryDetailScreen]'s removable [LogPhotoThumbnail] — same decode pattern, no remove action. */
+/** Read-only counterpart to [LogEntryDetailScreen]'s removable [LogPhotoThumbnail] — same shared [DecodedPhoto], no remove action. */
 @Composable
 private fun ReportPhotoThumbnail(photo: LogPhoto) {
-    val context = LocalContext.current
-    var bitmap by remember(photo.id) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(photo.id) {
-        bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                val options = BitmapFactory.Options().apply { inSampleSize = REPORT_PHOTO_SAMPLE_SIZE }
-                BitmapFactory.decodeFile(File(context.filesDir, photo.relativePath).absolutePath, options)
-                    ?.asImageBitmap()
-            }.getOrNull()
-        }
-    }
-
-    Box(modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp)) {
-        val loaded = bitmap
-        if (loaded != null) {
-            Image(
-                bitmap = loaded,
-                contentDescription = "Log photo",
-                modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Box(modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp).background(MaterialTheme.colorScheme.surfaceVariant))
-        }
-    }
+    DecodedPhoto(relativePath = photo.relativePath, modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp))
 }

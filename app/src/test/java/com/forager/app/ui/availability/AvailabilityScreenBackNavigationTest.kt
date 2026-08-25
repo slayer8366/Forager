@@ -39,9 +39,11 @@ import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
+import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.MushroomRepository
-import com.forager.app.domain.OfflineMapInfo
 import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
@@ -138,6 +140,7 @@ class AvailabilityScreenBackNavigationTest {
                 ComputeFruitingLagDistributionUseCase(),
             ),
             offlineMapRepository = BackNavStubOfflineMapRepository,
+            mapPreferencesRepository = BackNavStubMapPreferencesRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -164,16 +167,16 @@ class AvailabilityScreenBackNavigationTest {
                 onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                 onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
                 onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineMaps = viewModel::onDeleteOfflineMaps,
+                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 logUiState = logState,
                 onStartLogEntry = { location, date ->
+                    // Workstream L4b: a brand-new entry is a draft, never added to entries at
+                    // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
+                    // doc comment.
                     logState = logState.copy(
-                        entries = logState.entries + com.forager.app.domain.model.MushroomLogEntry.draft(
-                            id = "started-entry",
-                            location = location,
-                            date = date,
-                        ),
                         editingEntry = com.forager.app.domain.model.MushroomLogEntry.draft(
                             id = "started-entry",
                             location = location,
@@ -183,6 +186,22 @@ class AvailabilityScreenBackNavigationTest {
                 },
                 onOpenLogEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
                 onCloseLogEntry = { logState = logState.copy(editingEntry = null) },
+                onLeaveLogEntryEditingIncidentally = {
+                    // Workstream L4b: leaving without answering (the back arrow, here) auto-saves
+                    // and closes the entry — see MushroomLogViewModel.onLeaveEditingIncidentally's
+                    // own doc comment.
+                    logState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        logState = logState.copy(
+                            entries = if (logState.entries.any { it.id == committed.id }) {
+                                logState.entries.map { if (it.id == committed.id) committed else it }
+                            } else {
+                                logState.entries + committed
+                            },
+                            editingEntry = null,
+                        )
+                    }
+                },
                 compassProvider = BackNavFakeCompassProvider,
                 mapSlot = BackNavStubMapSlot,
             )
@@ -263,26 +282,49 @@ class AvailabilityScreenBackNavigationTest {
 
     /**
      * A Journal entry's own edit form is more nested than "which bottom-nav tab is selected" — back
-     * must unwind the entry (to its report) before it ever switches tabs. Proves `JournalTab`'s own
-     * `BackHandler`, composed as part of this tab's content, takes priority over
-     * `AvailabilityScreen`'s top-level "switch away from a non-Maps tab" handler.
+     * must unwind the entry before it ever switches tabs. Proves `JournalTab`'s own `BackHandler`,
+     * composed as part of this tab's content, takes priority over `AvailabilityScreen`'s top-level
+     * "switch away from a non-Maps tab" handler.
+     *
+     * Workstream L4b: back out of the edit form is an incidental exit (auto-save + close), not a
+     * toggle to the report the way it worked before drafts existed — see
+     * `MushroomLogViewModel.onLeaveEditingIncidentally`'s own doc comment, and
+     * [com.forager.app.ui.log.JournalTabTest]'s identical flip for the same reason. Ends on the
+     * gallery, not the report.
      */
     @Test
     fun `back backs out of a Journal entry before switching away from the Journal tab`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
-        composeRule.onNodeWithText("Simulate long press").performClick()
-        composeRule.onNodeWithText("Place entry here").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
         pressBack()
 
-        // Back in the report, not the edit form (JournalTab's `when` mounts only one at a time,
-        // so the edit form is fully unmounted, not merely hidden), and still on the Journal tab —
-        // not bounced to Maps.
+        // Back on the gallery (JournalTab's `when` mounts only one at a time, so the edit form is
+        // fully unmounted, not merely hidden), and still on the Journal tab — not bounced to Maps.
         composeRule.onNodeWithText("Photos").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+    }
+
+    /**
+     * Workstream G2 (`docs/plans/pr26-rework.md`): the gallery is a top-level destination on both
+     * window classes — this is the compact half (a bottom-nav tab); the medium/expanded half (a
+     * drawer entry) is `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. Labelled
+     * "Album" rather than "Photos" — see `CompactTab`'s own doc comment for why that exact string
+     * collides with existing on-screen text elsewhere in this same feature.
+     */
+    @Test
+    fun `the Album tab shows the photo gallery`() {
+        val photo = com.forager.app.domain.model.GalleryPhoto(
+            photo = com.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = emptyList(),
+        )
+        setScreen(logUiState = MushroomLogUiState(galleryPhotos = listOf(photo)))
+
+        composeRule.onNodeWithText("Album").performClick()
+
+        composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
     }
 
     /**
@@ -314,9 +356,9 @@ class AvailabilityScreenBackNavigationTest {
     }
 }
 
-private val BackNavStubMapSlot: MapSlot = { _, _, _, _, onLongPress, _, modifier ->
+private val BackNavStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onLongPress(LatLng(45.326, -122.634)) }) { Text("Simulate long press") }
+        Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
     }
 }
 
@@ -372,9 +414,16 @@ private class BackNavInMemoryPlannedTripRepository : PlannedTripRepository {
 }
 
 private object BackNavStubOfflineMapRepository : OfflineMapRepository {
-    override suspend fun download(region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineMapInfo> =
+    override suspend fun download(name: String, region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineRegionSummary> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
-    override suspend fun delete(): Result<Unit> =
+    override suspend fun deleteRegion(id: Long): Result<Unit> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
-    override suspend fun getStatus(): Result<OfflineMapInfo?> = Result.success(null)
+    override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
+}
+
+private object BackNavStubMapPreferencesRepository : MapPreferencesRepository {
+    override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(null)
+    override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
+    override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
+    override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
 }

@@ -6,6 +6,7 @@ import com.forager.app.data.local.ForagerDatabase
 import com.forager.app.data.remote.INaturalistClient
 import com.forager.app.data.remote.OpenMeteoArchiveClient
 import com.forager.app.data.remote.OpenMeteoClient
+import com.forager.app.data.repository.DataStoreMapPreferencesRepository
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.data.repository.OpenMeteoHistoricalWeatherProvider
 import com.forager.app.data.repository.OpenMeteoWeatherProvider
@@ -20,10 +21,12 @@ import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeReturnToStartUseCase
 import com.forager.app.domain.ComputeTrackStatisticsUseCase
+import com.forager.app.domain.CommitDraftEntryUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.forager.app.domain.CreateWaypointUseCase
 import com.forager.app.domain.CurrentTimeProvider
+import com.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.DeleteTrackUseCase
@@ -32,6 +35,8 @@ import com.forager.app.domain.DetectOffTrackUseCase
 import com.forager.app.domain.EndTrackUseCase
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
+import com.forager.app.domain.GetDraftEntriesUseCase
+import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
@@ -43,18 +48,21 @@ import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.MushroomLogRepository
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PhotoStore
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
+import com.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.forager.app.domain.RecordTrackPointsUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchCacheRepository
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.StartEditingLogEntryUseCase
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.TrackRepository
@@ -125,18 +133,25 @@ class AppContainer(context: Context) {
     val getAvailabilityUseCase = GetAvailabilityUseCase(predictAvailabilityUseCase, searchCacheRepository)
     val getRecentSearchesUseCase = GetRecentSearchesUseCase(searchCacheRepository)
 
-    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context)
+    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
+    val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
 
     val photoStore: PhotoStore = FilePhotoStore(context)
     val cameraCaptureFiles = CameraCaptureFiles(context)
 
     val mushroomLogRepository: MushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
     val getMushroomLogEntriesUseCase = GetMushroomLogEntriesUseCase(mushroomLogRepository)
+    val getDraftEntriesUseCase = GetDraftEntriesUseCase(mushroomLogRepository)
     val createMushroomLogEntryUseCase = CreateMushroomLogEntryUseCase(mushroomLogRepository)
+    val startEditingLogEntryUseCase = StartEditingLogEntryUseCase(mushroomLogRepository)
     val saveMushroomLogEntryUseCase = SaveMushroomLogEntryUseCase(mushroomLogRepository)
+    val commitDraftEntryUseCase = CommitDraftEntryUseCase(mushroomLogRepository)
     val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(mushroomLogRepository)
     val addPhotoToLogEntryUseCase = AddPhotoToLogEntryUseCase(photoStore, mushroomLogRepository)
-    val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(photoStore, mushroomLogRepository)
+    val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(mushroomLogRepository)
+    val getGalleryPhotosUseCase = GetGalleryPhotosUseCase(mushroomLogRepository)
+    val pullPhotoIntoEntryUseCase = PullPhotoIntoEntryUseCase(mushroomLogRepository)
+    val deleteGalleryPhotoUseCase = DeleteGalleryPhotoUseCase(mushroomLogRepository, photoStore)
 
     // Phase 1a of the Forager Navigator plan (docs/plans/forager-navigator-plan.md) — track
     // recording and waypoints. TrackRecordingService (com.forager.app.service) reaches these

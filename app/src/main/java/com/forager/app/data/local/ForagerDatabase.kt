@@ -43,6 +43,38 @@ import androidx.room.RoomDatabase
  * [WaypointEntity]) via a real [MIGRATION_4_5], for the same reason [MIGRATION_3_4] exists: a
  * recorded track or a dropped waypoint is irreplaceable field data, not something a destructive
  * fallback may drop.
+ *
+ * [version] 6 adds `offline_regions` ([OfflineRegionEntity]) and
+ * [MushroomLogEntryEntity.offlineRegionId] via a real [MIGRATION_5_6] — same reasoning as
+ * [MIGRATION_4_5]: a downloaded region is costly to recreate, not something to drop on a schema
+ * bump. [OfflineRegionEntity] and [OfflineRegionDao] were added to this codebase before this
+ * version but never registered here, so `offline_regions` has never existed in a real install
+ * until this bump.
+ *
+ * [version] 7 makes `mushroom_log_entries.lat`/`.lng` nullable via a real [MIGRATION_6_7] —
+ * Workstream L3 (`docs/plans/pr26-rework.md`): a log entry must be able to exist with no
+ * location, since L4 routes entry creation to the entry page rather than through a
+ * location-placement step first. Existing entries and their coordinates are not something a
+ * schema bump may drop, same reasoning as every hand-written migration above.
+ *
+ * [version] 8 inverts photo ownership via a real [MIGRATION_7_8] — owner decision, 2026-08-22:
+ * "photos live in a gallery in their own right; log entries reference them, they do not own them."
+ * `log_photos` loses its required `entryId` and gains [LogPhotoEntity.createdAtEpochMillis]; a new
+ * [LogEntryPhotoCrossRef] table (`log_entry_photos`) carries the entry↔photo relationship,
+ * many-to-many rather than one-to-many (owner decision: "the album model"). Every existing
+ * relationship is preserved as a cross-reference row before the old column is gone, same
+ * no-data-loss reasoning as every hand-written migration above.
+ *
+ * [version] 9 adds [MushroomLogEntryEntity.isDraft]/[MushroomLogEntryEntity.draftOfEntryId] via a
+ * real [MIGRATION_8_9] — Workstream L4b, owner decision, 2026-08-22: persisted drafts, **corrected
+ * 2026-08-25 (L4b-R)**: a draft is a standalone row with a nullable pointer to the entry it drafts,
+ * not the committed entry itself wearing a flag — see [MIGRATION_8_9]'s own doc comment for the full
+ * reasoning, including why the single-row shape was rejected and why this codebase's legacy-fixture
+ * pitfall (see `docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`) does not recur
+ * here. Nothing shipped between the two passes, so this amends `MIGRATION_8_9` in place rather than
+ * stacking a 9→10 on a version that was never released. Every pre-existing row is a real,
+ * previously-committed entry, never a draft under the pre-L4b model, so this migration marks every
+ * one of them `isDraft = 0`/`draftOfEntryId = NULL` explicitly.
  */
 @Database(
     entities = [
@@ -50,11 +82,13 @@ import androidx.room.RoomDatabase
         CachedSearchEntity::class,
         MushroomLogEntryEntity::class,
         LogPhotoEntity::class,
+        LogEntryPhotoCrossRef::class,
         TrackEntity::class,
         TrackPointEntity::class,
         WaypointEntity::class,
+        OfflineRegionEntity::class,
     ],
-    version = 5,
+    version = 9,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -68,11 +102,13 @@ abstract class ForagerDatabase : RoomDatabase() {
 
     abstract fun waypointDao(): WaypointDao
 
+    abstract fun offlineRegionDao(): OfflineRegionDao
+
     companion object {
         fun create(context: Context): ForagerDatabase = Room.databaseBuilder(
             context.applicationContext,
             ForagerDatabase::class.java,
             "forager.db",
-        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5).fallbackToDestructiveMigration(true).build()
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).fallbackToDestructiveMigration(true).build()
     }
 }

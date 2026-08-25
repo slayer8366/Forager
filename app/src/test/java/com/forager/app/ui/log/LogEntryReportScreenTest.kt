@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -19,6 +20,7 @@ import com.forager.app.domain.model.Feature
 import com.forager.app.domain.model.HymenophoreDetails
 import com.forager.app.domain.model.HymenophoreSection
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Observed
 import com.forager.app.domain.model.VeilSection
@@ -113,6 +115,22 @@ class LogEntryReportScreenTest {
         composeRule.onAllNodesWithText("Not recorded yet.").assertCountEquals(4)
     }
 
+    /**
+     * L3 (`docs/plans/pr26-rework.md`'s Workstream L) makes [MushroomLogEntry.foundAt] nullable —
+     * this is the display side of that: a location-less entry shows the owner-decided "No location
+     * set." text rather than the "Found at ..." coordinate line.
+     */
+    @Test
+    fun `an entry with no location shows the no-location text instead of coordinates`() {
+        val locationLessEntry = MushroomLogEntry.draft(id = "no-location-1", location = null, date = LocalDate.of(2026, 8, 1))
+
+        composeRule.setContent {
+            LogEntryReportScreen(entry = locationLessEntry, onEdit = {}, onDeleteEntry = {}, onBack = {})
+        }
+
+        composeRule.onNodeWithText("No location set.").assertIsDisplayed()
+    }
+
     @Test
     fun `the overflow menu's Edit entry option calls onEdit`() {
         var editCalls = 0
@@ -137,6 +155,21 @@ class LogEntryReportScreenTest {
         composeRule.onNodeWithText("Delete entry").performClick()
 
         assertEquals(1, deleteCalls)
+    }
+
+    /** Workstream G2: [ReportPhotoThumbnail] now delegates to the shared [DecodedPhoto] — proves the converted call site still renders a photo. */
+    @Test
+    fun `an entry with a photo still renders it`() {
+        val entryWithPhoto = partiallyRecordedEntry.copy(photos = listOf(LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)))
+
+        composeRule.setContent {
+            LogEntryReportScreen(entry = entryWithPhoto, onEdit = {}, onDeleteEntry = {}, onBack = {})
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithContentDescription("Log photo").assertIsDisplayed()
     }
 
     @Test

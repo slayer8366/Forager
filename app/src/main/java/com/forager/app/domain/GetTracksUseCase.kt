@@ -2,7 +2,7 @@ package com.forager.app.domain
 
 import com.forager.app.domain.model.Track
 
-/** Every recorded track. A one-line wrapper — see [DeleteMushroomLogEntryUseCase]'s doc comment for why one exists at all. */
+/** Every recorded track. A one-line wrapper — see [DeletePlannedTripUseCase]'s doc comment for why one exists at all. */
 class GetTracksUseCase(
     private val repository: TrackRepository,
 ) {

@@ -14,7 +14,10 @@ import org.junit.Test
 class MapLibreOfflineRegionMetadataTest {
 
     private val metadata = RegionMetadata(
+        name = "Chanterelle Ridge",
         region = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+        minZoom = 10.0,
+        maxZoom = 15.0,
         downloadedAtEpochMillis = 1_755_000_000_000L,
     )
 

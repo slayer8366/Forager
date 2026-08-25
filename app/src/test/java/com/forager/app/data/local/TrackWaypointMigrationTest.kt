@@ -65,6 +65,26 @@ class TrackWaypointMigrationTest {
         try {
             legacyDb.plannedTripDao().upsert(legacyTrip)
             RoomMushroomLogRepository(legacyDb.mushroomLogDao()).save(legacyEntry).getOrThrow()
+
+            // LegacyForagerDatabaseV4 reuses the *production* MushroomLogEntryEntity class — but
+            // that class now has offlineRegionId (plus its index), added in MIGRATION_5_6, which a
+            // real version-4 install never had. Drop both here so the file reaches MIGRATION_5_6 in
+            // its true pre-migration shape — see OfflineRegionMigrationTest's identical fix for the
+            // full reasoning; the index has to go first, or dropping the column while it's still
+            // referenced fails with "no such column." This is not leftover debugging — see
+            // docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md for why any future
+            // migration that alters an existing entity will need the same treatment here.
+            legacyDb.openHelper.writableDatabase.execSQL("DROP INDEX `index_mushroom_log_entries_offlineRegionId`")
+            legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `mushroom_log_entries` DROP COLUMN `offlineRegionId`")
+
+            // The legacy-fixture problem's third occurrence, in the opposite direction: LogPhotoEntity
+            // no longer declares entryId as of MIGRATION_7_8 (gallery ownership), so this "legacy"
+            // log_photos table is missing a column a real version-4 install always had — restored
+            // here (a plain ADD COLUMN, not a drop, since nothing leaked in this time; something
+            // leaked away) so MIGRATION_7_8's own `SELECT entryId, id FROM log_photos` doesn't fail
+            // with "no such column" further down the same migration chain. See LogPhotoMigrationTest's
+            // own doc comment for the general reasoning.
+            legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `log_photos` ADD COLUMN `entryId` TEXT")
         } finally {
             legacyDb.close()
         }
@@ -73,7 +93,7 @@ class TrackWaypointMigrationTest {
         // fallbackToDestructiveMigration here, so if MIGRATION_4_5 is missing or wrong, this throws
         // rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build()
 
         try {
@@ -81,7 +101,10 @@ class TrackWaypointMigrationTest {
             assertEquals(listOf(legacyTrip), survivedTrips)
 
             val survivedEntries = RoomMushroomLogRepository(migrated.mushroomLogDao()).getAll().getOrThrow()
-            assertEquals(listOf(legacyEntry), survivedEntries)
+            // Workstream L4b: MIGRATION_8_9 marks every pre-existing row isDraft = false — see
+            // MushroomLogEntryMigrationTest's identical note for why legacyEntry.isDraft (true,
+            // MushroomLogEntry.draft()'s current default) isn't what a migrated row should carry.
+            assertEquals(listOf(legacyEntry.copy(isDraft = false)), survivedEntries)
 
             // The new tables aren't just present after migration — they actually work: a real
             // save/read round-trip through the production repositories.
@@ -120,7 +143,7 @@ class TrackWaypointMigrationTest {
  * export).
  */
 @Database(
-    entities = [PlannedTripEntity::class, CachedSearchEntity::class, MushroomLogEntryEntity::class, LogPhotoEntity::class],
+    entities = [PlannedTripEntity::class, CachedSearchEntity::class, MushroomLogEntryEntity::class, LogPhotoEntity::class, LogEntryPhotoCrossRef::class],
     version = 4,
     exportSchema = false,
 )

@@ -19,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -63,6 +64,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Settings
@@ -102,6 +104,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -112,12 +118,19 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -147,13 +160,18 @@ import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.ForagingWeatherGuidance
 import com.forager.app.domain.FruitingPatternAssumptions
 import com.forager.app.domain.MgrsConverter
+import com.forager.app.domain.OfflineMapRepository
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.SystemCurrentTimeProvider
+import com.forager.app.domain.estimateOfflineTileCount
+import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MgrsCoordinate
@@ -177,8 +195,11 @@ import com.forager.app.ui.crash.CrashLogsEntryRow
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
+import com.forager.app.ui.log.PhotoGalleryScreen
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.BasemapCoverage
+import com.forager.app.ui.map.CentrePinLocationPicker
+import com.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapService
 import com.forager.app.ui.map.MapSlot
@@ -217,6 +238,15 @@ private enum class CompactTab(val label: String) {
     MAP("Maps"),
     SEASONAL("Seasonal"),
     JOURNAL("Journal"),
+    // Workstream G2 (`docs/plans/pr26-rework.md`): a top-level destination on both window classes
+    // (owner decision, 2026-08-22), not a branch inside JOURNAL — see PhotoGalleryScreen's own doc
+    // comment. Placed next to JOURNAL, the other mushroom-log destination, rather than at the end.
+    // Labelled "Album" rather than "Photos"/"Gallery": both of those exact strings are already
+    // on-screen text elsewhere in this feature (LogEntryDetailScreen's "Photos" section header and
+    // its own "Gallery" picker button), which made an existing Compose test's onNodeWithText query
+    // ambiguous the moment this tab's label rendered alongside them. "Album" also echoes G1's own
+    // "the album model" framing for many-to-many photo ownership, not picked arbitrarily.
+    PHOTOS("Album"),
     SETTINGS("Settings"),
 }
 
@@ -226,6 +256,7 @@ private fun CompactTab.icon(): ImageVector = when (this) {
     CompactTab.MAP -> Icons.Filled.Map
     CompactTab.SEASONAL -> Icons.Filled.WbSunny
     CompactTab.JOURNAL -> Icons.Filled.MenuBook
+    CompactTab.PHOTOS -> Icons.Filled.PhotoLibrary
     CompactTab.SETTINGS -> Icons.Filled.Settings
 }
 
@@ -237,8 +268,9 @@ private fun CompactTab.icon(): ImageVector = when (this) {
  * returns to [Settings], not all the way to [Search]. Closing the drawer entirely resets all the
  * way back to [Search] regardless of which panel was showing.
  *
- * [Log] additionally opens directly — bypassing [Search] — from the map's long-press "Log a find"
- * option; see [MapTab]'s `onLogFindHere` call site in [AvailabilityScreen].
+ * [Log] additionally opens directly — bypassing [Search] — from the map's "Log a find" option
+ * (chosen from [ThreeWayActionDialog], then placed via [com.forager.app.ui.map.CentrePinLocationPicker]);
+ * see [MapTab]'s `onLogFindHere` call site in [AvailabilityScreen].
  *
  * **Compact windows no longer use this at all.** [Settings] and [Log] moved to the bottom nav
  * ([CompactTab.SETTINGS]/[CompactTab.JOURNAL] — see [ForagerBottomNav]'s doc comment) per the
@@ -254,6 +286,10 @@ private enum class DrawerPanel {
     OfflineMaps,
     CrashLogs,
     Log,
+    // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
+    // top-level, both-window-classes destination — see PhotoGalleryScreen's own doc comment and
+    // CompactTab.PHOTOS, its compact counterpart.
+    PhotoGallery,
 }
 
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
@@ -324,7 +360,7 @@ fun AvailabilityScreen(
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
     onReopenTaxonSuggestions: () -> Unit,
-    /** Called when a date and name are confirmed for a trip pin dropped via the map's long-press gesture. */
+    /** Called when a date and name are confirmed for a trip pin placed via [com.forager.app.ui.map.CentrePinLocationPicker]. */
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
     /** Called when one of the drawer's recent searches is tapped; see [RecentSearchesSection]. */
@@ -340,12 +376,14 @@ fun AvailabilityScreen(
      * so this stays optional for callers that render neither.
      */
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
-    /** Set by long-pressing the picker map in the Offline Maps submenu — see `OfflineMapsPanel`. */
+    /** Set by panning the picker map to the centre pin and confirming, in the Offline Maps submenu — see `OfflineMapsPanel`. */
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
+    onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineMaps: () -> Unit,
+    onDeleteOfflineRegion: (Long) -> Unit,
     /**
      * The mushroom log drawer destination's own state — see [com.forager.app.ui.log.LogPanel].
      * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
@@ -353,14 +391,26 @@ fun AvailabilityScreen(
      */
     logUiState: MushroomLogUiState = MushroomLogUiState(),
     cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
-    /** Starts and immediately opens a new log entry — the map's long-press "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
-    onStartLogEntry: (LatLng, LocalDate) -> Unit = { _, _ -> },
+    /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
+    onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
     onOpenLogEntry: (String) -> Unit = {},
     onCloseLogEntry: () -> Unit = {},
     onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
+    /** Begins editing the currently-open (committed) entry — see [com.forager.app.ui.log.MushroomLogViewModel.onStartEditingEntry]'s own doc comment. A no-op if it's already a draft. */
+    onStartEditingLogEntry: () -> Unit = {},
+    /** Save — commits the currently-open entry. See [com.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
+    onSaveLogEntry: () -> Unit = {},
+    /** Cancel — the only exit that discards anything. See [com.forager.app.ui.log.MushroomLogViewModel.onCancelEditing]'s own doc comment. */
+    onCancelLogEntryEditing: () -> Unit = {},
+    /** Leaving without answering — tab switch, backgrounding, back — persists the draft without committing. See [com.forager.app.ui.log.MushroomLogViewModel.onLeaveEditingIncidentally]'s own doc comment. */
+    onLeaveLogEntryEditingIncidentally: () -> Unit = {},
+    /** Discards a draft by id outright — the compact scaffold's "Discard" Snackbar action target, since by the time it's tapped [logUiState].editingEntry is already null. Same operation as [onDeleteLogEntry]. */
+    onDiscardLogDraft: (String) -> Unit = {},
     onAddLogPhoto: (PhotoSource) -> Unit = {},
     onRemoveLogPhoto: (LogPhoto) -> Unit = {},
+    onPullLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
+    onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
     /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
     onSaveLogErrorDismissed: () -> Unit = {},
     /**
@@ -393,7 +443,7 @@ fun AvailabilityScreen(
     waypoints: List<Waypoint> = emptyList(),
     /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
     waypointsErrorMessage: String? = null,
-    /** Called with the dropped location and the confirmed name when "Drop a waypoint" is chosen from the map's long-press menu — see [WaypointNameDialog]. */
+    /** Called with the placed location and the confirmed name when "Drop a waypoint" is chosen from [ThreeWayActionDialog] — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
     /**
@@ -550,6 +600,31 @@ fun AvailabilityScreen(
 
     val windowWidthClass = currentWindowWidthClass()
 
+    // Workstream L4b-R2: the one wrapped "leaving without answering" callback, hoisted here (rather
+    // than declared separately inside compactMainScaffold and again wherever the drawer's own
+    // LogPanel needed it) so "every in-app exit offers a discard action" stays one fact about one
+    // callback shared by every caller — the compact bottom nav's JournalTab, its own tab-switch
+    // handler, and DrawerPanel.Log's LogPanel below — rather than N independently-maintained copies.
+    // Backgrounding is the deliberate, sole exception: see compactMainScaffold's own
+    // DisposableEffect, which calls the *raw* onLeaveLogEntryEditingIncidentally directly, never this
+    // wrapper, since there is no window left to show a Snackbar in by the time that fires.
+    val logDraftSnackbarHostState = remember { SnackbarHostState() }
+    val logDraftSnackbarScope = rememberCoroutineScope()
+    val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
+        val discardedId = logUiState.editingEntry?.id
+        onLeaveLogEntryEditingIncidentally()
+        if (discardedId != null) {
+            logDraftSnackbarScope.launch {
+                val result = logDraftSnackbarHostState.showSnackbar(
+                    message = "Saved to Drafts",
+                    actionLabel = "Discard",
+                    duration = SnackbarDuration.Short,
+                )
+                if (result == SnackbarResult.ActionPerformed) onDiscardLogDraft(discardedId)
+            }
+        }
+    }
+
     // The drawer's panel content, shared between the compact `ModalNavigationDrawer` below and
     // the `PermanentNavigationDrawer` medium+ windows get instead — see [windowWidthClass]. A
     // local composable lambda rather than a top-level one so it closes over this function's ~25
@@ -599,9 +674,12 @@ fun AvailabilityScreen(
                     },
                     currentTime = currentTime,
                 )
-                // Both sticky footer rows: the log is the newer of the two, placed above
-                // Settings so it isn't the last thing in the sheet — see MushroomLogEntryRow.
+                // Sticky footer rows: the log is the newer of the two pre-existing ones, placed
+                // above Settings so it isn't the last thing in the sheet — see
+                // MushroomLogEntryRow. The photo gallery (Workstream G2) joins right below it,
+                // the other mushroom-log-area destination.
                 MushroomLogEntryRow(onClick = { drawerPanel = DrawerPanel.Log })
+                PhotoGalleryEntryRow(onClick = { drawerPanel = DrawerPanel.PhotoGallery })
                 // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
                 // moved to the bottom of the Settings panel below.
                 SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
@@ -615,7 +693,10 @@ fun AvailabilityScreen(
                     onMapServiceSelected = { selectedMapService = it },
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = { distanceUnit = it },
-                    onOpenOfflineMaps = { drawerPanel = DrawerPanel.OfflineMaps },
+                    onOpenOfflineMaps = {
+                        drawerPanel = DrawerPanel.OfflineMaps
+                        onOfflineMapsOpened()
+                    },
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
                 )
                 BuildIdentityFooter()
@@ -629,14 +710,16 @@ fun AvailabilityScreen(
                     modifier = Modifier.weight(1f),
                     uiState = uiState,
                     distanceUnit = distanceUnit,
+                    currentTime = currentTime,
                     mapSlot = mapSlot,
                     onRegionPicked = { location ->
                         onOfflineMapLatChanged(location.lat.toString())
                         onOfflineMapLngChanged(location.lng.toString())
                     },
                     onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = onOfflineMapNameChanged,
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
-                    onDeleteOfflineMaps = onDeleteOfflineMaps,
+                    onDeleteOfflineRegion = onDeleteOfflineRegion,
                 )
             }
 
@@ -655,14 +738,40 @@ fun AvailabilityScreen(
                     modifier = Modifier.weight(1f),
                     uiState = logUiState,
                     cameraCaptureFiles = cameraCaptureFiles,
+                    mapSlot = mapSlot,
+                    region = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
+                    basemap = basemap,
                     onOpenEntry = onOpenLogEntry,
                     onCloseEntry = onCloseLogEntry,
                     onEntryChanged = onLogEntryChanged,
+                    onStartEditingEntry = onStartEditingLogEntry,
+                    onSaveEntry = onSaveLogEntry,
+                    onCancelEditing = onCancelLogEntryEditing,
+                    // Workstream L4b-R2: shares the same wrapped callback as the compact bottom
+                    // nav's JournalTab — see this function's own top-level construction of
+                    // leaveLogEntryEditingOfferingDiscard for why one callback, not a
+                    // window-class-specific copy. The PermanentNavigationDrawer's own drawer sheet
+                    // (below) hosts the Snackbar this shows.
+                    onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
                     onAddPhoto = onAddLogPhoto,
                     onRemovePhoto = onRemoveLogPhoto,
+                    onPullPhoto = onPullLogPhoto,
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
                     onSaveErrorDismissed = onSaveLogErrorDismissed,
+                )
+            }
+
+            DrawerPanel.PhotoGallery -> {
+                // Back returns all the way to Search, same as DrawerPanel.Log — there's no
+                // intermediate panel between this and Search the way Settings has OfflineMaps.
+                PhotoGalleryHeader(onBack = { drawerPanel = DrawerPanel.Search })
+                PhotoGalleryScreen(
+                    modifier = Modifier.weight(1f),
+                    photos = logUiState.galleryPhotos,
+                    isLoading = logUiState.isLoadingGalleryPhotos,
+                    onDeletePhoto = onDeleteGalleryPhoto,
+                    loadErrorMessage = logUiState.galleryLoadErrorMessage,
                 )
             }
         }
@@ -795,12 +904,57 @@ fun AvailabilityScreen(
         // CompactMapTab itself, which enters and leaves composition on every bottom-nav switch.
         LaunchedEffect(Unit) { onLocateMe() }
 
+        // Workstream L4b-R: backgrounding the app while a log entry is open is "leaving without
+        // answering" — persists the draft, never commits (see MushroomLogViewModel's own doc
+        // comment on the three exits). Deliberately calls the *raw* callback, never the
+        // Snackbar-offering wrapper below: the home button (or any other way of backgrounding)
+        // blows straight through any in-app prompt with no window to show one at all, so this
+        // defaults straight to "saved to Drafts," silently, with no discard offer attempted.
+        // Mirrors SightingsMap's own DisposableEffect(lifecycleOwner)/LifecycleEventObserver
+        // pattern — the one existing precedent in this codebase for hooking ON_STOP/ON_PAUSE, since
+        // neither MainActivity nor this composable had any lifecycle observer before this.
+        // rememberUpdatedState keeps the observer (registered once per lifecycleOwner) reading the
+        // *current* tab/entry state and callback rather than whatever was current the moment it was
+        // registered.
+        val lifecycleOwner = LocalLifecycleOwner.current
+        val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveLogEntryEditingIncidentally)
+        val latestIsJournalEditing by rememberUpdatedState(compactTab == CompactTab.JOURNAL && logUiState.editingEntry != null)
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP && latestIsJournalEditing) {
+                    latestOnLeaveEditingIncidentally()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+
+        // Workstream L4b-R2: every *in-app* incidental exit (back arrow inside the edit form, the
+        // journal tab's own BackHandler, switching to another bottom-nav tab, and — via the shared
+        // leaveLogEntryEditingOfferingDiscard/logDraftSnackbarHostState this function hoisted to its
+        // own top level — DrawerPanel.Log's LogPanel too) shares this one wrapped callback, so the
+        // same Snackbar covers every one of them from a single place rather than a
+        // window-class-specific copy per host. Backgrounding above is the deliberate exception (see
+        // that effect's own comment on why). The exit itself is never blocked on this:
+        // onLeaveLogEntryEditingIncidentally() already ran, and the Snackbar only offers an undo: a
+        // dismissed or ignored one leaves the draft exactly where that call already put it (owner
+        // decision, 2026-08-25: Gmail-drafts-style).
         Scaffold(
+            snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
             bottomBar = {
                 if (!isMapFullscreen) {
                     ForagerBottomNav(
                         selectedTab = compactTab,
                         onTabSelected = { tab ->
+                            // Workstream L4b: switching away from Journal while an entry is open is
+                            // "leaving without answering" — the same incidental-exit auto-save as
+                            // the edit form's own back arrow or the app backgrounding (see
+                            // MushroomLogViewModel's own doc comment on the three exits). Checked
+                            // before compactTab actually changes, so this only fires on a genuine
+                            // tab switch, never on tapping the already-selected Journal tab again.
+                            if (compactTab == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
+                                leaveLogEntryEditingOfferingDiscard()
+                            }
                             compactTab = tab
                             // Keep the shared ResultsTab-driven state in sync for the three
                             // destinations both it and CompactTab describe — see compactTab's own
@@ -809,7 +963,7 @@ fun AvailabilityScreen(
                                 CompactTab.LIST -> selectedTab = ResultsTab.LIST
                                 CompactTab.MAP -> selectedTab = ResultsTab.MAP
                                 CompactTab.SEASONAL -> selectedTab = ResultsTab.SEASONAL
-                                CompactTab.JOURNAL, CompactTab.SETTINGS -> Unit
+                                CompactTab.JOURNAL, CompactTab.PHOTOS, CompactTab.SETTINGS -> Unit
                             }
                         },
                     )
@@ -902,11 +1056,23 @@ fun AvailabilityScreen(
                         onCloseEntry = onCloseLogEntry,
                         onStartEntry = onStartLogEntry,
                         onEntryChanged = onLogEntryChanged,
+                        onStartEditingEntry = onStartEditingLogEntry,
+                        onSaveEntry = onSaveLogEntry,
+                        onCancelEditing = onCancelLogEntryEditing,
+                        onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
                         onAddPhoto = onAddLogPhoto,
                         onRemovePhoto = onRemoveLogPhoto,
+                        onPullPhoto = onPullLogPhoto,
                         onDeleteEntry = onDeleteLogEntry,
                         onSaveErrorDismissed = onSaveLogErrorDismissed,
                         modifier = Modifier.weight(1f),
+                    )
+                    CompactTab.PHOTOS -> PhotoGalleryScreen(
+                        photos = logUiState.galleryPhotos,
+                        isLoading = logUiState.isLoadingGalleryPhotos,
+                        onDeletePhoto = onDeleteGalleryPhoto,
+                        modifier = Modifier.weight(1f),
+                        loadErrorMessage = logUiState.galleryLoadErrorMessage,
                     )
                     CompactTab.SETTINGS -> CompactSettingsTab(
                         uiState = uiState,
@@ -915,11 +1081,14 @@ fun AvailabilityScreen(
                         onMapServiceSelected = { selectedMapService = it },
                         distanceUnit = distanceUnit,
                         onDistanceUnitSelected = { distanceUnit = it },
+                        currentTime = currentTime,
                         onOfflineMapLatChanged = onOfflineMapLatChanged,
                         onOfflineMapLngChanged = onOfflineMapLngChanged,
                         onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                        onOfflineMapNameChanged = onOfflineMapNameChanged,
+                        onOfflineMapsOpened = onOfflineMapsOpened,
                         onDownloadOfflineMaps = onDownloadOfflineMaps,
-                        onDeleteOfflineMaps = onDeleteOfflineMaps,
+                        onDeleteOfflineRegion = onDeleteOfflineRegion,
                         crashFileStore = crashFileStore,
                         modifier = Modifier.weight(1f),
                     )
@@ -981,7 +1150,19 @@ fun AvailabilityScreen(
         PermanentNavigationDrawer(
             drawerContent = {
                 PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
-                    drawerSheetContent(false)
+                    // Workstream L4b-R2: the drawer sheet is DrawerPanel.Log's own visual area, so
+                    // its discard-offer Snackbar docks here — at the bottom of this sheet — rather
+                    // than in mainScaffold's Scaffold, which is the search/results pane beside it,
+                    // not where the edit session the Snackbar is about actually lives.
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            drawerSheetContent(false)
+                        }
+                        SnackbarHost(
+                            logDraftSnackbarHostState,
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                        )
+                    }
                 }
             },
             content = mainScaffold,
@@ -1343,6 +1524,28 @@ private fun SettingsEntryRow(onClick: () -> Unit) {
 }
 
 /**
+ * The Search panel's sticky-footer entry into the photo gallery (Workstream G2) — same shape as
+ * [MushroomLogEntryRow] right above it, since both are entries into mushroom-log-area
+ * destinations. No `navigationBarsPadding()` here for the same reason [MushroomLogEntryRow] has
+ * none: [SettingsEntryRow] below is still the last row in the sheet and carries that inset.
+ */
+@Composable
+private fun PhotoGalleryEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
+        Text("Photo Gallery", style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
  * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
  * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
  * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
@@ -1360,6 +1563,23 @@ private fun SettingsHeader(onBack: () -> Unit) {
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
         Text("Settings", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/** [DrawerPanel.PhotoGallery]'s header — mirrors [SettingsHeader]'s back-arrow-plus-title shape exactly, for the same reason: there's nothing else on screen suggesting how to get back to Search. */
+@Composable
+private fun PhotoGalleryHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onBack)
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
+        Text("Photo Gallery", style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -1381,11 +1601,14 @@ private fun CompactSettingsTab(
     onMapServiceSelected: (MapService) -> Unit,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
+    currentTime: CurrentTimeProvider,
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
+    onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineMaps: () -> Unit,
+    onDeleteOfflineRegion: (Long) -> Unit,
     crashFileStore: CrashFileStore,
     modifier: Modifier = Modifier,
 ) {
@@ -1409,14 +1632,16 @@ private fun CompactSettingsTab(
                     modifier = Modifier.weight(1f),
                     uiState = uiState,
                     distanceUnit = distanceUnit,
+                    currentTime = currentTime,
                     mapSlot = mapSlot,
                     onRegionPicked = { location ->
                         onOfflineMapLatChanged(location.lat.toString())
                         onOfflineMapLngChanged(location.lng.toString())
                     },
                     onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = onOfflineMapNameChanged,
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
-                    onDeleteOfflineMaps = onDeleteOfflineMaps,
+                    onDeleteOfflineRegion = onDeleteOfflineRegion,
                 )
             }
 
@@ -1435,7 +1660,10 @@ private fun CompactSettingsTab(
                     onMapServiceSelected = onMapServiceSelected,
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = onDistanceUnitSelected,
-                    onOpenOfflineMaps = { showOfflineMaps = true },
+                    onOpenOfflineMaps = {
+                        showOfflineMaps = true
+                        onOfflineMapsOpened()
+                    },
                     onOpenCrashLogs = { showCrashLogs = true },
                 )
                 BuildIdentityFooter()
@@ -1452,7 +1680,7 @@ private fun CompactSettingsTab(
  * `showOfflineMaps` local state for compact's [CompactSettingsTab]) rather than a section inline
  * here, because it now holds an interactive map (see [OfflineMapsPanel]) that needs real screen
  * space to be usable — a map squeezed into one scrolling section among several would be too small
- * to long-press accurately.
+ * to pan and position the centre pin accurately.
  *
  * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
  * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
@@ -1597,8 +1825,8 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
 }
 
 /**
- * The "Offline Maps" submenu: an interactive topo map to pick a download region by long-press, the
- * region's radius, current status, and the Download/Delete actions.
+ * The "Offline Maps" submenu: an interactive topo map to pick a download region via the
+ * centre-pin picker, the region's radius, current status, and the Download/Delete actions.
  *
  * Always downloads from the same one fixed source, unconditionally — see
  * `com.forager.app.domain.OfflineMapRepository`'s doc comment for why this is no longer gated on,
@@ -1608,65 +1836,77 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
  * Worker now, not USGS — this panel's own picker map below is unrelated to that choice, see the
  * next paragraph.
  *
- * ## Picking a region by long-press instead of typing coordinates
+ * ## Picking a region via [CentrePinLocationPicker]
  *
- * Reuses [MapSlot]/`SightingsMap` rather than a new map composable — empty `sightings`/`areas`/
- * `plannedTrips`, [Basemap.USGS_TOPO] always, and [onRegionPicked] wired to the same
- * `onLongPress` mechanism [MapTab] already uses for planning a trip, except there is no
- * name-and-date dialog in between: a picked point becomes the region's center immediately, since
- * there is nothing else to ask the user for. `SightingsMap` already draws a center marker whose
- * snippet states the radius, so nothing new needs to be drawn for feedback — see that composable's
- * own doc comment. [Basemap.USGS_TOPO] here is only terrain context for choosing *where* to
- * download — this picker map is still osmdroid/live-browsing-shaped, unrelated to which source the
- * download itself actually reads from underneath.
+ * [onRegionPicked] fires from [CentrePinLocationPicker]'s own OK button — see that composable's
+ * class doc comment for why every location-placing site in this app, this one included, replaced
+ * long-press with a fixed centre pin (an accessibility decision, not a style one). There is no
+ * name-and-date dialog in between OK and the pick landing: a confirmed point becomes the region's
+ * centre immediately, since there is nothing else to ask the user for. [Basemap.USGS_TOPO] here is
+ * only terrain context for choosing *where* to download — this picker map is unrelated to which
+ * source the download itself actually reads from underneath.
  *
- * Before anything is long-pressed, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank,
- * so the map centres on [OFFLINE_MAP_PICKER_DEFAULT_CENTER] purely so there is a map to navigate
- * and long-press on — not a claim about where the user is or wants to download. "Download Maps"
- * stays disabled until a real point has been picked (see `hasValidRegion` below), so that default
- * viewport can never itself be submitted as a region.
+ * Before anything is confirmed, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank, so
+ * the picker centres on [OFFLINE_MAP_PICKER_DEFAULT_CENTER] purely so there is a map to navigate
+ * — not a claim about where the user is or wants to download. "Download Maps" stays disabled until
+ * a real point has been confirmed (see `hasValidRegion` below), so that default viewport can never
+ * itself be submitted as a region.
  *
- * The map is weighted to fill the space the fixed controls below it don't need, the same
- * map-gets-the-remainder pattern [MapTab] already uses, rather than a fixed dp height: a picker map
- * too small to long-press accurately would defeat the reason this replaced the lat/lng text fields.
+ * The map keeps a fixed aspect ratio rather than filling leftover space — see the `Box` below's
+ * own comment for why `weight(1f)` stopped working once this whole panel became one scrolling unit.
  */
 @Composable
 private fun OfflineMapsPanel(
     modifier: Modifier = Modifier,
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
+    currentTime: CurrentTimeProvider,
     mapSlot: MapSlot,
     onRegionPicked: (LatLng) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineMaps: () -> Unit,
+    onDeleteOfflineRegion: (Long) -> Unit,
 ) {
     val pickedLat = uiState.offlineMapLatText.toDoubleOrNull()
     val pickedLng = uiState.offlineMapLngText.toDoubleOrNull()
     val hasValidRegion = pickedLat != null && pickedLat in -90.0..90.0 && pickedLng != null && pickedLng in -180.0..180.0
+    val defaultCenter = uiState.offlineMapPickerDefaultCenter ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER
+    val now = currentTime.nowEpochMillis()
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    // The whole panel scrolls as one unit now that OfflineRegionsSection's list has no bound on
+    // its own length — a fixed-aspect-ratio picker map (below) plus a growing region list can
+    // exceed whatever height this panel's own parent hands it (Modifier.weight(1f) from the drawer
+    // sheet's Column, the same pattern SearchControls already uses for its own scroll in that same
+    // parent), so verticalScroll here is meaningful rather than a no-op: weight(1f) gives a bounded,
+    // not infinite, height to scroll within.
+    Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
         Text(
             "Offline downloads cover the continental United States with vector map data. " +
-                "Long-press the map below to choose where to download.",
+                "Pan the map below to position the pin, then tap OK to choose where to download.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
 
         val pickerRegion = Region(
-            lat = pickedLat ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER.lat,
-            lng = pickedLng ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER.lng,
+            lat = pickedLat ?: defaultCenter.lat,
+            lng = pickedLng ?: defaultCenter.lng,
             radiusKm = uiState.offlineMapRadiusKm,
         )
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            mapSlot(
-                pickerRegion,
-                MapOverlayContent(),
-                Basemap.USGS_TOPO,
-                null,
-                onRegionPicked,
-                {},
-                Modifier.fillMaxSize(),
+        // A fixed aspect ratio, not weight(1f): the picker map used to claim all leftover space in
+        // an unscrolled panel, but a panel that now scrolls as a whole has no "leftover space" for
+        // weight to resolve against.
+        Box(modifier = Modifier.fillMaxWidth().aspectRatio(MAP_PICKER_ASPECT_RATIO)) {
+            CentrePinLocationPicker(
+                mapSlot = mapSlot,
+                region = pickerRegion,
+                basemap = Basemap.USGS_TOPO,
+                onConfirm = onRegionPicked,
+                // Nothing to cancel back to: this panel had no confirm step before this picker
+                // existed either — the offlineMapLatText/offlineMapLngText fields just keep
+                // whatever they already held (blank, or a prior confirmed pick).
+                onCancel = {},
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -1678,11 +1918,19 @@ private fun OfflineMapsPanel(
         ) {
             Text(
                 if (hasValidRegion) {
-                    "Selected: ${"%.4f".format(pickedLat)}, ${"%.4f".format(pickedLng)}"
+                    "Download region: ${"%.4f".format(pickedLat)}, ${"%.4f".format(pickedLng)}"
                 } else {
-                    "No location picked yet — long-press the map above."
+                    "No location picked yet — pan the map above and tap OK."
                 },
                 style = MaterialTheme.typography.bodySmall,
+            )
+
+            OutlinedTextField(
+                value = uiState.offlineMapNameText,
+                onValueChange = onOfflineMapNameChanged,
+                label = { Text("Name (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Text("Radius: ${formatDistanceKm(uiState.offlineMapRadiusKm, distanceUnit)}", style = MaterialTheme.typography.bodyMedium)
@@ -1693,32 +1941,54 @@ private fun OfflineMapsPanel(
                 steps = Region.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
             )
 
-            OfflineMapStatusContent(uiState.offlineMapStatus, distanceUnit)
+            // So the tile budget is discovered here, while there's still time to pick a smaller
+            // radius, rather than only on a refused download — a user should not discover the
+            // ceiling at a trailhead.
+            val estimatedTiles = estimateOfflineTileCount(pickerRegion, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM)
+            val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
+            val exceedsBudget = estimatedTiles > remainingBudget
+            Text(
+                if (exceedsBudget) {
+                    "~$estimatedTiles tiles — exceeds your remaining budget of $remainingBudget"
+                } else {
+                    "~$estimatedTiles tiles"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (exceedsBudget) MaterialTheme.colorScheme.error else Color.Unspecified,
+            )
 
-            val isDownloading = uiState.offlineMapStatus is OfflineMapStatus.Downloading
-            val isDownloaded = uiState.offlineMapStatus is OfflineMapStatus.Downloaded
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(
-                    onClick = onDownloadOfflineMaps,
-                    enabled = hasValidRegion && !isDownloading,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Download Maps") }
-                OutlinedButton(
-                    onClick = onDeleteOfflineMaps,
-                    enabled = isDownloaded && !isDownloading,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Delete Offline Maps") }
-            }
+            OfflineDownloadStatusContent(uiState.offlineDownloadStatus)
+
+            val isDownloading = uiState.offlineDownloadStatus is OfflineMapStatus.Downloading
+            Button(
+                onClick = onDownloadOfflineMaps,
+                enabled = hasValidRegion && !isDownloading,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Download Maps") }
         }
+
+        HorizontalDivider()
+
+        OfflineRegionsSection(
+            regions = uiState.offlineRegions,
+            errorMessage = uiState.offlineRegionsErrorMessage,
+            staleThresholdDays = uiState.offlineStaleThresholdDays,
+            distanceUnit = distanceUnit,
+            nowEpochMillis = now,
+            onDeleteOfflineRegion = onDeleteOfflineRegion,
+        )
     }
 }
 
+/** The picker map's fixed width:height ratio — see [OfflineMapsPanel]'s doc comment for why this replaced `Modifier.weight(1f)`. */
+private const val MAP_PICKER_ASPECT_RATIO = 4f / 3f
+
 /**
- * An arbitrary opening viewport for [OfflineMapsPanel]'s picker map before anything has been
- * long-pressed — the geographic center of the contiguous United States (near Lebanon, Kansas),
- * since offline downloads only ever cover the continental-US PMTiles archive
+ * An arbitrary opening viewport for [OfflineMapsPanel]'s picker map before a region has been
+ * picked — the geographic center of the contiguous United States (near Lebanon, Kansas), since
+ * offline downloads only ever cover the continental-US PMTiles archive
  * `com.forager.app.map.MapLibreOfflineMapRepository` reads from. Not a default region and never
- * submitted as one: "Download Maps" stays disabled until a real long-press sets a region.
+ * submitted as one: "Download Maps" stays disabled until the centre pin has been confirmed with OK.
  */
 private val OFFLINE_MAP_PICKER_DEFAULT_CENTER = LatLng(39.8283, -98.5795)
 
@@ -1732,14 +2002,17 @@ private val OFFLINE_MAP_PICKER_DEFAULT_CENTER = LatLng(39.8283, -98.5795)
 private val JOURNAL_PICKER_DEFAULT_REGION =
     Region(lat = OFFLINE_MAP_PICKER_DEFAULT_CENTER.lat, lng = OFFLINE_MAP_PICKER_DEFAULT_CENTER.lng, radiusKm = 15)
 
-/** What [OfflineMapsPanel] shows for each [OfflineMapStatus] — every branch says something, per CLAUDE.md. */
+/**
+ * What [OfflineMapsPanel]'s picker shows for its own last download attempt — every branch says
+ * something, per CLAUDE.md, except [OfflineMapStatus.Idle]/[OfflineMapStatus.Succeeded], which
+ * deliberately render nothing: a completed download is already reflected in
+ * [OfflineRegionsSection]'s list right below, so there is nothing left for this transient status to
+ * say once it succeeds.
+ */
 @Composable
-private fun OfflineMapStatusContent(status: OfflineMapStatus, distanceUnit: DistanceUnit) {
+private fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
     when (status) {
-        OfflineMapStatus.NotDownloaded -> Text(
-            "No offline region downloaded yet.",
-            style = MaterialTheme.typography.bodySmall,
-        )
+        OfflineMapStatus.Idle, OfflineMapStatus.Succeeded -> Unit
 
         is OfflineMapStatus.Downloading -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             if (status.total > 0) {
@@ -1754,21 +2027,149 @@ private fun OfflineMapStatusContent(status: OfflineMapStatus, distanceUnit: Dist
             }
         }
 
-        is OfflineMapStatus.Downloaded -> Text(
-            "Downloaded: ${formatDistanceKm(status.region.radiusKm, distanceUnit)} around " +
-                "${"%.4f".format(status.region.lat)}, ${"%.4f".format(status.region.lng)} — " +
-                "${status.tileCount} tiles, ${"%.1f".format(status.sizeBytes / 1_000_000.0)} MB. " +
-                "Ready to zoom 15: zoom 10–14 from the archive, zoom 15 detail fetched live from " +
-                "Protomaps at download time — a download that reports as finished has both, since a " +
-                "zoom-15 fetch failure fails the download rather than silently completing without it.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-
         is OfflineMapStatus.Failed -> Text(
             status.message,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )
+    }
+}
+
+/**
+ * Every region currently on disk: name, centre, radius, size, download date, the zoom-readiness
+ * note main's old single-region `Downloaded` branch used to carry (see [OfflineRegionRow]'s own
+ * doc comment for where that text landed), and per-region delete. [errorMessage] surfaces a read
+ * failure without clearing whatever was last successfully loaded — see
+ * [AvailabilityViewModel.loadOfflineRegions][com.forager.app.ui.availability.AvailabilityViewModel.loadOfflineRegions].
+ *
+ * [errorMessage] renders with no error color, deliberately: per the error-presentation spec, a
+ * region-list-load failure (or a failed delete, which surfaces through the same field) isn't
+ * belief-changing the way a failed download is — the user isn't mid-action, they just want to see
+ * what's on disk, so this matches the neutral "Rainfall data unavailable"-style treatment other
+ * read failures in this screen already use, not [OfflineDownloadStatusContent]'s error-red.
+ *
+ * The tile-budget line and the "sizes don't add up" caveat: [OfflineMapRepository.TILE_COUNT_LIMIT]
+ * is the ceiling this app sets deliberately (see that constant's doc comment), and the caveat
+ * exists because the resource table dedupes tiles across overlapping regions, so summed per-region
+ * tile counts overstate real disk usage and a delete can free far less than its region's own
+ * reported size — this text deliberately never promises a specific amount reclaimed.
+ *
+ * Deleting a downloaded region is not reversible without re-downloading it, so each row's "Delete"
+ * button opens a confirmation dialog ([pendingDeleteRegion]) rather than deleting immediately on tap.
+ */
+@Composable
+private fun OfflineRegionsSection(
+    regions: List<OfflineRegionSummary>,
+    errorMessage: String?,
+    staleThresholdDays: Int,
+    distanceUnit: DistanceUnit,
+    nowEpochMillis: Long,
+    onDeleteOfflineRegion: (Long) -> Unit,
+) {
+    var pendingDeleteRegion by remember { mutableStateOf<OfflineRegionSummary?>(null) }
+
+    // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit (see
+    // its doc comment), so this section just renders at its natural height as the last thing in
+    // that scroll.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text("Downloaded Maps", style = MaterialTheme.typography.titleSmall)
+
+        val tilesUsed = regions.sumOf { it.tileCount }
+        Text(
+            "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}. Sizes don't add up to " +
+                "total disk usage — overlapping regions share tiles, so deleting one may free less " +
+                "than its own size suggests.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        if (errorMessage != null) {
+            Text(errorMessage, style = MaterialTheme.typography.bodySmall)
+        }
+
+        if (regions.isEmpty()) {
+            Text("No regions downloaded yet.", style = MaterialTheme.typography.bodySmall)
+        } else {
+            regions.forEach { region ->
+                OfflineRegionRow(
+                    region = region,
+                    isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
+                    distanceUnit = distanceUnit,
+                    nowEpochMillis = nowEpochMillis,
+                    onDelete = { pendingDeleteRegion = region },
+                )
+            }
+        }
+    }
+
+    pendingDeleteRegion?.let { region ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteRegion = null },
+            title = { Text("Delete \"${region.name}\"?") },
+            text = { Text("This deletes the downloaded map tiles for this region. You can re-download it later.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteOfflineRegion(region.id)
+                        pendingDeleteRegion = null
+                    },
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDeleteRegion = null }) { Text("Cancel") } },
+        )
+    }
+}
+
+/**
+ * One downloaded region's row in [OfflineRegionsSection].
+ *
+ * Carries the zoom-readiness note main's old single-region `OfflineMapStatusContent` used to show
+ * in its `Downloaded` branch — per Workstream B's dispatch, the information moves here rather than
+ * being dropped: [OfflineMapStatus.Succeeded] (this panel's new download-attempt status) is a bare
+ * marker with no region data left to attach it to, and every completed region in this list is
+ * exactly the thing that text was originally describing, so it's reworded to apply per-row instead
+ * of to "the one download that just finished."
+ */
+@Composable
+private fun OfflineRegionRow(
+    region: OfflineRegionSummary,
+    isStale: Boolean,
+    distanceUnit: DistanceUnit,
+    nowEpochMillis: Long,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                Text(region.name, style = MaterialTheme.typography.bodyMedium)
+                if (isStale) {
+                    Text("Stale", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            Text(
+                "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around " +
+                    "${"%.4f".format(region.region.lat)}, ${"%.4f".format(region.region.lng)} — " +
+                    "${region.tileCount} tiles, ${"%.1f".format(region.sizeBytes / 1_000_000.0)} MB — " +
+                    "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "Ready to zoom ${region.maxZoom.toInt()}: zoom ${region.minZoom.toInt()}–${region.maxZoom.toInt() - 1} " +
+                    "from the archive, zoom ${region.maxZoom.toInt()} detail fetched live from Protomaps when this " +
+                    "region downloaded — a region that shows here has both, since a zoom-${region.maxZoom.toInt()} " +
+                    "fetch failure fails the whole download rather than silently completing without it.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        OutlinedButton(onClick = onDelete) { Text("Delete") }
     }
 }
 
@@ -2744,15 +3145,27 @@ private fun FruitingLagBucketCounts(buckets: List<FruitingLagBucket>) {
  * and detail below it, which are bounded so they can't repeat the starvation this layout exists
  * to fix.
  *
- * Owns the long-press flow: [MapSlot] only reports *where* a long-press landed (see its own doc
- * comment for why), so the pending location and what it turns into both live here, next to the
- * only place that location can come from. A long-press now offers two outcomes — plan a trip
- * ([TripDatePickerDialog], turning it into a saved [PlannedTrip]) or log a find ([onLogFindHere],
- * which opens the mushroom log's drawer destination — see `docs/plans/mushroom-log.md`'s
- * Navigation section for why this reuses the gesture rather than adding a second one) — so
- * [LongPressActionDialog] asks which before either path runs. [defaultTripName] is computed from
- * the trip count already in state, here rather than inside the dialog, so the dialog stays a dumb
- * presenter of whatever default it's handed.
+ * Which of the three-way menu's options is currently mid-pick, between the menu closing and the
+ * centre-pin picker confirming — see [MapTab]/[CompactMapTab]'s own doc comments. There is no
+ * "none, but the picker is still showing" state: the picker overlay's own visibility is driven by
+ * this being non-null, not a separate flag, so the two can never disagree about whether a pick is
+ * in progress.
+ */
+private enum class PendingMapAction { PLAN_TRIP, LOG_FIND, DROP_WAYPOINT }
+
+/**
+ * Owns the location-placing flow: [MapSlot] only reports where the camera currently is (see its
+ * own doc comment on [MapSlot.onCameraIdle]), so the pending action and what it turns into both
+ * live here, next to the only place that location can come from. The three-way menu's own button
+ * offers three outcomes — plan a trip ([TripDatePickerDialog], turning it into a saved
+ * [PlannedTrip]), log a find ([onLogFindHere], which opens the mushroom log's drawer destination
+ * — see `docs/plans/mushroom-log.md`'s Navigation section for why this reuses the same entry point
+ * rather than adding a second one), or drop a waypoint ([WaypointNameDialog]) — so
+ * [ThreeWayActionDialog] asks which before any of the three runs, and only *then* does
+ * [CentrePinLocationPicker] ask where: a button press carries no location the way a long-press
+ * gesture used to, so which comes first had to invert. [defaultTripName] is computed from the trip
+ * count already in state, here rather than inside the dialog, so the dialog stays a dumb presenter
+ * of whatever default it's handed.
  */
 @Composable
 private fun MapTab(
@@ -2769,7 +3182,8 @@ private fun MapTab(
     onDropWaypoint: (LatLng, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
+    var showActionMenu by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
 
@@ -2796,6 +3210,7 @@ private fun MapTab(
         else -> {
             val region = uiState.region
             if (region != null) {
+                var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
                 Column(modifier = modifier.fillMaxWidth()) {
                     // Areas are only handed to the map when the layer is switched on; the
                     // clustering itself was already computed when the sightings loaded.
@@ -2816,8 +3231,9 @@ private fun MapTab(
                             ),
                             basemap,
                             null,
-                            { location -> pendingLongPressLocation = location },
                             {},
+                            {},
+                            { location -> cameraCenter = location },
                             Modifier.fillMaxSize(),
                         )
                         MapModeToggle(
@@ -2825,6 +3241,35 @@ private fun MapTab(
                             onToggle = onToggleMapMode,
                             modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
                         )
+                        // MEDIUM/EXPANDED's own trigger for the three-way menu — CompactMapTab has
+                        // MapIconStack's own add button to repurpose for this; this window class has
+                        // no icon stack at all, so this is new here rather than reused. Same icon,
+                        // same content description, same corner as the compact stack's own add
+                        // button, for the same button to mean the same thing on every layout that
+                        // has one — see this file's doc comment on why medium/expanded needed a
+                        // button added rather than an existing one converted.
+                        MapStackIconButton(
+                            icon = Icons.Filled.Add,
+                            contentDescription = "Plan a trip or log a find here",
+                            onClick = { showActionMenu = true },
+                            filled = true,
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.sm),
+                        )
+                        if (pendingAction != null) {
+                            CentrePinLocationPickerOverlay(
+                                onConfirm = {
+                                    when (pendingAction) {
+                                        PendingMapAction.PLAN_TRIP -> pendingTripLocation = cameraCenter
+                                        PendingMapAction.LOG_FIND -> onLogFindHere(cameraCenter)
+                                        PendingMapAction.DROP_WAYPOINT -> pendingWaypointLocation = cameraCenter
+                                        null -> Unit
+                                    }
+                                    pendingAction = null
+                                },
+                                onCancel = { pendingAction = null },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                     // Always visible below the map, not gated on showForagingAreas itself — the
                     // switch is how the layer gets turned back on, so it has to be reachable while
@@ -2859,21 +3304,29 @@ private fun MapTab(
         }
     }
 
-    pendingLongPressLocation?.let { location ->
-        LongPressActionDialog(
+    // CentrePinLocationPickerOverlay is a plain overlay, not a real Dialog — unlike
+    // ThreeWayActionDialog below (an AlertDialog, which already handles system back for free) —
+    // so unlike this composable's menu, its own picker phase needs an explicit BackHandler or
+    // system back would fall straight through it.
+    BackHandler(enabled = pendingAction != null) {
+        pendingAction = null
+    }
+
+    if (showActionMenu) {
+        ThreeWayActionDialog(
             onPlanTrip = {
-                pendingLongPressLocation = null
-                pendingTripLocation = location
+                showActionMenu = false
+                pendingAction = PendingMapAction.PLAN_TRIP
             },
             onLogFind = {
-                pendingLongPressLocation = null
-                onLogFindHere(location)
+                showActionMenu = false
+                pendingAction = PendingMapAction.LOG_FIND
             },
             onDropWaypoint = {
-                pendingLongPressLocation = null
-                pendingWaypointLocation = location
+                showActionMenu = false
+                pendingAction = PendingMapAction.DROP_WAYPOINT
             },
-            onDismiss = { pendingLongPressLocation = null },
+            onDismiss = { showActionMenu = false },
         )
     }
 
@@ -2952,15 +3405,15 @@ private val CompassStripBackgroundColor = Bark.copy(alpha = 0.78f)
  * inside [CombinedResultsPane] — see the plan doc's "Scope decision" section for why this is a
  * separate composable rather than a conditional threaded through [MapTab] itself.
  *
- * Owns the long-press flow exactly as [MapTab] does — see that composable's doc comment for the
- * mechanics [pendingLongPressLocation] drives; [TripDatePickerDialog]/[defaultTripName] are shared,
+ * Owns the location-placing flow exactly as [MapTab] does — see that composable's doc comment for
+ * the mechanics [PendingMapAction] drives; [TripDatePickerDialog]/[defaultTripName] are shared,
  * unmodified, but the "what would you like to do here" chooser itself is [AddActionTile] here
- * rather than [MapTab]'s [LongPressActionDialog] — see that composable's own doc comment for why.
- * The icon stack's add (+) button reuses this exact same flow — it sets [pendingLongPressLocation]
- * directly, the identical state variable the long-press gesture sets, rather than a parallel
- * dialog/handler — so the two entry points can never drift apart (decision #3.5). It hands that
- * flow the map's current viewport centre — the real search region if one exists, otherwise
- * whatever `displayRegion` below is standing in for it — rather than requiring its own GPS fetch.
+ * rather than [MapTab]'s [ThreeWayActionDialog] — see that composable's own doc comment for why.
+ * The icon stack's add (+) button reuses this exact same flow — it sets [showActionMenu] directly,
+ * the identical trigger the map's own dedicated button sets on [MapTab], rather than a parallel
+ * dialog/handler — so the two entry points can never drift apart. Unlike before this rework, it no
+ * longer needs to hand the flow a starting location itself: [CentrePinLocationPicker]'s own camera
+ * tracking supplies that once a choice is made, the same as every other site.
  */
 @Composable
 private fun CompactMapTab(
@@ -2988,7 +3441,8 @@ private fun CompactMapTab(
     compassProvider: CompassProvider,
     modifier: Modifier = Modifier,
 ) {
-    var pendingLongPressLocation by remember { mutableStateOf<LatLng?>(null) }
+    var showActionMenu by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
@@ -2996,12 +3450,14 @@ private fun CompactMapTab(
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
     var resumeTrackingRequestId by remember { mutableStateOf(0) }
 
-    // AddActionTile is a plain overlay, not a real Dialog, so — unlike TripDatePickerDialog below,
-    // an M3 DatePickerDialog whose own Dialog window already handles system back for free — this
-    // needs its own BackHandler or system back would fall straight through it, same reasoning as
-    // AvailabilityScreen's own top-level "unwind before falling through" chain.
-    BackHandler(enabled = pendingLongPressLocation != null) {
-        pendingLongPressLocation = null
+    // AddActionTile and CentrePinLocationPickerOverlay are both plain overlays, not real Dialogs,
+    // so — unlike TripDatePickerDialog below, an M3 DatePickerDialog whose own Dialog window
+    // already handles system back for free — this needs its own BackHandler or system back would
+    // fall straight through either, same reasoning as AvailabilityScreen's own top-level "unwind
+    // before falling through" chain. One pop at a time: the picker phase first if it's showing,
+    // the menu only once the picker's already closed.
+    BackHandler(enabled = pendingAction != null || showActionMenu) {
+        if (pendingAction != null) pendingAction = null else showActionMenu = false
     }
 
     val context = LocalContext.current
@@ -3072,6 +3528,8 @@ private fun CompactMapTab(
                 emptyList()
             }
 
+            var cameraCenter by remember(displayRegion) { mutableStateOf(LatLng(displayRegion.lat, displayRegion.lng)) }
+
             Box(modifier = modifier.fillMaxSize()) {
                 mapSlot(
                     displayRegion,
@@ -3085,12 +3543,13 @@ private fun CompactMapTab(
                     ),
                     basemap,
                     focusOverride,
-                    { location -> pendingLongPressLocation = location },
+                    {},
                     // Tapping the map restores chrome while fullscreen — decision #5. Only
                     // meaningful in that state: chrome is never hidden by a tap, only by the
                     // fullscreen icon itself, so a tap while chrome is already showing is a
                     // no-op rather than toggling it away.
                     { if (isFullscreen) onToggleFullscreen() },
+                    { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
                 CompassElevationStrip(
@@ -3122,9 +3581,10 @@ private fun CompactMapTab(
                     onToggleMapMode = onToggleMapMode,
                     onOpenSearchDrawer = onOpenSearchDrawer,
                     onAdd = {
-                        // Same state variable the long-press gesture sets above — not a
-                        // parallel dialog. See this function's own doc comment.
-                        pendingLongPressLocation = LatLng(displayRegion.lat, displayRegion.lng)
+                        // No location to grab any more — the button just opens the menu; the
+                        // location comes from CentrePinLocationPickerOverlay's own camera tracking
+                        // once a choice is made. See this function's own doc comment.
+                        showActionMenu = true
                     },
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
@@ -3135,22 +3595,38 @@ private fun CompactMapTab(
                 // corner of the icon stack above — see AddActionTile's doc comment for why this
                 // reads as opening "from" that button rather than as a centered system dialog.
                 AddActionTile(
-                    visible = pendingLongPressLocation != null,
+                    visible = showActionMenu,
                     onPlanTrip = {
-                        pendingLongPressLocation?.let { pendingTripLocation = it }
-                        pendingLongPressLocation = null
+                        showActionMenu = false
+                        pendingAction = PendingMapAction.PLAN_TRIP
                     },
                     onLogFind = {
-                        pendingLongPressLocation?.let { onLogFindHere(it) }
-                        pendingLongPressLocation = null
+                        showActionMenu = false
+                        pendingAction = PendingMapAction.LOG_FIND
                     },
                     onDropWaypoint = {
-                        pendingLongPressLocation?.let { pendingWaypointLocation = it }
-                        pendingLongPressLocation = null
+                        showActionMenu = false
+                        pendingAction = PendingMapAction.DROP_WAYPOINT
                     },
-                    onDismiss = { pendingLongPressLocation = null },
+                    onDismiss = { showActionMenu = false },
                     modifier = Modifier.fillMaxSize(),
                 )
+
+                if (pendingAction != null) {
+                    CentrePinLocationPickerOverlay(
+                        onConfirm = {
+                            when (pendingAction) {
+                                PendingMapAction.PLAN_TRIP -> pendingTripLocation = cameraCenter
+                                PendingMapAction.LOG_FIND -> onLogFindHere(cameraCenter)
+                                PendingMapAction.DROP_WAYPOINT -> pendingWaypointLocation = cameraCenter
+                                null -> Unit
+                            }
+                            pendingAction = null
+                        },
+                        onCancel = { pendingAction = null },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         }
     }
@@ -3316,7 +3792,7 @@ private fun CompassElevationStripContent(
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
-    // map's own long-press gesture underneath it (the same failure class IntrinsicSize.Max fixed
+    // map's own pan/tap gestures underneath it (the same failure class IntrinsicSize.Max fixed
     // for the narrow pill, but that fix meant shrinking the strip back down, which isn't an option
     // now that full width is the point). A Box with no pointer/click handling of its own doesn't
     // intercept anything, so the map keeps receiving touches everywhere except this strip's own
@@ -3516,9 +3992,15 @@ private fun cardinalDirection(headingDegrees: Float): String {
     return points[index]
 }
 
-/** What a map long-press means — asked before either [TripDatePickerDialog] or `onLogFindHere` runs; see [MapTab]'s own doc comment. */
+/**
+ * What the three-way menu button means — asked before any of [TripDatePickerDialog],
+ * `onLogFindHere`, or [WaypointNameDialog] run, and before [CentrePinLocationPicker] even shows;
+ * see [MapTab]'s own doc comment. Named for what it asks, not for the gesture that used to trigger
+ * it — nothing here is long-press-specific any more, see decision 5 in
+ * `docs/plans/pr26-rework.md`'s Workstream L.
+ */
 @Composable
-private fun LongPressActionDialog(
+private fun ThreeWayActionDialog(
     onPlanTrip: () -> Unit,
     onLogFind: () -> Unit,
     onDropWaypoint: () -> Unit,
@@ -3540,18 +4022,20 @@ private fun LongPressActionDialog(
 }
 
 /**
- * [CompactMapTab]'s own version of the same "Plan a trip"/"Log a find" chooser [LongPressActionDialog]
- * shows on medium/expanded windows — same two choices, same shared [pendingLongPressLocation] state
- * (see [CompactMapTab]'s doc comment), but presented as a small tile that grows out of the add
- * button's own corner of the icon stack rather than [AlertDialog]'s centered scale-in, per the
- * project owner's own description of how it should open. Compact-only: the medium/expanded window
- * has no floating add button for a tile to originate from, so [MapTab] keeps the plain dialog.
+ * [CompactMapTab]'s own version of the same three-way chooser [ThreeWayActionDialog] shows on
+ * medium/expanded windows — same three choices (this doc comment previously said "two", which was
+ * already wrong before this rewrite: the menu has always had Plan a trip/Log a find/Drop a
+ * waypoint), same shared [PendingMapAction] state, but presented as a small tile that grows out of
+ * the add button's own corner of the icon stack rather than [AlertDialog]'s centered scale-in, per
+ * the project owner's own description of how it should open. Compact-only: the medium/expanded
+ * window's own add button (added alongside this rework — see [MapTab]'s doc comment) has no icon
+ * stack for a tile to grow out of, so [MapTab] keeps the plain dialog instead.
  *
  * A scrim (its own [AnimatedVisibility], faded independently of the tile) makes the map behind it
  * unmistakably unavailable to tap while a choice is pending — the same modal intent the dialog it
  * replaces had, just without borrowing [AlertDialog]'s fixed presentation. The tile itself keeps an
  * explicit "Cancel" row alongside the scrim-tap-to-dismiss, the same two ways out
- * [LongPressActionDialog] gave (its own "Cancel" dismiss button plus tapping outside).
+ * [ThreeWayActionDialog] gave (its own "Cancel" dismiss button plus tapping outside).
  */
 @Composable
 private fun AddActionTile(
@@ -3646,7 +4130,7 @@ internal fun defaultTripName(existingTripCount: Int): String = "Trip ${existingT
 internal fun defaultWaypointName(existingWaypointCount: Int): String = "Waypoint ${existingWaypointCount + 1}"
 
 /**
- * Confirms a date and name for a trip pin dropped via the map's long-press gesture.
+ * Confirms a date and name for a trip pin placed via [com.forager.app.ui.map.CentrePinLocationPicker].
  *
  * The date is restricted to today-or-later — planning a trip in the past makes no sense, per the
  * user's own framing of this feature. [SavePlannedTripUseCase][com.forager.app.domain.SavePlannedTripUseCase]
@@ -3707,8 +4191,8 @@ private fun TripDatePickerDialog(
 }
 
 /**
- * Confirms a name for a waypoint dropped via the map's long-press gesture — [TripDatePickerDialog]
- * without the date, since a waypoint has none ([Waypoint] carries no target date, unlike
+ * Confirms a name for a waypoint placed via [com.forager.app.ui.map.CentrePinLocationPicker] —
+ * [TripDatePickerDialog] without the date, since a waypoint has none ([Waypoint] carries no target date, unlike
  * [PlannedTrip]). Same blank-name guard, mirroring
  * [CreateWaypointUseCase][com.forager.app.domain.CreateWaypointUseCase]'s own `require`.
  */
@@ -3787,7 +4271,7 @@ private fun PlannedTripsList(plannedTrips: List<PlannedTrip>, onDeletePlannedTri
         Text("Planned Trips", style = MaterialTheme.typography.titleSmall)
         if (plannedTrips.isEmpty()) {
             Text(
-                "No trips planned yet. Long-press the map to plan one.",
+                "No trips planned yet. Tap the add button on the map to plan one.",
                 style = MaterialTheme.typography.bodySmall,
             )
         } else {
@@ -3883,7 +4367,7 @@ private fun WaypointsSection(waypoints: List<Waypoint>, errorMessage: String?, o
             )
 
             waypoints.isEmpty() -> Text(
-                "No waypoints dropped yet. Long-press the map to drop one.",
+                "No waypoints dropped yet. Tap the add button on the map to drop one.",
                 style = MaterialTheme.typography.bodySmall,
             )
 

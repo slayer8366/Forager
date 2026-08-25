@@ -6,13 +6,28 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Starts a new, entirely-unrecorded log entry at [location] on [date] and persists it immediately
- * — unlike [com.forager.app.domain.SavePlannedTripUseCase], there's no required field to validate
- * first, since every section starts as [com.forager.app.domain.model.Observed.NotObserved]/
- * [com.forager.app.domain.model.Feature.NotObserved] by design (see [MushroomLogEntry.draft]).
+ * Starts a new, entirely-unrecorded log entry — at [location] if one is already known, or with
+ * none at all (Workstream L4: journal "+" routes straight to the entry page rather than through a
+ * location-placement step first; see [MushroomLogEntry.foundAt]'s own doc comment) — on [date], and
+ * persists it immediately, as an uncommitted draft ([MushroomLogEntry.isDraft] `true` — Workstream
+ * L4b, owner decision #6: nothing this creates is visible via [GetMushroomLogEntriesUseCase] until
+ * the user has put something there). Unlike [com.forager.app.domain.SavePlannedTripUseCase], there's
+ * no required field to validate first, since every section starts as
+ * [com.forager.app.domain.model.Observed.NotObserved]/[com.forager.app.domain.model.Feature.NotObserved]
+ * by design (see [MushroomLogEntry.draft]).
+ *
+ * The id is assigned here, before the entry is ever committed — Workstream L4b's own "draft
+ * identity" decision, kept by L4b-R's standalone-draft correction (2026-08-25) specifically for
+ * *this* case: a brand-new entry's [MushroomLogEntry.draftOfEntryId] is `null`, so [CommitDraftEntryUseCase]
+ * commits it in place, same id — a photo pulled into it here attaches under the id it will keep
+ * forever, no repoint ever needed. This is the one path where that holds; a *re-edit's* draft (see
+ * [StartEditingLogEntryUseCase]) gets a fresh id of its own, and Save repoints its photo references
+ * onto the parent it's a draft of.
+ *
  * Persisting immediately, rather than only once the forager finishes filling it in, is what makes
  * the deferred-observation edit flow possible: the entry exists in storage from the moment it's
- * started, ready to be reopened and completed later.
+ * started, ready to be reopened and completed later, surviving a crash the same way any other
+ * open edit session does (see [MushroomLogViewModel]'s own doc comment).
  *
  * [today] and [idGenerator] are injected for the same reason as [GetPlannedTripsUseCase]/
  * [SavePlannedTripUseCase]: a test can fix both instead of racing the clock or asserting against a
@@ -23,7 +38,7 @@ class CreateMushroomLogEntryUseCase(
     private val today: () -> LocalDate = LocalDate::now,
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
 ) {
-    suspend operator fun invoke(location: LatLng, date: LocalDate = today()): Result<MushroomLogEntry> {
+    suspend operator fun invoke(location: LatLng?, date: LocalDate = today()): Result<MushroomLogEntry> {
         val entry = MushroomLogEntry.draft(id = idGenerator(), location = location, date = date)
         return repository.save(entry).map { entry }
     }

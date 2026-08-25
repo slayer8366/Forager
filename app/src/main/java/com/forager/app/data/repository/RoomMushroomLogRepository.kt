@@ -1,5 +1,6 @@
 package com.forager.app.data.repository
 
+import com.forager.app.data.local.LogEntryPhotoCrossRef
 import com.forager.app.data.local.LogPhotoEntity
 import com.forager.app.data.local.MushroomLogDao
 import com.forager.app.data.local.MushroomLogEntryEntity
@@ -15,6 +16,7 @@ import com.forager.app.domain.model.ContextFleshSection
 import com.forager.app.domain.model.Feature
 import com.forager.app.domain.model.FleshTexture
 import com.forager.app.domain.model.ForestType
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.GillAttachment
 import com.forager.app.domain.model.GillEdge
 import com.forager.app.domain.model.GillSpacing
@@ -52,16 +54,51 @@ class RoomMushroomLogRepository(
 ) : MushroomLogRepository {
 
     override suspend fun getAll(): Result<List<MushroomLogEntry>> = runCatchingCancellable {
-        val photosByEntry = dao.getAllPhotos().groupBy { it.entryId }
-        dao.getAllEntries().map { entity -> entity.toDomain(photosByEntry[entity.id].orEmpty()) }
+        val photosById = dao.getAllPhotos().associateBy { it.id }
+        val photoIdsByEntry = dao.getAllCrossRefs().groupBy({ it.entryId }) { it.photoId }
+        dao.getAllEntries().map { entity ->
+            val photos = photoIdsByEntry[entity.id].orEmpty().mapNotNull { photosById[it] }
+            entity.toDomain(photos)
+        }
     }
 
+    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = runCatchingCancellable {
+        val entryIdsByPhoto = dao.getAllCrossRefs().groupBy({ it.photoId }) { it.entryId }
+        dao.getAllPhotos().map { entity ->
+            GalleryPhoto(
+                photo = LogPhoto(id = entity.id, relativePath = entity.relativePath, createdAtEpochMillis = entity.createdAtEpochMillis),
+                referencingEntryIds = entryIdsByPhoto[entity.id].orEmpty(),
+            )
+        }
+    }
+
+    // Never touches log_photos/log_entry_photos — see MushroomLogRepository.save's own doc comment.
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> = runCatchingCancellable {
-        dao.upsertEntryWithPhotos(entry.toEntity(), entry.photos.map { it.toEntity(entry.id) })
+        dao.upsertEntry(entry.toEntity())
+    }
+
+    override suspend fun commitDraft(draftId: String, committed: MushroomLogEntry): Result<Unit> = runCatchingCancellable {
+        dao.commitDraft(committedEntity = committed.toEntity(), draftId = draftId)
     }
 
     override suspend fun delete(id: String): Result<Unit> = runCatchingCancellable {
-        dao.deleteEntryAndPhotos(id)
+        dao.deleteEntryAndCrossRefs(id)
+    }
+
+    override suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit> = runCatchingCancellable {
+        dao.insertPhoto(photo.toEntity())
+    }
+
+    override suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit> = runCatchingCancellable {
+        dao.insertCrossRef(LogEntryPhotoCrossRef(entryId = entryId, photoId = photoId))
+    }
+
+    override suspend fun detachPhotoFromEntry(entryId: String, photoId: String): Result<Unit> = runCatchingCancellable {
+        dao.deleteCrossRef(entryId, photoId)
+    }
+
+    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> = runCatchingCancellable {
+        dao.deletePhotoAndCrossRefs(photoId)
     }
 }
 
@@ -130,8 +167,8 @@ private fun MushroomLogEntry.toEntity(): MushroomLogEntryEntity {
 
     return MushroomLogEntryEntity(
         id = id,
-        lat = foundAt.lat,
-        lng = foundAt.lng,
+        lat = foundAt?.lat,
+        lng = foundAt?.lng,
         foundOn = foundOn.toString(),
         entryNotes = notes,
         ownIdentification = ownIdentification,
@@ -230,6 +267,9 @@ private fun MushroomLogEntry.toEntity(): MushroomLogEntryEntity {
         forestType = hostSubstrate.forestType.toColumn(),
         hostHealth = hostSubstrate.hostHealth.toColumn(),
         hostSubstrateNotes = hostSubstrate.notes,
+
+        isDraft = isDraft,
+        draftOfEntryId = draftOfEntryId,
     )
 }
 
@@ -246,13 +286,15 @@ private fun sporePrintColorFrom(kind: String, otherText: String?): SporePrintCol
     else -> error("Unknown spore print colour kind '$kind'")
 }
 
-private fun LogPhoto.toEntity(entryId: String) = LogPhotoEntity(id = id, entryId = entryId, relativePath = relativePath)
+private fun LogPhoto.toEntity() = LogPhotoEntity(id = id, relativePath = relativePath, createdAtEpochMillis = createdAtEpochMillis)
 
 // --- MushroomLogEntryEntity -> MushroomLogEntry --------------------------------------------------
 
 private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): MushroomLogEntry = MushroomLogEntry(
     id = id,
-    foundAt = LatLng(lat = lat, lng = lng),
+    // lat/lng are stored and read together — see MushroomLogEntryEntity.lat's own doc comment for
+    // why null is only ever a paired state, never one set without the other.
+    foundAt = if (lat != null && lng != null) LatLng(lat = lat, lng = lng) else null,
     foundOn = LocalDate.parse(foundOn),
     cap = CapSection(
         shape = capShape.toObservedEnum<CapShape>(),
@@ -344,7 +386,7 @@ private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): Mushr
     ),
     notes = entryNotes,
     ownIdentification = ownIdentification,
-    photos = photos.map { LogPhoto(id = it.id, relativePath = it.relativePath) },
+    photos = photos.map { LogPhoto(id = it.id, relativePath = it.relativePath, createdAtEpochMillis = it.createdAtEpochMillis) },
     syncState = when (syncStateKind) {
         "DRAFT" -> LogSyncState.Draft
         "UPLOADING" -> LogSyncState.Uploading(syncProgress ?: error("Uploading state stored with no progress on entry '$id'"))
@@ -360,4 +402,6 @@ private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): Mushr
         )
         else -> error("Unknown sync state kind '$syncStateKind' on entry '$id'")
     },
+    isDraft = isDraft,
+    draftOfEntryId = draftOfEntryId,
 )

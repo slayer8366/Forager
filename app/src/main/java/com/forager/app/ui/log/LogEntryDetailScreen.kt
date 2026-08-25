@@ -1,12 +1,9 @@
 package com.forager.app.ui.log
 
 import android.Manifest
-import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,36 +28,55 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.forager.app.R
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.photo.ContentUriPhotoSource
 import com.forager.app.ui.availability.CollapsibleSection
-import java.io.File
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
  * time this shows (see [MushroomLogViewModel.onStartNewEntry]): "creating" and "editing" are the
- * same action here, autosaving through [onEntryChanged] on every field change. Each characteristic
- * section is a [CollapsibleSection] (reused from `AvailabilityScreen`) so the form doesn't dump
- * every field on screen at once — the same "single line until tapped" shape the drawer's own
- * Search/Trip Planner sections use.
+ * same action here. Each characteristic section is a [CollapsibleSection] (reused from
+ * `AvailabilityScreen`) so the form doesn't dump every field on screen at once — the same "single
+ * line until tapped" shape the drawer's own Search/Trip Planner sections use.
+ *
+ * ## Standalone drafts (Workstream L4b, owner decision 2026-08-22; corrected 2026-08-25, L4b-R)
+ *
+ * [entry] here is always the **draft row** — [MushroomLogViewModel.onStartEditingEntry] created it
+ * (or it's a brand-new entry's own row) before this screen ever opens; a committed entry's own row
+ * is never bound to this form directly. [onEntryChanged] fires — and writes to disk — on every
+ * field change, always onto that draft row. [onSave]/[onCancel] are the two deliberate exits this
+ * screen exposes directly: Save commits the draft's current content (onto the parent's id, when
+ * there is one) and removes the draft row; Cancel deletes the draft row outright and its own photo
+ * references — for a re-edit, the parent is untouched throughout, so there is nothing to "restore."
+ * [onBack] — the navigation arrow, not a labeled action — is the *incidental* exit instead: the
+ * draft is already durably persisted (every [onEntryChanged] call wrote it), so leaving without
+ * answering neither commits nor discards, just closes the form, the same as a tab switch or the app
+ * backgrounding (see [MushroomLogViewModel.onLeaveEditingIncidentally]). Only the explicit Cancel
+ * button ever discards.
+ *
+ * Workstream L4 (`docs/plans/pr26-rework.md`): entry creation routes here directly now, so [entry]
+ * routinely arrives with [MushroomLogEntry.foundAt] `null`. [onAddLocation] is this screen's own
+ * way to set one — it joins [PhotosSection]'s Camera/Gallery row rather than living beside the
+ * "Found at .../No location set." text above it, so the one action this screen can't itself carry
+ * out (it hosts no map) reads as a peer of the other two "bring something in from outside this
+ * form" actions, not as a fourth kind of thing.  Invoking the picker itself — full-screen, its own
+ * state in [JournalTab]/[LogPanel], not embedded here — is the caller's job; see either composable's
+ * own doc comment for why a centre-pin picker needs real screen space, the same reasoning
+ * `OfflineMapsPanel` already established for the Offline Maps submenu.
  */
 @Composable
 internal fun LogEntryDetailScreen(
@@ -69,6 +85,10 @@ internal fun LogEntryDetailScreen(
     onEntryChanged: (MushroomLogEntry) -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
+    onPullPhoto: () -> Unit,
+    onAddLocation: () -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -85,8 +105,12 @@ internal fun LogEntryDetailScreen(
                 }
                 Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.titleMedium)
             }
-            IconButton(onClick = onDeleteEntry) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+                TextButton(onClick = onCancel) { Text("Cancel") }
+                Button(onClick = onSave) { Text("Save") }
+                IconButton(onClick = onDeleteEntry) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
+                }
             }
         }
 
@@ -99,7 +123,8 @@ internal fun LogEntryDetailScreen(
             verticalArrangement = Arrangement.spacedBy(LogSpacing.lg),
         ) {
             Text(
-                "Found at ${"%.4f".format(entry.foundAt.lat)}, ${"%.4f".format(entry.foundAt.lng)}",
+                entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
+                    ?: stringResource(R.string.log_entry_no_location),
                 style = MaterialTheme.typography.bodySmall,
             )
 
@@ -116,6 +141,9 @@ internal fun LogEntryDetailScreen(
                 cameraCaptureFiles = cameraCaptureFiles,
                 onPhotoSourceSelected = onAddPhoto,
                 onRemovePhoto = onRemovePhoto,
+                onPullPhoto = onPullPhoto,
+                hasLocation = entry.foundAt != null,
+                onAddLocation = onAddLocation,
             )
 
             HorizontalDivider()
@@ -155,6 +183,9 @@ private fun PhotosSection(
     cameraCaptureFiles: CameraCaptureFiles,
     onPhotoSourceSelected: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
+    onPullPhoto: () -> Unit,
+    hasLocation: Boolean,
+    onAddLocation: () -> Unit,
 ) {
     var pendingCapture by remember { mutableStateOf<CameraCaptureFiles.Capture?>(null) }
 
@@ -187,6 +218,14 @@ private fun PhotosSection(
                     pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
             ) { Text("Gallery") }
+            // Workstream G3: "Gallery" above already means the system photo picker (a new file);
+            // this references an existing photo this app already has, so it needs its own word.
+            // "Album" is taken too — see CompactTab's own doc comment — by the bottom nav tab
+            // visible at the same time as this screen on compact, so this reads "From Album" (a
+            // distinct exact string) rather than the bare word, checked against every other button
+            // label and heading in this same screen and against the bottom nav before landing here.
+            Button(onClick = onPullPhoto) { Text("From Album") }
+            Button(onClick = onAddLocation) { Text(if (hasLocation) "Change Location" else "Add Location") }
         }
         if (photos.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
@@ -197,34 +236,11 @@ private fun PhotosSection(
 }
 
 private const val PHOTO_THUMBNAIL_SIZE_DP = 88
-private const val PHOTO_THUMBNAIL_SAMPLE_SIZE = 4
 
 @Composable
 private fun LogPhotoThumbnail(photo: LogPhoto, onRemove: () -> Unit) {
-    val context = LocalContext.current
-    var bitmap by remember(photo.id) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(photo.id) {
-        bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                val options = BitmapFactory.Options().apply { inSampleSize = PHOTO_THUMBNAIL_SAMPLE_SIZE }
-                BitmapFactory.decodeFile(File(context.filesDir, photo.relativePath).absolutePath, options)
-                    ?.asImageBitmap()
-            }.getOrNull()
-        }
-    }
-
     Box(modifier = Modifier.size(PHOTO_THUMBNAIL_SIZE_DP.dp)) {
-        val loaded = bitmap
-        if (loaded != null) {
-            Image(
-                bitmap = loaded,
-                contentDescription = "Log photo",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
-        }
+        DecodedPhoto(relativePath = photo.relativePath, modifier = Modifier.fillMaxSize())
         IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd)) {
             Icon(Icons.Filled.Close, contentDescription = "Remove photo")
         }

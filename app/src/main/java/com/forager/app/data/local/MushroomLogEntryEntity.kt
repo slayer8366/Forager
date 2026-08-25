@@ -1,6 +1,7 @@
 package com.forager.app.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -38,11 +39,12 @@ import androidx.room.PrimaryKey
  *   silently accepted, and they don't: `toDomain()` reads only the sub-fields that apply to the
  *   `*Kind` it dispatches on.
  */
-@Entity(tableName = "mushroom_log_entries")
+@Entity(tableName = "mushroom_log_entries", indices = [Index("offlineRegionId")])
 data class MushroomLogEntryEntity(
     @PrimaryKey val id: String,
-    val lat: Double,
-    val lng: Double,
+    /** `null` together with [lng] exactly when [com.forager.app.domain.model.MushroomLogEntry.foundAt] is `null` — see that field's own doc comment. Nullable as of [MIGRATION_6_7]. */
+    val lat: Double?,
+    val lng: Double?,
     /** ISO-8601 (`yyyy-MM-dd`) — see [PlannedTripEntity.date]. */
     val foundOn: String,
     val entryNotes: String,
@@ -121,4 +123,50 @@ data class MushroomLogEntryEntity(
     val forestType: String?,
     val hostHealth: String?,
     val hostSubstrateNotes: String,
+
+    // --- Offline region reference (Workstream A, docs/plans/pr26-rework.md)
+    /**
+     * The [OfflineRegionEntity] this entry's tile capture belongs to, if any — `null` until
+     * Workstream B's capture mechanism sets it, and left `null` permanently for an entry that
+     * never gets one (e.g. logged offline and never re-synced).
+     *
+     * **Deliberately an indexed column, not a `@ForeignKey`** (owner decision, 2026-08-22) —
+     * matching this database's only other precedent for a cross-table reference,
+     * `track_points.trackId` in [MIGRATION_4_5]. Nothing about a log entry may change as a side
+     * effect of something happening to a region it references: a mushroom log entry is removed
+     * only by direct deletion from the log itself. `SET_NULL` would have the database edit an
+     * entry as a side effect of a region delete; `RESTRICT` would throw where the app wants to
+     * show a dialog instead. Leaving this column unconstrained means a region delete can proceed
+     * (or be handled entirely in app code, per Workstream C) without SQLite ever touching this
+     * table — a dangling id here is accepted and expected, not a corruption to guard against.
+     */
+    val offlineRegionId: Long? = null,
+
+    /**
+     * Persisted-uncommitted state — owner decision, 2026-08-22 (Workstream L4b), corrected
+     * 2026-08-25 (L4b-R): a draft is a **standalone row**, not this same row wearing a flag — see
+     * [draftOfEntryId]. **Unrelated to [com.forager.app.domain.model.LogSyncState.Draft]**, which is
+     * an iNaturalist upload-sync state — this column is about whether the row itself has been
+     * committed to the log at all, independent of sync. `true` while an edit session is live
+     * (autosaved on every field change, same cadence as before this column existed) or while a
+     * crash left one orphaned; `false` for a committed entry, including one currently being
+     * re-edited (its draft is a *different* row — the committed row itself is never touched until
+     * Save). See [MushroomLogViewModel]'s own doc comment for the full state machine.
+     */
+    val isDraft: Boolean,
+
+    /**
+     * `null` for a committed entry, or for a brand-new entry's own draft (nothing to point at yet —
+     * Save flips this exact row to committed in place, same [id]). Non-null only for a draft that is
+     * a re-edit of an already-committed entry: the [id] of that committed row, which this draft is a
+     * *separate* row seeded as a copy of. Save copies this draft's fields onto the parent, repoints
+     * this draft's [LogEntryPhotoCrossRef] rows onto the parent's [id], and deletes this row, all
+     * transactionally (see `MushroomLogDao.commitDraft`) — Cancel simply deletes this row and its own
+     * cross-references, leaving the parent (and every other row) untouched. This is what lets the
+     * committed entry keep showing its last-saved values in the log for the entire time it's open
+     * for editing (L4b-R, 2026-08-25) — the property the single-flagged-row shape (L4b, 2026-08-22)
+     * could not provide, since flipping the same row to draft made it briefly disappear/overwritable
+     * mid-edit.
+     */
+    val draftOfEntryId: String? = null,
 )

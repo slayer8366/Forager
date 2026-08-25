@@ -1,8 +1,9 @@
 # PR #26 Rework — Multi-region offline map management
 
-**Status:** scoped and decided, **not dispatched**. Each workstream below is meant to be picked
-up cold, one dispatch at a time, by a coder session with no memory of the planning
-conversation that produced it.
+**Status (2026-08-25):** in progress. Workstreams 0, A, B, L1–L4 (and G1–G3, landed alongside them)
+are closed — see the Sequencing block below for commits and PRs. L5 and L6 remain scoped, not yet
+dispatched. Each workstream below is still meant to be picked up cold, one dispatch at a time, by a
+coder session with no memory of the planning conversation that produced it.
 
 **Depends on:** PR #34 (error-presentation spec) — merged, `main` at `3b6021b`. PR #26 itself
 (`claude/plan-implementation-rjzmkr`) is still open, unmerged, and stale against current `main`
@@ -18,7 +19,7 @@ by 51 commits as of the pulse this plan is built from.
 **Decisions this plan assumes** — made by the project owner on 2026-08-23, recorded in full in
 [`docs/audits/2026-08-23-pr26-rework-scoping-decisions.md`](../audits/2026-08-23-pr26-rework-scoping-decisions.md)
 plus follow-ups answered directly against this plan's own open-questions list (see that file's
-"What is still open" section, now resolved below in Workstream 6). Do not re-litigate these; if
+"What is still open" section, now resolved below in Workstream L). Do not re-litigate these; if
 one turns out to be wrong once implementation starts, stop and report rather than silently
 picking a different answer.
 
@@ -26,280 +27,403 @@ picking a different answer.
 
 ## Sequencing
 
-Seven workstreams, one dispatch each, **a build-and-test gate between every one** — bundling them
-means a 45+-file diff nobody can review. Workstream 6 (the entry-level tile-capture feature) is
-new relative to the original scoping and depends on Workstreams 2 and 5 being done first (it
-needs the renumbered migration and the relational `OfflineRegionEntity`/log-entry link to exist).
+Re-derived 2026-08-22 from a dependency-graph pulse against `main` and #26's fork point, after
+the original seven-workstream split (cut by *activity*, not by *what types what*) closed its
+first workstream at roughly a third of its stated scope. The original split, verbatim, and why
+it was superseded, is archived at
+[`docs/audits/2026-08-23-pr26-rework-seven-workstream-split-archive.md`](../audits/2026-08-23-pr26-rework-seven-workstream-split-archive.md) —
+per this repo's audits convention, that file is a point-in-time record, not edited further; this
+plan is the current source.
 
 ```
-1. Reapply onto main
-2. Migration renumbering (5 → 6)
-3. OfflineMapRepository reconciliation
-4. Drift corrections
-5. OfflineRegionEntity relational design + delete-block flow
-6. Entry-level tile capture (new feature)
-7. Error-presentation compliance
+0.  Foundation files          [CLOSED — claude/task-hwj91a @ 1726b90]
+A.  Schema and migration      [CLOSED — claude/task-hwj91a @ 6530d7a]
+B.  The contract migration    [CLOSED — claude/task-hwj91a @ 66d53b8]
+L1. Photo file cleanup on entry delete   [CLOSED — claude/task-hwj91a @ 11017a6, PR #39]
+L2. The centre-pin picker                [CLOSED — claude/task-hwj91a @ aa60f2d, PR #39]
+L3. Optional foundAt                     [CLOSED — claude/task-hwj91a @ f761e55, PR #39]
+L4. The new entry flow                   [CLOSED — three dispatches: L4a (entry creation
+                                           routes straight to the edit form) @ 51dbfa6, PR #39;
+                                           L4b/L4b-R/L4b-R2 (persisted drafts, corrected twice)
+                                           merged from claude/l4b-persisted-drafts via PR #40 —
+                                           see docs/qc/dispatches/reports/ for all three reports]
+L5. Photo location capture
+L6. Tile capture
 ```
 
-Workstream 7 goes last because it touches sites the earlier steps move around (the migration
-renumber changes file paths and test fixtures; the relational-design and capture workstreams
-add brand-new error sites that themselves need error-presentation treatment; doing it earlier
-would mean redoing it).
+(G1–G3 — the photo-gallery ownership inversion, via `MIGRATION_7_8` — also landed on
+`claude/task-hwj91a` alongside L1–L4, via commits `51be094`/`bcb9d0b`/`0e2198b`. This plan doc does
+not itself scope G1–G3 as a workstream; they are recorded here only so this Sequencing block's
+commit range is complete, not as a claim that a fuller G1–G3 scoping section exists elsewhere in
+this file.)
+
+**A and B ran serial, A first — by owner decision (2026-08-22), not by dependency.** The
+dependency graph made A and B independent of each other (A touches persistence, B touches the
+repository contract and its consumers; neither's surface references the other's). Owner chose
+serial anyway: A is small, B is the risky, atomic, many-file unit, and landing A first kept
+bisection against a known-good `main` if B went wrong. Both are closed.
+
+**L1–L6 replace Workstreams C and D**, per the owner's 2026-08-22 design change — see "Workstream
+L — Log & Location rework" below for why, and
+[`docs/audits/2026-08-24-workstream-c-and-d-archive.md`](../audits/2026-08-24-workstream-c-and-d-archive.md)
+for C and D's original text. L1, L2, and L3 are mutually independent and independent of anything
+in A/B beyond what's already landed — any of the three can be dispatched first. L2 and L3 both
+land before L4; L4 depends on L2 and L3; L5 depends on L4; L6 depends on L3 and L5 and owns the
+bridge between the mushroom-log domain and `OfflineMapRepository` — see L6's own section for why
+wiring that bridge twice, independently, would merge cleanly and still not work.
+
+**B reports at internal checkpoints, not one gate at the end** — owner decision (2026-08-22), see
+Workstream B's own checkpoint list.
 
 ---
 
-## Workstream 1 — Reapply onto `main`
+## Workstream 0 — Foundation files (CLOSED)
 
-**Decision:** reapply, not rebase (owner decision, 2026-08-23). Take current `main`
-(`3b6021b`), port PR #26's feature across as fresh commits, using
-`claude/plan-implementation-rjzmkr` as reference material only — do not `git rebase` or replay
-its 10 commits. Cut a new branch from `main` at `3b6021b` for this work.
+**Status:** landed, `claude/task-hwj91a` @ `1726b90`.
 
-**What ports across largely as-is** (confirmed unaffected by drift, per the pulse):
-- `OfflineRegionDao.kt`, `OfflineRegionEntity.kt` (schema/version numbers change — see
-  Workstream 2, not this one).
-- `MapPreferencesRepository.kt` / `DataStoreMapPreferencesRepository.kt` and their test — **port
-  verbatim, including the doc comment on why `PreferenceDataStoreFactory.create` is used instead
-  of the `by preferencesDataStore(name = ...)` singleton delegate** (it breaks Robolectric
-  isolation across `@Test` methods — a debugging session already paid for on the original
-  branch, now also cited in `CLAUDE.md`'s "Room for data that relates; DataStore for flat
-  settings" rule). This pattern is settled; do not redesign it.
-- `EstimateOfflineTileCount.kt`, `OfflineRegionStaleness.kt`, `MapLibreStorage.kt` and their
-  tests.
-- The `OfflineMapsPanel` / `OfflineRegionsSection` / `OfflineMapStatusContent` UI in
-  `AvailabilityScreen.kt` (confined to lines ~1191–1690 of PR #26's version — nothing in the
-  List/Map/Seasonal tabs, no dialogs, no compact map scaffold).
+Ten files ported verbatim from PR #26, plus `androidx.datastore:datastore-preferences:1.2.1`
+which `main`'s build config lacked: `OfflineRegionDao.kt`, `OfflineRegionEntity.kt`,
+`MapPreferencesRepository.kt`, `DataStoreMapPreferencesRepository.kt` + test,
+`EstimateOfflineTileCount.kt` + test, `OfflineRegionStaleness.kt` + test, `MapLibreStorage.kt`.
 
-**What needs rework, not just porting** — each is its own workstream below: the migration
-number, five of six `IOException`/`onError` sites in `MapLibreOfflineMapRepository.kt`,
-`OFFLINE_MAX_ZOOM`, 14 test files' constructor arguments, `OfflineRegionEntity`'s relational
-design, and every `error.message ?: "..."` site this feature touches.
+Compile green; three test classes verified against JUnit XML (5/5, 6/6, 5/5), not the build log
+alone.
 
-**Gate before moving to Workstream 2:** the reapplied code compiles against current `main`
-(it will not pass all tests yet — Workstreams 2–4 aren't done — but it should compile, modulo
-the known-broken sites named above).
+`ensureMapLibreStorageOutsideCache()` sits unreferenced until Workstream B wires its call site.
+**Expected — do not "fix" it.**
+
+This was the only genuinely independent unit in the original split: ten files, zero forward
+references.
 
 ---
 
-## Workstream 2 — Migration renumbering
+## Workstream A — Schema and migration
 
-PR #26 declares `ForagerDatabase.version = 5` with `MIGRATION_4_5` creating `offline_regions`.
-`main` already has `version = 5` via a *different* `MIGRATION_4_5` (from PR #32/#33), creating
-`tracks` / `track_points` / `waypoints`. Both are individually correct against the same v4 base
-and would merge cleanly and produce a wrong database — this is the exact collision CLAUDE.md's
-"Verify your base branch before you start" rule was written to record.
+**Depends on:** Workstream 0 (landed). No forward dependency on B or any of L1–L6.
+**Runs:** first, before B, by owner decision.
 
-**Required changes:**
-- `offline_regions` becomes `MIGRATION_5_6`, `ForagerDatabase.version = 6`.
-- `ForagerDatabase.kt`'s `entities` list keeps `TrackEntity`/`TrackPointEntity`/`WaypointEntity`
-  (from `main`) *and* adds `OfflineRegionEntity` — PR #26's branch predates tracks/waypoints
-  entirely, so this list needs assembling fresh, not diffed mechanically.
-- The committed schema JSON moves from `app/schemas/com.forager.app.data.local.ForagerDatabase/5.json`
-  (which is track/waypoint data on `main`, not PR #26's offline-region data) to a new `6.json`
-  capturing the offline-region shape.
-- `OfflineRegionMigrationTest` must build a real **version-5** database (matching `main`'s
-  current tracks/waypoints schema) and migrate it to version 6 — not version-4-to-5 as PR #26's
-  copy does. This is not a find-and-replace: the test fixture's starting shape changes, not just
-  the version numbers in it.
-- `MushroomLogMigrationTest`'s one-line change (`.addMigrations(MIGRATION_3_4)` →
-  `.addMigrations(MIGRATION_3_4, MIGRATION_4_5)` in PR #26) needs re-deriving against `main`'s
-  current migration list, which by this point also includes whatever migration added
-  tracks/waypoints.
+Old WS2 and WS5's persistence half, **merged**. They co-write one `MIGRATION_5_6` body — a forced
+merge, not an orderable dependency. Split, one would have to reopen the other's landed migration.
 
-**Gate:** `:app:testDebugUnitTest` passes for every migration test (`MushroomLogMigrationTest`,
-the existing tracks/waypoints migration test on `main`, and the new `OfflineRegionMigrationTest`
-against a real version-5 fixture).
+**Surface:** `ForagerDatabase.kt` (entity list assembled alongside
+`TrackEntity`/`TrackPointEntity`/`WaypointEntity`), `Migrations.kt` (`MIGRATION_5_6`, version →
+6, including the nullable FK from `MushroomLogEntryEntity` to `offline_regions`),
+`MushroomLogEntryEntity.kt`, `app/schemas/.../6.json`, `OfflineRegionMigrationTest.kt` (new, must
+build a real v5 fixture), `MushroomLogMigrationTest.kt` (migration list re-derived).
+
+**Context worth carrying:** #26's design doc assumed offline-regions and trips would land in one
+shared `MIGRATION_4_5`. They didn't — trips arrived via #32/#33 with its own `MIGRATION_4_5`.
+That broken assumption is why this workstream exists.
+
+**Gate:** migration runs against a real v5 fixture; both migration tests green; full compile.
+
+**Out of scope:** the delete-block *flow* — dropped entirely under the later design change, see
+Workstream L; nothing is at risk during a delete under the current design, so there is no blocking
+logic left to build. This workstream lands the FK column only.
 
 ---
 
-## Workstream 3 — `OfflineMapRepository` reconciliation
+## Workstream B — The contract migration
 
-The overlap between PR #26 and PR #34 (already on `main`) is narrower than it looks:
+**Depends on:** Workstream 0 (landed) and Workstream A (by owner sequencing, not by type
+dependency).
+**Reports:** at each checkpoint below, not only at the end.
 
-- **PR #34** changed only the `onError` callback inside
-  `MapLibreOfflineMapRepository.downloadToCompletionSuspend` — raw SDK diagnostic text
-  (`"${error.reason}: ${error.message}"`) now goes to `Log.w`, and the thrown `IOException`
-  carries the fixed literal `"Offline map download failed."` This is already on `main`; do not
-  redo it, only preserve it through the reapply.
-- **PR #26** doesn't touch that callback at all — its copy is byte-identical to the pre-#34
-  baseline. It rewrites the *surrounding* methods (`download`/`delete`/`getStatus` →
-  `download`/`deleteRegion`/`listRegions`), adds the `offlineRegionDao` constructor dependency,
-  and moves `OFFLINE_MAX_ZOOM`/`OFFLINE_MIN_ZOOM` from private constants to
-  `OfflineMapRepository.MIN_ZOOM`/`MAX_ZOOM` companion constants.
+Old WS3 + WS4 + WS1's deferred surface + WS7, as one **atomic** unit. Nothing here compiles
+without the rest of it. This is not a scoping preference — it is what the 13-consumer
+`OfflineMapInfo` footprint forces.
 
-**Required work:** apply PR #34's treatment — log the SDK diagnostic text via `Log.w`, throw a
-fixed-literal `IOException` — to the **other five** `onError`/`IOException(...)` sites in this
-file that PR #26 carries unchanged from the pre-#34 baseline. (The pulse enumerated six such
-sites total; only the `downloadToCompletionSuspend` one is already fixed on `main`.) Each fixed
-literal should describe what failed in the same neutral, state-describing register as
-`"Offline map download failed."` — e.g. a status-check failure, a delete failure, a region-list
-read failure — not a single reused string for all five.
+**Surface:**
+- `domain/OfflineMapRepository.kt` — **explicitly assigned to this workstream.** Declares
+  `OfflineRegionSummary` (replacing the deleted `OfflineMapInfo`: `downloadedAtEpochMillis` →
+  `createdAtEpochMillis`, gains `id`/`name`/`minZoom`/`maxZoom`), the redesigned four-case
+  `OfflineMapStatus` (`Idle`/`Succeeded`/`Downloading`/`Failed`, replacing
+  `NotDownloaded`/`Downloading`/`Downloaded`/`Failed`), the renamed interface
+  (`delete`→`deleteRegion`, `getStatus`→`listRegions`, `download` returning
+  `Result<OfflineRegionSummary>`), and the zoom constants moved to companion values.
+- `MapLibreOfflineMapRepository.kt` — five remaining `onError`/`IOException` sites still
+  carrying raw SDK text, plus the surrounding method rework. Take `main`'s `15.0` for
+  `OFFLINE_MAX_ZOOM`.
+- `MapLibreOfflineRegionMetadata.kt` — `RegionMetadata` 2→5 fields, and its doc comment. Breaks
+  three call sites in `MapLibreOfflineMapRepository.kt`, which is why it lives here and not in
+  Workstream 0.
+- `MapLibreOfflineRegionMetadataTest.kt` — the 3-line construction-call edit, which only
+  compiles once the production file widens.
+- `AvailabilityViewModel.kt` — `loadOfflineMapStatus`, `onDownloadOfflineMaps`,
+  `onDeleteOfflineMaps` (→ `onDeleteOfflineRegion(id: Long)`) rewritten in full; `toUiStatus()`
+  deleted with its logic moved inline; `mapPreferencesRepository` wired as the 15th constructor
+  parameter.
+- `AvailabilityUiState.kt` — all six offline fields as one diff.
+- `AvailabilityScreen.kt` — `OfflineRegionsSection` (new), and replacement of `OfflineMapsPanel`
+  and `OfflineMapStatusContent` (**named `OfflineDownloadStatusContent` on #26's branch — a
+  rename, not an edit**).
+- `AppContainer.kt` and `MainActivity.kt` — **previously unowned by any workstream.** Wiring for
+  the DAO constructor param and the new ViewModel methods.
+- Every test fake implementing the old interface — 11 test files construct `OfflineMapInfo`.
 
-**Gate:** grep `MapLibreOfflineMapRepository.kt` for `error.reason`/`error.message`/any raw SDK
-string reaching an `IOException`'s message — zero hits. `:app:testDebugUnitTest` passes.
+**Error presentation folds in here, it does not follow.** A separate compliance pass would mean
+knowingly writing `error.message ?: "..."` sites and fixing them later. Apply PR #34's treatment
+as this is written, including the belief-changing classification for download-failure vs.
+region-list-load failure, per `docs/error-presentation-spec.md`.
 
----
+**Checkpoints — report each, do not proceed past a red one:**
+1. `domain/OfflineMapRepository.kt` declarations compile alone.
+2. `MapLibreOfflineMapRepository.kt` + `MapLibreOfflineRegionMetadata.kt` + its test compile
+   against the new declarations.
+3. `AvailabilityViewModel.kt` + `AvailabilityUiState.kt` compile.
+4. The three composables compile.
+5. All test fakes updated; full test suite green.
+6. Full compile + full test run, verified against JUnit XML.
 
-## Workstream 4 — Drift corrections
+**Replacement discipline — the failure this exists to prevent.** `OfflineMapsPanel` and
+`OfflineMapStatusContent` are live, shipped, single-region code on `main`, carrying accumulated
+detail (e.g. the comment on the `Downloaded` branch explaining the zoom 10–14 archive vs.
+zoom-15 live-fetch split). Before overwriting either: diff `main`'s version against #26's,
+identify what `main` carries that #26 doesn't, and **report per item** whether it is
+intentionally superseded by the multi-region design or must be carried forward. Do not resolve
+these unilaterally.
 
-- **`OFFLINE_MAX_ZOOM`:** PR #26's base had `14.0`; `main`'s current value is `15.0` (changed in
-  an unrelated commit neither PR touches). Take `main`'s value — `15.0` — when porting
-  `OfflineMapRepository.MAX_ZOOM`.
-- **`AvailabilityViewModel` constructor:** not stale on the other 14 parameters — `main`'s
-  constructor is the same 14 PR #26's base had (tracks/waypoints live in the separate
-  `TrackRecordingViewModel`, untouched by this feature). PR #26 adds `mapPreferencesRepository`
-  as a 15th; this addition still applies cleanly. Re-verify the exact current parameter list and
-  order in `AvailabilityViewModel.kt` on `main` before wiring the 15th in, rather than trusting
-  this document's memory of it.
-- **14 modified test files** (`AvailabilityScreen*`/`AvailabilityViewModel*`) carry
-  constructor-argument diffs against PR #26's base — re-derive each against `main`'s current
-  constructor signatures rather than reapplying the stored diff mechanically.
-  `AvailabilityViewModelOfflineMapsTest.kt` is substantially rewritten in PR #26 (+371 lines) and
-  needs the most attention; verify it against the reconciled `OfflineMapRepository` interface
-  from Workstream 3, not PR #26's original.
-- **File continuity:** confirmed nothing PR #26 modifies has been deleted or renamed on `main`
-  as of the pulse — re-check this is still true at dispatch time, since more commits may have
-  landed since.
-
-**Gate:** `:app:compileDebugKotlin` and `:app:compileDebugUnitTestKotlin` both clean.
-
----
-
-## Workstream 5 — `OfflineRegionEntity` relational design + delete-block flow
-
-**Decision (owner, 2026-08-23):** design the relationship now, in this migration, not
-retrofitted later. `MushroomLogEntryEntity` gets a nullable foreign key to `offline_regions`
-(column name and exact FK/index declaration are this workstream's to write — follow this
-project's existing Room conventions, e.g. `MIGRATION_4_5`'s style for `mushroom_log_entries`/
-`log_photos` in `Migrations.kt` on `main`), created as part of `MIGRATION_5_6` alongside the
-table itself.
-
-**How the link is set (owner decision, 2026-08-23):** automatic, not user-chosen. A log entry
-created while its coordinates fall inside a downloaded region's bounds references that region.
-The user should not have to think about offline-map bookkeeping while logging a find — the link
-is inferred so the whole feature stays invisible until it actually matters (at delete time, per
-the flow below), rather than surfacing as one more decision on every entry. If an entry's
-coordinates fall inside more than one downloaded region, or inside none, that's this
-workstream's to resolve with an explicit rule (e.g. nearest-center, or first-match, or simply
-"no region, no link") — don't leave it undefined.
-
-**Delete-block flow — two-step, both parts required:**
-
-1. **Block by default, name the entries.** A region delete is refused while any log entry still
-   references it. The refusal names the specific referencing entries — the error-presentation
-   spec's "tell the user what's actually true" rule applies here the same as to a caught
-   exception; a generic "this region is in use" message is not sufficient.
-2. **Two explicit ways past the block:**
-   - Edit or remove the referencing log entries directly (clears the reference; delete then
-     proceeds normally through the existing `OfflineRegionsSection` confirmation dialog).
-   - Or: a **separate, explicit confirmation** (owner decision, 2026-08-23) — not a silent
-     auto-capture-then-delete. The user is usually deleting a region *because storage is the
-     problem*; silent capture-then-delete is more magical than helpful in exactly that
-     situation — they should see what will be kept before committing. The dialog states which
-     entries are affected and what will happen: *"This region is used by [named entries].
-     Delete it and keep their maps?"* Only on
-     confirmation does Workstream 6's capture mechanism run per referencing entry, followed by
-     the region delete. Extend `OfflineRegionsSection`'s existing `pendingDeleteRegion`
-     confirmation dialog (PR #26) for this rather than building a new one.
-
-**Rejected explicitly, do not implement:** cascading the delete to remove referencing log
-entries, and silently nulling the reference with no user-visible record of what was lost.
-
-**Gate:** a Robolectric test drives the real delete flow (button tap → dialog → confirm), not a
-hand-called ViewModel method, per `CLAUDE.md`'s Testing section — asserts the block fires with
-named entries when references exist, and that delete proceeds normally when none do.
+**Gate:** all six checkpoints green, plus the replacement-discipline report accepted.
 
 ---
 
-## Workstream 6 — Entry-level tile capture (new feature)
+## Workstream L — Log & Location rework
 
-Not in the original five-workstream scope — added 2026-08-23 specifically so the design
-wouldn't go stale before being written down. Depends on Workstream 5's FK existing.
+**Replaces Workstreams C and D**, superseded by owner decision (2026-08-22) — see
+[`docs/audits/2026-08-24-workstream-c-and-d-archive.md`](../audits/2026-08-24-workstream-c-and-d-archive.md)
+for C and D's original text and the full reasoning. In short: C's actual deliverable (the
+delete-confirmation dialog) shipped early inside Workstream B, and under the new design nothing is
+at risk during a delete, so there is nothing left for C to block. D's trigger moved from
+delete-time to location-set: capture-on-delete made an entry's own journal tile contingent on a
+moment that might never come, or might come with no signal; capture-on-location-set makes every
+located entry self-sufficient from the start.
 
-**Capture mechanism (owner decision):** a fresh small-radius download, reusing
-`MapLibreOfflineMapRepository.download()` unchanged — call it with a **~1 meter radius** region
-centered on the log entry's coordinates instead of a user-picked one. This is the same
-`OfflineManager.createOfflineRegion` path the existing per-region download already uses, just a
-smaller `Region`; no new MapLibre API surface, no `javap` verification needed. Each captured
-entry gets its own `OfflineRegionEntity` row, independent of the region it's replacing coverage
-for.
+While rescoping when capture happens, the owner also chose to fix two adjacent things now, while
+the code touching this area is still young and few call sites depend on it — rather than defer
+them and pay to convert twice: **every long-press-to-place-a-location gesture in the app is
+replaced by one new interaction** (L2), and **`MushroomLogEntry.foundAt` becomes optional** (L3),
+since the new entry flow no longer requires a location up front.
 
-**Explicitly rejected:** extracting already-cached tiles for that point out of the big region's
-store before it's wiped. Nothing in this codebase has verified MapLibre's `OfflineManager`/
-`OfflineRegion` API exposes tile-level extraction (its interface is region-shaped — bounds and
-zoom — not raw tile access); this project's own discipline (see `MapLibreOfflineMapRepository.kt`'s
-and `MapPreferencesRepository`'s doc comments) is to check such a claim via `javap` against the
-pinned `org.maplibre.gl:android-sdk` artifact before relying on it, and that check has not been
-done. The fresh-download path avoids needing it and is confirmed feasible without further checks.
+Found via two read-only scoping pulses (2026-08-22): the C/D rescoping pulse (superseded before
+any dispatch was written from it once the design changed further) and the Log & Location rework
+scoping pulse that this split is derived from.
 
-**Trigger:** runs once per referencing entry, only after the user confirms the Workstream 5
-delete-block dialog ("...delete it and keep their maps?") — not at log-entry creation time, and
-not automatically without confirmation.
+### Owner decisions (2026-08-22)
 
-**Failure handling (owner decision, 2026-08-23) — this is the one that matters:** a fresh
-capture download needs network. If a capture fails and the region delete proceeded anyway, the
-user would believe their entries' maps are preserved when they are not — belief-changing under
-`docs/error-presentation-spec.md`'s own test, the same shape as a failed track recording.
-**Block the region delete on any capture failure.** Do not proceed with partial success (some
-entries captured, region deleted, others lost). Report in state terms, not as a generic error —
-e.g. *"Needs a connection to save entry maps first."* — matching the register
-`track_recording_needs_location` already established in `strings.xml` for the same kind of
-"this requires connectivity/permission before the action can proceed" case.
+1. **A log entry can exist without a location.**
+2. **Adding an entry goes to the entry page, not to location placement.** That page carries
+   **Add Location**, **Camera**, and **Gallery** buttons.
+3. **Adding a photo also goes to the entry page**, with a prompt offering the photo's location
+   metadata if present.
+4. **In-app capture strips EXIF GPS and uses the device location ping instead.** Imported photos
+   keep their metadata; it is read and offered.
+5. **Fixed centre pin, pan the map underneath, OK/Cancel — replaces long-press at every site.**
+   **This is not a style preference.** The stated reason: dragging a marker with a finger occludes
+   the target — the same problem long-press has, since a fingertip sits directly on top of the
+   point being placed either way. A pinned centre marker keeps the finger off the target entirely,
+   because the finger drives the map underneath a marker that never moves. Carry this rationale
+   forward wherever this decision is cited; it is an accessibility decision with a stated reason,
+   not an aesthetic one.
+6. **Deleting a log entry deletes its photo files** — fixes a live bug where only the database
+   rows are removed today.
+7. **Tile capture fires when an entry acquires or changes a location**, not at entry creation and
+   not at region-delete time. **On change, the new tile is captured and confirmed successful
+   before the old one is deleted** — the same "never leave the operation's target in a worse state
+   than before it started" principle already applied to region deletion elsewhere in this rework,
+   not a new judgment call. A capture that fails mid-swap must leave the entry with its prior
+   tile intact, not with neither.
+8. **The map tab's "Log a find" follows the journal's new flow, not immediate commit** — it no
+   longer creates an entry the instant a location is picked; it goes to the entry page like every
+   other entry-creation path, per decision 2.
 
-**Gate:** a test exercises capture failure (simulated network failure on one of several
-referencing entries) and asserts the region delete does not proceed, no entries are left with a
-region deleted out from under them, and the failure message is state-phrased rather than
-exception text.
+### The six pieces
+
+**L1 — Photo file cleanup on entry delete.**
+**Depends on:** nothing. Can ship immediately, independent of every other piece here.
+Fixes a live, already-shipping bug: `MushroomLogDao.deleteEntryAndPhotos` removes the `log_photos`
+and `mushroom_log_entries` rows but never calls `PhotoStore.delete()`, so a deleted entry's photo
+files are orphaned on disk permanently. `MushroomLogViewModel.onDeleteEntry(id)` already holds the
+full entry — including its `photos: List<LogPhoto>` and each one's `relativePath` — before calling
+delete, so no new DAO query is required to know what to remove; call `PhotoStore.delete(photo)`
+for each from wherever the entry's photo list is already in hand.
+**Gate:** compile + tests green; a Compose/ViewModel test confirms the photo files are gone after
+delete, not just the rows.
+
+**L2 — The centre-pin picker.**
+**Depends on:** nothing structurally. Lands before L4.
+A fixed Compose overlay pinned to screen centre, the map panning underneath it, committed with
+OK/Cancel — see decision 5 for why this shape specifically, not a draggable marker. Produces a
+`LatLng` at exactly the point every current long-press site already consumes one, so converting a
+site is a call-site change, not a new data flow. **Five sites convert**, not the three or four a
+first look might find: the offline-region picker (`OfflineMapsPanel`), the map tab's long-press
+(`MapTab`), the compact/fullscreen map tab's long-press and its icon-stack "+" button
+(`CompactMapTab`), the medium/expanded results pane's own instance of the same menu, and
+**`JournalTab.kt`'s own picker** (`LogEntryLocationPicker`) — the one that sits in a different
+file from the other four and is easiest to miss on a search scoped to `AvailabilityScreen.kt`
+alone. Trip-planning and waypoint-dropping keep their own confirm dialogs (`TripDatePickerDialog`,
+`WaypointNameDialog`) unchanged — decision 5 replaces the *gesture* that leads into them, not
+those features themselves. **Nothing in this codebase currently draws a draggable or centred
+marker** — every existing marker (waypoints, planned trips, area labels) renders as a
+`GeoJsonSource` + `SymbolLayer` whose whole feature set is replaced wholesale on every state
+change, not an individually interactive annotation, so this is new interaction plumbing, not an
+extension of what `SightingsMap.kt` already does.
+**Gate:** compile + tests green; all five sites converted, none left on long-press.
+
+**L3 — Optional `foundAt`.**
+**Depends on:** nothing. Lands before L4.
+Smaller than it first looks: log entries are not plotted on any map, not clustered by DBSCAN, and
+not distance-sorted against anything — those systems (`ui/map/`, `ClusterForagingAreasUseCase.kt`,
+`GeoDistance.kt`) operate exclusively on `Sighting`/`ForagingArea`, never on `MushroomLogEntry`.
+The real surface: three display sites need a null branch (`LogEntryDetailScreen.kt`,
+`LogEntryListScreen.kt`, `LogEntryReportScreen.kt`, each just a `"Found at ${lat}, ${lng}"` string
+today); `MushroomLogEntryEntity.lat`/`lng` are non-null `Double` columns, so this needs a real
+migration (`MIGRATION_6_7`, current database version is 6) making both columns nullable; and 13
+call sites construct `MushroomLogEntry.draft(id, location, date)` with `location` as a required
+positional parameter, needing a default or nullable update.
+**Record the legacy-fixture warning explicitly when this lands:** this migration alters an
+*existing* entity (`MushroomLogEntryEntity`), the same shape of change `MIGRATION_5_6` was
+(Workstream A) — the legacy fixture in whichever migration test predates this column
+(`MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3` does not include this entity and is
+unaffected; any fixture that does include it will need the same drop-index-then-column treatment
+`MIGRATION_5_6`'s fixtures needed, in that order). This is the **second** occurrence of this exact
+pattern in this rework — see
+[`docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`](../audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md).
+Two occurrences make it a pattern worth checking for by habit on every future migration that
+touches an existing entity, not a one-off surprise each time.
+**Gate:** compile + tests green; `MIGRATION_6_7` runs against a real v6 fixture, verified against
+JUnit XML.
+
+**L4 — The new entry flow.**
+**Depends on:** L2 and L3.
+Both the journal "+" and the map tab's "Log a find" (decision 8) route to the entry page rather
+than a location-placement screen. `LogEntryDetailScreen` gains an **Add Location** button
+alongside its existing Camera/Gallery row. **Deletes `JournalTab.kt`'s `LogEntryLocationPicker`
+composable and its `pickingLocation` state machine** — the picker this rework's own scoping pulse
+found to be, ironically, the only site with a real confirm/cancel step before this split — along
+with the test coverage for it (`JournalTabTest.kt`'s cases exercising `LogEntryLocationPicker`/
+`pickingLocation`). Trip-planning and waypoint-dropping's own dialogs are unaffected (see L2).
+**Gate:** compile + tests green; an entry can be created and saved with no location, then given
+one later via Add Location.
+
+**L5 — Photo location capture.**
+**Depends on:** L4.
+Adds and pins `androidx.exifinterface` (not currently a dependency — pin its version against the
+real artifact once added, per CLAUDE.md). **Verify against that real artifact whether it can read
+GPS tags from a `content://` `InputStream` or only from a `File`/`FileDescriptor` — do not assume
+from documentation.** This project's own standing discipline is `javap` against the pinned jar,
+not trusting a library's docs; that discipline applies here as much as it did to the MapLibre SDK
+claims elsewhere in this rework. The in-app-capture-vs-import distinction is **currently erased**:
+both `TakePicture` (camera) and `PickVisualMedia` (gallery) results wrap into the identical
+`ContentUriPhotoSource(uri)`, a one-field type with no "which path" tag — that distinction must be
+preserved (a new field, a second `PhotoSource` implementation, or equivalent) before capture-strip
+vs. import-read can be told apart at the point where either would happen. **Photo capture never
+blocks on a missing location** — if coordinates are available at capture time, take them; if not,
+the photo still saves and the user sets the location manually afterward (per decision 3/4's
+prompt-offering framing, not a hard requirement).
+**Gate:** compile + tests green; an EXIF-bearing imported photo offers its coordinates; an in-app
+capture never carries GPS in its saved file.
+
+**L6 — Tile capture.**
+**Depends on:** L3 and L5. The largest piece.
+**Owns the bridge** between the mushroom-log domain and `OfflineMapRepository` — confirmed twice,
+across two separate scoping pulses, that `MushroomLogViewModel` and `AvailabilityViewModel` are
+entirely separate `ViewModel` instances today with no mutual dependency in either direction, and
+neither `MushroomLogRepository`/`RoomMushroomLogRepository`/`MushroomLogDao` nor
+`CreateMushroomLogEntryUseCase`/`DeleteMushroomLogEntryUseCase` references `OfflineMapRepository`
+or `OfflineRegionDao` anywhere. Both capture-on-location-set and capture-cleanup-on-entry-delete
+need that exact same missing edge. **If two dispatches wire this bridge independently, they will
+merge cleanly and still not work** — the same "two branches each individually correct, merge
+without conflict, still broken" collision shape CLAUDE.md's own known-pitfalls section already
+names for this rework (the schema-version precedent). This workstream decides where the bridge
+lives (a new use case in `AppContainer` holding both repositories; a repository-level dependency;
+a ViewModel-level one — three shapes with different blast radii, not evaluated against each other
+by either scoping pulse) and every other piece that needs it uses that one answer.
+Also in scope: `offlineRegionId` (Workstream A's column) is invisible above the Room entity layer
+today — absent from the domain `MushroomLogEntry` model, from `RoomMushroomLogRepository`'s
+mappers, and from any partial-update query — needs a real write path, not just a read. A
+pending-capture signal needs representing: a single nullable id cannot distinguish "capture owed"
+from "not applicable," since both currently collapse onto the same `null`. A connectivity signal
+does not exist anywhere in this codebase (confirmed: zero `ConnectivityManager`/`NetworkCallback`
+matches). A background-job mechanism is needed for the offline-then-reconnect case; WorkManager is
+not currently a project dependency (independently flagged as absent twice already in this
+codebase's own comments, for two different features) and no other background-job pattern besides
+`TrackRecordingService`'s foreground `Service` exists — a pattern that file's own doc comment
+describes as fitted to continuous, user-visible, user-initiated work, which this capture job is
+not.
+**Gate:** compile + tests green; a location-set/-changed entry acquires a tile without user action
+beyond setting the location; a delete removes both the entry's photos (L1) and its capture region;
+`docs/error-presentation-spec.md`'s belief-changing classification applied to every new failure
+path this introduces.
+
+### Open decisions to record as open
+
+Not resolved by either scoping pulse or this dispatch — flagged so a future dispatch doesn't
+silently pick one without the owner's input:
+
+1. **Empty-location display wording** (L3) — what the three display sites show when `foundAt` is
+   `null`.
+2. **How a coordinate crosses the `PhotoStore` boundary** (L5) — a new field on `LogPhoto`, a new
+   `PhotoStore` method returning it alongside `persist()`, or a wrapper return type from `persist()`
+   itself. Three shapes reported by the scoping pulse, none chosen.
+3. **Pending-capture-state representation** (L6) — a nullable timestamp column, an enum column, or
+   a separate table.
+4. **Tile budget (L6, blocking — not just an open preference).** Entry-captures share the same
+   6000-tile `TILE_COUNT_LIMIT` budget with user-picked regions, with no filter distinguishing
+   them in either the running total or the pre-flight estimate. That pre-flight warning exists
+   only inside the user-initiated download UI path (`AvailabilityViewModel.onDownloadOfflineMaps`)
+   — a background capture job would never pass through it. The native SDK ceiling
+   (`OfflineManager.setOfflineMapboxTileCountLimit`) is already confirmed non-enforcing by
+   hardware testing recorded on `OfflineMapRepository.TILE_COUNT_LIMIT`'s own doc comment. A
+   background capture would therefore see none of the three safeguards a user-initiated download
+   gets. This blocks L6 from being gated as "done" without an explicit owner answer on what a
+   budget-exhausted background capture should do — silently skip, queue, or surface somewhere the
+   user will actually see it.
 
 ---
 
-## Workstream 7 — Error-presentation compliance
+## Payoff gap — recorded, not scoped
 
-Last, because earlier workstreams create or move the sites this one treats.
+A finding that sits above this plan, not inside any one workstream:
 
-**Confirmed passthrough sites in `AvailabilityViewModel.kt`** (PR #26's copy, as of the pulse):
-all ten pre-existing `error.message ?: "..."` sites PR #34 already eliminated on `main`
-(`taxonSearchErrorMessage`, `sightingsErrorMessage`, `seasonalPatternErrorMessage`,
-`errorMessage`, `conditionsErrorMessage`, `tripWindowsErrorMessage`, `plannedTripsErrorMessage`
-×3) will already be gone after Workstream 1's reapply, *provided the reapply is done against
-current `main` rather than by porting PR #26's file wholesale* — verify this explicitly rather
-than assuming the reapply got it right.
+**The rework does not make the feature visible.** MapLibre is now the sole renderer (the
+osmdroid removal landed on `main` at `2a590dc`/`7b82588`), including the offline-region picker.
+But live rendering pulls four live *raster* sources (USGS Topo, USGS Imagery Topo, OpenTopoMap,
+OSM Standard), and the PMTiles archive is reachable only through a private `OFFLINE_STYLE_URL`
+inside `MapLibreOfflineMapRepository.kt`. A user downloads a region and never sees their own
+downloaded tiles anywhere. Workstreams 0 through L6, fully executed, leave this true.
 
-**New sites PR #26 introduces, not on `main` at all — fix these:**
-```kotlin
-_uiState.update { it.copy(offlineRegionsErrorMessage = error.message ?: "Couldn't read offline regions.") }   // loadOfflineRegions
-_uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Failed(error.message ?: "Couldn't download offline maps.")) }  // onDownloadOfflineMaps
-_uiState.update { it.copy(offlineRegionsErrorMessage = error.message ?: "Couldn't delete that region.") }     // onDeleteOfflineRegion
-```
-Replace each `error.message ?: "..."` with the fixed literal alone, per the spec, mirroring how
-PR #34 treated the equivalent sites elsewhere in this same file.
+**Standing constraint (owner, 2026-08-22):** the PMTiles Worker serves offline *downloads* only
+and is never a live tile server. Where a downloaded region exists, the live map should render
+that region's **local** tiles — never fetching from the Worker during browsing. Outside covered
+regions, live raster remains the fallback. **This is a cost ceiling, not a technical
+preference:** the Worker is on a free tier and general browsing traffic would exceed it.
+Revisitable when subscriptions cover the cost, at which point Worker-served live browsing gets
+added. Do not relax this as an implementation detail.
 
-**Belief-changing classification (owner decisions, 2026-08-23):**
-- **A failed offline-map download is belief-changing.** Same shape as the track-recording case
-  — a user who believes they have offline coverage for an area they're about to lose signal in
-  is carrying a false assumption into the field. Render as a message phrased as state (matching
-  `startRecordingErrorMessage`'s Toast-with-clearing shape, or `waypointsErrorMessage`'s inline
-  error-color render — pick whichever this UI's existing `OfflineDownloadStatusContent` shape
-  fits better), not a plain empty state.
-- **A failed region-list load is not belief-changing** — the user is missing a list, not
-  carrying a false belief about what the app has already done for them. Neutral empty state is
-  sufficient — matching `conditionsErrorMessage`/`loadErrorMessage`'s "X unavailable" vocabulary
-  from PR #34, not an error-colored render.
-- **A failed entry-level tile capture is belief-changing** (Workstream 6) — covered there, not
-  duplicated here; both workstreams' error sites should read as one consistent treatment by the
-  time this workstream is done, not two independently-invented ones.
+Feasibility was scoped against the pinned `maplibre-android-sdk 13.5.0` artifact.
+`MapLibre.setConnected()` is too blunt — it delegates to a single process-wide
+`ConnectivityReceiver` and would kill the raster fallback too. `FileSource.setResourceTransform`
+is the viable path: a per-resource hook that receives the URL and a `Resource.Kind` tag, so it
+can discriminate rather than block indiscriminately. **Unresolved and requiring device
+observation:** what MapLibre does when `onURL` returns something unfetchable, and whether
+overzoom past the archive's maxzoom 14 works under blocked-network conditions. Precedent for not
+trusting the API name: this project's own `TILE_COUNT_LIMIT` finding.
 
-**Gate:** repeat the pulse's own verification — a whole-`app/src/main` grep for `.message`
-reaching a state field or a rendered string, confirming every hit is either a domain field
-carrying an already-fixed literal or a `Log.w`-only diagnostic read. `:app:testDebugUnitTest`
-and `:app:assembleDebug` (including `verifyNothingTestOnlyReachesTheApk`) both clean.
+Also unresolved: coverage lookup needs a **bounds rectangle**, but `OfflineRegionSummary` carries
+a centre+radius **circle**, which under-reports at corners per the design doc's own Coverage
+section. And `SightingsMap.kt`'s `setStyle` path rebuilds all overlays from scratch and
+re-centers the camera, so a coverage-boundary style swap would be visibly disruptive under
+current code.
+
+Sequencing: strictly downstream of Workstream B. **Not yet scoped as a workstream — owner
+decision pending.**
 
 ---
 
 ## What explicitly does not change
 
 - `MapPreferencesRepository`/`DataStoreMapPreferencesRepository` stay as PR #26 built them,
-  including the `PreferenceDataStoreFactory` doc comment verbatim (see Workstream 1).
+  including the `PreferenceDataStoreFactory` doc comment verbatim (see Workstream 0).
 - The feature set from the original scoping doc's §1 stays — per-region download, per-region
   delete, the Downloaded Maps list, staleness badging. None of it is up for renegotiation.
 - `onOfflineMapsOpened()`'s GPS re-centering and cold-start region-list refresh stay — both
