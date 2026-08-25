@@ -228,6 +228,45 @@ one-tab-away cost; not decided here.
 This phase is compact-only, same as Phase 1 — `MEDIUM`/`EXPANDED`'s
 `PermanentNavigationDrawer` + `CombinedResultsPane` path is untouched.
 
+### Known defect in the untouched path (recorded 2026-08-25, deferred)
+
+The compact-only scope above is a deliberate decision, not an oversight —
+but it leaves a real defect in place on `MEDIUM`, and it is recorded here
+so a future reader neither repeats the discovery nor re-opens the scope by
+accident.
+
+**The defect.** `MEDIUM` starts at 600dp, and `PermanentNavigationDrawer`
+gives the drawer panel a fixed 360dp (see `DRAWER_PANEL_WIDTH` in
+`AvailabilityScreen.kt`). At the bottom of the `MEDIUM` range that is 60%
+of the window handed to controls a user sets far less than once per search
+— location, radius, month, the foraging-areas layer, trip planning — while
+the results the screen exists to show get the remaining 40%. Compact
+already resolved the same tension by moving those controls behind a drawer
+and giving the map the content area; `MEDIUM` inherited the pre-compact
+arrangement and was never revisited.
+
+**The fix, if it is ever taken.** The six `CompactTab` destinations become
+a `NavigationRail`, and the drawer becomes modal, opened from it. That is
+specified in `docs/plans/understory-design-system.md` §3S.
+
+**Why it is deferred rather than built** (owner decision, 2026-08-25):
+
+1. It is the only change in that document that contradicts a recorded
+   scope decision — this one.
+2. It is the only structural layout change in what is otherwise a design
+   token and motion pass, so it does not share that work's risk profile.
+3. It lands in the one window class this project cannot verify. Development
+   and testing happen on a physical phone with no emulator available, which
+   makes the medium-window rail simultaneously the change that most needs
+   hardware review and the one least able to get it.
+
+Reasons 1 and 2 are arguments about sequencing and would not survive the
+rail being wanted; reason 3 is the binding one and does not change until
+there is a medium-width device or emulator in the loop. Until then this
+stays a named deferral, not a queued step. `EXPANDED` is unaffected either
+way: its `PermanentNavigationDrawer` + `CombinedResultsPane` structure is
+kept intact by design, and takes the new tokens and nothing else.
+
 ## New capability: compass
 
 No sensor code exists in this app. Needs an owned interface — e.g.
