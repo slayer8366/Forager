@@ -31,10 +31,15 @@ one transaction ever writes the edited content onto it, on Save.
 1. **Where the Drafts UI lives** — a filter/toggle on the existing entry list/gallery ("Log" /
    "Drafts (N)"), not a separate destination. Implemented identically in `LogGalleryScreen` and
    `LogEntryListScreen`.
-2. **What happens to an untouched brand-new draft on incidental exit** — removed entirely is
-   *not* what was chosen. The owner's answer, given in two parts:
-   - First: offer a dismissible "Discard" prompt on the exit, Gmail-drafts-style — if the prompt
-     goes unanswered, default to keeping it as a draft.
+2. **What happens to an untouched brand-new draft on incidental exit** — the owner's own words:
+   remove it entirely, but offer a prompt to discard if hitting the back button; if the prompt
+   isn't answered, default to saving it to Drafts, Gmail-drafts-style. **Correction (L4b-R2):** an
+   earlier draft of this report characterized "removed entirely" as *not* what the owner chose,
+   as if it conflicted with the discard-prompt answer below — it doesn't. Both are the same
+   instruction read together: the *baseline* behavior is removal, and the discard-prompt/
+   default-to-Drafts mechanism is the override that replaces it. The implementation matches
+   either reading, so no code changed as a result of this correction — only this sentence, since
+   the archive is the audit record and should state the decision as given, not as redescribed.
    - Clarifying follow-up: that offer must cover *every* exit path (back arrow, tab switch, any
      other in-app "leave" action) — **except** the home button / backgrounding, which must never
      attempt a prompt at all (a prompt can't survive the process being backgrounded reliably, and
@@ -85,10 +90,17 @@ once and shared across every in-app exit path — `JournalTab`'s `BackHandler`,
 `LogEntryDetailScreen`'s own back arrow (routed through `JournalTab`'s `onBack`), and the compact
 scaffold's tab-switch handler — rather than three separate implementations, so "every exit but
 backgrounding offers it" is one fact about one callback, not three facts to keep in sync.
-`LogPanel`'s call site is the disclosed exception: it wires the *raw*, unwrapped
-`onLeaveLogEntryEditingIncidentally` with no Snackbar, since the drawer layout (medium/expanded
-window) has no snackbar host of its own convenient to this flow — a scoping gap, not an oversight,
-and one only reachable on window classes wide enough that a drawer is even shown.
+**Correction (L4b-R2):** this report originally classified `LogPanel`'s call site as a disclosed
+exception — wired to the *raw*, unwrapped `onLeaveLogEntryEditingIncidentally`, with no Snackbar,
+on the reasoning that the drawer layout (medium/expanded window) had no snackbar host of its own
+convenient to this flow. The owner ruled that classification wrong: the discard offer was specified
+to cover every in-app exit path, the drawer is a live window (not the backgrounding carve-out), and
+reachability-based mitigation ("only on wide window classes") is an argument about how often a gap
+is hit, not about whether the requirement was met. Fixed in L4b-R2: `DrawerPanel.Log`'s `LogPanel`
+now shares the exact same `leaveLogEntryEditingOfferingDiscard` callback as the compact bottom
+nav's `JournalTab` (hoisted to this function's own top level in `AvailabilityScreen.kt`, rather than
+declared twice), and `PermanentNavigationDrawer`'s own drawer sheet gained a `SnackbarHost` docked
+to its bottom to show it — see the L4b-R2 report for the mutation-checked test proving this.
 
 Backgrounding is wired separately and deliberately to the **raw** callback: `AvailabilityScreen`'s
 `ON_STOP` `DisposableEffect` calls `latestOnLeaveEditingIncidentally()` directly, never the
@@ -271,10 +283,11 @@ baseline semantics, Cancel's navigation target) — L4b-R didn't revisit those, 
 the two items the owner was asked about directly.
 
 **Decided beyond the dispatch, disclosed:**
-- `LogPanel`'s discard-offer Snackbar gap (drawer layout has no convenient host) — the raw callback
-  is wired there instead of the wrapped one; a scoping gap for a future dispatch to close if the
-  owner wants Snackbar parity on that window class too, not something this dispatch's Gate required.
 - The Drafts tab's empty-state copy ("No drafts. Unsaved edits show up here.") and badge/row wording
   ("Draft" / "Draft — not yet saved") — small UX text choices the dispatch left unspecified.
+- ~~`LogPanel`'s discard-offer Snackbar gap, parked as a future scoping decision~~ — **corrected in
+  L4b-R2**: this was an unmet requirement misclassified as a scoping gap, not a legitimate decision
+  beyond the dispatch. See this file's own L4b-R2 correction above and the L4b-R2 report for the fix.
 
-**No premise in the dispatch turned out wrong.**
+**No premise in the dispatch turned out wrong.** (The `LogPanel` item above was this report's own
+misclassification, not a premise the dispatch itself got wrong — see the L4b-R2 correction.)

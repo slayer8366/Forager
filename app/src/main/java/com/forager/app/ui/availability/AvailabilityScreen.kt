@@ -600,6 +600,31 @@ fun AvailabilityScreen(
 
     val windowWidthClass = currentWindowWidthClass()
 
+    // Workstream L4b-R2: the one wrapped "leaving without answering" callback, hoisted here (rather
+    // than declared separately inside compactMainScaffold and again wherever the drawer's own
+    // LogPanel needed it) so "every in-app exit offers a discard action" stays one fact about one
+    // callback shared by every caller — the compact bottom nav's JournalTab, its own tab-switch
+    // handler, and DrawerPanel.Log's LogPanel below — rather than N independently-maintained copies.
+    // Backgrounding is the deliberate, sole exception: see compactMainScaffold's own
+    // DisposableEffect, which calls the *raw* onLeaveLogEntryEditingIncidentally directly, never this
+    // wrapper, since there is no window left to show a Snackbar in by the time that fires.
+    val logDraftSnackbarHostState = remember { SnackbarHostState() }
+    val logDraftSnackbarScope = rememberCoroutineScope()
+    val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
+        val discardedId = logUiState.editingEntry?.id
+        onLeaveLogEntryEditingIncidentally()
+        if (discardedId != null) {
+            logDraftSnackbarScope.launch {
+                val result = logDraftSnackbarHostState.showSnackbar(
+                    message = "Saved to Drafts",
+                    actionLabel = "Discard",
+                    duration = SnackbarDuration.Short,
+                )
+                if (result == SnackbarResult.ActionPerformed) onDiscardLogDraft(discardedId)
+            }
+        }
+    }
+
     // The drawer's panel content, shared between the compact `ModalNavigationDrawer` below and
     // the `PermanentNavigationDrawer` medium+ windows get instead — see [windowWidthClass]. A
     // local composable lambda rather than a top-level one so it closes over this function's ~25
@@ -722,12 +747,12 @@ fun AvailabilityScreen(
                     onStartEditingEntry = onStartEditingLogEntry,
                     onSaveEntry = onSaveLogEntry,
                     onCancelEditing = onCancelLogEntryEditing,
-                    // The medium/expanded drawer has no Snackbar host of its own to offer a
-                    // discard action through (see the compact scaffold's own construction of that
-                    // wrapped callback below) — this window class gets the plain persist-only
-                    // behavior, still correct (never commits, never discards), just without the
-                    // Gmail-drafts-style undo affordance. Disclosed simplification, not an oversight.
-                    onLeaveEditingIncidentally = onLeaveLogEntryEditingIncidentally,
+                    // Workstream L4b-R2: shares the same wrapped callback as the compact bottom
+                    // nav's JournalTab — see this function's own top-level construction of
+                    // leaveLogEntryEditingOfferingDiscard for why one callback, not a
+                    // window-class-specific copy. The PermanentNavigationDrawer's own drawer sheet
+                    // (below) hosts the Snackbar this shows.
+                    onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
                     onAddPhoto = onAddLogPhoto,
                     onRemovePhoto = onRemoveLogPhoto,
                     onPullPhoto = onPullLogPhoto,
@@ -904,30 +929,16 @@ fun AvailabilityScreen(
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
-        // Workstream L4b-R: every *in-app* incidental exit (back arrow inside the edit form, the
-        // journal tab's own BackHandler, switching to another bottom-nav tab) shares this one
-        // wrapped callback so the same Snackbar covers all three from a single place — backgrounding
-        // above is the deliberate exception (see that effect's own comment on why). The exit itself
-        // is never blocked on this: onLeaveLogEntryEditingIncidentally() already ran, and the
-        // Snackbar only offers an undo:  a dismissed or ignored one leaves the draft exactly where
-        // that call already put it (owner decision, 2026-08-25: Gmail-drafts-style).
-        val logDraftSnackbarHostState = remember { SnackbarHostState() }
-        val coroutineScope = rememberCoroutineScope()
-        val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
-            val discardedId = logUiState.editingEntry?.id
-            onLeaveLogEntryEditingIncidentally()
-            if (discardedId != null) {
-                coroutineScope.launch {
-                    val result = logDraftSnackbarHostState.showSnackbar(
-                        message = "Saved to Drafts",
-                        actionLabel = "Discard",
-                        duration = SnackbarDuration.Short,
-                    )
-                    if (result == SnackbarResult.ActionPerformed) onDiscardLogDraft(discardedId)
-                }
-            }
-        }
-
+        // Workstream L4b-R2: every *in-app* incidental exit (back arrow inside the edit form, the
+        // journal tab's own BackHandler, switching to another bottom-nav tab, and — via the shared
+        // leaveLogEntryEditingOfferingDiscard/logDraftSnackbarHostState this function hoisted to its
+        // own top level — DrawerPanel.Log's LogPanel too) shares this one wrapped callback, so the
+        // same Snackbar covers every one of them from a single place rather than a
+        // window-class-specific copy per host. Backgrounding above is the deliberate exception (see
+        // that effect's own comment on why). The exit itself is never blocked on this:
+        // onLeaveLogEntryEditingIncidentally() already ran, and the Snackbar only offers an undo: a
+        // dismissed or ignored one leaves the draft exactly where that call already put it (owner
+        // decision, 2026-08-25: Gmail-drafts-style).
         Scaffold(
             snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
             bottomBar = {
@@ -1139,7 +1150,19 @@ fun AvailabilityScreen(
         PermanentNavigationDrawer(
             drawerContent = {
                 PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
-                    drawerSheetContent(false)
+                    // Workstream L4b-R2: the drawer sheet is DrawerPanel.Log's own visual area, so
+                    // its discard-offer Snackbar docks here — at the bottom of this sheet — rather
+                    // than in mainScaffold's Scaffold, which is the search/results pane beside it,
+                    // not where the edit session the Snackbar is about actually lives.
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            drawerSheetContent(false)
+                        }
+                        SnackbarHost(
+                            logDraftSnackbarHostState,
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                        )
+                    }
                 }
             },
             content = mainScaffold,

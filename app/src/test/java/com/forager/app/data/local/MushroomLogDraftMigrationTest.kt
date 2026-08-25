@@ -33,14 +33,18 @@ import org.robolectric.annotation.Config
  * intact and `isDraft = false` — the gate this migration exists to satisfy, "no committed entry is
  * lost or marked draft."
  *
- * The seeded entry is deliberately saved with `isDraft = true` — not because a real version-8
- * install could ever have written that (it couldn't; the column didn't exist until this migration),
- * but because [LegacyForagerDatabaseV8] reuses the *current* [MushroomLogEntryEntity], which already
- * declares `isDraft`, so this fixture's `mushroom_log_entries` table has the column from creation,
- * unlike a real version-8 file. This proves [MIGRATION_8_9] ignores whatever that leaked column
- * holds and forces every row to `isDraft = false` regardless — the correct behavior, since every
- * real version-8 row is a committed entry by construction (the old codebase had no other kind) —
- * rather than merely happening to pass in the common case where the leaked value is already `false`.
+ * The seeded entry is deliberately saved with `isDraft = true` *and* a non-null `draftOfEntryId` —
+ * not because a real version-8 install could ever have written either (neither column existed until
+ * this migration and the one after it — see [MushroomLogEntryEntity.draftOfEntryId]'s own doc
+ * comment for when it was added, L4b-R), but because [LegacyForagerDatabaseV8] reuses the *current*
+ * [MushroomLogEntryEntity], which already declares both, so this fixture's `mushroom_log_entries`
+ * table has both columns from creation, unlike a real version-8 file. This proves [MIGRATION_8_9]
+ * ignores whatever those leaked columns hold and forces every row to `isDraft = false`/
+ * `draftOfEntryId = null` regardless — the correct behavior, since every real version-8 row is a
+ * committed entry with no draft relationship by construction (the old codebase had neither concept)
+ * — rather than merely happening to pass in the common case where the leaked values are already
+ * `false`/`null`. This is the third time this exact leaked-column shape has bitten this migration
+ * (`isDraft` here, now `draftOfEntryId` too) — see `docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -64,7 +68,7 @@ class MushroomLogDraftMigrationTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
         val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 1))
-            .copy(notes = "found under the big fir", isDraft = true)
+            .copy(notes = "found under the big fir", isDraft = true, draftOfEntryId = "leaked-parent-id")
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV8::class.java, dbFile.absolutePath).build()
         try {
@@ -84,10 +88,15 @@ class MushroomLogDraftMigrationTest {
             val repository = RoomMushroomLogRepository(migrated.mushroomLogDao())
             val survivedEntries = repository.getAll().getOrThrow()
 
-            assertEquals(listOf(legacyEntry.copy(isDraft = false)), survivedEntries)
+            assertEquals(listOf(legacyEntry.copy(isDraft = false, draftOfEntryId = null)), survivedEntries)
             assertFalse(
                 "no committed entry may be marked draft by this migration, regardless of what a leaked isDraft column held",
                 survivedEntries.single().isDraft,
+            )
+            assertEquals(
+                "no committed entry may keep a parent pointer, regardless of what a leaked draftOfEntryId column held",
+                null,
+                survivedEntries.single().draftOfEntryId,
             )
 
             // A freshly-created entry post-migration is a draft, as normal — proves the new column
@@ -115,14 +124,15 @@ class MushroomLogDraftMigrationTest {
  * `LegacyForagerDatabaseVn` fixture in this package.
  *
  * **Not a faithful copy of the true version-8 `mushroom_log_entries` shape.** [MushroomLogEntryEntity]
- * already declares `isDraft` on the shared production class as of this migration, so Room builds
- * this "legacy" table with the column already present — a real version-8 install never had it. This
- * does **not** need the drop-index-then-drop-column treatment
- * (`docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`): that fix exists because
- * `MIGRATION_5_6`'s `ALTER TABLE ... ADD COLUMN` fails outright against a column already present.
- * [MIGRATION_8_9] is a table *rebuild* whose `INSERT ... SELECT` names an explicit column list that
- * never mentions `isDraft` on the source side, so the leaked column here is silently ignored, not
- * conflicted with — confirmed by this test actually passing, not assumed from that reasoning alone.
+ * already declares `isDraft` *and* `draftOfEntryId` on the shared production class as of this
+ * migration, so Room builds this "legacy" table with both columns already present — a real
+ * version-8 install never had either. This does **not** need the drop-index-then-drop-column
+ * treatment (`docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`): that fix exists
+ * because `MIGRATION_5_6`'s `ALTER TABLE ... ADD COLUMN` fails outright against a column already
+ * present. [MIGRATION_8_9] is a table *rebuild* whose `INSERT ... SELECT` names an explicit column
+ * list that never mentions `isDraft`/`draftOfEntryId` on the source side, so both leaked columns
+ * here are silently ignored, not conflicted with — confirmed by this test actually passing, not
+ * assumed from that reasoning alone.
  */
 @Database(
     entities = [

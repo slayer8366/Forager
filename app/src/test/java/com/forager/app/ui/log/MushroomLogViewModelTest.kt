@@ -20,6 +20,7 @@ import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -574,6 +575,54 @@ class MushroomLogViewModelTest {
         )
     }
 
+    /**
+     * L4b-R2 (the dispatch's own §3): the test above proves the merge's list-search matters, but
+     * doesn't by itself prove the *photos-only* scope of the merge matters, since
+     * [MushroomLogViewModel.onEntryEdited]'s per-keystroke write had already landed in the fake
+     * repository by the time `loadEntries()` ran there — a wholesale replace sourced from the
+     * correct list would have shown the same (already-persisted) text. This test closes that gap:
+     * [saveGate] holds the keystroke's own write suspended — never landing in the repository at
+     * all — while `loadEntries()` runs and returns its (still-stale) read in the same window. Under
+     * the real code, [MushroomLogViewModel.loadEntries]'s photos-only merge leaves `editingEntry`'s
+     * other fields exactly as the in-memory, not-yet-persisted [MushroomLogViewModel.onEntryEdited]
+     * call left them, so the freshly-typed text survives; a wholesale replace sourced from either
+     * list would instead show the stale, still-on-disk text, since that's genuinely all a fresh read
+     * can see while the write is still in flight. This is the answer to §3: yes, the merge protects
+     * something the list-search fix alone does not — the in-flight window between a keystroke's own
+     * local state update and that keystroke's write actually landing.
+     */
+    @Test
+    fun `loadEntries racing ahead of a keystroke's own not-yet-landed write still shows the freshly typed field`() = runTest(dispatcher) {
+        val saveGate = CompletableDeferred<Unit>()
+        val original = entry.copy(notes = "original")
+        val repository = FakeMushroomLogRepository(initial = listOf(original), saveGate = saveGate)
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(original.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "typing, write not yet landed"))
+        vm.loadEntries()
+        advanceUntilIdle()
+
+        assertEquals(
+            "editingEntry's in-memory field must survive even though its own write is still pending",
+            "typing, write not yet landed",
+            vm.uiState.value.editingEntry?.notes,
+        )
+        assertEquals(
+            "the repository itself must still be pre-write — this test is only meaningful if the race is real",
+            "original",
+            repository.getAll().getOrThrow().single { it.id == draftId }.notes,
+        )
+
+        // Let the gated write land before the test ends, so nothing is left suspended.
+        saveGate.complete(Unit)
+        advanceUntilIdle()
+    }
+
     @Test
     fun `an orphaned draft from a crashed new entry is surfaced separately from committed entries and can be reinstated`() = runTest(dispatcher) {
         val committed = entry
@@ -624,6 +673,8 @@ class MushroomLogViewModelTest {
 private class FakeMushroomLogRepository(
     initial: List<MushroomLogEntry> = emptyList(),
     var saveShouldFail: Boolean = false,
+    /** Held open by a test to reproduce the specific race [loadEntries]'s merge exists for: a read landing while an earlier keystroke's own write is still in flight. `null` (the default) never gates anything, so every other test here still runs a plain, immediate save. */
+    private val saveGate: CompletableDeferred<Unit>? = null,
 ) : MushroomLogRepository {
     private val entries = initial.associateByTo(LinkedHashMap()) { it.id }
     private val galleryPhotos = mutableMapOf<String, LogPhoto>()
@@ -657,6 +708,7 @@ private class FakeMushroomLogRepository(
     )
 
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> {
+        saveGate?.await()
         if (saveShouldFail) return Result.failure(RuntimeException("save failed"))
         entries[entry.id] = entry
         return Result.success(Unit)
