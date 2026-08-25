@@ -7,9 +7,22 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # TEMPORARY, revert before merge. The Understory design-system work
+    # (docs/plans/understory-design-system.md) is developed in an environment whose network
+    # policy blocks dl.google.com -- every route to Google's Maven, including the
+    # maven.google.com redirector, terminates there and is refused with a 403 at CONNECT. AGP,
+    # every AndroidX artifact and the SDK packages all come from that host, so the app cannot be
+    # compiled or tested there at all. This runner can reach it, so CI is the only place that
+    # work gets a real `assembleDebug` + `testDebugUnitTest`.
+    #
+    # Same reason and same shape as d3c4b97 ("ci: trigger on pushes to
+    # claude/l4b-persisted-drafts, temporarily"). Delete this branch entry once the work merges.
+    branches: [main, claude/forager-m3-expressive-design-l4c]
   pull_request:
-    branches: [main]
+    # Also temporary: PRs targeting a workstream branch rather than main get no CI otherwise,
+    # which is how the design-system PR (#44, into claude/l4c-serialized-editing-state) would
+    # have merged with nothing having built it. Revert alongside the push entry above.
+    branches: [main, claude/l4c-serialized-editing-state]
 
 permissions:
   contents: read
