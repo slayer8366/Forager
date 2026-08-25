@@ -267,6 +267,65 @@ stays a named deferral, not a queued step. `EXPANDED` is unaffected either
 way: its `PermanentNavigationDrawer` + `CombinedResultsPane` structure is
 kept intact by design, and takes the new tokens and nothing else.
 
+### Open question, `EXPANDED`: where do the six destinations live?
+
+Raised 2026-08-25 alongside the entry above, and recorded as a **question**
+rather than a proposal — nobody has verified any of this on a screen that
+size, and no answer is being assumed here.
+
+A draft of `understory-design-system.md` proposed adding a `NavigationRail`
+left of the `PermanentNavigationDrawer` on `EXPANDED`, then removed it
+again because the same document labelled `EXPANDED`'s treatment
+"tokens only," and a rail is a structural change. Removing it resolved the
+contradiction — but it also closed the question the rail existed to answer,
+which is worse than leaving the question open. So:
+
+**What the code does today** (read at `353d256`, re-verify before relying on
+it). The six `CompactTab` destinations are reached two different ways on
+`MEDIUM`/`EXPANDED`, split by which pane they happen to live in:
+
+- **List / Maps / Seasonal** are the `ResultsTab` enum, driving a
+  `SecondaryTabRow` over the content pane — peers, always visible.
+- **Journal / Album / Settings** are sticky footer rows at the bottom of
+  the permanent drawer's Search panel (`MushroomLogEntryRow`,
+  `PhotoGalleryEntryRow`, `SettingsEntryRow`). Tapping one swaps
+  `drawerPanel`, replacing the drawer sheet's contents in place — so the
+  search controls disappear while any of the three is open.
+
+**The questions that follows from that, none of them answered:**
+
+1. Is a top-level destination reached from a footer row inside a side
+   panel discoverable at `EXPANDED` widths, where there is room to show it
+   outright?
+2. Is it correct that three of the six destinations are permanently
+   visible peers and the other three are nested one level inside a panel
+   about something else? Compact treats all six as peers in one bottom nav.
+3. Does swapping the drawer's contents — losing the search controls to
+   reach Journal — read as navigation or as the panel breaking?
+4. Is the drawer *carrying* those three destinations a deliberate design,
+   or an artifact of them having been moved out of the compact drawer
+   (per the bottom-nav decision above) without the wide-window path being
+   revisited at the same time?
+
+Question 4 is the one that decides whether this is a defect at all. If the
+answer is "artifact," it is the same class of finding as the 360dp entry
+above — the wide-window path inheriting a pre-compact arrangement that was
+never revisited — and it would be resolved by the same rail. If the answer
+is "deliberate," this entry closes and the rail stays unwanted.
+
+Blocked on the same constraint as the entry above: this project builds and
+tests on a phone, and nobody has put the `EXPANDED` layout in front of a
+person on a screen that size. Not a task; a question with the evidence
+attached, so a future reader starts from what the code does rather than
+re-deriving it.
+
+**Stale doc comment noted while reading this.** `ForagerBottomNav`'s doc
+comment says the bottom nav was "extended by the project owner from 3
+destinations to `CompactTab`'s 5." `CompactTab` has six entries — `PHOTOS`
+("Album") was added by Workstream G2 after that comment was written. The
+comment was not updated. Cosmetic, but it will mislead the next reader
+counting destinations.
+
 ## New capability: compass
 
 No sensor code exists in this app. Needs an owned interface — e.g.
