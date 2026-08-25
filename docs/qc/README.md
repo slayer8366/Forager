@@ -31,8 +31,11 @@ it does not need a separate home the way `docs/audits/` sometimes does for cross
 | 2026-08-25 | Dispatch: L4b-R2, addendum (LogPanel discard offer, four report gaps, photo-race question) | `dispatches/2026-08-25-l4b-r2-addendum-dispatch.md` |
 | 2026-08-25 | Report: L4b-R2 addendum | `dispatches/reports/2026-08-25-l4b-r2-addendum-report.md` |
 | 2026-08-25 | L4 close-out checklist §2 verification pulse response (read-only, no code changes) | `pulses/reports/2026-08-25-l4-closeout-section2-verification-pulse.md` |
+| 2026-08-25 | Dispatch: L4c, serialized editing state, photo race, two form fixes (§1a corrected in place — see the block below its own text) | `dispatches/2026-08-25-l4c-serialized-editing-state-dispatch.md` |
+| 2026-08-25 | Report: L4c serialized editing state (corrects its own first pass on the §3 vacuous test and the §5 draft-only-write mutation check — see that report's own "Premises that turned out wrong" section) | `dispatches/reports/2026-08-25-l4c-serialized-editing-state-report.md` |
 
 Landed on `claude/task-hwj91a` via PR [#40](https://github.com/slayer8366/Forager/pull/40)
 (`claude/l4b-persisted-drafts` → `claude/task-hwj91a`) — see `docs/plans/README.md`'s
 `pr26-rework.md` row for the full landing status of L4 alongside the rest of that plan's
-workstreams.
+workstreams. L4c is a further, not-yet-landed correction on top of that merge — see its own
+report for branch/PR status.
