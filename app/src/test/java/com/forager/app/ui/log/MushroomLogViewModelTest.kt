@@ -592,6 +592,19 @@ class MushroomLogViewModelTest {
      * can see while the write is still in flight. This is the answer to §3: yes, the merge protects
      * something the list-search fix alone does not — the in-flight window between a keystroke's own
      * local state update and that keystroke's write actually landing.
+     *
+     * **L4c correction, re-verified rather than assumed:** [MushroomLogViewModel]'s editing-entry
+     * serialization means [MushroomLogViewModel.loadEntries] and [MushroomLogViewModel.onEntryEdited]'s
+     * write now share one [kotlinx.coroutines.sync.Mutex] — so **this specific test no longer
+     * discriminates**. [saveGate] forces the write to acquire that lock first (it's called before
+     * `loadEntries()` below), which means `loadEntries()`'s own critical section can't even start
+     * until the gate opens and the write's critical section releases the lock — by which point the
+     * write has already landed, so the disk `loadEntries()` reads is never stale in the first place.
+     * Confirmed by mutation, not assumed: reverting the merge to a wholesale replace left this test
+     * green, identically — it was passing because `loadEntries()`'s own merge code never ran before
+     * the assertion, under either version. See `loadEntries racing ahead of a keystroke's own write
+     * while loadEntries' own read wins the race to the lock` below for the ordering that *does* still
+     * need the photos-only merge, and the L4c report for the full account of why this one stopped.
      */
     @Test
     fun `loadEntries racing ahead of a keystroke's own not-yet-landed write still shows the freshly typed field`() = runTest(dispatcher) {
@@ -623,6 +636,63 @@ class MushroomLogViewModelTest {
         // Let the gated write land before the test ends, so nothing is left suspended.
         saveGate.complete(Unit)
         advanceUntilIdle()
+    }
+
+    /**
+     * The surviving half of §3, after Workstream L4c serialized editing-entry mutations: the test
+     * above forces the *write* to acquire [MushroomLogViewModel]'s lock first, which serialization
+     * alone now closes. This test forces the opposite order — `loadEntries()`'s own read wins the
+     * race to the lock, and only *then* does a keystroke's write get queued behind it. [readGate]
+     * holds `loadEntries()`'s disk read suspended *while it already holds the lock*, so
+     * [MushroomLogViewModel.onEntryEdited]'s write — called after `loadEntries()`, per this test's
+     * own ordering — can only enqueue behind it, never run first. `onEntryEdited`'s own *immediate*
+     * local reflection still applies synchronously, before either coroutine's critical section runs,
+     * so by the time `loadEntries()`'s gate opens and its merge actually executes, `editingEntry` in
+     * memory already holds the fresh text while the disk read `loadEntries()` is mid-flight on is
+     * still the old value. That is exactly the shape the photos-only merge exists to protect: a
+     * wholesale replace here would overwrite the freshly-typed text with the stale disk value the
+     * very moment `loadEntries()` gets its turn.
+     */
+    @Test
+    fun `loadEntries racing ahead of a keystroke's own write while loadEntries' own read wins the race to the lock`() = runTest(dispatcher) {
+        val readGate = CompletableDeferred<Unit>()
+        val original = entry.copy(notes = "original")
+        val repository = FakeMushroomLogRepository(initial = listOf(original), readGate = readGate)
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(original.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+
+        // loadEntries() is called first, so its coroutine acquires editingEntryMutex first (nothing
+        // else holds it yet) and then suspends on readGate — while still holding the lock.
+        vm.loadEntries()
+        // onEntryEdited's own immediate local reflection applies synchronously regardless of the
+        // lock; its write coroutine queues behind loadEntries(), which already holds the lock.
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "typing, loadEntries got here first"))
+
+        assertEquals(
+            "the immediate local reflection must apply before either critical section runs",
+            "typing, loadEntries got here first",
+            vm.uiState.value.editingEntry?.notes,
+        )
+
+        // Release loadEntries()'s gated read. Its own critical section now runs against stale disk
+        // data (the write is still queued behind it) and must not clobber the in-memory field.
+        readGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            "loadEntries' merge must not overwrite the freshly-typed field with the stale disk value it just read",
+            "typing, loadEntries got here first",
+            vm.uiState.value.editingEntry?.notes,
+        )
+        assertEquals(
+            "the queued write must still land afterward, undisturbed",
+            "typing, loadEntries got here first",
+            repository.getAll().getOrThrow().single { it.id == draftId }.notes,
+        )
     }
 
     @Test
