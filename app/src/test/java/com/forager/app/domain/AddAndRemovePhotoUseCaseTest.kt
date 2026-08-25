@@ -130,4 +130,7 @@ private class FakeMushroomLogRepository(
         if (detachResult.isSuccess) detached += entryId to photoId
         return detachResult
     }
+
+    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> =
+        Result.failure(UnsupportedOperationException("deletePhotoFromGallery is not exercised by either use case under test here"))
 }

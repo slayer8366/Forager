@@ -25,6 +25,7 @@ import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.forager.app.domain.CreateWaypointUseCase
 import com.forager.app.domain.CurrentTimeProvider
+import com.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.DeleteTrackUseCase
@@ -52,6 +53,7 @@ import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PhotoStore
 import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
+import com.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.forager.app.domain.RecordTrackPointsUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
@@ -142,6 +144,8 @@ class AppContainer(context: Context) {
     val addPhotoToLogEntryUseCase = AddPhotoToLogEntryUseCase(photoStore, mushroomLogRepository)
     val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(mushroomLogRepository)
     val getGalleryPhotosUseCase = GetGalleryPhotosUseCase(mushroomLogRepository)
+    val pullPhotoIntoEntryUseCase = PullPhotoIntoEntryUseCase(mushroomLogRepository)
+    val deleteGalleryPhotoUseCase = DeleteGalleryPhotoUseCase(mushroomLogRepository, photoStore)
 
     // Phase 1a of the Forager Navigator plan (docs/plans/forager-navigator-plan.md) — track
     // recording and waypoints. TrackRecordingService (com.forager.app.service) reaches these

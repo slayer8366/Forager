@@ -2,11 +2,13 @@ package com.forager.app.ui.log
 
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
+import com.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.forager.app.domain.MushroomLogRepository
 import com.forager.app.domain.PhotoStore
+import com.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.forager.app.domain.model.GalleryPhoto
@@ -67,6 +69,8 @@ class MushroomLogViewModelTest {
         addPhoto = AddPhotoToLogEntryUseCase(photoStore, repository),
         removePhoto = RemovePhotoFromLogEntryUseCase(repository),
         getGalleryPhotos = GetGalleryPhotosUseCase(repository),
+        pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(repository),
+        deleteGalleryPhoto = DeleteGalleryPhotoUseCase(repository, photoStore),
     )
 
     private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
@@ -202,6 +206,77 @@ class MushroomLogViewModelTest {
 
         assertEquals(listOf(newPhoto), vm.uiState.value.galleryPhotos.map { it.photo })
     }
+
+    /** Workstream G3: pulling a gallery photo into the currently-editing entry references it only — never a new file, never a new gallery row. */
+    @Test
+    fun `pulling a gallery photo into the editing entry adds a reference only`() = runTest(dispatcher) {
+        val existingPhoto = LogPhoto(id = "gallery-photo", relativePath = "photos/gallery-photo.jpg", createdAtEpochMillis = 1_000L)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        repository.addPhotoToGallery(existingPhoto)
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+
+        vm.onPullPhoto(existingPhoto)
+        advanceUntilIdle()
+
+        // The reference lands on the entry; whether it's a reference-only write (no new file, no
+        // new gallery row) is PullPhotoIntoEntryUseCaseTest's own job to prove against a fake that
+        // tracks addPhotoToGallery calls directly.
+        assertEquals(listOf(existingPhoto), vm.uiState.value.editingEntry?.photos)
+    }
+
+    /** Workstream G3: closes the deletion gap — deleting refreshes both the gallery and the entry list. */
+    @Test
+    fun `deleting a gallery photo removes it from the gallery and refreshes entries`() = runTest(dispatcher) {
+        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
+        val entryWithPhoto = entry.copy(photos = listOf(photo))
+        val repository = FakeMushroomLogRepository(initial = listOf(entryWithPhoto))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onDeleteGalleryPhoto(GalleryPhoto(photo = photo, referencingEntryIds = listOf(entry.id)))
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.galleryPhotos.isEmpty())
+        assertEquals(emptyList<LogPhoto>(), vm.uiState.value.entries.single { it.id == entry.id }.photos)
+    }
+
+    /**
+     * The dispatch's own required case: a file-deletion failure must still remove the rows (the
+     * gallery photo disappears either way) and must be logged, not silently swallowed or allowed
+     * to block the row deletion the user actually asked for and was warned about.
+     */
+    @Test
+    fun `a file-deletion failure during gallery deletion still removes the rows`() = runTest(dispatcher) {
+        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry.copy(photos = listOf(photo))))
+        val photoStore = FakePhotoStore(deleteResult = Result.failure(RuntimeException("permission denied")))
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+
+        vm.onDeleteGalleryPhoto(GalleryPhoto(photo = photo, referencingEntryIds = listOf(entry.id)))
+        advanceUntilIdle()
+
+        assertTrue("the row is gone even though the file delete failed", vm.uiState.value.galleryPhotos.isEmpty())
+        assertEquals(listOf(photo), photoStore.deletedPhotos)
+    }
+
+    /** An entry left open in the background (no tab switch closes [MushroomLogUiState.editingEntry]) must not keep showing a reference to a photo the gallery just deleted. */
+    @Test
+    fun `deleting a gallery photo that the open editing entry references updates that entry too`() = runTest(dispatcher) {
+        val photo = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
+        val entryWithPhoto = entry.copy(photos = listOf(photo))
+        val repository = FakeMushroomLogRepository(initial = listOf(entryWithPhoto))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+
+        vm.onDeleteGalleryPhoto(GalleryPhoto(photo = photo, referencingEntryIds = listOf(entry.id)))
+        advanceUntilIdle()
+
+        assertEquals(emptyList<LogPhoto>(), vm.uiState.value.editingEntry?.photos)
+    }
 }
 
 private class FakeMushroomLogRepository(
@@ -262,10 +337,17 @@ private class FakeMushroomLogRepository(
         crossRefs -= entryId to photoId
         return Result.success(Unit)
     }
+
+    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> {
+        galleryPhotos.remove(photoId)
+        crossRefs.removeAll { it.second == photoId }
+        return Result.success(Unit)
+    }
 }
 
 private class FakePhotoStore(
     var persistResult: Result<LogPhoto> = Result.failure(UnsupportedOperationException("photo persistence not exercised by this test")),
+    var deleteResult: Result<Unit> = Result.success(Unit),
 ) : PhotoStore {
     val deletedPhotos = mutableListOf<LogPhoto>()
 
@@ -273,6 +355,6 @@ private class FakePhotoStore(
 
     override suspend fun delete(photo: LogPhoto): Result<Unit> {
         deletedPhotos += photo
-        return Result.success(Unit)
+        return deleteResult
     }
 }

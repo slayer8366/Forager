@@ -12,11 +12,21 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -27,9 +37,10 @@ import java.time.ZoneId
 /**
  * The photo gallery — Workstream G2 (`docs/plans/pr26-rework.md`): every photo the user has ever
  * added, independent of any entry, now that G1 made a photo a first-class gallery row rather than
- * an entry's own possession. **Display only** — tapping a photo does nothing yet; G3 adds
- * pull-into-entry and deletion (see [com.forager.app.domain.MushroomLogRepository]'s own doc
- * comment on the gap this leaves open until then).
+ * an entry's own possession. Workstream G3 adds this screen's one interactive affordance —
+ * deleting a photo, warn-then-remove — the only place a photo can be deleted from, per the
+ * standing rule this repo's `CLAUDE.md` states. Pulling a photo into an entry is
+ * [PullPhotoPickerScreen]'s job instead, reached from the entry side, not from here.
  *
  * A top-level destination on *both* window classes (owner decision, 2026-08-22: "the gallery is a
  * place the user goes, not a mode hidden inside the journal") — [CompactTab.PHOTOS] for compact,
@@ -39,12 +50,15 @@ import java.time.ZoneId
  *
  * [photos] can contain a [GalleryPhoto] with an empty [GalleryPhoto.referencingEntryIds] — a real,
  * reachable state (see that type's own doc comment), not a hypothetical one this screen can assume
- * away.
+ * away. [GalleryPhotoTile]'s own confirmation dialog reads that count directly: warn-then-remove
+ * for a referenced photo, a plain "delete this photo?" with no entries-count line for an
+ * unreferenced one — there is nothing to warn about a zero count changing.
  */
 @Composable
 internal fun PhotoGalleryScreen(
     photos: List<GalleryPhoto>,
     isLoading: Boolean,
+    onDeletePhoto: (GalleryPhoto) -> Unit,
     modifier: Modifier = Modifier,
     /** Set when the last load failed — see [LogGalleryScreen]'s identical parameter for why this never hides [photos] already showing, only shown when there is nothing to show because the read failed. */
     loadErrorMessage: String? = null,
@@ -80,22 +94,28 @@ internal fun PhotoGalleryScreen(
             horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
         ) {
-            items(photos, key = { it.photo.id }) { galleryPhoto -> GalleryPhotoTile(galleryPhoto) }
+            items(photos, key = { it.photo.id }) { galleryPhoto ->
+                GalleryPhotoTile(galleryPhoto, onDelete = { onDeletePhoto(galleryPhoto) })
+            }
         }
     }
 }
 
 @Composable
-private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, modifier: Modifier = Modifier) {
+private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+    var confirmingDelete by remember(galleryPhoto.photo.id) { mutableStateOf(false) }
+
     Card(
         modifier = modifier.fillMaxWidth().aspectRatio(GALLERY_PHOTO_TILE_ASPECT_RATIO),
         shape = RoundedCornerShape(LogSpacing.sm),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            DecodedPhoto(
-                relativePath = galleryPhoto.photo.relativePath,
-                modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-            )
+            Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
+                DecodedPhoto(relativePath = galleryPhoto.photo.relativePath, modifier = Modifier.fillMaxSize())
+                IconButton(onClick = { confirmingDelete = true }, modifier = Modifier.align(Alignment.TopEnd)) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Delete this photo")
+                }
+            }
             Text(
                 // Do not fabricate a timestamp for a migrated photo — its real creation time isn't
                 // knowable (see LogPhoto.createdAtEpochMillis's own doc comment), so this reads
@@ -108,6 +128,34 @@ private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, modifier: Modifier = Mo
                 modifier = Modifier.padding(LogSpacing.sm),
             )
         }
+    }
+
+    if (confirmingDelete) {
+        val referencedCount = galleryPhoto.referencingEntryIds.size
+        AlertDialog(
+            onDismissRequest = { confirmingDelete = false },
+            title = { Text("Delete this photo?") },
+            text = {
+                Text(
+                    // No entries-count line for an unreferenced photo (owner decision, 2026-08-22:
+                    // "if nothing references it, no warning is needed") — there is nothing for the
+                    // count to warn about at zero. Still a confirmation either way: deletion is
+                    // irreversible regardless of how many entries are affected.
+                    if (referencedCount > 0) {
+                        "This photo is used in $referencedCount ${if (referencedCount == 1) "entry" else "entries"}. " +
+                            "Deleting it will remove it from ${if (referencedCount == 1) "that entry" else "all of them"} too."
+                    } else {
+                        "This photo isn't used in any entry."
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmingDelete = false; onDelete() }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 

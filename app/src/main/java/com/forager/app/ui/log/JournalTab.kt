@@ -44,6 +44,11 @@ import java.time.LocalDate
  * drawer to return to, only another bottom nav tab to tap. [LogPanel] gained the identical
  * Add-Location picker state as part of this same workstream, since it shares [LogEntryDetailScreen].
  *
+ * Workstream G3: [LogEntryDetailScreen]'s "From Album" button opens [PullPhotoPickerScreen] the
+ * same way "Add Location" opens [CentrePinLocationPicker] — a full-screen state swap owned by this
+ * tab, not embedded in the form. [LogPanel] gained the identical picker state for the same reason
+ * it gained the location one.
+ *
  * [onStartEntry] is the exact same handler the map's "Log a find" option calls (see
  * `AvailabilityScreen.kt`'s `onLogFindHere`) — that option still collects a location via its own map
  * confirmation before calling it (owner decision, 2026-08-22: "'Log a find' keeps its map
@@ -65,6 +70,7 @@ internal fun JournalTab(
     onEntryChanged: (MushroomLogEntry) -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
+    onPullPhoto: (LogPhoto) -> Unit,
     onDeleteEntry: (String) -> Unit,
     /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — see [LogPanel]'s identical parameter for the full reasoning. */
     onSaveErrorDismissed: () -> Unit,
@@ -92,15 +98,20 @@ internal fun JournalTab(
     // state needs to know a location picker happens to be open mid-edit.
     var pickingLocationForEditingEntry by remember { mutableStateOf(false) }
 
+    // Same shape as pickingLocationForEditingEntry, for LogEntryDetailScreen's "From Album" button
+    // (Workstream G3) instead of "Add Location".
+    var pullingPhotoForEditingEntry by remember { mutableStateOf(false) }
+
     // System back unwinds one of this tab's own nested states before AvailabilityScreen's
     // top-level "switch away from a non-Maps tab" handler ever sees it — Compose's
     // OnBackPressedDispatcher tries the most-recently-composed enabled callback first, so this one
     // (composed as part of the Journal tab's own content) naturally takes priority. Mirrors the
-    // `when` below's own branch order: out of the picker to the edit form, out of the edit form to
+    // `when` below's own branch order: out of a picker to the edit form, out of the edit form to
     // the report, out of the report to the gallery.
-    BackHandler(enabled = editing != null || pickingLocationForEditingEntry) {
+    BackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
         when {
             pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
+            pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
             editing != null && mode == JournalEntryMode.EDIT -> mode = JournalEntryMode.REPORT
             editing != null -> onCloseEntry()
         }
@@ -119,12 +130,22 @@ internal fun JournalTab(
             modifier = modifier,
         )
 
+        editing != null && mode == JournalEntryMode.EDIT && pullingPhotoForEditingEntry -> PullPhotoPickerScreen(
+            photos = uiState.galleryPhotos,
+            onPhotoSelected = { photo ->
+                pullingPhotoForEditingEntry = false
+                onPullPhoto(photo)
+            },
+            modifier = modifier,
+        )
+
         editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(
             entry = editing,
             cameraCaptureFiles = cameraCaptureFiles,
             onEntryChanged = onEntryChanged,
             onAddPhoto = onAddPhoto,
             onRemovePhoto = onRemovePhoto,
+            onPullPhoto = { pullingPhotoForEditingEntry = true },
             onAddLocation = { pickingLocationForEditingEntry = true },
             onDeleteEntry = { onDeleteEntry(editing.id) },
             onBack = { mode = JournalEntryMode.REPORT },

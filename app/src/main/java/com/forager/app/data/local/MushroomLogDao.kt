@@ -64,4 +64,27 @@ abstract class MushroomLogDao {
         deleteCrossRefsForEntry(id)
         deleteEntryById(id)
     }
+
+    /** Every cross-reference row for one gallery photo removed — every entry losing its reference to it. */
+    @Query("DELETE FROM log_entry_photos WHERE photoId = :photoId")
+    abstract suspend fun deleteCrossRefsForPhoto(photoId: String)
+
+    @Query("DELETE FROM log_photos WHERE id = :id")
+    abstract suspend fun deletePhotoById(id: String)
+
+    /**
+     * Removes a gallery photo's own row and every cross-reference row pointing at it — Workstream
+     * G3, closing the deletion gap G1 deliberately left open. Deletes by `photoId` directly rather
+     * than requiring the caller to enumerate which entries currently reference it: a single
+     * `DELETE ... WHERE photoId = :photoId` is correct regardless of how many entries reference the
+     * photo or whether a caller's own view of that set (e.g. a UI-held `GalleryPhoto` snapshot) is
+     * stale. Row-only — the file itself is [PhotoStore]'s concern, deleted by the caller after this
+     * transaction commits (see [com.forager.app.domain.DeleteGalleryPhotoUseCase]'s own doc comment
+     * on why file deletion happens last, outside this transaction).
+     */
+    @Transaction
+    open suspend fun deletePhotoAndCrossRefs(photoId: String) {
+        deleteCrossRefsForPhoto(photoId)
+        deletePhotoById(photoId)
+    }
 }

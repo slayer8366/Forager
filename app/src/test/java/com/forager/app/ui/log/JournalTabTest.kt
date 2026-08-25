@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -98,6 +99,16 @@ class JournalTabTest {
                 },
                 onAddPhoto = {},
                 onRemovePhoto = {},
+                onPullPhoto = { photo ->
+                    val editing = uiState.editingEntry
+                    if (editing != null && editing.photos.none { it.id == photo.id }) {
+                        val updated = editing.copy(photos = editing.photos + photo)
+                        uiState = uiState.copy(
+                            entries = uiState.entries.map { if (it.id == updated.id) updated else it },
+                            editingEntry = updated,
+                        )
+                    }
+                },
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
                 onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
             )
@@ -177,6 +188,34 @@ class JournalTabTest {
 
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertExists()
+    }
+
+    /**
+     * Workstream G3: [LogEntryDetailScreen]'s "From Album" button opens [PullPhotoPickerScreen]
+     * the same way "Add Location" opens the centre-pin picker — full-screen, this tab's own state.
+     * Selecting a photo pulls it into the entry and returns to the edit form, without adding a new
+     * file (the fake harness's own `onPullPhoto` above only ever copies the same [LogPhoto]
+     * reference in, never creates one — see [PullPhotoIntoEntryUseCaseTest] for the file/row
+     * assertion this harness can't make).
+     */
+    @Test
+    fun `From Album on the edit form opens the picker and pulls the selected photo into the entry`() {
+        val galleryPhoto = com.forager.app.domain.model.GalleryPhoto(
+            photo = com.forager.app.domain.model.LogPhoto(id = "gallery-1", relativePath = "photos/gallery-1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = emptyList(),
+        )
+        setScreen(MushroomLogUiState(galleryPhotos = listOf(galleryPhoto)))
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+
+        composeRule.onNodeWithText("From Album").performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithContentDescription("Log photo").performClick()
+
+        // Back on the edit form (not stuck in the picker), now showing the pulled-in photo.
+        composeRule.onNodeWithText("From Album").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Log photo").assertIsDisplayed()
     }
 
     /**

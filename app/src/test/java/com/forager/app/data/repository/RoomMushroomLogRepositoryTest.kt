@@ -269,6 +269,73 @@ class RoomMushroomLogRepositoryTest {
 
         assertTrue(galleryPhotos.isEmpty())
     }
+
+    /**
+     * Workstream G3's own gate: "the cross-ref table's composite primary key should handle it, but
+     * test it rather than assuming." Attaches the same photo to the same entry twice and asserts
+     * against the real Room table, not a fake — a duplicate row here would show up as a duplicate
+     * thumbnail in [LogEntryDetailScreen]'s `FlowRow`.
+     */
+    @Test
+    fun `attaching the same photo to the same entry twice does not duplicate the reference`() = runTest {
+        val entry = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val photo = com.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
+        repository.save(entry).getOrThrow()
+        repository.addPhotoToGallery(photo).getOrThrow()
+
+        repository.attachPhotoToEntry(entry.id, photo.id).getOrThrow()
+        repository.attachPhotoToEntry(entry.id, photo.id).getOrThrow()
+
+        val reloaded = repository.getAll().getOrThrow().single { it.id == entry.id }
+        assertEquals(listOf(photo), reloaded.photos)
+    }
+
+    /** Workstream G3: a photo already referenced by two entries, pulled into a third, ends up referenced by all three — only representable since G1's many-to-many. */
+    @Test
+    fun `a photo referenced by two entries, pulled into a third, is referenced by three`() = runTest {
+        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -122.1), date = LocalDate.of(2026, 8, 2))
+        val entryC = MushroomLogEntry.draft(id = "entry-c", location = LatLng(45.2, -122.2), date = LocalDate.of(2026, 8, 3))
+        val photo = com.forager.app.domain.model.LogPhoto(id = "shared", relativePath = "photos/shared.jpg", createdAtEpochMillis = 1_000L)
+        repository.save(entryA).getOrThrow()
+        repository.save(entryB).getOrThrow()
+        repository.save(entryC).getOrThrow()
+        repository.addPhotoToGallery(photo).getOrThrow()
+        repository.attachPhotoToEntry(entryA.id, photo.id).getOrThrow()
+        repository.attachPhotoToEntry(entryB.id, photo.id).getOrThrow()
+
+        repository.attachPhotoToEntry(entryC.id, photo.id).getOrThrow()
+
+        val referencingIds = repository.getAllPhotos().getOrThrow().single { it.photo.id == photo.id }.referencingEntryIds
+        assertEquals(setOf(entryA.id, entryB.id, entryC.id), referencingIds.toSet())
+    }
+
+    /** Workstream G3: closes the deletion gap G1 left open. Asserted against the real Room tables, not a fake — the whole point is that no row (photo or cross-reference) survives. */
+    @Test
+    fun `deletePhotoFromGallery removes the photo row and every cross-reference to it`() = runTest {
+        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -122.1), date = LocalDate.of(2026, 8, 2))
+        val photo = com.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
+        repository.save(entryA).getOrThrow()
+        repository.save(entryB).getOrThrow()
+        repository.addPhotoToGallery(photo).getOrThrow()
+        repository.attachPhotoToEntry(entryA.id, photo.id).getOrThrow()
+        repository.attachPhotoToEntry(entryB.id, photo.id).getOrThrow()
+
+        repository.deletePhotoFromGallery(photo.id).getOrThrow()
+
+        assertTrue("the gallery photo row must be gone", repository.getAllPhotos().getOrThrow().isEmpty())
+        val reloaded = repository.getAll().getOrThrow().associateBy { it.id }
+        assertTrue("entry-a's reference must be gone too", reloaded.getValue(entryA.id).photos.isEmpty())
+        assertTrue("entry-b's reference must be gone too", reloaded.getValue(entryB.id).photos.isEmpty())
+    }
+
+    @Test
+    fun `deletePhotoFromGallery on an unknown photo id is a no-op, not a failure`() = runTest {
+        val result = repository.deletePhotoFromGallery("never-existed")
+
+        assertTrue(result.isSuccess)
+    }
 }
 
 private fun fullyPopulatedEntry(): MushroomLogEntry = MushroomLogEntry(

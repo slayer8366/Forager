@@ -92,6 +92,10 @@ class RoomMushroomLogRepository(
     override suspend fun detachPhotoFromEntry(entryId: String, photoId: String): Result<Unit> = runCatchingCancellable {
         dao.deleteCrossRef(entryId, photoId)
     }
+
+    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> = runCatchingCancellable {
+        dao.deletePhotoAndCrossRefs(photoId)
+    }
 }
 
 // --- Feature<T> <-> (state, value) column pair -------------------------------------------------

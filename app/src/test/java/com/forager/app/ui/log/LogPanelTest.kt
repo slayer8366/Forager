@@ -77,6 +77,16 @@ class LogPanelTest {
                 },
                 onAddPhoto = {},
                 onRemovePhoto = {},
+                onPullPhoto = { photo ->
+                    val editing = uiState.editingEntry
+                    if (editing != null && editing.photos.none { it.id == photo.id }) {
+                        val updated = editing.copy(photos = editing.photos + photo)
+                        uiState = uiState.copy(
+                            entries = uiState.entries.map { if (it.id == updated.id) updated else it },
+                            editingEntry = updated,
+                        )
+                    }
+                },
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
                 onBackToSearch = {},
                 onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },

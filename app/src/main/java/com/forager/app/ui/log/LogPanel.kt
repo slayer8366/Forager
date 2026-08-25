@@ -66,6 +66,7 @@ internal fun LogPanel(
     onEntryChanged: (MushroomLogEntry) -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
+    onPullPhoto: (LogPhoto) -> Unit,
     onDeleteEntry: (String) -> Unit,
     onBackToSearch: () -> Unit,
     /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — see [MushroomLogViewModel.onSaveErrorDismissed]. */
@@ -89,11 +90,16 @@ internal fun LogPanel(
     }
 
     var pickingLocationForEditingEntry by remember { mutableStateOf(false) }
+    // Same shape as pickingLocationForEditingEntry, for LogEntryDetailScreen's "From Album" button
+    // (Workstream G3) instead of "Add Location".
+    var pullingPhotoForEditingEntry by remember { mutableStateOf(false) }
     // This panel had no BackHandler before this state existed — nothing here previously needed to
     // intercept system back, since the drawer's own chrome handled it. A modal-shaped state does:
-    // without this, system back while the picker is open would fall through to whatever
+    // without this, system back while a picker is open would fall through to whatever
     // AvailabilityScreen's top-level handling does instead of just closing the picker.
-    BackHandler(enabled = pickingLocationForEditingEntry) { pickingLocationForEditingEntry = false }
+    BackHandler(enabled = pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
+        if (pickingLocationForEditingEntry) pickingLocationForEditingEntry = false else pullingPhotoForEditingEntry = false
+    }
 
     val editing = uiState.editingEntry
     if (editing != null && pickingLocationForEditingEntry) {
@@ -108,6 +114,15 @@ internal fun LogPanel(
             onCancel = { pickingLocationForEditingEntry = false },
             modifier = modifier,
         )
+    } else if (editing != null && pullingPhotoForEditingEntry) {
+        PullPhotoPickerScreen(
+            photos = uiState.galleryPhotos,
+            onPhotoSelected = { photo ->
+                pullingPhotoForEditingEntry = false
+                onPullPhoto(photo)
+            },
+            modifier = modifier,
+        )
     } else if (editing != null) {
         LogEntryDetailScreen(
             entry = editing,
@@ -115,6 +130,7 @@ internal fun LogPanel(
             onEntryChanged = onEntryChanged,
             onAddPhoto = onAddPhoto,
             onRemovePhoto = onRemovePhoto,
+            onPullPhoto = { pullingPhotoForEditingEntry = true },
             onAddLocation = { pickingLocationForEditingEntry = true },
             onDeleteEntry = { onDeleteEntry(editing.id) },
             onBack = onCloseEntry,

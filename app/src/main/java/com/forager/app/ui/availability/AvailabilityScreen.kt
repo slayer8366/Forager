@@ -160,6 +160,7 @@ import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MgrsCoordinate
@@ -386,7 +387,9 @@ fun AvailabilityScreen(
     onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
     onAddLogPhoto: (PhotoSource) -> Unit = {},
     onRemoveLogPhoto: (LogPhoto) -> Unit = {},
+    onPullLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
+    onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
     /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
     onSaveLogErrorDismissed: () -> Unit = {},
     /**
@@ -697,6 +700,7 @@ fun AvailabilityScreen(
                     onEntryChanged = onLogEntryChanged,
                     onAddPhoto = onAddLogPhoto,
                     onRemovePhoto = onRemoveLogPhoto,
+                    onPullPhoto = onPullLogPhoto,
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
                     onSaveErrorDismissed = onSaveLogErrorDismissed,
@@ -711,6 +715,7 @@ fun AvailabilityScreen(
                     modifier = Modifier.weight(1f),
                     photos = logUiState.galleryPhotos,
                     isLoading = logUiState.isLoadingGalleryPhotos,
+                    onDeletePhoto = onDeleteGalleryPhoto,
                     loadErrorMessage = logUiState.galleryLoadErrorMessage,
                 )
             }
@@ -953,6 +958,7 @@ fun AvailabilityScreen(
                         onEntryChanged = onLogEntryChanged,
                         onAddPhoto = onAddLogPhoto,
                         onRemovePhoto = onRemoveLogPhoto,
+                        onPullPhoto = onPullLogPhoto,
                         onDeleteEntry = onDeleteLogEntry,
                         onSaveErrorDismissed = onSaveLogErrorDismissed,
                         modifier = Modifier.weight(1f),
@@ -960,6 +966,7 @@ fun AvailabilityScreen(
                     CompactTab.PHOTOS -> PhotoGalleryScreen(
                         photos = logUiState.galleryPhotos,
                         isLoading = logUiState.isLoadingGalleryPhotos,
+                        onDeletePhoto = onDeleteGalleryPhoto,
                         modifier = Modifier.weight(1f),
                         loadErrorMessage = logUiState.galleryLoadErrorMessage,
                     )

@@ -5,11 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
+import com.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
@@ -46,6 +49,8 @@ class MushroomLogViewModel(
     private val addPhoto: AddPhotoToLogEntryUseCase,
     private val removePhoto: RemovePhotoFromLogEntryUseCase,
     private val getGalleryPhotos: GetGalleryPhotosUseCase,
+    private val pullPhotoIntoEntry: PullPhotoIntoEntryUseCase,
+    private val deleteGalleryPhoto: DeleteGalleryPhotoUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -61,7 +66,17 @@ class MushroomLogViewModel(
             _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
             getEntries().fold(
                 onSuccess = { entries ->
-                    _uiState.update { it.copy(entries = entries, isLoadingEntries = false) }
+                    _uiState.update { state ->
+                        // Also re-derives editingEntry from the fresh read, not just entries — a
+                        // no-op at init (editingEntry is always null there), but load-bearing for
+                        // onDeleteGalleryPhoto below: an entry left open in the background across a
+                        // tab switch must not keep showing a photo the gallery just deleted.
+                        state.copy(
+                            entries = entries,
+                            editingEntry = state.editingEntry?.let { editing -> entries.firstOrNull { it.id == editing.id } },
+                            isLoadingEntries = false,
+                        )
+                    }
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't load the mushroom log.", error)
@@ -192,6 +207,45 @@ class MushroomLogViewModel(
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't remove a photo from entry '${entry.id}'.", error)
                     _uiState.update { it.copy(saveErrorMessage = "Couldn't remove that photo.") }
+                },
+            )
+        }
+    }
+
+    /** Workstream G3: references an existing gallery [photo] from the currently-editing entry — a reference only, never a new file (see [PullPhotoIntoEntryUseCase]'s own doc comment). */
+    fun onPullPhoto(photo: LogPhoto) {
+        val entry = _uiState.value.editingEntry ?: return
+        viewModelScope.launch {
+            pullPhotoIntoEntry(entry, photo).fold(
+                onSuccess = { updated -> _uiState.update { it.replacing(updated).copy(saveErrorMessage = null) } },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't pull photo '${photo.id}' into entry '${entry.id}'.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't add that photo.") }
+                },
+            )
+        }
+    }
+
+    /**
+     * Workstream G3: deletes [photo] from the gallery — the user has already confirmed, including
+     * seeing how many entries reference it (see [com.forager.app.ui.log.PhotoGalleryScreen]'s own
+     * confirmation flow). Refreshes both the gallery and the entry list on success: an entry left
+     * open in the background (e.g. across a tab switch — nothing closes [MushroomLogUiState.editingEntry]
+     * on its own) must not keep showing a reference to a photo that no longer exists.
+     */
+    fun onDeleteGalleryPhoto(photo: GalleryPhoto) {
+        viewModelScope.launch {
+            deleteGalleryPhoto(photo.photo) { error ->
+                Log.w(TAG, "Couldn't delete the file for photo '${photo.photo.id}'.", error)
+            }.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(saveErrorMessage = null) }
+                    loadGalleryPhotos()
+                    loadEntries()
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't delete photo '${photo.photo.id}' from the gallery.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't delete that photo.") }
                 },
             )
         }

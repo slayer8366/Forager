@@ -70,6 +70,7 @@ internal fun LogEntryDetailScreen(
     onEntryChanged: (MushroomLogEntry) -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
+    onPullPhoto: () -> Unit,
     onAddLocation: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
@@ -119,6 +120,7 @@ internal fun LogEntryDetailScreen(
                 cameraCaptureFiles = cameraCaptureFiles,
                 onPhotoSourceSelected = onAddPhoto,
                 onRemovePhoto = onRemovePhoto,
+                onPullPhoto = onPullPhoto,
                 hasLocation = entry.foundAt != null,
                 onAddLocation = onAddLocation,
             )
@@ -160,6 +162,7 @@ private fun PhotosSection(
     cameraCaptureFiles: CameraCaptureFiles,
     onPhotoSourceSelected: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
+    onPullPhoto: () -> Unit,
     hasLocation: Boolean,
     onAddLocation: () -> Unit,
 ) {
@@ -194,6 +197,13 @@ private fun PhotosSection(
                     pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
             ) { Text("Gallery") }
+            // Workstream G3: "Gallery" above already means the system photo picker (a new file);
+            // this references an existing photo this app already has, so it needs its own word.
+            // "Album" is taken too — see CompactTab's own doc comment — by the bottom nav tab
+            // visible at the same time as this screen on compact, so this reads "From Album" (a
+            // distinct exact string) rather than the bare word, checked against every other button
+            // label and heading in this same screen and against the bottom nav before landing here.
+            Button(onClick = onPullPhoto) { Text("From Album") }
             Button(onClick = onAddLocation) { Text(if (hasLocation) "Change Location" else "Add Location") }
         }
         if (photos.isNotEmpty()) {

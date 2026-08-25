@@ -14,13 +14,13 @@ import com.forager.app.domain.model.MushroomLogEntry
  * (a join, not a stored list), and [addPhotoToGallery]/[attachPhotoToEntry]/[detachPhotoFromEntry]
  * are the only writes that touch it — [save] never does, deliberately (see its own doc comment).
  *
- * **As of G1, nothing here deletes a gallery photo** (only a reference to one, via
- * [detachPhotoFromEntry]) — deliberate, not an oversight. A thing gets deleted from where it
- * lives, and until G2 (the gallery screen) exists, a photo doesn't live anywhere visible to delete
- * it from. G3 owns the warn-then-remove gallery-deletion flow this interface's own method comments
- * already point to. This is a temporary gap, not a permanent design decision — recorded here so a
- * future reader doesn't "fix" it with a stray deletion route bolted onto the entry surface in the
- * meantime.
+ * [deletePhotoFromGallery] (Workstream G3) is the one write that deletes a gallery photo's own
+ * row — closing the gap G1 deliberately left open (G1 through G2, nothing here could delete a
+ * photo at all). It is reached only from the gallery screen's own warn-then-remove confirmation,
+ * never from an entry surface — consistent with the standing rule, not an exception to it: the
+ * photo is being deleted directly, from where it lives, by the user, with the consequences (how
+ * many entries reference it) stated first. What the rule forbids is data vanishing as a *side
+ * effect* of something else, which this isn't.
  */
 interface MushroomLogRepository {
     /** Every log entry currently stored, in no particular order, with its referenced photos joined in — ordering is a use-case concern. */
@@ -57,4 +57,12 @@ interface MushroomLogRepository {
 
     /** Removes [entryId]'s reference to [photoId]. Never deletes the gallery photo itself — that's a gallery-deletion concern, not an entry one. */
     suspend fun detachPhotoFromEntry(entryId: String, photoId: String): Result<Unit>
+
+    /**
+     * Removes gallery photo [photoId]'s own row and every entry's cross-reference to it —
+     * Workstream G3. Never touches the photo's file; that's [PhotoStore]'s job, deleted by the
+     * caller after this succeeds (see [DeleteGalleryPhotoUseCase]'s own doc comment on the
+     * ordering). A no-op, not a failure, if no such photo is stored.
+     */
+    suspend fun deletePhotoFromGallery(photoId: String): Result<Unit>
 }

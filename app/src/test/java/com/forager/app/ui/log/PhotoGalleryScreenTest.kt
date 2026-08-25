@@ -5,10 +5,14 @@ import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LogPhoto
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -48,7 +52,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false)
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {})
         }
 
         // 1_700_000_000_000ms -> 2023-11-14 UTC; asserted against LocalDate's own toString() (the
@@ -72,7 +76,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(orphaned), isLoading = false)
+            PhotoGalleryScreen(photos = listOf(orphaned), isLoading = false, onDeletePhoto = {})
         }
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
@@ -86,7 +90,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(migrated), isLoading = false)
+            PhotoGalleryScreen(photos = listOf(migrated), isLoading = false, onDeletePhoto = {})
         }
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
@@ -95,7 +99,7 @@ class PhotoGalleryScreenTest {
     @Test
     fun `the empty state shows when there are no photos`() {
         composeRule.setContent {
-            PhotoGalleryScreen(photos = emptyList(), isLoading = false)
+            PhotoGalleryScreen(photos = emptyList(), isLoading = false, onDeletePhoto = {})
         }
 
         composeRule.onNodeWithText("No photos yet. Add one from a log entry's Photos section.").assertIsDisplayed()
@@ -104,7 +108,7 @@ class PhotoGalleryScreenTest {
     @Test
     fun `a load error message shows instead of the empty state when there are no photos`() {
         composeRule.setContent {
-            PhotoGalleryScreen(photos = emptyList(), isLoading = false, loadErrorMessage = "Photo gallery unavailable.")
+            PhotoGalleryScreen(photos = emptyList(), isLoading = false, onDeletePhoto = {}, loadErrorMessage = "Photo gallery unavailable.")
         }
 
         composeRule.onNodeWithText("Photo gallery unavailable.").assertIsDisplayed()
@@ -120,10 +124,79 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, loadErrorMessage = "Photo gallery unavailable.")
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {}, loadErrorMessage = "Photo gallery unavailable.")
         }
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
         composeRule.onNodeWithText("Photo gallery unavailable.").assertDoesNotExist()
+    }
+
+    /**
+     * Workstream G3: deleting a referenced photo warns with the correct count before calling
+     * [PhotoGalleryScreen.onDeletePhoto] — the count comes straight from
+     * [GalleryPhoto.referencingEntryIds], the whole reason G2 built the richer read path.
+     */
+    @Test
+    fun `deleting a referenced photo warns with the correct count, and confirming calls onDeletePhoto`() {
+        val photo = GalleryPhoto(
+            photo = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = listOf("entry-1", "entry-2"),
+        )
+        var deleted: GalleryPhoto? = null
+        composeRule.setContent {
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it })
+        }
+
+        composeRule.onNodeWithContentDescription("Delete this photo").performClick()
+
+        composeRule.onNodeWithText("This photo is used in 2 entries. Deleting it will remove it from all of them too.").assertIsDisplayed()
+        composeRule.onNodeWithText("Delete").performClick()
+
+        assertEquals(photo, deleted)
+    }
+
+    /**
+     * Owner decision, 2026-08-22: "if nothing references it, no warning is needed" — there is
+     * nothing for an entries-count line to warn about at zero, so this dialog omits it, but still
+     * confirms before deleting (deletion is irreversible either way).
+     */
+    @Test
+    fun `deleting an unreferenced photo shows a plain confirmation, no entries-count warning`() {
+        val photo = GalleryPhoto(
+            photo = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = emptyList(),
+        )
+        var deleted: GalleryPhoto? = null
+        composeRule.setContent {
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it })
+        }
+
+        composeRule.onNodeWithContentDescription("Delete this photo").performClick()
+
+        composeRule.onNodeWithText("This photo isn't used in any entry.").assertIsDisplayed()
+        composeRule.onNodeWithText("entries", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Delete").performClick()
+
+        assertEquals(photo, deleted)
+    }
+
+    @Test
+    fun `cancelling the delete confirmation changes nothing`() {
+        val photo = GalleryPhoto(
+            photo = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = listOf("entry-1"),
+        )
+        var deleted: GalleryPhoto? = null
+        composeRule.setContent {
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it })
+        }
+
+        composeRule.onNodeWithContentDescription("Delete this photo").performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        assertNull(deleted)
+        // The dialog itself is gone, and the photo is still shown, unaffected.
+        composeRule.onNodeWithText("Cancel").assertDoesNotExist()
+        composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
     }
 }

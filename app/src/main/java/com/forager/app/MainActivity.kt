@@ -75,6 +75,8 @@ class MainActivity : ComponentActivity() {
                     container.addPhotoToLogEntryUseCase,
                     container.removePhotoFromLogEntryUseCase,
                     container.getGalleryPhotosUseCase,
+                    container.pullPhotoIntoEntryUseCase,
+                    container.deleteGalleryPhotoUseCase,
                 )
             }
         }
@@ -256,7 +258,9 @@ class MainActivity : ComponentActivity() {
                     onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
+                    onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
                     onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
+                    onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
                     onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
