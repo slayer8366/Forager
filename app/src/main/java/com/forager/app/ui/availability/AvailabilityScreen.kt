@@ -625,15 +625,20 @@ fun AvailabilityScreen(
         }
     }
 
-    // The drawer's panel content, shared between the compact `ModalNavigationDrawer` below and
-    // the `PermanentNavigationDrawer` medium+ windows get instead — see [windowWidthClass]. A
-    // local composable lambda rather than a top-level one so it closes over this function's ~25
+    // Workstream L4c pre-work: corrects this comment's own claim, found stale by the L4 close-out
+    // pulse (2026-08-25). This has exactly one call site — the `PermanentNavigationDrawer` medium+
+    // windows get, below — not the compact `ModalNavigationDrawer`, which renders
+    // `CompactSearchDrawerContent` instead, a separate composable. [showCloseButton] is therefore
+    // always `false` in practice today; it is not dead code removed here only because that is a
+    // separate cleanup this pulse's own dispatch did not ask for, not because it still does
+    // anything.
+    //
+    // A local composable lambda rather than a top-level one so it closes over this function's ~25
     // params and local state directly instead of re-threading all of it through an explicit
-    // parameter list a second time. [showCloseButton] is the only behavioral difference the two
-    // hosts need: a permanent drawer is never "closed", so it gets no close affordance.
-    // ColumnScope receiver, not a plain function type: both hosts' drawer sheets hand this a
-    // ColumnScope (that's what lets the `Modifier.weight(1f)` calls inside resolve at all), and a
-    // lambda assigned to a receiver-typed val keeps that receiver rather than losing it.
+    // parameter list a second time. ColumnScope receiver, not a plain function type: the drawer
+    // sheet that hosts this hands it a ColumnScope (that's what lets the `Modifier.weight(1f)`
+    // calls inside resolve at all), and a lambda assigned to a receiver-typed val keeps that
+    // receiver rather than losing it.
     val drawerSheetContent: @Composable ColumnScope.(showCloseButton: Boolean) -> Unit = { showCloseButton ->
         when (drawerPanel) {
             DrawerPanel.Search -> {

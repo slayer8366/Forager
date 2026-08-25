@@ -30,6 +30,7 @@ it does not need a separate home the way `docs/audits/` sometimes does for cross
 | 2026-08-25 | Report: L4b-R standalone-drafts correction | `dispatches/reports/2026-08-25-l4b-r-standalone-drafts-report.md` |
 | 2026-08-25 | Dispatch: L4b-R2, addendum (LogPanel discard offer, four report gaps, photo-race question) | `dispatches/2026-08-25-l4b-r2-addendum-dispatch.md` |
 | 2026-08-25 | Report: L4b-R2 addendum | `dispatches/reports/2026-08-25-l4b-r2-addendum-report.md` |
+| 2026-08-25 | L4 close-out checklist §2 verification pulse response (read-only, no code changes) | `pulses/reports/2026-08-25-l4-closeout-section2-verification-pulse.md` |
 
 Landed on `claude/task-hwj91a` via PR [#40](https://github.com/slayer8366/Forager/pull/40)
 (`claude/l4b-persisted-drafts` → `claude/task-hwj91a`) — see `docs/plans/README.md`'s
