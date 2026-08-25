@@ -1,8 +1,9 @@
 # PR #26 Rework — Multi-region offline map management
 
-**Status:** scoped and decided, **not dispatched**. Each workstream below is meant to be picked
-up cold, one dispatch at a time, by a coder session with no memory of the planning
-conversation that produced it.
+**Status (2026-08-25):** in progress. Workstreams 0, A, B, L1–L4 (and G1–G3, landed alongside them)
+are closed — see the Sequencing block below for commits and PRs. L5 and L6 remain scoped, not yet
+dispatched. Each workstream below is still meant to be picked up cold, one dispatch at a time, by a
+coder session with no memory of the planning conversation that produced it.
 
 **Depends on:** PR #34 (error-presentation spec) — merged, `main` at `3b6021b`. PR #26 itself
 (`claude/plan-implementation-rjzmkr`) is still open, unmerged, and stale against current `main`
@@ -38,13 +39,23 @@ plan is the current source.
 0.  Foundation files          [CLOSED — claude/task-hwj91a @ 1726b90]
 A.  Schema and migration      [CLOSED — claude/task-hwj91a @ 6530d7a]
 B.  The contract migration    [CLOSED — claude/task-hwj91a @ 66d53b8]
-L1. Photo file cleanup on entry delete
-L2. The centre-pin picker
-L3. Optional foundAt
-L4. The new entry flow
+L1. Photo file cleanup on entry delete   [CLOSED — claude/task-hwj91a @ 11017a6, PR #39]
+L2. The centre-pin picker                [CLOSED — claude/task-hwj91a @ aa60f2d, PR #39]
+L3. Optional foundAt                     [CLOSED — claude/task-hwj91a @ f761e55, PR #39]
+L4. The new entry flow                   [CLOSED — three dispatches: L4a (entry creation
+                                           routes straight to the edit form) @ 51dbfa6, PR #39;
+                                           L4b/L4b-R/L4b-R2 (persisted drafts, corrected twice)
+                                           merged from claude/l4b-persisted-drafts via PR #40 —
+                                           see docs/qc/dispatches/reports/ for all three reports]
 L5. Photo location capture
 L6. Tile capture
 ```
+
+(G1–G3 — the photo-gallery ownership inversion, via `MIGRATION_7_8` — also landed on
+`claude/task-hwj91a` alongside L1–L4, via commits `51be094`/`bcb9d0b`/`0e2198b`. This plan doc does
+not itself scope G1–G3 as a workstream; they are recorded here only so this Sequencing block's
+commit range is complete, not as a claim that a fuller G1–G3 scoping section exists elsewhere in
+this file.)
 
 **A and B ran serial, A first — by owner decision (2026-08-22), not by dependency.** The
 dependency graph made A and B independent of each other (A touches persistence, B touches the

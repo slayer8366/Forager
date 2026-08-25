@@ -77,6 +77,10 @@ class RoomMushroomLogRepository(
         dao.upsertEntry(entry.toEntity())
     }
 
+    override suspend fun commitDraft(draftId: String, committed: MushroomLogEntry): Result<Unit> = runCatchingCancellable {
+        dao.commitDraft(committedEntity = committed.toEntity(), draftId = draftId)
+    }
+
     override suspend fun delete(id: String): Result<Unit> = runCatchingCancellable {
         dao.deleteEntryAndCrossRefs(id)
     }
@@ -263,6 +267,9 @@ private fun MushroomLogEntry.toEntity(): MushroomLogEntryEntity {
         forestType = hostSubstrate.forestType.toColumn(),
         hostHealth = hostSubstrate.hostHealth.toColumn(),
         hostSubstrateNotes = hostSubstrate.notes,
+
+        isDraft = isDraft,
+        draftOfEntryId = draftOfEntryId,
     )
 }
 
@@ -395,4 +402,6 @@ private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): Mushr
         )
         else -> error("Unknown sync state kind '$syncStateKind' on entry '$id'")
     },
+    isDraft = isDraft,
+    draftOfEntryId = draftOfEntryId,
 )

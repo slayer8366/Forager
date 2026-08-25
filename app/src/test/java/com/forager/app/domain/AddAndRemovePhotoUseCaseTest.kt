@@ -114,6 +114,7 @@ private class FakeMushroomLogRepository(
     override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> =
         Result.failure(UnsupportedOperationException("getAllPhotos is not exercised by either use case under test here"))
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> = Result.success(Unit)
+    override suspend fun commitDraft(draftId: String, committed: MushroomLogEntry): Result<Unit> = Result.success(Unit)
     override suspend fun delete(id: String): Result<Unit> = Result.success(Unit)
 
     override suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit> {

@@ -51,10 +51,32 @@ data class MushroomLogEntry(
     val ownIdentification: String?,
     val photos: List<LogPhoto>,
     val syncState: LogSyncState,
+    /**
+     * Persisted-uncommitted state (Workstream L4b, owner decision 2026-08-22, corrected 2026-08-25
+     * L4b-R) — **unrelated to [LogSyncState.Draft]**, which is an iNaturalist upload-sync state, not
+     * this. `true` means this row is a draft, not the log's committed content: either a live edit
+     * session (autosaved on every field change) or a crash-orphaned one. `false` means it's a real,
+     * committed entry — including one currently being re-edited, since a re-edit's draft is a
+     * *separate* row (see [draftOfEntryId]) and never touches this one until Save. See
+     * [MushroomLogViewModel]'s own doc comment for the full state machine this drives, and
+     * [com.forager.app.data.local.MushroomLogEntryEntity.isDraft] for the column it maps onto.
+     */
+    val isDraft: Boolean,
+    /**
+     * `null` for a committed entry, or for a brand-new entry's own draft. Non-null only for a draft
+     * that is a re-edit of an already-committed entry: that entry's [id]. See
+     * [com.forager.app.data.local.MushroomLogEntryEntity.draftOfEntryId]'s own doc comment for the
+     * full reasoning — this is the field that lets a committed entry keep showing its last-saved
+     * values in the log for the entire time it's open for editing.
+     */
+    val draftOfEntryId: String? = null,
 ) {
     companion object {
         /**
-         * A freshly-started entry at [location] on [date], with every section unrecorded.
+         * A freshly-started, uncommitted entry at [location] on [date], with every section
+         * unrecorded — [isDraft] is always `true` and [draftOfEntryId] always `null` here (nothing
+         * to point at yet): [CreateMushroomLogEntryUseCase] is the only caller, and decision #6
+         * (Workstream L4b) says nothing this creates may appear in the log until it's committed.
          *
          * [location] is `LatLng?`, not defaulted — every call in this codebase today passes a
          * concrete [LatLng] (nothing yet constructs a location-less entry; that's L4's job), so
@@ -77,6 +99,8 @@ data class MushroomLogEntry(
             ownIdentification = null,
             photos = emptyList(),
             syncState = LogSyncState.Draft,
+            isDraft = true,
+            draftOfEntryId = null,
         )
     }
 }

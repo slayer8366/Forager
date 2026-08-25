@@ -94,7 +94,7 @@ class OfflineRegionMigrationTest {
         // fallbackToDestructiveMigration here, so if MIGRATION_5_6 is missing or wrong, this throws
         // rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build()
 
         try {
@@ -102,7 +102,10 @@ class OfflineRegionMigrationTest {
             assertEquals(listOf(legacyTrip), survivedTrips)
 
             val survivedEntries = RoomMushroomLogRepository(migrated.mushroomLogDao()).getAll().getOrThrow()
-            assertEquals(listOf(legacyEntry), survivedEntries)
+            // Workstream L4b: MIGRATION_8_9 marks every pre-existing row isDraft = false — see
+            // MushroomLogEntryMigrationTest's identical note for why legacyEntry.isDraft (true,
+            // MushroomLogEntry.draft()'s current default) isn't what a migrated row should carry.
+            assertEquals(listOf(legacyEntry.copy(isDraft = false)), survivedEntries)
 
             // offlineRegionId is new in this version — a pre-migration row must read back null,
             // not some default the ALTER TABLE happened to leave behind. Read via the raw entity,

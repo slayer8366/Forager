@@ -48,7 +48,13 @@ class LogEntryDetailScreenTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private fun setScreen(entry: MushroomLogEntry, onAddLocation: () -> Unit = {}, onPullPhoto: () -> Unit = {}) {
+    private fun setScreen(
+        entry: MushroomLogEntry,
+        onAddLocation: () -> Unit = {},
+        onPullPhoto: () -> Unit = {},
+        onSave: () -> Unit = {},
+        onCancel: () -> Unit = {},
+    ) {
         composeRule.setContent {
             LogEntryDetailScreen(
                 entry = entry,
@@ -58,6 +64,8 @@ class LogEntryDetailScreenTest {
                 onRemovePhoto = {},
                 onPullPhoto = onPullPhoto,
                 onAddLocation = onAddLocation,
+                onSave = onSave,
+                onCancel = onCancel,
                 onDeleteEntry = {},
                 onBack = {},
             )
@@ -148,6 +156,29 @@ class LogEntryDetailScreenTest {
         setScreen(entry, onPullPhoto = { invoked = true })
 
         composeRule.onNodeWithText("From Album").performClick()
+
+        assertEquals(true, invoked)
+    }
+
+    /** Workstream L4b: Save and Cancel are new, explicit affordances this form previously had no equivalent of at all. */
+    @Test
+    fun `tapping Save invokes onSave`() {
+        val entry = MushroomLogEntry.draft(id = "e1", location = null, date = LocalDate.of(2026, 8, 1))
+        var invoked = false
+        setScreen(entry, onSave = { invoked = true })
+
+        composeRule.onNodeWithText("Save").performClick()
+
+        assertEquals(true, invoked)
+    }
+
+    @Test
+    fun `tapping Cancel invokes onCancel`() {
+        val entry = MushroomLogEntry.draft(id = "e1", location = null, date = LocalDate.of(2026, 8, 1))
+        var invoked = false
+        setScreen(entry, onCancel = { invoked = true })
+
+        composeRule.onNodeWithText("Cancel").performClick()
 
         assertEquals(true, invoked)
     }

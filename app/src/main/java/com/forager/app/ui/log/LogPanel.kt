@@ -64,6 +64,10 @@ internal fun LogPanel(
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
+    onStartEditingEntry: () -> Unit,
+    onSaveEntry: () -> Unit,
+    onCancelEditing: () -> Unit,
+    onLeaveEditingIncidentally: () -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: (LogPhoto) -> Unit,
@@ -93,15 +97,22 @@ internal fun LogPanel(
     // Same shape as pickingLocationForEditingEntry, for LogEntryDetailScreen's "From Album" button
     // (Workstream G3) instead of "Add Location".
     var pullingPhotoForEditingEntry by remember { mutableStateOf(false) }
-    // This panel had no BackHandler before this state existed — nothing here previously needed to
-    // intercept system back, since the drawer's own chrome handled it. A modal-shaped state does:
-    // without this, system back while a picker is open would fall through to whatever
-    // AvailabilityScreen's top-level handling does instead of just closing the picker.
-    BackHandler(enabled = pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
-        if (pickingLocationForEditingEntry) pickingLocationForEditingEntry = false else pullingPhotoForEditingEntry = false
-    }
-
     val editing = uiState.editingEntry
+
+    // This panel had no BackHandler before pickers existed — nothing here previously needed to
+    // intercept system back, since the drawer's own chrome handled it. Workstream L4b adds the
+    // editing != null branch: back out of an open entry (with no picker open) is "leaving without
+    // answering," the same incidental-exit auto-save as the form's own back arrow, a tab switch, or
+    // backgrounding — never Cancel, which only the form's explicit button triggers. This closes a
+    // gap the L4b scoping pulse found: this panel previously had no way to close an open entry via
+    // back at all, falling through to whatever AvailabilityScreen's top-level handling did instead.
+    BackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
+        when {
+            pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
+            pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
+            editing != null -> onLeaveEditingIncidentally()
+        }
+    }
     if (editing != null && pickingLocationForEditingEntry) {
         CentrePinLocationPicker(
             mapSlot = mapSlot,
@@ -132,8 +143,10 @@ internal fun LogPanel(
             onRemovePhoto = onRemovePhoto,
             onPullPhoto = { pullingPhotoForEditingEntry = true },
             onAddLocation = { pickingLocationForEditingEntry = true },
+            onSave = onSaveEntry,
+            onCancel = onCancelEditing,
             onDeleteEntry = { onDeleteEntry(editing.id) },
-            onBack = onCloseEntry,
+            onBack = onLeaveEditingIncidentally,
             modifier = modifier,
         )
     } else {
@@ -141,8 +154,13 @@ internal fun LogPanel(
             LogHeader(onBack = onBackToSearch)
             LogEntryListScreen(
                 entries = uiState.entries,
+                draftEntries = uiState.draftEntries,
                 isLoading = uiState.isLoadingEntries,
-                onOpenEntry = onOpenEntry,
+                // This panel has no separate report step (see its own doc comment) — opening an
+                // entry goes straight to LogEntryDetailScreen below, so it must already be a draft
+                // by the time that happens. onStartEditingEntry is a no-op for a row opened from
+                // the Drafts tab (already one) and creates the draft row for a committed one.
+                onOpenEntry = { id -> onOpenEntry(id); onStartEditingEntry() },
                 modifier = Modifier.weight(1f),
                 loadErrorMessage = uiState.loadErrorMessage,
             )

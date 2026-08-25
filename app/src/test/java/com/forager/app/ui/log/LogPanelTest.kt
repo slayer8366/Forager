@@ -75,6 +75,33 @@ class LogPanelTest {
                         editingEntry = updated,
                     )
                 },
+                onStartEditingEntry = {
+                    // See JournalTabTest's identical stand-in for the full reasoning — this file's
+                    // own tests set editingEntry directly rather than through onOpenEntry, so this
+                    // never actually fires, but LogPanel still requires the parameter.
+                    uiState.editingEntry?.let { current ->
+                        if (!current.isDraft) uiState = uiState.copy(editingEntry = current.copy(isDraft = true))
+                    }
+                },
+                onSaveEntry = {
+                    uiState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        uiState = uiState.copy(
+                            entries = uiState.entries.map { if (it.id == committed.id) committed else it },
+                            editingEntry = committed,
+                        )
+                    }
+                },
+                onCancelEditing = { uiState = uiState.copy(editingEntry = null) },
+                onLeaveEditingIncidentally = {
+                    uiState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        uiState = uiState.copy(
+                            entries = uiState.entries.map { if (it.id == committed.id) committed else it },
+                            editingEntry = null,
+                        )
+                    }
+                },
                 onAddPhoto = {},
                 onRemovePhoto = {},
                 onPullPhoto = { photo ->

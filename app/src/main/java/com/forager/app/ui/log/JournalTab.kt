@@ -68,6 +68,17 @@ internal fun JournalTab(
     onCloseEntry: () -> Unit,
     onStartEntry: (LatLng?, LocalDate) -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
+    onStartEditingEntry: () -> Unit,
+    onSaveEntry: () -> Unit,
+    onCancelEditing: () -> Unit,
+    /**
+     * Leaving without answering (Workstream L4b-R) — see [MushroomLogViewModel.onLeaveEditingIncidentally]'s
+     * own doc comment. Callers wrap this to offer a dismissible "Discard" action (Gmail-drafts-style)
+     * around every incidental exit uniformly — see `AvailabilityScreen`'s own construction of this
+     * callback, shared across this tab, [LogPanel], and the compact bottom nav's tab-switch handler,
+     * so the same Snackbar covers every exit path from one place rather than three.
+     */
+    onLeaveEditingIncidentally: () -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: (LogPhoto) -> Unit,
@@ -108,11 +119,17 @@ internal fun JournalTab(
     // (composed as part of the Journal tab's own content) naturally takes priority. Mirrors the
     // `when` below's own branch order: out of a picker to the edit form, out of the edit form to
     // the report, out of the report to the gallery.
+    //
+    // Workstream L4b (corrected 2026-08-25, L4b-R): back out of EDIT mode is "leaving without
+    // answering" — the same neither-commits-nor-discards exit as the back arrow inside
+    // LogEntryDetailScreen, tab switch, and backgrounding (see MushroomLogViewModel's own doc
+    // comment on the three exits) — never Cancel, which only the form's own explicit button
+    // triggers.
     BackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
         when {
             pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
             pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
-            editing != null && mode == JournalEntryMode.EDIT -> mode = JournalEntryMode.REPORT
+            editing != null && mode == JournalEntryMode.EDIT -> onLeaveEditingIncidentally()
             editing != null -> onCloseEntry()
         }
     }
@@ -147,14 +164,19 @@ internal fun JournalTab(
             onRemovePhoto = onRemovePhoto,
             onPullPhoto = { pullingPhotoForEditingEntry = true },
             onAddLocation = { pickingLocationForEditingEntry = true },
+            onSave = { onSaveEntry(); mode = JournalEntryMode.REPORT },
+            onCancel = onCancelEditing,
             onDeleteEntry = { onDeleteEntry(editing.id) },
-            onBack = { mode = JournalEntryMode.REPORT },
+            onBack = onLeaveEditingIncidentally,
             modifier = modifier,
         )
 
         editing != null -> LogEntryReportScreen(
             entry = editing,
-            onEdit = { mode = JournalEntryMode.EDIT },
+            onEdit = {
+                onStartEditingEntry()
+                mode = JournalEntryMode.EDIT
+            },
             onDeleteEntry = { onDeleteEntry(editing.id) },
             onBack = onCloseEntry,
             modifier = modifier,
@@ -162,9 +184,18 @@ internal fun JournalTab(
 
         else -> LogGalleryScreen(
             entries = uiState.entries,
+            draftEntries = uiState.draftEntries,
             isLoading = uiState.isLoadingEntries,
             onOpenEntry = { id ->
                 mode = JournalEntryMode.REPORT
+                onOpenEntry(id)
+            },
+            onOpenDraftEntry = { id ->
+                // Workstream L4b-R: reinstates straight into EDIT, not REPORT — a draft (live,
+                // incidentally-exited, or crash-orphaned; see MushroomLogUiState.draftEntries) is
+                // inherently something to finish, not something to view a report of yet. No
+                // onStartEditingEntry() call needed: it's already a draft, so that would be a no-op.
+                mode = JournalEntryMode.EDIT
                 onOpenEntry(id)
             },
             onAddEntry = {
@@ -179,7 +210,8 @@ internal fun JournalTab(
 
 /**
  * Which screen [JournalTab] shows for [MushroomLogUiState.editingEntry] — "editing" is the accurate
- * name for what that field means (see [MushroomLogViewModel]'s doc comment on autosave), but which
+ * name for what that field means (see [MushroomLogViewModel]'s doc comment on the persisted-draft
+ * model), but which
  * of [LogEntryReportScreen]/[LogEntryDetailScreen] the *user* sees for it depends on how they got
  * there, tracked here rather than inferred from the entry's own content (an entry with nothing
  * recorded yet is a legitimate thing to view a report of too, once the user backs out of editing it

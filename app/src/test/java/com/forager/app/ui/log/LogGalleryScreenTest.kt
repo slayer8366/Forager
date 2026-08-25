@@ -8,6 +8,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
@@ -69,5 +71,42 @@ class LogGalleryScreenTest {
 
         composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
         composeRule.onAllNodesWithContentDescription("Log photo").assertCountEquals(0)
+    }
+
+    /**
+     * Workstream L4b-R's Log/Drafts toggle — the gate item "drafts do not appear in the entry list,
+     * gallery cover thumbnails, or anywhere else the audit identifies" applies here too. Defaults to
+     * the Log tab: the committed entry shows with its "+" tile, the draft is nowhere on screen.
+     */
+    @Test
+    fun `by default the Log tab shows only committed entries, with the add tile, and no draft is visible`() {
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
+
+        composeRule.setContent {
+            LogGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
+        }
+
+        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithText("Find on 2026-08-02").assertDoesNotExist()
+        composeRule.onNodeWithText("Draft").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping the Drafts tab shows only drafts, hides the committed entry and the add tile`() {
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
+
+        composeRule.setContent {
+            LogGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
+        }
+
+        composeRule.onNodeWithText("Drafts (1)").performClick()
+
+        composeRule.onNodeWithText("Find on 2026-08-02").assertIsDisplayed()
+        composeRule.onNodeWithText("Draft").assertIsDisplayed()
+        composeRule.onNodeWithText("Find on 2026-08-01").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
     }
 }

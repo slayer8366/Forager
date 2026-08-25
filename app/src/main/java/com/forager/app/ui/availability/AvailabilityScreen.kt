@@ -104,6 +104,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -114,12 +118,19 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -385,6 +396,16 @@ fun AvailabilityScreen(
     onOpenLogEntry: (String) -> Unit = {},
     onCloseLogEntry: () -> Unit = {},
     onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
+    /** Begins editing the currently-open (committed) entry — see [com.forager.app.ui.log.MushroomLogViewModel.onStartEditingEntry]'s own doc comment. A no-op if it's already a draft. */
+    onStartEditingLogEntry: () -> Unit = {},
+    /** Save — commits the currently-open entry. See [com.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
+    onSaveLogEntry: () -> Unit = {},
+    /** Cancel — the only exit that discards anything. See [com.forager.app.ui.log.MushroomLogViewModel.onCancelEditing]'s own doc comment. */
+    onCancelLogEntryEditing: () -> Unit = {},
+    /** Leaving without answering — tab switch, backgrounding, back — persists the draft without committing. See [com.forager.app.ui.log.MushroomLogViewModel.onLeaveEditingIncidentally]'s own doc comment. */
+    onLeaveLogEntryEditingIncidentally: () -> Unit = {},
+    /** Discards a draft by id outright — the compact scaffold's "Discard" Snackbar action target, since by the time it's tapped [logUiState].editingEntry is already null. Same operation as [onDeleteLogEntry]. */
+    onDiscardLogDraft: (String) -> Unit = {},
     onAddLogPhoto: (PhotoSource) -> Unit = {},
     onRemoveLogPhoto: (LogPhoto) -> Unit = {},
     onPullLogPhoto: (LogPhoto) -> Unit = {},
@@ -579,6 +600,31 @@ fun AvailabilityScreen(
 
     val windowWidthClass = currentWindowWidthClass()
 
+    // Workstream L4b-R2: the one wrapped "leaving without answering" callback, hoisted here (rather
+    // than declared separately inside compactMainScaffold and again wherever the drawer's own
+    // LogPanel needed it) so "every in-app exit offers a discard action" stays one fact about one
+    // callback shared by every caller — the compact bottom nav's JournalTab, its own tab-switch
+    // handler, and DrawerPanel.Log's LogPanel below — rather than N independently-maintained copies.
+    // Backgrounding is the deliberate, sole exception: see compactMainScaffold's own
+    // DisposableEffect, which calls the *raw* onLeaveLogEntryEditingIncidentally directly, never this
+    // wrapper, since there is no window left to show a Snackbar in by the time that fires.
+    val logDraftSnackbarHostState = remember { SnackbarHostState() }
+    val logDraftSnackbarScope = rememberCoroutineScope()
+    val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
+        val discardedId = logUiState.editingEntry?.id
+        onLeaveLogEntryEditingIncidentally()
+        if (discardedId != null) {
+            logDraftSnackbarScope.launch {
+                val result = logDraftSnackbarHostState.showSnackbar(
+                    message = "Saved to Drafts",
+                    actionLabel = "Discard",
+                    duration = SnackbarDuration.Short,
+                )
+                if (result == SnackbarResult.ActionPerformed) onDiscardLogDraft(discardedId)
+            }
+        }
+    }
+
     // The drawer's panel content, shared between the compact `ModalNavigationDrawer` below and
     // the `PermanentNavigationDrawer` medium+ windows get instead — see [windowWidthClass]. A
     // local composable lambda rather than a top-level one so it closes over this function's ~25
@@ -698,6 +744,15 @@ fun AvailabilityScreen(
                     onOpenEntry = onOpenLogEntry,
                     onCloseEntry = onCloseLogEntry,
                     onEntryChanged = onLogEntryChanged,
+                    onStartEditingEntry = onStartEditingLogEntry,
+                    onSaveEntry = onSaveLogEntry,
+                    onCancelEditing = onCancelLogEntryEditing,
+                    // Workstream L4b-R2: shares the same wrapped callback as the compact bottom
+                    // nav's JournalTab — see this function's own top-level construction of
+                    // leaveLogEntryEditingOfferingDiscard for why one callback, not a
+                    // window-class-specific copy. The PermanentNavigationDrawer's own drawer sheet
+                    // (below) hosts the Snackbar this shows.
+                    onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
                     onAddPhoto = onAddLogPhoto,
                     onRemovePhoto = onRemoveLogPhoto,
                     onPullPhoto = onPullLogPhoto,
@@ -849,12 +904,57 @@ fun AvailabilityScreen(
         // CompactMapTab itself, which enters and leaves composition on every bottom-nav switch.
         LaunchedEffect(Unit) { onLocateMe() }
 
+        // Workstream L4b-R: backgrounding the app while a log entry is open is "leaving without
+        // answering" — persists the draft, never commits (see MushroomLogViewModel's own doc
+        // comment on the three exits). Deliberately calls the *raw* callback, never the
+        // Snackbar-offering wrapper below: the home button (or any other way of backgrounding)
+        // blows straight through any in-app prompt with no window to show one at all, so this
+        // defaults straight to "saved to Drafts," silently, with no discard offer attempted.
+        // Mirrors SightingsMap's own DisposableEffect(lifecycleOwner)/LifecycleEventObserver
+        // pattern — the one existing precedent in this codebase for hooking ON_STOP/ON_PAUSE, since
+        // neither MainActivity nor this composable had any lifecycle observer before this.
+        // rememberUpdatedState keeps the observer (registered once per lifecycleOwner) reading the
+        // *current* tab/entry state and callback rather than whatever was current the moment it was
+        // registered.
+        val lifecycleOwner = LocalLifecycleOwner.current
+        val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveLogEntryEditingIncidentally)
+        val latestIsJournalEditing by rememberUpdatedState(compactTab == CompactTab.JOURNAL && logUiState.editingEntry != null)
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP && latestIsJournalEditing) {
+                    latestOnLeaveEditingIncidentally()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+
+        // Workstream L4b-R2: every *in-app* incidental exit (back arrow inside the edit form, the
+        // journal tab's own BackHandler, switching to another bottom-nav tab, and — via the shared
+        // leaveLogEntryEditingOfferingDiscard/logDraftSnackbarHostState this function hoisted to its
+        // own top level — DrawerPanel.Log's LogPanel too) shares this one wrapped callback, so the
+        // same Snackbar covers every one of them from a single place rather than a
+        // window-class-specific copy per host. Backgrounding above is the deliberate exception (see
+        // that effect's own comment on why). The exit itself is never blocked on this:
+        // onLeaveLogEntryEditingIncidentally() already ran, and the Snackbar only offers an undo: a
+        // dismissed or ignored one leaves the draft exactly where that call already put it (owner
+        // decision, 2026-08-25: Gmail-drafts-style).
         Scaffold(
+            snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
             bottomBar = {
                 if (!isMapFullscreen) {
                     ForagerBottomNav(
                         selectedTab = compactTab,
                         onTabSelected = { tab ->
+                            // Workstream L4b: switching away from Journal while an entry is open is
+                            // "leaving without answering" — the same incidental-exit auto-save as
+                            // the edit form's own back arrow or the app backgrounding (see
+                            // MushroomLogViewModel's own doc comment on the three exits). Checked
+                            // before compactTab actually changes, so this only fires on a genuine
+                            // tab switch, never on tapping the already-selected Journal tab again.
+                            if (compactTab == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
+                                leaveLogEntryEditingOfferingDiscard()
+                            }
                             compactTab = tab
                             // Keep the shared ResultsTab-driven state in sync for the three
                             // destinations both it and CompactTab describe — see compactTab's own
@@ -956,6 +1056,10 @@ fun AvailabilityScreen(
                         onCloseEntry = onCloseLogEntry,
                         onStartEntry = onStartLogEntry,
                         onEntryChanged = onLogEntryChanged,
+                        onStartEditingEntry = onStartEditingLogEntry,
+                        onSaveEntry = onSaveLogEntry,
+                        onCancelEditing = onCancelLogEntryEditing,
+                        onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
                         onAddPhoto = onAddLogPhoto,
                         onRemovePhoto = onRemoveLogPhoto,
                         onPullPhoto = onPullLogPhoto,
@@ -1046,7 +1150,19 @@ fun AvailabilityScreen(
         PermanentNavigationDrawer(
             drawerContent = {
                 PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
-                    drawerSheetContent(false)
+                    // Workstream L4b-R2: the drawer sheet is DrawerPanel.Log's own visual area, so
+                    // its discard-offer Snackbar docks here — at the bottom of this sheet — rather
+                    // than in mainScaffold's Scaffold, which is the search/results pane beside it,
+                    // not where the edit session the Snackbar is about actually lives.
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            drawerSheetContent(false)
+                        }
+                        SnackbarHost(
+                            logDraftSnackbarHostState,
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                        )
+                    }
                 }
             },
             content = mainScaffold,

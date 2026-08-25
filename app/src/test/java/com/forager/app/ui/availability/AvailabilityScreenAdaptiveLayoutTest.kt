@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -27,9 +32,11 @@ import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
+import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -321,6 +328,81 @@ class AvailabilityScreenWideWindowLayoutTest {
         composeRule.onNodeWithText("Plan trip").performClick()
 
         assertEquals(WIDE_WINDOW_TEST_LOCATION, placedAt)
+    }
+
+    /**
+     * Workstream L4b-R2: the L4b-R2 dispatch's own correction — the discard-offer Snackbar was
+     * wired for the compact bottom nav's JournalTab but the medium/expanded drawer's LogPanel (this
+     * window class's only log-editing surface — see [AvailabilityScreenWideWindowLayoutTest]'s own
+     * doc comment on window-class equivalence) was left on the raw, un-wrapped callback. Drives the
+     * real drawer end to end (open the log, open an existing entry so it's a re-edit rather than a
+     * brand-new draft, leave via the form's own back arrow) rather than a stand-in `LogPanel`
+     * harness, so a regression that wires the Snackbar for one caller but not the other shows up
+     * here specifically.
+     */
+    @Test
+    fun `leaving a re-opened log entry's edit form incidentally on a medium window offers a Discard Snackbar`() {
+        val existingEntry = MushroomLogEntry.draft(
+            id = "existing-1",
+            location = LatLng(45.326, -122.634),
+            date = LocalDate.of(2026, 8, 1),
+        ).copy(isDraft = false)
+
+        composeRule.setContent {
+            var logUiState by remember { mutableStateOf(MushroomLogUiState(entries = listOf(existingEntry))) }
+            AvailabilityScreen(
+                uiState = SEARCHED_STATE,
+                logUiState = logUiState,
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onToggleForagingAreas = {},
+                onCategorySelected = {},
+                onTaxonSearchQueryChanged = {},
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = {},
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+                mapSlot = StubMapSlot,
+                onOpenLogEntry = { id ->
+                    logUiState = logUiState.copy(editingEntry = logUiState.entries.first { it.id == id })
+                },
+                onStartEditingLogEntry = {
+                    // Same in-place stand-in as LogPanelTest's own harness: this test only needs a
+                    // draft to exist to open the form, not the real new-row/id mechanics
+                    // StartEditingLogEntryUseCase owns.
+                    logUiState.editingEntry?.let { current ->
+                        if (!current.isDraft) logUiState = logUiState.copy(editingEntry = current.copy(isDraft = true))
+                    }
+                },
+                onLeaveLogEntryEditingIncidentally = {
+                    logUiState = logUiState.copy(editingEntry = null)
+                },
+            )
+        }
+
+        composeRule.onNodeWithText("Mushroom Log").performClick()
+        composeRule.onNodeWithText("Find on 2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Back to your log").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Saved to Drafts").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Discard").assertIsDisplayed()
     }
 
     @Test
