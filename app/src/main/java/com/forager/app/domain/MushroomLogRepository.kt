@@ -12,6 +12,14 @@ import com.forager.app.domain.model.MushroomLogEntry
  * comment (owner decision, 2026-08-22). [MushroomLogEntry.photos] is populated on read by [getAll]
  * (a join, not a stored list), and [addPhotoToGallery]/[attachPhotoToEntry]/[detachPhotoFromEntry]
  * are the only writes that touch it — [save] never does, deliberately (see its own doc comment).
+ *
+ * **As of G1, nothing here deletes a gallery photo** (only a reference to one, via
+ * [detachPhotoFromEntry]) — deliberate, not an oversight. A thing gets deleted from where it
+ * lives, and until G2 (the gallery screen) exists, a photo doesn't live anywhere visible to delete
+ * it from. G3 owns the warn-then-remove gallery-deletion flow this interface's own method comments
+ * already point to. This is a temporary gap, not a permanent design decision — recorded here so a
+ * future reader doesn't "fix" it with a stray deletion route bolted onto the entry surface in the
+ * meantime.
  */
 interface MushroomLogRepository {
     /** Every log entry currently stored, in no particular order, with its referenced photos joined in — ordering is a use-case concern. */

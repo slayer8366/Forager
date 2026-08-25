@@ -29,6 +29,14 @@ data class LogPhotoEntity(
  * removes its own cross-reference rows explicitly (`deleteCrossRefsForEntry`); deleting a gallery
  * photo removes *its* cross-reference rows explicitly too, after the warn-then-remove confirmation
  * that deletion flow owns — never an implicit cascade.
+ *
+ * **What the old one-to-many shape got wrong, and why many-to-many isn't just nicer:** before
+ * `MIGRATION_7_8`, [LogPhotoEntity] carried `entryId` directly, one row per photo. Attaching that
+ * same photo to a second entry meant inserting a second `log_photos` row with the same `id` —
+ * `OnConflictStrategy.REPLACE` would silently overwrite the first row's `entryId` with the second,
+ * with no error and no signal that the first entry's reference had just vanished. Not a crash to
+ * catch, a silent loss to design out. A join table makes "referenced by two entries" a second row
+ * instead of a conflicting write to the same one.
  */
 @Entity(
     tableName = "log_entry_photos",
