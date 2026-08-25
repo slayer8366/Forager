@@ -742,6 +742,21 @@ screen hands the map the right box; they prove nothing about what MapLibre
 paints in it — same limitation the paragraph above already states, for the
 renderer actually running today.
 
+**Map overlay legibility has no headless assertion that establishes it.**
+`docs/plans/understory-design-system.md` proposes a `MapPalette` that gives
+the seven overlay colours a dark-theme variant and a `MapPaletteTest` that
+guards it. That test can assert derivation (each colour traces to a named
+role and does not equal it) and contrast against a *stated* basemap
+luminance range — but that range is a provisional constant, not a measured
+one, because the overlay colours are drawn over a basemap raster rather
+than a theme surface role, so the WCAG-against-surface check the rest of
+the palette gets does not reach them. The test bounds regressions; it does
+not establish that any overlay colour is actually legible against real
+tiles, in either theme. Whether the sighting dots, the dashed connector,
+the planned-trip diamond, the breadcrumb trail and the waypoint pin stay
+distinguishable from each other and from the tiles underneath — in sun, in
+shade, on topo and on plain — is a device question and is open.
+
 The **offline search cache** is verified headlessly and not on hardware. What
 is measured: the Room round trip, the five-entry LRU and its eviction order
 against a real in-memory database (`RoomSearchCacheRepositoryTest`); the

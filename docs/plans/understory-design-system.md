@@ -1,7 +1,8 @@
 # Understory — an M3 Expressive design system for Forager
 
-Status: **proposal**. Nothing in here is implemented. Two steps are
-explicitly blocked on an owner decision (see "Open items").
+Status: **accepted as the basis for the work**, revision 2. Reviewed by the
+project owner 2026-08-25; seven corrections applied below, and three
+decisions recorded in "Decisions". Nothing here is implemented.
 
 Read against `claude/l4c-serialized-editing-state` at `353d256`. Every
 count, line number and file reference below came from reading that tree
@@ -12,6 +13,18 @@ specified, not written.
 
 A rendered version of this document exists as an artifact:
 <https://claude.ai/code/artifact/6fbeb724-c642-45d9-ad60-2a8e8b522d55>
+
+## What review changed
+
+| # | Correction | Gated |
+|---|---|---|
+| R1 | The damping-1.0 no-overshoot claim was overstated — critical damping guarantees no overshoot for a step **from rest**, not under nonzero initial velocity. Restated in §2S. | Blocked ADR-0002 |
+| R2 | Promoting map accents to *be* `tertiary`/`error` re-creates tag 08's defect class semantically. `MapPalette` now **derives from** the scheme rather than being it. | Blocked step 1 |
+| R3 | "Four call sites" is evidence the change is **cheap to write**, not that it is low risk. All four are `panelMotionSpec`. Separated wherever the number appears. | Wording |
+| R4 | No hardware gate existed anywhere in the order. An explicit device gate now sits between steps 4 and 5, with four named questions. | Blocks step 5 |
+| R5 | `MapPaletteTest` asserted difference, not legibility. Non-equality no longer stands in for the property that matters. | — |
+| R6 | The experimental-status caveat gated the wrong step. Moved from step 2 to step 5. Symbol names corrected. | Blocks step 5 |
+| R7 | Stop-and-ask on the continuous-animation budget, answered below before ADR-0002 is drafted. | Blocked ADR-0002 |
 
 ---
 
@@ -24,42 +37,50 @@ of that paints over the defects rather than removing them.
 
 5S — Sort, Set in Order, Shine, Standardize, Sustain — came out of the
 Toyota Production System to remove *muda*, work that adds no value. Seven
-untokenised map colours with no dark-mode variant are muda in the
-original sense: every future change has to touch all seven. So are six
-animation specs that exist only to be asserted by their own unit test.
-The five sections below are the implementation order, not a metaphor laid
-over an ordinary plan.
+untokenised map colours with no dark-mode variant are muda in the original
+sense: every future change has to touch all seven. So are six animation
+specs that exist only to be asserted by their own unit test. The five
+sections below are the implementation order, not a metaphor laid over an
+ordinary plan.
 
 ## The finding that reshapes the brief
 
 An earlier draft of this design treated "remove tween" as a risky
 supersession of an accepted ADR, and proposed a chrome-versus-map split to
-contain the blast radius. That caution was misplaced.
+contain the blast radius. That framing was wrong, but not for the reason
+the earlier draft's low call-site count suggests. Two separate claims,
+kept separate from here on (**R3**):
 
-`MotionTokens.kt` defines eight `tween`-based `FiniteAnimationSpec`s.
-Exactly one — `panelMotionSpec` — is referenced anywhere in
-`app/src/main` outside its own file. The other six
+**The change is cheap to write.** `MotionTokens.kt` defines eight
+`tween`-based `FiniteAnimationSpec`s. Exactly one — `panelMotionSpec` — is
+referenced anywhere in `app/src/main` outside its own file. The other six
 (`feedbackMotionSpec`, `narrativeRevealSpec`, `markerEntranceSpec`,
 `selectionPulseHalfCycleSpec`, `locationIndicatorMoveSpec`,
 `dataLayerOverlaySpec`) are reachable only from `MotionTokensTest.kt`. So
 is every duration constant except `PANEL_MOTION_DURATION_MS` and
-`LOCATION_INDICATOR_MOVE_DURATION_MS`.
+`LOCATION_INDICATOR_MOVE_DURATION_MS`. The production diff is four call
+sites, all in `AvailabilityScreen.kt:4067–4092`.
 
-Removing tween from this app is a four-call-site change in production
-code — all four in `AvailabilityScreen.kt`, lines 4067–4092 — plus a
-rewrite of the token file, its test, and two documents.
+**The change is not low risk.** All four of those call sites are
+`panelMotionSpec`, and `panelMotionSpec` drives sheets, drawers and panels
+— the app's primary interaction surface, and precisely what ADR-0001's
+"grounded; no springy overshoot" line was written about. A four-line diff
+that changes how every panel in the app moves has a small footprint and a
+large behavioural blast radius. Nothing about the low count argues that
+the resulting motion is right; that is what the device gate in §5S is for.
 
 ### Three reversals from the earlier draft
 
 **REV 01 — target `material3 1.5.0-alpha26` directly, pinned outside the
 BOM.** The earlier draft argued for hand-building expressive components on
 1.4.0 stable and swapping later, on the grounds that the alpha line was
-churning. On `androidx-main` today, `FloatingToolbar`,
+churning. On `androidx-main`, `VerticalFloatingToolbar`,
 `FloatingActionButtonMenu`, `SplitButton` and `ButtonGroup` carry no
-`@ExperimentalMaterial3ExpressiveApi` annotation at all; only
-`LoadingIndicator` and `MaterialShapes` still do. Hand-building four
-stable components to avoid an alpha they are already stable in is the
-churn, not the protection against it.
+`@ExperimentalMaterial3ExpressiveApi` annotation; only `LoadingIndicator`
+and `MaterialShapes` still do. Hand-building four stable components to
+avoid an alpha they are already stable in is the churn, not the protection
+against it. (Status must be re-checked against the pinned tag before the
+swap — see step 5's gate, **R6**.)
 
 **REV 02 — no chrome/map split. No tween anywhere.** The split existed to
 protect the location puck from spring overshoot. The puck was never driven
@@ -100,17 +121,24 @@ Ten red tags. Tags 09 and 10 are new to this pass.
 | 03 | **No shape scale exists, and the scale it would inherit now has eight steps.** No `Shapes(` either. 1.5.0's scale is `extraSmall` → `extraExtraLarge` with `largeIncreased`/`extraLargeIncreased` filling the gap Expressive's larger components need. The two deliberate shapes in the app are hard-coded `CircleShape` at the call site. | `Theme.kt:50–58`; `MapStackIconButton`, `AvailabilityScreen.kt:3728`; `Shapes.kt:84–109` on `androidx-main` |
 | 04 | **Seven map colours live outside the theme, with no dark variant.** In dark theme they render identically to light. | `SightingsMap.kt:756–786` — `CONNECTOR_COLOR`, `SIGHTING_DOT_COLOR`, `AREA_MARKER_BACKGROUND_COLOR`, `PLANNED_TRIP_MARKER_COLOR`, `SEARCH_CENTER_COLOR`, `BREADCRUMB_COLOR`, `WAYPOINT_MARKER_COLOR` |
 | 05 | **A palette constant imported straight into a screen.** `Bark` bypasses the colour-role indirection to build `MapIconStackButtonColor`. One import — but it is the precedent that makes the next twenty look reasonable. | `AvailabilityScreen.kt:210`, consumed at `:3401` |
-| 06 | **One file holds 68 of the app's 115 composables.** 4,830 lines; the entry composable takes 45 parameters, 41 of them `on*` callbacks; fifteen test files point at it. Not a styling problem, but the largest single tax on the work below. | `AvailabilityScreen.kt:347` |
+| 06 | **One file holds 68 of the app's 115 composables.** 4,830 lines; the entry composable takes 45 parameters, 41 of them `on*` callbacks; fifteen test files point at it. Not a styling problem, but the largest single tax on the work below. Out of scope — see Open items. | `AvailabilityScreen.kt:347` |
 | 07 | **A dead parameter, documented and left in.** `drawerSheetContent`'s `showCloseButton` is always false in practice — one call site, the permanent drawer, which is never "closed." Correctly out of scope for the L4c workstream; in scope for a Sort pass. | `AvailabilityScreen.kt:637–653` |
 | 08 | **Two accent greens, one collision.** `MossGreen` is `primary` in dark *and* `tertiary` in both themes, so in dark theme `primary` and `tertiary` are the same colour and any component pairing them has no contrast at all. | `Theme.kt:9–41` |
 | 09 | **Six of eight motion specs are dead, and a test enforces that they stay tweens.** `MotionTokensTest.kt:37–48` asserts every spec *is* a `TweenSpec`, failure message "spring-based specs can overshoot"; `:52–56` casts `panelMotionSpec` to `TweenSpec` to read its duration. The tween-only rule is mechanically pinned, not merely documented. | `MotionTokens.kt`; `MotionTokensTest.kt`; production call sites `AvailabilityScreen.kt:4067, :4068, :4085–4087, :4090–4092` |
 | 10 | **Sixteen `BackHandler`s, zero predictive back.** The app targets SDK 37 and calls `enableEdgeToEdge()`, so the system's predictive-back animation is on — but every back site uses `BackHandler`, which consumes the gesture with no progress callback, so the user gets no peek at the destination anywhere. `PredictiveBackHandler` appears nowhere. | `AvailabilityScreen.kt` (16 sites), `JournalTab.kt:128`, `LogPanel.kt:116`; `MainActivity.kt:169`; `app/build.gradle.kts:123` |
 
+**A tag-09-shaped finding outside the tag list.** `MotionPrecedence.kt` has
+the same defect: `activeTiers`, `shouldClusterMarkers`,
+`MAX_CONTINUOUS_ANIMATED_OBJECTS` and `DEGRADATION_ORDER` are referenced
+only by `MotionPrecedence.kt` itself and `MotionPrecedenceTest.kt`. The
+degradation model is specified, tested, and unwired. It is not red-tagged
+because unlike the six dead specs it is not superseded by this design — it
+is a real mechanism waiting for a caller. See **R7** under §3S.
+
 **What Sort does not touch.** The map layer's raw ints (tag 04) stay raw —
 `SightingsMap.kt` documents why its overlay list must remain
 basemap-agnostic, and a native canvas cannot read a Compose `ColorScheme`.
-The fix in 2S is a mapping object, not a rewrite of the draw path. Tag 06
-is named and left alone; see Open items.
+The fix in 2S is a mapping object, not a rewrite of the draw path.
 
 ---
 
@@ -125,7 +153,31 @@ step, not the background.
 
 The two new hues are not invented — they are the map's existing
 planned-trip blue and search-centre red, promoted out of `SightingsMap.kt`
-into `tertiary` and `error`. That closes tags 04 and 08 in one move.
+into `tertiary` and `error`.
+
+**R2 — the promotion is a source, not an identity.** The earlier revision
+claimed this closed tags 04 and 08 in one move. It closes 08 and would
+have introduced a coupling tag 04 did not have: both colours are *still
+drawn on the map*, so binding them to roles would put the search-centre pin
+and all thirteen `error` read sites on one hue, and bind the planned-trip
+marker to whatever `tertiary` becomes. Retuning `error` for text contrast
+would then move the map. That is tag 08's defect — two things resolving to
+one colour — in its semantic form.
+
+So the corrected rule, and the thing `MapPalette` exists to enforce:
+
+- **`MapPalette` derives from the scheme; it is not the scheme.** It takes
+  the resolved `ColorScheme` and returns seven `Int`s by a named
+  derivation per colour, never by returning a role's value verbatim.
+- **The map blue derives from `tertiary`** — same hue family, its own tone
+  and saturation — rather than equalling it.
+- **The search centre gets its own derivation** and is not bound to `error`
+  at all. A pin that means "you searched here" and text that means
+  "something failed" have no reason to move together.
+- The promotion still supplies the *hues*. What is dropped is the identity.
+
+With that, the promotion closes tag 08, `MapPalette` closes tag 04, and
+neither re-creates the other.
 
 | Role | Light | Dark | Note |
 |---|---|---|---|
@@ -133,19 +185,14 @@ into `tertiary` and `error`. That closes tags 04 and 08 in one move.
 | `primaryContainer` / on— | `#D9E8D2` / `#16301D` | `#3D5A40` / `#D9E8D2` | Already exist — unchanged |
 | `secondary` / `onSecondary` | `#A2612C` / `#FFFFFF` | `#E5A76B` / `#452507` | Mushroom deepened for light so it can carry text |
 | `secondaryContainer` / on— | `#F6DFC8` / `#3A2008` | `#6B421A` / `#F6DFC8` | New |
-| `tertiary` / `onTertiary` | `#3B6EA5` / `#FFFFFF` | `#A8C4E4` / `#12283F` | Closes tag 08; promoted from the map layer |
+| `tertiary` / `onTertiary` | `#3B6EA5` / `#FFFFFF` | `#A8C4E4` / `#12283F` | Closes tag 08. Hue sourced from the map; the map derives from this rather than reading it |
 | `tertiaryContainer` / on— | `#D7E3F2` / `#12283F` | `#2B4763` / `#D7E3F2` | Closes tag 01 |
-| `error` / `onError` | `#B33B3B` / `#FFFFFF` | `#E89A9A` / `#4A1212` | Closes tag 01 — 13 read sites were on baseline red |
+| `error` / `onError` | `#B33B3B` / `#FFFFFF` | `#E89A9A` / `#4A1212` | Closes tag 01 — 13 read sites were on baseline red. Tuned for text contrast only; the search-centre pin is **not** bound to it |
 | `errorContainer` / on— | `#F5DCDC` / `#3A0F0F` | `#6B2222` / `#F5DCDC` | Closes tag 01 |
 | `surface` / `onSurface` | `#FAF8F3` / `#3B2E24` | `#1B1B1B` / `#EDE3D0` | Unchanged |
 | `surfaceVariant` / on— | `#EDE3D0` / `#5B5347` | `#2C2C2C` / `#CFC9BE` | Unchanged |
 | `surfaceContainerLowest`→`Highest` | `#FFFFFF` → `#E2DCCC` | `#101010` → `#373737` | Closes tag 01 — the bottom nav reads the middle step |
 | `outline` / `outlineVariant` | `#8C8577` / `#D5CEBF` | `#8E8E8E` / `#444444` | Closes tag 01 |
-
-**The map layer keeps its raw ints but stops owning them.** A single
-`MapPalette` object, given the resolved `ColorScheme`, returns the seven
-ints. The map gains a dark variant, and the mapping becomes unit-testable
-headlessly.
 
 ### Type — Roboto Flex, plus the fifteen emphasized roles
 
@@ -189,7 +236,8 @@ raises the first five steps and keeps the top three:
 
 The expressive read is the visible half of the reason; the field half is
 that larger radii come with larger, more separable touch targets, and this
-app is operated with cold hands and gloves.
+app is operated with cold hands and gloves. Whether that holds with gloves
+is a device-gate question (§5S), not an asserted fact.
 
 ### Spacing — promote what already exists
 
@@ -211,10 +259,7 @@ it sits to where the thumb already is.
 | Map icon stack (fixed at five) | Recentre, layers, search, fullscreen, add | **Correct** — map-scoped verbs, on the map |
 | Compass strip | Heading, elevation, coordinates, record toggle, return-to-vehicle | **Watch** — read-mostly, but carries two controls |
 | Compact drawer | Search only — location, radius, month, areas layer, trip planning | **Watch** — set far less than once per search, but search is unreachable from five of six tabs (already flagged in `map-redesign.md`) |
-| Permanent drawer (medium + expanded) | Same search controls, always visible, 360dp | **Misplaced** — on a 600dp window that is 60% of the screen given to controls set once a session |
-
-The last row is the one structural change this design proposes; it needs
-sign-off (see Open items).
+| Permanent drawer (medium + expanded) | Same search controls, always visible, 360dp | **Known defect, deferred** — on a 600dp window that is 60% of the screen given to controls set once a session. Not approved for build; recorded in `map-redesign.md`. See Decisions |
 
 ### Motion — the fifth token axis
 
@@ -223,24 +268,53 @@ supplies six specs; `MotionTokens.kt` stops defining animation curves and
 becomes a thin map from this app's named categories onto those six, so
 call sites keep referring to *what is moving* rather than to a raw spring.
 
-Values read from `ExpressiveMotionTokens.kt` on `androidx-main`:
+Values read from `ExpressiveMotionTokens.kt` on `androidx-main`, with
+`StandardMotionTokens.kt` alongside for the reversibility record:
 
-| Spec | Damping | Stiffness | Overshoots? |
+| Spec | Expressive ζ / k | Standard ζ / k | Overshoot on a step from rest |
 |---|---|---|---|
-| `fastSpatialSpec` | 0.6 | 800 | yes, most |
-| `defaultSpatialSpec` | 0.8 | 380 | yes, mild |
-| `slowSpatialSpec` | 0.8 | 200 | yes, mild |
-| `fastEffectsSpec` | 1.0 | 3800 | **never** |
-| `defaultEffectsSpec` | 1.0 | 1600 | **never** |
-| `slowEffectsSpec` | 1.0 | 800 | **never** |
+| `fastSpatialSpec` | 0.6 / 800 | 0.9 / 1400 | yes — largest |
+| `defaultSpatialSpec` | 0.8 / 380 | 0.9 / 700 | yes — mild |
+| `slowSpatialSpec` | 0.8 / 200 | 0.9 / 300 | yes — mild |
+| `fastEffectsSpec` | 1.0 / 3800 | 1.0 / 3800 | none |
+| `defaultEffectsSpec` | 1.0 / 1600 | 1.0 / 1600 | none |
+| `slowEffectsSpec` | 1.0 / 800 | 1.0 / 800 | none |
 
-**The half of the motion scheme that settles the old objection.** Every
-*effects* spec is defined at `dampingRatio = 1.0` — critically damped,
-which is the definition of a spring that reaches its target in minimum
-time and does not cross it. "Spring" and "overshoot" are not synonyms, and
-the earlier draft's chrome-versus-map split was built on treating them as
-if they were. Anything that must not overshoot uses an effects spec;
-anything that should uses a spatial one.
+The two schemes differ **only in the spatial rows**. Effects specs are
+identical, which is why the `standard()` fallback in Decisions is a
+one-parameter substitution and not a re-derivation.
+
+#### R1 — what the effects specs actually guarantee
+
+The earlier revision claimed effects specs are "mathematically incapable of
+overshoot." That is overstated, and ADR-0002 cannot rest on it.
+
+Critical damping (ζ = 1) guarantees no overshoot **for a step response
+from rest**. It does not guarantee it under nonzero initial velocity. For a
+unit-mass critically damped system with displacement-from-target `x₀` and
+initial velocity `v₀`, the solution is `x(t) = (x₀ + (v₀ + ωx₀)t)e^(−ωt)`
+with `ω = √k`. That crosses zero — overshoots — at a positive time exactly
+when `v₀` opposes `x₀` **and** `|v₀| > ω|x₀|`. Velocity continuity on
+interruption is the whole reason Compose prefers springs, so a nonzero
+`v₀` is the normal case here, not an edge case.
+
+The corrected claim, which is what ADR-0002 will record:
+
+> Effects specs do not overshoot on a step from rest, and
+> interruption-carried velocity is bounded by the clamp on the animated
+> property.
+
+Both halves are needed, and the second is a statement about the *visible*
+result rather than the numeric state: alpha and colour components are
+clamped by the renderer, so a numeric excursion past the target is not a
+visible overshoot. The threshold is also high — `ω` is 40 rad/s at
+stiffness 1600 and ≈61.6 rad/s at 3800, so an interrupting velocity has to
+be large relative to the remaining distance before the crossing happens at
+all, and the excursion decays on the same exponential.
+
+The conclusion survives, narrowed: this argument licenses dropping the
+tween-only rule **for alpha and colour**. It says nothing about panels, and
+ADR-0002 must not use it as though it did. See Decisions.
 
 ---
 
@@ -250,12 +324,12 @@ anything that should uses a spatial one.
 
 | Surface | Was | Becomes | Why |
 |---|---|---|---|
-| Buttons, chips, FAB, icon stack | tween 200 ease-out | `fastSpatialSpec` | Press feedback wants the overshoot |
+| Buttons, chips, FAB, icon stack | tween 200 ease-out | `fastSpatialSpec` | Press feedback wants the overshoot. Provisional pending the device gate |
 | Nav bar, nav rail, tab switch | never specced | `defaultSpatialSpec` | Chrome; no positional truth to distort |
-| Sheets, drawers, dialogs, panels | tween 300 ease-out | `slowSpatialSpec` | The only tween with production call sites |
+| Sheets, drawers, dialogs, panels | tween 300 ease-out | `slowSpatialSpec` | The only tween with production call sites. **Accepts mild overshoot** — a taste call, not a dissolved objection. Provisional pending the device gate |
 | Marker entrance & clustering | tween 250 + 40ms stagger | `defaultSpatialSpec` + 40ms stagger | Scale and bounds change, so spatial. The stagger is a delay, not a curve |
 | Selection pulse | tween 1600 linear loop | `slowSpatialSpec`, 0.96–1.04 | Amplitude bounds unchanged |
-| Data-layer overlays | tween 450 ease-out | `defaultEffectsSpec` | Alpha only — must not flash past full opacity |
+| Data-layer overlays | tween 450 ease-out | `defaultEffectsSpec` | Alpha only. This is the row the R1 argument actually licenses |
 | Route reveal & recalculation | tween 400ms/km, 500 morph | `slowEffectsSpec` + 400ms/km | The morph is a spring; the per-km rate stays a rate |
 | Location puck | 350ms scalar | **stays a duration** | Not a Compose animation — see below |
 
@@ -268,6 +342,40 @@ it drives the puck, is deleted with the other five dead specs. Recorded as
 a capability limit, not designed around. If a future MapLibre version
 exposes an interpolator, this row changes and the ADR gets an amendment.
 
+### R7 — the continuous-animation budget, answered before drafting
+
+The question was whether the 8–12 budget's accounting assumes bounded
+durations, since a tween has a known end but a spring settles
+asymptotically and predictive back has no duration at all.
+
+**It does not.** `MotionPrecedence.kt` has no Compose or Android imports
+and contains no duration of any kind. `activeTiers()` takes
+`Map<DegradationTier, Int>` — a **count** of objects currently wanting to
+animate in each tier — and drops tiers in `DEGRADATION_ORDER` until the
+remaining counts sum to at most `MAX_CONTINUOUS_ANIMATED_OBJECTS = 12`.
+The accounting is over object counts, not over time. It survives ADR-0002
+unchanged and stays in the ADR's "unchanged" list.
+
+**But the budget has no production caller.** `activeTiers`,
+`shouldClusterMarkers`, `MAX_CONTINUOUS_ANIMATED_OBJECTS` and
+`DEGRADATION_ORDER` appear only in `MotionPrecedence.kt` and
+`MotionPrecedenceTest.kt`. Nothing supplies the counts. So the accounting
+logic is safe under springs, and the part that would have been unsafe —
+deciding *whether a given object is currently animating* — does not exist
+yet in any form.
+
+That is where duration-versus-asymptote actually bites, so ADR-0002
+records it as a constraint on whoever wires the budget rather than as a
+change to the budget: **the count must come from a spring-aware running
+signal (e.g. `Animatable.isRunning`), never from a timer or an elapsed
+duration.** With a tween, "has it finished" and "has its duration elapsed"
+are the same question; with a spring they are not, and a timer-derived
+counter would under-count long tails and over-count settled objects.
+
+Predictive back sits outside the budget entirely: motion-spec §3's budget
+is scoped to simultaneously animated objects *on the map*, and a
+gesture-driven back animation is chrome and singular.
+
 ### ADR-0002, superseding part of ADR-0001
 
 ADR-0001 is accepted, and `docs/motion-spec.md` §2 says "Panels and
@@ -276,27 +384,51 @@ That cannot be quietly overwritten by a styling pass. It gets a
 supersession with its rejected alternatives written down, never an edit to
 the original.
 
+**Approved to write. Not approved to start step 4.** It cannot be drafted
+until R1 is corrected (done, above) and R7 is answered (done, above), and
+it must record the substance accurately rather than the convenient
+version:
+
 - **Changes:** §2's "no springy overshoot" line for panels and navigation,
   and the tween-only rule in `MotionTokens.kt`'s class comment.
+- **Records as a taste call, not a dissolved objection.** Panels and sheets
+  move to `slowSpatialSpec` at ζ = 0.8, which *does* overshoot. This is a
+  decision to **accept mild overshoot on panels**, not a finding that
+  ADR-0001's concern was misplaced. The R1 effects-spec argument justifies
+  dropping the tween-only rule for alpha and colour and nothing more. An
+  ADR that presents a taste call as a dissolved objection misrecords what
+  was decided, and the record is the whole point of writing one.
+- **Marks the panel damping value provisional** pending the device gate in
+  §5S, and states the amendment path explicitly rather than leaving it
+  implicit: if the gate finds the drawer spring reads as sloppy, the
+  amendment is a spec substitution on the panel row (to `defaultSpatialSpec`,
+  or to the `standard()` scheme's ζ = 0.9 equivalent) recorded as an
+  amendment to this ADR, not a new ADR and not a silent edit.
+- **Records `expressive()` as a reversible one-line parameter,** with the
+  `standard()` damping values written down alongside (§2S table) so
+  switching later is a substitution rather than a re-derivation.
 - **Unchanged:** the precedence order (legibility → performance → calm),
-  the 8–12 continuous-animation budget, the four-tier degradation order,
-  and the whole Reduce Motion mapping table. `MotionPrecedence.kt` needs
-  no change at all.
-- **Unchanged:** the scope boundary. No confidence score, no candidate
-  list, no per-observation harm assessment enters the motion layer.
+  the four-tier degradation order, the 8–12 continuous-animation budget
+  (per R7), and the whole Reduce Motion mapping table.
+  `MotionPrecedence.kt` needs no change.
+- **Adds, per R7:** a constraint that any future budget caller derives its
+  counts from a spring-aware running signal, never from a duration.
 - **Adds:** a Reduce Motion mapping for springs. `ReducedMotionTreatment`
   already maps every treatment to a still-visible equivalent rather than
   to nothing; springs map the same way, to `snap()` or a cross-fade, never
   to a silently dropped state change.
+- **Unchanged:** the scope boundary. No confidence score, no candidate
+  list, no per-observation harm assessment enters the motion layer.
 - **Rejected alternative:** the chrome-versus-map split. It protected a
   puck that was never spring-driven, and would have left two motion
   vocabularies in a codebase that currently uses one call site's worth of
   either.
-- **Rejected alternative:** `MotionScheme.standard()` instead of
-  `expressive()`. Standard's spatial springs sit at damping 0.9 against
-  expressive's 0.6–0.8 — calmer, and defensible for an outdoor instrument.
-  Rejected because it is the choice to make after seeing expressive on
-  hardware, not before; the switch is one argument.
+- **Rejected alternative:** keeping tween-only for panels while adopting
+  springs everywhere else. Coherent, and it is what a strict reading of
+  ADR-0001 implies — but it makes the app's primary interaction surface
+  the one thing that does not respond to interruption with velocity
+  continuity, which is the property springs exist for. Rejected as a
+  taste call, on the record, subject to the device gate.
 
 ### The three width classes
 
@@ -310,15 +442,11 @@ what is reachable one-handed.
   dialog becomes a `FloatingActionButtonMenu`; the compass strip gets
   tabular figures and a token-derived scrim instead of a raw opacity; the
   category filter becomes a `ButtonGroup` with connected shape morphing.
-- **Medium (600–840dp) — one structural change.** The six bottom-nav
-  destinations become a `NavigationRail`, and the 360dp permanent drawer
-  becomes modal, opened from it. **This re-opens a settled scope
-  decision** — see Open items.
+- **Medium (600–840dp) — deferred, not built.** The finding stands and is
+  recorded in `map-redesign.md` as a known defect. See Decisions.
 - **Expanded (≥ 840dp) — tokens only.** The `PermanentNavigationDrawer` +
   `CombinedResultsPane` layout is kept structurally intact, exactly as
-  `map-redesign.md` requires. A navigation rail is added left of the
-  permanent drawer so the six destinations are reachable without the
-  drawer carrying them.
+  `map-redesign.md` requires. Unchanged by the deferral above.
 
 ### Predictive back
 
@@ -331,7 +459,9 @@ rather than dismiss, stay as they are: there is nothing to peek at.
 
 A drawer that springs shut on `slowSpatialSpec` and a drawer that follows
 the user's back-swipe are the same animation driven from two sources,
-which is why this belongs in the motion step and not in its own.
+which is why this belongs after the motion step and not in its own.
+Gesture-driven progress is not headless-testable by definition, which is
+why step 6 follows the device gate rather than preceding it.
 
 ### The inspection that Shine forces
 
@@ -343,33 +473,43 @@ by a Robolectric test driving the real screen's long-press.
 
 Every new element in this design that sits over the map is in that blast
 radius: the floating toolbar's pill container, the FAB menu's expanded
-scrim, the compass strip's new container, and the medium-window rail. Each
-needs a long-press test before it is called done. Visual review is
-precisely what missed this twice.
+scrim, and the compass strip's new container. Each needs a long-press test
+before it is called done. Visual review is precisely what missed this
+twice.
 
 ### Components — one stage, on 1.5.0-alpha26
 
-| Where | Component | Status | Replaces |
+| Where | Component | Status on `androidx-main` | Replaces |
 |---|---|---|---|
-| Map icon stack | `VerticalFloatingToolbar` | stable in 1.5.0 | `MapIconStack`, `AvailabilityScreen.kt:3678` |
-| Add action | `FloatingActionButtonMenu` | stable in 1.5.0 | `ThreeWayActionDialog` |
-| Category filter | `ButtonGroup` | stable in 1.5.0 | A plain `Row` of `FilterChip` |
-| Save / Save & close | `SplitButton` | stable in 1.5.0 | Two adjacent buttons in the Journal editor |
-| Search loading | `LoadingIndicator` | **experimental — hold** | Nothing yet; keep `CircularProgressIndicator` |
-| Marker shapes | `MaterialShapes` | **experimental — hold** | Nothing yet; the waypoint pin stays a hand-drawn `Path` |
-| Theme entry point | `MaterialExpressiveTheme` | stable in 1.5.0 | `MaterialTheme(colorScheme)`, `Theme.kt:50` |
+| Map icon stack | `VerticalFloatingToolbar` | unannotated — `FloatingToolbar.kt:345`, `:439` | `MapIconStack`, `AvailabilityScreen.kt:3678` |
+| Add action | `FloatingActionButtonMenu` | unannotated | `ThreeWayActionDialog` |
+| Category filter | `ButtonGroup` | unannotated — `ButtonGroup.kt:129` | A plain `Row` of `FilterChip` |
+| Save / Save & close | `SplitButton` | unannotated | Two adjacent buttons in the Journal editor |
+| Search loading | `LoadingIndicator` | **`@ExperimentalMaterial3ExpressiveApi`** | Nothing yet; keep `CircularProgressIndicator` |
+| Marker shapes | `MaterialShapes` | **`@ExperimentalMaterial3ExpressiveApi`** | Nothing yet; the waypoint pin stays a hand-drawn `Path` |
+| Theme entry point | `MaterialExpressiveTheme` | unannotated | `MaterialTheme(colorScheme)`, `Theme.kt:50` |
 
-**Verify the resolved version before writing any of this.** Compose BOM
-2026.08.00 resolves material3 to 1.4.0; the expressive components sit in
-the 1.5.0 line, whose head is `1.5.0-alpha26` (12 Aug 2026). Since
-`libs.versions.toml` declares `androidx-material3` with no `version.ref`,
-the pin is a one-line override on that entry, which wins over the BOM for
-that artifact and leaves every other Compose artifact BOM-managed. Both
-version facts were read off Google's pages and the statuses off
-`androidx-main` — *not* off `./gradlew :app:dependencies`, which is the
-only authority on what actually resolves. Re-check the two experimental
-rows against the pinned alpha rather than `androidx-main`; they are not
-the same tree.
+**R6 — two different caveats, two different steps.** The earlier revision
+attached both to step 2. They gate different things:
+
+- **Step 2 needs the resolved version.** Compose BOM 2026.08.00 resolves
+  material3 to 1.4.0; `libs.versions.toml` declares `androidx-material3`
+  with no `version.ref`, so the pin is a one-line override on that entry,
+  which wins over the BOM for that artifact and leaves every other Compose
+  artifact BOM-managed. Confirm with `./gradlew :app:dependencies`, which
+  is the only authority on what actually resolves.
+- **Step 5 needs the annotation status in the pinned tag.** The statuses
+  above were read from `androidx-main`, which is not the `1.5.0-alpha26`
+  tree. Before the component swap, re-check each symbol in the resolved
+  artifact — `VerticalFloatingToolbar` and `ButtonGroup` in particular,
+  since those two carry the compact finish pass.
+
+Symbol names were verified against the sources rather than inferred from
+file names: `VerticalFloatingToolbar` has two `public fun` overloads at
+`FloatingToolbar.kt:345` and `:439`, neither annotated; `ButtonGroup` is a
+single `public fun` at `ButtonGroup.kt:129`, unannotated. "FloatingToolbar"
+is the file and the component family, not a callable symbol, and earlier
+prose that used it there was wrong.
 
 ---
 
@@ -383,24 +523,41 @@ fail on the code as it stands today, which is the point.
 |---|---|---|
 | `ThemeCompletenessTest` | Every colour role read anywhere in `ui/` is explicitly set in both `LightColors` and `DarkColors`, and no role equals its Material baseline default | Tag 01, and its recurrence — which has already happened once |
 | `ThemeContrastTest` | Every on/container pair clears WCAG AA at its intended size; pure Kotlin, no device | A token edit that quietly drops text below legible outdoors |
-| `MapPaletteTest` | The seven map ints differ between light and dark, and each traces to a named role | Tag 04 — the map having no dark mode at all |
+| `MapPaletteTest` | See R5 below — **not** mere light/dark difference | Tag 04, and the coupling R2 removes |
 | `ExpressiveThemeTest` | `ForagerTheme` supplies non-default `Typography`, `Shapes` and `MotionScheme`, and the scheme is `expressive()` not `standard()` | Tags 02, 03, and the motion scheme silently reverting |
 | `MotionTokensTest` (inverted) | No exposed spec is a `TweenSpec`; each maps to the `MotionScheme` spec its category calls for; effects-category specs have `dampingRatio >= 1.0` | Tag 09, and a spring with overshoot landing on an overlay's alpha |
 | `verify-design-tokens.sh` | No `Color(0x` literal outside `ui/theme/`; no palette constant imported outside the theme package; no `tween(` in `ui/` | Tag 05, the next twenty like it, and tween creeping back one call site at a time |
 
-**One existing test must be inverted by hand.** `MotionTokensTest.kt:37–48`
-asserts every spec *is* a `TweenSpec`; `:52–56` casts `panelMotionSpec` to
-`TweenSpec` to read its duration. Both fail the moment tween goes —
-correctly, and they are the proof this change is real rather than
-cosmetic. Rewrite them to assert the new property; do not delete them, and
-do not weaken them to a type-agnostic check, or the file stops
-discriminating anything.
+### R5 — `MapPaletteTest` must not let non-equality stand in for legibility
+
+The earlier revision had it assert that the seven ints differ between light
+and dark. That passes if both are illegible. And the map colours sit
+outside `ThemeContrastTest` by construction: they are drawn over a basemap
+raster, not over a theme surface role, so contrast-against-surface does not
+reach them. That would leave the one colour set with no dark variant today
+as the one colour set with no contrast assertion after the fix.
+
+`MapPaletteTest` asserts three things instead:
+
+1. **Derivation, not identity** (R2). Each of the seven ints traces to a
+   named derivation from a named role, and **no returned int equals the
+   role's own value**. This is the check that would fail if someone
+   "simplified" `MapPalette` back into returning `colorScheme.error`.
+2. **Contrast against a stated basemap luminance range**, not against a
+   surface role. The range is a **provisional constant** — same status and
+   same treatment as `MARKER_CLUSTERING_THRESHOLD`, declared as provisional
+   in the ADR's constants section, not presented as measured.
+3. Light and dark differ — kept, but demoted to a necessary condition
+   rather than the property under test.
+
+Because assertion 2's *input* is unvalidated, map legibility also goes into
+the README's "Not yet verified" section as an open hardware question. The
+test bounds the regression; it does not establish the property.
 
 ### The standing rule this design adds
 
 `CLAUDE.md` already carries the touch-interception pitfall. This design
-promotes it from a warning into an entry condition, because it now applies
-to four new elements at once.
+promotes it from a warning into an entry condition.
 
 1. **Any composable drawn over the map ships with a long-press test** — a
    Robolectric test driving the real screen's long-press through the fake
@@ -426,26 +583,51 @@ lost outright.
 
 ### Implementation order
 
-Each step is only safe once the one above has landed. Steps 1–3 are worth
-landing on their own even if the rest is never built.
-
-| # | Step | Gates |
+| # | Step | Gate |
 |---|---|---|
-| 1 | Fill the seven unset colour roles; add `ThemeCompletenessTest` and `ThemeContrastTest` | Nothing — ships alone on 1.4.0, fixes visible baseline leakage today |
-| 2 | Pin material3 to `1.5.0-alpha26`; convert `ForagerTheme` to `MaterialExpressiveTheme` with `Typography`, `Shapes` and `MotionScheme.expressive()`; add `ExpressiveThemeTest` | Step 1; verify with `./gradlew :app:dependencies` first |
-| 3 | Extract `MapPalette`; move `Spacing` into the theme; add `verify-design-tokens.sh` | Step 1 (independent of step 2) |
-| 4 | Write ADR-0002; delete the six dead specs; rewrite `MotionTokens.kt` onto the motion scheme; invert `MotionTokensTest`; update motion-spec §2 | Step 2; **owner sign-off on superseding ADR-0001** |
-| 5 | Compact finish pass — floating toolbar, FAB menu, button group, split button, compass-strip figures | Steps 2–4, plus a long-press test per element |
-| 6 | Swap `BackHandler` → `PredictiveBackHandler` at the dismissible surfaces | Step 4 |
-| 7 | Medium-window navigation rail | **Owner sign-off on re-opening the compact-only scope decision** |
+| 1 | Fill the seven unset colour roles; add `ThemeCompletenessTest` and `ThemeContrastTest` | R2 landed (derivation-not-identity is settled). Ships alone on 1.4.0 |
+| 2 | Pin material3 to `1.5.0-alpha26`; convert `ForagerTheme` to `MaterialExpressiveTheme` with `Typography`, `Shapes` and `MotionScheme.expressive()`; add `ExpressiveThemeTest` | Step 1, **and** `./gradlew :app:dependencies` confirms the resolved version |
+| 3 | Extract `MapPalette` (deriving, per R2); move `Spacing` into the theme; add `verify-design-tokens.sh` and `MapPaletteTest` (per R5) | Step 1 — independent of step 2 |
+| 4 | Write ADR-0002; delete the six dead specs; rewrite `MotionTokens.kt` onto the motion scheme; invert `MotionTokensTest` by hand; update motion-spec §2 | Step 2, **R1 corrected**, **R7 answered**, and ADR-0002 written |
+| **G** | **DEVICE GATE — owner-run on hardware.** Four named questions, below. No general "have a look." | Step 4 |
+| 5 | Compact finish pass — floating toolbar, FAB menu, button group, split button, compass-strip figures | Gate G passed, **and** R6's annotation re-check against the pinned tag |
+| 6 | Swap `BackHandler` → `PredictiveBackHandler` at the dismissible surfaces | Step 5 |
+| — | Medium-window navigation rail | **Deferred, not sequenced.** See Decisions |
+
+### Gate G — the device gate (R4)
+
+Open items has always said the outdoor questions are not headless. The
+earlier revision then ran steps 4 through 6 with no device check between
+them, which was a real hole: this codebase has had three touch-interception
+regressions over the map and two hardware rounds on the compass strip; step
+4 changes how every panel moves; step 6 adds gesture-driven animation that
+is not headless-testable by definition.
+
+Owner-run, on a physical phone. Step 5 does not start before it. The
+questions are named so the gate has a pass condition rather than an
+impression:
+
+1. **Does damping 0.6 press feedback feel loose while walking?**
+   (`fastSpatialSpec` on buttons, chips, FAB, icon stack.)
+2. **Does the drawer spring read as sloppy at `slowSpatialSpec`?**
+   (ζ = 0.8, the accepted-overshoot taste call.)
+3. **Does predictive-back progress track the gesture?**
+4. **Does expressive damping stay inside ADR-0001's precedence order, or
+   does `standard()` serve the calm requirement better?**
+
+Question 4 is the one that can reverse a decision rather than tune a value.
+Its answer is a one-line parameter change either way — the `standard()`
+values are recorded in §2S so the switch is a substitution.
+
+Outcomes route as amendments to ADR-0002, per its stated amendment path,
+not as new ADRs and not as silent edits.
 
 ### Before any of it — the base branch
 
 `main` and the design branch `claude/forager-m3-expressive-design-dguw4e`
-are the same commit, and both sit 9 commits behind
-`claude/l4c-serialized-editing-state`, with 1 commit L4c does not have.
-Everything in this document was read against L4c at `353d256`, not against
-`main`.
+sit 9 commits behind `claude/l4c-serialized-editing-state`, with 1 commit
+L4c does not have. Everything in this document was read against L4c at
+`353d256`, not against `main`.
 
 `CLAUDE.md` records why this is not pedantry: PR #26 and the Phase 1
 branch each independently declared `ForagerDatabase.version = 5` with
@@ -458,50 +640,81 @@ started from.
 
 ---
 
+## Decisions
+
+Recorded 2026-08-25 by the project owner.
+
+### ADR-0002 — approved to write, not approved to start step 4
+
+Drafting is unblocked now that R1 is corrected and R7 is answered. Step 4
+does not start until the ADR is written. Its required content is specified
+in §3S above; the two non-negotiable parts are that it records the panel
+change as **a decision to accept mild overshoot** rather than as a
+dissolved objection, and that it states the amendment path for the
+provisional panel damping value explicitly.
+
+### Medium-window navigation rail — not approved
+
+The finding is correct and is recorded. It is not built now, for three
+reasons:
+
+1. It is the only step that contradicts a recorded scope decision.
+2. It is the only structural layout change in a document that is otherwise
+   a token and motion pass.
+3. It lands in the window class that cannot be verified here — the project
+   is built and tested on a phone with no emulator — which makes it
+   simultaneously the change that most needs hardware and the one least
+   able to get it.
+
+It is recorded in `docs/plans/map-redesign.md` as a known defect with the
+360dp-of-a-600dp-window rationale attached, so the compact-only scope stays
+a deliberate decision rather than an oversight a future reader repeats or
+re-discovers. It is a named deferral, not a sequenced step. Expanded keeps
+its tokens-only treatment as written.
+
+### `expressive()` over `standard()` — provisional, and now a question
+
+Expressive goes to hardware; that is what Gate G question 4 is for. It is
+recorded in ADR-0002 as a reversible one-line parameter, with the
+`standard()` damping values written down alongside it (§2S) so switching
+later is a substitution rather than a re-derivation.
+
+---
+
 ## Open items
 
-Kept separate from the plan on purpose. `CLAUDE.md` is explicit that a
-report which only reassures has failed at its job.
-
-**Needs your decision — the medium-window rail re-opens a settled scope.**
-`docs/plans/map-redesign.md` records "This phase is compact-only, same as
-Phase 1 — MEDIUM/EXPANDED's PermanentNavigationDrawer +
-CombinedResultsPane path is untouched." Step 7 contradicts that in as many
-words. Flagged rather than assumed.
-
-**Needs your decision — ADR-0002 supersedes an accepted ADR.** Until it is
-written, the tween-only rule stands as the governing decision and step 4
-should not start.
-
-**Reversible, one argument — `expressive()` rather than `standard()`.**
-Standard's spatial springs sit at damping 0.9 against expressive's
-0.6–0.8. You asked for Expressive and this design gives you Expressive,
-but the switch is `motionScheme = MotionScheme.standard()` and nothing
-else. Worth knowing before hardware, not after.
-
-**Needs verifying in the build — the resolved material3 version.** Neither
-the BOM mapping nor the alpha head was read off
-`./gradlew :app:dependencies`. The stable/experimental statuses come from
-`androidx-main`, which is not the same tree as the pinned alpha tag.
-
 **Not verifiable headlessly — everything about how this reads outdoors.**
-Contrast ratios can be asserted in a unit test. Whether a 20dp radius
-helps with gloves, whether tabular figures actually stop the compass strip
-wrapping on a real phone, and whether a damping-0.6 press feedback feels
-right or feels loose while walking are hardware questions. The README's
-"Not yet verified" section is where they belong.
+Contrast ratios can be asserted in a unit test. Whether a 20dp radius helps
+with gloves, whether tabular figures actually stop the compass strip
+wrapping on a real phone, and whether damping-0.6 press feedback feels
+right or loose while walking are hardware questions. Gate G now names four
+of them; the rest belong in the README's "Not yet verified" section.
+
+**Map legibility has no headless assertion that establishes it** (R5).
+`MapPaletteTest` bounds regressions against a provisional basemap
+luminance range; it does not establish the property. Added to the README's
+not-yet-verified section.
+
+**The budget is unwired** (R7). `MotionPrecedence.kt` is specified, tested
+and has no production caller. Not this design's job to wire, but ADR-0002
+records the spring-aware-counting constraint so whoever does gets it right.
 
 **Left undone — the 4,830-line screen file.** Tag 06 is real and no fix is
 proposed. Splitting it is a refactor with its own risk profile and fifteen
 test files pointed at it. It belongs in its own workstream, not smuggled
-into a design pass.
+into a design pass. Confirmed out of scope at review.
 
 **Left undone — no screen-by-screen redesign.** This document specifies a
 token layer, a motion system, a component mapping and an implementation
 order. It does not draw every screen. Compact's structure is deliberately
-kept; what is missing is the medium-window rail layout, which is also the
-step waiting on sign-off.
+kept; the medium-window layout is deferred.
 
 **Not run — no build, no test run.** Every count, line number and API
 status above is a static read. The six checks in 4S are specified, not
 written.
+
+**Known imprecision in the 5S frame.** Shine is carrying more than
+inspection-through-cleaning — it holds the motion replacement, the width
+classes and the component mapping as well as the touch-interception
+inspection. Noted at review and deliberately not reorganised: the churn
+would cost more than the imprecision does.
