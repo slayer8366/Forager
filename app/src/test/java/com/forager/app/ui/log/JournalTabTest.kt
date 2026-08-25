@@ -88,14 +88,45 @@ class JournalTabTest {
                 onCloseEntry = { uiState = uiState.copy(editingEntry = null) },
                 onStartEntry = { location, date ->
                     startedEntryAt = location
+                    // Workstream L4b: a brand-new entry is a draft, never added to entries at
+                    // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
+                    // doc comment. Mirrors that real behavior rather than the pre-L4b shape this
+                    // harness used to have.
                     val started = MushroomLogEntry.draft(id = "new-entry", location = location, date = date)
-                    uiState = uiState.copy(entries = uiState.entries + started, editingEntry = started)
+                    uiState = uiState.copy(editingEntry = started)
                 },
                 onEntryChanged = { updated ->
                     uiState = uiState.copy(
                         entries = uiState.entries.map { if (it.id == updated.id) updated else it },
                         editingEntry = updated,
                     )
+                },
+                onSaveEntry = {
+                    uiState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        uiState = uiState.copy(
+                            entries = if (uiState.entries.any { it.id == committed.id }) {
+                                uiState.entries.map { if (it.id == committed.id) committed else it }
+                            } else {
+                                uiState.entries + committed
+                            },
+                            editingEntry = committed,
+                        )
+                    }
+                },
+                onCancelEditing = { uiState = uiState.copy(editingEntry = null) },
+                onLeaveEditingIncidentally = {
+                    uiState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        uiState = uiState.copy(
+                            entries = if (uiState.entries.any { it.id == committed.id }) {
+                                uiState.entries.map { if (it.id == committed.id) committed else it }
+                            } else {
+                                uiState.entries + committed
+                            },
+                            editingEntry = null,
+                        )
+                    }
                 },
                 onAddPhoto = {},
                 onRemovePhoto = {},
@@ -138,8 +169,15 @@ class JournalTabTest {
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
     }
 
+    /**
+     * Workstream L4b: the back arrow is an incidental exit (auto-save), grouped with a tab switch
+     * or the app backgrounding — never a toggle back to the report the way it worked before drafts
+     * existed. It closes the entry entirely; only the explicit Save button (below) returns to the
+     * report. This test's own name and expectation flipped from "returns to the report, not the
+     * gallery" for exactly that reason.
+     */
     @Test
-    fun `backing out of the edit form returns to the report, not the gallery`() {
+    fun `backing out of the edit form auto-saves and returns to the gallery, not the report`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
         composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
@@ -147,9 +185,33 @@ class JournalTabTest {
 
         composeRule.onNodeWithContentDescription("Back to your log").performClick()
 
-        // The report's own marker is back — not the gallery (which has no "Entry options" menu at
-        // all) and not the edit form (which the previous test already showed doesn't have it either).
+        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
+    }
+
+    /** Save is the one exit that returns to the report rather than the gallery — see [MushroomLogViewModel.onSaveEntry]'s own doc comment. */
+    @Test
+    fun `tapping Save on the edit form commits and returns to the report`() {
+        setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
+        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+
+        composeRule.onNodeWithText("Save").performClick()
+
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+    }
+
+    /** Cancel on a brand-new entry discards it outright — see [MushroomLogViewModel.onCancelEditing]'s own doc comment. */
+    @Test
+    fun `tapping Cancel on a brand-new entry's edit form discards it and returns to the gallery`() {
+        setScreen(MushroomLogUiState())
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithText("Find on", substring = true).assertDoesNotExist()
     }
 
     /**

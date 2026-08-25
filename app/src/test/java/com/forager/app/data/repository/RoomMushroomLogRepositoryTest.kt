@@ -399,4 +399,5 @@ private fun fullyPopulatedEntry(): MushroomLogEntry = MushroomLogEntry(
         LogPhoto(id = "photo-2", relativePath = "photos/photo-2.jpg", createdAtEpochMillis = 4_000L),
     ),
     syncState = LogSyncState.Draft,
+    isDraft = false,
 )

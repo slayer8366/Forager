@@ -173,12 +173,10 @@ class AvailabilityScreenBackNavigationTest {
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 logUiState = logState,
                 onStartLogEntry = { location, date ->
+                    // Workstream L4b: a brand-new entry is a draft, never added to entries at
+                    // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
+                    // doc comment.
                     logState = logState.copy(
-                        entries = logState.entries + com.forager.app.domain.model.MushroomLogEntry.draft(
-                            id = "started-entry",
-                            location = location,
-                            date = date,
-                        ),
                         editingEntry = com.forager.app.domain.model.MushroomLogEntry.draft(
                             id = "started-entry",
                             location = location,
@@ -188,6 +186,22 @@ class AvailabilityScreenBackNavigationTest {
                 },
                 onOpenLogEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
                 onCloseLogEntry = { logState = logState.copy(editingEntry = null) },
+                onLeaveLogEntryEditingIncidentally = {
+                    // Workstream L4b: leaving without answering (the back arrow, here) auto-saves
+                    // and closes the entry — see MushroomLogViewModel.onLeaveEditingIncidentally's
+                    // own doc comment.
+                    logState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        logState = logState.copy(
+                            entries = if (logState.entries.any { it.id == committed.id }) {
+                                logState.entries.map { if (it.id == committed.id) committed else it }
+                            } else {
+                                logState.entries + committed
+                            },
+                            editingEntry = null,
+                        )
+                    }
+                },
                 compassProvider = BackNavFakeCompassProvider,
                 mapSlot = BackNavStubMapSlot,
             )
@@ -268,9 +282,15 @@ class AvailabilityScreenBackNavigationTest {
 
     /**
      * A Journal entry's own edit form is more nested than "which bottom-nav tab is selected" — back
-     * must unwind the entry (to its report) before it ever switches tabs. Proves `JournalTab`'s own
-     * `BackHandler`, composed as part of this tab's content, takes priority over
-     * `AvailabilityScreen`'s top-level "switch away from a non-Maps tab" handler.
+     * must unwind the entry before it ever switches tabs. Proves `JournalTab`'s own `BackHandler`,
+     * composed as part of this tab's content, takes priority over `AvailabilityScreen`'s top-level
+     * "switch away from a non-Maps tab" handler.
+     *
+     * Workstream L4b: back out of the edit form is an incidental exit (auto-save + close), not a
+     * toggle to the report the way it worked before drafts existed — see
+     * `MushroomLogViewModel.onLeaveEditingIncidentally`'s own doc comment, and
+     * [com.forager.app.ui.log.JournalTabTest]'s identical flip for the same reason. Ends on the
+     * gallery, not the report.
      */
     @Test
     fun `back backs out of a Journal entry before switching away from the Journal tab`() {
@@ -281,11 +301,10 @@ class AvailabilityScreenBackNavigationTest {
 
         pressBack()
 
-        // Back in the report, not the edit form (JournalTab's `when` mounts only one at a time,
-        // so the edit form is fully unmounted, not merely hidden), and still on the Journal tab —
-        // not bounced to Maps.
+        // Back on the gallery (JournalTab's `when` mounts only one at a time, so the edit form is
+        // fully unmounted, not merely hidden), and still on the Journal tab — not bounced to Maps.
         composeRule.onNodeWithText("Photos").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
     }
 
     /**

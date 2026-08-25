@@ -51,6 +51,9 @@ internal fun LogEntryListScreen(
     isLoading: Boolean,
     onOpenEntry: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Orphaned drafts (Workstream L4b crash recovery) — see [LogGalleryScreen]'s identical parameter for the full reasoning; rendered first, each with a "Draft" row instead of "Incomplete." */
+    draftEntries: List<MushroomLogEntry> = emptyList(),
+    onOpenDraftEntry: (String) -> Unit = onOpenEntry,
     /**
      * Set when the last load failed — see [MushroomLogViewModel.loadEntries]'s `onFailure` branch.
      * Not belief-changing (the entries are on disk; only the read failed), so this never hides
@@ -64,13 +67,14 @@ internal fun LogEntryListScreen(
             CircularProgressIndicator()
         }
 
-        entries.isNotEmpty() -> Column(
+        entries.isNotEmpty() || draftEntries.isNotEmpty() -> Column(
             modifier = modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = LogSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
         ) {
+            draftEntries.forEach { entry -> LogEntryRow(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true) }
             // Most-recently-found first — see GetMushroomLogEntriesUseCase; this renders that
             // order rather than recomputing it.
             entries.forEach { entry -> LogEntryRow(entry = entry, onClick = { onOpenEntry(entry.id) }) }
@@ -90,8 +94,9 @@ internal fun LogEntryListScreen(
     }
 }
 
+/** [isDraft] renders a "Draft" row instead of (never alongside) "Incomplete" — see [LogGalleryScreen]'s identical [LogEntryTile] parameter for why. */
 @Composable
-private fun LogEntryRow(entry: MushroomLogEntry, onClick: () -> Unit) {
+private fun LogEntryRow(entry: MushroomLogEntry, onClick: () -> Unit, isDraft: Boolean = false) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,7 +112,14 @@ private fun LogEntryRow(entry: MushroomLogEntry, onClick: () -> Unit) {
                     ?: stringResource(R.string.log_entry_no_location),
                 style = MaterialTheme.typography.bodySmall,
             )
-            if (entry.hasUnrecordedFields()) {
+            if (isDraft) {
+                Text(
+                    "Draft — not yet saved",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    fontStyle = FontStyle.Italic,
+                )
+            } else if (entry.hasUnrecordedFields()) {
                 Text(
                     "Incomplete — some fields not yet recorded",
                     style = MaterialTheme.typography.bodySmall,

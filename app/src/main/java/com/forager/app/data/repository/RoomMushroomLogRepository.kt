@@ -263,6 +263,8 @@ private fun MushroomLogEntry.toEntity(): MushroomLogEntryEntity {
         forestType = hostSubstrate.forestType.toColumn(),
         hostHealth = hostSubstrate.hostHealth.toColumn(),
         hostSubstrateNotes = hostSubstrate.notes,
+
+        isDraft = isDraft,
     )
 }
 
@@ -395,4 +397,5 @@ private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): Mushr
         )
         else -> error("Unknown sync state kind '$syncStateKind' on entry '$id'")
     },
+    isDraft = isDraft,
 )

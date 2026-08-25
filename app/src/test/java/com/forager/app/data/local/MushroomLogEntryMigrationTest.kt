@@ -80,7 +80,7 @@ class MushroomLogEntryMigrationTest {
         // fallbackToDestructiveMigration here, so if MIGRATION_6_7 is missing or wrong, this throws
         // rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build()
 
         try {
@@ -89,7 +89,13 @@ class MushroomLogEntryMigrationTest {
 
             val repository = RoomMushroomLogRepository(migrated.mushroomLogDao())
             val survivedEntries = repository.getAll().getOrThrow()
-            assertEquals(listOf(legacyEntry), survivedEntries)
+            // Workstream L4b: MIGRATION_8_9 marks every pre-existing row isDraft = false — a real
+            // install at this version never had the concept of an uncommitted draft, so every row
+            // it touches is, by construction, a committed entry. legacyEntry.isDraft is true only
+            // because MushroomLogEntry.draft() (a general-purpose "blank entry" factory reused here
+            // to build test fixture data, not itself evidence of anything about drafts) defaults
+            // that way today; the migrated row correctly does not carry that default through.
+            assertEquals(listOf(legacyEntry.copy(isDraft = false)), survivedEntries)
             assertEquals(LatLng(45.5, -122.6), survivedEntries.single().foundAt)
 
             // The migration this file exists to prove: a brand-new entry saved with no location at

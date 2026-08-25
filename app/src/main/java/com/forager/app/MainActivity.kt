@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
             initializer {
                 MushroomLogViewModel(
                     container.getMushroomLogEntriesUseCase,
+                    container.getOrphanedDraftEntriesUseCase,
                     container.createMushroomLogEntryUseCase,
                     container.saveMushroomLogEntryUseCase,
                     container.deleteMushroomLogEntryUseCase,
@@ -256,6 +257,9 @@ class MainActivity : ComponentActivity() {
                     onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
                     onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
                     onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
+                    onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
+                    onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
+                    onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
                     onPullLogPhoto = mushroomLogViewModel::onPullPhoto,

@@ -6,6 +6,7 @@ import com.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.forager.app.domain.GetOrphanedDraftEntriesUseCase
 import com.forager.app.domain.MushroomLogRepository
 import com.forager.app.domain.PhotoStore
 import com.forager.app.domain.PullPhotoIntoEntryUseCase
@@ -63,6 +64,7 @@ class MushroomLogViewModelTest {
         photoStore: FakePhotoStore = FakePhotoStore(),
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
+        getOrphanedDraftEntries = GetOrphanedDraftEntriesUseCase(repository),
         createEntry = CreateMushroomLogEntryUseCase(repository, today = { LocalDate.of(2026, 8, 1) }, idGenerator = { "new-entry" }),
         saveEntry = SaveMushroomLogEntryUseCase(repository),
         deleteEntry = DeleteMushroomLogEntryUseCase(repository),
@@ -73,7 +75,10 @@ class MushroomLogViewModelTest {
         deleteGalleryPhoto = DeleteGalleryPhotoUseCase(repository, photoStore),
     )
 
-    private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+    // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
+    // (loaded via getEntries()/GetMushroomLogEntriesUseCase, which now excludes drafts) unless it
+    // specifically exercises the draft lifecycle itself, in which case it says so.
+    private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
     @Test
     fun `a failed save sets saveErrorMessage, and the next successful save clears it`() = runTest(dispatcher) {
@@ -107,10 +112,11 @@ class MushroomLogViewModelTest {
 
     /**
      * The design decision this task made and the prompt didn't cover: [saveErrorMessage] is set by
-     * five different write sites (start/save/delete/add photo/remove photo), not one — unlike
+     * nine different write sites (start/edit/save/cancel/delete/add photo/remove photo/pull
+     * photo/delete gallery photo), not one — unlike
      * [com.forager.app.ui.track.TrackRecordingViewModel.startRecording]'s single-site
      * `startRecordingErrorMessage`. "The next successful save" is read broadly here: any of the
-     * five succeeding clears a message left by any of the others, not only a repeat of the same
+     * nine succeeding clears a message left by any of the others, not only a repeat of the same
      * one. This is the write site that isn't literally "save" proving that reading holds.
      */
     @Test
@@ -276,6 +282,203 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         assertEquals(emptyList<LogPhoto>(), vm.uiState.value.editingEntry?.photos)
+    }
+
+    // --- Workstream L4b: persisted drafts, Save/Cancel/incidental-exit, crash recovery ----------
+
+    @Test
+    fun `a freshly-started entry is a draft, invisible in entries until it is resolved`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        assertTrue("a brand-new entry must not appear in the committed list", vm.uiState.value.entries.isEmpty())
+        assertEquals("new-entry", vm.uiState.value.editingEntry?.id)
+        assertTrue(vm.uiState.value.editingEntry?.isDraft == true)
+
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "something recorded"))
+        advanceUntilIdle()
+
+        assertTrue("still a draft while being edited, still invisible in the list", vm.uiState.value.entries.isEmpty())
+        assertEquals("something recorded", vm.uiState.value.editingEntry?.notes)
+    }
+
+    @Test
+    fun `Save commits the currently-open entry, making it visible in the list`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "field notes"))
+        advanceUntilIdle()
+
+        vm.onSaveEntry()
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-entry"), vm.uiState.value.entries.map { it.id })
+        assertEquals(false, vm.uiState.value.entries.single().isDraft)
+        assertEquals("field notes", vm.uiState.value.editingEntry?.notes)
+    }
+
+    @Test
+    fun `Cancelling a brand-new entry deletes it, leaving nothing in the log`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "typed something before changing my mind"))
+        advanceUntilIdle()
+
+        vm.onCancelEditing()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.entries.isEmpty())
+        assertNull(vm.uiState.value.editingEntry)
+        assertTrue("the row itself must be gone, not just filtered out", repository.getAll().getOrThrow().none { it.id == "new-entry" })
+    }
+
+    @Test
+    fun `Cancelling a reopened existing entry restores its last-saved content`() = runTest(dispatcher) {
+        val original = entry.copy(notes = "original field notes")
+        val repository = FakeMushroomLogRepository(initial = listOf(original))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(original.id)
+        vm.onEntryEdited(original.copy(notes = "changed my mind about this"))
+        advanceUntilIdle()
+        assertEquals("changed my mind about this", vm.uiState.value.editingEntry?.notes)
+
+        vm.onCancelEditing()
+        advanceUntilIdle()
+
+        // Cancel always closes the form, whether it deleted (a brand-new entry) or restored (this
+        // case) — see MushroomLogViewModel.onCancelEditing's own doc comment; the restored content
+        // is verified through entries, the list Cancel actually leaves the user looking at.
+        assertNull(vm.uiState.value.editingEntry)
+        assertEquals("original field notes", vm.uiState.value.entries.single { it.id == original.id }.notes)
+        assertEquals(false, vm.uiState.value.entries.single { it.id == original.id }.isDraft)
+    }
+
+    @Test
+    fun `leaving without answering commits a brand-new entry that has some content`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "partial notes"))
+        advanceUntilIdle()
+
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-entry"), vm.uiState.value.entries.map { it.id })
+        assertEquals(false, vm.uiState.value.entries.single().isDraft)
+        assertNull("the form closes on an incidental exit", vm.uiState.value.editingEntry)
+    }
+
+    /** The dispatch's own gate: tapping "+" and leaving immediately puts nothing visible in the log. */
+    @Test
+    fun `leaving without answering an untouched brand-new entry deletes it`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.entries.isEmpty())
+        assertNull(vm.uiState.value.editingEntry)
+        assertTrue(repository.getAll().getOrThrow().none { it.id == "new-entry" })
+    }
+
+    @Test
+    fun `a photo pulled into a draft attaches on Save and the gallery photo survives either way`() = runTest(dispatcher) {
+        val galleryPhoto = LogPhoto(id = "gallery-photo", relativePath = "photos/gallery-photo.jpg", createdAtEpochMillis = 1_000L)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        repository.addPhotoToGallery(galleryPhoto)
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onPullPhoto(galleryPhoto)
+        advanceUntilIdle()
+
+        vm.onSaveEntry()
+        advanceUntilIdle()
+
+        assertEquals(listOf(galleryPhoto), vm.uiState.value.entries.single { it.id == entry.id }.photos)
+        assertTrue(repository.galleryPhotoIds.contains(galleryPhoto.id))
+    }
+
+    @Test
+    fun `a photo pulled into a draft does not attach on Cancel, and the gallery photo survives`() = runTest(dispatcher) {
+        val galleryPhoto = LogPhoto(id = "gallery-photo", relativePath = "photos/gallery-photo.jpg", createdAtEpochMillis = 1_000L)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        repository.addPhotoToGallery(galleryPhoto)
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onPullPhoto(galleryPhoto)
+        advanceUntilIdle()
+        assertEquals(listOf(galleryPhoto), vm.uiState.value.editingEntry?.photos)
+
+        vm.onCancelEditing()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<LogPhoto>(), vm.uiState.value.entries.single { it.id == entry.id }.photos)
+        assertTrue("the gallery photo itself must survive Cancel", repository.galleryPhotoIds.contains(galleryPhoto.id))
+    }
+
+    /**
+     * The known hazard this dispatch calls out by name: G3's [MushroomLogViewModel.loadEntries]
+     * used to re-derive [MushroomLogUiState.editingEntry] wholesale from a fresh repository read —
+     * safe only because nothing uncommitted existed to lose at the time. A refresh firing mid-edit
+     * (e.g. [MushroomLogViewModel.onDeleteGalleryPhoto]'s own success-path refresh) must not
+     * silently discard in-progress typing.
+     */
+    @Test
+    fun `a refresh triggered mid-edit preserves uncommitted edits`() = runTest(dispatcher) {
+        val original = entry.copy(notes = "original")
+        val repository = FakeMushroomLogRepository(initial = listOf(original))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(original.id)
+        vm.onEntryEdited(original.copy(notes = "typing away, not saved yet"))
+        advanceUntilIdle()
+
+        vm.loadEntries()
+        advanceUntilIdle()
+
+        assertEquals(
+            "a refresh must not discard uncommitted edits",
+            "typing away, not saved yet",
+            vm.uiState.value.editingEntry?.notes,
+        )
+    }
+
+    @Test
+    fun `an orphaned draft from a crashed session is surfaced separately from committed entries and can be reinstated`() = runTest(dispatcher) {
+        val committed = entry
+        val orphanedDraft = MushroomLogEntry.draft(id = "orphaned", location = LatLng(46.0, -123.0), date = LocalDate.of(2026, 8, 2))
+            .copy(notes = "typed before the crash")
+        val repository = FakeMushroomLogRepository(initial = listOf(committed, orphanedDraft))
+        val vm = viewModel(repository)
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(committed.id), vm.uiState.value.entries.map { it.id })
+        assertEquals(listOf(orphanedDraft.id), vm.uiState.value.draftEntries.map { it.id })
+
+        vm.onOpenEntry(orphanedDraft.id)
+
+        assertEquals("typed before the crash", vm.uiState.value.editingEntry?.notes)
     }
 }
 

@@ -141,4 +141,16 @@ data class MushroomLogEntryEntity(
      * table — a dangling id here is accepted and expected, not a corruption to guard against.
      */
     val offlineRegionId: Long? = null,
+
+    /**
+     * Persisted-uncommitted state — owner decision, 2026-08-22 (Workstream L4b): "a draft is an
+     * entry row marked uncommitted," a discriminator column on this table rather than a second
+     * table or a change-list. **Unrelated to [com.forager.app.domain.model.LogSyncState.Draft]**,
+     * which is an iNaturalist upload-sync state — this column is about whether the row itself has
+     * been committed to the log at all, independent of sync. `true` while an edit session is live
+     * (autosaved on every field change, same cadence as before this column existed) or while a
+     * crash left one orphaned; `false` once Save, an incidental exit, or a pre-[MIGRATION_8_9] row
+     * commits it. See [MushroomLogViewModel]'s own doc comment for the full state machine.
+     */
+    val isDraft: Boolean,
 )

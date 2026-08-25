@@ -28,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,10 +49,20 @@ import com.forager.app.ui.availability.CollapsibleSection
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
  * time this shows (see [MushroomLogViewModel.onStartNewEntry]): "creating" and "editing" are the
- * same action here, autosaving through [onEntryChanged] on every field change. Each characteristic
- * section is a [CollapsibleSection] (reused from `AvailabilityScreen`) so the form doesn't dump
- * every field on screen at once — the same "single line until tapped" shape the drawer's own
- * Search/Trip Planner sections use.
+ * same action here. Each characteristic section is a [CollapsibleSection] (reused from
+ * `AvailabilityScreen`) so the form doesn't dump every field on screen at once — the same "single
+ * line until tapped" shape the drawer's own Search/Trip Planner sections use.
+ *
+ * ## Persisted drafts, not autosave-always-commits (Workstream L4b, owner decision 2026-08-22)
+ *
+ * [onEntryChanged] still fires — and still writes to disk — on every field change, but the write
+ * lands as an uncommitted draft (see [MushroomLogViewModel]'s own doc comment) rather than
+ * committing outright. [onSave]/[onCancel] are the two deliberate exits this screen exposes
+ * directly: Save commits the current form content; Cancel discards it (deleting a never-before-
+ * committed entry outright, or restoring an already-committed one to how it looked when opened).
+ * [onBack] — the navigation arrow, not a labeled action — is the *incidental* exit instead: leaving
+ * without answering auto-saves, the same as a tab switch or the app backgrounding (see
+ * [MushroomLogViewModel.onLeaveEditingIncidentally]). Only the explicit Cancel button ever discards.
  *
  * Workstream L4 (`docs/plans/pr26-rework.md`): entry creation routes here directly now, so [entry]
  * routinely arrives with [MushroomLogEntry.foundAt] `null`. [onAddLocation] is this screen's own
@@ -72,6 +83,8 @@ internal fun LogEntryDetailScreen(
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: () -> Unit,
     onAddLocation: () -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -88,8 +101,12 @@ internal fun LogEntryDetailScreen(
                 }
                 Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.titleMedium)
             }
-            IconButton(onClick = onDeleteEntry) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+                TextButton(onClick = onCancel) { Text("Cancel") }
+                Button(onClick = onSave) { Text("Save") }
+                IconButton(onClick = onDeleteEntry) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
+                }
             }
         }
 

@@ -74,6 +74,14 @@ internal fun LogGalleryScreen(
     onAddEntry: () -> Unit,
     modifier: Modifier = Modifier,
     /**
+     * Orphaned drafts (Workstream L4b crash recovery — see [MushroomLogUiState.draftEntries]'s own
+     * doc comment) — rendered first, ahead of every committed [entries] tile, each with its own
+     * "Draft" badge, so a recovered entry is reassuring to spot rather than indistinguishable from
+     * one the user finished normally. Empty in the overwhelmingly common case (no crash happened).
+     */
+    draftEntries: List<MushroomLogEntry> = emptyList(),
+    onOpenDraftEntry: (String) -> Unit = onOpenEntry,
+    /**
      * Set when the last load failed — see [LogEntryListScreen]'s own [loadErrorMessage] parameter
      * for why this never hides [entries] that are already showing, only shown above the grid (the
      * "+" tile stays first regardless, same as the empty-but-no-error case) when there is nothing
@@ -81,7 +89,7 @@ internal fun LogGalleryScreen(
      */
     loadErrorMessage: String? = null,
 ) {
-    if (isLoading && entries.isEmpty()) {
+    if (isLoading && entries.isEmpty() && draftEntries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -89,7 +97,7 @@ internal fun LogGalleryScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        if (entries.isEmpty() && loadErrorMessage != null) {
+        if (entries.isEmpty() && draftEntries.isEmpty() && loadErrorMessage != null) {
             Text(
                 loadErrorMessage,
                 style = MaterialTheme.typography.bodyMedium,
@@ -104,6 +112,9 @@ internal fun LogGalleryScreen(
             verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
         ) {
             item { AddEntryTile(onClick = onAddEntry) }
+            items(draftEntries, key = { "draft-${it.id}" }) { entry ->
+                LogEntryTile(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true)
+            }
             items(entries, key = { it.id }) { entry ->
                 LogEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) })
             }
@@ -141,9 +152,14 @@ private fun AddEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** One logged find in the gallery grid — a cover photo when one exists, otherwise a placeholder icon. */
+/**
+ * One logged find in the gallery grid — a cover photo when one exists, otherwise a placeholder
+ * icon. [isDraft] renders a "Draft" badge instead of (never alongside) the "Incomplete" one —
+ * Workstream L4b crash recovery; a recovered entry is always incomplete by
+ * [hasUnrecordedFields]'s own definition too, so showing both would be redundant, not additive.
+ */
 @Composable
-private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {
     Card(
         onClick = onClick,
         modifier = modifier
@@ -179,7 +195,13 @@ private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier:
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (entry.hasUnrecordedFields()) {
+                if (isDraft) {
+                    Text(
+                        "Draft",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                } else if (entry.hasUnrecordedFields()) {
                     Text(
                         "Incomplete",
                         style = MaterialTheme.typography.labelSmall,

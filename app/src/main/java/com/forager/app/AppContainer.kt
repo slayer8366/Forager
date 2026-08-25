@@ -36,6 +36,7 @@ import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.forager.app.domain.GetOrphanedDraftEntriesUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
@@ -138,6 +139,7 @@ class AppContainer(context: Context) {
 
     val mushroomLogRepository: MushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
     val getMushroomLogEntriesUseCase = GetMushroomLogEntriesUseCase(mushroomLogRepository)
+    val getOrphanedDraftEntriesUseCase = GetOrphanedDraftEntriesUseCase(mushroomLogRepository)
     val createMushroomLogEntryUseCase = CreateMushroomLogEntryUseCase(mushroomLogRepository)
     val saveMushroomLogEntryUseCase = SaveMushroomLogEntryUseCase(mushroomLogRepository)
     val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(mushroomLogRepository)

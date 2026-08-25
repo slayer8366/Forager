@@ -398,3 +398,131 @@ val MIGRATION_7_8: Migration = object : Migration(7, 8) {
         db.execSQL("ALTER TABLE `log_photos_new` RENAME TO `log_photos`")
     }
 }
+
+/**
+ * Persisted drafts — owner decision, 2026-08-22 (Workstream L4b): "a draft is an entry row marked
+ * uncommitted," a discriminator column (`isDraft`) on `mushroom_log_entries` rather than a second
+ * table or a change-list — see [MushroomLogEntryEntity.isDraft]'s own doc comment for why, and
+ * [MushroomLogViewModel]'s for the state machine this column drives. Every pre-existing row is a
+ * real, previously-committed entry — none of them were ever a draft under the old (autosave-always-
+ * commits) model — so every row this migration copies gets `isDraft = 0` explicitly, never left to
+ * an implicit default. No committed entry is lost or marked draft by this migration.
+ *
+ * A full SQLite table rebuild (create the new shape, copy by explicit column list, drop, rename),
+ * not `ALTER TABLE ... ADD COLUMN` — this project's standing practice for `mushroom_log_entries`
+ * (`MIGRATION_6_7` used it for a nullability change; see that migration's own doc comment for why
+ * `ADD COLUMN` alone isn't trusted here even where SQLite would allow it).
+ *
+ * **The legacy-fixture problem, checked rather than assumed.** [MushroomLogEntryEntity] gains a
+ * `NOT NULL` column here, the same *kind* of change that broke `MIGRATION_5_6` against
+ * `LegacyForagerDatabaseV4`/`V5` (see `docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`)
+ * — every `LegacyForagerDatabaseVn` fixture that declares [MushroomLogEntryEntity] (`V4` through
+ * `V7`) now bakes in an `isDraft` column too, at a version that never had one. Unlike the
+ * `offlineRegionId` case, this does **not** need the drop-index-then-drop-column treatment: that
+ * fix was necessary because `MIGRATION_5_6` uses `ALTER TABLE ... ADD COLUMN`, which fails outright
+ * against a column already present. This migration follows the *rebuild* pattern instead — its
+ * `INSERT ... SELECT` names an explicit column list that never mentions `isDraft` on the source
+ * side, so a leaked `isDraft` column already present on whatever table reaches this migration is
+ * silently ignored, not conflicted with. More concretely: every fixture older than version 7 passes
+ * through `MIGRATION_6_7`'s own rebuild (a stricter explicit-column-list `CREATE`) before ever
+ * reaching this one, which drops any such leaked column along the way regardless of this migration;
+ * `LegacyForagerDatabaseV7` reaches this migration directly (only `MIGRATION_7_8`, which never
+ * touches `mushroom_log_entries`, sits between them) but is equally unaffected, for the same
+ * "explicit list, ignores extras" reason. Verified by running every `LegacyForagerDatabaseVn`
+ * migration test with this migration appended to its chain, not assumed from the reasoning above —
+ * see this migration's own test coverage for confirmation none needed the treatment.
+ */
+val MIGRATION_8_9: Migration = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `mushroom_log_entries_new` (
+            `id` TEXT NOT NULL,
+            `lat` REAL,
+            `lng` REAL,
+            `foundOn` TEXT NOT NULL,
+            `entryNotes` TEXT NOT NULL,
+            `ownIdentification` TEXT,
+            `syncStateKind` TEXT NOT NULL,
+            `syncProgress` REAL,
+            `syncRemoteObservationId` TEXT,
+            `syncUploadedAtEpochMillis` INTEGER,
+            `syncFailureReason` TEXT,
+            `capShape` TEXT,
+            `capSurface` TEXT,
+            `capDecorationsState` TEXT NOT NULL,
+            `capDecorationsValue` TEXT,
+            `capMargin` TEXT,
+            `capNotes` TEXT NOT NULL,
+            `hymenophoreKind` TEXT,
+            `gillAttachment` TEXT,
+            `gillSpacing` TEXT,
+            `gillEdge` TEXT,
+            `hymenophoreNotes` TEXT NOT NULL,
+            `stipeKind` TEXT,
+            `stipePosition` TEXT,
+            `stipeInterior` TEXT,
+            `stipeBase` TEXT,
+            `stipeNotes` TEXT NOT NULL,
+            `annulusState` TEXT NOT NULL,
+            `annulusValue` TEXT,
+            `volvaState` TEXT NOT NULL,
+            `volvaValue` TEXT,
+            `veilNotes` TEXT NOT NULL,
+            `fleshTexture` TEXT,
+            `colorChangeState` TEXT NOT NULL,
+            `colorChangeValue` TEXT,
+            `exudateState` TEXT NOT NULL,
+            `exudateValue` TEXT,
+            `contextFleshNotes` TEXT NOT NULL,
+            `sporePrintColorKind` TEXT,
+            `sporePrintOtherText` TEXT,
+            `sporePrintReadOn` TEXT,
+            `sporePrintNotes` TEXT NOT NULL,
+            `associationKind` TEXT,
+            `associationHostSpecies` TEXT,
+            `associationOtherText` TEXT,
+            `forestType` TEXT,
+            `hostHealth` TEXT,
+            `hostSubstrateNotes` TEXT NOT NULL,
+            `offlineRegionId` INTEGER,
+            `isDraft` INTEGER NOT NULL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `mushroom_log_entries_new` (
+            `id`, `lat`, `lng`, `foundOn`, `entryNotes`, `ownIdentification`,
+            `syncStateKind`, `syncProgress`, `syncRemoteObservationId`, `syncUploadedAtEpochMillis`, `syncFailureReason`,
+            `capShape`, `capSurface`, `capDecorationsState`, `capDecorationsValue`, `capMargin`, `capNotes`,
+            `hymenophoreKind`, `gillAttachment`, `gillSpacing`, `gillEdge`, `hymenophoreNotes`,
+            `stipeKind`, `stipePosition`, `stipeInterior`, `stipeBase`, `stipeNotes`,
+            `annulusState`, `annulusValue`, `volvaState`, `volvaValue`, `veilNotes`,
+            `fleshTexture`, `colorChangeState`, `colorChangeValue`, `exudateState`, `exudateValue`, `contextFleshNotes`,
+            `sporePrintColorKind`, `sporePrintOtherText`, `sporePrintReadOn`, `sporePrintNotes`,
+            `associationKind`, `associationHostSpecies`, `associationOtherText`, `forestType`, `hostHealth`, `hostSubstrateNotes`,
+            `offlineRegionId`, `isDraft`
+            )
+            SELECT
+            `id`, `lat`, `lng`, `foundOn`, `entryNotes`, `ownIdentification`,
+            `syncStateKind`, `syncProgress`, `syncRemoteObservationId`, `syncUploadedAtEpochMillis`, `syncFailureReason`,
+            `capShape`, `capSurface`, `capDecorationsState`, `capDecorationsValue`, `capMargin`, `capNotes`,
+            `hymenophoreKind`, `gillAttachment`, `gillSpacing`, `gillEdge`, `hymenophoreNotes`,
+            `stipeKind`, `stipePosition`, `stipeInterior`, `stipeBase`, `stipeNotes`,
+            `annulusState`, `annulusValue`, `volvaState`, `volvaValue`, `veilNotes`,
+            `fleshTexture`, `colorChangeState`, `colorChangeValue`, `exudateState`, `exudateValue`, `contextFleshNotes`,
+            `sporePrintColorKind`, `sporePrintOtherText`, `sporePrintReadOn`, `sporePrintNotes`,
+            `associationKind`, `associationHostSpecies`, `associationOtherText`, `forestType`, `hostHealth`, `hostSubstrateNotes`,
+            `offlineRegionId`, 0
+            FROM `mushroom_log_entries`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `mushroom_log_entries`")
+        db.execSQL("ALTER TABLE `mushroom_log_entries_new` RENAME TO `mushroom_log_entries`")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_offlineRegionId` " +
+                "ON `mushroom_log_entries` (`offlineRegionId`)",
+        )
+    }
+}

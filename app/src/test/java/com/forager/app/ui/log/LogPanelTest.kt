@@ -75,6 +75,25 @@ class LogPanelTest {
                         editingEntry = updated,
                     )
                 },
+                onSaveEntry = {
+                    uiState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        uiState = uiState.copy(
+                            entries = uiState.entries.map { if (it.id == committed.id) committed else it },
+                            editingEntry = committed,
+                        )
+                    }
+                },
+                onCancelEditing = { uiState = uiState.copy(editingEntry = null) },
+                onLeaveEditingIncidentally = {
+                    uiState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        uiState = uiState.copy(
+                            entries = uiState.entries.map { if (it.id == committed.id) committed else it },
+                            editingEntry = null,
+                        )
+                    }
+                },
                 onAddPhoto = {},
                 onRemovePhoto = {},
                 onPullPhoto = { photo ->

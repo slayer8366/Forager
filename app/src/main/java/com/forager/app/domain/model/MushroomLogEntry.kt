@@ -51,10 +51,23 @@ data class MushroomLogEntry(
     val ownIdentification: String?,
     val photos: List<LogPhoto>,
     val syncState: LogSyncState,
+    /**
+     * Persisted-uncommitted state (Workstream L4b, owner decision 2026-08-22) — **unrelated to
+     * [LogSyncState.Draft]**, which is an iNaturalist upload-sync state, not this. `true` means
+     * this row hasn't been committed to the log: either an edit session is live (autosaved on
+     * every field change, same cadence as before this flag existed) or a crash left it orphaned.
+     * `false` means it's a real, committed entry. See [MushroomLogViewModel]'s own doc comment for
+     * the full state machine this drives, and [com.forager.app.data.local.MushroomLogEntryEntity.isDraft]
+     * for the column it maps onto.
+     */
+    val isDraft: Boolean,
 ) {
     companion object {
         /**
-         * A freshly-started entry at [location] on [date], with every section unrecorded.
+         * A freshly-started, uncommitted entry at [location] on [date], with every section
+         * unrecorded — [isDraft] is always `true` here: [CreateMushroomLogEntryUseCase] is the only
+         * caller, and decision #6 (Workstream L4b) says nothing this creates may appear in the log
+         * until the user has put something there.
          *
          * [location] is `LatLng?`, not defaulted — every call in this codebase today passes a
          * concrete [LatLng] (nothing yet constructs a location-less entry; that's L4's job), so
@@ -77,6 +90,7 @@ data class MushroomLogEntry(
             ownIdentification = null,
             photos = emptyList(),
             syncState = LogSyncState.Draft,
+            isDraft = true,
         )
     }
 }

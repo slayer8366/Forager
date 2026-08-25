@@ -64,6 +64,14 @@ import androidx.room.RoomDatabase
  * many-to-many rather than one-to-many (owner decision: "the album model"). Every existing
  * relationship is preserved as a cross-reference row before the old column is gone, same
  * no-data-loss reasoning as every hand-written migration above.
+ *
+ * [version] 9 adds [MushroomLogEntryEntity.isDraft] via a real [MIGRATION_8_9] — Workstream L4b,
+ * owner decision, 2026-08-22: persisted drafts. "A draft is an entry row marked uncommitted" — a
+ * discriminator column, not a second table or a change-list; see [MIGRATION_8_9]'s own doc comment
+ * for the full reasoning, including why this codebase's legacy-fixture pitfall (see
+ * `docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`) does not recur here. Every
+ * pre-existing row is a real, previously-committed entry, never a draft under the old model, so this
+ * migration marks every one of them `isDraft = 0` explicitly.
  */
 @Database(
     entities = [
@@ -77,7 +85,7 @@ import androidx.room.RoomDatabase
         WaypointEntity::class,
         OfflineRegionEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -98,6 +106,6 @@ abstract class ForagerDatabase : RoomDatabase() {
             context.applicationContext,
             ForagerDatabase::class.java,
             "forager.db",
-        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).fallbackToDestructiveMigration(true).build()
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).fallbackToDestructiveMigration(true).build()
     }
 }

@@ -114,12 +114,17 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -385,6 +390,12 @@ fun AvailabilityScreen(
     onOpenLogEntry: (String) -> Unit = {},
     onCloseLogEntry: () -> Unit = {},
     onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
+    /** Save — commits the currently-open entry. See [com.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
+    onSaveLogEntry: () -> Unit = {},
+    /** Cancel — the only exit that discards anything. See [com.forager.app.ui.log.MushroomLogViewModel.onCancelEditing]'s own doc comment. */
+    onCancelLogEntryEditing: () -> Unit = {},
+    /** Leaving without answering — tab switch, backgrounding, back — auto-saves. See [com.forager.app.ui.log.MushroomLogViewModel.onLeaveEditingIncidentally]'s own doc comment. */
+    onLeaveLogEntryEditingIncidentally: () -> Unit = {},
     onAddLogPhoto: (PhotoSource) -> Unit = {},
     onRemoveLogPhoto: (LogPhoto) -> Unit = {},
     onPullLogPhoto: (LogPhoto) -> Unit = {},
@@ -698,6 +709,9 @@ fun AvailabilityScreen(
                     onOpenEntry = onOpenLogEntry,
                     onCloseEntry = onCloseLogEntry,
                     onEntryChanged = onLogEntryChanged,
+                    onSaveEntry = onSaveLogEntry,
+                    onCancelEditing = onCancelLogEntryEditing,
+                    onLeaveEditingIncidentally = onLeaveLogEntryEditingIncidentally,
                     onAddPhoto = onAddLogPhoto,
                     onRemovePhoto = onRemoveLogPhoto,
                     onPullPhoto = onPullLogPhoto,
@@ -849,12 +863,42 @@ fun AvailabilityScreen(
         // CompactMapTab itself, which enters and leaves composition on every bottom-nav switch.
         LaunchedEffect(Unit) { onLocateMe() }
 
+        // Workstream L4b: backgrounding the app while a log entry is open is "leaving without
+        // answering" — the same incidental-exit auto-save as the edit form's own back arrow or a
+        // tab switch (see MushroomLogViewModel's own doc comment on the three exits). Mirrors
+        // SightingsMap's own DisposableEffect(lifecycleOwner)/LifecycleEventObserver pattern — the
+        // one existing precedent in this codebase for hooking ON_STOP/ON_PAUSE, since neither
+        // MainActivity nor this composable had any lifecycle observer before this. rememberUpdatedState
+        // keeps the observer (registered once per lifecycleOwner) reading the *current* tab/entry
+        // state and callback rather than whatever was current the moment it was registered.
+        val lifecycleOwner = LocalLifecycleOwner.current
+        val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveLogEntryEditingIncidentally)
+        val latestIsJournalEditing by rememberUpdatedState(compactTab == CompactTab.JOURNAL && logUiState.editingEntry != null)
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP && latestIsJournalEditing) {
+                    latestOnLeaveEditingIncidentally()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+
         Scaffold(
             bottomBar = {
                 if (!isMapFullscreen) {
                     ForagerBottomNav(
                         selectedTab = compactTab,
                         onTabSelected = { tab ->
+                            // Workstream L4b: switching away from Journal while an entry is open is
+                            // "leaving without answering" — the same incidental-exit auto-save as
+                            // the edit form's own back arrow or the app backgrounding (see
+                            // MushroomLogViewModel's own doc comment on the three exits). Checked
+                            // before compactTab actually changes, so this only fires on a genuine
+                            // tab switch, never on tapping the already-selected Journal tab again.
+                            if (compactTab == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
+                                onLeaveLogEntryEditingIncidentally()
+                            }
                             compactTab = tab
                             // Keep the shared ResultsTab-driven state in sync for the three
                             // destinations both it and CompactTab describe — see compactTab's own
@@ -956,6 +1000,9 @@ fun AvailabilityScreen(
                         onCloseEntry = onCloseLogEntry,
                         onStartEntry = onStartLogEntry,
                         onEntryChanged = onLogEntryChanged,
+                        onSaveEntry = onSaveLogEntry,
+                        onCancelEditing = onCancelLogEntryEditing,
+                        onLeaveEditingIncidentally = onLeaveLogEntryEditingIncidentally,
                         onAddPhoto = onAddLogPhoto,
                         onRemovePhoto = onRemoveLogPhoto,
                         onPullPhoto = onPullLogPhoto,
