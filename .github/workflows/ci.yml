@@ -7,7 +7,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # claude/l4b-persisted-drafts is a scoped, temporary addition: PR #40 targets
+    # claude/task-hwj91a, not main, so the pull_request trigger below never fires for it, and
+    # the owner asked for a CI-built APK to test before merging. Remove this branch name once
+    # PR #40 merges or closes -- it is not meant to become a standing pattern for every
+    # non-main branch.
+    branches: [main, claude/l4b-persisted-drafts]
   pull_request:
     branches: [main]
 
