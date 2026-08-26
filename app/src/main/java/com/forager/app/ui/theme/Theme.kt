@@ -1,7 +1,8 @@
 package com.forager.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -101,6 +102,14 @@ internal val DarkColors = darkColorScheme(
  * Light and dark variants both exist here already — [darkTheme] defaults to
  * [isSystemInDarkTheme], so the app follows the device's system theme setting rather than needing
  * its own in-app toggle, the same convention most Android apps use.
+ *
+ * A real [MaterialExpressiveTheme], not a [androidx.compose.material3.MaterialTheme] wrapped around
+ * one — understory-design-system.md's step 2, REV 03. All four token axes are supplied explicitly:
+ * [colorScheme] as before, [ForagerTypography] and [ForagerShapes] (see those files' own doc
+ * comments for what they do and don't customize versus stock), and [MotionScheme.expressive] rather
+ * than leaving `motionScheme` to default — `expressive()` is provisional pending the device gate
+ * (§5S Gate G question 4), recorded here rather than left implicit so the swap to `standard()` stays
+ * a one-line substitution if the gate asks for it.
  */
 @Composable
 fun ForagerTheme(
@@ -108,8 +117,11 @@ fun ForagerTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColors else LightColors
-    MaterialTheme(
+    MaterialExpressiveTheme(
         colorScheme = colorScheme,
+        typography = ForagerTypography,
+        shapes = ForagerShapes,
+        motionScheme = MotionScheme.expressive(),
         content = content,
     )
 }
