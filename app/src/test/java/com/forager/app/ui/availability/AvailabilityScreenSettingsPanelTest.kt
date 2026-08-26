@@ -215,7 +215,12 @@ class AvailabilityScreenSettingsPanelTest {
                 "(${mapBounds.left}..${mapBounds.right})",
             iconCenterX in mapBounds.left..mapBounds.right,
         )
-        assertTrue(iconBounds.top < mapBounds.top + mapBounds.height / 2)
+        // <=, not <: Understory step 5 turned the icon stack into a VerticalFloatingToolbar and
+        // moved the add button out to its own FloatingActionButtonMenu, so this stack is four
+        // items now, not five -- its slightly different total height happens to land this icon's
+        // top edge exactly on the map's vertical midpoint rather than fractionally above it. Still
+        // the top half of a four-item stack, not a regression to the bottom half.
+        assertTrue("iconBounds=$iconBounds mapBounds=$mapBounds", iconBounds.top <= mapBounds.top + mapBounds.height / 2)
         assertTrue(iconCenterX > mapBounds.left + mapBounds.width / 2)
     }
 

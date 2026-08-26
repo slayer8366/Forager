@@ -259,8 +259,12 @@ class AvailabilityScreenTripPlanningFlowTest {
         setScreen()
         searchAReferenceRegion()
 
+        // Understory step 5: the chooser is a real FloatingActionButtonMenu now (was AddActionTile,
+        // an AlertDialog-style card with its own "Cancel" row). A FloatingActionButtonMenu has no
+        // separate cancel affordance -- the same toggle button that opened it closes it, the same
+        // open/close pairing Material's own FAB-menu pattern uses everywhere else.
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
         composeRule.waitForIdle()
 
         assertTrue(viewModel.uiState.value.plannedTrips.isEmpty())
