@@ -155,7 +155,12 @@ enum class Basemap(
         description = "Topographic contours and hillshading, worldwide.",
         coverage = BasemapCoverage.WORLDWIDE,
         maxZoom = 17,
-        attribution = "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)",
+        // Shortened from "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)" -- the
+        // full form wrapped to two lines over the always-visible caption (see SightingsMap.kt),
+        // covering more of the map than a credit line should. Still names all three required
+        // credits (OpenStreetMap, SRTM, OpenTopoMap's CC-BY-SA), just without the "contributors"
+        // qualifier and the " | " separator.
+        attribution = "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
         tileUrlTemplate = "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
     ),
 
