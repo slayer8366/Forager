@@ -22,36 +22,50 @@ package com.forager.app.ui.map
 /**
  * Night mode's raster paint block, applied to the basemap layer.
  *
- * The basemap is the glare source, not the markers. A white topo sheet at full brightness is what
- * makes a phone unusable at night and wrecks dark adaptation, so night mode dims *the ground* and
- * lifts the marks off it (see `MapPalette.NIGHT`). Dimming the tiles is also what makes a night
- * palette meaningful at all: the marks and the ground move together, which is exactly what could
- * not happen when the palette was keyed on the device theme.
- *
- *  - `raster-brightness-max` caps the tile's brightest output. 0.32 takes a pale topo sheet down
- *    to roughly the tone `MapPalette.NIGHT_TILE_REFERENCE` models, which is the ground the night
- *    palette's contrast is checked against.
  *  - `raster-saturation` pulls colour out of the basemap so the overlay's own hues are the only
  *    saturated things on screen — the marks should be what the eye catches, not the terrain tint.
- *  - `raster-contrast` recovers a little of the shape definition that dimming flattens, so
- *    contour lines and water edges stay readable rather than becoming an even grey wash.
+ *  - `raster-contrast` recovers a little of the shape definition dimming used to flatten, back
+ *    when this block dimmed the ground — kept for now even though there is no more dimming for it
+ *    to recover shape from; revisit if a future pass finds it does something unwanted at full
+ *    brightness.
  *
- * All three are MapLibre style-spec v8 raster paint properties, so they need no code path of their
- * own — they ride in the style JSON the basemap swap already rebuilds.
+ * Both are MapLibre style-spec v8 raster paint properties, so they need no code path of their own
+ * — they ride in the style JSON the basemap swap already rebuilds.
  *
- * **`raster-brightness-max` was 0.22, hardware-reported as unusably dark on a topo basemap at
- * night, 2026-08-26.** Raised to 0.32 — see `MapPalette.NIGHT`'s own doc comment, "Third pass,"
- * for the full account of why 0.32 (not further, and not by lightening the ground alone) and how
- * every marker colour was re-solved to hold both its contrast floor and its separation from every
- * other marker at the new tone. Past roughly 0.44, no colour — including white — can reach 4.0:1
- * against the resulting ground at all, which is a hard ceiling on this value, not a taste choice.
- * Whether 0.32 itself is comfortable at 3am, and whether the imagery basemap (already dark) is
- * over- or under-dimmed by the same settings, remain device-gate questions — the imagery case in
- * particular is untested and may well want its own values.
+ * ## Dimming removed, 2026-08-26
+ *
+ * `raster-brightness-max` dimmed the ground — `0.32` most recently (raised from an initial `0.22`,
+ * hardware-reported as unusably dark; see `MapPalette.NIGHT`'s doc comment, "Third pass," for that
+ * whole account). Requested directly: dimming created a *different* problem — the night map read
+ * lighter than the app's own dark-theme chrome around it (measured: this app's darkest surface
+ * colours sit at 0.005–0.038 relative luminance; the dimmed ground at 0.32 sat at 0.099, roughly
+ * 3–20× brighter), a visible imbalance between the map and the UI framing it.
+ *
+ * **Removed outright, not retargeted to a lower cap or a no-op value.** A lower cap reproduces the
+ * `0.22` legibility failure this file's own history already found and rejected once, and Android's
+ * own display/night-mode handling already does real work here that a per-app dim on top of it was
+ * fighting rather than complementing. `raster-brightness-max` is not a property this style JSON
+ * sets any more, night or day — night's ground is now the same brightness day's is.
+ *
+ * **The eventual replacement is colour inversion, not dimming — deliberately out of scope for this
+ * session.** Inverting the basemap's own colours (pale background → dark, dark linework → pale)
+ * would give a genuinely dark-toned map without dimming's flattened dynamic range, but MapLibre's
+ * raster paint properties (`opacity`/`hue-rotate`/`brightness-min`/`brightness-max`/`saturation`/
+ * `contrast`/`resampling`/`fade-duration` — the complete set, checked with `javap` against the
+ * pinned `13.5.0` artifact) have no per-pixel invert. Real inversion would mean intercepting and
+ * transforming tile images before MapLibre renders them, new infrastructure this session did not
+ * build. Tracked as a deferred research item in `docs/plans/map-redesign.md`, not just here, so it
+ * survives past this session rather than living only in a code comment.
+ *
+ * **Markers stay legible on the now-bright ground via shape, not colour.** `MapPalette.NIGHT_WARM`/
+ * `NIGHT_INK` are unchanged and no longer clear their contrast floors against the brighter ground
+ * on their own — but every night icon (`SightingsMap.kt`'s `*Bitmap` functions) now draws a
+ * darkened, semi-transparent halo behind its fill, which keeps it visible against a light or dark
+ * background alike. `MapPaletteTest`'s tile-contrast assertion is still expected to fail; the halo
+ * is what actually keeps markers visible now, not that contrast floor.
  */
 private const val NIGHT_RASTER_PAINT = """,
           "paint": {
-            "raster-brightness-max": 0.32,
             "raster-saturation": -0.35,
             "raster-contrast": 0.1
           }"""

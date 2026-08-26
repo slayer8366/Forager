@@ -16,24 +16,23 @@ import kotlin.math.sqrt
  * [MapPalette.NIGHT] no longer makes that second claim: every marker field on it holds
  * [MapPalette.NIGHT_WARM] or [MapPalette.NIGHT_INK], and `SightingsMap.kt`'s icon shapes are what
  * keep night-mode markers apart now, not hue — see [MapPalette.NIGHT]'s own doc comment ("Fifth
- * pass") for why. This file has no way to check shape, so it checks what it can: that the shared
- * two colours themselves are legible.
+ * pass") for why. This file no longer checks night's two shared colours against a tile reference
+ * either, for the same reason — see the removed-test note ahead of the mark-on-mark checks below.
+ * What it still checks for night: [MapPalette.NIGHT_WARM] and [MapPalette.NIGHT_INK] contrast
+ * against *each other* (the mark-on-mark bar), and that each sits on the expected side of every
+ * day marker's lightness — legibility against the ground itself is a hardware question now, not a
+ * colour-arithmetic one, since it comes from `SightingsMap.kt`'s icon halo rather than tile
+ * contrast (`BasemapStyles.kt`'s `NIGHT_RASTER_PAINT` doc comment, "Dimming removed").
  *
  * ## What this does not establish
  *
- * Legibility against *real tiles*, or that the night icon shapes actually read as distinct from
- * each other on a real screen. Both tile references are modelled, not sampled. These checks bound
- * regressions against a stated reference; the README's "Not yet verified" section is where the
- * hardware question lives. A green run here is not evidence that the map reads well, day or
- * night.
+ * Legibility against *real tiles*, night or day, or that the night icon shapes and halos actually
+ * read as distinct from each other and from the ground on a real screen. The day tile reference is
+ * modelled, not sampled. These checks bound regressions against a stated reference; the README's
+ * "Not yet verified" section is where the hardware question lives. A green run here is not
+ * evidence that the map reads well, day or night.
  */
 class MapPaletteTest {
-
-    /**
-     * [MapPalette.NIGHT_WARM] was authored to a target, so it is held to one: 4.0:1, comfortably
-     * above WCAG's 3:1 non-text bar, against the dimmed-tile reference it was designed for.
-     */
-    private val minimumNightMarkerContrast = 4.0
 
     /**
      * The day palette is held to a **ratchet, not a bar**, and the reason is worth stating rather
@@ -91,14 +90,6 @@ class MapPaletteTest {
         if (failures.isNotEmpty()) fail("Day marker contrast:\n  " + failures.joinToString("\n  "))
     }
 
-    @Test
-    fun `NIGHT_WARM clears the night contrast floor against the night tile reference`() {
-        val ratio = contrastRatio(MapPalette.NIGHT_WARM, MapPalette.NIGHT_TILE_REFERENCE)
-        if (ratio < minimumNightMarkerContrast) {
-            fail("NIGHT_WARM is %.2f:1 against NIGHT_TILE_REFERENCE, below %.2f:1".format(ratio, minimumNightMarkerContrast))
-        }
-    }
-
     /**
      * Every one of [MapPalette.NIGHT]'s nine fields must resolve to exactly one of the two shared
      * values — the whole point of the fifth pass was collapsing nine independently-tuned colours
@@ -125,20 +116,19 @@ class MapPaletteTest {
     }
 
     /**
-     * Pins the gap between the two palettes so it cannot be closed by accident in the wrong
-     * direction. [MapPalette.NIGHT_WARM] was designed to a contrast target; the day palette was
-     * not, and measures worse. If a future edit ever makes night the weaker of the two against its
-     * own ground, something has gone backwards.
+     * There used to be two tests here asserting [MapPalette.NIGHT_WARM]'s contrast against
+     * [MapPalette.NIGHT_TILE_REFERENCE] — a 4.0:1 floor, and a "no worse than day's weakest
+     * marker" ratchet. Both are gone, not weakened: since `BasemapStyles.kt` stopped dimming the
+     * night ground ("Dimming removed, 2026-08-26" in that file's `NIGHT_RASTER_PAINT` doc
+     * comment), [MapPalette.NIGHT_TILE_REFERENCE] equals [MapPalette.DAY_TILE_REFERENCE] — a light
+     * tile — and [MapPalette.NIGHT_WARM] is itself a light colour, never retuned for that ground
+     * (by design: night-mode legibility now comes from the icon halo `SightingsMap.kt`'s
+     * `*Bitmap` functions draw, not from tile contrast). Measured: 1.26:1, well under both the old
+     * 4.0:1 floor and day's weakest marker (1.79:1) — a real, expected number, not a bug. Asserting
+     * either old claim would just pin a known-false statement green. What legibility this scheme
+     * actually has is a hardware question now, same as the shape-differentiation claim below it —
+     * see the class doc comment's "What this does not establish" and README's "Not yet verified".
      */
-    @Test
-    fun `night is not less legible against its ground than day is against its own`() {
-        val worstDay = markers(MapPalette.DAY).values
-            .minOf { contrastRatio(it, MapPalette.DAY_TILE_REFERENCE) }
-        val nightRatio = contrastRatio(MapPalette.NIGHT_WARM, MapPalette.NIGHT_TILE_REFERENCE)
-        if (nightRatio < worstDay) {
-            fail("NIGHT_WARM (%.2f:1) is now worse than day's weakest marker (%.2f:1)".format(nightRatio, worstDay))
-        }
-    }
 
     /**
      * The stroke and the glyph are checked against the marker they sit on, not against the tile —

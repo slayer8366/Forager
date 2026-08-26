@@ -11,15 +11,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Night mode's basemap dimming, checked at the level a JVM test can actually reach: the style JSON
+ * Night mode's basemap paint, checked at the level a JVM test can actually reach: the style JSON
  * `styleJsonFor` produces. `BasemapStyleTest`'s own doc comment records why the layers themselves
  * cannot be constructed here — every MapLibre `Layer`/`Source` subclass constructor calls a native
  * initialiser — so this asserts the document handed to MapLibre, not the render.
  *
  * That boundary is the point of the check rather than a limitation of it: the failure this guards
  * against is the paint block being absent, malformed, or applied in day mode, all of which are
- * properties of the JSON. Whether 0.32 brightness is *comfortable* is a device-gate question and
- * no assertion here speaks to it.
+ * properties of the JSON. Whether the desaturation/contrast tuning is *comfortable*, and whether
+ * markers stay legible against the now-full-brightness ground (see `BasemapStyles.kt`'s
+ * `NIGHT_RASTER_PAINT` doc comment, "Dimming removed"), are device-gate questions and no assertion
+ * here speaks to either.
  */
 class BasemapNightStyleTest {
 
@@ -41,17 +43,21 @@ class BasemapNightStyleTest {
         }
     }
 
+    /**
+     * No brightness assertion here any more — see `BasemapStyles.kt`'s `NIGHT_RASTER_PAINT` doc
+     * comment, "Dimming removed": `raster-brightness-max` is not a property this style JSON sets
+     * at all now, night or day, so there is nothing to assert a range on.
+     */
     @Test
-    fun `night mode dims, desaturates and re-sharpens every basemap`() {
+    fun `night mode desaturates and re-sharpens every basemap, without dimming it`() {
         for (basemap in Basemap.entries) {
             val paint = rasterLayer(basemap, night = true)["paint"]
                 ?: error("${basemap.name} has no raster paint in night mode")
             val obj = paint.jsonObject
 
-            val brightness = obj.getValue("raster-brightness-max").jsonPrimitive.double
             assertTrue(
-                "${basemap.name}: brightness cap $brightness should dim well below full",
-                brightness in 0.05..0.45,
+                "${basemap.name}: raster-brightness-max should not be set at all -- dimming was removed",
+                "raster-brightness-max" !in obj,
             )
 
             val saturation = obj.getValue("raster-saturation").jsonPrimitive.double
@@ -63,29 +69,6 @@ class BasemapNightStyleTest {
             val contrast = obj.getValue("raster-contrast").jsonPrimitive.double
             assertTrue("${basemap.name}: contrast $contrast out of spec range", contrast in -1.0..1.0)
         }
-    }
-
-    /**
-     * The dimming and the night palette are two halves of one decision: `MapPalette.NIGHT`'s
-     * contrast is asserted against `NIGHT_TILE_REFERENCE`, which models what the tiles look like
-     * *after* this paint block is applied. If someone raises the brightness cap without revisiting
-     * that reference, the palette's contrast numbers quietly stop describing the real ground.
-     *
-     * This cannot verify the modelled tone is right — that is hardware's job — but it can refuse to
-     * let the two drift apart silently, by pinning the value the reference was computed for.
-     */
-    @Test
-    fun `the brightness cap is the one MapPalette's night tile reference was modelled for`() {
-        val brightness = rasterLayer(Basemap.DEFAULT, night = true)
-            .getValue("paint").jsonObject
-            .getValue("raster-brightness-max").jsonPrimitive.double
-        assertEquals(
-            "Changing this means re-modelling MapPalette.NIGHT_TILE_REFERENCE and re-checking " +
-                "MapPaletteTest's night contrast figures against the new ground.",
-            0.32,
-            brightness,
-            1e-9,
-        )
     }
 
     @Test

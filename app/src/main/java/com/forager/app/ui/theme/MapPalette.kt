@@ -228,9 +228,13 @@ data class MapPalette(
 
         /**
          * The single warm fill every night-mode marker and line draws with, per [NIGHT]'s own doc
-         * comment ("Fifth pass"). Clears the 4.0:1 contrast floor against [NIGHT_TILE_REFERENCE]
-         * with real margin (≈4.4:1) — legibility no longer has to share headroom with keeping seven
-         * hues apart, since shape does that job now.
+         * comment ("Fifth pass"). Authored to clear a 4.0:1 contrast floor against the *dimmed*
+         * ground [NIGHT_TILE_REFERENCE] modelled at the time — that floor is not current: since
+         * "Dimming removed," 2026-08-26 (`BasemapStyles.kt`'s `NIGHT_RASTER_PAINT` doc comment),
+         * [NIGHT_TILE_REFERENCE] equals [DAY_TILE_REFERENCE] and this value was not retuned for it
+         * (measures ≈1.26:1 there now — see the removed-test note in `MapPaletteTest.kt`). Left
+         * unchanged on purpose: legibility no longer comes from tile contrast at all, but from the
+         * darkened halo `SightingsMap.kt`'s night icons draw behind this fill.
          *
          * Declared before [NIGHT]: Kotlin initializes companion object properties in source order,
          * so [NIGHT]'s constructor call needs this (and [NIGHT_INK]) already assigned, not read as
@@ -259,27 +263,35 @@ data class MapPalette(
             waypoint = NIGHT_WARM,
         )
 
+        /** The reference pale topo tile the day palette is checked against. Provisional, as above. */
+        val DAY_TILE_REFERENCE = 0xFFE8E4DC.toInt()
+
         /**
-         * The luminance the dimmed basemap is assumed to land at, as a reference colour for
-         * contrast checks.
+         * The luminance the basemap is assumed to land at, as a reference colour for contrast
+         * checks.
          *
          * **Provisional**, and treated as such — the same status and for the same reason as
          * `MotionPrecedence.MARKER_CLUSTERING_THRESHOLD`. It is a modelled value for a pale topo
-         * tile under night mode's raster dimming, not a sampled one, and real tiles vary hugely
-         * within a single basemap (a snowfield and a forest canopy are not the same ground).
-         * `MapPaletteTest` uses it to bound regressions; it does not establish that anything is
-         * legible. Only hardware does that — see the README's "Not yet verified" section.
+         * tile, not a sampled one, and real tiles vary hugely within a single basemap (a snowfield
+         * and a forest canopy are not the same ground). `MapPaletteTest` uses it to bound
+         * regressions; it does not establish that anything is legible. Only hardware does that —
+         * see the README's "Not yet verified" section.
          *
-         * Scaled proportionally from the first pass's `0x3E3D39` for `raster-brightness-max`'s
-         * move from 0.22 to 0.32 (`BasemapStyles.kt`) — the same modelling approach that value
-         * used, not a fresh sample. See [NIGHT]'s own doc comment, "Third pass," for why the ground
-         * moved this far. Unchanged by the fifth pass, which only changes what draws on this
-         * ground, not the ground itself.
+         * **Equal to [DAY_TILE_REFERENCE] as of "Dimming removed," 2026-08-26** (see
+         * `BasemapStyles.kt`'s `NIGHT_RASTER_PAINT` doc comment for why): `raster-brightness-max`
+         * is no longer set for night's tiles at all, so this models the same pale ground day mode
+         * does, adjusted for `raster-saturation`/`raster-contrast` only — both small effects on an
+         * already near-neutral tone, not modelled separately from the day reference for that
+         * reason. `MapPalette.NIGHT_WARM`/`NIGHT_INK` were authored against the old, dimmed value
+         * and do not clear their contrast floors against this one; `SightingsMap.kt`'s night icons
+         * now stay visible via a darkened halo behind each fill instead, not via tile contrast —
+         * see this value's own git history for the exact prior colour if that context is needed.
+         *
+         * Declared after [DAY_TILE_REFERENCE]: Kotlin initializes companion object properties in
+         * source order, so this reference needs that value already assigned, not read as the
+         * default `0` a forward reference would see.
          */
-        val NIGHT_TILE_REFERENCE = 0xFF5A5953.toInt()
-
-        /** The reference pale topo tile the day palette is checked against. Provisional, as above. */
-        val DAY_TILE_REFERENCE = 0xFFE8E4DC.toInt()
+        val NIGHT_TILE_REFERENCE = DAY_TILE_REFERENCE
 
         fun forMode(night: Boolean): MapPalette = if (night) NIGHT else DAY
     }

@@ -406,14 +406,23 @@ fun SightingsMap(
  * marker.
  */
 private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette, night: Boolean) {
-    style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
+    // Every night icon gets a darkened, semi-transparent halo behind its fill so it stays visible
+    // against a light *or* dark background — see NIGHT_ICON_HALO_ALPHA's own doc comment for why
+    // this replaced tile-contrast-against-the-ground as the way markers stay legible at night.
+    // null on day, unchanged from before this existed.
+    val nightHaloColor = if (night) withAlpha(palette.sightingDotStroke, NIGHT_ICON_HALO_ALPHA) else null
+
+    style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip, nightHaloColor))
 
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
     if (night) {
         // Night differentiates markers by icon shape, not hue — see MapPalette.NIGHT's own doc
         // comment, "Fifth pass", for why. A target ring around a dot, distinct from every other
         // night icon's silhouette.
-        style.addImage(SEARCH_CENTER_ICON_ID, searchCentreTargetBitmap(density, palette.searchCentre, palette.sightingDotStroke))
+        style.addImage(
+            SEARCH_CENTER_ICON_ID,
+            searchCentreTargetBitmap(density, palette.searchCentre, palette.sightingDotStroke, nightHaloColor!!),
+        )
         style.addLayer(
             SymbolLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
                 PropertyFactory.iconImage(SEARCH_CENTER_ICON_ID),
@@ -434,7 +443,10 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
 
     style.addSource(GeoJsonSource(SIGHTING_SOURCE_ID, emptyFeatureCollection()))
     if (night) {
-        style.addImage(SIGHTING_DOT_ICON_ID, sightingDotBitmap(density, palette.sightingDot, palette.sightingDotStroke))
+        style.addImage(
+            SIGHTING_DOT_ICON_ID,
+            sightingDotBitmap(density, palette.sightingDot, palette.sightingDotStroke, nightHaloColor!!),
+        )
         style.addLayer(
             SymbolLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
                 PropertyFactory.iconImage(SIGHTING_DOT_ICON_ID),
@@ -488,7 +500,10 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
 
     style.addSource(GeoJsonSource(AREA_MARKER_SOURCE_ID, emptyFeatureCollection()))
     if (night) {
-        style.addImage(AREA_MARKER_ICON_ID, areaMarkerBadgeBitmap(density, palette.areaMarkerBackground))
+        style.addImage(
+            AREA_MARKER_ICON_ID,
+            areaMarkerBadgeBitmap(density, palette.areaMarkerBackground, nightHaloColor!!),
+        )
         style.addLayer(
             SymbolLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
                 PropertyFactory.iconImage(AREA_MARKER_ICON_ID),
@@ -532,7 +547,7 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
 
     // Last, so a waypoint marker never sits under a planned-trip diamond or an area label if two
     // ever land on the same point.
-    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density, palette.waypoint))
+    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density, palette.waypoint, nightHaloColor))
     style.addSource(GeoJsonSource(WAYPOINT_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         SymbolLayer(WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID).withProperties(
@@ -732,29 +747,50 @@ internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureColle
 }
 
 /**
+ * Multiplies [color]'s existing alpha by [fraction] (0f–1f), keeping its RGB untouched. Used to
+ * turn [MapPalette.NIGHT]'s opaque ink colour into the semi-transparent halo every night icon
+ * draws behind its fill — see [NIGHT_ICON_HALO_ALPHA]'s own doc comment.
+ */
+private fun withAlpha(color: Int, fraction: Float): Int {
+    val alpha = ((color ushr 24) * fraction).toInt().coerceIn(0, 255)
+    return (alpha shl 24) or (color and 0x00FFFFFF)
+}
+
+/**
  * A solid diamond bitmap for the planned-trip [SymbolLayer]'s `icon-image`, distinct in shape and
  * colour from both the translucent sighting-dot circles and the numbered area-marker circles, so
  * "planned" reads as its own kind of pin rather than a variant of either — same intent as the
  * deleted osmdroid `plannedTripIcon`, redrawn because MapLibre's `SymbolLayer` needs a named image
  * registered on the [Style] (`Style.addImage`) rather than a per-`Marker` `Drawable`.
+ *
+ * [haloColor] is `null` on day (this icon's shape and behaviour are otherwise unchanged there) and
+ * a semi-transparent ink on night — see [NIGHT_ICON_HALO_ALPHA]'s doc comment for why. When
+ * present, the halo is drawn at this function's original, un-inset diamond bounds, and the coloured
+ * fill shrinks to [NIGHT_ICON_INNER_SCALE] of that, centred, so the halo shows as a border.
  */
-private fun plannedTripDiamondBitmap(density: Float, markerColor: Int): Bitmap {
+private fun plannedTripDiamondBitmap(density: Float, markerColor: Int, haloColor: Int? = null): Bitmap {
     val sizePx = (PLANNED_TRIP_MARKER_SIZE_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-    val paint = Paint().apply {
-        color = markerColor
-        style = Paint.Style.FILL
-        isAntiAlias = true
+
+    fun diamondPath(scale: Float): Path {
+        val inset = sizePx * (1f - scale) / 2f
+        return Path().apply {
+            moveTo(sizePx / 2f, inset)
+            lineTo(sizePx - inset, sizePx / 2f)
+            lineTo(sizePx / 2f, sizePx - inset)
+            lineTo(inset, sizePx / 2f)
+            close()
+        }
     }
-    val diamond = Path().apply {
-        moveTo(sizePx / 2f, 0f)
-        lineTo(sizePx.toFloat(), sizePx / 2f)
-        lineTo(sizePx / 2f, sizePx.toFloat())
-        lineTo(0f, sizePx / 2f)
-        close()
+
+    if (haloColor != null) {
+        canvas.drawPath(diamondPath(1f), Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true })
     }
-    canvas.drawPath(diamond, paint)
+    canvas.drawPath(
+        diamondPath(if (haloColor != null) NIGHT_ICON_INNER_SCALE else 1f),
+        Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true },
+    )
     return bitmap
 }
 
@@ -765,33 +801,46 @@ private fun plannedTripDiamondBitmap(density: Float, markerColor: Int): Bitmap {
  * dropped a pin here" colour convention day mode's other roles don't otherwise use. By night,
  * [MapPalette.NIGHT_WARM] like every other marker; the pin *shape* itself, not colour, is what
  * keeps a waypoint distinct at night — see [MapPalette.NIGHT]'s doc comment, "Fifth pass."
+ *
+ * [haloColor] follows [plannedTripDiamondBitmap]'s own convention: `null` on day, a semi-
+ * transparent ink on night. The halo pin is drawn at this function's original, un-inset bounds —
+ * tip included, so [initializeOverlayLayers]'s `iconAnchor(BOTTOM)` still anchors precisely to the
+ * real coordinate — and the coloured fill insets uniformly inside it.
  */
-private fun waypointPinBitmap(density: Float, markerColor: Int): Bitmap {
+private fun waypointPinBitmap(density: Float, markerColor: Int, haloColor: Int? = null): Bitmap {
     val widthPx = (WAYPOINT_MARKER_WIDTH_DP * density).toInt().coerceAtLeast(1)
     val heightPx = (WAYPOINT_MARKER_HEIGHT_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-    val paint = Paint().apply {
-        color = markerColor
-        style = Paint.Style.FILL
-        isAntiAlias = true
+
+    fun pinPath(scale: Float): Path {
+        val inset = widthPx * (1f - scale) / 2f
+        val headRadius = widthPx / 2f - inset
+        val headCenterX = widthPx / 2f
+        val headCenterY = headRadius + inset
+        val path = Path().apply {
+            addCircle(headCenterX, headCenterY, headRadius, Path.Direction.CW)
+        }
+        // The tail: a triangle from the circle's sides down to the bottom-center tip, unioned with
+        // the circle above so the whole pin fills as one shape.
+        path.addPath(
+            Path().apply {
+                moveTo(headCenterX - headRadius, headCenterY)
+                lineTo(headCenterX, heightPx.toFloat() - inset)
+                lineTo(headCenterX + headRadius, headCenterY)
+                close()
+            },
+        )
+        return path
     }
-    val headRadius = widthPx / 2f
-    val headCenterY = headRadius
-    val path = Path().apply {
-        addCircle(headRadius, headCenterY, headRadius, Path.Direction.CW)
+
+    if (haloColor != null) {
+        canvas.drawPath(pinPath(1f), Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true })
     }
-    // The tail: a triangle from the circle's sides down to the bottom-center tip, unioned with the
-    // circle above so the whole pin fills as one shape.
-    path.addPath(
-        Path().apply {
-            moveTo(0f, headCenterY)
-            lineTo(headRadius, heightPx.toFloat())
-            lineTo(widthPx.toFloat(), headCenterY)
-            close()
-        },
+    canvas.drawPath(
+        pinPath(if (haloColor != null) NIGHT_ICON_INNER_SCALE else 1f),
+        Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true },
     )
-    canvas.drawPath(path, paint)
     return bitmap
 }
 
@@ -801,14 +850,18 @@ private fun waypointPinBitmap(density: Float, markerColor: Int): Bitmap {
  * baked into a bitmap instead because night now differentiates every marker by icon shape — see
  * [MapPalette.NIGHT]'s doc comment, "Fifth pass." The simplest silhouette of the three new night
  * icons, matching this marker's own name: a plain dot is what "sighting dot" already says it is.
+ *
+ * [haloColor]: see [NIGHT_ICON_HALO_ALPHA]'s doc comment. Drawn first, at the full icon bounds, so
+ * it shows beyond the existing ink stroke rather than being covered by it.
  */
-private fun sightingDotBitmap(density: Float, fillColor: Int, strokeColor: Int): Bitmap {
+private fun sightingDotBitmap(density: Float, fillColor: Int, strokeColor: Int, haloColor: Int): Bitmap {
     val sizePx = (SIGHTING_DOT_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val center = sizePx / 2f
+    canvas.drawCircle(center, center, center, Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true })
     val strokeWidthPx = SIGHTING_DOT_ICON_STROKE_WIDTH_DP * density
-    val fillRadius = center - strokeWidthPx / 2f
+    val fillRadius = center - strokeWidthPx / 2f - (NIGHT_ICON_HALO_MARGIN_DP * density)
     canvas.drawCircle(
         center,
         center,
@@ -838,14 +891,18 @@ private fun sightingDotBitmap(density: Float, fillColor: Int, strokeColor: Int):
  * reading as "centred here" rather than "a location," distinct from [sightingDotBitmap]'s plain
  * dot and every other night icon's silhouette. Replaces day mode's plain circle-with-white-stroke
  * [CircleLayer] for the same reason as [sightingDotBitmap] — see [MapPalette.NIGHT]'s doc comment.
+ *
+ * [haloColor]: see [NIGHT_ICON_HALO_ALPHA]'s doc comment. Drawn first, at the full icon bounds, so
+ * it shows beyond the target ring rather than being covered by it.
  */
-private fun searchCentreTargetBitmap(density: Float, ringColor: Int, dotColor: Int): Bitmap {
+private fun searchCentreTargetBitmap(density: Float, ringColor: Int, dotColor: Int, haloColor: Int): Bitmap {
     val sizePx = (SEARCH_CENTER_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val center = sizePx / 2f
+    canvas.drawCircle(center, center, center, Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true })
     val ringStrokeWidthPx = SEARCH_CENTER_ICON_RING_WIDTH_DP * density
-    val ringRadius = center - ringStrokeWidthPx / 2f
+    val ringRadius = center - ringStrokeWidthPx / 2f - (NIGHT_ICON_HALO_MARGIN_DP * density)
     canvas.drawCircle(
         center,
         center,
@@ -877,14 +934,24 @@ private fun searchCentreTargetBitmap(density: Float, ringColor: Int, dotColor: I
  * [searchCentreTargetBitmap]'s ring, so a numbered area reads as its own kind of marker at a
  * glance even before the number itself is legible. Replaces day mode's plain circle [CircleLayer]
  * for the same reason as the other two — see [MapPalette.NIGHT]'s doc comment.
+ *
+ * [haloColor]: see [NIGHT_ICON_HALO_ALPHA]'s doc comment. Drawn first, at the full icon bounds; the
+ * coloured badge insets inside it by [NIGHT_ICON_HALO_MARGIN_DP] on every side.
  */
-private fun areaMarkerBadgeBitmap(density: Float, fillColor: Int): Bitmap {
+private fun areaMarkerBadgeBitmap(density: Float, fillColor: Int, haloColor: Int): Bitmap {
     val sizePx = (AREA_MARKER_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val cornerRadiusPx = AREA_MARKER_ICON_CORNER_RADIUS_DP * density
     canvas.drawRoundRect(
         RectF(0f, 0f, sizePx.toFloat(), sizePx.toFloat()),
+        cornerRadiusPx,
+        cornerRadiusPx,
+        Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true },
+    )
+    val margin = NIGHT_ICON_HALO_MARGIN_DP * density
+    canvas.drawRoundRect(
+        RectF(margin, margin, sizePx - margin, sizePx - margin),
         cornerRadiusPx,
         cornerRadiusPx,
         Paint().apply {
@@ -955,6 +1022,28 @@ private const val SEARCH_CENTER_ICON_RING_WIDTH_DP = 2.5f
 private const val SEARCH_CENTER_ICON_DOT_RATIO = 0.4f
 private const val AREA_MARKER_ICON_SIZE_DP = 26f
 private const val AREA_MARKER_ICON_CORNER_RADIUS_DP = 6f
+
+// The night-icon halo -- see initializeOverlayLayers' nightHaloColor and the *Bitmap functions'
+// own doc comments ("darkened transparent borders around the icons") for the problem this solves:
+// once BasemapStyles.kt stopped dimming the night ground, MapPalette.NIGHT_WARM/NIGHT_INK no
+// longer clear a contrast floor against it on their own, so every night icon now draws this halo
+// behind its fill instead, keeping it visible against a light or dark ground alike.
+//
+// NIGHT_ICON_HALO_ALPHA: how opaque the halo ring is, as a fraction of NIGHT_INK's own alpha
+// (which is fully opaque, so this is the halo's effective opacity outright). High enough to read
+// as a solid border against either a pale or a dark tile, low enough that it doesn't itself read
+// as a second, competing marker.
+private const val NIGHT_ICON_HALO_ALPHA = 0.55f
+
+// NIGHT_ICON_INNER_SCALE: the coloured fill shrinks to this fraction of the full icon bounds,
+// centred, so the halo shows as a visible border rather than being fully covered by the fill.
+private const val NIGHT_ICON_INNER_SCALE = 0.82f
+
+// NIGHT_ICON_HALO_MARGIN_DP: for the icons whose fill is inset by a fixed margin rather than a
+// uniform scale (sightingDot/searchCentre/areaMarker, all of which already had a stroke or ring
+// width to reason about), the same border-width intent as NIGHT_ICON_INNER_SCALE expressed as an
+// absolute inset instead, so the halo border reads as roughly the same visual width across icons.
+private const val NIGHT_ICON_HALO_MARGIN_DP = 2f
 
 // Breadcrumb thicker than connector now (was the other way around) -- see CONNECTOR_STROKE_WIDTH_PX.
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f

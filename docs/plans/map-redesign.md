@@ -375,6 +375,47 @@ needs extending, rather than re-deriving the fix from scratch.
   real-world number), how the full-bleed layout reads on very small/large
   screens or at large font scale. Add to README's "Not yet verified".
 
+## Deferred: night-mode colour inversion (recorded 2026-08-26)
+
+Raised during live hardware-testing feedback on the night map, after the
+owner reported an imbalance of light between the map and the app's own
+dark-theme chrome — the dimmed night ground (`raster-brightness-max` 0.32
+at the time) measured 0.099 relative luminance against the app's darkest
+surfaces at 0.005–0.038, roughly 3–20× brighter, a visible mismatch.
+
+**What was asked for:** keep the map at day-mode brightness, but invert its
+own colours (pale background → dark, dark linework → pale) for a genuinely
+dark-toned map without the flattened dynamic range dimming produces.
+
+**Why it wasn't built this session.** Checked with `javap` against the
+pinned MapLibre `13.5.0` AAR's `PropertyFactory`: the complete set of raster
+paint properties is `opacity`/`hue-rotate`/`brightness-min`/`brightness-max`/
+`saturation`/`contrast`/`resampling`/`fade-duration` — no per-pixel invert.
+Real inversion means intercepting and transforming tile images before
+MapLibre renders them (a custom `Source`/tile pipeline, or a post-process
+step on the raw tile bytes) — new infrastructure, not a paint-property
+tweak, and out of scope for a session already in progress on the marker
+redesign below.
+
+**What shipped instead, this session:** dimming was removed outright rather
+than retargeted (`BasemapStyles.kt`'s `NIGHT_RASTER_PAINT` doc comment,
+"Dimming removed" — night's ground is now the same brightness day's is, so
+the imbalance this section describes is resolved for now without inversion).
+Night-mode markers moved from per-marker hue differentiation to icon shape
+plus a shared warm fill/dark ink pair (`MapPalette.NIGHT`, "Fifth pass"),
+with a darkened, semi-transparent halo drawn behind every night icon
+(`SightingsMap.kt`'s `*Bitmap` functions) so they stay legible against a
+light or dark ground alike, since they no longer clear a tile-contrast floor
+on their own (see `MapPaletteTest.kt`'s removed-test note).
+
+**If inversion is picked up later:** it would let night mode use a genuinely
+dark map — likely simplifying the marker story back toward per-marker hue
+differentiation again, since a dark ground gives more contrast headroom
+than a light one ever could. Whether that's worth undoing the icon-shape
+work above is a call for whoever picks this up, informed by whatever
+hardware feedback the current (undimmed, icon-halo) approach gets in the
+meantime.
+
 ## Delivery
 
 1. Confirm Phase 1 (`feature/mushroom-log`) is merged to `main`, and read

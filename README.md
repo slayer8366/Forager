@@ -755,19 +755,35 @@ paints in it — same limitation the paragraph above already states, for the
 renderer actually running today.
 
 **Map overlay legibility has no headless assertion that establishes it.**
-`docs/plans/understory-design-system.md` proposes a `MapPalette` that gives
-the seven overlay colours a dark-theme variant and a `MapPaletteTest` that
-guards it. That test can assert derivation (each colour traces to a named
-role and does not equal it) and contrast against a *stated* basemap
-luminance range — but that range is a provisional constant, not a measured
-one, because the overlay colours are drawn over a basemap raster rather
-than a theme surface role, so the WCAG-against-surface check the rest of
-the palette gets does not reach them. The test bounds regressions; it does
-not establish that any overlay colour is actually legible against real
-tiles, in either theme. Whether the sighting dots, the dashed connector,
-the planned-trip diamond, the breadcrumb trail and the waypoint pin stay
+`MapPalette` gives day and night modes distinct treatments now, and
+`MapPaletteTest` guards what it can of each. Day still differentiates its
+seven marker roles by hue, checked with a contrast *ratchet* (not a bar)
+against a stated, provisional pale-tile reference — the ratchet exists
+because the shipped day colours don't clear 4:1 or even 3:1 against that
+reference at all, and were tuned on real hardware instead; the test pins
+the measured minimum so nothing quietly gets worse, without claiming the
+arithmetic is the right measure for a saturated mark on a busy, desaturated
+basemap. Night no longer makes a colour-legibility claim against the tile
+at all: since night mode stopped dimming the basemap (`BasemapStyles.kt`'s
+`NIGHT_RASTER_PAINT` doc comment, "Dimming removed," 2026-08-26), it
+differentiates markers by icon shape instead of hue, one shared warm fill
+and one shared dark ink standing in for the nine independently-tuned
+colours it used before (`MapPalette.NIGHT`, "Fifth pass"), with every night
+icon drawing a darkened, semi-transparent halo behind its fill
+(`SightingsMap.kt`'s `*Bitmap` functions) rather than relying on tuned
+contrast against the ground. `MapPaletteTest` checks what colour arithmetic
+still can — the two night colours' contrast against each other, and that
+each sits on the expected side of every day marker's lightness — and says
+plainly, in a comment where the old tile-contrast assertions used to be,
+that legibility against the ground and shape-distinctness are hardware
+questions it cannot answer. Whether the sighting dots, the connector, the
+planned-trip diamond, the breadcrumb trail and the waypoint pin stay
 distinguishable from each other and from the tiles underneath — in sun, in
-shade, on topo and on plain — is a device question and is open.
+shade, on topo and on plain, day and night — is a device question and is
+open. Colour inversion as night mode's eventual replacement for the
+icon/halo scheme is tracked as a deferred research item, not built this
+session — see `docs/plans/map-redesign.md`, "Deferred: night-mode colour
+inversion."
 
 The **offline search cache** is verified headlessly and not on hardware. What
 is measured: the Room round trip, the five-entry LRU and its eviction order
