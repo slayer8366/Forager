@@ -552,7 +552,7 @@ fun AvailabilityScreen(
     // day when there is no fix — an unrequested dark map is worse than a bright one, and "no
     // location yet" is not evidence of darkness.
     val automaticNight = uiState.liveLocation?.let { fix ->
-        CivilTwilight.isNight(twilightClockMillis, fix.latitude, fix.longitude)
+        CivilTwilight.isNight(twilightClockMillis, fix.lat, fix.lng)
     } ?: false
     var nightModeHold by remember { mutableStateOf<MapNightMode.NightModeHold?>(null) }
     val isNightMode = MapNightMode.resolve(automaticNight, nightModeHold)
@@ -765,6 +765,7 @@ fun AvailabilityScreen(
                     distanceUnit = distanceUnit,
                     currentTime = currentTime,
                     mapSlot = mapSlot,
+                    isNightMode = isNightMode,
                     onRegionPicked = { location ->
                         onOfflineMapLatChanged(location.lat.toString())
                         onOfflineMapLngChanged(location.lng.toString())
@@ -1138,6 +1139,7 @@ fun AvailabilityScreen(
                         distanceUnit = distanceUnit,
                         onDistanceUnitSelected = { distanceUnit = it },
                         currentTime = currentTime,
+                        isNightMode = isNightMode,
                         onOfflineMapLatChanged = onOfflineMapLatChanged,
                         onOfflineMapLngChanged = onOfflineMapLngChanged,
                         onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
@@ -1658,6 +1660,8 @@ private fun CompactSettingsTab(
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     currentTime: CurrentTimeProvider,
+    /** Night mode for the offline-download region picker this tab hosts. */
+    isNightMode: Boolean,
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
@@ -1690,6 +1694,7 @@ private fun CompactSettingsTab(
                     distanceUnit = distanceUnit,
                     currentTime = currentTime,
                     mapSlot = mapSlot,
+                    isNightMode = isNightMode,
                     onRegionPicked = { location ->
                         onOfflineMapLatChanged(location.lat.toString())
                         onOfflineMapLngChanged(location.lng.toString())
@@ -1918,6 +1923,8 @@ private fun OfflineMapsPanel(
     distanceUnit: DistanceUnit,
     currentTime: CurrentTimeProvider,
     mapSlot: MapSlot,
+    /** Night mode for the region picker this panel hosts — see [CentrePinLocationPicker]. */
+    isNightMode: Boolean,
     onRegionPicked: (LatLng) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
     onOfflineMapNameChanged: (String) -> Unit,
