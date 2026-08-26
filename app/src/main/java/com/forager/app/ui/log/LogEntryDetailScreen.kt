@@ -21,12 +21,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SplitButton
+import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -117,7 +123,39 @@ internal fun LogEntryDetailScreen(
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
                 TextButton(onClick = onCancel) { Text("Cancel") }
-                Button(onClick = onSave) { Text("Save") }
+                // Understory step 5: a real SplitButton, not two adjacent Buttons -- see the design
+                // doc's component table. "Save" keeps its exact previous behaviour (commit the
+                // draft, stay on this screen); "Save & close" is new, and composed from two
+                // callbacks this screen already has rather than any new ViewModel plumbing --
+                // onSave() then onBack(), the same two steps a user previously had to do as two
+                // separate taps.
+                var showSaveOptions by remember { mutableStateOf(false) }
+                SplitButton(
+                    leadingButton = {
+                        SplitButtonDefaults.LeadingButton(onClick = onSave) { Text("Save") }
+                    },
+                    trailingButton = {
+                        SplitButtonDefaults.TrailingButton(
+                            checked = showSaveOptions,
+                            onCheckedChange = { showSaveOptions = it },
+                        ) {
+                            Icon(
+                                imageVector = if (showSaveOptions) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                contentDescription = "More save options",
+                            )
+                        }
+                        DropdownMenu(expanded = showSaveOptions, onDismissRequest = { showSaveOptions = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Save & close") },
+                                onClick = {
+                                    showSaveOptions = false
+                                    onSave()
+                                    onBack()
+                                },
+                            )
+                        }
+                    },
+                )
                 IconButton(onClick = onDeleteEntry) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
                 }

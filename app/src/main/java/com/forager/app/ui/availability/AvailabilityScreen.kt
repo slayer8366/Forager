@@ -46,6 +46,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.forager.app.ui.theme.CoordinateMonospace
 import com.forager.app.ui.theme.Spacing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -3872,7 +3873,13 @@ private fun CompassElevationStripContent(
                     Text("·", style = MaterialTheme.typography.labelMedium)
                     Text(
                         text = coordinatesStripText(location, showDecimalDegrees),
-                        style = MaterialTheme.typography.labelMedium,
+                        // Understory step 5: tabular figures on this segment specifically -- see
+                        // CoordinateMonospace's own doc comment. Any monospace family gives every
+                        // digit the same advance width by construction, which is the actual fix
+                        // for the two-line-wrap/ellipsis/touch-interception history this file's own
+                        // class doc comment above records: the line's rendered width no longer
+                        // changes as the digits themselves change.
+                        style = MaterialTheme.typography.labelMedium.copy(fontFamily = CoordinateMonospace),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
