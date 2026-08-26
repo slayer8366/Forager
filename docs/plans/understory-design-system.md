@@ -695,6 +695,54 @@ lost outright.
 | 6 | Swap `BackHandler` → `PredictiveBackHandler` at the dismissible surfaces | Step 5 |
 | — | Medium-window navigation rail | **Deferred, not sequenced.** See Decisions |
 
+### The phase after this one: layout
+
+Agreed 2026-08-26. Recorded here rather than left as an intention, because
+this document's own gap is what prompted it.
+
+**What this phase deliberately does not do.** Steps 1–6 are a token, motion
+and component pass over an arrangement they treat as already correct. Step 5
+is called a finish pass and says so in as many words: the full-bleed map, the
+six-tab bottom nav, the right-edge icon stack and the full-width compass strip
+all stay, and what changes is which component draws them. Nothing in the
+sequence moves anything. The only structural change ever proposed was the
+medium-window rail, and that is a named deferral.
+
+That is a defensible scope — two hardware rounds tuned compact's arrangement —
+but it is narrower than "changing the design entirely", and the difference
+should be visible rather than discovered.
+
+**Why layout comes after and not before**, which is the part worth arguing:
+
+1. **Otherwise the finish pass is done twice.** Step 5 swaps hand-built
+   components into existing positions. Move the positions afterward and the
+   swap is redone against a layout that no longer exists.
+2. **Gate G is what produces the evidence.** Nobody has yet seen this app with
+   a complete token layer on hardware. Redesigning an arrangement before
+   looking at its tuned form is guessing at which parts are actually wrong —
+   and `map-redesign.md` already records one arrangement changed on reasoning
+   and corrected twice on hardware.
+3. **The deferred items are already layout-shaped.** Three findings have
+   accumulated that belong to this phase and to no other: the 360dp drawer on
+   a 600dp window; the open question of where `EXPANDED`'s six destinations
+   live; and `map-redesign.md`'s own note that search is reachable only from
+   the Maps tab. None is a token problem. All three are waiting for a phase
+   that has somewhere to put them.
+
+**The prerequisite, named now rather than hit later.** Tag 06 stops being
+deferrable the moment layout is the work. `AvailabilityScreen.kt` is 4,830
+lines holding 68 of the app's 115 composables behind a 45-parameter entry
+point, with fifteen test files pointed at it. Steps 1–6 barely disturb it —
+they change colours and specs and swap components in place — which is exactly
+why tag 06 could be named and left alone here. A layout rearrangement is the
+opposite: it is precisely the work that file makes expensive, and every change
+in it pays the tax.
+
+So the layout phase either opens with that split or accepts the cost knowingly.
+That is a scoping decision for whoever writes it, not something this document
+should pre-empt — but it should not be a surprise, and it is the reason tag 06
+is recorded as "belongs in its own workstream" rather than "not worth doing".
+
 ### Gate G — the device gate (R4)
 
 Open items has always said the outdoor questions are not headless. The
