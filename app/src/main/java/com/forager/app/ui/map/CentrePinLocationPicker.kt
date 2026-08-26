@@ -64,6 +64,12 @@ fun CentrePinLocationPicker(
     mapSlot: MapSlot,
     region: Region,
     basemap: Basemap,
+    /**
+     * Night mode, passed through to the map the same way the main screen's does. Defaulted so the
+     * journal's own pickers keep today's behaviour until their callers thread it — see this
+     * parameter's call sites.
+     */
+    night: Boolean = false,
     onConfirm: (LatLng) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -86,7 +92,7 @@ fun CentrePinLocationPicker(
             mapSlot(
                 region,
                 MapOverlayContent(),
-                basemap,
+                MapRenderMode(basemap, night),
                 null,
                 {},
                 {},

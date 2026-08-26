@@ -22,6 +22,29 @@ import com.forager.app.domain.model.Waypoint
  * content lists here instead keeps [MapSlot] itself at 7 declared parameters with room for
  * whatever Phase 1c's waypoint markers add next, without hitting the same wall again.
  */
+/**
+ * How the map renders, as one value: which basemap, and whether night mode is on.
+ *
+ * Bundled for the same compiler reason [MapOverlayContent] is — see its doc comment for the
+ * `ComposableFunctionBodyTransformer` crash a `@Composable` function type hits at ten declared
+ * parameters. [MapSlot] was at eight; night mode would have been the ninth, leaving one slot of
+ * headroom before the same wall. Folding it in beside [basemap] keeps the count at eight.
+ *
+ * The grouping is not only expedient. Both fields answer one question — *how should this map draw
+ * right now* — and they are chosen at the same moment by the same control: the icon stack's third
+ * slot toggles [basemap] on tap and [night] on long-press. A type that holds exactly what one
+ * control governs is easier to reason about than two parameters that happen to travel together.
+ */
+data class MapRenderMode(
+    val basemap: Basemap,
+    /**
+     * Night mode: a dimmed basemap and the light-on-dark overlay palette. Not the device's dark
+     * theme, and deliberately not derived from it — see `MapPalette` for why that was tried,
+     * measured and abandoned.
+     */
+    val night: Boolean = false,
+)
+
 data class MapOverlayContent(
     val sightings: List<Sighting> = emptyList(),
     val areas: List<ForagingArea> = emptyList(),
@@ -80,7 +103,7 @@ data class MapOverlayContent(
 typealias MapSlot = @Composable (
     region: Region,
     content: MapOverlayContent,
-    basemap: Basemap,
+    renderMode: MapRenderMode,
     /**
      * When non-null, pans the camera here instead of [region]'s own centre — the map redesign's
      * GPS/locate-me icon (distinct from [region], which stays the search centre; see that button's
@@ -113,13 +136,14 @@ typealias MapSlot = @Composable (
  * The real map. This is the default every production call path gets, so introducing the seam
  * changed no caller: `MainActivity` passes nothing new.
  */
-val SightingsMapSlot: MapSlot = { region, content, basemap, focusOverride, onLongPress, onTap, onCameraIdle, modifier ->
+val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, onLongPress, onTap, onCameraIdle, modifier ->
     SightingsMap(
         region = region,
         sightings = content.sightings,
         areas = content.areas,
         plannedTrips = content.plannedTrips,
-        basemap = basemap,
+        basemap = renderMode.basemap,
+        nightMode = renderMode.night,
         focusOverride = focusOverride,
         onLongPress = onLongPress,
         onTap = onTap,

@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -207,6 +208,9 @@ import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import com.forager.app.ui.map.foragingAreaSummary
 import com.forager.app.ui.motion.MotionTokens
+import com.forager.app.domain.CivilTwilight
+import com.forager.app.domain.MapNightMode
+import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
 import java.time.Instant
 import java.time.LocalDate
@@ -294,6 +298,16 @@ private enum class DrawerPanel {
 
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
 private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
+
+/**
+ * How often the twilight decision is re-evaluated while the screen is open.
+ *
+ * Five minutes. The sun crosses the civil-twilight band in roughly twenty to forty minutes at
+ * temperate latitudes, so this switches within a small fraction of the transition it is watching
+ * for, and a tighter poll would buy precision nobody can perceive. `docs/adr/0001-motion-precedence.md`
+ * ranks performance above the calm layer for exactly this kind of trade.
+ */
+private const val TWILIGHT_RECHECK_INTERVAL_MS = 5 * 60 * 1000L
 
 /**
  * The screen's spacing scale. Padding and gap values across this file used to be picked ad hoc
@@ -518,6 +532,32 @@ fun AvailabilityScreen(
     var selectedMapService by remember { mutableStateOf(MapService.DEFAULT) }
     var isTopoMode by remember { mutableStateOf(true) }
     val basemap = selectedMapService.basemapFor(isTopoMode)
+
+    // Night mode. Automatic from civil twilight at the device's own position, with a long-press
+    // hold on the icon stack's layers slot for when the sun and the conditions disagree.
+    //
+    // The clock is re-read on a timer rather than derived from recomposition: dusk arrives while
+    // the app is open and nothing else would prompt a re-evaluation. TWILIGHT_RECHECK_INTERVAL_MS
+    // is coarse on purpose — the sun crosses the civil-twilight band in minutes, and a tighter
+    // poll would buy precision nobody can perceive at a cost ADR-0001 ranks above it.
+    var twilightClockMillis by remember { mutableStateOf(currentTime.nowEpochMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(TWILIGHT_RECHECK_INTERVAL_MS)
+            twilightClockMillis = currentTime.nowEpochMillis()
+        }
+    }
+    // uiState.liveLocation, not the searched region: night mode is about the light where the
+    // *device* is, and those diverge exactly when a trip elsewhere is being planned. Falls back to
+    // day when there is no fix — an unrequested dark map is worse than a bright one, and "no
+    // location yet" is not evidence of darkness.
+    val automaticNight = uiState.liveLocation?.let { fix ->
+        CivilTwilight.isNight(twilightClockMillis, fix.latitude, fix.longitude)
+    } ?: false
+    var nightModeHold by remember { mutableStateOf<MapNightMode.NightModeHold?>(null) }
+    val isNightMode = MapNightMode.resolve(automaticNight, nightModeHold)
+    val onToggleNightMode = { nightModeHold = MapNightMode.toggled(automaticNight, nightModeHold) }
+    val mapRenderMode = MapRenderMode(basemap = basemap, night = isNightMode)
     // Same reasoning and cost as selectedMapService above — see DistanceUnit's own doc comment for
     // why this stays session-local display state rather than a persisted preference.
     var distanceUnit by remember { mutableStateOf(DistanceUnit.KILOMETERS) }
@@ -754,6 +794,7 @@ fun AvailabilityScreen(
                     mapSlot = mapSlot,
                     region = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
                     basemap = basemap,
+                    night = isNightMode,
                     onOpenEntryForEditing = onOpenLogEntryForEditing,
                     onCloseEntry = onCloseLogEntry,
                     onEntryChanged = onLogEntryChanged,
@@ -862,7 +903,7 @@ fun AvailabilityScreen(
                         currentTime = currentTime,
                         distanceUnit = distanceUnit,
                         mapSlot = mapSlot,
-                        basemap = basemap,
+                        renderMode = mapRenderMode,
                         isTopoMode = isTopoMode,
                         onToggleMapMode = { isTopoMode = !isTopoMode },
                         onPlaceTripPin = onPlaceTripPin,
@@ -1032,9 +1073,11 @@ fun AvailabilityScreen(
                     CompactTab.MAP -> CompactMapTab(
                         uiState = uiState,
                         mapSlot = mapSlot,
-                        basemap = basemap,
+                        renderMode = mapRenderMode,
                         isTopoMode = isTopoMode,
                         onToggleMapMode = { isTopoMode = !isTopoMode },
+                        isNightMode = isNightMode,
+                        onToggleNightMode = onToggleNightMode,
                         onPlaceTripPin = onPlaceTripPin,
                         // Opens straight to the log's edit form for the new entry, bypassing
                         // Search — see DrawerPanel's own doc comment on why Log is reachable
@@ -1064,6 +1107,7 @@ fun AvailabilityScreen(
                         mapSlot = mapSlot,
                         pickerRegion = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
                         basemap = basemap,
+                        night = isNightMode,
                         onOpenEntry = onOpenLogEntry,
                         onCloseEntry = onCloseLogEntry,
                         onStartEntry = onStartLogEntry,
@@ -1241,7 +1285,7 @@ private fun CombinedResultsPane(
     currentTime: CurrentTimeProvider,
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
-    basemap: Basemap,
+    renderMode: MapRenderMode,
     isTopoMode: Boolean,
     onToggleMapMode: () -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
@@ -1263,7 +1307,7 @@ private fun CombinedResultsPane(
         MapTab(
             uiState = uiState,
             mapSlot = mapSlot,
-            basemap = basemap,
+            renderMode = renderMode,
             isTopoMode = isTopoMode,
             onToggleMapMode = onToggleMapMode,
             onPlaceTripPin = onPlaceTripPin,
@@ -1913,6 +1957,7 @@ private fun OfflineMapsPanel(
                 mapSlot = mapSlot,
                 region = pickerRegion,
                 basemap = Basemap.USGS_TOPO,
+                night = isNightMode,
                 onConfirm = onRegionPicked,
                 // Nothing to cancel back to: this panel had no confirm step before this picker
                 // existed either — the offlineMapLatText/offlineMapLngText fields just keep
@@ -3183,7 +3228,7 @@ private enum class PendingMapAction { PLAN_TRIP, LOG_FIND, DROP_WAYPOINT }
 private fun MapTab(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
-    basemap: Basemap,
+    renderMode: MapRenderMode,
     isTopoMode: Boolean,
     onToggleMapMode: () -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
@@ -3241,7 +3286,7 @@ private fun MapTab(
                                 breadcrumbPoints = breadcrumbPoints,
                                 waypoints = waypoints,
                             ),
-                            basemap,
+                            renderMode,
                             null,
                             {},
                             {},
@@ -3431,7 +3476,9 @@ private val CompassStripBackgroundColor = Bark.copy(alpha = 0.78f)
 private fun CompactMapTab(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
-    basemap: Basemap,
+    renderMode: MapRenderMode,
+    isNightMode: Boolean,
+    onToggleNightMode: () -> Unit,
     isTopoMode: Boolean,
     onToggleMapMode: () -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
@@ -3553,7 +3600,7 @@ private fun CompactMapTab(
                         waypoints = waypoints,
                         resumeTrackingRequestId = resumeTrackingRequestId,
                     ),
-                    basemap,
+                    renderMode,
                     focusOverride,
                     {},
                     // Tapping the map restores chrome while fullscreen — decision #5. Only
@@ -3591,6 +3638,8 @@ private fun CompactMapTab(
                     },
                     isTopoMode = isTopoMode,
                     onToggleMapMode = onToggleMapMode,
+                    isNightMode = isNightMode,
+                    onToggleNightMode = onToggleNightMode,
                     onOpenSearchDrawer = onOpenSearchDrawer,
                     onAdd = {
                         // No location to grab any more — the button just opens the menu; the
@@ -3684,6 +3733,19 @@ private fun MapIconStack(
     onOpenSearchDrawer: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Night mode as it currently resolves — automatic from civil twilight unless the user is
+     * holding it. Shown in slot 3's content description so the state is readable rather than
+     * merely visible; see [MapNightMode] for why a hold expires.
+     */
+    isNightMode: Boolean = false,
+    /**
+     * Long-press on slot 3. Night mode lives here rather than in a sixth icon because
+     * `docs/plans/map-redesign.md` §3 fixes this stack at exactly five, and because slot 3 is
+     * already the map's render-mode control: tap changes the basemap, long-press changes whether
+     * it is dimmed. One control, one question — how should this map draw right now.
+     */
+    onToggleNightMode: () -> Unit = {},
 ) {
     Column(
         modifier = modifier,
@@ -3702,12 +3764,22 @@ private fun MapIconStack(
         )
         MapStackIconButton(
             icon = Icons.Filled.Layers,
-            contentDescription = if (isTopoMode) {
-                "Showing topo mode. Switch to regular mode."
-            } else {
-                "Showing regular mode. Switch to topo mode."
+            contentDescription = buildString {
+                append(
+                    if (isTopoMode) {
+                        "Showing topo mode. Switch to regular mode."
+                    } else {
+                        "Showing regular mode. Switch to topo mode."
+                    },
+                )
+                // Appended rather than replacing the tap description: the button still primarily
+                // switches basemap, and a reader needs to know night mode is on without having to
+                // discover the long press first.
+                append(if (isNightMode) " Night mode on." else " Night mode off.")
             },
             onClick = onToggleMapMode,
+            onLongClick = onToggleNightMode,
+            longClickLabel = if (isNightMode) "Turn night mode off" else "Turn night mode on",
         )
         MapStackIconButton(
             icon = Icons.Filled.Search,
@@ -3731,15 +3803,32 @@ private fun MapStackIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     filled: Boolean = false,
+    /**
+     * Optional secondary action on a long press. Only the layers slot uses it today, for night
+     * mode — see [MapIconStack]. `null` leaves the button a plain tap target rather than one that
+     * silently swallows long presses.
+     */
+    onLongClick: (() -> Unit)? = null,
+    /** Overrides [contentDescription] for the long-press action, for screen readers and tests. */
+    longClickLabel: String? = null,
 ) {
+    // Surface's own `onClick` overload has no long-press equivalent, so this uses the plain
+    // Surface and puts both gestures on the modifier. The size constraint below still bounds the
+    // touch target to the circle -- CLAUDE.md's "a Surface intercepts across its full layout
+    // bounds" pitfall applies to unconstrained children, and this one is explicitly sized.
     Surface(
-        onClick = onClick,
         shape = CircleShape,
         color = if (filled) MaterialTheme.colorScheme.primary else MapIconStackButtonColor,
         contentColor = Color.White,
         shadowElevation = 2.dp,
         border = if (filled) null else BorderStroke(1.dp, MAP_ICON_STACK_BORDER_COLOR),
-        modifier = modifier.size(MAP_ICON_STACK_DIAMETER),
+        modifier = modifier
+            .size(MAP_ICON_STACK_DIAMETER)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onLongClickLabel = longClickLabel,
+            ),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(imageVector = icon, contentDescription = contentDescription)
