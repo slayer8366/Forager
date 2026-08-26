@@ -232,9 +232,10 @@ data class MapPalette(
          * ground [NIGHT_TILE_REFERENCE] modelled at the time — that floor is not current: since
          * "Dimming removed," 2026-08-26 (`BasemapStyles.kt`'s `NIGHT_RASTER_PAINT` doc comment),
          * [NIGHT_TILE_REFERENCE] equals [DAY_TILE_REFERENCE] and this value was not retuned for it
-         * (measures ≈1.26:1 there now — see the removed-test note in `MapPaletteTest.kt`). Left
-         * unchanged on purpose: legibility no longer comes from tile contrast at all, but from the
-         * darkened halo `SightingsMap.kt`'s night icons draw behind this fill.
+         * (measures ≈1.26:1 there now — see `MapPaletteTest.kt`'s two `@Ignore`d tests, kept rather
+         * than deleted for when colour inversion brings a dark ground back). Left unchanged on
+         * purpose: legibility no longer comes from tile contrast at all, but from the darkened halo
+         * `SightingsMap.kt`'s night icons draw behind this fill.
          *
          * Declared before [NIGHT]: Kotlin initializes companion object properties in source order,
          * so [NIGHT]'s constructor call needs this (and [NIGHT_INK]) already assigned, not read as

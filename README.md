@@ -773,10 +773,13 @@ icon drawing a darkened, semi-transparent halo behind its fill
 (`SightingsMap.kt`'s `*Bitmap` functions) rather than relying on tuned
 contrast against the ground. `MapPaletteTest` checks what colour arithmetic
 still can — the two night colours' contrast against each other, and that
-each sits on the expected side of every day marker's lightness — and says
-plainly, in a comment where the old tile-contrast assertions used to be,
-that legibility against the ground and shape-distinctness are hardware
-questions it cannot answer. Whether the sighting dots, the connector, the
+each sits on the expected side of every day marker's lightness. The two
+tests that checked `NIGHT_WARM` against the ground itself are `@Ignore`d
+rather than deleted, kept for when colour inversion (see below) gives night
+a dark ground again; running them today would just pin a known, expected
+"failure" (the ground brightened, the colour wasn't retuned for it) as if
+it were a bug. Legibility against the ground and shape-distinctness are
+hardware questions in the meantime. Whether the sighting dots, the connector, the
 planned-trip diamond, the breadcrumb trail and the waypoint pin stay
 distinguishable from each other and from the tiles underneath — in sun, in
 shade, on topo and on plain, day and night — is a device question and is
