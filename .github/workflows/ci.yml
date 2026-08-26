@@ -17,12 +17,18 @@ on:
     #
     # Same reason and same shape as d3c4b97 ("ci: trigger on pushes to
     # claude/l4b-persisted-drafts, temporarily"). Delete this branch entry once the work merges.
-    branches: [main, claude/forager-m3-expressive-design-l4c]
+    # claude/understory-review-corrections-9miea8 added for the same reason, one workstream later
+    # (PR #46, into claude/forager-m3-expressive-design-l4c): without it, pushes there get no CI
+    # either.
+    branches: [main, claude/forager-m3-expressive-design-l4c, claude/understory-review-corrections-9miea8]
   pull_request:
     # Also temporary: PRs targeting a workstream branch rather than main get no CI otherwise,
     # which is how the design-system PR (#44, into claude/l4c-serialized-editing-state) would
     # have merged with nothing having built it. Revert alongside the push entry above.
-    branches: [main, claude/l4c-serialized-editing-state]
+    # claude/forager-m3-expressive-design-l4c added for PR #46 (this workstream's own PR, into
+    # that branch) for the identical reason -- it was missing here, so PR #46 got no CI run at
+    # all, only an unrelated Cloudflare Workers check.
+    branches: [main, claude/l4c-serialized-editing-state, claude/forager-m3-expressive-design-l4c]
 
 permissions:
   contents: read
