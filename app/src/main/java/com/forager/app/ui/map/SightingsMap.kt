@@ -9,6 +9,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.view.Gravity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -67,9 +68,11 @@ import org.maplibre.geojson.Point
 /**
  * Shows the searched region as a map with a marker per real observation ([sightings]).
  *
- * When [areas] is non-empty, numbered foraging-area markers and dashed order connectors are
+ * When [areas] is non-empty, numbered foraging-area markers and a visiting-order connector are
  * drawn over the individual pins (the pins stay: they're the evidence the areas were derived
- * from). Pass an empty list to show pins alone.
+ * from). Pass an empty list to show pins alone. The connector line is solid; a dashed line is now
+ * the live [breadcrumbPoints] trail instead — see [BREADCRUMB_DASH_PATTERN]'s doc comment for why
+ * the two swapped, and what still keeps the connector from reading as a real walkable route.
  *
  * [plannedTrips] draws a third, distinct marker per planned trip — a diamond, to read as
  * different from both the translucent sighting dots (density of what's been observed) and the
@@ -91,16 +94,18 @@ import org.maplibre.geojson.Point
  * one of them is now a `GeoJsonSource` + a `CircleLayer`/`LineLayer`/`SymbolLayer` in
  * [initializeOverlayLayers], with actual data pushed by [refreshOverlayData] — see that function's
  * doc comment for why the two are split. [Basemap]/[styleJsonFor] are the only pieces reused as-is;
- * everything else, including [zoomForRadiusKm]'s numbers, the colour constants, and the dash
- * pattern's *ratio*, is carried over from the deleted osmdroid version deliberately (same reasoning,
- * same visual intent), not reused as code (the two rendering APIs share nothing at the type level).
+ * everything else, including [zoomForRadiusKm]'s numbers and the colour constants, is carried over
+ * from the deleted osmdroid version deliberately (same reasoning, same visual intent), not reused
+ * as code (the two rendering APIs share nothing at the type level). The one exception is the dash
+ * pattern's ratio, later moved off the connector entirely and redesigned for its new home on the
+ * breadcrumb trail — see [BREADCRUMB_DASH_PATTERN]'s own doc comment.
  *
  * **What is explicitly re-confirmed, and how, not just carried forward:**
- * - *The dashed connector still reads as dashed.* `line-dasharray` is a real MapLibre style
+ * - *The dashed line still reads as dashed.* `line-dasharray` is a real MapLibre style
  *   property (`PropertyFactory.lineDasharray`, verified against the pinned
  *   `org.maplibre.gl:android-sdk:13.5.0` artifact with `javap` — see this file's own history for
  *   what was checked), not a Canvas `PathEffect` workaround, so this is a supported case, not an
- *   emulation of one. `SightingsMapOverlayTest` asserts the built `LineLayer` actually carries a
+ *   emulation of one. `SightingsMapOverlayDataTest` asserts the built `LineLayer` actually carries a
  *   non-empty `line-dasharray` after every one of `basemap`'s possible values, the direct MapLibre
  *   analogue of what `SightingsMapBasemapSwapTest` asserted for osmdroid's `PathEffect`.
  * - *The numbered area-marker text renders at all.* This was hit as a real, silent failure once
@@ -299,7 +304,7 @@ fun SightingsMap(
         if (appliedBasemap == basemap && appliedPalette == mapPalette) return@LaunchedEffect
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap, night = nightMode))) { style ->
-            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
+            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette, night = nightMode)
             appliedBasemap = basemap
             appliedPalette = mapPalette
             loadedStyle = style
@@ -400,50 +405,76 @@ fun SightingsMap(
  * markers (circle then its label), planned trips last so a diamond never sits under a numbered area
  * marker.
  */
-private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
+private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette, night: Boolean) {
     style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
 
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        CircleLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
-            PropertyFactory.circleRadius(SEARCH_CENTER_RADIUS_PX),
-            PropertyFactory.circleColor(palette.searchCentre),
-            PropertyFactory.circleStrokeColor(Color.WHITE),
-            PropertyFactory.circleStrokeWidth(SEARCH_CENTER_STROKE_WIDTH_PX),
-        ),
-    )
+    if (night) {
+        // Night differentiates markers by icon shape, not hue — see MapPalette.NIGHT's own doc
+        // comment, "Fifth pass", for why. A target ring around a dot, distinct from every other
+        // night icon's silhouette.
+        style.addImage(SEARCH_CENTER_ICON_ID, searchCentreTargetBitmap(density, palette.searchCentre, palette.sightingDotStroke))
+        style.addLayer(
+            SymbolLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
+                PropertyFactory.iconImage(SEARCH_CENTER_ICON_ID),
+                PropertyFactory.iconAllowOverlap(true),
+                PropertyFactory.iconAnchor("center"),
+            ),
+        )
+    } else {
+        style.addLayer(
+            CircleLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
+                PropertyFactory.circleRadius(SEARCH_CENTER_RADIUS_PX),
+                PropertyFactory.circleColor(palette.searchCentre),
+                PropertyFactory.circleStrokeColor(Color.WHITE),
+                PropertyFactory.circleStrokeWidth(SEARCH_CENTER_STROKE_WIDTH_PX),
+            ),
+        )
+    }
 
     style.addSource(GeoJsonSource(SIGHTING_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        // One shared layer for every observation, styled once — unlike osmdroid, which built one
-        // Drawable and stamped it per Marker, MapLibre draws every feature in the source with the
-        // same layer properties, so there is nothing per-sighting to construct here at all.
-        CircleLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
-            PropertyFactory.circleColor(palette.sightingDot),
-            PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
-            PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
-            PropertyFactory.circleStrokeColor(palette.sightingDotStroke),
-            PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
-            PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
-        ),
-    )
+    if (night) {
+        style.addImage(SIGHTING_DOT_ICON_ID, sightingDotBitmap(density, palette.sightingDot, palette.sightingDotStroke))
+        style.addLayer(
+            SymbolLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
+                PropertyFactory.iconImage(SIGHTING_DOT_ICON_ID),
+                PropertyFactory.iconOpacity(SIGHTING_DOT_OPACITY),
+                PropertyFactory.iconAllowOverlap(true),
+                PropertyFactory.iconAnchor("center"),
+            ),
+        )
+    } else {
+        style.addLayer(
+            // One shared layer for every observation, styled once — unlike osmdroid, which built
+            // one Drawable and stamped it per Marker, MapLibre draws every feature in the source
+            // with the same layer properties, so there is nothing per-sighting to construct here.
+            CircleLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
+                PropertyFactory.circleColor(palette.sightingDot),
+                PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
+                PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
+                PropertyFactory.circleStrokeColor(palette.sightingDotStroke),
+                PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
+                PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
+            ),
+        )
+    }
 
+    // Line style (dashed vs. solid), not colour, now carries the connector/breadcrumb distinction
+    // — true day and night alike, since night mode shares one colour across every marker and line.
+    // Breadcrumb is dashed (a short dash with round caps reads as a trail of dots — "breadcrumbs"
+    // should look like breadcrumbs); connector is solid. See BREADCRUMB_DASH_PATTERN's own doc
+    // comment for why the connector reading solid no longer implies a real walkable route, the
+    // property the previous dashed choice protected.
     style.addSource(GeoJsonSource(CONNECTOR_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         LineLayer(CONNECTOR_LAYER_ID, CONNECTOR_SOURCE_ID).withProperties(
             PropertyFactory.lineColor(palette.connector),
             PropertyFactory.lineWidth(CONNECTOR_STROKE_WIDTH_PX),
-            // MapLibre's line-dasharray is in units of line width, not raw pixels, so this is a
-            // ratio (18:14, the same ratio the deleted osmdroid DashPathEffect used in real pixels),
-            // not the same absolute numbers.
-            PropertyFactory.lineDasharray(CONNECTOR_DASH_PATTERN),
         ),
     )
 
-    // Solid, not dashed — the dashed connector above means "suggested visiting order between
-    // areas"; a breadcrumb trail is where the device actually walked, and reusing the dash would
-    // read as the same kind of line when it isn't. Added after the connector so an active
-    // recording's trail draws on top of it if the two ever geographically overlap.
+    // Added after the connector so an active recording's trail draws on top of it if the two ever
+    // geographically overlap.
     style.addSource(GeoJsonSource(BREADCRUMB_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         LineLayer(BREADCRUMB_LAYER_ID, BREADCRUMB_SOURCE_ID).withProperties(
@@ -451,16 +482,28 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.lineWidth(BREADCRUMB_STROKE_WIDTH_PX),
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            PropertyFactory.lineDasharray(BREADCRUMB_DASH_PATTERN),
         ),
     )
 
     style.addSource(GeoJsonSource(AREA_MARKER_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        CircleLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
-            PropertyFactory.circleColor(palette.areaMarkerBackground),
-            PropertyFactory.circleRadius(AREA_MARKER_RADIUS_PX),
-        ),
-    )
+    if (night) {
+        style.addImage(AREA_MARKER_ICON_ID, areaMarkerBadgeBitmap(density, palette.areaMarkerBackground))
+        style.addLayer(
+            SymbolLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
+                PropertyFactory.iconImage(AREA_MARKER_ICON_ID),
+                PropertyFactory.iconAllowOverlap(true),
+                PropertyFactory.iconAnchor("center"),
+            ),
+        )
+    } else {
+        style.addLayer(
+            CircleLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
+                PropertyFactory.circleColor(palette.areaMarkerBackground),
+                PropertyFactory.circleRadius(AREA_MARKER_RADIUS_PX),
+            ),
+        )
+    }
     style.addLayer(
         SymbolLayer(AREA_MARKER_LABEL_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
             // "{label}" is MapLibre's own token-substitution syntax inside a literal text-field
@@ -639,11 +682,12 @@ internal fun areaMarkersFeatureCollection(areas: List<ForagingArea>): FeatureCol
 }
 
 /**
- * The dashed connector, as a single [LineString] feature through the search centre and every area
- * centre in visiting order — an empty [FeatureCollection] when [areas] is empty, since a `LineString`
- * needs at least two points and "no areas" is a real, common state (a fresh search with no clusters
- * yet). See [SightingsMap]'s class doc comment, and [ForagingAreaLabels] for why this line is dashed
- * and not solid.
+ * The visiting-order connector, as a single [LineString] feature through the search centre and
+ * every area centre in visiting order — an empty [FeatureCollection] when [areas] is empty, since
+ * a `LineString` needs at least two points and "no areas" is a real, common state (a fresh search
+ * with no clusters yet). Rendered solid, not dashed — see [BREADCRUMB_DASH_PATTERN]'s doc comment
+ * for why, and what still keeps this line from reading as a real walkable route now that dashing
+ * doesn't.
  */
 internal fun connectorFeatureCollection(region: Region, areas: List<ForagingArea>): FeatureCollection {
     if (areas.isEmpty()) return emptyFeatureCollection()
@@ -717,10 +761,10 @@ private fun plannedTripDiamondBitmap(density: Float, markerColor: Int): Bitmap {
 /**
  * A teardrop pin bitmap for the waypoint [SymbolLayer]'s `icon-image` — round head, pointed tail
  * touching the actual coordinate (see [initializeOverlayLayers]'s `iconAnchor(BOTTOM)` for why the
- * tail, not the shape's center, has to be what's anchored). A distinct amber, the "you dropped a
- * pin here" colour convention this app hasn't used yet — red is the search centre, orange is the
- * dashed connector, bark is a sighting, forest green is a numbered area, blue is a planned trip or
- * the live breadcrumb trail.
+ * tail, not the shape's center, has to be what's anchored). By day, a distinct amber — the "you
+ * dropped a pin here" colour convention day mode's other roles don't otherwise use. By night,
+ * [MapPalette.NIGHT_WARM] like every other marker; the pin *shape* itself, not colour, is what
+ * keeps a waypoint distinct at night — see [MapPalette.NIGHT]'s doc comment, "Fifth pass."
  */
 private fun waypointPinBitmap(density: Float, markerColor: Int): Bitmap {
     val widthPx = (WAYPOINT_MARKER_WIDTH_DP * density).toInt().coerceAtLeast(1)
@@ -751,6 +795,107 @@ private fun waypointPinBitmap(density: Float, markerColor: Int): Bitmap {
     return bitmap
 }
 
+/**
+ * Night mode's sighting-dot icon: a filled circle with an ink ring, the same visual language day
+ * mode's [CircleLayer] draws natively (`circleColor`/`circleStrokeColor`/`circleStrokeWidth`),
+ * baked into a bitmap instead because night now differentiates every marker by icon shape — see
+ * [MapPalette.NIGHT]'s doc comment, "Fifth pass." The simplest silhouette of the three new night
+ * icons, matching this marker's own name: a plain dot is what "sighting dot" already says it is.
+ */
+private fun sightingDotBitmap(density: Float, fillColor: Int, strokeColor: Int): Bitmap {
+    val sizePx = (SIGHTING_DOT_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
+    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val center = sizePx / 2f
+    val strokeWidthPx = SIGHTING_DOT_ICON_STROKE_WIDTH_DP * density
+    val fillRadius = center - strokeWidthPx / 2f
+    canvas.drawCircle(
+        center,
+        center,
+        fillRadius,
+        Paint().apply {
+            color = fillColor
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        },
+    )
+    canvas.drawCircle(
+        center,
+        center,
+        fillRadius,
+        Paint().apply {
+            color = strokeColor
+            style = Paint.Style.STROKE
+            strokeWidth = strokeWidthPx
+            isAntiAlias = true
+        },
+    )
+    return bitmap
+}
+
+/**
+ * Night mode's search-centre icon: an ink ring around a smaller filled dot — a target/bullseye,
+ * reading as "centred here" rather than "a location," distinct from [sightingDotBitmap]'s plain
+ * dot and every other night icon's silhouette. Replaces day mode's plain circle-with-white-stroke
+ * [CircleLayer] for the same reason as [sightingDotBitmap] — see [MapPalette.NIGHT]'s doc comment.
+ */
+private fun searchCentreTargetBitmap(density: Float, ringColor: Int, dotColor: Int): Bitmap {
+    val sizePx = (SEARCH_CENTER_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
+    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val center = sizePx / 2f
+    val ringStrokeWidthPx = SEARCH_CENTER_ICON_RING_WIDTH_DP * density
+    val ringRadius = center - ringStrokeWidthPx / 2f
+    canvas.drawCircle(
+        center,
+        center,
+        ringRadius,
+        Paint().apply {
+            color = ringColor
+            style = Paint.Style.STROKE
+            strokeWidth = ringStrokeWidthPx
+            isAntiAlias = true
+        },
+    )
+    canvas.drawCircle(
+        center,
+        center,
+        ringRadius * SEARCH_CENTER_ICON_DOT_RATIO,
+        Paint().apply {
+            color = dotColor
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        },
+    )
+    return bitmap
+}
+
+/**
+ * Night mode's area-marker badge: a rounded-square background for the numbered-area label (still
+ * drawn by `AREA_MARKER_LABEL_LAYER_ID` on top of this, unconditionally, day and night — only the
+ * background shape this label sits on changes). Distinct from [sightingDotBitmap]'s circle and
+ * [searchCentreTargetBitmap]'s ring, so a numbered area reads as its own kind of marker at a
+ * glance even before the number itself is legible. Replaces day mode's plain circle [CircleLayer]
+ * for the same reason as the other two — see [MapPalette.NIGHT]'s doc comment.
+ */
+private fun areaMarkerBadgeBitmap(density: Float, fillColor: Int): Bitmap {
+    val sizePx = (AREA_MARKER_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
+    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val cornerRadiusPx = AREA_MARKER_ICON_CORNER_RADIUS_DP * density
+    canvas.drawRoundRect(
+        RectF(0f, 0f, sizePx.toFloat(), sizePx.toFloat()),
+        cornerRadiusPx,
+        cornerRadiusPx,
+        Paint().apply {
+            color = fillColor
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        },
+    )
+    return bitmap
+}
+
 // Source/layer ids. Fixed strings rather than generated, since every one of them is referenced by
 // name from at least two places (initializeOverlayLayers and refreshOverlayData, or a layer
 // referencing its source) and a typo needs to be a compile error, not a silently-missing layer.
@@ -771,6 +916,9 @@ private const val BREADCRUMB_LAYER_ID = "breadcrumb-trail-layer"
 private const val WAYPOINT_SOURCE_ID = "waypoints"
 private const val WAYPOINT_LAYER_ID = "waypoints-layer"
 private const val WAYPOINT_ICON_ID = "waypoint-pin"
+private const val SIGHTING_DOT_ICON_ID = "sighting-dot"
+private const val SEARCH_CENTER_ICON_ID = "search-centre-target"
+private const val AREA_MARKER_ICON_ID = "area-marker-badge"
 
 // The overlay's colours now come from ui/theme/MapPalette.kt, derived from the active
 // ColorScheme and passed in -- see that type's doc comment for the derivation rule, and for
@@ -787,37 +935,63 @@ private const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 private const val AREA_MARKER_FONT_SIZE_PX = 14f
 private const val AREA_MARKER_RADIUS_PX = 16f
-private const val CONNECTOR_STROKE_WIDTH_PX = 6f
+
+// Connector now thinner than breadcrumb (was the other way around) -- a lighter line weight
+// reinforces "suggested order, not a real path" now that dash pattern alone no longer carries
+// that signal. See BREADCRUMB_DASH_PATTERN's own doc comment.
+private const val CONNECTOR_STROKE_WIDTH_PX = 4f
 
 private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 
 private const val SEARCH_CENTER_RADIUS_PX = 8f
 private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
 
-private const val BREADCRUMB_STROKE_WIDTH_PX = 4f
+// Night-only icon sizes -- day mode keeps drawing SEARCH_CENTER_RADIUS_PX/SIGHTING_DOT_RADIUS_PX/
+// AREA_MARKER_RADIUS_PX above via CircleLayer directly, unaffected by these.
+private const val SIGHTING_DOT_ICON_SIZE_DP = 16f
+private const val SIGHTING_DOT_ICON_STROKE_WIDTH_DP = 1.5f
+private const val SEARCH_CENTER_ICON_SIZE_DP = 18f
+private const val SEARCH_CENTER_ICON_RING_WIDTH_DP = 2.5f
+private const val SEARCH_CENTER_ICON_DOT_RATIO = 0.4f
+private const val AREA_MARKER_ICON_SIZE_DP = 26f
+private const val AREA_MARKER_ICON_CORNER_RADIUS_DP = 6f
+
+// Breadcrumb thicker than connector now (was the other way around) -- see CONNECTOR_STROKE_WIDTH_PX.
+private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
 private const val WAYPOINT_MARKER_WIDTH_DP = 22f
 private const val WAYPOINT_MARKER_HEIGHT_DP = 28f
 
 /**
- * Ratio 18:14, preserved exactly from the deleted osmdroid version's `DashPathEffect(floatArrayOf(18f,
- * 14f), 0f)` — see that history and the line-dasharray comment in [initializeOverlayLayers].
- * [PropertyFactory.lineDasharray] takes multiples of the layer's line width
- * ([CONNECTOR_STROKE_WIDTH_PX]), not raw pixels the way osmdroid's `DashPathEffect` did, so `18f`/`14f`
- * can't be reused verbatim — but the ratio between them is what actually reads as "deliberately
- * dashed, not a walking route," so this scales both down by the same factor (÷10) rather than
- * rounding each independently, which would have drifted the ratio (an earlier version of this array
- * was `[1.5f, 1.2f]`, ratio 1.25 rather than 18:14's 1.2857 — close enough to look right by eye, but
- * not what this file's own doc comment and `SightingsMapOverlayDataTest` claimed it preserved).
+ * A short dash with round line caps ([Property.LINE_CAP_ROUND], already set on the breadcrumb
+ * layer) renders as a trail of small dots — "breadcrumbs" should look like breadcrumbs, the
+ * project owner's own reasoning for moving the dash here from the connector. Not the connector's
+ * former 18:14 ratio, carried over unchanged: that ratio reads as a conventional dashed *line*
+ * (long dash, short gap), the right look for "this is a diagram annotation, not a path," but the
+ * wrong look for a trail of dots. `4:10` (a short mark, a gap two and a half times longer) is
+ * tuned for the dot read instead, in the same line-width-relative units
+ * [PropertyFactory.lineDasharray] always took (see [BREADCRUMB_STROKE_WIDTH_PX]).
  *
- * `internal`: this is the actual array [PropertyFactory.lineDasharray] receives in production, not a
- * copy. `SightingsMapOverlayDataTest` asserts it is non-empty and holds this ratio — the closest a
- * headless JVM test can get to "the connector is still dashed" (see [searchCenterFeatureCollection]'s
- * doc comment for why nothing here can construct the real, native-backed [LineLayer] that actually
- * renders it). Whether MapLibre draws it as visibly dashed on a real basemap remains hardware-only,
- * same as before this migration.
+ * **The connector was dashed for a safety reason, not a style one — "solid" would misleadingly
+ * read as a real walkable path** (`README.md`'s "not a walking route" section; this project has no
+ * trail-graph data, so a solid line could route someone across a river, a cliff, or private land).
+ * Moving the dash to breadcrumb and making the connector solid was a deliberate choice made and
+ * confirmed knowing this, not an oversight — two things now carry that signal in its place instead
+ * of dashing: [CONNECTOR_STROKE_WIDTH_PX] is deliberately thinner than [BREADCRUMB_STROKE_WIDTH_PX]
+ * (a lighter line reads as an annotation, not a route), and [VISITING_ORDER_DISCLAIMER] (surfaced
+ * both as a standing on-screen caption and this feature's info-window snippet) states the "not a
+ * route" property in words, not just line style. Revisit if a future hardware pass finds the
+ * thinner-solid line alone is not read as clearly non-routable as the dash was.
+ *
+ * `internal`: this is the actual array [PropertyFactory.lineDasharray] receives in production, not
+ * a copy. `SightingsMapOverlayDataTest` asserts it is non-empty — the closest a headless JVM test
+ * can get to "the breadcrumb trail is still dashed" (see [searchCenterFeatureCollection]'s doc
+ * comment for why nothing here can construct the real, native-backed [LineLayer] that actually
+ * renders it). Whether MapLibre draws it as visibly dot-like on a real basemap, and whether the
+ * connector's now-solid, now-thinner line still reads clearly as "not a route," are both
+ * hardware-only questions, not yet re-confirmed.
  */
-internal val CONNECTOR_DASH_PATTERN = arrayOf(1.8f, 1.4f)
+internal val BREADCRUMB_DASH_PATTERN = arrayOf(0.4f, 1.0f)
 
 /**
  * A visual-only heuristic mapping search radius to a legible starting zoom level, not a domain

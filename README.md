@@ -221,15 +221,22 @@ more certainty than the data supports. See `AvailabilityForecast` and
    **The numbering is a visiting order, not a walking route.** Areas are
    numbered by greedy nearest-neighbour from the search centre — head for
    the nearest area you haven't done yet — and the connectors between them
-   are drawn *dashed* because they are straight lines between area centres
-   and nothing more. This project has no trail data, no terrain, no
-   land-ownership data and no path graph, only scattered coordinates over
-   raster tiles, so a walking path is a capability it does not have; a
-   solid line implying one could route you across a river, a motorway, a
-   cliff, or private land. Per `CLAUDE.md` an unsupported capability is
-   reported as unsupported rather than given a plausible-looking value, so
-   the app ships the order and says plainly, on screen, that it is not a
-   route. The ordering is also not optimal or shortest — greedy
+   are straight lines between area centres and nothing more. This project
+   has no trail data, no terrain, no land-ownership data and no path
+   graph, only scattered coordinates over raster tiles, so a walking path
+   is a capability it does not have; a line implying one could route you
+   across a river, a motorway, a cliff, or private land. That line was
+   originally kept *dashed* specifically to signal "not a real route";
+   as of 2026-08-26 it renders solid instead (the dash moved to the live
+   breadcrumb trail, so a trail of GPS points can look like a trail of
+   breadcrumbs — `MapPalette.NIGHT`'s and `BREADCRUMB_DASH_PATTERN`'s own
+   doc comments in `SightingsMap.kt` have the full reasoning), and a
+   thinner line weight plus the standing on-screen disclaimer below take
+   over the "not a route" signal the dash used to carry alone. Per
+   `CLAUDE.md` an unsupported capability is reported as unsupported rather
+   than given a plausible-looking value, so the app ships the order and
+   says plainly, on screen, that it is not a route. The ordering is also
+   not optimal or shortest — greedy
    nearest-neighbour is neither, and it isn't described as either. If no
    group of observations meets the density threshold, the app says so
    explicitly instead of relaxing the threshold until something appears.
@@ -569,9 +576,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
   (replacing an earlier osmdroid-based implementation — see "The
   topographic basemap, specifically" below for that migration), including
   the sighting dots and numbered foraging-area markers as MapLibre GeoJSON
-  sources/style layers rather than osmdroid `Overlay`s, and the dashed
-  order connector's `lineDasharray` scaled to preserve its original
-  pixel-based dash:gap ratio exactly; `ForagingAreaLabels`, which holds the
+  sources/style layers rather than osmdroid `Overlay`s. The order connector
+  now renders solid and the live breadcrumb trail dashed (a short dot-like
+  `lineDasharray`, not the connector's original pixel-preserving one — see
+  `BREADCRUMB_DASH_PATTERN`'s doc comment); night mode also differentiates
+  markers by icon shape rather than hue now, one shared warm colour and one
+  shared ink colour standing in for the nine independently-tuned ones day
+  mode still uses — see `MapPalette.NIGHT`'s doc comment, "Fifth pass."
+  `ForagingAreaLabels`, which holds the
   single wording of the "not a walking route" disclaimer so the on-map
   info window and the on-screen caption can't drift apart; `Basemap`, the
   same own-the-vendor-boundary idea one level down — the basemap catalogue

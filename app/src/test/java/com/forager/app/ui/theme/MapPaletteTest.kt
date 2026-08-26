@@ -8,26 +8,30 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 /**
- * Holds [MapPalette] to the two properties a map overlay actually needs: each mark is legible
- * against the ground it is drawn on, and no two marks a user must tell apart are hard to tell
- * apart.
+ * Holds [MapPalette] to the properties a map overlay actually needs: each mark is legible against
+ * the ground it is drawn on, and — for [MapPalette.DAY], which still differentiates its seven
+ * marker roles by hue — no two marks a user must tell apart are hard to tell apart by colour
+ * alone.
  *
- * Deliberately **not** "the values differ between the two palettes", which an early draft of
- * docs/plans/understory-design-system.md specified. That passes if both are illegible, so it
- * stands in for the property that matters without establishing it (review item R5).
+ * [MapPalette.NIGHT] no longer makes that second claim: every marker field on it holds
+ * [MapPalette.NIGHT_WARM] or [MapPalette.NIGHT_INK], and `SightingsMap.kt`'s icon shapes are what
+ * keep night-mode markers apart now, not hue — see [MapPalette.NIGHT]'s own doc comment ("Fifth
+ * pass") for why. This file has no way to check shape, so it checks what it can: that the shared
+ * two colours themselves are legible.
  *
  * ## What this does not establish
  *
- * Legibility against *real tiles*. Both tile references are modelled, not sampled, and a single
- * basemap spans grounds as different as a snowfield and a forest canopy. These checks bound
+ * Legibility against *real tiles*, or that the night icon shapes actually read as distinct from
+ * each other on a real screen. Both tile references are modelled, not sampled. These checks bound
  * regressions against a stated reference; the README's "Not yet verified" section is where the
- * hardware question lives. A green run here is not evidence that the map reads well at night.
+ * hardware question lives. A green run here is not evidence that the map reads well, day or
+ * night.
  */
 class MapPaletteTest {
 
     /**
-     * The night palette was authored to a target, so it is held to one: 4.0:1, comfortably above
-     * WCAG's 3:1 non-text bar, against the dimmed-tile reference it was designed for.
+     * [MapPalette.NIGHT_WARM] was authored to a target, so it is held to one: 4.0:1, comfortably
+     * above WCAG's 3:1 non-text bar, against the dimmed-tile reference it was designed for.
      */
     private val minimumNightMarkerContrast = 4.0
 
@@ -60,7 +64,8 @@ class MapPaletteTest {
      * Two marks closer than this in Oklab are treated as too similar. Set from the day palette's
      * own tightest pair (connector/waypoint, 0.106), which is the palette that has been on real
      * hardware — so the bar is "no worse than what has actually been used outdoors" rather than a
-     * number chosen from nothing.
+     * number chosen from nothing. Applies to [MapPalette.DAY] only — see the class doc comment for
+     * why [MapPalette.NIGHT] no longer makes a colour-separation claim at all.
      */
     private val minimumMarkerSeparation = 0.099
 
@@ -74,54 +79,77 @@ class MapPaletteTest {
         "waypoint" to p.waypoint,
     )
 
-    private val palettes = listOf(
-        Triple("DAY", MapPalette.DAY, MapPalette.DAY_TILE_REFERENCE),
-        Triple("NIGHT", MapPalette.NIGHT, MapPalette.NIGHT_TILE_REFERENCE),
-    )
-
     @Test
-    fun `every marker clears its palette's contrast floor against that palette's tile reference`() {
+    fun `every day marker clears its contrast ratchet against the day tile reference`() {
         val failures = mutableListOf<String>()
-        for ((name, palette, tile) in palettes) {
-            val floor = if (name == "NIGHT") minimumNightMarkerContrast else dayMarkerContrastRatchet
-            for ((marker, argb) in markers(palette)) {
-                val ratio = contrastRatio(argb, tile)
-                if (ratio < floor) {
-                    failures += "%s.%s is %.2f:1 against its tile reference, below %.2f:1"
-                        .format(name, marker, ratio, floor)
-                }
+        for ((marker, argb) in markers(MapPalette.DAY)) {
+            val ratio = contrastRatio(argb, MapPalette.DAY_TILE_REFERENCE)
+            if (ratio < dayMarkerContrastRatchet) {
+                failures += "DAY.%s is %.2f:1, below %.2f:1".format(marker, ratio, dayMarkerContrastRatchet)
             }
         }
-        if (failures.isNotEmpty()) fail("Marker contrast:\n  " + failures.joinToString("\n  "))
+        if (failures.isNotEmpty()) fail("Day marker contrast:\n  " + failures.joinToString("\n  "))
+    }
+
+    @Test
+    fun `NIGHT_WARM clears the night contrast floor against the night tile reference`() {
+        val ratio = contrastRatio(MapPalette.NIGHT_WARM, MapPalette.NIGHT_TILE_REFERENCE)
+        if (ratio < minimumNightMarkerContrast) {
+            fail("NIGHT_WARM is %.2f:1 against NIGHT_TILE_REFERENCE, below %.2f:1".format(ratio, minimumNightMarkerContrast))
+        }
+    }
+
+    /**
+     * Every one of [MapPalette.NIGHT]'s nine fields must resolve to exactly one of the two shared
+     * values — the whole point of the fifth pass was collapsing nine independently-tuned colours
+     * into two, and a future edit accidentally reintroducing a tenth would defeat it silently
+     * (compiling and looking fine) rather than loudly.
+     */
+    @Test
+    fun `every NIGHT field is NIGHT_WARM or NIGHT_INK, nothing else`() {
+        val fields = mapOf(
+            "sightingDot" to MapPalette.NIGHT.sightingDot,
+            "sightingDotStroke" to MapPalette.NIGHT.sightingDotStroke,
+            "connector" to MapPalette.NIGHT.connector,
+            "areaMarkerBackground" to MapPalette.NIGHT.areaMarkerBackground,
+            "areaMarkerForeground" to MapPalette.NIGHT.areaMarkerForeground,
+            "plannedTrip" to MapPalette.NIGHT.plannedTrip,
+            "searchCentre" to MapPalette.NIGHT.searchCentre,
+            "breadcrumb" to MapPalette.NIGHT.breadcrumb,
+            "waypoint" to MapPalette.NIGHT.waypoint,
+        )
+        val failures = fields.filterValues { it != MapPalette.NIGHT_WARM && it != MapPalette.NIGHT_INK }
+        if (failures.isNotEmpty()) {
+            fail("Fields not equal to NIGHT_WARM or NIGHT_INK: " + failures.keys.joinToString(", "))
+        }
     }
 
     /**
      * Pins the gap between the two palettes so it cannot be closed by accident in the wrong
-     * direction. The night palette was designed to a contrast target; the day palette was not,
-     * and measures worse. If a future edit ever makes night the weaker of the two against its own
-     * ground, something has gone backwards.
+     * direction. [MapPalette.NIGHT_WARM] was designed to a contrast target; the day palette was
+     * not, and measures worse. If a future edit ever makes night the weaker of the two against its
+     * own ground, something has gone backwards.
      */
     @Test
     fun `night is not less legible against its ground than day is against its own`() {
         val worstDay = markers(MapPalette.DAY).values
             .minOf { contrastRatio(it, MapPalette.DAY_TILE_REFERENCE) }
-        val worstNight = markers(MapPalette.NIGHT).values
-            .minOf { contrastRatio(it, MapPalette.NIGHT_TILE_REFERENCE) }
-        if (worstNight < worstDay) {
-            fail("Night's weakest marker (%.2f:1) is now worse than day's (%.2f:1)".format(worstNight, worstDay))
+        val nightRatio = contrastRatio(MapPalette.NIGHT_WARM, MapPalette.NIGHT_TILE_REFERENCE)
+        if (nightRatio < worstDay) {
+            fail("NIGHT_WARM (%.2f:1) is now worse than day's weakest marker (%.2f:1)".format(nightRatio, worstDay))
         }
     }
 
     /**
      * The stroke and the glyph are checked against the marker they sit on, not against the tile —
      * a hairline around a sighting dot is never seen against bare ground, so tile contrast says
-     * nothing about it. This is also what makes the night palette's polarity inversion checkable:
-     * white-on-dark by day, near-black-on-light at night, and both must clear the same bar.
+     * nothing about it.
      */
     @Test
     fun `marks drawn on other marks are legible against those marks`() {
         val failures = mutableListOf<String>()
-        for ((name, palette, _) in palettes) {
+        val palettes = listOf("DAY" to MapPalette.DAY, "NIGHT" to MapPalette.NIGHT)
+        for ((name, palette) in palettes) {
             val pairs = listOf(
                 "sightingDotStroke on sightingDot" to (palette.sightingDotStroke to palette.sightingDot),
                 "areaMarkerForeground on areaMarkerBackground" to
@@ -138,19 +166,16 @@ class MapPaletteTest {
     }
 
     @Test
-    fun `no two markers a user must distinguish are too similar`() {
+    fun `no two day markers a user must distinguish are too similar`() {
         val failures = mutableListOf<String>()
-        for ((name, palette, _) in palettes) {
-            val entries = markers(palette).toList()
-            for (i in entries.indices) {
-                for (j in i + 1 until entries.size) {
-                    val (nameA, a) = entries[i]
-                    val (nameB, b) = entries[j]
-                    val d = oklabDistance(a, b)
-                    if (d < minimumMarkerSeparation) {
-                        failures += "%s: %s and %s are %.4f apart, below %.4f"
-                            .format(name, nameA, nameB, d, minimumMarkerSeparation)
-                    }
+        val entries = markers(MapPalette.DAY).toList()
+        for (i in entries.indices) {
+            for (j in i + 1 until entries.size) {
+                val (nameA, a) = entries[i]
+                val (nameB, b) = entries[j]
+                val d = oklabDistance(a, b)
+                if (d < minimumMarkerSeparation) {
+                    failures += "%s and %s are %.4f apart, below %.4f".format(nameA, nameB, d, minimumMarkerSeparation)
                 }
             }
         }
@@ -158,25 +183,27 @@ class MapPaletteTest {
     }
 
     /**
-     * The night palette exists to be read on a dimmed ground, so every mark in it must be lighter
-     * than its day counterpart — except the two that invert on purpose, which must be darker.
-     * Without this, a future edit could quietly reintroduce the darkening that the ambient-theme
-     * version was abandoned for.
+     * The night palette exists to be read on a dimmed ground, so [MapPalette.NIGHT_WARM] must be
+     * lighter than every day marker, and [MapPalette.NIGHT_INK] darker than every day mark-on-mark
+     * colour it replaces — the same "lift marks off a dimmed ground, invert the marks-on-marks"
+     * property the earlier per-marker night palette held, now checked against the two shared
+     * values instead of nine individually-tuned ones.
      */
     @Test
-    fun `night lightens every marker and inverts exactly the two marks-on-marks`() {
-        for ((marker, night) in markers(MapPalette.NIGHT)) {
-            val day = markers(MapPalette.DAY).getValue(marker)
-            if (relativeLuminance(night) <= relativeLuminance(day)) {
-                fail("NIGHT.$marker is not lighter than DAY.$marker — night mode must lift marks off a dimmed ground")
+    fun `NIGHT_WARM is lighter and NIGHT_INK is darker than every day counterpart`() {
+        val nightWarmLuminance = relativeLuminance(MapPalette.NIGHT_WARM)
+        for ((marker, day) in markers(MapPalette.DAY)) {
+            if (nightWarmLuminance <= relativeLuminance(day)) {
+                fail("NIGHT_WARM is not lighter than DAY.$marker — night mode must lift marks off a dimmed ground")
             }
         }
-        for ((label, night, day) in listOf(
-            Triple("sightingDotStroke", MapPalette.NIGHT.sightingDotStroke, MapPalette.DAY.sightingDotStroke),
-            Triple("areaMarkerForeground", MapPalette.NIGHT.areaMarkerForeground, MapPalette.DAY.areaMarkerForeground),
+        val nightInkLuminance = relativeLuminance(MapPalette.NIGHT_INK)
+        for ((label, day) in listOf(
+            "sightingDotStroke" to MapPalette.DAY.sightingDotStroke,
+            "areaMarkerForeground" to MapPalette.DAY.areaMarkerForeground,
         )) {
-            if (relativeLuminance(night) >= relativeLuminance(day)) {
-                fail("NIGHT.$label should invert to a dark mark on a light marker, but is not darker than DAY.$label")
+            if (nightInkLuminance >= relativeLuminance(day)) {
+                fail("NIGHT_INK should invert to a dark mark on a light marker, but is not darker than DAY.$label")
             }
         }
     }

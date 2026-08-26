@@ -7,6 +7,14 @@ import androidx.compose.ui.graphics.toArgb
  * The nine colours the map overlay draws with, as `android.graphics` ARGB ints, in a day and a
  * night variant.
  *
+ * **Day and night are no longer the same kind of palette.** [DAY] still differentiates its seven
+ * marker roles by hue, as it always has. [NIGHT] does not — see "Fifth pass" below for why hue
+ * stopped being a viable differentiator at night and shape took over instead, in
+ * `SightingsMap.kt`'s icon bitmaps. Every field on [NIGHT] now holds one of exactly two values:
+ * [NIGHT_WARM] (every marker's fill/line colour) or [NIGHT_INK] (every stroke/label colour drawn
+ * on top of a [NIGHT_WARM] fill). `MapPalette`'s shape — nine named `Int` fields — is unchanged
+ * so [SightingsMap] and the rest of this file didn't need restructuring around the split.
+ *
  * MapLibre renders on a native canvas and cannot read a Compose `ColorScheme`, so `SightingsMap`
  * still takes ints — it just stops *defining* them. Before this existed, nine raw literals lived
  * beside the layer code with nothing governing them ("tag 04" in
@@ -170,17 +178,85 @@ data class MapPalette(
          * `searchCentre` and `plannedTrip` were already near the objective's optimum and barely
          * move. No marker's family identity changes — the search stayed inside the same ≤45°
          * per-marker drift bound the third pass used.
+         *
+         * ## Fifth pass: hue abandoned, icons take over, 2026-08-26
+         *
+         * Hardware review of the fourth pass found three of its seven markers still read as the
+         * same colour as a neighbour at a glance: `areaMarkerBackground`/`connector`/`waypoint`
+         * together, `sightingDot`/`searchCentre`, and `plannedTrip`/`breadcrumb`. Pushing those
+         * three groups further apart was attempted and rejected twice over, for two different
+         * reasons, before this pass was chosen instead of a sixth attempt at the same approach:
+         *
+         *  - **An unconstrained search separates the groups but reassigns what each colour means.**
+         *    Given real freedom, `areaMarkerBackground` (meant to read as green, for a foraging
+         *    *area*) lands on cyan; `waypoint` (meant to read as gold) lands on the green
+         *    `areaMarkerBackground` gave up; `plannedTrip` (violet) lands on magenta. The numbers
+         *    improve; the marker language a returning user has already learned stops matching what
+         *    they see. This is the same failure the class comment above already names for an
+         *    unconstrained day/night search ("zeroes the blue channel on every marker") — that one
+         *    collapsed hues together, this one relocates them, but both spend the thing that
+         *    matters (a marker means what it looked like last time) to buy a number.
+         *  - **A constrained search (bounded hue drift, held family identity) still tops out
+         *    around 0.11–0.14 pairwise separation** for the tightest pairs — a real improvement
+         *    over the fourth pass's ~0.10, but short of the ≥0.20 that read as unmistakably
+         *    different in earlier testing, and thinner than this project is comfortable shipping
+         *    for a legibility-relevant property (`MapPaletteTest`'s own 0.099 floor was already
+         *    set from *day*'s tightest pair, the only one of the two palettes with hardware hours
+         *    behind it — see `MapPaletteTest`'s doc comment). Seven marker roles sharing one hue
+         *    circle, at the lightness a 4.0:1 floor against a fixed ground forces them all toward,
+         *    is a structural ceiling on how far apart color alone can push them — not a search that
+         *    needed more iterations.
+         *
+         * So night mode stops asking hue to do seven jobs. Every marker keeps its **shape** —
+         * `SightingsMap.kt` now draws a distinct icon bitmap for every point marker at night
+         * (circle, ring, badge, diamond, pin — see that file's `*Bitmap` functions), where day
+         * still uses plain coloured circles because day's hue-based differentiation already works
+         * and two hardware rounds have tuned it. [NIGHT_WARM] and [NIGHT_INK] replace what used to
+         * be nine independently-tuned values with exactly two: one warm fill every marker and line
+         * draws with, one dark ink every stroke and label draws with on top of that fill. Warm
+         * because red/amber tones cost the eye's dark adaptation less than the blue/cyan ones this
+         * palette spent four passes trying to move away from anyway (see "Fourth pass" above) —
+         * this pass finishes that direction rather than reversing it.
+         *
+         * `connector`/`breadcrumb` need no colour differentiation at all any more, day or night:
+         * `SightingsMap.kt` swaps which one is dashed (breadcrumb — it should look like a trail of
+         * breadcrumbs) and which is solid (connector), a line-style change unrelated to this
+         * palette. See that file's own doc comment for why the connector reading solid no longer
+         * risks reading as a real walkable route, the property the original dashed choice existed
+         * to protect.
          */
+
+        /**
+         * The single warm fill every night-mode marker and line draws with, per [NIGHT]'s own doc
+         * comment ("Fifth pass"). Clears the 4.0:1 contrast floor against [NIGHT_TILE_REFERENCE]
+         * with real margin (≈4.4:1) — legibility no longer has to share headroom with keeping seven
+         * hues apart, since shape does that job now.
+         *
+         * Declared before [NIGHT]: Kotlin initializes companion object properties in source order,
+         * so [NIGHT]'s constructor call needs this (and [NIGHT_INK]) already assigned, not read as
+         * the default `0` a forward reference would see.
+         */
+        val NIGHT_WARM = 0xFFE8C989.toInt()
+
+        /**
+         * The single dark ink every night-mode stroke/label draws with on top of a [NIGHT_WARM]
+         * fill — the sighting-dot outline ring, the area-marker number, and any icon's own outline
+         * detail. Clears 4.5:1 (the mark-on-mark floor `MapPaletteTest` already held
+         * `sightingDotStroke`/`areaMarkerForeground` to) against [NIGHT_WARM] with wide margin
+         * (≈10:1).
+         */
+        val NIGHT_INK = 0xFF2B1F14.toInt()
+
         val NIGHT = MapPalette(
-            sightingDot = 0xFFC8C69E.toInt(),
-            sightingDotStroke = 0xFF25211D.toInt(),
-            connector = 0xFFFFB64B.toInt(),
-            areaMarkerBackground = 0xFF74DD00.toInt(),
-            areaMarkerForeground = 0xFF1B2C17.toInt(),
-            plannedTrip = 0xFFD9B7F5.toInt(),
-            searchCentre = 0xFFFFB0B0.toInt(),
-            breadcrumb = 0xFF89CBFF.toInt(),
-            waypoint = 0xFFCBCB04.toInt(),
+            sightingDot = NIGHT_WARM,
+            sightingDotStroke = NIGHT_INK,
+            connector = NIGHT_WARM,
+            areaMarkerBackground = NIGHT_WARM,
+            areaMarkerForeground = NIGHT_INK,
+            plannedTrip = NIGHT_WARM,
+            searchCentre = NIGHT_WARM,
+            breadcrumb = NIGHT_WARM,
+            waypoint = NIGHT_WARM,
         )
 
         /**
@@ -197,7 +273,8 @@ data class MapPalette(
          * Scaled proportionally from the first pass's `0x3E3D39` for `raster-brightness-max`'s
          * move from 0.22 to 0.32 (`BasemapStyles.kt`) — the same modelling approach that value
          * used, not a fresh sample. See [NIGHT]'s own doc comment, "Third pass," for why the ground
-         * moved this far.
+         * moved this far. Unchanged by the fifth pass, which only changes what draws on this
+         * ground, not the ground itself.
          */
         val NIGHT_TILE_REFERENCE = 0xFF5A5953.toInt()
 
