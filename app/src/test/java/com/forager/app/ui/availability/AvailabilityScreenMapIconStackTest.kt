@@ -203,7 +203,7 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode. Night mode off.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Search").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }

@@ -202,7 +202,7 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
 
         val iconBounds = composeRule
-            .onNodeWithContentDescription("Showing topo mode. Switch to regular mode.")
+            .onNodeWithContentDescription("Showing topo mode. Switch to regular mode. Night mode off.")
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
         val mapBounds = composeRule.onNodeWithTag(MAP_SLOT_TAG).getUnclippedBoundsInRoot()
@@ -224,13 +224,13 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
 
-        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode.").performClick()
+        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode. Night mode off.").performClick()
         composeRule.waitForIdle()
 
         assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        composeRule.onNodeWithContentDescription("Showing regular mode. Switch to topo mode.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Showing regular mode. Switch to topo mode. Night mode off.").assertIsDisplayed()
 
-        composeRule.onNodeWithContentDescription("Showing regular mode. Switch to topo mode.").performClick()
+        composeRule.onNodeWithContentDescription("Showing regular mode. Switch to topo mode. Night mode off.").performClick()
         composeRule.waitForIdle()
 
         assertNotEquals(Basemap.OSM_STANDARD, capturedBasemap)
@@ -241,7 +241,7 @@ class AvailabilityScreenSettingsPanelTest {
     fun `switching MapService in Settings preserves the current topo or regular mode`() {
         setScreen()
         // Switch to regular mode under OpenStreetMap first.
-        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode.").performClick()
+        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode. Night mode off.").performClick()
         composeRule.waitForIdle()
         assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
 
