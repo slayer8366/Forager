@@ -9,10 +9,12 @@
 # violation here should not block unrelated changes from merging.
 #
 # EXPECTED STATE WHILE THE DESIGN SYSTEM LANDS. Checks 3 and 4 fail until step 4 of that plan
-# (the MotionTokens rewrite onto MotionScheme) lands. Check 2 fails until step 3 (MapPalette).
-# That is the point -- a check written after the fact, which passes the moment it is introduced,
-# never demonstrated it could fail. Run it, read which checks fail, and expect the list to shrink
-# as the steps land.
+# (the MotionTokens rewrite onto MotionScheme) lands. Check 2 now also catches tag 05 (`Bark`
+# imported directly into AvailabilityScreen.kt) -- real, pre-existing, and named out of scope for
+# this pass in the design doc's own Sort section, not something step 3 (MapPalette) was going to
+# touch. That is the point of a check like this -- a check written after the fact, which passes
+# the moment it is introduced, never demonstrated it could fail. Run it, read which checks fail,
+# and expect the list to shrink as the steps land.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -43,7 +45,7 @@ report "no Color(0x literal outside ui/theme/" "$hits"
 #    colours. Importing Bark into a screen is one import, but it is the precedent that makes the
 #    next twenty look reasonable ("tag 05").
 hits=$(grep -rn "^import com\.forager\.app\.ui\.theme\." app/src/main --include=*.kt \
-       | grep -vE "\.(ForagerTheme|MapPalette)$" || true)
+       | grep -vE "\.(ForagerTheme|MapPalette|Spacing|ForagerShapes|ForagerTypography)$" || true)
 report "no palette constant imported outside the theme package" "$hits"
 
 # 3. Motion comes from MaterialTheme.motionScheme. A tween at a call site is the tween-only rule
