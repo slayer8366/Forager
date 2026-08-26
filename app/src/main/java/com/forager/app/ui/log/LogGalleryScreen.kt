@@ -188,7 +188,14 @@ private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier:
         shape = RoundedCornerShape(Spacing.sm),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
+            // weight(1f), not aspectRatio(1f): a fixed square ate a disproportionate share of the
+            // card's own fixed-aspect-ratio height, squeezing the caption below it -- on a draft
+            // tile specifically, two lines ("Find on <date>" plus the "Draft" badge) rather than
+            // one, so it clipped there first (Card clips its content to its own shape). weight(1f)
+            // measures the caption Column at its real content height first and gives the image
+            // whatever's left, so the caption is never squeezed regardless of tile width, font
+            // scale, or how many lines it needs -- the image just stops being a perfect square.
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 val coverPhoto = entry.photos.firstOrNull()
                 if (coverPhoto != null) {
                     DecodedPhoto(relativePath = coverPhoto.relativePath, modifier = Modifier.fillMaxSize())

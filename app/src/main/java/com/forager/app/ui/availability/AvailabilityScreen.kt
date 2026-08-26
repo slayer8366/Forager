@@ -18,6 +18,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
@@ -213,6 +214,7 @@ import com.forager.app.domain.CivilTwilight
 import com.forager.app.domain.MapNightMode
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
+import com.forager.app.ui.theme.Cream
 import com.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
@@ -3406,41 +3408,51 @@ private val MAP_ICON_BAR_FILL_DIAMETER = 36.dp
 private val MAP_ICON_BAR_CORNER_RADIUS = MIN_TOUCH_TARGET / 2
 
 /**
- * Dark, fully **opaque** bar color for [MapIconBar] — see [MapBarIconButton].
+ * [MapIconBar]'s fill — see [MapBarIconButton]. Picked per [isSystemInDarkTheme], independent of
+ * the map's own night mode (deliberately not derived from it, the same way [MapPalette] is
+ * deliberately not derived from the ambient scheme — this is app chrome over the map, not a mark
+ * on it, but the two axes are still kept separate on principle: a device in light mode looking at
+ * a map in night mode, or the reverse, are both real states, and neither should silently steer
+ * the other).
  *
- * **Decision: opaque, plus a hairline edge, replacing the translucent fill these circles used
- * before.** Confirmed on real hardware (Portland-metro, USGS Topo): at the previous 78%-alpha
- * fill, map data underneath — contour lines, place labels — composited straight through the
- * buttons, reading as barely-there smudges; the stack's one already-opaque icon (the green "add"
- * button, [MaterialTheme.colorScheme.primary]) read perfectly on the same terrain in the same
- * screenshot. Opacity was the only difference.
+ * **History: opaque, plus a hairline edge, replacing the translucent fill these circles used
+ * before.** Confirmed on real hardware (Portland-metro, USGS Topo): at a 78%-alpha fill, map data
+ * underneath — contour lines, place labels — composited straight through the buttons, reading as
+ * barely-there smudges; the stack's one already-opaque icon (the green "add" button,
+ * [MaterialTheme.colorScheme.primary]) read perfectly on the same terrain in the same screenshot.
+ * Opacity was the only difference. **Requested back down to 80% since** — a deliberate, informed
+ * choice after that finding was raised again, not a reversion made without knowing it. Provisional
+ * pending a hardware look at this specific value, the same status the border below already had.
  *
  * **Rejected alternative: tuning the alpha per basemap.** A single translucency value can be tuned
  * to look right against one basemap's palette, but this app ships pale topo, dark aerial imagery,
  * and (later) hillshade — a fill that reads on one will not read on the others, and per-basemap
- * tuning means re-solving this every time a basemap is added. The principle instead: **map controls
- * never composite with map data.** Full opacity occludes the map outright, by construction,
- * regardless of what's under it — that's what makes a control a control rather than an overlay.
+ * tuning means re-solving this every time a basemap is added.
  *
- * The hairline border ([MAP_ICON_STACK_BORDER_COLOR]) is what keeps the fix working on imagery
- * specifically: an opaque dark circle alone reads fine against pale topo but risks merging into
- * imagery, which is dark nearly everywhere. A light edge separates control from map regardless of
- * what's underneath, rather than needing a second opaque-color decision for the dark case. Not
- * independently confirmed on hardware yet — see this project's README, "The topographic basemap,
- * specifically", for what's re-verified and what's still owed a second look on the imagery basemap.
- *
- * This is the overlay-colour decision this section's own history had left deliberately unmade
- * pending a first hardware look (`CLAUDE.md`'s rule against a speculative correction made in advance
- * of evidence) — that look happened, found a real problem, and this is the fix landing as a
- * recorded decision rather than a silent style tweak.
+ * The hairline border ([MAP_ICON_STACK_BORDER_COLOR_DARK]/[MAP_ICON_STACK_BORDER_COLOR_LIGHT]) is
+ * what keeps a *dark* fill working on imagery specifically: an opaque dark circle alone reads fine
+ * against pale topo but risks merging into imagery, which is dark nearly everywhere. A light edge
+ * separates control from map regardless of what's underneath. The light-theme fill below is new,
+ * unverified on hardware in either direction — its own dark hairline border mirrors the same
+ * reasoning for the opposite risk (merging into snow, sand, or other pale terrain), but nobody has
+ * looked at it on a real screen yet.
  */
-private val MapIconStackButtonColor = Bark.copy(alpha = 1f)
+private val MapIconStackButtonColorDark = Bark.copy(alpha = 0.8f)
 
-/** The hairline edge on [MapIconStackButtonColor] circles — see that color's own doc comment. */
-private val MAP_ICON_STACK_BORDER_COLOR = Color.White.copy(alpha = 0.4f)
+/** [MapIconStackButtonColorDark]'s light-theme counterpart — see that color's own doc comment. */
+private val MapIconStackButtonColorLight = Cream.copy(alpha = 0.8f)
 
-/** Dark translucent background for [CompassElevationStripContent] — unaffected by the FAB stack's opaque-fill decision above; this bar sits over the map the same way, but was not reported as illegible in the same hardware pass, so it is deliberately left as-is rather than changed on the strength of a fix aimed at a different element. */
-private val CompassStripBackgroundColor = Bark.copy(alpha = 0.78f)
+/** The hairline edge on [MapIconStackButtonColorDark] circles — see that color's own doc comment. */
+private val MAP_ICON_STACK_BORDER_COLOR_DARK = Color.White.copy(alpha = 0.4f)
+
+/** The hairline edge on [MapIconStackButtonColorLight] circles — the inverse of [MAP_ICON_STACK_BORDER_COLOR_DARK], for the inverse risk (a light fill merging into pale terrain rather than a dark one merging into dark imagery). */
+private val MAP_ICON_STACK_BORDER_COLOR_LIGHT = Bark.copy(alpha = 0.4f)
+
+/** Translucent background for [CompassElevationStripContent] — dark-theme value unaffected by the icon bar's own opacity history above; this strip sits over the map the same way, but was not reported as illegible in the same hardware pass, so it is deliberately left as-is rather than changed on the strength of a fix aimed at a different element. */
+private val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.78f)
+
+/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [isSystemInDarkTheme], independent of the map's own night mode, unverified on hardware. */
+private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.78f)
 
 /**
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
@@ -3758,12 +3770,15 @@ private fun MapIconBar(
      */
     onToggleNightMode: () -> Unit = {},
 ) {
+    // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
+    // comment for why the two axes are kept separate rather than one steering the other.
+    val isDarkTheme = isSystemInDarkTheme()
     Surface(
         shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-        color = MapIconStackButtonColor,
-        contentColor = Color.White,
+        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        contentColor = if (isDarkTheme) Color.White else Bark,
         shadowElevation = 2.dp,
-        border = BorderStroke(1.dp, MAP_ICON_STACK_BORDER_COLOR),
+        border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
         modifier = modifier,
     ) {
         Column(
@@ -3893,7 +3908,10 @@ private fun MapBarIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (filled) Color.White else activeColor ?: Color.White,
+            // filled rows sit on their own saturated circle (green/error), where white always
+            // reads; everything else inherits MapIconBar's own theme-picked contentColor via
+            // LocalContentColor, unless a state override (activeColor) says otherwise.
+            tint = if (filled) Color.White else activeColor ?: LocalContentColor.current,
         )
     }
 }
@@ -3903,8 +3921,8 @@ private fun MapBarIconButton(
  * the one remaining user of the compact bar's old per-icon-circle look, now that [MapIconBar]'s
  * rows share one background instead. Kept as its own small composable rather than folded into
  * [MapBarIconButton]: a lone button floating directly over the map still needs its own opaque
- * fill plus hairline border to read against the map, the way [MapIconStackButtonColor]'s own doc
- * comment documents — a bar row can lean on the shared bar background for that instead.
+ * fill plus hairline border to read against the map, the way [MapIconStackButtonColorDark]'s own
+ * doc comment documents — a bar row can lean on the shared bar background for that instead.
  */
 @Composable
 private fun MapFloatingIconButton(
@@ -3914,13 +3932,22 @@ private fun MapFloatingIconButton(
     modifier: Modifier = Modifier,
     filled: Boolean = false,
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = if (filled) MaterialTheme.colorScheme.primary else MapIconStackButtonColor,
-        contentColor = Color.White,
+        color = when {
+            filled -> MaterialTheme.colorScheme.primary
+            isDarkTheme -> MapIconStackButtonColorDark
+            else -> MapIconStackButtonColorLight
+        },
+        contentColor = if (filled || isDarkTheme) Color.White else Bark,
         shadowElevation = 2.dp,
-        border = if (filled) null else BorderStroke(1.dp, MAP_ICON_STACK_BORDER_COLOR),
+        border = if (filled) {
+            null
+        } else {
+            BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
+        },
         modifier = modifier.size(MIN_TOUCH_TARGET),
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -3985,8 +4012,16 @@ private fun CompassElevationStripContent(
     // to remember — the same reasoning showQuickSearch elsewhere in this file already applies to a
     // similar tap-to-reveal toggle.
     var showDecimalDegrees by remember { mutableStateOf(false) }
-    CompositionLocalProvider(LocalContentColor provides Color.White) {
-        Box(modifier = modifier.background(color = CompassStripBackgroundColor, shape = RectangleShape)) {
+    // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
+    // comment for why the two axes are kept separate rather than one steering the other.
+    val isDarkTheme = isSystemInDarkTheme()
+    CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
+        Box(
+            modifier = modifier.background(
+                color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                shape = RectangleShape,
+            ),
+        ) {
             // Heading, elevation, and coordinates on one centered line — the project owner's own
             // call to make the strip read as a slim, single-line bar. labelMedium (down from
             // heading/elevation's earlier labelLarge) is meant to let a typical phone width show
