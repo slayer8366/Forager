@@ -45,7 +45,7 @@ report "no Color(0x literal outside ui/theme/" "$hits"
 #    colours. Importing Bark into a screen is one import, but it is the precedent that makes the
 #    next twenty look reasonable ("tag 05").
 hits=$(grep -rn "^import com\.forager\.app\.ui\.theme\." app/src/main --include=*.kt \
-       | grep -vE "\.(ForagerTheme|MapPalette|Spacing|ForagerShapes|ForagerTypography)$" || true)
+       | grep -vE "\.(ForagerTheme|MapPalette|Spacing|ForagerShapes|ForagerTypography|CoordinateMonospace)$" || true)
 report "no palette constant imported outside the theme package" "$hits"
 
 # 3. Motion comes from MaterialTheme.motionScheme. A tween at a call site is the tween-only rule
