@@ -1,51 +1,47 @@
 package com.forager.app.ui.theme
 
-import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 
 /**
- * The nine colours the map overlay draws with, as `android.graphics` ARGB ints.
+ * The nine colours the map overlay draws with, as `android.graphics` ARGB ints, in a day and a
+ * night variant.
  *
- * MapLibre renders on a native canvas and cannot read a Compose [ColorScheme], so `SightingsMap`
+ * MapLibre renders on a native canvas and cannot read a Compose `ColorScheme`, so `SightingsMap`
  * still takes ints — it just stops *defining* them. Before this existed, nine raw literals lived
- * beside the layer code with no theme role governing any of them ("tag 04" in
- * docs/plans/understory-design-system.md): every future palette change had to find and edit all
- * nine, and none of them moved with the theme.
+ * beside the layer code with nothing governing them ("tag 04" in
+ * docs/plans/understory-design-system.md): every palette change had to find and edit all nine.
  *
- * ## Derivation, not identity
+ * ## Why this is keyed on a map mode, not on the app theme
  *
- * Every value here is *derived* from its source rather than returned verbatim, and
- * `MapPaletteTest` asserts that no returned int equals the role it came from. That rule is the
- * whole point of the indirection, not a stylistic preference: `tertiary` and `error` take their
- * hues from this map's own trip blue and search-centre red, so binding the map back to those roles
- * would make retuning `error` for on-screen text contrast silently move what the map draws — two
- * unrelated things resolving to one value, which is the defect "tag 08" describes, in semantic
- * form. Sourcing a hue and binding a value are different things, and only the first is wanted.
+ * An earlier revision derived these from the ambient `ColorScheme`, so the map followed the
+ * device's light/dark setting. That was built, measured, and abandoned, because the basemap it
+ * draws on is fixed raster — USGS Topo, USGS Imagery Topo, OpenTopoMap, OSM Standard, none of
+ * which changes with the device theme. Varying the marks by theme moved the mark without moving
+ * the ground, and measurably: markers *darkened* in dark theme against a basemap that did not
+ * darken, and the route connector and waypoint pin collapsed to 0.044 apart in Oklab (against
+ * 0.12+ in light), which is the exact pair a user has to tell apart.
  *
- * The derivation is a fixed [DERIVATION_SHIFT] toward the opposite tonal pole: markers that sit
- * *on* the ground shift toward [ColorScheme.surface], and the two that are themselves ground-like
- * (the dot stroke, the area-marker glyph) shift toward [ColorScheme.onSurface]. One rule, stated
- * once, and no value can collide with its source as long as the shift is non-zero.
+ * Night mode replaces it. It is a property of the map, chosen for the conditions the map is being
+ * read in, and it dims the basemap as well as re-colouring the marks — so here the ground moves
+ * too, which is what makes a night variant meaningful at all.
  *
- * ## Known objection, recorded rather than acted on
+ * ## Why both palettes are authored by hand
  *
- * This varies with the device theme because the design document specifies that it should, and the
- * project owner confirmed that reading after the objection below was raised. The objection stands
- * on the record:
+ * Three uniform transforms were tried and each satisfied one constraint by breaking the other:
+ * lerping toward the surface tone darkened everything; lerping toward a warm off-white fixed
+ * contrast but washed the hues together (worst pair 0.038); raising Oklab lightness with chroma
+ * preserved fixed that but pushed the two blues into the sRGB gamut edge, where they clipped and
+ * converged to 0.026 apart. That is structural, not a constant left untuned: lifting a saturated
+ * colour far enough to clear a dark ground runs it out of gamut.
  *
- * **The basemap is fixed raster and has no theme variant.** `Basemap` offers USGS Topo, USGS
- * Imagery Topo, OpenTopoMap and OSM Standard; none of them changes with the device theme, and
- * nothing in the map layer reads `isSystemInDarkTheme`. Markers therefore need contrast against
- * *tiles*, not against a theme surface, and moving them by theme changes the mark without changing
- * the ground. The axis that genuinely varies is the user's **basemap choice** — pale tan for topo
- * against dark aerial photography for imagery — which is a within-theme switch this type does not
- * model.
+ * So [NIGHT] is authored, the way [DAY] already was. Nine colours is a small enough set to choose
+ * deliberately, and `MapPaletteTest` holds both to the two properties that matter — legibility
+ * against the ground each is drawn on, and separability from each other.
  *
- * If the device gate finds markers reading worse in dark theme on a topo basemap, that is this
- * objection coming true, and the fix is to build the palette from a fixed reference scheme rather
- * than the ambient one — a one-line change at the [from] call site, not a redesign.
+ * **[DAY] is byte-for-byte the palette that shipped before this type existed.** Those values were
+ * tuned on hardware (see `SightingsMap`'s own history on the sighting-dot stroke), so this change
+ * moves them into one place without changing a single one of them.
  */
 data class MapPalette(
     val sightingDot: Int,
@@ -60,60 +56,64 @@ data class MapPalette(
 ) {
     companion object {
 
-        /**
-         * How far each colour moves from its source, toward the opposite tonal pole. Large enough
-         * that no derived value can equal its source role (which `MapPaletteTest` asserts), small
-         * enough that the marker still reads as the hue it came from.
-         */
-        internal const val DERIVATION_SHIFT: Float = 0.12f
+        /** Unchanged from the pre-existing, hardware-tuned constants. */
+        val DAY = MapPalette(
+            sightingDot = 0xFF3B2E24.toInt(),
+            sightingDotStroke = Color.White.toArgb(),
+            connector = 0xFFC97B3D.toInt(),
+            areaMarkerBackground = 0xFF2E5339.toInt(),
+            areaMarkerForeground = Color.White.toArgb(),
+            plannedTrip = 0xFF3B6EA5.toInt(),
+            searchCentre = 0xFFB33B3B.toInt(),
+            breadcrumb = 0xFF2979FF.toInt(),
+            waypoint = 0xFFE0A030.toInt(),
+        )
 
         /**
-         * The search centre's own base hue. **Deliberately not [ColorScheme.error]**, even though
-         * `error` took its hue from this exact red: a pin meaning "you searched here" and text
-         * meaning "something failed" have no reason to move together, and retuning `error` for
-         * text legibility must not drag the map with it.
-         */
-        private val SearchCentreBase = Color(0xFFB33B3B)
-
-        /**
-         * The live-track blue. Deliberately outside the theme's own palette and not derived from
-         * [ColorScheme.tertiary]: this follows the near-universal GPS-track convention (Gaia GPS,
-         * Strava) rather than this app's quieter marker vocabulary, which is the point — it is
-         * meant to read as "your trail," not as another one of this app's markers. Kept distinct
-         * from the planned-trip diamond's muted blue for the same reason.
-         */
-        private val BreadcrumbBase = Color(0xFF2979FF)
-
-        /** The waypoint pin's amber, distinct from every other marker on this map. */
-        private val WaypointBase = Color(0xFFE0A030)
-
-        /**
-         * Builds the overlay palette for [colorScheme].
+         * For a dimmed basemap. Every mark is light where its day counterpart is dark, and the two
+         * that are marks-upon-marks invert with them: the stroke that separates overlapping
+         * sighting dots is white on dark dots by day and near-black on light dots at night, and
+         * the area-marker glyph does the same. Their legibility is against the marker they sit on,
+         * never against the tile, which is how `MapPaletteTest` checks them.
          *
-         * Pure and total: no Android types, no composition, no device. `MapPaletteTest` calls it
-         * directly with both schemes, which is what makes the derivation rule checkable at all.
+         * Two hue choices are deliberate departures from the day palette rather than lightened
+         * versions of it, both forced by measurement:
+         *
+         *  - **Planned trip moves blue → periwinkle.** Lightened, the muted planned-trip blue and
+         *    the saturated breadcrumb blue converge. Moving one toward violet keeps them apart
+         *    while leaving the breadcrumb on the GPS-track blue convention its day value follows.
+         *  - **Search centre moves red → rose.** Lightened, red lands next to the lightened
+         *    connector orange. Rose is still unmistakably the "you searched here" pin and clears
+         *    the connector by a comfortable margin.
          */
-        fun from(colorScheme: ColorScheme): MapPalette {
-            // Markers sit ON the ground, so they shift toward the surface tone.
-            fun onGround(base: Color): Int =
-                lerp(base, colorScheme.surface, DERIVATION_SHIFT).copy(alpha = 1f).toArgb()
+        val NIGHT = MapPalette(
+            sightingDot = 0xFFC9BBA6.toInt(),
+            sightingDotStroke = 0xFF2A2622.toInt(),
+            connector = 0xFFEF8F3C.toInt(),
+            areaMarkerBackground = 0xFF7FB08A.toInt(),
+            areaMarkerForeground = 0xFF16301D.toInt(),
+            plannedTrip = 0xFFAE9BE8.toInt(),
+            searchCentre = 0xFFFF6F92.toInt(),
+            breadcrumb = 0xFF5FB0FF.toInt(),
+            waypoint = 0xFFFFD65E.toInt(),
+        )
 
-            // These two are themselves ground-like -- the stroke that separates overlapping dots,
-            // and the glyph inside a filled area marker -- so they shift the other way.
-            fun againstGround(base: Color): Int =
-                lerp(base, colorScheme.onSurface, DERIVATION_SHIFT).copy(alpha = 1f).toArgb()
+        /**
+         * The luminance the dimmed basemap is assumed to land at, as a reference colour for
+         * contrast checks.
+         *
+         * **Provisional**, and treated as such — the same status and for the same reason as
+         * `MotionPrecedence.MARKER_CLUSTERING_THRESHOLD`. It is a modelled value for a pale topo
+         * tile under night mode's raster dimming, not a sampled one, and real tiles vary hugely
+         * within a single basemap (a snowfield and a forest canopy are not the same ground).
+         * `MapPaletteTest` uses it to bound regressions; it does not establish that anything is
+         * legible. Only hardware does that — see the README's "Not yet verified" section.
+         */
+        val NIGHT_TILE_REFERENCE = 0xFF3E3D39.toInt()
 
-            return MapPalette(
-                sightingDot = onGround(colorScheme.onSurface),
-                sightingDotStroke = againstGround(colorScheme.surface),
-                connector = onGround(colorScheme.secondary),
-                areaMarkerBackground = onGround(colorScheme.primary),
-                areaMarkerForeground = againstGround(colorScheme.onPrimary),
-                plannedTrip = onGround(colorScheme.tertiary),
-                searchCentre = onGround(SearchCentreBase),
-                breadcrumb = onGround(BreadcrumbBase),
-                waypoint = onGround(WaypointBase),
-            )
-        }
+        /** The reference pale topo tile the day palette is checked against. Provisional, as above. */
+        val DAY_TILE_REFERENCE = 0xFFE8E4DC.toInt()
+
+        fun forMode(night: Boolean): MapPalette = if (night) NIGHT else DAY
     }
 }

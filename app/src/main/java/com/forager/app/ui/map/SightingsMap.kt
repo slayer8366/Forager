@@ -162,6 +162,16 @@ fun SightingsMap(
     onTap: () -> Unit = {},
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onCameraIdle: (LatLng) -> Unit = {},
+    /**
+     * Night mode: a dimmed basemap and the light-on-dark overlay palette that goes with it.
+     * Defaults to `false`, so nothing changes until a caller opts in — the twilight trigger and
+     * the long-press override that will drive this are separate work, and this parameter is
+     * deliberately landed ahead of them so the palettes can be reviewed on their own.
+     *
+     * Not the device's dark theme, and not derived from it: see [MapPalette]'s doc comment for
+     * why that was tried, measured and abandoned.
+     */
+    nightMode: Boolean = false,
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     breadcrumbPoints: List<LatLng> = emptyList(),
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
@@ -171,10 +181,9 @@ fun SightingsMap(
 ) {
     val context = LocalContext.current
 
-    // Read in composition, not inside the LaunchedEffect below -- MaterialTheme.colorScheme is
-    // only available to a @Composable, and the effect is not one. MapPalette.from is pure, so
-    // recomputing it per recomposition costs nothing worth remembering.
-    val mapPalette = MapPalette.from(MaterialTheme.colorScheme)
+    // Resolved here rather than inside the LaunchedEffect below, which is not a composable.
+    // MapPalette.forMode is a lookup, so there is nothing worth remembering.
+    val mapPalette = MapPalette.forMode(night = nightMode)
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
@@ -205,16 +214,15 @@ fun SightingsMap(
 
     // Tracked alongside appliedBasemap for the same reason it exists: the overlay layers are built
     // once per style load with their colours baked into the layer properties, so a palette change
-    // is only visible after those layers are rebuilt. Without this, switching the device theme
-    // would leave an already-loaded map drawing the previous theme's colours until something else
-    // happened to reload the style.
+    // is only visible after those layers are rebuilt. Without this, toggling night mode would
+    // leave an already-loaded map drawing the previous palette until something else happened to
+    // reload the style.
     //
     // Restyling is not free -- setStyle discards the LocationComponent state, which is why
-    // activateLiveLocationIfPermitted has to run again below. That cost is accepted here because
-    // the design document asks the map's colours to follow the theme; see MapPalette's doc comment
-    // for the recorded objection to that requirement. If the objection is ever acted on and the
-    // palette stops varying by theme, this state and its key become dead and should be removed
-    // rather than left as a no-op.
+    // activateLiveLocationIfPermitted has to run again below. Accepted because a night-mode switch
+    // is a deliberate, roughly once-per-outing action, not something that fires on every
+    // recomposition. That is a property of the mode being chosen for the map rather than inherited
+    // from the device theme, which would have changed underneath the user.
     var appliedPalette by remember { mutableStateOf<MapPalette?>(null) }
 
     DisposableEffect(lifecycleOwner) {
