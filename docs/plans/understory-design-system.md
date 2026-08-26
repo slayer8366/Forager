@@ -124,7 +124,7 @@ Ten red tags. Tags 09 and 10 are new to this pass.
 | 03 | **No shape scale exists, and the scale it would inherit now has eight steps.** No `Shapes(` either. 1.5.0's scale is `extraSmall` → `extraExtraLarge` with `largeIncreased`/`extraLargeIncreased` filling the gap Expressive's larger components need. The two deliberate shapes in the app are hard-coded `CircleShape` at the call site. | `Theme.kt:50–58`; `MapStackIconButton`, `AvailabilityScreen.kt:3728`; `Shapes.kt:84–109` on `androidx-main` |
 | 04 | **Seven map colours live outside the theme, with no dark variant.** In dark theme they render identically to light. | `SightingsMap.kt:756–786` — `CONNECTOR_COLOR`, `SIGHTING_DOT_COLOR`, `AREA_MARKER_BACKGROUND_COLOR`, `PLANNED_TRIP_MARKER_COLOR`, `SEARCH_CENTER_COLOR`, `BREADCRUMB_COLOR`, `WAYPOINT_MARKER_COLOR` |
 | 05 | **A palette constant imported straight into a screen.** `Bark` bypasses the colour-role indirection to build `MapIconStackButtonColor`. One import — but it is the precedent that makes the next twenty look reasonable. | `AvailabilityScreen.kt:210`, consumed at `:3401` |
-| 06 | **One file holds 68 of the app's 115 composables.** 4,830 lines; the entry composable takes 45 parameters, 41 of them `on*` callbacks; fifteen test files point at it. Not a styling problem, but the largest single tax on the work below. Out of scope — see Open items. | `AvailabilityScreen.kt:347` |
+| 06 | **One file holds 68 of the app's 115 composables.** 4,830 lines; the entry composable's signature spans lines 347–484 and takes **60 parameters, 45 of them `on*` callbacks**; fifteen test files point at it. Not a styling problem, but the largest single tax on the work below. Out of scope — see Open items. | `AvailabilityScreen.kt:347` |
 | 07 | **A dead parameter, documented and left in.** `drawerSheetContent`'s `showCloseButton` is always false in practice — one call site, the permanent drawer, which is never "closed." Correctly out of scope for the L4c workstream; in scope for a Sort pass. | `AvailabilityScreen.kt:637–653` |
 | 08 | **Two accent greens, one collision.** `MossGreen` is `primary` in dark *and* `tertiary` in both themes, so in dark theme `primary` and `tertiary` are the same colour and any component pairing them has no contrast at all. | `Theme.kt:9–41` |
 | 09 | **Six of eight motion specs are dead, and a test enforces that they stay tweens.** `MotionTokensTest.kt:37–48` asserts every spec *is* a `TweenSpec`, failure message "spring-based specs can overshoot"; `:52–56` casts `panelMotionSpec` to `TweenSpec` to read its duration. The tween-only rule is mechanically pinned, not merely documented. | `MotionTokens.kt`; `MotionTokensTest.kt`; production call sites `AvailabilityScreen.kt:4067, :4068, :4085–4087, :4090–4092` |
@@ -731,8 +731,8 @@ should be visible rather than discovered.
 
 **The prerequisite, named now rather than hit later.** Tag 06 stops being
 deferrable the moment layout is the work. `AvailabilityScreen.kt` is 4,830
-lines holding 68 of the app's 115 composables behind a 45-parameter entry
-point, with fifteen test files pointed at it. Steps 1–6 barely disturb it —
+lines holding 68 of the app's 115 composables behind a 60-parameter entry
+point (45 of them callbacks), with fifteen test files pointed at it. Steps 1–6 barely disturb it —
 they change colours and specs and swap components in place — which is exactly
 why tag 06 could be named and left alone here. A layout rearrangement is the
 opposite: it is precisely the work that file makes expensive, and every change
