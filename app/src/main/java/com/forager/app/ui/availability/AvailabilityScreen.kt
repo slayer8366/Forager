@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandIn
@@ -566,10 +567,16 @@ fun AvailabilityScreen(
     // that a medium/expanded window never changes away from its own defaults (isDrawerOpen stays
     // false there; a PermanentNavigationDrawer is never "closed"), so none of this fires on that
     // width class.
-    BackHandler(enabled = isDrawerOpen) {
+    // Understory step 6 (tag 10): these two dismiss a surface, so the gesture that closes them is
+    // the same motion that opened them, per docs/plans/understory-design-system.md's "Predictive
+    // back" section. compactTab-switch-back and the double-back-to-exit handlers below stay plain
+    // BackHandlers -- they navigate rather than dismiss, and there is nothing to peek at.
+    PredictiveBackHandler(enabled = isDrawerOpen) { progress ->
+        progress.collect {}
         isDrawerOpen = false
     }
-    BackHandler(enabled = !isDrawerOpen && isMapFullscreen) {
+    PredictiveBackHandler(enabled = !isDrawerOpen && isMapFullscreen) { progress ->
+        progress.collect {}
         isMapFullscreen = false
     }
     BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP) {
@@ -1622,10 +1629,13 @@ private fun CompactSettingsTab(
 
     // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
     // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
-    BackHandler(enabled = showOfflineMaps) {
+    // Predictive, not plain (Understory step 6 / tag 10): both dismiss a full panel.
+    PredictiveBackHandler(enabled = showOfflineMaps) { progress ->
+        progress.collect {}
         showOfflineMaps = false
     }
-    BackHandler(enabled = showCrashLogs) {
+    PredictiveBackHandler(enabled = showCrashLogs) { progress ->
+        progress.collect {}
         showCrashLogs = false
     }
 
@@ -3323,7 +3333,8 @@ private fun MapTab(
     // ThreeWayActionDialog below (an AlertDialog, which already handles system back for free) —
     // so unlike this composable's menu, its own picker phase needs an explicit BackHandler or
     // system back would fall straight through it.
-    BackHandler(enabled = pendingAction != null) {
+    PredictiveBackHandler(enabled = pendingAction != null) { progress ->
+        progress.collect {}
         pendingAction = null
     }
 
@@ -3471,7 +3482,8 @@ private fun CompactMapTab(
     // fall straight through either, same reasoning as AvailabilityScreen's own top-level "unwind
     // before falling through" chain. One pop at a time: the picker phase first if it's showing,
     // the menu only once the picker's already closed.
-    BackHandler(enabled = pendingAction != null || showActionMenu) {
+    PredictiveBackHandler(enabled = pendingAction != null || showActionMenu) { progress ->
+        progress.collect {}
         if (pendingAction != null) pendingAction = null else showActionMenu = false
     }
 

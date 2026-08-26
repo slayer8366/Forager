@@ -1,6 +1,6 @@
 package com.forager.app.ui.log
 
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -113,7 +113,10 @@ internal fun LogPanel(
     // backgrounding — never Cancel, which only the form's explicit button triggers. This closes a
     // gap the L4b scoping pulse found: this panel previously had no way to close an open entry via
     // back at all, falling through to whatever AvailabilityScreen's top-level handling did instead.
-    BackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
+    // Predictive, not plain (Understory step 6 / tag 10): every branch here dismisses a surface
+    // (a picker phase, or the editing form itself).
+    PredictiveBackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) { progress ->
+        progress.collect {}
         when {
             pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
             pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false

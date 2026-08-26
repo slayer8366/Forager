@@ -1,7 +1,7 @@
 package com.forager.app.ui.log
 
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -125,7 +125,9 @@ internal fun JournalTab(
     // LogEntryDetailScreen, tab switch, and backgrounding (see MushroomLogViewModel's own doc
     // comment on the three exits) — never Cancel, which only the form's own explicit button
     // triggers.
-    BackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
+    // Predictive, not plain (Understory step 6 / tag 10): every branch here dismisses a surface.
+    PredictiveBackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) { progress ->
+        progress.collect {}
         when {
             pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
             pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
