@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color as ComposeColor
+import com.forager.app.ui.theme.MapPalette
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -129,7 +130,7 @@ import org.maplibre.geojson.Point
  *   cluster badge — a real legibility failure this migration's "same raster tiles, same palette"
  *   reasoning didn't predict, because the failure is about density and boundary loss between
  *   overlapping translucent dots, not about the colour reading against a *different* basemap
- *   palette. Fixed with [SIGHTING_DOT_STROKE_WIDTH_PX]/[SIGHTING_DOT_STROKE_COLOR] below — a stroke,
+ *   palette. Fixed with [SIGHTING_DOT_STROKE_WIDTH_PX] and MapPalette's `sightingDotStroke` below — a stroke,
  *   not full opacity: overlap density is itself information (a muddle of dots *is* the signal that
  *   several sightings cluster there), so the fix is boundary definition, not maximum contrast. Not
  *   yet re-confirmed on hardware, and not yet checked on the imagery basemap specifically.
@@ -169,6 +170,11 @@ fun SightingsMap(
     resumeTrackingRequestId: Int = 0,
 ) {
     val context = LocalContext.current
+
+    // Read in composition, not inside the LaunchedEffect below -- MaterialTheme.colorScheme is
+    // only available to a @Composable, and the effect is not one. MapPalette.from is pure, so
+    // recomputing it per recomposition costs nothing worth remembering.
+    val mapPalette = MapPalette.from(MaterialTheme.colorScheme)
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
@@ -196,6 +202,20 @@ fun SightingsMap(
     // source and layer the previous style had, so calling it when the basemap didn't actually
     // change would flash the map to blank and rebuild everything for nothing.
     var appliedBasemap by remember { mutableStateOf<Basemap?>(null) }
+
+    // Tracked alongside appliedBasemap for the same reason it exists: the overlay layers are built
+    // once per style load with their colours baked into the layer properties, so a palette change
+    // is only visible after those layers are rebuilt. Without this, switching the device theme
+    // would leave an already-loaded map drawing the previous theme's colours until something else
+    // happened to reload the style.
+    //
+    // Restyling is not free -- setStyle discards the LocationComponent state, which is why
+    // activateLiveLocationIfPermitted has to run again below. That cost is accepted here because
+    // the design document asks the map's colours to follow the theme; see MapPalette's doc comment
+    // for the recorded objection to that requirement. If the objection is ever acted on and the
+    // palette stops varying by theme, this state and its key become dead and should be removed
+    // rather than left as a no-op.
+    var appliedPalette by remember { mutableStateOf<MapPalette?>(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -266,13 +286,14 @@ fun SightingsMap(
     // Basemap swap. Keyed on (mapLibreMap, basemap) rather than driven from an AndroidView update
     // block: setStyle is asynchronous (its callback is where the new style's sources/layers can
     // actually be added), which the old synchronous update-block shape has no equivalent of.
-    LaunchedEffect(mapLibreMap, basemap) {
+    LaunchedEffect(mapLibreMap, basemap, mapPalette) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        if (appliedBasemap == basemap) return@LaunchedEffect
+        if (appliedBasemap == basemap && appliedPalette == mapPalette) return@LaunchedEffect
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap))) { style ->
-            initializeOverlayLayers(style, density = context.resources.displayMetrics.density)
+            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
             appliedBasemap = basemap
+            appliedPalette = mapPalette
             loadedStyle = style
             // setStyle discards the previous style's LocationComponent state the same way it does
             // this composable's own layers (see initializeOverlayLayers' own doc comment on why
@@ -371,14 +392,14 @@ fun SightingsMap(
  * markers (circle then its label), planned trips last so a diamond never sits under a numbered area
  * marker.
  */
-private fun initializeOverlayLayers(style: Style, density: Float) {
-    style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density))
+private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
+    style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
 
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         CircleLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
             PropertyFactory.circleRadius(SEARCH_CENTER_RADIUS_PX),
-            PropertyFactory.circleColor(SEARCH_CENTER_COLOR),
+            PropertyFactory.circleColor(palette.searchCentre),
             PropertyFactory.circleStrokeColor(Color.WHITE),
             PropertyFactory.circleStrokeWidth(SEARCH_CENTER_STROKE_WIDTH_PX),
         ),
@@ -390,10 +411,10 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
         // Drawable and stamped it per Marker, MapLibre draws every feature in the source with the
         // same layer properties, so there is nothing per-sighting to construct here at all.
         CircleLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
-            PropertyFactory.circleColor(SIGHTING_DOT_COLOR),
+            PropertyFactory.circleColor(palette.sightingDot),
             PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
             PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
-            PropertyFactory.circleStrokeColor(SIGHTING_DOT_STROKE_COLOR),
+            PropertyFactory.circleStrokeColor(palette.sightingDotStroke),
             PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
             PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
         ),
@@ -402,7 +423,7 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
     style.addSource(GeoJsonSource(CONNECTOR_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         LineLayer(CONNECTOR_LAYER_ID, CONNECTOR_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(CONNECTOR_COLOR),
+            PropertyFactory.lineColor(palette.connector),
             PropertyFactory.lineWidth(CONNECTOR_STROKE_WIDTH_PX),
             // MapLibre's line-dasharray is in units of line width, not raw pixels, so this is a
             // ratio (18:14, the same ratio the deleted osmdroid DashPathEffect used in real pixels),
@@ -418,7 +439,7 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
     style.addSource(GeoJsonSource(BREADCRUMB_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         LineLayer(BREADCRUMB_LAYER_ID, BREADCRUMB_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(BREADCRUMB_COLOR),
+            PropertyFactory.lineColor(palette.breadcrumb),
             PropertyFactory.lineWidth(BREADCRUMB_STROKE_WIDTH_PX),
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
@@ -428,7 +449,7 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
     style.addSource(GeoJsonSource(AREA_MARKER_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         CircleLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
-            PropertyFactory.circleColor(AREA_MARKER_BACKGROUND_COLOR),
+            PropertyFactory.circleColor(palette.areaMarkerBackground),
             PropertyFactory.circleRadius(AREA_MARKER_RADIUS_PX),
         ),
     )
@@ -442,7 +463,7 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
             // Must name a font actually present in styleJsonFor's glyphs set, or text-field renders
             // nothing — see BasemapStyles.kt's doc comment for why this exact font.
             PropertyFactory.textFont(AREA_MARKER_FONT_STACK),
-            PropertyFactory.textColor(AREA_MARKER_FOREGROUND_COLOR),
+            PropertyFactory.textColor(palette.areaMarkerForeground),
             PropertyFactory.textSize(AREA_MARKER_FONT_SIZE_PX),
             PropertyFactory.textAllowOverlap(true),
             PropertyFactory.textIgnorePlacement(true),
@@ -460,7 +481,7 @@ private fun initializeOverlayLayers(style: Style, density: Float) {
 
     // Last, so a waypoint marker never sits under a planned-trip diamond or an area label if two
     // ever land on the same point.
-    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density))
+    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density, palette.waypoint))
     style.addSource(GeoJsonSource(WAYPOINT_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         SymbolLayer(WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID).withProperties(
@@ -665,12 +686,12 @@ internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureColle
  * deleted osmdroid `plannedTripIcon`, redrawn because MapLibre's `SymbolLayer` needs a named image
  * registered on the [Style] (`Style.addImage`) rather than a per-`Marker` `Drawable`.
  */
-private fun plannedTripDiamondBitmap(density: Float): Bitmap {
+private fun plannedTripDiamondBitmap(density: Float, markerColor: Int): Bitmap {
     val sizePx = (PLANNED_TRIP_MARKER_SIZE_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val paint = Paint().apply {
-        color = PLANNED_TRIP_MARKER_COLOR
+        color = markerColor
         style = Paint.Style.FILL
         isAntiAlias = true
     }
@@ -693,13 +714,13 @@ private fun plannedTripDiamondBitmap(density: Float): Bitmap {
  * dashed connector, bark is a sighting, forest green is a numbered area, blue is a planned trip or
  * the live breadcrumb trail.
  */
-private fun waypointPinBitmap(density: Float): Bitmap {
+private fun waypointPinBitmap(density: Float, markerColor: Int): Bitmap {
     val widthPx = (WAYPOINT_MARKER_WIDTH_DP * density).toInt().coerceAtLeast(1)
     val heightPx = (WAYPOINT_MARKER_HEIGHT_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val paint = Paint().apply {
-        color = WAYPOINT_MARKER_COLOR
+        color = markerColor
         style = Paint.Style.FILL
         isAntiAlias = true
     }
@@ -743,10 +764,10 @@ private const val WAYPOINT_SOURCE_ID = "waypoints"
 private const val WAYPOINT_LAYER_ID = "waypoints-layer"
 private const val WAYPOINT_ICON_ID = "waypoint-pin"
 
-// Colours match ui/theme/Color.kt and the deleted osmdroid SightingsMap's own constants exactly —
-// see this file's class doc comment, "The overlay colours", for why they are unretouched.
-private val CONNECTOR_COLOR = 0xFFC97B3D.toInt()
-private val SIGHTING_DOT_COLOR = 0xFF3B2E24.toInt() // bark, opaque — translucency comes from SIGHTING_DOT_OPACITY instead of an alpha channel in this int, see this file's history.
+// The overlay's colours now come from ui/theme/MapPalette.kt, derived from the active
+// ColorScheme and passed in -- see that type's doc comment for the derivation rule, and for
+// the recorded objection about deriving map colours from a theme the basemap does not follow.
+// Only non-colour geometry constants remain here.
 private const val SIGHTING_DOT_OPACITY = 0.7f // ~= the deleted osmdroid version's 0xB3 alpha.
 private const val SIGHTING_DOT_RADIUS_PX = 9f
 
@@ -754,35 +775,19 @@ private const val SIGHTING_DOT_RADIUS_PX = 9f
 // class doc comment, "The overlay colours", for the hardware finding this fixes. A light, near-
 // opaque stroke (not translucent like the fill) so the boundary itself stays crisp regardless of
 // how many dots overlap or what opacity the fill composites to underneath.
-private val SIGHTING_DOT_STROKE_COLOR = Color.WHITE
 private const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
-private val AREA_MARKER_BACKGROUND_COLOR = 0xFF2E5339.toInt()
-private val AREA_MARKER_FOREGROUND_COLOR = Color.WHITE
 private const val AREA_MARKER_FONT_SIZE_PX = 14f
 private const val AREA_MARKER_RADIUS_PX = 16f
 private const val CONNECTOR_STROKE_WIDTH_PX = 6f
 
-/** A sky blue, distinct from both the area marker's forest green and the connector's orange. */
-private val PLANNED_TRIP_MARKER_COLOR = 0xFF3B6EA5.toInt()
 private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 
-/** A red distinct from every other marker colour on this map — the search-centre pin's replacement. */
-private val SEARCH_CENTER_COLOR = 0xFFB33B3B.toInt()
 private const val SEARCH_CENTER_RADIUS_PX = 8f
 private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
 
-/**
- * A saturated blue distinct from the planned-trip diamond's muted [PLANNED_TRIP_MARKER_COLOR] —
- * both read as "blue" at a glance but this one is meant to pop as the live/just-recorded trail,
- * matching the near-universal GPS-track convention (Gaia GPS, Strava, etc.) rather than this app's
- * own quieter marker palette.
- */
-private val BREADCRUMB_COLOR = 0xFF2979FF.toInt()
 private const val BREADCRUMB_STROKE_WIDTH_PX = 4f
 
-/** Amber — see [waypointPinBitmap]'s own doc comment for why this colour, distinct from every other marker on this map. */
-private val WAYPOINT_MARKER_COLOR = 0xFFE0A030.toInt()
 private const val WAYPOINT_MARKER_WIDTH_DP = 22f
 private const val WAYPOINT_MARKER_HEIGHT_DP = 28f
 

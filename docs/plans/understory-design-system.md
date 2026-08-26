@@ -23,7 +23,8 @@ A rendered version of this document exists as an artifact:
 | R2 | Promoting map accents to *be* `tertiary`/`error` re-creates tag 08's defect class semantically. `MapPalette` now **derives from** the scheme rather than being it. | Blocked step 1 |
 | R3 | "Four call sites" is evidence the change is **cheap to write**, not that it is low risk. All four are `panelMotionSpec`. Separated wherever the number appears. | Wording |
 | R4 | No hardware gate existed anywhere in the order. An explicit device gate now sits between steps 4 and 5, with four named questions. | Blocks step 5 |
-| R5 | `MapPaletteTest` asserted difference, not legibility. Non-equality no longer stands in for the property that matters. | — |
+| R5 | `MapPaletteTest` asserted difference, not legibility. As built it asserts derivation-not-identity, theme responsiveness, and a **separation ratchet** at the measured minimum; basemap legibility is recorded in the README as a hardware question. | — |
+| R9 | **Implementation finding.** The basemap has no theme variant, so deriving map colours from the ambient scheme moves the mark without moving the ground. Raised, overridden by the owner, built as specified, and recorded below with the measurement it produced. | Device gate |
 | R6 | The experimental-status caveat gated the wrong step. Moved from step 2 to step 5. Symbol names corrected. | Blocks step 5 |
 | R7 | Stop-and-ask on the continuous-animation budget, answered before ADR-0002 is drafted: not duration-derived, but **never enforced**, so the ADR records it as unimplemented rather than "unchanged." §3S. | Blocked ADR-0002 |
 | R8 | Removing the expanded navigation rail closed a finding instead of deferring it. The question of where the six destinations live in expanded is now recorded in `map-redesign.md`. | — |
@@ -180,6 +181,40 @@ So the corrected rule, and the thing `MapPalette` exists to enforce:
 
 With that, the promotion closes tag 08, `MapPalette` closes tag 04, and
 neither re-creates the other.
+
+#### R9 — the objection to theme-derived map colours, raised and overridden
+
+Recorded because it was raised before implementation, decided against, and
+then partly borne out by measurement. It is not a request to revisit; it is
+the note that makes the device-gate result interpretable either way.
+
+**The objection.** `Basemap` offers USGS Topo, USGS Imagery Topo,
+OpenTopoMap and OSM Standard. None of them changes with the device theme,
+and nothing in the map layer reads `isSystemInDarkTheme`. Markers need
+contrast against *raster tiles*, so varying them by theme changes the mark
+without changing the ground. The axis that genuinely varies is the user's
+**basemap choice** — pale tan topo against dark aerial imagery — which is a
+within-theme switch `MapPalette` does not model.
+
+**The decision.** Build it as specified: derive from the ambient scheme so
+light and dark differ. Owner decision, 2026-08-25, after the objection was
+put.
+
+**What the implementation then measured.** Deriving from the ambient scheme
+pushes two markers together in dark theme that the light scheme keeps
+apart. `connector` derives from `secondary`, which is the deepened
+`MushroomDeep` in light but the lightened `MushroomLight` in dark; the
+waypoint pin is a fixed amber. In Oklab they sit **0.044 apart in dark
+against 0.12+ in light** — both warm oranges, at the point where telling a
+route connector from a waypoint pin is the thing the colours exist to do.
+
+That is not a reason to reverse the decision, and it has not been treated
+as one. It is a concrete thing to look at on hardware, and it is now
+`MapPaletteTest`'s separation floor, so nothing can quietly make it worse.
+
+**If the gate says it reads badly**, the fix is one line: build the palette
+from a fixed reference scheme rather than the ambient one. `MapPalette.from`
+already takes the scheme as a parameter, so nothing else changes.
 
 | Role | Light | Dark | Note |
 |---|---|---|---|
@@ -680,6 +715,10 @@ impression:
 3. **Does predictive-back progress track the gesture?**
 4. **Does expressive damping stay inside ADR-0001's precedence order, or
    does `standard()` serve the calm requirement better?**
+5. **In dark theme, can you still tell a route connector from a waypoint
+   pin?** (R9. They are 0.044 apart in Oklab there against 0.12+ in light.
+   Check on both a topo and an imagery basemap, since the ground changes
+   between them and the markers do not.)
 
 Question 4 is the one that can reverse a decision rather than tune a value.
 Its answer is a one-line parameter change either way — the `standard()`
