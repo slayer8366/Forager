@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -427,12 +428,14 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the return-to-vehicle line is blank while not recording, and the record toggle still shows`() {
+    fun `the return-to-vehicle control is disabled while not recording, and the record toggle still shows`() {
         setScreen(isRecording = false)
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Start recording track").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Return:", substring = true).assertCountEquals(0)
+        // returnToStartStripText(false, null) is "" -- ifBlank falls back to this placeholder.
+        // See MapIconStack's own return-to-vehicle MapStackIconButton call.
+        composeRule.onNodeWithContentDescription("Return to vehicle — start recording first").assertIsNotEnabled()
     }
 
     @Test
@@ -440,7 +443,7 @@ class AvailabilityScreenMapIconStackTest {
         setScreen(isRecording = true, returnToStart = null)
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Recording — waiting for a fix to compute the way back").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Recording — waiting for a fix to compute the way back").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Stop recording track").assertIsDisplayed()
     }
 
@@ -452,7 +455,7 @@ class AvailabilityScreenMapIconStackTest {
         )
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Return: 180° S · 1.2 km · -45 m").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Return: 180° S · 1.2 km · -45 m").assertIsDisplayed()
     }
 
     @Test
@@ -463,7 +466,7 @@ class AvailabilityScreenMapIconStackTest {
         )
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Return: 45° NE · 350 m · elevation diff. unavailable").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Return: 45° NE · 350 m · elevation diff. unavailable").assertIsDisplayed()
     }
 
     @Test

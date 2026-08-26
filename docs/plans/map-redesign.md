@@ -326,6 +326,32 @@ destinations to `CompactTab`'s 5." `CompactTab` has six entries — `PHOTOS`
 comment was not updated. Cosmetic, but it will mislead the next reader
 counting destinations.
 
+## Icon stack: superseded from 5 to a 7-icon stopgap (recorded 2026-08-26)
+
+Decision #3 above fixed the right-edge stack at exactly 5 icons. Requested
+directly, after hardware review found the record start/stop control and the
+return-to-vehicle toggle — both living in a second row on
+`CompassElevationStripContent` — overlapping MapLibre's own native compass
+view (the "reset orientation to north" control the SDK renders itself, not
+something this project built) at the top of the screen, and the strip's
+owner wanted that second row gone so the strip reads as one line.
+
+Both controls moved into `MapIconStack` — record start/stop (icon and fill
+colour both change with state, same redundant-encoding property the
+original `RecordToggleButton` had) and return-to-vehicle (disabled, dimmed,
+until something is recording; its status — bearing/distance/elevation, or
+"waiting for a fix" — is now a `contentDescription` rather than visible
+text, since there is no room left in the stack for a text row). The stack
+is 7 icons now, not 5.
+
+**Stopgap, not a redesign — the fuller fix is still open.** The project
+owner separately asked for a proper right-edge *panel bar* (replacing the
+individual floating circles) that folds every one of these controls,
+including MapLibre's native compass/orientation control, into one bar
+hugging the map's right edge — not built yet as of this note. When that
+lands, this section's 7-icon stack is what it replaces, and decision #3
+above should be corrected in place rather than superseded a second time.
+
 ## New capability: compass
 
 No sensor code exists in this app. Needs an owned interface — e.g.

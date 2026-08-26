@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.R
 import com.forager.app.domain.model.LogPhoto
@@ -110,15 +111,35 @@ internal fun LogEntryDetailScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(
+                // weight(fill = false), not a plain Row: without it, this row (in particular the
+                // date text, which has no width bound of its own) is measured at its own intrinsic
+                // width regardless of what the Cancel/Save/Delete row on the right needs, so on a
+                // long date string or a large font scale the two rows' combined width exceeds the
+                // screen and something has to give — what actually gave, on hardware, was the Save
+                // button being squeezed narrower than "Save" needs, wrapping it to "Sav"/"e". Same
+                // fix this file's own class doc comment already documents for the location row's
+                // near-identical overflow bug: bound the flexible side with weight so the fixed
+                // side (the buttons) always gets its full intrinsic width, and the date truncates
+                // with an ellipsis instead.
+                modifier = Modifier.weight(1f, fill = false),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
-                Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Find on ${entry.foundOn}",
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextButton(onClick = onCancel) { Text("Cancel") }
-                Button(onClick = onSave) { Text("Save") }
+                Button(onClick = onSave) { Text("Save", maxLines = 1, softWrap = false) }
                 IconButton(onClick = onDeleteEntry) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
                 }

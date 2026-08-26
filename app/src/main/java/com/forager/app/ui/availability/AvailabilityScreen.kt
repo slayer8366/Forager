@@ -134,6 +134,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -3603,12 +3604,6 @@ private fun CompactMapTab(
                     compassProvider = compassProvider,
                     elevationMeters = uiState.liveAltitudeMeters,
                     location = uiState.liveLocation,
-                    isRecording = isRecording,
-                    onToggleRecording = onToggleRecording,
-                    returnToStart = returnToStart,
-                    isReturning = isReturning,
-                    isOffTrack = isOffTrack,
-                    onToggleReturning = onToggleReturning,
                     // Full width, flush against the top of the map — "just below" ActiveSearchSummary
                     // (the sibling Column entry directly above this Box) rather than a narrow
                     // floating pill with margins on both sides, per the project owner's own redesign
@@ -3628,6 +3623,12 @@ private fun CompactMapTab(
                     onToggleMapMode = onToggleMapMode,
                     isNightMode = isNightMode,
                     onToggleNightMode = onToggleNightMode,
+                    isRecording = isRecording,
+                    onToggleRecording = onToggleRecording,
+                    returnToStart = returnToStart,
+                    isReturning = isReturning,
+                    isOffTrack = isOffTrack,
+                    onToggleReturning = onToggleReturning,
                     onOpenSearchDrawer = onOpenSearchDrawer,
                     onAdd = {
                         // No location to grab any more — the button just opens the menu; the
@@ -3704,12 +3705,17 @@ private fun CompactMapTab(
 }
 
 /**
- * The right-edge floating icon stack — decision #3 in `docs/plans/map-redesign.md`: exactly five
- * icons, top to bottom, dark translucent circles with a white glyph except the bottom one, which
- * is filled in the app's own forest green. Slot 3 reuses [isTopoMode]/[onToggleMapMode] — the same
- * logic [MapModeToggle] wraps for the untouched MEDIUM/EXPANDED path — restyled to match this
- * stack's other four icons rather than calling that composable directly, so MEDIUM/EXPANDED's own
- * styling stays untouched too.
+ * The right-edge floating icon stack — decision #3 in `docs/plans/map-redesign.md` fixed this at
+ * exactly five; it is seven now, a project-owner-directed stopgap. The record start/stop and
+ * return-to-vehicle controls used to live in a second row on [CompassElevationStripContent] —
+ * moved here so that strip could collapse to one line — pending a fuller right-edge panel-bar
+ * redesign that folds every one of these controls (plus the orientation-reset control MapLibre's
+ * own compass view renders) into a single bar; not built yet. Top to bottom: dark translucent
+ * circles with a white glyph, the add button filled in the app's own forest green, and the record
+ * button filled in the error colour while recording. Slot 3 reuses [isTopoMode]/[onToggleMapMode]
+ * — the same logic [MapModeToggle] wraps for the untouched MEDIUM/EXPANDED path — restyled to
+ * match this stack's other icons rather than calling that composable directly, so MEDIUM/EXPANDED's
+ * own styling stays untouched too.
  */
 @Composable
 private fun MapIconStack(
@@ -3718,6 +3724,12 @@ private fun MapIconStack(
     onLocateMe: () -> Unit,
     isTopoMode: Boolean,
     onToggleMapMode: () -> Unit,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
     onOpenSearchDrawer: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
@@ -3728,8 +3740,7 @@ private fun MapIconStack(
      */
     isNightMode: Boolean = false,
     /**
-     * Long-press on slot 3. Night mode lives here rather than in a sixth icon because
-     * `docs/plans/map-redesign.md` §3 fixes this stack at exactly five, and because slot 3 is
+     * Long-press on slot 3. Night mode lives here rather than as its own icon because slot 3 is
      * already the map's render-mode control: tap changes the basemap, long-press changes whether
      * it is dimmed. One control, one question — how should this map draw right now.
      */
@@ -3770,6 +3781,24 @@ private fun MapIconStack(
             longClickLabel = if (isNightMode) "Turn night mode off" else "Turn night mode on",
         )
         MapStackIconButton(
+            icon = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
+            contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
+            onClick = onToggleRecording,
+            activeColor = if (isRecording) MaterialTheme.colorScheme.error else null,
+        )
+        MapStackIconButton(
+            icon = Icons.Filled.Directions,
+            contentDescription = returnToStartStripText(isRecording, returnToStart)
+                .ifBlank { "Return to vehicle — start recording first" },
+            onClick = onToggleReturning,
+            enabled = isRecording,
+            activeColor = when {
+                isOffTrack -> MaterialTheme.colorScheme.error
+                isReturning -> MaterialTheme.colorScheme.primary
+                else -> null
+            },
+        )
+        MapStackIconButton(
             icon = Icons.Filled.Search,
             contentDescription = "Search",
             onClick = onOpenSearchDrawer,
@@ -3799,6 +3828,17 @@ private fun MapStackIconButton(
     onLongClick: (() -> Unit)? = null,
     /** Overrides [contentDescription] for the long-press action, for screen readers and tests. */
     longClickLabel: String? = null,
+    /**
+     * `false` dims the circle and disables the tap target — the return-to-vehicle slot's state
+     * while nothing is recording, when there is nothing yet to return to.
+     */
+    enabled: Boolean = true,
+    /**
+     * An alternate fill for a toggle that is currently "on" — the record slot while recording.
+     * Independent of [filled] (the add button's permanent green, not a toggle state); `null`
+     * leaves the circle at its normal dark fill.
+     */
+    activeColor: Color? = null,
 ) {
     // Surface's own `onClick` overload has no long-press equivalent, so this uses the plain
     // Surface and puts both gestures on the modifier. The size constraint below still bounds the
@@ -3806,13 +3846,19 @@ private fun MapStackIconButton(
     // bounds" pitfall applies to unconstrained children, and this one is explicitly sized.
     Surface(
         shape = CircleShape,
-        color = if (filled) MaterialTheme.colorScheme.primary else MapIconStackButtonColor,
+        color = when {
+            filled -> MaterialTheme.colorScheme.primary
+            activeColor != null -> activeColor
+            else -> MapIconStackButtonColor
+        },
         contentColor = Color.White,
         shadowElevation = 2.dp,
-        border = if (filled) null else BorderStroke(1.dp, MAP_ICON_STACK_BORDER_COLOR),
+        border = if (filled || activeColor != null) null else BorderStroke(1.dp, MAP_ICON_STACK_BORDER_COLOR),
         modifier = modifier
             .size(MAP_ICON_STACK_DIAMETER)
+            .alpha(if (enabled) 1f else 0.4f)
             .combinedClickable(
+                enabled = enabled,
                 onClick = onClick,
                 onLongClick = onLongClick,
                 onLongClickLabel = longClickLabel,
@@ -3843,12 +3889,6 @@ private fun CompassElevationStrip(
     compassProvider: CompassProvider,
     elevationMeters: Double?,
     location: LatLng?,
-    isRecording: Boolean,
-    onToggleRecording: () -> Unit,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val headingDegrees by compassProvider.heading.collectAsState(initial = null)
@@ -3856,27 +3896,21 @@ private fun CompassElevationStrip(
         headingDegrees = headingDegrees,
         elevationMeters = elevationMeters,
         location = location,
-        isRecording = isRecording,
-        onToggleRecording = onToggleRecording,
-        returnToStart = returnToStart,
-        isReturning = isReturning,
-        isOffTrack = isOffTrack,
-        onToggleReturning = onToggleReturning,
         modifier = modifier,
     )
 }
 
+/**
+ * Heading, elevation, and coordinates only — one centered line. The return-to-vehicle status/
+ * toggle and the record start/stop control used to live in a second row here; both moved into
+ * [MapIconStack] (project owner's call: this strip should stay a single line, not grow a second
+ * row for track-recording controls that already have their own home in the icon stack).
+ */
 @Composable
 private fun CompassElevationStripContent(
     headingDegrees: Float?,
     elevationMeters: Double?,
     location: LatLng?,
-    isRecording: Boolean,
-    onToggleRecording: () -> Unit,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
@@ -3885,8 +3919,7 @@ private fun CompassElevationStripContent(
     // for the narrow pill, but that fix meant shrinking the strip back down, which isn't an option
     // now that full width is the point). A Box with no pointer/click handling of its own doesn't
     // intercept anything, so the map keeps receiving touches everywhere except this strip's own
-    // real interactive children (the return-to-vehicle text, the record toggle, and now the
-    // coordinates segment below).
+    // real interactive child (the coordinates segment below).
     //
     // Local state, not AvailabilityUiState: this is purely which of two always-computable string
     // representations of the same fix to display, nothing the ViewModel or a future session needs
@@ -3895,98 +3928,64 @@ private fun CompassElevationStripContent(
     var showDecimalDegrees by remember { mutableStateOf(false) }
     CompositionLocalProvider(LocalContentColor provides Color.White) {
         Box(modifier = modifier.background(color = CompassStripBackgroundColor, shape = RectangleShape)) {
-            Column(
-                // fillMaxWidth(), not width(IntrinsicSize.Max): this strip is now the full-width bar
-                // itself (see this composable's own call site), so its content should actually span
-                // that width — in particular the return-to-vehicle row's own fillMaxWidth() below
-                // needs to reach the true screen edges to put the record toggle at the far right,
-                // not just the edge of an intrinsic-width column. (IntrinsicSize.Max was the fix for
-                // a real regression when this strip was still a narrow pill — see
-                // AvailabilityScreenTripPlanningFlowTest — not needed now that fillMaxWidth() on the
-                // Box above does that job instead.)
+            // Heading, elevation, and coordinates on one centered line — the project owner's own
+            // call to make the strip read as a slim, single-line bar. labelMedium (down from
+            // heading/elevation's earlier labelLarge) is meant to let a typical phone width show
+            // the whole line; on a narrower screen, the coordinates segment (the longest of the
+            // three, and the one that grew when Lat./Long. were added alongside the MGRS grid) is
+            // the one that gives way — Modifier.weight(1f, fill = false) + TextOverflow.Ellipsis on
+            // just that Text, not horizontalScroll on the whole Row: horizontalScroll installs a
+            // real pointer-input handler even at zero scroll range, which intercepted touches meant
+            // for the map underneath this strip (the same touch-interception class this
+            // composable's own Box-not-Surface comment above already documents;
+            // AvailabilityScreenTripPlanningFlowTest and AvailabilityScreenWaypointFlowTest caught
+            // this one the same way). Weight-based sizing truncates with an ellipsis rather than an
+            // abrupt hard clip, and adds no pointer input of its own, so the map stays reachable
+            // everywhere under the strip.
+            //
+            // Arrangement.spacedBy(space, alignment) rather than plain spacedBy: keeps the fixed
+            // gap between the three segments while also centering the whole group horizontally
+            // within the full-width strip, per the project owner's own placement call.
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
-                // Heading, elevation, and coordinates on one line — the project owner's own call
-                // ("have the text all fit in one single line") to make the strip read as a slim bar
-                // rather than a two-line block. labelMedium (down from heading/elevation's earlier
-                // labelLarge) is meant to let a typical phone width show the whole line; on a
-                // narrower screen, the coordinates segment (the longest of the three, and the one
-                // that grew when Lat./Long. were added alongside the MGRS grid) is the one that
-                // gives way — Modifier.weight(1f, fill = false) + TextOverflow.Ellipsis on just that
-                // Text, not horizontalScroll on the whole Row: horizontalScroll installs a real
-                // pointer-input handler even at zero scroll range, which intercepted touches meant
-                // for the map underneath this strip (the same touch-interception class
-                // CompassElevationStripContent's own Box-not-Surface comment above already
-                // documents; AvailabilityScreenTripPlanningFlowTest and
-                // AvailabilityScreenWaypointFlowTest caught this one the same way). Weight-based
-                // sizing truncates with an ellipsis rather than an abrupt hard clip, and adds no
-                // pointer input of its own, so the map stays reachable everywhere under the strip.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Navigation,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .rotate(headingDegrees ?: 0f),
-                    )
-                    Text(
-                        text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                    )
-                    Text("·", style = MaterialTheme.typography.labelMedium)
-                    Text(
-                        // Meters, matching this app's existing metric convention (radiusKm) rather
-                        // than introducing feet — nothing else in the app displays imperial units.
-                        text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                    )
-                    Text("·", style = MaterialTheme.typography.labelMedium)
-                    Text(
-                        text = coordinatesStripText(location, showDecimalDegrees),
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .clickable(
-                                enabled = location != null,
-                                onClick = { showDecimalDegrees = !showDecimalDegrees },
-                            ),
-                    )
-                }
-                // Return-to-vehicle on the far left, the record start/stop toggle on the far right —
-                // opposite ends of the same box, per the project owner's own placement call, rather
-                // than a sixth MapIconStack icon (that stack is fixed at exactly five, a settled
-                // decision) or a separate return-to-vehicle screen. The text itself is the "returning"
-                // toggle — tapping it starts/stops the off-track heuristic (see TrackRecordingViewModel's
-                // own doc comment for why that's a distinct state from isRecording) — disabled while
-                // nothing is recording, since there is nothing yet to return to.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = returnToStartStripText(isRecording, returnToStart),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isReturning) FontWeight.Bold else null,
-                        color = if (isOffTrack) MaterialTheme.colorScheme.error else Color.White,
-                        modifier = Modifier.clickable(enabled = isRecording, onClick = onToggleReturning),
-                    )
-                    RecordToggleButton(
-                        isRecording = isRecording,
-                        onClick = onToggleRecording,
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Filled.Navigation,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .rotate(headingDegrees ?: 0f),
+                )
+                Text(
+                    text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                )
+                Text("·", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    // Meters, matching this app's existing metric convention (radiusKm) rather
+                    // than introducing feet — nothing else in the app displays imperial units.
+                    text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                )
+                Text("·", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    text = coordinatesStripText(location, showDecimalDegrees),
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clickable(
+                            enabled = location != null,
+                            onClick = { showDecimalDegrees = !showDecimalDegrees },
+                        ),
+                )
             }
         }
     }
@@ -4011,26 +4010,6 @@ internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInf
     } ?: "elevation diff. unavailable"
     val bearing = info.bearingDegrees.roundToInt()
     return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · $distanceText · $elevationText"
-}
-
-/** The compass strip's own start/stop control for [com.forager.app.service.TrackRecordingService] — see [CompassElevationStripContent]'s doc comment on why it lives here rather than in [MapIconStack]. */
-@Composable
-private fun RecordToggleButton(isRecording: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = if (isRecording) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.18f),
-        contentColor = Color.White,
-        modifier = modifier.size(22.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
-                contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
-                modifier = Modifier.size(14.dp),
-            )
-        }
-    }
 }
 
 /**
