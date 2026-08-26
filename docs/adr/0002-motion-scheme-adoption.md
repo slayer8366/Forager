@@ -2,12 +2,12 @@
 
 ## Status
 
-Accepted for the decision to adopt `MotionScheme` and for every mapping
-below except the panel row's damping value, which is **provisional**
-pending Gate G (`docs/plans/understory-design-system.md` §5S, question 2:
-"Does the drawer spring read as sloppy at `slowSpatialSpec`?"). The
-amendment path for that one value is stated below rather than left
-implicit.
+Accepted for the decision to adopt `MotionScheme` and for every mapping in
+this document, including the panel row's damping value (ζ = 0.8,
+`slowSpatialSpec`) — confirmed by Gate G question 2, see "Gate G outcomes,
+2026-08-26" below. `expressive()` vs. `standard()` (Gate G question 4) is
+**tentatively confirmed, not fully closed** — see that same section for
+what's still open.
 
 Supersedes, not amends: [ADR-0001](0001-motion-precedence.md) stays
 accepted for the precedence order and degradation model, which this ADR
@@ -283,6 +283,56 @@ with no caller" restraint this ADR applies to the specs themselves.
 - **The scope boundary.** No confidence score, candidate list, species
   suggestion, or per-observation harm assessment enters the motion layer
   anywhere in this ADR or the code implementing it.
+
+## Gate G outcomes, 2026-08-26
+
+Owner-run, on hardware, per `docs/plans/understory-design-system.md`'s
+Gate G table. Recorded here as this ADR's own stated amendment path
+requires, not as a silent edit to the Status line above. Three of the five
+named questions are answered; two are not, and are named as still open
+rather than assumed passing.
+
+- **Q1 — "Does damping 0.6 press feedback feel loose while walking?"
+  Answered: no.** "Looks fine, not distracting." `fastSpatialSpec`
+  (ζ = 0.6) needs no amendment. This question does not gate a specific
+  provisional value in this ADR (nothing here was contingent on it), so
+  there is nothing to unmark provisional — it is recorded for the gate's
+  own completeness.
+- **Q2 — "Does the drawer spring read as sloppy at `slowSpatialSpec`?"
+  Answered: no.** "It's not overly bouncy." This is the value the Status
+  line above named provisional. It is now accepted outright: the panel
+  row stays on `slowSpatialSpec` (ζ = 0.8, expressive), no amendment to
+  the category map.
+- **Q3 — "Does predictive-back progress track the gesture?" Not
+  answered.** Marked N/A by the owner. Consistent with where this sits in
+  the roadmap: step 6 (the `BackHandler` → `PredictiveBackHandler` swap)
+  has not landed yet, so there is no predictive-back gesture in this build
+  for the question to be checked against. Still open, not passing by
+  default — step 6 does not start before it either, the same "Gate G
+  passed" condition step 5 is held to.
+- **Q4 — "Does expressive damping stay inside ADR-0001's precedence
+  order, or does `standard()` serve the calm requirement better?"
+  Tentatively yes, not fully closed.** Owner's own words: "seems to be the
+  case so far." This is the one question that reverses a decision rather
+  than tunes a value (see "Records: `expressive()` as a reversible
+  one-line parameter" above), so a hedge here is recorded as a hedge, not
+  rounded up to a pass. `expressive()` stays the live scheme; the
+  `standard()` substitution table above stays in force as the amendment
+  path if a later, firmer answer reverses this.
+- **Q5 — "In dark theme, can you still tell a route connector from a
+  waypoint pin?" Not answered.** Marked N/A. Per this ADR's own sibling
+  document (`understory-design-system.md`'s "Night palette" Decisions
+  entry), this question predates `MapPalette.NIGHT`'s "Fifth pass," which
+  abandoned hue differentiation for connector/waypoint entirely in favor
+  of icon shape — the color-based version of this question may no longer
+  even be the right one to ask, but that rewrite is not re-litigated here.
+  Still stands as an open device-gate question against whatever palette
+  ships, exactly as `understory-design-system.md` already states.
+
+**Net: Gate G is not fully passed.** Two of five questions are open (Q3,
+whose feature does not exist yet; Q5, unanswered). Step 5 remains gated on
+both closing, per the roadmap table's own condition ("Gate G passed, and
+R6's annotation re-check").
 
 ## Rejected alternative: the chrome-versus-map split
 

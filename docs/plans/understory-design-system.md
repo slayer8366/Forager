@@ -784,6 +784,12 @@ values are recorded in §2S so the switch is a substitution.
 Outcomes route as amendments to ADR-0002, per its stated amendment path,
 not as new ADRs and not as silent edits.
 
+**Partial outcome recorded 2026-08-26** — see ADR-0002's "Gate G outcomes"
+section for the full record. Q1 and Q2 answered and passing; Q4
+tentatively passing, not fully closed; Q3 (no `PredictiveBackHandler` yet
+to check) and Q5 not answered. Gate G is not fully passed — step 5 stays
+blocked on Q3 and Q5 closing.
+
 ### Before any of it — the base branch
 
 **This document sits on `claude/l4c-serialized-editing-state`, the tree it
