@@ -122,9 +122,18 @@ jobs:
         if: failure()
         run: |
           echo "----- Kotlin/Java errors -----"
-          grep -E "^(e: |w: .*error|error:)" /tmp/assemble.log | head -40 || echo "(no e:/error: lines)"
+          grep -E "^(e: |error:)" /tmp/assemble.log | head -40 || echo "(no e:/error: lines)"
           echo "----- Gradle failure block -----"
           sed -n '/^FAILURE: Build failed/,/^\* Try:/p' /tmp/assemble.log | head -40 || true
+          # Also emitted as workflow annotations. Printing them to stdout is not enough: the
+          # GitHub job-log API caps its response, so a tail can only ever reach the last ~180
+          # lines, which are the steps that run after this one. The check-run annotations
+          # endpoint has no such cap, so that is where these become readable.
+          esc() { sed -e 's/%/%25/g' -e 's/\r//g' | awk '{ printf "%s%%0A", $0 }'; }
+          kmsg=$(grep -E "^(e: |error:)" /tmp/assemble.log | head -12 | esc)
+          if [ -n "$kmsg" ]; then echo "::error title=Kotlin compile errors::${kmsg}"; fi
+          gmsg=$(sed -n '/^FAILURE: Build failed/,/^\* Try:/p' /tmp/assemble.log | head -16 | esc)
+          if [ -n "$gmsg" ]; then echo "::error title=Gradle failure::${gmsg}"; fi
 
       - name: Verify the version on the built APK
         # The evidence that fetch-depth: 0 took effect, read out of the artifact rather than
