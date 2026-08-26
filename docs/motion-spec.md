@@ -53,19 +53,26 @@ in `MotionPrecedence.kt`.
 
 ## 2. Motion tokens and object behavior
 
-All durations and easings live in `MotionTokens.kt` as named constants.
-No magic numbers at call sites.
+Every category below resolves to one of `MaterialTheme.motionScheme`'s six
+specs via a named `MotionTokens.kt` function — see
+[`docs/adr/0002-motion-scheme-adoption.md`](adr/0002-motion-scheme-adoption.md)
+for the full category-to-spec table and why each category landed where it
+did. A handful of categories also keep a plain named constant alongside
+their spec, for a value the spec itself doesn't carry (a stagger delay, an
+amplitude bound, a rate, or — for the one category with no spec at all —
+a duration). No magic numbers or raw `tween`/`spring` calls at call sites.
 
 | Category | Behavior |
 |---|---|
-| Feedback motion | 150–400 ms, ease-out |
-| Narrative reveals | Up to 800–1200 ms, interruptible |
-| Map markers | Soft scale + fade entrance when density and performance allow; otherwise cross-fade or instant. Clustering fans out with staggered timing, not uniform snaps |
-| Selection emphasis | Low-amplitude breathing pulse, stops once the detail panel opens. Selection emphasis only — this spec defines no other kind of emphasis |
-| User location | Animate only on meaningful GPS change; avoid jitter. During slow lock, show an explicit acquiring state — never a falsely precise pin |
-| Routes | Progressive reveal at human-scale pace for longer corridors, but always provide immediate full-path display when the user needs it. Recalculation morphs existing segments rather than redrawing |
-| Panels and navigation | Ease-out, grounded; no springy overshoot |
-| Data layer overlays | Cross-fade or gentle radial growth. No particle systems |
+| Feedback motion | Spring-driven; press feedback wants the overshoot (`fastSpatialSpec`, provisional pending the device gate) |
+| Narrative reveals | Up to 800–1200 ms, interruptible; spring-driven (`slowEffectsSpec`) |
+| Map markers | Soft scale + fade entrance when density and performance allow; otherwise cross-fade or instant. Clustering fans out with staggered timing (`MARKER_CLUSTER_STAGGER_STEP_MS`), not uniform snaps |
+| Selection emphasis | Low-amplitude breathing pulse (`SELECTION_PULSE_MIN_SCALE`–`SELECTION_PULSE_MAX_SCALE`), stops once the detail panel opens. Selection emphasis only — this spec defines no other kind of emphasis |
+| User location | Animate only on meaningful GPS change; avoid jitter. During slow lock, show an explicit acquiring state — never a falsely precise pin. Not a `MotionScheme` category: MapLibre's puck takes a scalar duration multiplier (`LOCATION_INDICATOR_MOVE_DURATION_MS`), not a Compose `AnimationSpec` |
+| Routes | Progressive reveal at human-scale pace (`ROUTE_REVEAL_MS_PER_KM`) for longer corridors, but always provide immediate full-path display when the user needs it. Recalculation morphs existing segments rather than redrawing (`slowEffectsSpec`) |
+| Panels | Spring-driven, accepting mild overshoot as a taste call (`slowSpatialSpec`, provisional pending the device gate) — the app's primary interaction surface and the one category with a real production call site today |
+| Navigation chrome (nav bar, nav rail, tab switch) | Spring-driven (`defaultSpatialSpec`); chrome, no positional truth to distort, so overshoot here is a harmless flourish rather than felt on a primary surface |
+| Data layer overlays | Cross-fade or gentle radial growth (`defaultEffectsSpec`). No particle systems |
 
 Prefer `graphicsLayer` transforms and alpha. Avoid heavy path morphing
 while the user is moving.
@@ -101,6 +108,13 @@ motion tokens consult. This is a mapping layer, not a global kill switch
 | Marker entrance | Alpha cross-fade or instant |
 | Selection pulse | Static emphasis |
 | Panel motion | Fade or instant |
+
+This table is a statement about what a Reduce-Motion user sees, not about
+which `AnimationSpec` drives the full-motion version — it needed no change
+when `docs/adr/0002-motion-scheme-adoption.md` moved every category from
+`tween` onto `MaterialTheme.motionScheme`. A spring maps to a
+still-visible equivalent the same way a tween did, never to a silently
+dropped state change.
 
 Hue is never the sole carrier of state. Every state carries redundant
 encoding — outline weight, pattern, icon, or shape.

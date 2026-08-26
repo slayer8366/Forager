@@ -8,8 +8,12 @@
 # records for verify-codeowners-placeholders.sh: that pipeline gates every PR in this repo, and a
 # violation here should not block unrelated changes from merging.
 #
-# EXPECTED STATE WHILE THE DESIGN SYSTEM LANDS. Checks 3 and 4 fail until step 4 of that plan
-# (the MotionTokens rewrite onto MotionScheme) lands. Check 2 fails until step 3 (MapPalette).
+# EXPECTED STATE WHILE THE DESIGN SYSTEM LANDS. Checks 3 and 4 passed once step 4 of that plan
+# (the MotionTokens rewrite onto MotionScheme, docs/adr/0002-motion-scheme-adoption.md) landed.
+# Check 2 still fails, but not on MapPalette -- that landed as the hand-authored day/night palette
+# (R9 overriding the original "derive from ColorScheme" plan), and its own import is excluded
+# below. The remaining failures are Spacing imported broadly by design (step 3), plus one
+# pre-existing, separately tracked defect ("tag 05": Bark imported into AvailabilityScreen.kt).
 # That is the point -- a check written after the fact, which passes the moment it is introduced,
 # never demonstrated it could fail. Run it, read which checks fail, and expect the list to shrink
 # as the steps land.

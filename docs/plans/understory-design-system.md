@@ -3,14 +3,23 @@
 Status: **accepted as the basis for the work**, revision 3. Reviewed by the
 project owner 2026-08-25 (seven corrections, three decisions) and again on
 the corrections themselves (R1 sharpened, R7 restated, one finding
-reopened). Nothing here is implemented.
+reopened). Steps 1 through 4 are implemented as of 2026-08-26, on
+`claude/forager-m3-expressive-design-l4c` — step 3's `MapPalette` landed as
+the hand-authored day/night palette R9 overrides this document's original
+"deriving" plan with, not as literally specified above, and that
+supersession is what actually shipped. Gate G and steps 5–6 are not. See
+Decisions below for what each landed step actually did and what it
+corrected along the way.
 
-Read against `claude/l4c-serialized-editing-state` at `353d256`. Every
-count, line number and file reference below came from reading that tree
-directly. Version and API facts came from Google's release notes, the
-Compose BOM mapping table, and the AndroidX sources on `androidx-main`.
-**No build was run and no test was executed** — the six checks in §4S are
-specified, not written.
+Read against `claude/l4c-serialized-editing-state` at `353d256`, the tree
+this document's counts, line numbers and file references were originally
+read from — implementation has since moved past that tree, and each
+Decisions entry records where a fact was re-verified against the tree
+directly rather than trusted from here. Version and API facts came from
+Google's release notes, the Compose BOM mapping table, and the AndroidX
+sources on `androidx-main`; **the six checks in §4S are now written**, not
+merely specified — see `scripts/verify-design-tokens.sh` and the four
+headless test files it names.
 
 A rendered version of this document exists as an artifact:
 <https://claude.ai/code/artifact/6fbeb724-c642-45d9-ad60-2a8e8b522d55>
@@ -904,6 +913,53 @@ scaffolding for the next call site that needs that rhythm, not a
 promotion of something already there. `Spacing.kt`'s own doc comment
 carries this distinction; nothing downstream should read `xl`/`xxl` as
 already-proven-necessary the way `xs`–`lg` are.
+
+### Step 4 landed — motion onto `MaterialTheme.motionScheme`, one more miscount corrected
+
+Recorded 2026-08-26.
+[`docs/adr/0002-motion-scheme-adoption.md`](../adr/0002-motion-scheme-adoption.md)
+is written and accepted per its own status line; `MotionTokens.kt` is
+rewritten as `@Composable` category functions over the scheme's six
+specs; `MotionTokensTest.kt` is inverted by hand (Robolectric-backed now,
+since every function it exercises needs a live composition to resolve
+`MaterialTheme.motionScheme`); `docs/motion-spec.md` §2 is updated,
+splitting the single "Panels and navigation" row into "Panels" and
+"Navigation chrome" per the ADR's own reasoning for why one row would
+hide a real distinction. The four production call sites in `AddActionTile`
+(`AvailabilityScreen.kt`) — two `fadeIn`/`fadeOut` on `panelMotionSpec`,
+two raw inline `tween()` calls for `expandIn`/`shrinkOut` that this
+document's own count never separated from the other two — all now read
+`MotionTokens.panelMotionSpec()`. `scripts/verify-design-tokens.sh`
+checks 3 and 4 pass as of this commit; check 2 remains red, unrelated to
+this step — its failures are `Spacing` imported broadly (step 3, by
+design) plus one pre-existing, separately tracked defect (`Bark` imported
+into `AvailabilityScreen.kt`, "tag 05"). `MapPalette` itself is not among
+them: its own import is excluded from the check, and it already landed as
+the hand-authored day/night palette recorded above under "Night palette."
+
+**§3S's "deletes six dead animation specs" undercounts by one**, corrected
+in the ADR rather than silently reproduced here: `routeRecalculationMorphSpec`
+has zero references anywhere outside `MotionTokens.kt` and
+`MotionTokensTest.kt`, the same as the six the plan's own enumeration
+names, and was left out of that list. Seven dead specs deleted, one
+(`panelMotionSpec`) rewired, matching the original eight exactly. This is
+the same class of miscount as `Spacing`'s "75 across 10" above — found by
+re-running the grep against the tree directly rather than trusting the
+document's prior count.
+
+**Two category placements the plan's own §3S table doesn't resolve** were
+decided in the ADR rather than left for whoever writes the first caller,
+since both are scaffolding today (no production caller) and a decision
+recorded now costs nothing a deferred one wouldn't also cost later:
+`narrativeRevealSpec` (missing from §3S's table entirely, despite §2
+listing "Narrative reveals" as a category on equal footing with the other
+seven) maps to `slowEffectsSpec`; the single §2 row "Panels and
+navigation" splits into two `MotionTokens.kt` functions
+(`panelMotionSpec`/`navigationMotionSpec`) because §3S's own table gives
+panels and nav chrome different specs for a real reason — overshoot on a
+nav switch is a harmless flourish, overshoot on the app's primary
+interaction surface is not. Full reasoning for both is in the ADR, not
+duplicated here.
 
 ---
 
