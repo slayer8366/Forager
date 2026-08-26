@@ -791,6 +791,22 @@ icon/halo scheme is tracked as a deferred research item, not built this
 session — see `docs/plans/map-redesign.md`, "Deferred: night-mode colour
 inversion."
 
+**The GPS camera-mode fix and first-activation zoom-in have no headless
+assertion either, for the same reason the rest of the map's native behavior
+doesn't: `LocationComponent` is native-backed.** `activateLiveLocationIfPermitted`
+(`SightingsMap.kt`) now restores the puck's previous `CameraMode` across a
+basemap or night-mode swap instead of always re-forcing `TRACKING` — the fix
+for a real hardware report that switching topo/plain was recentering the map
+on the user's location even after they had deliberately panned away — and
+eases the camera to a tighter zoom (16.0) on a genuine first activation, per
+the project owner's own ask that the map orient the user immediately rather
+than opening on whatever the search-radius zoom heuristic left it at. Both
+are reasoned through and compiled against the pinned MapLibre `13.5.0` API
+(`CameraMode`'s constants confirmed via `javap` to be plain `Int`, not a real
+type), not observed running: whether the camera actually holds still on a
+basemap switch after a manual pan, and whether the zoom-in reads as
+"orienting" rather than "jarring," are both open device questions.
+
 The **offline search cache** is verified headlessly and not on hardware. What
 is measured: the Room round trip, the five-entry LRU and its eviction order
 against a real in-memory database (`RoomSearchCacheRepositoryTest`); the

@@ -46,6 +46,7 @@ import com.forager.app.domain.model.Waypoint
 import com.forager.app.ui.motion.MotionTokens
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.location.LocationComponentActivationOptions
 import org.maplibre.android.location.LocationComponentOptions
@@ -183,6 +184,8 @@ fun SightingsMap(
     waypoints: List<Waypoint> = emptyList(),
     /** See [com.forager.app.ui.map.MapOverlayContent.resumeTrackingRequestId]'s own doc comment. */
     resumeTrackingRequestId: Int = 0,
+    /** See [com.forager.app.ui.map.MapOverlayContent.resetOrientationRequestId]'s own doc comment. */
+    resetOrientationRequestId: Int = 0,
 ) {
     val context = LocalContext.current
 
@@ -291,6 +294,14 @@ fun SightingsMap(
             // correct — confirmed via javap against the pinned org.maplibre.gl:android-sdk artifact
             // that UiSettings exposes setAttributionGravity/setAttributionMargins for exactly this.
             map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
+            // MapLibre's own compass view (a floating circular reset-to-north control it draws
+            // itself, top-right by default) is replaced by the map icon bar's own orientation-
+            // reset control — a real hardware report found the two overlapping, and the SDK's own
+            // compass has no callback this project could otherwise hook into for the icon bar's
+            // matching entry, only a tap target of its own with fixed positioning. Disabled here
+            // rather than repositioned: keeping both would mean two controls that do the same
+            // thing, in two different places, on the same screen.
+            map.uiSettings.isCompassEnabled = false
             mapLibreMap = map
         }
         onDispose { }
@@ -302,6 +313,20 @@ fun SightingsMap(
     LaunchedEffect(mapLibreMap, basemap, mapPalette) {
         val map = mapLibreMap ?: return@LaunchedEffect
         if (appliedBasemap == basemap && appliedPalette == mapPalette) return@LaunchedEffect
+        // Captured before setStyle below discards the LocationComponent entirely (see
+        // activateLiveLocationIfPermitted's own doc comment on why re-activation is needed at
+        // all) — null only the very first time this composable ever activates the puck;
+        // CameraMode.NONE if the user had already broken tracking by panning/zooming;
+        // CameraMode.TRACKING if they hadn't. Restoring exactly this, rather than always
+        // re-forcing TRACKING, is the fix for a real hardware report: switching basemap (or
+        // toggling night mode, which goes through this same style-swap path) was recentering the
+        // map on the user's location even after they had deliberately panned away — the
+        // GPS/locate-me icon is the control for that, not this one.
+        val previousCameraMode = if (map.locationComponent.isLocationComponentActivated) {
+            map.locationComponent.cameraMode
+        } else {
+            null
+        }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap, night = nightMode))) { style ->
             initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette, night = nightMode)
@@ -312,7 +337,7 @@ fun SightingsMap(
             // this composable's own layers (see initializeOverlayLayers' own doc comment on why
             // that function re-runs here) — so the live-location "puck" needs the same
             // re-activate-on-every-new-style treatment.
-            activateLiveLocationIfPermitted(map, style, context)
+            activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = previousCameraMode)
         }
     }
 
@@ -363,6 +388,15 @@ fun SightingsMap(
         } else {
             activateLiveLocationIfPermitted(map, style, context)
         }
+    }
+
+    // The map icon bar's orientation-reset control — MapLibre's own native compass view is
+    // disabled above (see the DisposableEffect(mapView) block's own comment), so this is the only
+    // way to straighten the map back to north once a rotate gesture has turned it. easeCamera, not
+    // an instant jump, matching this map's other camera moves; bearing only, not target or zoom.
+    LaunchedEffect(resetOrientationRequestId) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        map.easeCamera(CameraUpdateFactory.bearingTo(0.0))
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -617,14 +651,39 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
  * and something re-triggers this (a fresh style load, or the locate-me icon — see
  * [resumeTrackingRequestId][MapOverlayContent.resumeTrackingRequestId]'s own doc comment).
  *
- * [CameraMode.TRACKING] is the mode set immediately on activation, satisfying "follow automatically
- * on default." Breaking out of it again is built into MapLibre's [LocationComponent][org.maplibre.android.location.LocationComponent]
- * itself, not code this app wrote: the SDK's own gesture detection drops to [CameraMode.NONE] the
- * moment the user pans, drags, or zooms, which is also what the data+camera refresh effect above
- * checks to decide whether it's safe to move the camera itself without fighting an active puck.
+ * [restoreCameraMode] is what this composable's own basemap-swap effect passes to avoid a real
+ * hardware-reported bug: `setStyle` (any basemap change, or a night-mode toggle, which shares this
+ * same path) discards the LocationComponent outright, so this function has to run again on every
+ * such swap just to keep the puck visible — but always re-forcing [CameraMode.TRACKING] here, as
+ * this used to do, snapped the camera back onto the user's location on every basemap switch even
+ * after they had deliberately panned away, which the GPS/locate-me icon is the control for, not
+ * this one. `null` (the default, and what the locate-me icon's own re-activation call passes)
+ * means "genuinely first activation" and still defaults to [CameraMode.TRACKING] plus the
+ * zoom-in below; a non-null value restores exactly that mode instead, whatever it was.
+ *
+ * The zoom-in only fires on that genuine first activation ([restoreCameraMode] `== null`) — the
+ * project owner's own ask ("when starting the maps, on any map mode, have it zoom in
+ * automatically and center on user location") — not on every basemap-swap re-activation, where it
+ * would just be the same unwanted recenter one step removed (this time snapping zoom rather than
+ * position). Zoom only, not target: [CameraMode.TRACKING] already owns panning to the live fix,
+ * so this doesn't fight it by also specifying a target.
+ *
+ * Breaking out of [CameraMode.TRACKING] again is built into MapLibre's
+ * [LocationComponent][org.maplibre.android.location.LocationComponent] itself, not code this app
+ * wrote: the SDK's own gesture detection drops to [CameraMode.NONE] the moment the user pans,
+ * drags, or zooms, which is also what the data+camera refresh effect above checks to decide
+ * whether it's safe to move the camera itself without fighting an active puck.
  */
 @SuppressLint("MissingPermission") // hasLocationPermission() below is the real (runtime) check.
-private fun activateLiveLocationIfPermitted(map: MapLibreMap, style: Style, context: Context) {
+private fun activateLiveLocationIfPermitted(
+    map: MapLibreMap,
+    style: Style,
+    context: Context,
+    // @CameraMode.Mode is an IntDef (see org.maplibre.android.location.modes.CameraMode's own
+    // javap output -- a final class of `int` constants, not a real Kotlin type), so this and
+    // LocationComponent's own cameraMode property are both plain Int, not CameraMode.
+    restoreCameraMode: Int? = null,
+) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
     val locationComponentOptions = LocationComponentOptions.builder(context)
@@ -643,8 +702,19 @@ private fun activateLiveLocationIfPermitted(map: MapLibreMap, style: Style, cont
     // COMPASS, not NORMAL: the puck itself points the device's own heading, the same live sensor
     // the compass strip's heading text already reads — matching, not duplicating, that readout.
     locationComponent.renderMode = RenderMode.COMPASS
-    locationComponent.cameraMode = CameraMode.TRACKING
+    locationComponent.cameraMode = restoreCameraMode ?: CameraMode.TRACKING
+    if (restoreCameraMode == null) {
+        map.easeCamera(CameraUpdateFactory.zoomTo(FIRST_ACTIVATION_ZOOM))
+    }
 }
+
+/**
+ * The zoom level a first-ever GPS activation eases to, once — a close, orienting view rather than
+ * whatever the region-search zoom heuristic ([zoomForRadiusKm], topping out at 13.0) happened to
+ * leave the camera at. 16.0 is the conventional "street level" a locate-me control zooms to
+ * elsewhere (Google Maps, among others) — not derived from anything specific to this app.
+ */
+private const val FIRST_ACTIVATION_ZOOM = 16.0
 
 /** Same check, same two permissions, as [com.forager.app.location.AndroidLocationProvider.hasLocationPermission] — not shared code across an app/domain-layer boundary that owns neither Context nor Manifest. */
 private fun hasLocationPermission(context: Context): Boolean {

@@ -352,6 +352,43 @@ hugging the map's right edge — not built yet as of this note. When that
 lands, this section's 7-icon stack is what it replaces, and decision #3
 above should be corrected in place rather than superseded a second time.
 
+## Icon stack superseded again: the panel bar landed (recorded 2026-08-26)
+
+Built the same session, right after the stopgap above. `MapIconBar`
+(`AvailabilityScreen.kt`, replacing `MapIconStack`) is one translucent,
+rounded `Surface` hugging the map's right edge — the individual floating
+circles are gone, each control is a row inside the shared bar instead. 8
+rows now, not 7: MapLibre's native compass view is disabled outright
+(`SightingsMap.kt`'s `DisposableEffect(mapView)` block,
+`uiSettings.isCompassEnabled = false`) and replaced by the bar's own
+orientation-reset row, wired the same changing-token way
+`resumeTrackingRequestId` already was
+(`MapOverlayContent.resetOrientationRequestId`, easing the camera's bearing
+back to `0.0` via `CameraUpdateFactory.bearingTo`).
+
+**Decision #3 is now corrected in place, not superseded a third time**: read
+`MapIconBar`'s own doc comment for the current 8-row shape (fullscreen,
+orientation-reset, GPS/locate-me, topo/plain, record, return-to-vehicle,
+search, add) rather than this section or decision #3 above, both of which
+are historical record from here on.
+
+Two related fixes landed in the same pass, in `SightingsMap.kt`, not the UI
+layer: switching topo/plain (or toggling night mode) was recentering the map
+on the user's live location even after they had deliberately panned away —
+`activateLiveLocationIfPermitted` was unconditionally re-forcing
+`CameraMode.TRACKING` every time `setStyle` discarded and needed to
+re-activate the `LocationComponent`, which is on every basemap/night-mode
+swap, not just first load. Fixed by capturing the `CameraMode` in effect
+right before the swap and restoring exactly that afterward, rather than
+always forcing tracking back on — `null` (never activated yet) is the only
+case that still defaults to `TRACKING`. That same "never activated yet" case
+also now eases the camera to a 16.0 zoom once, satisfying the project
+owner's separate ask that the map orient the user immediately on open rather
+than sitting at whatever the search-radius zoom heuristic left it at.
+Neither fix has a headless assertion — see README's "Not yet verified" for
+why (`LocationComponent` is native-backed) and what's still an open device
+question.
+
 ## New capability: compass
 
 No sensor code exists in this app. Needs an owned interface — e.g.

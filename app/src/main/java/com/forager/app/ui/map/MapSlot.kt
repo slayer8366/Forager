@@ -72,6 +72,15 @@ data class MapOverlayContent(
      * locate-me icon looks the same whether or not GPS tracking is currently engaged).
      */
     val resumeTrackingRequestId: Int = 0,
+    /**
+     * Same changing-token shape as [resumeTrackingRequestId], for the same reason — a `Boolean`
+     * can't represent "do it again" when the value wouldn't otherwise change. This one resets the
+     * camera's bearing to north, the map redesign's own custom replacement for MapLibre's native
+     * compass view (disabled in [SightingsMap] — see that composable's own doc comment on why:
+     * the map icon bar's orientation-reset control needed a real callback to trigger, which the
+     * SDK's own compass widget doesn't expose one for).
+     */
+    val resetOrientationRequestId: Int = 0,
 )
 
 /**
@@ -151,6 +160,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         breadcrumbPoints = content.breadcrumbPoints,
         waypoints = content.waypoints,
         resumeTrackingRequestId = content.resumeTrackingRequestId,
+        resetOrientationRequestId = content.resetOrientationRequestId,
         modifier = modifier,
     )
 }
