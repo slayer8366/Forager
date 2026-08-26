@@ -104,6 +104,9 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PermanentDrawerSheet
@@ -1159,26 +1162,113 @@ fun AvailabilityScreen(
         // covering the content — see drawerSheetContent's own doc comment for what's shared.
         // PERMANENT_DRAWER_WIDTH keeps the panel's text at a readable line length rather than
         // stretching it as the window grows past the medium breakpoint.
-        PermanentNavigationDrawer(
-            drawerContent = {
-                PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
-                    // Workstream L4b-R2: the drawer sheet is DrawerPanel.Log's own visual area, so
-                    // its discard-offer Snackbar docks here — at the bottom of this sheet — rather
-                    // than in mainScaffold's Scaffold, which is the search/results pane beside it,
-                    // not where the edit session the Snackbar is about actually lives.
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            drawerSheetContent(false)
+        val permanentDrawerAndScaffold: @Composable () -> Unit = {
+            PermanentNavigationDrawer(
+                drawerContent = {
+                    PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
+                        // Workstream L4b-R2: the drawer sheet is DrawerPanel.Log's own visual area, so
+                        // its discard-offer Snackbar docks here — at the bottom of this sheet — rather
+                        // than in mainScaffold's Scaffold, which is the search/results pane beside it,
+                        // not where the edit session the Snackbar is about actually lives.
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                drawerSheetContent(false)
+                            }
+                            SnackbarHost(
+                                logDraftSnackbarHostState,
+                                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                            )
                         }
-                        SnackbarHost(
-                            logDraftSnackbarHostState,
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                        )
                     }
+                },
+                content = mainScaffold,
+            )
+        }
+
+        if (windowWidthClass == WindowWidthClass.MEDIUM) {
+            // Understory step 6 (R8/tag: the medium-window navigation rail, previously a named,
+            // deferred finding rather than built — see docs/plans/understory-design-system.md and
+            // docs/plans/map-redesign.md's "known defect" entry. Built here since this branch is an
+            // exploratory, unmerged build-out rather than the gated implementation order those docs
+            // describe; the drawer itself stays PermanentNavigationDrawer, unconverted to modal —
+            // that is a separable, larger redesign the finding didn't strictly require alongside the
+            // rail, and this pass doesn't take it on.
+            //
+            // Reuses CompactTab rather than a parallel enum: the six destinations are the same six
+            // compact's own bottom nav already names, and the translation this window class needs is
+            // only in currentMediumDestination/onMediumTabSelected below, mapping those six onto
+            // drawerPanel/selectedTab rather than onto CompactTab's own compact-only state.
+            val currentMediumDestination = when (drawerPanel) {
+                DrawerPanel.Log -> CompactTab.JOURNAL
+                DrawerPanel.PhotoGallery -> CompactTab.PHOTOS
+                DrawerPanel.Settings, DrawerPanel.OfflineMaps, DrawerPanel.CrashLogs -> CompactTab.SETTINGS
+                DrawerPanel.Search -> when (selectedTab) {
+                    ResultsTab.LIST -> CompactTab.LIST
+                    ResultsTab.MAP -> CompactTab.MAP
+                    ResultsTab.SEASONAL -> CompactTab.SEASONAL
                 }
-            },
-            content = mainScaffold,
-        )
+            }
+            Row(modifier = Modifier.fillMaxSize()) {
+                MediumNavigationRail(
+                    selectedTab = currentMediumDestination,
+                    onTabSelected = { tab ->
+                        when (tab) {
+                            CompactTab.LIST -> {
+                                drawerPanel = DrawerPanel.Search
+                                selectedTab = ResultsTab.LIST
+                            }
+                            CompactTab.MAP -> {
+                                drawerPanel = DrawerPanel.Search
+                                selectedTab = ResultsTab.MAP
+                            }
+                            CompactTab.SEASONAL -> {
+                                drawerPanel = DrawerPanel.Search
+                                selectedTab = ResultsTab.SEASONAL
+                            }
+                            CompactTab.JOURNAL -> drawerPanel = DrawerPanel.Log
+                            CompactTab.PHOTOS -> drawerPanel = DrawerPanel.PhotoGallery
+                            CompactTab.SETTINGS -> drawerPanel = DrawerPanel.Settings
+                        }
+                    },
+                )
+                Box(modifier = Modifier.weight(1f)) {
+                    permanentDrawerAndScaffold()
+                }
+            }
+        } else {
+            // EXPANDED: tokens only, per docs/plans/understory-design-system.md — this layout is
+            // kept structurally identical to what map-redesign.md requires, no rail added.
+            permanentDrawerAndScaffold()
+        }
+    }
+}
+
+/**
+ * The medium-window navigation rail (Understory step 6): the same six destinations
+ * [ForagerBottomNav] gives compact windows, reachable here without the permanent drawer's search
+ * panel carrying three of them as sticky footer rows — see this composable's call site for the
+ * drawerPanel/selectedTab translation, and R8 in docs/plans/understory-design-system.md for the
+ * finding this answers.
+ */
+@Composable
+private fun MediumNavigationRail(selectedTab: CompactTab, onTabSelected: (CompactTab) -> Unit) {
+    NavigationRail(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag(MEDIUM_NAVIGATION_RAIL_TAG),
+    ) {
+        CompactTab.entries.forEach { tab ->
+            NavigationRailItem(
+                selected = selectedTab == tab,
+                onClick = { onTabSelected(tab) },
+                icon = { Icon(tab.icon(), contentDescription = null) },
+                label = { Text(tab.label) },
+                colors = NavigationRailItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                ),
+            )
+        }
     }
 }
 
@@ -1381,6 +1471,9 @@ private fun QuickSearchPanel(
 
 /** See [QuickSearchPanel]'s own doc comment. */
 internal const val QUICK_SEARCH_PANEL_TAG = "quick-search-panel"
+
+/** [MediumNavigationRail]'s own tag — its items' text labels ("Settings", "Journal") collide with the permanent drawer's own sticky entry rows at medium width, so tests scope queries to this ancestor rather than matching by text alone. */
+internal const val MEDIUM_NAVIGATION_RAIL_TAG = "medium-navigation-rail"
 
 private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: DistanceUnit): String {
     val month = Month.of(uiState.selectedMonth).getDisplayName(TextStyle.FULL, Locale.getDefault())

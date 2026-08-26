@@ -267,6 +267,22 @@ stays a named deferral, not a queued step. `EXPANDED` is unaffected either
 way: its `PermanentNavigationDrawer` + `CombinedResultsPane` structure is
 kept intact by design, and takes the new tokens and nothing else.
 
+**Built anyway, on an exploratory branch (2026-08-26), unmerged.** Reason 3
+above has not changed — this session has no medium-width device or
+emulator either, so the rail below is exactly as unverified on real
+hardware as it was when this section was written. It was built here
+because the owner directed an exploratory build-out of the whole design
+document without the gating this section itself describes, not because
+reason 3 stopped applying. `MediumNavigationRail` in `AvailabilityScreen.kt`
+reuses `CompactTab`'s six destinations rather than a parallel enum, sits
+left of the unmodified `PermanentNavigationDrawer` (the drawer itself was
+not converted to modal — a separable, larger change this build-out didn't
+take on alongside the rail), and is covered by
+`AvailabilityScreenMediumNavigationRailTest`. If this branch is ever the
+basis for real work, the sign-off this section says is still owed has not
+been given by building it experimentally — treat the code as a prototype
+to evaluate against reason 3, not as the decision already made.
+
 ### Open question, `EXPANDED`: where do the six destinations live?
 
 Raised 2026-08-25 alongside the entry above, and recorded as a **question**

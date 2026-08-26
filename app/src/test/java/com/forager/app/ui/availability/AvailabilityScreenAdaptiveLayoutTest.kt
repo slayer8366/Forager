@@ -12,9 +12,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -119,6 +123,43 @@ class AvailabilityScreenCompactWidthDrawerTest {
         }
 
         composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
+    }
+
+    /** Understory step 6: the medium-window navigation rail (see AvailabilityScreenMediumNavigationRailTest below) must not appear at compact width -- compact keeps its own bottom nav. */
+    @Test
+    fun `the medium navigation rail does not appear at compact width`() {
+        composeRule.setContent {
+            AvailabilityScreen(
+                uiState = SEARCHED_STATE,
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onToggleForagingAreas = {},
+                onCategorySelected = {},
+                onTaxonSearchQueryChanged = {},
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = {},
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+                mapSlot = StubMapSlot,
+            )
+        }
+
+        composeRule.onNodeWithTag(MEDIUM_NAVIGATION_RAIL_TAG).assertDoesNotExist()
     }
 
     /**
@@ -229,6 +270,14 @@ class AvailabilityScreenWideWindowLayoutTest {
                 mapSlot = mapSlot,
             )
         }
+    }
+
+    /** Understory step 6: expanded keeps its tokens-only treatment (docs/plans/understory-design-system.md) -- no rail here, unlike AvailabilityScreenMediumNavigationRailTest's w700dp fixture. */
+    @Test
+    fun `the medium navigation rail does not appear at expanded width`() {
+        setScreen(SEARCHED_STATE)
+
+        composeRule.onNodeWithTag(MEDIUM_NAVIGATION_RAIL_TAG).assertDoesNotExist()
     }
 
     /**
@@ -489,5 +538,144 @@ private val TriggerableWideStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraId
         Button(onClick = { onCameraIdle(WIDE_WINDOW_TEST_LOCATION) }) {
             Text("Simulate pan to test location")
         }
+    }
+}
+
+/**
+ * Understory step 6: the medium-window navigation rail — a finding the design doc recorded and
+ * deferred (`docs/plans/understory-design-system.md`'s Decisions section, and
+ * `docs/plans/map-redesign.md`'s "known defect" entry) rather than built, pending owner sign-off on
+ * re-opening that scope decision. Built here since this branch is an exploratory, unmerged
+ * build-out rather than the gated implementation those docs describe.
+ *
+ * w700dp: inside `WindowWidthClass.MEDIUM`'s [600, 840) range (`WindowWidthClass.kt`'s own
+ * constants), distinct from [AvailabilityScreenWideWindowLayoutTest]'s w840dp (the EXPANDED
+ * boundary, which keeps its tokens-only treatment and gets no rail — see this class's own test for
+ * that boundary).
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w700dp-h1000dp-mdpi")
+class AvailabilityScreenMediumNavigationRailTest {
+
+    private val composeRule = createComposeRule()
+
+    private val declareHostActivity = object : ExternalResource() {
+        override fun before() {
+            val app = ApplicationProvider.getApplicationContext<Application>()
+            Shadows.shadowOf(app.packageManager)
+                .addActivityIfNotPresent(ComponentName(app, ComponentActivity::class.java))
+        }
+    }
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
+
+    private fun setScreen(uiState: AvailabilityUiState = SEARCHED_STATE) {
+        composeRule.setContent {
+            AvailabilityScreen(
+                uiState = uiState,
+                logUiState = MushroomLogUiState(),
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onToggleForagingAreas = {},
+                onCategorySelected = {},
+                onTaxonSearchQueryChanged = {},
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = {},
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+                mapSlot = StubMapSlot,
+            )
+        }
+    }
+
+    /** Scoped to the rail itself: "Settings"/"Journal" also label the permanent drawer's own sticky entry rows at this width, so an unscoped text query would match two nodes. */
+    private fun railNodeWithText(text: String) =
+        composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(MEDIUM_NAVIGATION_RAIL_TAG)))
+
+    @Test
+    fun `all six destinations are present on the rail`() {
+        setScreen()
+
+        for (label in listOf("List", "Maps", "Seasonal", "Journal", "Album", "Settings")) {
+            railNodeWithText(label).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `the rail is present at this width`() {
+        // The negative case (absent at compact and expanded) is asserted directly in
+        // AvailabilityScreenCompactWidthDrawerTest and AvailabilityScreenWideWindowLayoutTest below,
+        // each at its own @Config width -- a single test class only gets one @Config, so the
+        // boundary checks belong with the fixtures already at those boundaries, not re-declared here.
+        setScreen()
+        composeRule.onNodeWithTag(MEDIUM_NAVIGATION_RAIL_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping Journal on the rail shows the journal panel, replacing search`() {
+        setScreen()
+        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+
+        railNodeWithText("Journal").performClick()
+
+        composeRule.onNodeWithText("Advanced search").assertDoesNotExist()
+        // JournalHeader's own back-to-search affordance is the real proof the Log panel mounted --
+        // see LogPanel's onBackToSearch call site in AvailabilityScreen.kt.
+        composeRule.onNodeWithContentDescription("Back to search options").assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping Album on the rail shows the gallery panel`() {
+        setScreen()
+
+        railNodeWithText("Album").performClick()
+
+        composeRule.onNodeWithText("Photo Gallery").assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping Settings on the rail shows the settings panel`() {
+        setScreen()
+
+        railNodeWithText("Settings").performClick()
+
+        composeRule.onNodeWithText("Offline Maps").assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping Seasonal on the rail switches the results pane away from Combined List+Map`() {
+        setScreen(SEARCHED_STATE.copy(conditions = CONDITIONS, selectedMonth = LocalDate.now().monthValue))
+        composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
+
+        railNodeWithText("Seasonal").performClick()
+
+        composeRule.onAllNodesWithText("Current Conditions").assertCountEquals(0)
+    }
+
+    @Test
+    fun `returning to List from Journal restores the search panel`() {
+        setScreen()
+        railNodeWithText("Journal").performClick()
+        composeRule.onNodeWithContentDescription("Back to search options").assertIsDisplayed()
+
+        railNodeWithText("List").performClick()
+
+        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
     }
 }
