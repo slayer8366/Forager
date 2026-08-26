@@ -774,11 +774,14 @@ icon drawing a darkened, semi-transparent halo behind its fill
 contrast against the ground. `MapPaletteTest` checks what colour arithmetic
 still can — the two night colours' contrast against each other, and that
 each sits on the expected side of every day marker's lightness. The two
-tests that checked `NIGHT_WARM` against the ground itself are `@Ignore`d
-rather than deleted, kept for when colour inversion (see below) gives night
-a dark ground again; running them today would just pin a known, expected
-"failure" (the ground brightened, the colour wasn't retuned for it) as if
-it were a bug. Legibility against the ground and shape-distinctness are
+checks that held `NIGHT_WARM` to a contrast floor against the ground itself
+are gone rather than run-but-failing: this repo's CI fails the whole build
+on any skipped test, so `@Ignore` was not an option, and running them today
+would pin a known, expected "failure" (the ground brightened, the colour
+wasn't retuned for it) as if it were a bug. `MapPaletteTest` records what
+they asserted in a comment, for whoever revives them once colour inversion
+(see below) gives night a dark ground again. Legibility against the ground
+and shape-distinctness are
 hardware questions in the meantime. Whether the sighting dots, the connector, the
 planned-trip diamond, the breadcrumb trail and the waypoint pin stay
 distinguishable from each other and from the tiles underneath — in sun, in
