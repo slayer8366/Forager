@@ -145,18 +145,42 @@ data class MapPalette(
          * past roughly `raster-brightness-max` 0.44 no colour at all — including pure white — can
          * reach 4.0:1 against the resulting ground, since `(1.0+0.05)/(lref+0.05)` itself drops
          * below 4.0. 0.32 was chosen with real headroom under that ceiling (max achievable ≈7:1),
-         * not chosen at the edge of what's mathematically possible.
+         * not chosen at the edge of what's mathematically possible. A further push (`0.42`,
+         * relaxing the contrast floor to WCAG's 3:1 non-text minimum to make room) was built and
+         * rejected on review: low-contrast marks against a brightened ground make the map harder
+         * to read, not easier — the opposite of what a legibility-motivated night mode is for. The
+         * ground and the 4.0:1 floor both stay as this pass set them.
+         *
+         * ## Fourth pass: warmer, less cyan-leaning hues, 2026-08-26
+         *
+         * Requested directly: red/warm tones cost the eye's dark adaptation less than blue/cyan
+         * ones, so where a marker can move warmer without spending any of the margin above,
+         * it should. Re-solved at the same ground and the same two floors — nothing here is a
+         * looser constraint, only a different optimum within the third pass's own feasible region
+         * (search re-run with a warmth term added to the objective, gated behind a hard requirement
+         * that pairwise separation never drop below what the third pass already shipped, 0.106, so
+         * chasing warmth cannot quietly spend the margin that pass earned).
+         *
+         * Two markers had real room: `connector` moves from a yellow-leaning 80° to a true
+         * orange 44°, and `breadcrumb` moves from 123° (sky-blue, adjacent to cyan) to 96°
+         * (violet-blue, adjacent to indigo) — magenta-ward rather than cyan-ward, per direct
+         * instruction, while staying recognisably blue for the GPS-track convention its day value
+         * follows (see the class comment above). `areaMarkerBackground` and `waypoint` shift a few
+         * degrees toward yellow within their own green/olive families; `sightingDot`,
+         * `searchCentre` and `plannedTrip` were already near the objective's optimum and barely
+         * move. No marker's family identity changes — the search stayed inside the same ≤45°
+         * per-marker drift bound the third pass used.
          */
         val NIGHT = MapPalette(
-            sightingDot = 0xFFCEC591.toInt(),
+            sightingDot = 0xFFC8C69E.toInt(),
             sightingDotStroke = 0xFF25211D.toInt(),
-            connector = 0xFFFFB700.toInt(),
-            areaMarkerBackground = 0xFF5EDB91.toInt(),
+            connector = 0xFFFFB64B.toInt(),
+            areaMarkerBackground = 0xFF74DD00.toInt(),
             areaMarkerForeground = 0xFF1B2C17.toInt(),
             plannedTrip = 0xFFD9B7F5.toInt(),
-            searchCentre = 0xFFFFB0AF.toInt(),
-            breadcrumb = 0xFF7BCDFF.toInt(),
-            waypoint = 0xFFBDCF08.toInt(),
+            searchCentre = 0xFFFFB0B0.toInt(),
+            breadcrumb = 0xFF89CBFF.toInt(),
+            waypoint = 0xFFCBCB04.toInt(),
         )
 
         /**
