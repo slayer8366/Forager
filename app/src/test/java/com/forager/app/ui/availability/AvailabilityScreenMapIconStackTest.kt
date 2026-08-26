@@ -16,6 +16,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -24,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
@@ -206,6 +208,38 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode. Night mode off.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Search").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
+    }
+
+    /**
+     * Drives the real long-press gesture through [MapStackIconButton]'s `combinedClickable`, per
+     * CLAUDE.md's rule that pointer-input behaviour over the map needs a Robolectric test driving
+     * the actual gesture, not a direct call to `onToggleNightMode`. `automaticNight` resolves to
+     * `false` here — no test in this suite sets `uiState.liveLocation`, and `CivilTwilight` is
+     * never consulted without a fix — so the layers button starts "Night mode off." deterministically,
+     * with no dependency on wall-clock time.
+     */
+    @Test
+    fun `long-pressing the layers icon toggles night mode without also toggling the basemap`() {
+        setScreen()
+        searchAReferenceRegion()
+
+        val dayDescription = "Showing topo mode. Switch to regular mode. Night mode off."
+        val nightDescription = "Showing topo mode. Switch to regular mode. Night mode on."
+
+        composeRule.onNodeWithContentDescription(dayDescription).assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription(dayDescription).performTouchInput { longClick() }
+        composeRule.waitForIdle()
+
+        // Still "topo mode" throughout: a long press must not also fire onToggleMapMode.
+        composeRule.onNodeWithContentDescription(nightDescription).assertIsDisplayed()
+
+        // MapNightMode.toggled: pressing twice returns to automatic rather than leaving a hold
+        // that happens to agree, so this must land back on "Night mode off.", not toggle again.
+        composeRule.onNodeWithContentDescription(nightDescription).performTouchInput { longClick() }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription(dayDescription).assertIsDisplayed()
     }
 
     @Test
