@@ -242,7 +242,10 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.onNodeWithText("Add...").assertIsDisplayed()
+        // Understory step 5: the three-way chooser is a real FloatingActionButtonMenu now (was a
+        // hand-built AddActionTile card headed "Add..."), so the menu having no title text is the
+        // expected shape, not a gap — its items being reachable at all is the real assertion.
+        composeRule.onNodeWithText("Log a find").assertIsDisplayed()
         composeRule.onNodeWithText("Log a find").performClick()
         composeRule.waitForIdle()
         // Choosing an action opens the centre-pin picker rather than firing immediately — the

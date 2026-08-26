@@ -46,11 +46,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.forager.app.ui.theme.Spacing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.ExpandLess
@@ -59,6 +61,7 @@ import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MenuBook
@@ -80,10 +83,14 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -114,6 +121,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.VerticalFloatingToolbar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -295,25 +303,9 @@ private enum class DrawerPanel {
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
 private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
 
-/**
- * The screen's spacing scale. Padding and gap values across this file used to be picked ad hoc
- * (2dp here, 10dp there) with no relationship to each other, which is why visually-similar things
- * — card internal padding, the gap between a card's rows — didn't quite line up card to card.
- * Four steps, each used for a stated kind of gap, rather than a value invented per call site.
- */
-private object Spacing {
-    /** Within a tightly related group — a line and its own subtext, one card's internal rows. */
-    val xs = 4.dp
-
-    /** Between related but distinct items — chips in a row, a card's own sub-sections. */
-    val sm = 8.dp
-
-    /** A card's outer padding, and the standard gap between sibling cards. */
-    val md = 12.dp
-
-    /** Screen-level padding, and the gap between major regions of a tab. */
-    val lg = 16.dp
-}
+// Spacing (xs/sm/md/lg/xl/xxl) moved to ui/theme/Spacing.kt (Understory step 3): the same four
+// steps this file defined privately, promoted to the theme so every screen shares one scale,
+// plus xl/xxl for sheet/dialog padding and empty-state breathing room this file used to improvise.
 
 /**
  * Map-first layout: the results (map or ranked list) own the content area, and everything set far
@@ -2687,15 +2679,25 @@ private fun SpeciesSearchControls(
     chipRowModifier: Modifier = Modifier,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(
-            modifier = chipRowModifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        // Understory step 5: a plain Row of FilterChips replaced by ButtonGroup, whose connected
+        // shape morphing is the actual expressive argument for this row — see
+        // docs/plans/understory-design-system.md, components table. Single-select, so each
+        // category is a toggleableItem; picking an already-selected one is a no-op rather than
+        // deselecting it, matching FilterChip's previous behaviour here (onCategorySelected always
+        // named the target category, never toggled it off).
+        ButtonGroup(
+            modifier = chipRowModifier,
+            overflowIndicator = { state ->
+                IconButton(onClick = { state.show() }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "More categories")
+                }
+            },
         ) {
             TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
-                FilterChip(
-                    selected = uiState.taxonFilter == category,
-                    onClick = { onCategorySelected(category) },
-                    label = { Text(category.label) },
+                toggleableItem(
+                    checked = uiState.taxonFilter == category,
+                    label = category.label,
+                    onCheckedChange = { checked -> if (checked) onCategorySelected(category) },
                 )
             }
         }
@@ -3592,22 +3594,17 @@ private fun CompactMapTab(
                     isTopoMode = isTopoMode,
                     onToggleMapMode = onToggleMapMode,
                     onOpenSearchDrawer = onOpenSearchDrawer,
-                    onAdd = {
-                        // No location to grab any more — the button just opens the menu; the
-                        // location comes from CentrePinLocationPickerOverlay's own camera tracking
-                        // once a choice is made. See this function's own doc comment.
-                        showActionMenu = true
-                    },
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(Spacing.sm),
                 )
 
-                // Inside this Box, not alongside it, so it can align near the add button's own
-                // corner of the icon stack above — see AddActionTile's doc comment for why this
-                // reads as opening "from" that button rather than as a centered system dialog.
-                AddActionTile(
-                    visible = showActionMenu,
+                // Understory step 5: AddActionTile's hand-built scrim+card was a from-scratch
+                // reimplementation of exactly what FloatingActionButtonMenu now provides natively
+                // — see MapAddActionMenu's doc comment.
+                MapAddActionMenu(
+                    expanded = showActionMenu,
+                    onExpandedChange = { showActionMenu = it },
                     onPlanTrip = {
                         showActionMenu = false
                         pendingAction = PendingMapAction.PLAN_TRIP
@@ -3620,8 +3617,9 @@ private fun CompactMapTab(
                         showActionMenu = false
                         pendingAction = PendingMapAction.DROP_WAYPOINT
                     },
-                    onDismiss = { showActionMenu = false },
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(Spacing.sm),
                 )
 
                 if (pendingAction != null) {
@@ -3667,12 +3665,19 @@ private fun CompactMapTab(
 }
 
 /**
- * The right-edge floating icon stack — decision #3 in `docs/plans/map-redesign.md`: exactly five
- * icons, top to bottom, dark translucent circles with a white glyph except the bottom one, which
- * is filled in the app's own forest green. Slot 3 reuses [isTopoMode]/[onToggleMapMode] — the same
- * logic [MapModeToggle] wraps for the untouched MEDIUM/EXPANDED path — restyled to match this
- * stack's other four icons rather than calling that composable directly, so MEDIUM/EXPANDED's own
- * styling stays untouched too.
+ * The right-edge floating icon stack — decision #3 in `docs/plans/map-redesign.md`: four icons,
+ * top to bottom, dark translucent circles with a white glyph. Slot 3 reuses
+ * [isTopoMode]/[onToggleMapMode] — the same logic [MapModeToggle] wraps for the untouched
+ * MEDIUM/EXPANDED path — restyled to match this stack's other icons rather than calling that
+ * composable directly, so MEDIUM/EXPANDED's own styling stays untouched too.
+ *
+ * Understory step 5: a real [VerticalFloatingToolbar] replaces the hand-built [Column] this used
+ * to be — see `docs/plans/understory-design-system.md`'s component table. The fifth icon (Add)
+ * moved out to its own [FloatingActionButtonMenu] at the call site rather than this toolbar's
+ * `floatingActionButton` slot: the design doc lists "map icon stack" and "add action" as two
+ * separate component swaps, and the add button's job — opening a three-item menu, not just firing
+ * one action — is what [FloatingActionButtonMenu] itself is for, not a FAB riding along in a
+ * different component's slot.
  */
 @Composable
 private fun MapIconStack(
@@ -3682,13 +3687,11 @@ private fun MapIconStack(
     isTopoMode: Boolean,
     onToggleMapMode: () -> Unit,
     onOpenSearchDrawer: () -> Unit,
-    onAdd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    VerticalFloatingToolbar(
+        expanded = true,
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         MapStackIconButton(
             icon = if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
@@ -3713,12 +3716,6 @@ private fun MapIconStack(
             icon = Icons.Filled.Search,
             contentDescription = "Search",
             onClick = onOpenSearchDrawer,
-        )
-        MapStackIconButton(
-            icon = Icons.Filled.Add,
-            contentDescription = "Plan a trip or log a find here",
-            onClick = onAdd,
-            filled = true,
         )
     }
 }
@@ -4034,98 +4031,60 @@ private fun ThreeWayActionDialog(
 }
 
 /**
- * [CompactMapTab]'s own version of the same three-way chooser [ThreeWayActionDialog] shows on
- * medium/expanded windows — same three choices (this doc comment previously said "two", which was
- * already wrong before this rewrite: the menu has always had Plan a trip/Log a find/Drop a
- * waypoint), same shared [PendingMapAction] state, but presented as a small tile that grows out of
- * the add button's own corner of the icon stack rather than [AlertDialog]'s centered scale-in, per
- * the project owner's own description of how it should open. Compact-only: the medium/expanded
- * window's own add button (added alongside this rework — see [MapTab]'s doc comment) has no icon
- * stack for a tile to grow out of, so [MapTab] keeps the plain dialog instead.
+ * [CompactMapTab]'s own trigger+menu for the same three-way choice [ThreeWayActionDialog] shows on
+ * medium/expanded windows — same three choices, same shared [PendingMapAction] state, but a real
+ * [FloatingActionButtonMenu] rather than [AlertDialog]'s centered scale-in, per the project owner's
+ * own description of how it should open (a menu that grows from the add button's own corner).
+ * Compact-only: the medium/expanded window's own add button (see [MapTab]'s doc comment) has no
+ * icon stack for a menu to grow out of, so [MapTab] keeps the plain dialog instead.
  *
- * A scrim (its own [AnimatedVisibility], faded independently of the tile) makes the map behind it
- * unmistakably unavailable to tap while a choice is pending — the same modal intent the dialog it
- * replaces had, just without borrowing [AlertDialog]'s fixed presentation. The tile itself keeps an
- * explicit "Cancel" row alongside the scrim-tap-to-dismiss, the same two ways out
- * [ThreeWayActionDialog] gave (its own "Cancel" dismiss button plus tapping outside).
+ * This used to be `AddActionTile`, a hand-built scrim [Box] plus a [Surface] card of [TextButton]s,
+ * animated by two [AnimatedVisibility]s driven off [MotionTokens.panelMotionSpec] — a from-scratch
+ * reimplementation of exactly what [FloatingActionButtonMenu] now provides as a real component:
+ * its own toggle-button-to-item-column expansion, its own scrim, its own motion. Understory step 5
+ * (`docs/plans/understory-design-system.md`'s component table) replaces it outright rather than
+ * restyling it. The toggle button itself carries [onExpandedChange] rather than a separate
+ * `onDismiss` — collapsing the menu and dismissing it are the same action once there's no longer a
+ * separate scrim-tap handler to distinguish them from.
  */
 @Composable
-private fun AddActionTile(
-    visible: Boolean,
+private fun MapAddActionMenu(
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     onPlanTrip: () -> Unit,
     onLogFind: () -> Unit,
     onDropWaypoint: () -> Unit,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier) {
-        // docs/motion-spec.md §2 "Panels and navigation": ease-out, grounded; no springy
-        // overshoot. MotionTokens.panelMotionSpec is tween-based, never spring, so passing it
-        // explicitly here removes any dependence on AnimatedVisibility's own default spec.
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec),
-            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.32f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onDismiss,
-                    ),
-            )
-        }
-
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec) +
-                expandIn(
-                    animationSpec = tween(durationMillis = MotionTokens.PANEL_MOTION_DURATION_MS, easing = MotionTokens.EaseOut),
-                    expandFrom = Alignment.BottomEnd,
-                ),
-            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec) +
-                shrinkOut(
-                    animationSpec = tween(durationMillis = MotionTokens.PANEL_MOTION_DURATION_MS, easing = MotionTokens.EaseOut),
-                    shrinkTowards = Alignment.BottomEnd,
-                ),
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .offset(x = -Spacing.sm, y = ADD_TILE_ANCHOR_OFFSET),
-        ) {
-            Surface(
-                shape = RoundedCornerShape(Spacing.md),
-                shadowElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surface,
-            ) {
-                Column(
-                    modifier = Modifier.padding(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                ) {
-                    Text("Add...", style = MaterialTheme.typography.titleMedium)
-                    TextButton(onClick = onPlanTrip, modifier = Modifier.fillMaxWidth()) { Text("Plan a trip") }
-                    TextButton(onClick = onLogFind, modifier = Modifier.fillMaxWidth()) { Text("Log a find") }
-                    TextButton(onClick = onDropWaypoint, modifier = Modifier.fillMaxWidth()) { Text("Drop a waypoint") }
-                    TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
-                }
+    FloatingActionButtonMenu(
+        expanded = expanded,
+        modifier = modifier,
+        button = {
+            FloatingActionButton(onClick = { onExpandedChange(!expanded) }) {
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.Close else Icons.Filled.Add,
+                    contentDescription = "Plan a trip or log a find here",
+                )
             }
-        }
+        },
+    ) {
+        FloatingActionButtonMenuItem(
+            onClick = onPlanTrip,
+            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            text = { Text("Plan a trip") },
+        )
+        FloatingActionButtonMenuItem(
+            onClick = onLogFind,
+            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            text = { Text("Log a find") },
+        )
+        FloatingActionButtonMenuItem(
+            onClick = onDropWaypoint,
+            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            text = { Text("Drop a waypoint") },
+        )
     }
 }
-
-/**
- * How far down from vertical-center-end (where [AddActionTile]'s own alignment starts, matching
- * [MapIconStack]'s alignment) to shift the tile so it lands near the add button — the 5-icon
- * stack's bottom item, not its vertical center. Computed as half the full stack's height (5 icons
- * plus their 4 gaps) minus half one icon's own height, from [MAP_ICON_STACK_DIAMETER] and
- * [MapIconStack]'s `Spacing.sm` gaps, rather than a guessed constant. Not pixel-exact — the tile
- * doesn't track the button's real measured position — but close enough that it visibly grows from
- * that button's corner rather than from an unrelated point on screen.
- */
-private val ADD_TILE_ANCHOR_OFFSET = (MAP_ICON_STACK_DIAMETER * 5 + Spacing.sm * 4) / 2 - MAP_ICON_STACK_DIAMETER / 2
 
 /**
  * The name a newly-placed trip pin is pre-filled with: `"Trip N"`, `N` being one more than how

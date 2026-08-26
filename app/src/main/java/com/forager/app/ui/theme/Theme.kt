@@ -1,7 +1,8 @@
 package com.forager.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -101,6 +102,18 @@ internal val DarkColors = darkColorScheme(
  * Light and dark variants both exist here already — [darkTheme] defaults to
  * [isSystemInDarkTheme], so the app follows the device's system theme setting rather than needing
  * its own in-app toggle, the same convention most Android apps use.
+ *
+ * Understory step 2: this used to be a plain [androidx.compose.material3.MaterialTheme] call
+ * naming only [colorScheme] — half of tag 02 and tag 03 (no type scale, no shape scale) was that
+ * gap, not a missing design, since Compose silently falls back to Material's own baseline for any
+ * axis a theme doesn't supply. [MaterialExpressiveTheme] is the real Expressive entry point, not a
+ * wrapper around the plain one — see `docs/plans/understory-design-system.md`, "REV 03" — and all
+ * four axes below are supplied explicitly rather than left to default:
+ * - [colorScheme]: this app's own, as before.
+ * - [ForagerTypography] / [ForagerShapes]: tags 02 and 03, closed.
+ * - [MotionScheme.expressive]: the fifth token axis. Provisional per Gate G (motion-spec.md and
+ *   ADR-0002) — `docs/plans/understory-design-system.md` records `standard()`'s damping values
+ *   alongside so a reversal is a one-line substitution, not a re-derivation.
  */
 @Composable
 fun ForagerTheme(
@@ -108,8 +121,11 @@ fun ForagerTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColors else LightColors
-    MaterialTheme(
+    MaterialExpressiveTheme(
         colorScheme = colorScheme,
+        motionScheme = MotionScheme.expressive(),
+        shapes = ForagerShapes,
+        typography = ForagerTypography,
         content = content,
     )
 }
