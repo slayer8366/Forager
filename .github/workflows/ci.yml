@@ -103,7 +103,28 @@ jobs:
         # Finalized by verifyNothingTestOnlyReachesTheApk (app/build.gradle.kts), which opens
         # the APK this step produced and fails if Robolectric, JUnit or Compose UI Test
         # classes are inside it.
-        run: ./gradlew --stacktrace assembleDebug
+        #
+        # Output is teed so the diagnostic step below can extract compiler errors. PIPESTATUS is
+        # what preserves Gradle's exit code through the pipe -- `$?` after a pipeline is tee's
+        # status, which is 0 even when the build failed.
+        run: |
+          set -o pipefail
+          ./gradlew --stacktrace assembleDebug 2>&1 | tee /tmp/assemble.log
+
+      # TEMPORARY, revert alongside the branch triggers at the top of this file.
+      #
+      # Why this exists: the session developing this branch cannot build locally (its network
+      # policy refuses dl.google.com), so CI is the only compiler, and the GitHub API's job-log
+      # endpoint caps its response — a tail large enough to reach Kotlin's `e:` lines is silently
+      # truncated back to the last ~180 lines, which are all post-job cleanup. Re-emitting the
+      # errors here puts them at the very end of the log, where a small tail can reach them.
+      - name: Show compiler errors
+        if: failure()
+        run: |
+          echo "----- Kotlin/Java errors -----"
+          grep -E "^(e: |w: .*error|error:)" /tmp/assemble.log | head -40 || echo "(no e:/error: lines)"
+          echo "----- Gradle failure block -----"
+          sed -n '/^FAILURE: Build failed/,/^\* Try:/p' /tmp/assemble.log | head -40 || true
 
       - name: Verify the version on the built APK
         # The evidence that fetch-depth: 0 took effect, read out of the artifact rather than
