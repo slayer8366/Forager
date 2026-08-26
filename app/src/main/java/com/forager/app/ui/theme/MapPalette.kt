@@ -115,17 +115,48 @@ data class MapPalette(
          * down by however much slack that marker's contrast floor (4.0:1 against
          * [NIGHT_TILE_REFERENCE]) allowed. `MapPaletteTest` holds this to the same floors the first
          * cut was held to — none were loosened to make room for the warmer values.
+         *
+         * ## Third pass: re-tuned for a brighter ground, 2026-08-26
+         *
+         * Reported unusably dark on hardware (`raster-brightness-max` was 0.22). Raising ground
+         * brightness at all turns out to have zero slack against the first two passes' values —
+         * every marker sat right at its 4.0:1 floor already, so lifting the ground even 9% (0.22 →
+         * 0.24) alone pulled `connector`/`waypoint` (both amber-family) to 0.097 apart in Oklab,
+         * below the 0.099 separation floor: the exact "two things a user must tell apart become
+         * one colour" defect (tag-08) this whole system exists to prevent. A pure-lightness lift
+         * for every marker fails the same way at any brightness increase — Oklab's in-gamut region
+         * narrows near white, so hue-similar marks converge as they're lifted, independent of which
+         * pair happens to be closest.
+         *
+         * So this pass moves the ground substantially (`raster-brightness-max` 0.22 → 0.32,
+         * [NIGHT_TILE_REFERENCE] more than doubling in luminance) and re-solves for every marker
+         * jointly: lightness, hue, and chroma all move together, not lightness alone, with hue
+         * drift bounded to keep each marker in the same colour family it already reads as (nothing
+         * here departs from its day-palette hue by more than the plannedTrip/searchCentre
+         * departures already accepted in the second pass above). Found by a constrained search
+         * (simulated annealing over hue/chroma per marker, hard-rejecting any candidate that cannot
+         * reach the 4.0:1 floor at any lightness), not hand-picked — the same kind of search the
+         * class comment above already describes trying and rejecting when left *unconstrained*
+         * ("zeroes the blue channel on every marker"). The floors themselves did not move: every
+         * value below still clears 4.0:1 against [NIGHT_TILE_REFERENCE] and 0.099 pairwise
+         * separation from every other marker, same as the first two passes.
+         *
+         * A materially brighter ground was checked and found infeasible at this design's floors:
+         * past roughly `raster-brightness-max` 0.44 no colour at all — including pure white — can
+         * reach 4.0:1 against the resulting ground, since `(1.0+0.05)/(lref+0.05)` itself drops
+         * below 4.0. 0.32 was chosen with real headroom under that ceiling (max achievable ≈7:1),
+         * not chosen at the edge of what's mathematically possible.
          */
         val NIGHT = MapPalette(
-            sightingDot = 0xFFBA9E86.toInt(),
+            sightingDot = 0xFFCEC591.toInt(),
             sightingDotStroke = 0xFF25211D.toInt(),
-            connector = 0xFFE98E0F.toInt(),
-            areaMarkerBackground = 0xFF7BB076.toInt(),
+            connector = 0xFFFFB700.toInt(),
+            areaMarkerBackground = 0xFF5EDB91.toInt(),
             areaMarkerForeground = 0xFF1B2C17.toInt(),
-            plannedTrip = 0xFFB896D3.toInt(),
-            searchCentre = 0xFFF87971.toInt(),
-            breadcrumb = 0xFF6FA7ED.toInt(),
-            waypoint = 0xFFFFB517.toInt(),
+            plannedTrip = 0xFFD9B7F5.toInt(),
+            searchCentre = 0xFFFFB0AF.toInt(),
+            breadcrumb = 0xFF7BCDFF.toInt(),
+            waypoint = 0xFFBDCF08.toInt(),
         )
 
         /**
@@ -138,8 +169,13 @@ data class MapPalette(
          * within a single basemap (a snowfield and a forest canopy are not the same ground).
          * `MapPaletteTest` uses it to bound regressions; it does not establish that anything is
          * legible. Only hardware does that — see the README's "Not yet verified" section.
+         *
+         * Scaled proportionally from the first pass's `0x3E3D39` for `raster-brightness-max`'s
+         * move from 0.22 to 0.32 (`BasemapStyles.kt`) — the same modelling approach that value
+         * used, not a fresh sample. See [NIGHT]'s own doc comment, "Third pass," for why the ground
+         * moved this far.
          */
-        val NIGHT_TILE_REFERENCE = 0xFF3E3D39.toInt()
+        val NIGHT_TILE_REFERENCE = 0xFF5A5953.toInt()
 
         /** The reference pale topo tile the day palette is checked against. Provisional, as above. */
         val DAY_TILE_REFERENCE = 0xFFE8E4DC.toInt()

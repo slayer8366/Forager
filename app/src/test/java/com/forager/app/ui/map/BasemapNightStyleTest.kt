@@ -18,7 +18,7 @@ import org.junit.Test
  *
  * That boundary is the point of the check rather than a limitation of it: the failure this guards
  * against is the paint block being absent, malformed, or applied in day mode, all of which are
- * properties of the JSON. Whether 0.22 brightness is *comfortable* is a device-gate question and
+ * properties of the JSON. Whether 0.32 brightness is *comfortable* is a device-gate question and
  * no assertion here speaks to it.
  */
 class BasemapNightStyleTest {
@@ -82,7 +82,7 @@ class BasemapNightStyleTest {
         assertEquals(
             "Changing this means re-modelling MapPalette.NIGHT_TILE_REFERENCE and re-checking " +
                 "MapPaletteTest's night contrast figures against the new ground.",
-            0.22,
+            0.32,
             brightness,
             1e-9,
         )

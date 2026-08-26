@@ -28,7 +28,7 @@ package com.forager.app.ui.map
  * palette meaningful at all: the marks and the ground move together, which is exactly what could
  * not happen when the palette was keyed on the device theme.
  *
- *  - `raster-brightness-max` caps the tile's brightest output. 0.22 takes a pale topo sheet down
+ *  - `raster-brightness-max` caps the tile's brightest output. 0.32 takes a pale topo sheet down
  *    to roughly the tone `MapPalette.NIGHT_TILE_REFERENCE` models, which is the ground the night
  *    palette's contrast is checked against.
  *  - `raster-saturation` pulls colour out of the basemap so the overlay's own hues are the only
@@ -39,14 +39,19 @@ package com.forager.app.ui.map
  * All three are MapLibre style-spec v8 raster paint properties, so they need no code path of their
  * own — they ride in the style JSON the basemap swap already rebuilds.
  *
- * **Not hardware-validated.** These are modelled values chosen to land on the tone the night
- * palette was authored against. Whether a real topo sheet at 0.22 is comfortable at 3am, and
- * whether the imagery basemap (already dark) is over-dimmed by the same settings, are device-gate
- * questions — the imagery case in particular is untested and may well want its own values.
+ * **`raster-brightness-max` was 0.22, hardware-reported as unusably dark on a topo basemap at
+ * night, 2026-08-26.** Raised to 0.32 — see `MapPalette.NIGHT`'s own doc comment, "Third pass,"
+ * for the full account of why 0.32 (not further, and not by lightening the ground alone) and how
+ * every marker colour was re-solved to hold both its contrast floor and its separation from every
+ * other marker at the new tone. Past roughly 0.44, no colour — including white — can reach 4.0:1
+ * against the resulting ground at all, which is a hard ceiling on this value, not a taste choice.
+ * Whether 0.32 itself is comfortable at 3am, and whether the imagery basemap (already dark) is
+ * over- or under-dimmed by the same settings, remain device-gate questions — the imagery case in
+ * particular is untested and may well want its own values.
  */
 private const val NIGHT_RASTER_PAINT = """,
           "paint": {
-            "raster-brightness-max": 0.22,
+            "raster-brightness-max": 0.32,
             "raster-saturation": -0.35,
             "raster-contrast": 0.1
           }"""
