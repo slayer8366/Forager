@@ -19,7 +19,39 @@ package com.forager.app.ui.map
  * the same font that fix settled on, for the same reason: `"Open Sans Semibold"` is what
  * `demotiles.maplibre.org`'s own reference style actually ships in its glyph set, not a guess.
  */
-internal fun styleJsonFor(basemap: Basemap): String = """
+/**
+ * Night mode's raster paint block, applied to the basemap layer.
+ *
+ * The basemap is the glare source, not the markers. A white topo sheet at full brightness is what
+ * makes a phone unusable at night and wrecks dark adaptation, so night mode dims *the ground* and
+ * lifts the marks off it (see `MapPalette.NIGHT`). Dimming the tiles is also what makes a night
+ * palette meaningful at all: the marks and the ground move together, which is exactly what could
+ * not happen when the palette was keyed on the device theme.
+ *
+ *  - `raster-brightness-max` caps the tile's brightest output. 0.22 takes a pale topo sheet down
+ *    to roughly the tone `MapPalette.NIGHT_TILE_REFERENCE` models, which is the ground the night
+ *    palette's contrast is checked against.
+ *  - `raster-saturation` pulls colour out of the basemap so the overlay's own hues are the only
+ *    saturated things on screen — the marks should be what the eye catches, not the terrain tint.
+ *  - `raster-contrast` recovers a little of the shape definition that dimming flattens, so
+ *    contour lines and water edges stay readable rather than becoming an even grey wash.
+ *
+ * All three are MapLibre style-spec v8 raster paint properties, so they need no code path of their
+ * own — they ride in the style JSON the basemap swap already rebuilds.
+ *
+ * **Not hardware-validated.** These are modelled values chosen to land on the tone the night
+ * palette was authored against. Whether a real topo sheet at 0.22 is comfortable at 3am, and
+ * whether the imagery basemap (already dark) is over-dimmed by the same settings, are device-gate
+ * questions — the imagery case in particular is untested and may well want its own values.
+ */
+private const val NIGHT_RASTER_PAINT = """,
+          "paint": {
+            "raster-brightness-max": 0.22,
+            "raster-saturation": -0.35,
+            "raster-contrast": 0.1
+          }"""
+
+internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String = """
     {
       "version": 8,
       "glyphs": "$GLYPHS_URL_TEMPLATE",
@@ -33,7 +65,7 @@ internal fun styleJsonFor(basemap: Basemap): String = """
         }
       },
       "layers": [
-        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID"}
+        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID"${if (night) NIGHT_RASTER_PAINT else ""}}
       ]
     }
 """.trimIndent()

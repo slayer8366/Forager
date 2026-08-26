@@ -298,7 +298,7 @@ fun SightingsMap(
         val map = mapLibreMap ?: return@LaunchedEffect
         if (appliedBasemap == basemap && appliedPalette == mapPalette) return@LaunchedEffect
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
-        map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap))) { style ->
+        map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap, night = nightMode))) { style ->
             initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
             appliedBasemap = basemap
             appliedPalette = mapPalette
