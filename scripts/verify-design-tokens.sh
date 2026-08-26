@@ -45,9 +45,12 @@ report "no Color(0x literal outside ui/theme/" "$hits"
 
 # 2. Palette constants are the theme's own vocabulary; the rest of the UI names roles, not
 #    colours. Importing Bark into a screen is one import, but it is the precedent that makes the
-#    next twenty look reasonable ("tag 05").
+#    next twenty look reasonable ("tag 05"). MapIconBarAccent is excluded for the same reason
+#    MapPalette already is: a component whose colours are deliberately not derived from the
+#    ambient ColorScheme (see that type's own doc comment) is an owned type in ui/theme/, not raw
+#    palette literals reaching into a feature package.
 hits=$(grep -rn "^import com\.forager\.app\.ui\.theme\." app/src/main --include=*.kt \
-       | grep -vE "\.(ForagerTheme|MapPalette)$" || true)
+       | grep -vE "\.(ForagerTheme|MapPalette|MapIconBarAccent)$" || true)
 report "no palette constant imported outside the theme package" "$hits"
 
 # 3. Motion comes from MaterialTheme.motionScheme. A tween at a call site is the tween-only rule

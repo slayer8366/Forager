@@ -72,6 +72,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -150,6 +151,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -214,6 +217,7 @@ import com.forager.app.domain.MapNightMode
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
 import com.forager.app.ui.theme.Cream
+import com.forager.app.ui.theme.MapIconBarAccent
 import com.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
@@ -2217,54 +2221,83 @@ private val MIN_TOUCH_TARGET = 48.dp
  * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) rather than a plain
  * [MaterialTheme.colorScheme.surface] popup — one visual language for every control floating over
  * the map, not a Material default that reads as a different kind of thing next to the bar it opens
- * from. Anchored top-end in both callers' layouts, not precisely against whichever control opened
- * it: [MapModeToggle] already sits at that corner, and [MapIconBar]'s layers row is close enough to
- * it that a precise per-row anchor (the kind [ADD_TILE_ANCHOR_OFFSET] computes for the add row)
- * would be more geometry than the result is worth.
+ * from.
+ *
+ * **Same animation/sizing/anchoring shape as [AddActionTile]**, per the project owner's own
+ * comparison of the two once both existed on screen together: two independent [AnimatedVisibility]s
+ * (scrim, then content, so the scrim's own fade doesn't gate the tile's expand/shrink), the content
+ * one sized to what three chips need rather than [fillMaxSize], and anchored precisely against
+ * whichever control opened it rather than a fixed corner offset that merely sat close by. [anchor]
+ * and [anchorOffset] are how the two callers differ here where [AddActionTile] didn't need to: that
+ * tile only ever grows from the icon bar's own add row, but this picker opens from two different
+ * shapes of control — a lone circular [MapModeToggle] floating at the map's own top-right corner on
+ * medium/expanded, and [MapIconBar]'s layers row (row 4 of 8) on compact — so the anchor is a
+ * parameter instead of a second constant hardcoded in here. [MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET]
+ * computes the compact case the same way [ADD_TILE_ANCHOR_OFFSET] already computes the add row's;
+ * the medium/expanded default below matches [MapModeToggle]'s own fixed position.
  */
 @Composable
 private fun MapModePicker(
+    visible: Boolean,
     mapMode: MapMode,
     onModeSelected: (MapMode) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    anchor: Alignment = Alignment.TopEnd,
+    anchorOffset: DpOffset = DpOffset(x = -Spacing.sm, y = MIN_TOUCH_TARGET + Spacing.lg),
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     Box(modifier = modifier.fillMaxSize()) {
-        // Full-screen scrim + tap-to-dismiss — same shape AddActionTile's own scrim already uses.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.32f))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss,
-                ),
-        )
-        Surface(
-            shape = RoundedCornerShape(Spacing.md),
-            color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
-            contentColor = if (isDarkTheme) Color.White else Bark,
-            shadowElevation = 4.dp,
-            border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = MIN_TOUCH_TARGET + Spacing.lg, end = Spacing.sm),
+        // docs/motion-spec.md §2 "Panels and navigation" — same spec AddActionTile's own scrim uses.
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
+            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()),
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Row(
-                modifier = Modifier.padding(Spacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onDismiss,
+                    ),
+            )
+        }
+
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()) +
+                expandIn(animationSpec = MotionTokens.panelMotionSpec(), expandFrom = anchor),
+            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()) +
+                shrinkOut(animationSpec = MotionTokens.panelMotionSpec(), shrinkTowards = anchor),
+            modifier = Modifier
+                .align(anchor)
+                .offset(x = anchorOffset.x, y = anchorOffset.y),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(Spacing.md),
+                color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                contentColor = if (isDarkTheme) Color.White else Bark,
+                shadowElevation = 4.dp,
+                border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
             ) {
-                MapMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = mode == mapMode,
-                        onClick = {
-                            onModeSelected(mode)
-                            onDismiss()
-                        },
-                        label = { Text(mode.label) },
-                    )
+                Row(
+                    modifier = Modifier.padding(Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    MapMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = mode == mapMode,
+                            onClick = {
+                                onModeSelected(mode)
+                                onDismiss()
+                            },
+                            label = { Text(mode.label) },
+                        )
+                    }
                 }
             }
         }
@@ -3303,13 +3336,12 @@ private fun MapTab(
                             onClick = { showMapModePicker = true },
                             modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
                         )
-                        if (showMapModePicker) {
-                            MapModePicker(
-                                mapMode = mapMode,
-                                onModeSelected = onMapModeSelected,
-                                onDismiss = { showMapModePicker = false },
-                            )
-                        }
+                        MapModePicker(
+                            visible = showMapModePicker,
+                            mapMode = mapMode,
+                            onModeSelected = onMapModeSelected,
+                            onDismiss = { showMapModePicker = false },
+                        )
                         // MEDIUM/EXPANDED's own trigger for the three-way menu — CompactMapTab has
                         // MapIconBar's own add row to repurpose for this; this window class has no
                         // icon bar at all, so this is new here rather than reused. Same icon, same
@@ -3468,6 +3500,22 @@ private val MAP_ICON_STACK_BORDER_COLOR_DARK = Color.White.copy(alpha = 0.4f)
 
 /** The hairline edge on [MapIconStackButtonColorLight] circles — the inverse of [MAP_ICON_STACK_BORDER_COLOR_DARK], for the inverse risk (a light fill merging into pale terrain rather than a dark one merging into dark imagery). */
 private val MAP_ICON_STACK_BORDER_COLOR_LIGHT = Bark.copy(alpha = 0.4f)
+
+/**
+ * The add row's (and [MapFloatingIconButton]'s) permanent accent fill, and the record row's while
+ * active — deliberately [MapIconBarAccent], not [MaterialTheme.colorScheme.primary]/
+ * [MaterialTheme.colorScheme.error] directly, even though every value it holds is one of those same
+ * roles' own hues. See [MapIconBarAccent]'s own doc comment for the full reasoning (Material's tonal
+ * inversion exists for legibility against a plain [MaterialTheme.colorScheme.surface]; these two
+ * rows sit on [MapIconBar]'s own opaque bar fill instead, which already does that job, so reading
+ * Material's roles directly here just reads backwards).
+ */
+private fun mapIconBarAddAccent(isDarkTheme: Boolean) =
+    if (isDarkTheme) MapIconBarAccent.ADD_DARK else MapIconBarAccent.ADD_LIGHT
+
+/** See [mapIconBarAddAccent] — the record row's while-active counterpart. */
+private fun mapIconBarRecordAccent(isDarkTheme: Boolean) =
+    if (isDarkTheme) MapIconBarAccent.RECORD_DARK else MapIconBarAccent.RECORD_LIGHT
 
 /** Translucent background for [CompassElevationStripContent] — dark-theme value unaffected by the icon bar's own opacity history above; this strip sits over the map the same way, but was not reported as illegible in the same hardware pass, so it is deliberately left as-is rather than changed on the strength of a fix aimed at a different element. */
 private val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.78f)
@@ -3702,13 +3750,14 @@ private fun CompactMapTab(
                     modifier = Modifier.fillMaxSize(),
                 )
 
-                if (showMapModePicker) {
-                    MapModePicker(
-                        mapMode = mapMode,
-                        onModeSelected = onMapModeSelected,
-                        onDismiss = { showMapModePicker = false },
-                    )
-                }
+                MapModePicker(
+                    visible = showMapModePicker,
+                    mapMode = mapMode,
+                    onModeSelected = onMapModeSelected,
+                    onDismiss = { showMapModePicker = false },
+                    anchor = Alignment.CenterEnd,
+                    anchorOffset = DpOffset(x = -Spacing.sm, y = MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET),
+                )
 
                 if (pendingAction != null) {
                     CentrePinLocationPickerOverlay(
@@ -3849,7 +3898,8 @@ private fun MapIconBar(
                 contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
                 onClick = onToggleRecording,
                 filled = isRecording,
-                fillColor = MaterialTheme.colorScheme.error,
+                fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
+                fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
             )
             MapBarIconButton(
                 icon = Icons.Filled.Directions,
@@ -3873,7 +3923,8 @@ private fun MapIconBar(
                 contentDescription = "Plan a trip or log a find here",
                 onClick = onAdd,
                 filled = true,
-                fillColor = MaterialTheme.colorScheme.primary,
+                fillColor = mapIconBarAddAccent(isDarkTheme).fill,
+                fillContentColor = mapIconBarAddAccent(isDarkTheme).onFill,
             )
         }
     }
@@ -3882,8 +3933,10 @@ private fun MapIconBar(
 /**
  * One row inside [MapIconBar] — a plain tap target tinted by state, not its own circle: the bar
  * itself is the shared background now, so a per-icon background is reserved for the two rows that
- * carry real, not merely decorative, fill state ([filled]/[fillColor]: the add button's permanent
- * green, the record button's error red while active).
+ * carry real, not merely decorative, fill state ([filled]/[fillColor]/[fillContentColor]: the add
+ * button's permanent accent, the record button's error accent while active — see
+ * [MapIconBarAccent]'s own doc comment for why each caller passes its own theme-swapped pair here
+ * rather than reading [MaterialTheme.colorScheme.primary]/[error] directly).
  */
 @Composable
 private fun MapBarIconButton(
@@ -3894,6 +3947,8 @@ private fun MapBarIconButton(
     /** Gives this row its own filled circle in [fillColor] rather than tinting just the icon. */
     filled: Boolean = false,
     fillColor: Color = Color.Unspecified,
+    /** The icon's own tint while [filled] — must be picked for contrast against [fillColor] specifically, not [MapIconBar]'s own bar-level contentColor. */
+    fillContentColor: Color = Color.White,
     /**
      * Optional secondary action on a long press. Only the layers slot uses it today, for night
      * mode — see [MapIconBar]. `null` leaves the button a plain tap target rather than one that
@@ -3932,10 +3987,11 @@ private fun MapBarIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            // filled rows sit on their own saturated circle (green/error), where white always
-            // reads; everything else inherits MapIconBar's own theme-picked contentColor via
-            // LocalContentColor, unless a state override (activeColor) says otherwise.
-            tint = if (filled) Color.White else activeColor ?: LocalContentColor.current,
+            // filled rows sit on their own saturated circle (green/error), so their icon needs
+            // fillColor's own contrast pair, not MapIconBar's bar-level contentColor; everything
+            // else inherits that bar-level color via LocalContentColor, unless a state override
+            // (activeColor) says otherwise.
+            tint = if (filled) fillContentColor else activeColor ?: LocalContentColor.current,
         )
     }
 }
@@ -3947,6 +4003,11 @@ private fun MapBarIconButton(
  * [MapBarIconButton]: a lone button floating directly over the map still needs its own opaque
  * fill plus hairline border to read against the map, the way [MapIconStackButtonColorDark]'s own
  * doc comment documents — a bar row can lean on the shared bar background for that instead.
+ *
+ * `filled`'s own accent is [mapIconBarAddAccent], the same theme-swapped [MapIconBarAccent]
+ * [MapIconBar]'s add row uses and for the same reason (see that type's own doc comment) — this is
+ * the same button on a window class with no bar for it to sit inside, so it keeps the same accent
+ * rather than falling back to `MaterialTheme.colorScheme.primary`.
  */
 @Composable
 private fun MapFloatingIconButton(
@@ -3957,15 +4018,20 @@ private fun MapFloatingIconButton(
     filled: Boolean = false,
 ) {
     val isDarkTheme = isSystemInDarkTheme()
+    val addAccent = mapIconBarAddAccent(isDarkTheme)
     Surface(
         onClick = onClick,
         shape = CircleShape,
         color = when {
-            filled -> MaterialTheme.colorScheme.primary
+            filled -> addAccent.fill
             isDarkTheme -> MapIconStackButtonColorDark
             else -> MapIconStackButtonColorLight
         },
-        contentColor = if (filled || isDarkTheme) Color.White else Bark,
+        contentColor = when {
+            filled -> addAccent.onFill
+            isDarkTheme -> Color.White
+            else -> Bark
+        },
         shadowElevation = 2.dp,
         border = if (filled) {
             null
@@ -4216,7 +4282,7 @@ private fun ThreeWayActionDialog(
  * see [MapTab]'s doc comment) has no icon bar for a tile to grow out of, so [MapTab] keeps the
  * plain dialog instead.
  *
- * **Real [Button]s, short labels, no title row.** The original had a "Add..." title plus four
+ * **Real [AssistChip]s, short labels, no title row.** The original had a "Add..." title plus four
  * full-width [TextButton]s (three choices, and its own "Cancel") — a real hardware-reported
  * problem, not a style preference: a full-width button is as wide as its longest label, which made
  * the whole tile noticeably wider than the icon bar it grows out of. Short labels ("Trip"/
@@ -4224,6 +4290,15 @@ private fun ThreeWayActionDialog(
  * short buttons actually need, rather than the longest of three sentences. No separate "Cancel"
  * button either — the scrim below already dismisses on a tap outside, and a fourth wide row would
  * undo the same fit this rewrite exists for.
+ *
+ * **[AssistChip], not the filled Material [Button] this tile used at first.** A solid
+ * `colorScheme.primary`-filled button is its own large block of colour, and three of them side by
+ * side visually crowded out the tile's own theme-aware card fill entirely — from the project
+ * owner's own side-by-side comparison against [MapModePicker], whose unselected [FilterChip]s stay
+ * outlined and let that same card fill read clearly instead. [AssistChip] is the semantically
+ * correct match, not [FilterChip] borrowed wholesale: these three rows perform an action each and
+ * share no "currently selected" state the way [MapModePicker]'s three modes do, so nothing here is
+ * ever passed a `selected` value.
  *
  * Same theme-aware, 80%-opacity fill as [MapIconBar]
  * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) rather than a plain
@@ -4296,9 +4371,9 @@ private fun AddActionTile(
                     modifier = Modifier.padding(Spacing.sm),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
-                    Button(onClick = onPlanTrip) { Text("Trip") }
-                    Button(onClick = onLogFind) { Text("Find") }
-                    Button(onClick = onDropWaypoint) { Text("Waypoint") }
+                    AssistChip(onClick = onPlanTrip, label = { Text("Trip") })
+                    AssistChip(onClick = onLogFind, label = { Text("Find") })
+                    AssistChip(onClick = onDropWaypoint, label = { Text("Waypoint") })
                 }
             }
         }
@@ -4309,16 +4384,27 @@ private fun AddActionTile(
 internal const val ADD_ACTION_TILE_SCRIM_TAG = "add-action-tile-scrim"
 
 /**
- * How far down from vertical-center-end (where [AddActionTile]'s own alignment starts, matching
- * [MapIconBar]'s alignment) to shift the tile so it lands near the add button — the bar's bottom
- * row, not its vertical center. Computed as half the bar's own content height (8 rows, 7
- * `Spacing.xs` gaps between them — the padding [MapIconBar] wraps that content in is symmetric
- * top/bottom, so it doesn't shift the center and isn't part of this sum) minus half one row's own
- * height, from [MIN_TOUCH_TARGET], rather than a guessed constant. Not pixel-exact — the
- * tile doesn't track the button's real measured position — but close enough that it visibly grows
- * from that button's corner rather than from an unrelated point on screen.
+ * Offset from [MapIconBar]'s own vertical center (where both [AddActionTile] and [MapModePicker]
+ * anchor their `Alignment.CenterEnd`-based popups) to the center of one of its rows, counting from
+ * the top — the geometry [ADD_TILE_ANCHOR_OFFSET] originally computed just for the add row (row 8
+ * of 8), generalized once [MapModePicker] needed the same reasoning for the layers row (row 4)
+ * instead of a second guessed constant. The padding [MapIconBar] wraps its content in is symmetric
+ * top/bottom, so it doesn't shift the center and isn't part of this sum. Not pixel-exact — neither
+ * caller tracks its own button's real measured position — but close enough that each popup visibly
+ * grows from that button's corner rather than from an unrelated point on screen.
  */
-private val ADD_TILE_ANCHOR_OFFSET = (MIN_TOUCH_TARGET * 8 + Spacing.xs * 7) / 2 - MIN_TOUCH_TARGET / 2
+private fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
+    val rowCount = 8
+    val contentHeight = MIN_TOUCH_TARGET * rowCount + Spacing.xs * (rowCount - 1)
+    val rowCenterFromTop = (MIN_TOUCH_TARGET + Spacing.xs) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
+    return rowCenterFromTop - contentHeight / 2
+}
+
+/** [MapIconBar]'s add row is its 8th (last) of 8 — see [mapIconBarRowAnchorOffset]. */
+private val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 8)
+
+/** [MapIconBar]'s layers ("Map Mode") row is its 4th of 8 — see [mapIconBarRowAnchorOffset]. */
+private val MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)
 
 /**
  * The name a newly-placed trip pin is pre-filled with: `"Trip N"`, `N` being one more than how
