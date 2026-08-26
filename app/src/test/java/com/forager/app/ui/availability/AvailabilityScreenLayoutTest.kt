@@ -576,7 +576,7 @@ abstract class AvailabilityScreenLayoutTest {
 
         composeRule.onNodeWithText("Settings").performClick()
 
-        composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
+        composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
         composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
             .assertIsDisplayed()
     }

@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -195,7 +196,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        openChooserPanAndConfirm("Plan a trip")
+        openChooserPanAndConfirm("Trip")
         composeRule.onNodeWithText("Plan trip").assertIsDisplayed()
 
         composeRule.onNodeWithText("Plan trip").performClick()
@@ -214,7 +215,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        openChooserPanAndConfirm("Plan a trip")
+        openChooserPanAndConfirm("Trip")
         composeRule.onNodeWithText("Trip name").performTextReplacement("Chanterelle Ridge")
         composeRule.onNodeWithText("Plan trip").performClick()
         composeRule.waitForIdle()
@@ -228,11 +229,11 @@ class AvailabilityScreenTripPlanningFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        openChooserPanAndConfirm("Plan a trip")
+        openChooserPanAndConfirm("Trip")
         composeRule.onNodeWithText("Plan trip").performClick()
         composeRule.waitForIdle()
 
-        openChooserPanAndConfirm("Plan a trip")
+        openChooserPanAndConfirm("Trip")
         composeRule.onNodeWithText("Trip name").assertIsDisplayed()
         composeRule.onNodeWithText("Plan trip").performClick()
         composeRule.waitForIdle()
@@ -248,7 +249,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        openChooserPanAndConfirm("Plan a trip")
+        openChooserPanAndConfirm("Trip")
         composeRule.onNodeWithText("Trip name").performTextReplacement("")
 
         composeRule.onNodeWithText("Plan trip").assertIsNotEnabled()
@@ -260,7 +261,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithTag(ADD_ACTION_TILE_SCRIM_TAG).performClick()
         composeRule.waitForIdle()
 
         assertTrue(viewModel.uiState.value.plannedTrips.isEmpty())
@@ -272,7 +273,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.onNodeWithText("Plan a trip").performClick()
+        composeRule.onNodeWithText("Trip").performClick()
         composeRule.onNodeWithText("Cancel").performClick()
         composeRule.waitForIdle()
 
@@ -284,7 +285,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         setScreen()
         searchAReferenceRegion()
 
-        openChooserPanAndConfirm("Plan a trip")
+        openChooserPanAndConfirm("Trip")
         composeRule.onNodeWithText("Cancel").performClick()
         composeRule.waitForIdle()
 
@@ -297,7 +298,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         setScreen(onStartLogEntry = { location, _ -> startedLogEntryAt = location })
         searchAReferenceRegion()
 
-        openChooserPanAndConfirm("Log a find")
+        openChooserPanAndConfirm("Find")
 
         assertEquals(TEST_LOCATION, startedLogEntryAt)
         assertTrue("choosing Log a find must not also plan a trip", viewModel.uiState.value.plannedTrips.isEmpty())

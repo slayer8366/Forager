@@ -128,42 +128,42 @@ more certainty than the data supports. See `AvailabilityForecast` and
    `CompactSearchDrawerContent`/`CompactSettingsTab` and
    `docs/plans/map-redesign.md`.
 
-   **Which basemap draws the tiles is two separate decisions with two
-   different lifetimes.** Which *service* to use — **OpenStreetMap** (the
-   default) or **USGS** — is occasional, so it lives in **Settings ▸ Choose
-   Maps Service** — reached from the sticky entry at the bottom of the search
-   drawer on medium/expanded windows, or the **Settings** bottom-nav tab on
-   compact. Settings also has an **imperial/metric** toggle for how every
-   distance in the app (search radius, offline-download radius, recent
-   searches, forecast summaries) is displayed — the underlying data and API
-   calls are always kilometres; this only changes the label
-   (`ui/availability/DistanceUnit`). Which *mode* that service is in — topo
-   or regular — is a
-   during-the-walk decision made often, so it's a quick-fire icon (on a
-   compact window, the third icon in the floating stack above; on medium+
-   windows, still overlaid on the map's own top-right corner) rather than
-   buried in a menu: "if a map has two modes, toggle the two." OpenStreetMap's two modes are OpenTopoMap and
-   the standard OSM street map; USGS's are USGS Topo and USGS Imagery.
-   Switching service never resets the mode — leave the icon on regular mode
-   under OpenStreetMap and switch the service to USGS, and the map lands on
-   USGS Imagery, not USGS Topo. All four tile sources are plain style-URL
-   templates in `ui/map/Basemap`/`ui/map/BasemapStyles` — no API key and no
-   vendor SDK naming a tile source directly. See `ui/map/MapService` and
-   `ui/map/Basemap`.
+   **Which basemap draws the tiles is one flat, always-visible choice: Street,
+   Topographical, or Satellite** (`ui/map/MapMode`), picked from the map's own
+   quick-fire "Map Mode" icon (on a compact window, the third icon in the
+   floating stack above; on medium+ windows, still overlaid on the map's own
+   top-right corner) — tapping it opens `MapModePicker`, a small chip row
+   naming all three, rather than burying the choice in a menu. Street and
+   Topographical are both OpenStreetMap-derived (the standard OSM street map,
+   and OpenTopoMap's contours/hillshading); Satellite is USGS's raw aerial
+   orthoimagery, no topo labels drawn over it. Settings also has an
+   **imperial/metric** toggle for how every distance in the app (search
+   radius, offline-download radius, recent searches, forecast summaries) is
+   displayed — the underlying data and API calls are always kilometres; this
+   only changes the label (`ui/availability/DistanceUnit`). All three tile
+   sources are plain style-URL templates in
+   `ui/map/Basemap`/`ui/map/BasemapStyles` — no API key and no vendor SDK
+   naming a tile source directly. See `ui/map/MapMode` and `ui/map/Basemap`.
 
-   This replaces an earlier design (still visible in this project's git
-   history) where all four basemaps sat in one flat dropdown in the app bar,
-   defaulting to USGS Topo. **The default changed to OpenStreetMap** for the
-   same reason USGS was never a hardcoded default there either: **USGS
-   National Map covers the United States only**, and an opening basemap that
-   is blank for every user outside the US is a worse trade for a first launch
-   than it is for a browsing choice the user can already see and change. USGS
-   Topo — the better read for a wooded search — is still one tap away in
-   Settings. The two alternatives to stating the coverage limit outright are
-   recorded in `Basemap`'s doc comment: detecting coverage and falling back
-   silently (`CLAUDE.md` forbids an unlogged fallback, and the failure mode
-   isn't even detectable — the service returns HTTP 404 outside the US, which
-   is indistinguishable from a network error), and guessing from device locale
+   This replaces two earlier designs in turn (both still visible in this
+   project's git history): first, a flat dropdown of four basemaps in the app
+   bar defaulting to USGS Topo; then a two-tier design — a **service**
+   (OpenStreetMap or USGS, occasional, Settings ▸ "Choose Maps Service") and,
+   independently, a **mode** (topo or regular) that service was in, toggled
+   often via the same quick-fire icon. `MapMode` collapsed that two-tier split
+   back into one flat, three-way choice per the project owner's own request,
+   and dropped the "Choose Maps Service" section entirely along with USGS
+   Topo and USGS Imagery-with-labels — USGS is reachable only via Satellite
+   now, and via its labels-free imagery specifically. **The default is
+   Topographical, via OpenStreetMap** (not USGS): **USGS National Map covers
+   the United States only**, and an opening basemap that is blank for every
+   user outside the US is a worse trade for a first launch than it is for a
+   deliberate choice the user can already see and change. The two
+   alternatives to stating the coverage limit outright are recorded in
+   `Basemap`'s doc comment: detecting coverage and falling back silently
+   (`CLAUDE.md` forbids an unlogged fallback, and the failure mode isn't even
+   detectable — the service returns HTTP 404 outside the US, which is
+   indistinguishable from a network error), and guessing from device locale
    or GPS.
 
    Zoom ceilings differ per basemap and are applied explicitly: USGS stops at
@@ -185,19 +185,19 @@ more certainty than the data supports. See `AvailabilityForecast` and
    reported capability range is not an operating limit.
 
    **Settings ▸ Offline Maps downloads OSM-derived vector tiles for a region
-   you pick, for offline use — a different source from any of the four
+   you pick, for offline use — a different source from any of the three
    basemaps above, always, regardless of which one is selected for ordinary
-   browsing.** Reached via a submenu of its own (a "Offline Maps" row inside
-   Settings, one tap below "Choose Maps Service"), because it holds an
-   interactive map: rather than typing latitude/longitude, you long-press the
-   map shown there to set the download's centre point, the same long-press
-   gesture used elsewhere in this app to drop a planned-trip pin — a marker
-   with the radius in its snippet confirms the pick. Tiles come from a
-   self-hosted Cloudflare Worker (`server/pmtiles-worker`) reading a
-   continental-US [Protomaps](https://protomaps.com) PMTiles extract out of
-   R2 — not from any of the four live basemaps' own tile providers, all of
-   which either prohibit bulk/prefetch downloading in their usage terms or
-   would cost real money to hit at that volume. MapLibre's own
+   browsing.** Reached via a submenu of its own (an "Offline Maps" row inside
+   Settings), because it holds an interactive map: rather than typing
+   latitude/longitude, you long-press the map shown there to set the
+   download's centre point, the same long-press gesture used elsewhere in
+   this app to drop a planned-trip pin — a marker with the radius in its
+   snippet confirms the pick. Tiles come from a self-hosted Cloudflare Worker
+   (`server/pmtiles-worker`) reading a continental-US
+   [Protomaps](https://protomaps.com) PMTiles extract out of R2 — not from
+   any of the three live basemaps' own tile providers, all of which either
+   prohibit bulk/prefetch downloading in their usage terms or would cost real
+   money to hit at that volume. MapLibre's own
    `OfflineManager` persists the downloaded region in its own on-device
    store under the app's private files directory, not the cache directory
    ordinary browsing uses, so neither an OS cache-clear nor ordinary map
@@ -589,10 +589,11 @@ more certainty than the data supports. See `AvailabilityForecast` and
   same own-the-vendor-boundary idea one level down — the basemap catalogue
   is pure Kotlin (labels, coverage limits, zoom ceilings, attribution, no
   MapLibre and no Compose), and `BasemapStyles.styleJsonFor` is the only
-  place it becomes a real MapLibre style JSON; and `MapService`, which
-  groups those four `Basemap`s into the two services (OpenStreetMap, USGS)
-  Settings' "Choose Maps Service" picks between, each with a topo/regular
-  mode the map's own quick-fire icon toggles.
+  place it becomes a real MapLibre style JSON; and `MapMode`, which names
+  the three basemaps the map's own quick-fire "Map Mode" icon picks between
+  (`MapModePicker`) — Street and Topographical (both OpenStreetMap-derived)
+  and Satellite (USGS), each pinned to one fixed `Basemap` rather than the
+  two-tier service/mode split `MapMode` superseded.
 - `ui/log/` — `MushroomLogViewModel` and the log's Compose UI, kept in its
   own package rather than folded into `AvailabilityScreen.kt` alongside
   Settings/OfflineMaps — see `LogPanel`'s doc comment for why. `LogPanel` is
@@ -1406,14 +1407,17 @@ glyph-stripped, distinct from what a live map renders.
    invalid coordinates never reach the repository at all — both survived the
    swap from osmdroid unchanged, since neither depends on which repository
    implementation is behind the interface.
-4. That the "Offline Maps" submenu is reachable regardless of the selected
-   map service, that its entry row navigates in and its back arrow returns
-   to Settings, and that a long-press on the picker map sets the region and
+4. That the "Offline Maps" submenu is reachable regardless of the current
+   `MapMode`, that its entry row navigates in and its back arrow returns to
+   Settings, and that a long-press on the picker map sets the region and
    enables "Download Maps" are all measured against the real Compose tree
    (`AvailabilityScreenSettingsPanelTest`), not just reasoned about — this
-   predates the renderer swap and is unaffected by it. What the picker map
-   itself renders on, now that osmdroid is gone, needs re-stating here once
-   confirmed — not carried over unchanged from the pre-swap USGS Topo claim.
+   predates the renderer swap and is unaffected by it. The picker map itself
+   now renders on `Basemap.OPEN_TOPO_MAP`, not USGS Topo — USGS Topo was
+   deleted from the catalogue entirely once `MapMode` pinned it out of the
+   app, and OpenTopoMap is its worldwide equivalent with no reason to inherit
+   a US-only limit the picker map never needed. `AvailabilityScreenSettingsPanelTest`
+   asserts this directly.
 
 ### The mushroom log, specifically
 

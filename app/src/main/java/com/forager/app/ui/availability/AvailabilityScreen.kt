@@ -200,11 +200,10 @@ import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.log.PhotoGalleryScreen
 import com.forager.app.ui.map.Basemap
-import com.forager.app.ui.map.BasemapCoverage
 import com.forager.app.ui.map.CentrePinLocationPicker
 import com.forager.app.ui.map.CentrePinLocationPickerOverlay
+import com.forager.app.ui.map.MapMode
 import com.forager.app.ui.map.MapOverlayContent
-import com.forager.app.ui.map.MapService
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
@@ -491,7 +490,7 @@ fun AvailabilityScreen(
     // window lands on the same List/Maps/Seasonal tab compact was just showing.
     var compactTab by remember { mutableStateOf(CompactTab.MAP) }
 
-    // Local remembered state, same reasoning as selectedTab/isTopoMode below: purely a display
+    // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
     // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
     // this — see CompactMapTab's call site. Compact-only: WindowWidthClass.MEDIUM/EXPANDED never
     // render the icon stack that can set it, so it stays false there. Only reachable while on the
@@ -503,19 +502,14 @@ fun AvailabilityScreen(
     // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
     // no domain type depends on it — it is purely what the tiles look like. Putting it in
     // AvailabilityUiState would make the ViewModel the authority on a decision it has no part in.
-    // Two pieces now instead of one [Basemap] — see [MapService]'s doc comment for why the choice
-    // split into "which service" (Settings, occasional) and "which mode" (the map's own quick-fire
-    // icon, frequent) — but the reasoning above still applies to both: this task's own notes ask for
-    // this state "wherever basemap/onBasemapSelected currently live", and that is here, in Compose
-    // state local to this screen, not the ViewModel — PR #13 never put it there despite the task's
-    // phrasing suggesting otherwise, and moving it now would be scope this task didn't ask for.
+    // One MapMode value, not the earlier two-piece service+mode split — see MapMode's own doc
+    // comment for what that split used to buy and why it no longer applies.
     //
-    // The cost, stated rather than hidden: like selectedTab, both reset to their defaults on process
-    // death. Persisting them needs somewhere to persist *to*, and adding a Room table or a DataStore
-    // for two small pieces of display-only state is the speculative build CLAUDE.md warns against.
-    var selectedMapService by remember { mutableStateOf(MapService.DEFAULT) }
-    var isTopoMode by remember { mutableStateOf(true) }
-    val basemap = selectedMapService.basemapFor(isTopoMode)
+    // The cost, stated rather than hidden: like selectedTab, this resets to its default on process
+    // death. Persisting it needs somewhere to persist *to*, and adding a Room table or a DataStore
+    // for one small piece of display-only state is the speculative build CLAUDE.md warns against.
+    var mapMode by remember { mutableStateOf(MapMode.DEFAULT) }
+    val basemap = mapMode.basemap
 
     // Night mode. Automatic from civil twilight at the device's own position, with a long-press
     // hold on the icon stack's layers slot for when the sun and the conditions disagree.
@@ -542,7 +536,7 @@ fun AvailabilityScreen(
     val isNightMode = MapNightMode.resolve(automaticNight, nightModeHold)
     val onToggleNightMode = { nightModeHold = MapNightMode.toggled(automaticNight, nightModeHold) }
     val mapRenderMode = MapRenderMode(basemap = basemap, night = isNightMode)
-    // Same reasoning and cost as selectedMapService above — see DistanceUnit's own doc comment for
+    // Same reasoning and cost as mapMode above — see DistanceUnit's own doc comment for
     // why this stays session-local display state rather than a persisted preference.
     var distanceUnit by remember { mutableStateOf(DistanceUnit.KILOMETERS) }
     var drawerPanel by remember { mutableStateOf(DrawerPanel.Search) }
@@ -726,8 +720,6 @@ fun AvailabilityScreen(
                 SettingsHeader(onBack = { drawerPanel = DrawerPanel.Search })
                 SettingsContent(
                     modifier = Modifier.weight(1f),
-                    selectedMapService = selectedMapService,
-                    onMapServiceSelected = { selectedMapService = it },
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = { distanceUnit = it },
                     onOpenOfflineMaps = {
@@ -889,8 +881,8 @@ fun AvailabilityScreen(
                         distanceUnit = distanceUnit,
                         mapSlot = mapSlot,
                         renderMode = mapRenderMode,
-                        isTopoMode = isTopoMode,
-                        onToggleMapMode = { isTopoMode = !isTopoMode },
+                        mapMode = mapMode,
+                        onMapModeSelected = { mapMode = it },
                         onPlaceTripPin = onPlaceTripPin,
                         onLogFindHere = onLogFindHere,
                         onToggleForagingAreas = onToggleForagingAreas,
@@ -931,7 +923,7 @@ fun AvailabilityScreen(
         // The quick species-search panel under ActiveSearchSummary — see that composable's own
         // onOpenQuickSearch doc comment. Local to this scaffold, not AvailabilityUiState: which
         // panel is showing is a display decision the ViewModel has no part in, same reasoning as
-        // isTopoMode/drawerPanel above.
+        // mapMode/drawerPanel above.
         var showQuickSearch by remember { mutableStateOf(false) }
 
         // Pings the device's live location once, as soon as the compact Maps experience is shown,
@@ -1059,8 +1051,8 @@ fun AvailabilityScreen(
                         uiState = uiState,
                         mapSlot = mapSlot,
                         renderMode = mapRenderMode,
-                        isTopoMode = isTopoMode,
-                        onToggleMapMode = { isTopoMode = !isTopoMode },
+                        mapMode = mapMode,
+                        onMapModeSelected = { mapMode = it },
                         isNightMode = isNightMode,
                         onToggleNightMode = onToggleNightMode,
                         onPlaceTripPin = onPlaceTripPin,
@@ -1118,8 +1110,6 @@ fun AvailabilityScreen(
                     CompactTab.SETTINGS -> CompactSettingsTab(
                         uiState = uiState,
                         mapSlot = mapSlot,
-                        selectedMapService = selectedMapService,
-                        onMapServiceSelected = { selectedMapService = it },
                         distanceUnit = distanceUnit,
                         onDistanceUnitSelected = { distanceUnit = it },
                         currentTime = currentTime,
@@ -1272,8 +1262,8 @@ private fun CombinedResultsPane(
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
     renderMode: MapRenderMode,
-    isTopoMode: Boolean,
-    onToggleMapMode: () -> Unit,
+    mapMode: MapMode,
+    onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
@@ -1294,8 +1284,8 @@ private fun CombinedResultsPane(
             uiState = uiState,
             mapSlot = mapSlot,
             renderMode = renderMode,
-            isTopoMode = isTopoMode,
-            onToggleMapMode = onToggleMapMode,
+            mapMode = mapMode,
+            onMapModeSelected = onMapModeSelected,
             onPlaceTripPin = onPlaceTripPin,
             onLogFindHere = onLogFindHere,
             onToggleForagingAreas = onToggleForagingAreas,
@@ -1639,8 +1629,6 @@ private fun PhotoGalleryHeader(onBack: () -> Unit) {
 private fun CompactSettingsTab(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
-    selectedMapService: MapService,
-    onMapServiceSelected: (MapService) -> Unit,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     currentTime: CurrentTimeProvider,
@@ -1701,8 +1689,6 @@ private fun CompactSettingsTab(
             else -> {
                 SettingsContent(
                     modifier = Modifier.weight(1f),
-                    selectedMapService = selectedMapService,
-                    onMapServiceSelected = onMapServiceSelected,
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = onDistanceUnitSelected,
                     onOpenOfflineMaps = {
@@ -1718,8 +1704,14 @@ private fun CompactSettingsTab(
 }
 
 /**
- * The Settings panel's body: "Choose Maps Service" plus a row into the "Offline Maps" submenu,
+ * The Settings panel's body: [DistanceUnitSection] plus a row into the "Offline Maps" submenu,
  * built as a real menu with headroom for more sections later per this task's own framing.
+ *
+ * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
+ * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
+ * pinned Street/Topographical to OpenStreetMap and added Satellite (USGS) as a third, always-on
+ * option reachable only from the map's own [MapModePicker]. See [MapMode]'s own doc comment for the
+ * full account of what this removed and why.
  *
  * Offline Maps is a full submenu of its own ([DrawerPanel.OfflineMaps] for medium/expanded,
  * `showOfflineMaps` local state for compact's [CompactSettingsTab]) rather than a section inline
@@ -1733,8 +1725,6 @@ private fun CompactSettingsTab(
 @Composable
 private fun SettingsContent(
     modifier: Modifier = Modifier,
-    selectedMapService: MapService,
-    onMapServiceSelected: (MapService) -> Unit,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onOpenOfflineMaps: () -> Unit,
@@ -1746,8 +1736,6 @@ private fun SettingsContent(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        ChooseMapsServiceSection(selectedMapService = selectedMapService, onMapServiceSelected = onMapServiceSelected)
-        HorizontalDivider()
         DistanceUnitSection(distanceUnit = distanceUnit, onDistanceUnitSelected = onDistanceUnitSelected)
         HorizontalDivider()
         OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
@@ -1781,53 +1769,12 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
 }
 
 /**
- * Which tile provider the map draws from — occasional, unlike the topo/regular mode toggled from
- * the map itself (see [MapModeToggle]), which is why this lives in Settings rather than as a
- * quick-fire control. A plain two-option radio choice rather than restating each service's four
- * [Basemap]s individually: [MapService] already is that grouping, and PR #13's old selector rows
- * — one per [Basemap], with its own coverage/zoom/attribution block — are no longer what a user
- * picks between here. The detail those rows carried survives as a short caption per service
- * ([mapServiceCaption]) rather than being dropped outright.
- */
-@Composable
-private fun ChooseMapsServiceSection(selectedMapService: MapService, onMapServiceSelected: (MapService) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text("Choose Maps Service", style = MaterialTheme.typography.titleMedium)
-        MapService.entries.forEach { service ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.RadioButton) { onMapServiceSelected(service) },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                RadioButton(selected = service == selectedMapService, onClick = { onMapServiceSelected(service) })
-                Column {
-                    Text(service.label, style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        mapServiceCaption(service),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** The coverage-and-zoom summary [ChooseMapsServiceSection] shows under each [MapService] option. */
-private fun mapServiceCaption(service: MapService): String {
-    val coverage = if (service.topoBasemap.coverage == BasemapCoverage.WORLDWIDE) "Worldwide" else "United States only"
-    return "$coverage · zooms to ${service.topoBasemap.maxZoom} (topo) / ${service.regularBasemap.maxZoom} (regular)"
-}
-
-/**
  * The Settings panel's row into the [DrawerPanel.OfflineMaps] submenu. A plain row rather than a
  * sticky one like [SettingsEntryRow]: this lives inside Settings' own scrolling content, it isn't a
  * second drawer-wide sticky slot.
  *
- * Unconditionally reachable regardless of [MapService] — offline downloads always target this
- * repository's one fixed source regardless of which service is selected for live browsing, so
+ * Unconditionally reachable regardless of [MapMode] — offline downloads always target this
+ * repository's one fixed source regardless of which mode is selected for live browsing, so
  * there is nothing to gate this row on; see `com.forager.app.domain.OfflineMapRepository`'s doc
  * comment for why that coupling was removed.
  */
@@ -1875,7 +1822,7 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
  *
  * Always downloads from the same one fixed source, unconditionally — see
  * `com.forager.app.domain.OfflineMapRepository`'s doc comment for why this is no longer gated on,
- * or reactive to, [MapService]/the quick-fire map mode: the project owner's own call was that
+ * or reactive to, [MapMode]/the quick-fire map mode picker: the project owner's own call was that
  * offline downloads should "assume [a fixed source] and [be] ready to function" regardless of
  * either. That fixed source is `com.forager.app.map.MapLibreOfflineMapRepository`'s Cloudflare
  * Worker now, not USGS — this panel's own picker map below is unrelated to that choice, see the
@@ -1887,9 +1834,11 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
  * class doc comment for why every location-placing site in this app, this one included, replaced
  * long-press with a fixed centre pin (an accessibility decision, not a style one). There is no
  * name-and-date dialog in between OK and the pick landing: a confirmed point becomes the region's
- * centre immediately, since there is nothing else to ask the user for. [Basemap.USGS_TOPO] here is
- * only terrain context for choosing *where* to download — this picker map is unrelated to which
- * source the download itself actually reads from underneath.
+ * centre immediately, since there is nothing else to ask the user for. [Basemap.OPEN_TOPO_MAP] here
+ * is only terrain context for choosing *where* to download — this picker map is unrelated to which
+ * source the download itself actually reads from underneath. Was `Basemap.USGS_TOPO` (US-only)
+ * until [MapMode] removed it from the app entirely; [Basemap.OPEN_TOPO_MAP] is the worldwide
+ * equivalent, a better fit for a picker with no reason to inherit a US-only limit it never needed.
  *
  * Before anything is confirmed, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank, so
  * the picker centres on [OFFLINE_MAP_PICKER_DEFAULT_CENTER] purely so there is a map to navigate
@@ -1947,7 +1896,7 @@ private fun OfflineMapsPanel(
             CentrePinLocationPicker(
                 mapSlot = mapSlot,
                 region = pickerRegion,
-                basemap = Basemap.USGS_TOPO,
+                basemap = Basemap.OPEN_TOPO_MAP,
                 night = isNightMode,
                 onConfirm = onRegionPicked,
                 // Nothing to cancel back to: this panel had no confirm step before this picker
@@ -2223,18 +2172,20 @@ private fun OfflineRegionRow(
 
 /**
  * The quick-fire icon overlaid on the map's own top-right corner — not the app bar, not Settings —
- * because which mode a service is in ("if a map has two modes, toggle the two") is a during-the-walk
- * decision made often, unlike which [MapService] to use at all, which is occasional and lives in
- * Settings. See [MapService]'s doc comment and [MapTab]'s call site for the full picture.
+ * because which [MapMode] the map is in is a during-the-walk decision made often, unlike anything
+ * that used to live in Settings (deleted; see [MapMode]'s own doc comment for what superseded it).
+ * A tap opens [MapModePicker] rather than instantly cycling modes, now that there are three to
+ * choose from instead of two — "toggle the two" stopped being the whole rule once Satellite joined
+ * Street/Topographical.
  */
 @Composable
-private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+private fun MapModeToggle(mapMode: MapMode, onClick: () -> Unit, modifier: Modifier = Modifier) {
     // size(MIN_TOUCH_TARGET) rather than sizing this off the icon-plus-padding it draws: the icon
     // is 24dp and Spacing.sm padding is 8dp a side, which wrapped to a 40dp circle — under M3's
     // 48x48dp minimum touch target, a real miss found by auditing this file's tap targets against
     // that rule, not a hypothetical one.
     Surface(
-        onClick = onToggle,
+        onClick = onClick,
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -2245,11 +2196,7 @@ private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: M
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = Icons.Filled.Layers,
-                contentDescription = if (isTopoMode) {
-                    "Showing topo mode. Switch to regular mode."
-                } else {
-                    "Showing regular mode. Switch to topo mode."
-                },
+                contentDescription = "Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.",
             )
         }
     }
@@ -2257,6 +2204,72 @@ private fun MapModeToggle(isTopoMode: Boolean, onToggle: () -> Unit, modifier: M
 
 /** M3's minimum touch target size — see [MapModeToggle]'s doc comment for where this was missed. */
 private val MIN_TOUCH_TARGET = 48.dp
+
+/**
+ * The picker [MapModeToggle] (medium/expanded) and [MapIconBar]'s layers row (compact) both open —
+ * three real [FilterChip]s, not a list of full-width text rows: the exact "too wide" hardware
+ * finding [AddActionTile] carried (a full-width button per row makes the whole tile as wide as its
+ * longest label) is avoided here from the start rather than repeated. `selected` shows the current
+ * mode without a separate label; tapping any chip both applies it and dismisses the picker — one
+ * tap, not select-then-confirm.
+ *
+ * Same theme-aware, 80%-opacity fill as [MapIconBar]
+ * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) rather than a plain
+ * [MaterialTheme.colorScheme.surface] popup — one visual language for every control floating over
+ * the map, not a Material default that reads as a different kind of thing next to the bar it opens
+ * from. Anchored top-end in both callers' layouts, not precisely against whichever control opened
+ * it: [MapModeToggle] already sits at that corner, and [MapIconBar]'s layers row is close enough to
+ * it that a precise per-row anchor (the kind [ADD_TILE_ANCHOR_OFFSET] computes for the add row)
+ * would be more geometry than the result is worth.
+ */
+@Composable
+private fun MapModePicker(
+    mapMode: MapMode,
+    onModeSelected: (MapMode) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDarkTheme = isSystemInDarkTheme()
+    Box(modifier = modifier.fillMaxSize()) {
+        // Full-screen scrim + tap-to-dismiss — same shape AddActionTile's own scrim already uses.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.32f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss,
+                ),
+        )
+        Surface(
+            shape = RoundedCornerShape(Spacing.md),
+            color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+            contentColor = if (isDarkTheme) Color.White else Bark,
+            shadowElevation = 4.dp,
+            border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = MIN_TOUCH_TARGET + Spacing.lg, end = Spacing.sm),
+        ) {
+            Row(
+                modifier = Modifier.padding(Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                MapMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = mode == mapMode,
+                        onClick = {
+                            onModeSelected(mode)
+                            onDismiss()
+                        },
+                        label = { Text(mode.label) },
+                    )
+                }
+            }
+        }
+    }
+}
 
 /**
  * The compact drawer's entire content — "the whole side panel is the search feature," per the
@@ -3220,8 +3233,8 @@ private fun MapTab(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
     renderMode: MapRenderMode,
-    isTopoMode: Boolean,
-    onToggleMapMode: () -> Unit,
+    mapMode: MapMode,
+    onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
@@ -3231,6 +3244,7 @@ private fun MapTab(
     modifier: Modifier = Modifier,
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
+    var showMapModePicker by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -3285,10 +3299,17 @@ private fun MapTab(
                             Modifier.fillMaxSize(),
                         )
                         MapModeToggle(
-                            isTopoMode = isTopoMode,
-                            onToggle = onToggleMapMode,
+                            mapMode = mapMode,
+                            onClick = { showMapModePicker = true },
                             modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
                         )
+                        if (showMapModePicker) {
+                            MapModePicker(
+                                mapMode = mapMode,
+                                onModeSelected = onMapModeSelected,
+                                onDismiss = { showMapModePicker = false },
+                            )
+                        }
                         // MEDIUM/EXPANDED's own trigger for the three-way menu — CompactMapTab has
                         // MapIconBar's own add row to repurpose for this; this window class has no
                         // icon bar at all, so this is new here rather than reused. Same icon, same
@@ -3482,8 +3503,8 @@ private fun CompactMapTab(
     renderMode: MapRenderMode,
     isNightMode: Boolean,
     onToggleNightMode: () -> Unit,
-    isTopoMode: Boolean,
-    onToggleMapMode: () -> Unit,
+    mapMode: MapMode,
+    onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
     isFullscreen: Boolean,
@@ -3504,6 +3525,7 @@ private fun CompactMapTab(
     modifier: Modifier = Modifier,
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
+    var showMapModePicker by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -3637,8 +3659,8 @@ private fun CompactMapTab(
                         onLocateMe()
                     },
                     onResetOrientation = { resetOrientationRequestId++ },
-                    isTopoMode = isTopoMode,
-                    onToggleMapMode = onToggleMapMode,
+                    mapMode = mapMode,
+                    onOpenMapModePicker = { showMapModePicker = true },
                     isNightMode = isNightMode,
                     onToggleNightMode = onToggleNightMode,
                     isRecording = isRecording,
@@ -3679,6 +3701,14 @@ private fun CompactMapTab(
                     onDismiss = { showActionMenu = false },
                     modifier = Modifier.fillMaxSize(),
                 )
+
+                if (showMapModePicker) {
+                    MapModePicker(
+                        mapMode = mapMode,
+                        onModeSelected = onMapModeSelected,
+                        onDismiss = { showMapModePicker = false },
+                    )
+                }
 
                 if (pendingAction != null) {
                     CentrePinLocationPickerOverlay(
@@ -3732,13 +3762,13 @@ private fun CompactMapTab(
  * [onResetOrientation], which used to be MapLibre's own native compass view (disabled in
  * [SightingsMap] once this existed — see that composable's own doc comment).
  *
- * Top to bottom: fullscreen, orientation-reset, GPS/locate-me, topo/plain (slot 3 reuses
- * [isTopoMode]/[onToggleMapMode] — the same logic [MapModeToggle] wraps for the untouched
- * MEDIUM/EXPANDED path, restyled rather than reused directly so MEDIUM/EXPANDED's own styling
- * stays untouched), record start/stop, return-to-vehicle, search, add. The add button keeps its
- * own green fill and the record button its own error-colour fill while active — both real state,
- * not decoration — everything else tints its icon rather than its own background, since the bar
- * itself is the shared background now.
+ * Top to bottom: fullscreen, orientation-reset, GPS/locate-me, map mode (slot 4 opens
+ * [MapModePicker] — the same picker [MapModeToggle] opens for the untouched MEDIUM/EXPANDED path,
+ * restyled rather than reused directly so MEDIUM/EXPANDED's own styling stays untouched), record
+ * start/stop, return-to-vehicle, search, add. The add button keeps its own green fill and the
+ * record button its own error-colour fill while active — both real state, not decoration —
+ * everything else tints its icon rather than its own background, since the bar itself is the
+ * shared background now.
  */
 @Composable
 private fun MapIconBar(
@@ -3746,8 +3776,8 @@ private fun MapIconBar(
     onToggleFullscreen: () -> Unit,
     onLocateMe: () -> Unit,
     onResetOrientation: () -> Unit,
-    isTopoMode: Boolean,
-    onToggleMapMode: () -> Unit,
+    mapMode: MapMode,
+    onOpenMapModePicker: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     returnToStart: ReturnToStartInfo?,
@@ -3804,19 +3834,13 @@ private fun MapIconBar(
             MapBarIconButton(
                 icon = Icons.Filled.Layers,
                 contentDescription = buildString {
-                    append(
-                        if (isTopoMode) {
-                            "Showing topo mode. Switch to regular mode."
-                        } else {
-                            "Showing regular mode. Switch to topo mode."
-                        },
-                    )
+                    append("Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.")
                     // Appended rather than replacing the tap description: the button still
-                    // primarily switches basemap, and a reader needs to know night mode is on
-                    // without having to discover the long press first.
+                    // primarily opens the map mode picker, and a reader needs to know night mode
+                    // is on without having to discover the long press first.
                     append(if (isNightMode) " Night mode on." else " Night mode off.")
                 },
-                onClick = onToggleMapMode,
+                onClick = onOpenMapModePicker,
                 onLongClick = onToggleNightMode,
                 longClickLabel = if (isNightMode) "Turn night mode off" else "Turn night mode on",
             )
@@ -4185,19 +4209,32 @@ private fun ThreeWayActionDialog(
 
 /**
  * [CompactMapTab]'s own version of the same three-way chooser [ThreeWayActionDialog] shows on
- * medium/expanded windows — same three choices (this doc comment previously said "two", which was
- * already wrong before this rewrite: the menu has always had Plan a trip/Log a find/Drop a
- * waypoint), same shared [PendingMapAction] state, but presented as a small tile that grows out of
- * the add button's own corner of the icon stack rather than [AlertDialog]'s centered scale-in, per
- * the project owner's own description of how it should open. Compact-only: the medium/expanded
- * window's own add button (added alongside this rework — see [MapTab]'s doc comment) has no icon
- * stack for a tile to grow out of, so [MapTab] keeps the plain dialog instead.
+ * medium/expanded windows — same three choices, same shared [PendingMapAction] state, but
+ * presented as a small tile that grows out of the add button's own corner of the icon bar rather
+ * than [AlertDialog]'s centered scale-in, per the project owner's own description of how it should
+ * open. Compact-only: the medium/expanded window's own add button (added alongside this rework —
+ * see [MapTab]'s doc comment) has no icon bar for a tile to grow out of, so [MapTab] keeps the
+ * plain dialog instead.
+ *
+ * **Real [Button]s, short labels, no title row.** The original had a "Add..." title plus four
+ * full-width [TextButton]s (three choices, and its own "Cancel") — a real hardware-reported
+ * problem, not a style preference: a full-width button is as wide as its longest label, which made
+ * the whole tile noticeably wider than the icon bar it grows out of. Short labels ("Trip"/
+ * "Find"/"Waypoint") in a [Row] instead of a [Column] let the tile's own width shrink to what three
+ * short buttons actually need, rather than the longest of three sentences. No separate "Cancel"
+ * button either — the scrim below already dismisses on a tap outside, and a fourth wide row would
+ * undo the same fit this rewrite exists for.
+ *
+ * Same theme-aware, 80%-opacity fill as [MapIconBar]
+ * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) rather than a plain
+ * [MaterialTheme.colorScheme.surface] — one visual language for every control floating over the
+ * map, the same reasoning [MapModePicker] gives for the same choice.
  *
  * A scrim (its own [AnimatedVisibility], faded independently of the tile) makes the map behind it
  * unmistakably unavailable to tap while a choice is pending — the same modal intent the dialog it
- * replaces had, just without borrowing [AlertDialog]'s fixed presentation. The tile itself keeps an
- * explicit "Cancel" row alongside the scrim-tap-to-dismiss, the same two ways out
- * [ThreeWayActionDialog] gave (its own "Cancel" dismiss button plus tapping outside).
+ * replaces had, just without borrowing [AlertDialog]'s fixed presentation. The scrim carries no
+ * visible label of its own (unlike the three buttons beside it), so it is addressed in tests by
+ * [ADD_ACTION_TILE_SCRIM_TAG] rather than text.
  */
 @Composable
 private fun AddActionTile(
@@ -4208,6 +4245,7 @@ private fun AddActionTile(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
     Box(modifier = modifier) {
         // docs/motion-spec.md §2 "Panels and navigation": panels accept mild spring overshoot as
         // a taste call, per docs/adr/0002-motion-scheme-adoption.md. Passing MotionTokens's spec
@@ -4221,6 +4259,7 @@ private fun AddActionTile(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .testTag(ADD_ACTION_TILE_SCRIM_TAG)
                     .background(Color.Black.copy(alpha = 0.32f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -4249,22 +4288,25 @@ private fun AddActionTile(
             Surface(
                 shape = RoundedCornerShape(Spacing.md),
                 shadowElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surface,
+                color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                contentColor = if (isDarkTheme) Color.White else Bark,
+                border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
             ) {
-                Column(
-                    modifier = Modifier.padding(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                Row(
+                    modifier = Modifier.padding(Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
-                    Text("Add...", style = MaterialTheme.typography.titleMedium)
-                    TextButton(onClick = onPlanTrip, modifier = Modifier.fillMaxWidth()) { Text("Plan a trip") }
-                    TextButton(onClick = onLogFind, modifier = Modifier.fillMaxWidth()) { Text("Log a find") }
-                    TextButton(onClick = onDropWaypoint, modifier = Modifier.fillMaxWidth()) { Text("Drop a waypoint") }
-                    TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                    Button(onClick = onPlanTrip) { Text("Trip") }
+                    Button(onClick = onLogFind) { Text("Find") }
+                    Button(onClick = onDropWaypoint) { Text("Waypoint") }
                 }
             }
         }
     }
 }
+
+/** See [AddActionTile]'s own doc comment — its scrim has no visible label, so tests address it by tag. */
+internal const val ADD_ACTION_TILE_SCRIM_TAG = "add-action-tile-scrim"
 
 /**
  * How far down from vertical-center-end (where [AddActionTile]'s own alignment starts, matching

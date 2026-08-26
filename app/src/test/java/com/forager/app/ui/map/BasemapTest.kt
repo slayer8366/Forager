@@ -36,12 +36,13 @@ class BasemapTest {
     private val minimumUsableMaxZoom = 13
 
     @Test
-    fun `the default basemap is OpenTopoMap, derived from MapService's default`() {
-        // Not Basemap.USGS_TOPO (PR #13's original default): MapService.DEFAULT is OpenStreetMap,
-        // because USGS covers the United States only and a US-only opening basemap would break the
-        // map outright for every user outside it. See MapService's doc comment.
+    fun `the default basemap is OpenTopoMap, derived from MapMode's default`() {
+        // Not USGS Topo (PR #13's original default, deleted from the catalogue entirely once
+        // MapMode superseded it): MapMode.DEFAULT is Topographical via OpenStreetMap, because USGS
+        // covers the United States only and a US-only opening basemap would break the map outright
+        // for every user outside it. See MapMode's own doc comment.
         assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT)
-        assertEquals(MapService.DEFAULT.topoBasemap, Basemap.DEFAULT)
+        assertEquals(MapMode.DEFAULT.basemap, Basemap.DEFAULT)
     }
 
     /**

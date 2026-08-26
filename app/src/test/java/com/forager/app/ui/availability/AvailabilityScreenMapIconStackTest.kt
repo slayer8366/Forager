@@ -206,7 +206,7 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode. Night mode off.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Search").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
@@ -224,15 +224,15 @@ class AvailabilityScreenMapIconStackTest {
         setScreen()
         searchAReferenceRegion()
 
-        val dayDescription = "Showing topo mode. Switch to regular mode. Night mode off."
-        val nightDescription = "Showing topo mode. Switch to regular mode. Night mode on."
+        val dayDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
+        val nightDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode on."
 
         composeRule.onNodeWithContentDescription(dayDescription).assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription(dayDescription).performTouchInput { longClick() }
         composeRule.waitForIdle()
 
-        // Still "topo mode" throughout: a long press must not also fire onToggleMapMode.
+        // Still "Topographical" throughout: a long press must not also open the map mode picker.
         composeRule.onNodeWithContentDescription(nightDescription).assertIsDisplayed()
 
         // MapNightMode.toggled: pressing twice returns to automatic rather than leaving a hold
@@ -277,8 +277,8 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.onNodeWithText("Add...").assertIsDisplayed()
-        composeRule.onNodeWithText("Log a find").performClick()
+        composeRule.onNodeWithText("Find").assertIsDisplayed()
+        composeRule.onNodeWithText("Find").performClick()
         composeRule.waitForIdle()
         // Choosing an action opens the centre-pin picker rather than firing immediately — the
         // stub map never pans, so the pin stays at the seeded region center and OK confirms it.
