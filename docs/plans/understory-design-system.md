@@ -840,6 +840,41 @@ recorded in ADR-0002 as a reversible one-line parameter, with the
 `standard()` damping values written down alongside it (§2S) so switching
 later is a substitution rather than a re-derivation.
 
+### Night palette — warm-shifted and dimmed, 2026-08-26
+
+Recorded 2026-08-26, direction given in session rather than at the
+2026-08-25 review. The first `MapPalette.NIGHT` cut (R9, above) solved
+legibility against a dimmed basemap only. Asked to also make night mode
+useful for a screen read after dark in the field, not just legible on it —
+a bright, blue-heavy display works against the user's own dark adaptation
+every time they check it.
+
+**True scotopic preservation (red-dominant, blue and green suppressed
+almost entirely) was considered and rejected**, not merely deferred. This
+map differentiates seven roles by hue; a near-monochrome red palette leaves
+one hue to do that work and collapses the differentiation entirely. Built
+instead: every marker keeps the hue family `DAY` established, with the
+blue channel and luminance pulled down by whatever slack that marker's
+4.0:1 contrast floor allowed — `waypoint` (7.78:1) dimmed the most,
+`searchCentre` (4.11:1) barely at all. None of `MapPaletteTest`'s floors
+were loosened to fit; the tightest pairwise separation
+(`plannedTrip`/`breadcrumb`) comes out at 0.1007, marginally better than
+the 0.1001 it replaces.
+
+**Rejected alternative:** an unconstrained minimize-blue search. It clears
+every floor too, by zeroing the blue channel on every marker — but that
+turns `plannedTrip` and `breadcrumb` into indistinguishable oranges, which
+is tag-08's defect (two things a user must tell apart resolving to one
+colour) reintroduced by the fix meant to avoid it. Hue family per marker
+was made a bound the search had to respect, not a value it could erase.
+Full rationale and the per-marker numbers are on `MapPalette.NIGHT`'s own
+doc comment, which is this decision's source of truth going forward.
+
+Gate G's question 5 (route connector vs. waypoint pin at night) predates
+this pass and was written against the abandoned theme-derived approach,
+not this hand-authored one — it is not re-litigated here, and still stands
+as an open device-gate question against whatever palette ships.
+
 ---
 
 ## Open items

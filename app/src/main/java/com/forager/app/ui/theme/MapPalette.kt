@@ -42,6 +42,30 @@ import androidx.compose.ui.graphics.toArgb
  * **[DAY] is byte-for-byte the palette that shipped before this type existed.** Those values were
  * tuned on hardware (see `SightingsMap`'s own history on the sighting-dot stroke), so this change
  * moves them into one place without changing a single one of them.
+ *
+ * ## Second pass: warm-shifted and dimmed, short of true night-vision preservation
+ *
+ * The first [NIGHT] cut solved legibility against a dimmed basemap and nothing else — several
+ * markers ran through full-saturation blue (`breadcrumb` was `#5FB0FF`) or sat far above the
+ * contrast floor for no reason ([waypoint] at 7.78:1 against a 4.0:1 target). A field app used
+ * after dark has a second, different concern a legibility-only palette does not address: a bright,
+ * blue-heavy screen fights the user's own dark adaptation every time they check it.
+ *
+ * **True scotopic preservation — red-dominant, blue and green suppressed almost entirely, the way
+ * astronomy and tactical tools do it — was considered and rejected.** This map differentiates
+ * seven roles by hue (`breadcrumb` blue for the GPS-track convention, `plannedTrip` violet for the
+ * route, `searchCentre` red for the search pin, and so on); a near-monochrome red palette leaves
+ * only one hue to work with and collapses that differentiation entirely. The compromise built here
+ * instead: every marker keeps the hue family [DAY] already established, but the blue channel and
+ * overall luminance come down wherever the 4.0:1 contrast floor has slack to give. `waypoint` had
+ * the most room (7.78:1) and was dimmed the most; `searchCentre` had almost none (4.11:1) and was
+ * left at its measured luminance, warmed only in hue.
+ *
+ * An unconstrained version of this search — minimize blue with no other bound — technically clears
+ * every floor `MapPaletteTest` enforces but zeroes the blue channel on every marker, which turns
+ * `plannedTrip` and `breadcrumb` into indistinguishable oranges. That is tag-08's defect again,
+ * reintroduced by the fix meant to avoid it. So the hue each marker was authored with is a bound
+ * the search respects, not a value it is free to erase.
  */
 data class MapPalette(
     val sightingDot: Int,
@@ -79,23 +103,29 @@ data class MapPalette(
          * Two hue choices are deliberate departures from the day palette rather than lightened
          * versions of it, both forced by measurement:
          *
-         *  - **Planned trip moves blue → periwinkle.** Lightened, the muted planned-trip blue and
+         *  - **Planned trip moves blue → dusty violet.** Lightened, the muted planned-trip blue and
          *    the saturated breadcrumb blue converge. Moving one toward violet keeps them apart
          *    while leaving the breadcrumb on the GPS-track blue convention its day value follows.
-         *  - **Search centre moves red → rose.** Lightened, red lands next to the lightened
-         *    connector orange. Rose is still unmistakably the "you searched here" pin and clears
+         *  - **Search centre moves red → coral.** Lightened, red lands next to the lightened
+         *    connector orange. Coral is still unmistakably the "you searched here" pin and clears
          *    the connector by a comfortable margin.
+         *
+         * Warm-shifted and dimmed per the second pass documented on the class above: every value
+         * here keeps [DAY]'s hue family for that marker, with the blue channel and luminance pulled
+         * down by however much slack that marker's contrast floor (4.0:1 against
+         * [NIGHT_TILE_REFERENCE]) allowed. `MapPaletteTest` holds this to the same floors the first
+         * cut was held to — none were loosened to make room for the warmer values.
          */
         val NIGHT = MapPalette(
-            sightingDot = 0xFFC9BBA6.toInt(),
-            sightingDotStroke = 0xFF2A2622.toInt(),
-            connector = 0xFFEF8F3C.toInt(),
-            areaMarkerBackground = 0xFF7FB08A.toInt(),
-            areaMarkerForeground = 0xFF16301D.toInt(),
-            plannedTrip = 0xFFAE9BE8.toInt(),
-            searchCentre = 0xFFFF6F92.toInt(),
-            breadcrumb = 0xFF5FB0FF.toInt(),
-            waypoint = 0xFFFFD65E.toInt(),
+            sightingDot = 0xFFBA9E86.toInt(),
+            sightingDotStroke = 0xFF25211D.toInt(),
+            connector = 0xFFE98E0F.toInt(),
+            areaMarkerBackground = 0xFF7BB076.toInt(),
+            areaMarkerForeground = 0xFF1B2C17.toInt(),
+            plannedTrip = 0xFFB896D3.toInt(),
+            searchCentre = 0xFFF87971.toInt(),
+            breadcrumb = 0xFF6FA7ED.toInt(),
+            waypoint = 0xFFFFB517.toInt(),
         )
 
         /**
