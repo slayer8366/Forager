@@ -875,6 +875,36 @@ this pass and was written against the abandoned theme-derived approach,
 not this hand-authored one — it is not re-litigated here, and still stands
 as an open device-gate question against whatever palette ships.
 
+### `Spacing`, promoted — three more copies than tag 04's kind, found the same way
+
+Recorded 2026-08-26. Step 3's `Spacing` half: `AvailabilityScreen.kt`'s
+`private object Spacing` moved to `ui/theme/Spacing.kt`, unchanged in its
+four original steps and now importable everywhere.
+
+**Three more copies existed that this document never named**, each with
+its own private/internal declaration of the same four values, each with a
+doc comment explaining why it couldn't reach the original: `LogSpacing`
+(`ui/log/LogFieldEditors.kt`, 67 call sites across 9 files — the design
+doc's own "75 call sites across 10 files" figure was a substring
+miscount, `CrashLogSpacing` matching `\bLogSpacing\.` as a false
+positive), `CrashLogSpacing` (`ui/crash/CrashLogPanel.kt`, 10 sites,
+missing `md`), and `MapPickerSpacing` (`ui/map/CentrePinLocationPicker.kt`,
+6 sites, only `sm`/`lg`). All three are gone; all 88 call sites they and
+the original covered now read `Spacing` from one place.
+
+**`xl`/`xxl` were built per the design doc's original plan — 24dp and
+32dp, sheet/dialog padding and empty-state breathing room — but with a
+correction the doc should carry.** Rereading `ui/` before adding them
+found no existing 24dp or 32dp literal anywhere for either to replace;
+the doc's "the current set improvises around" framing doesn't hold as
+a factual claim, whatever informal reasoning motivated it originally.
+Owner direction on discovering this: build them anyway, unwired, the
+same way `MotionTokens.kt` carries specs with no production caller —
+scaffolding for the next call site that needs that rhythm, not a
+promotion of something already there. `Spacing.kt`'s own doc comment
+carries this distinction; nothing downstream should read `xl`/`xxl` as
+already-proven-necessary the way `xs`–`lg` are.
+
 ---
 
 ## Open items

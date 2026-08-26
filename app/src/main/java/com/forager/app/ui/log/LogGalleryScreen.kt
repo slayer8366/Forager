@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.Feature
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Observed
+import com.forager.app.ui.theme.Spacing
 
 /**
  * True when any of [entry]'s characteristic fields are still [Observed.NotObserved]/
@@ -117,15 +118,15 @@ internal fun LogGalleryScreen(
             Text(
                 loadErrorMessage,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().padding(LogSpacing.lg),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(LogSpacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+            contentPadding = PaddingValues(Spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             // The "+" tile only makes sense against the committed log — a new entry starts as a
             // draft either way (see MushroomLogViewModel.onStartNewEntry), but tapping "+" while
@@ -153,7 +154,7 @@ private fun AddEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(GALLERY_TILE_ASPECT_RATIO),
-        shape = RoundedCornerShape(LogSpacing.sm),
+        shape = RoundedCornerShape(Spacing.sm),
         border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline),
     ) {
         Column(
@@ -184,7 +185,7 @@ private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier:
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(GALLERY_TILE_ASPECT_RATIO),
-        shape = RoundedCornerShape(LogSpacing.sm),
+        shape = RoundedCornerShape(Spacing.sm),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
@@ -207,7 +208,7 @@ private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier:
                     }
                 }
             }
-            Column(modifier = Modifier.padding(LogSpacing.sm)) {
+            Column(modifier = Modifier.padding(Spacing.sm)) {
                 Text(
                     "Find on ${entry.foundOn}",
                     style = MaterialTheme.typography.labelLarge,

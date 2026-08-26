@@ -33,6 +33,7 @@ import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.CentrePinLocationPicker
 import com.forager.app.ui.map.MapSlot
+import com.forager.app.ui.theme.Spacing
 
 /**
  * The mushroom log's drawer destination — one of the ModalNavigationDrawer's panels in
@@ -188,8 +189,8 @@ private fun LogHeader(onBack: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = LogSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")

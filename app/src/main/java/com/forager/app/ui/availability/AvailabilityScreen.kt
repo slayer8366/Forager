@@ -212,6 +212,7 @@ import com.forager.app.domain.CivilTwilight
 import com.forager.app.domain.MapNightMode
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
+import com.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Month
@@ -308,26 +309,6 @@ private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
  * ranks performance above the calm layer for exactly this kind of trade.
  */
 private const val TWILIGHT_RECHECK_INTERVAL_MS = 5 * 60 * 1000L
-
-/**
- * The screen's spacing scale. Padding and gap values across this file used to be picked ad hoc
- * (2dp here, 10dp there) with no relationship to each other, which is why visually-similar things
- * — card internal padding, the gap between a card's rows — didn't quite line up card to card.
- * Four steps, each used for a stated kind of gap, rather than a value invented per call site.
- */
-private object Spacing {
-    /** Within a tightly related group — a line and its own subtext, one card's internal rows. */
-    val xs = 4.dp
-
-    /** Between related but distinct items — chips in a row, a card's own sub-sections. */
-    val sm = 8.dp
-
-    /** A card's outer padding, and the standard gap between sibling cards. */
-    val md = 12.dp
-
-    /** Screen-level padding, and the gap between major regions of a tab. */
-    val lg = 16.dp
-}
 
 /**
  * Map-first layout: the results (map or ranked list) own the content area, and everything set far

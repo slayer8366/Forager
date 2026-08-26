@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
+import com.forager.app.ui.theme.Spacing
 
 /**
  * Every site in this app that places something on the map — the offline-region picker, log-entry
@@ -86,7 +87,7 @@ fun CentrePinLocationPicker(
         Text(
             "Pan the map to position the pin, then confirm.",
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = MapPickerSpacing.lg, vertical = MapPickerSpacing.sm),
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             mapSlot(
@@ -150,13 +151,13 @@ private fun CentrePin(modifier: Modifier = Modifier) {
 @Composable
 private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, onCancel: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = MapPickerSpacing.lg, vertical = MapPickerSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(MapPickerSpacing.sm),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         if (selectedText != null) {
             Text(selectedText, style = MaterialTheme.typography.bodySmall)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(MapPickerSpacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Button(onClick = onConfirm, modifier = Modifier.weight(1f)) { Text("OK") }
             OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
         }
@@ -164,9 +165,3 @@ private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, on
 }
 
 private val CENTRE_PIN_SIZE = 40.dp
-
-/** Matches `Spacing` in `ui/availability/AvailabilityScreen.kt` and `LogSpacing` in `ui/log/` — this file sits in neither package, so it keeps its own copy rather than depending sideways on either. */
-private object MapPickerSpacing {
-    val sm = 8.dp
-    val lg = 16.dp
-}
