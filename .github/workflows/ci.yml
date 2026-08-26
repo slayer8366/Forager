@@ -7,22 +7,9 @@ name: CI
 
 on:
   push:
-    # TEMPORARY, revert before merge. The Understory design-system work
-    # (docs/plans/understory-design-system.md) is developed in an environment whose network
-    # policy blocks dl.google.com -- every route to Google's Maven, including the
-    # maven.google.com redirector, terminates there and is refused with a 403 at CONNECT. AGP,
-    # every AndroidX artifact and the SDK packages all come from that host, so the app cannot be
-    # compiled or tested there at all. This runner can reach it, so CI is the only place that
-    # work gets a real `assembleDebug` + `testDebugUnitTest`.
-    #
-    # Same reason and same shape as d3c4b97 ("ci: trigger on pushes to
-    # claude/l4b-persisted-drafts, temporarily"). Delete this branch entry once the work merges.
-    branches: [main, claude/forager-m3-expressive-design-l4c]
+    branches: [main]
   pull_request:
-    # Also temporary: PRs targeting a workstream branch rather than main get no CI otherwise,
-    # which is how the design-system PR (#44, into claude/l4c-serialized-editing-state) would
-    # have merged with nothing having built it. Revert alongside the push entry above.
-    branches: [main, claude/l4c-serialized-editing-state]
+    branches: [main]
 
 permissions:
   contents: read
@@ -103,37 +90,7 @@ jobs:
         # Finalized by verifyNothingTestOnlyReachesTheApk (app/build.gradle.kts), which opens
         # the APK this step produced and fails if Robolectric, JUnit or Compose UI Test
         # classes are inside it.
-        #
-        # Output is teed so the diagnostic step below can extract compiler errors. PIPESTATUS is
-        # what preserves Gradle's exit code through the pipe -- `$?` after a pipeline is tee's
-        # status, which is 0 even when the build failed.
-        run: |
-          set -o pipefail
-          ./gradlew --stacktrace assembleDebug 2>&1 | tee /tmp/assemble.log
-
-      # TEMPORARY, revert alongside the branch triggers at the top of this file.
-      #
-      # Why this exists: the session developing this branch cannot build locally (its network
-      # policy refuses dl.google.com), so CI is the only compiler, and the GitHub API's job-log
-      # endpoint caps its response — a tail large enough to reach Kotlin's `e:` lines is silently
-      # truncated back to the last ~180 lines, which are all post-job cleanup. Re-emitting the
-      # errors here puts them at the very end of the log, where a small tail can reach them.
-      - name: Show compiler errors
-        if: failure()
-        run: |
-          echo "----- Kotlin/Java errors -----"
-          grep -E "^(e: |error:)" /tmp/assemble.log | head -40 || echo "(no e:/error: lines)"
-          echo "----- Gradle failure block -----"
-          sed -n '/^FAILURE: Build failed/,/^\* Try:/p' /tmp/assemble.log | head -40 || true
-          # Also emitted as workflow annotations. Printing them to stdout is not enough: the
-          # GitHub job-log API caps its response, so a tail can only ever reach the last ~180
-          # lines, which are the steps that run after this one. The check-run annotations
-          # endpoint has no such cap, so that is where these become readable.
-          esc() { sed -e 's/%/%25/g' -e 's/\r//g' | awk '{ printf "%s%%0A", $0 }'; }
-          kmsg=$(grep -E "^(e: |error:)" /tmp/assemble.log | head -12 | esc)
-          if [ -n "$kmsg" ]; then echo "::error title=Kotlin compile errors::${kmsg}"; fi
-          gmsg=$(sed -n '/^FAILURE: Build failed/,/^\* Try:/p' /tmp/assemble.log | head -16 | esc)
-          if [ -n "$gmsg" ]; then echo "::error title=Gradle failure::${gmsg}"; fi
+        run: ./gradlew --stacktrace assembleDebug
 
       - name: Verify the version on the built APK
         # The evidence that fetch-depth: 0 took effect, read out of the artifact rather than
