@@ -33,6 +33,22 @@ it does not need a separate home the way `docs/audits/` sometimes does for cross
 | 2026-08-25 | L4 close-out checklist §2 verification pulse response (read-only, no code changes) | `pulses/reports/2026-08-25-l4-closeout-section2-verification-pulse.md` |
 | 2026-08-25 | Dispatch: L4c, serialized editing state, photo race, two form fixes (§1a corrected in place — see the block below its own text) | `dispatches/2026-08-25-l4c-serialized-editing-state-dispatch.md` |
 | 2026-08-25 | Report: L4c serialized editing state (corrects its own first pass on the §3 vacuous test and the §5 draft-only-write mutation check — see that report's own "Premises that turned out wrong" section) | `dispatches/reports/2026-08-25-l4c-serialized-editing-state-report.md` |
+| 2026-08-26 | Pulse response: repo state before L4 close-out housekeeping (read-only, no code changes) — ground truth, branch/PR inventory, records audit, the two device bugs re-measured on `main`, migration/beta-readiness findings | `pulses/reports/2026-08-26-repo-state-pulse-response.md` |
+
+## Planner meta-documents
+
+Corrections to the Planner's own standing reference material, as distinct from a dispatch or
+pulse about the codebase itself.
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-25 | Correction patch: `planner-cold-start-handoff-2026-08-25.md`'s Save/Cancel standing rule, Workstream C status, and a new lesson 14 — filed standalone (2026-08-27) since neither that handoff document nor `planner-operating-guide-2026-08-25.md` has ever been filed in this repo; see the patch's own "Filing note" | `dispatches/2026-08-25-planner-cold-start-handoff-correction-patch.md` |
+
+**Still open:** the two documents this patch describes (`planner-cold-start-handoff-2026-08-25.md`,
+`planner-operating-guide-2026-08-25.md`) have only ever existed as chat uploads — confirmed absent
+from the full repo tree by the 2026-08-26 repo-state pulse. Filing the patch above does not close
+that gap; it only means the correction itself has a durable home to be folded into those documents
+once they're supplied.
 
 ## Understory — M3 Expressive design system (`docs/plans/understory-design-system.md`)
 
@@ -51,5 +67,8 @@ several commit messages on `claude/forager-m3-expressive-design-l4c` — see its
 Landed on `claude/task-hwj91a` via PR [#40](https://github.com/slayer8366/Forager/pull/40)
 (`claude/l4b-persisted-drafts` → `claude/task-hwj91a`) — see `docs/plans/README.md`'s
 `pr26-rework.md` row for the full landing status of L4 alongside the rest of that plan's
-workstreams. L4c is a further, not-yet-landed correction on top of that merge — see its own
-report for branch/PR status.
+workstreams. **L4c has since landed on `main`** via PR [#42](https://github.com/slayer8366/Forager/pull/42)
+(`claude/l4c-serialized-editing-state` → `main`, merged 2026-08-27) — that merge also carried
+Understory (PR [#44](https://github.com/slayer8366/Forager/pull/44)'s content, merged into the
+L4c branch first as `fea6f6c`) onto `main` in the same commit. Corrected following the 2026-08-26 repo-state pulse (`pulses/reports/2026-08-26-repo-state-pulse-response.md`)
+— this paragraph previously called L4c "not-yet-landed."
