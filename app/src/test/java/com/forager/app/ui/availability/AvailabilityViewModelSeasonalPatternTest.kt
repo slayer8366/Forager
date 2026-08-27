@@ -159,6 +159,8 @@ class AvailabilityViewModelSeasonalPatternTest {
         override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
         override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
         override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
+        override suspend fun getNightModeMaps(): Result<Boolean> = Result.success(false)
+        override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
     }
 
     private fun viewModel(

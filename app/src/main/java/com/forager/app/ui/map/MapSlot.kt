@@ -31,16 +31,18 @@ import com.forager.app.domain.model.Waypoint
  * headroom before the same wall. Folding it in beside [basemap] keeps the count at eight.
  *
  * The grouping is not only expedient. Both fields answer one question — *how should this map draw
- * right now* — and they are chosen at the same moment by the same control: the icon stack's third
- * slot toggles [basemap] on tap and [night] on long-press. A type that holds exactly what one
- * control governs is easier to reason about than two parameters that happen to travel together.
+ * right now* — even though how each is chosen has since diverged: [basemap] is still the icon
+ * bar's own quick-fire control, [night] is now Settings' persistent "Night Maps" checkbox rather
+ * than a control on the map itself — see [night]'s own doc comment.
  */
 data class MapRenderMode(
     val basemap: Basemap,
     /**
-     * Night mode: a dimmed basemap and the light-on-dark overlay palette. Not the device's dark
-     * theme, and deliberately not derived from it — see `MapPalette` for why that was tried,
-     * measured and abandoned.
+     * Night mode: a slightly desaturated, higher-contrast basemap (`BasemapStyles.kt`'s
+     * `NIGHT_RASTER_PAINT`). Overlay markers (sightings, area markers, planned trips, waypoints)
+     * render identically regardless of this flag — see `MapPalette`'s own doc comment, "Markers
+     * stay day-only, always." Not the device's dark theme, and deliberately not derived from it —
+     * see `MapPalette` for why that was tried, measured and abandoned.
      */
     val night: Boolean = false,
 )

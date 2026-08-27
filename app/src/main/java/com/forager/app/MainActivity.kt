@@ -253,6 +253,7 @@ class MainActivity : ComponentActivity() {
                     onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                     onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
