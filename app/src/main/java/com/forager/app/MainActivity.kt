@@ -260,6 +260,7 @@ class MainActivity : ComponentActivity() {
                     onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
                     onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
                     onStartEditingLogEntry = mushroomLogViewModel::onStartEditingEntry,
+                    onOpenLogEntryForEditing = mushroomLogViewModel::onOpenEntryForEditing,
                     onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
                     onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
                     onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,

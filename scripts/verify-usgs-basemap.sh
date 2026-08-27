@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
-# Verifies what the USGS National Map basemap services actually do, because three of the
-# claims the app makes about them cannot be checked by any unit test:
+# Verifies what the USGS National Map basemap service actually does, because three of the
+# claims the app makes about it cannot be checked by any unit test:
 #
-#   1. The endpoints serve real tiles for a US location, in the z/y/x order osmdroid's
-#      TileSourceFactory builds. A unit test can prove the app *builds* that URL
-#      (BasemapTileSourceTest does); only the live service can prove the URL means anything.
+#   1. The endpoint serves real tiles for a US location, in the z/y/x order MapLibre's raster
+#      source is given via styleJsonFor. A unit test can prove the app *builds* that URL
+#      (BasemapStyleTest does); only the live service can prove the URL means anything.
 #   2. Coverage really stops at the US border. Basemap's US-only note is shown to users in
 #      place of coverage detection, so it had better be true.
 #   3. The zoom ceiling is lower than the service advertises for itself. The MapServer
 #      metadata claims tile levels up to 23; tiles stop well below that. Basemap.maxZoom is
 #      set from the observed ceiling, not the advertised one, and this script is the evidence.
+#
+# USGSTopo and USGSImageryTopo, this script's original two subjects, are gone from the app
+# entirely — MapMode.kt deleted both from the catalogue once Street/Topographical were pinned
+# to OpenStreetMap and Satellite became the app's only USGS mode. USGSImageryOnly, the raw
+# aerial orthoimagery service Satellite actually uses, is the one live USGS endpoint left to
+# verify.
 #
 # A 200 is deliberately not treated as success on its own: this project has been bitten
 # repeatedly by APIs answering 200 for requests they did not honour. Every check below
@@ -17,12 +23,10 @@
 # JPEG or PNG.
 set -euo pipefail
 
-TOPO="https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer"
-IMAGERY="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer"
+IMAGERY_ONLY="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer"
 
 # Portland, Oregon (45.326, -122.634) — the reference location used throughout this project.
-# Tile x/y are precomputed for the Web Mercator grid so this script needs no trig at runtime;
-# BasemapTileSourceTest pins the same z12 tile, so the two agree by construction.
+# Tile x/y are precomputed for the Web Mercator grid so this script needs no trig at runtime.
 #   z12 -> x=652   y=1468
 #   z15 -> x=5221  y=11745
 #   z16 -> x=10443 y=23490
@@ -94,26 +98,22 @@ expect_no_tile() {
 }
 
 echo "== 1. US location (Portland, Oregon) is served, at the zooms the app allows =="
-expect_tile "USGSTopo        Portland"          "$TOPO"    12 652   1468
-expect_tile "USGSTopo        Portland"          "$TOPO"    15 5221  11745
-expect_tile "USGSImageryTopo Portland"          "$IMAGERY" 12 652   1468
-expect_tile "USGSImageryTopo Portland"          "$IMAGERY" 15 5221  11745
+expect_tile "USGSImageryOnly Portland"          "$IMAGERY_ONLY" 12 652   1468
+expect_tile "USGSImageryOnly Portland"          "$IMAGERY_ONLY" 15 5221  11745
 
 echo
 echo "== 2. The zoom ceiling is real: z16 still serves, z17 does not =="
 echo "   Basemap.maxZoom is 15 — one below the observed ceiling, because the service's own"
 echo "   advertised maximum (see check 4) is demonstrably wrong and a handful of sample"
 echo "   points do not establish that 16 holds everywhere."
-expect_tile    "USGSTopo        Portland"       "$TOPO"    16 10443 23490
-expect_no_tile "USGSTopo        Portland"       "$TOPO"    17 20886 46981
-expect_no_tile "USGSImageryTopo Portland"       "$IMAGERY" 17 20886 46981
+expect_tile    "USGSImageryOnly Portland"       "$IMAGERY_ONLY" 16 10443 23490
+expect_no_tile "USGSImageryOnly Portland"       "$IMAGERY_ONLY" 17 20886 46981
 
 echo
 echo "== 3. Coverage stops outside the United States (Paris, France) =="
 echo "   This is what Basemap's US-only coverage note tells the user, and why the app offers"
-echo "   an explicit selector instead of hardcoding USGS or guessing at a fallback."
-expect_no_tile "USGSTopo        Paris"          "$TOPO"    12 2074  1409
-expect_no_tile "USGSImageryTopo Paris"          "$IMAGERY" 12 2074  1409
+echo "   Street and Topographical (OpenStreetMap, worldwide) alongside Satellite."
+expect_no_tile "USGSImageryOnly Paris"          "$IMAGERY_ONLY" 12 2074  1409
 
 echo
 echo "== 4. The service's advertised tile levels, for contrast =="
@@ -132,7 +132,7 @@ except Exception:
 " 2>/dev/null || echo "unreachable"
 }
 
-for name in USGSTopo USGSImageryTopo; do
+for name in USGSImageryOnly; do
   advertised=$(advertised_levels "$name")
   printf "  %-16s advertises tile levels %s" "$name" "$advertised"
   if [ "$advertised" = "0-23" ]; then

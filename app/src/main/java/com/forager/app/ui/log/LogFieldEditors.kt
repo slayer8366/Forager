@@ -13,18 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.CapDecoration
 import com.forager.app.domain.model.Feature
 import com.forager.app.domain.model.Observed
-
-/** Spacing scale for this package's forms — mirrors `AvailabilityScreen`'s own `Spacing`, kept local rather than shared since that one is file-private. */
-internal object LogSpacing {
-    val xs = 4.dp
-    val sm = 8.dp
-    val md = 12.dp
-    val lg = 16.dp
-}
+import com.forager.app.ui.theme.Spacing
 
 /**
  * The one visual cue that makes [Observed.NotObserved]/[Feature.NotObserved] read as "unrecorded"
@@ -57,9 +49,9 @@ internal fun <E : Enum<E>> ObservedEnumField(
     modifier: Modifier = Modifier,
     onValueChanged: (Observed<E>) -> Unit,
 ) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             options.forEach { option ->
                 val selected = (value as? Observed.Recorded<E>)?.value == option
                 FilterChip(
@@ -87,9 +79,9 @@ internal fun <E : Enum<E>> FeatureEnumField(
     modifier: Modifier = Modifier,
     onValueChanged: (Feature<E>) -> Unit,
 ) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             options.forEach { option ->
                 val selected = (value as? Feature.Present<E>)?.value == option
                 FilterChip(
@@ -122,9 +114,9 @@ internal fun CapDecorationsField(
     onValueChanged: (Feature<Set<CapDecoration>>) -> Unit,
 ) {
     val selectedSet = (value as? Feature.Present<Set<CapDecoration>>)?.value.orEmpty()
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text("Decorations", style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             CapDecoration.entries.forEach { option ->
                 val selected = option in selectedSet
                 FilterChip(
@@ -158,9 +150,9 @@ internal fun FeatureTextField(
     modifier: Modifier = Modifier,
     onValueChanged: (Feature<String>) -> Unit,
 ) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             val absentSelected = value is Feature.Absent
             FilterChip(
                 selected = absentSelected,

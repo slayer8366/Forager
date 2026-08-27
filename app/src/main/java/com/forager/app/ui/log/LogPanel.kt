@@ -33,6 +33,7 @@ import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.CentrePinLocationPicker
 import com.forager.app.ui.map.MapSlot
+import com.forager.app.ui.theme.Spacing
 
 /**
  * The mushroom log's drawer destination — one of the ModalNavigationDrawer's panels in
@@ -61,10 +62,19 @@ internal fun LogPanel(
     mapSlot: MapSlot,
     region: Region,
     basemap: Basemap,
-    onOpenEntry: (String) -> Unit,
+    /** Night mode for the location picker this hosts — see [CentrePinLocationPicker]. */
+    night: Boolean = false,
+    /**
+     * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
+     * ViewModel operation ([MushroomLogViewModel.onOpenEntryForEditing]), not this composable
+     * calling separate open/start-editing callbacks itself. This panel has no report step (see its
+     * own doc comment), so opening a row always means "edit it" — see
+     * [MushroomLogViewModel.onOpenEntryForEditing]'s own doc comment for why that combination lives
+     * in the ViewModel rather than being composed here from two calls.
+     */
+    onOpenEntryForEditing: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
-    onStartEditingEntry: () -> Unit,
     onSaveEntry: () -> Unit,
     onCancelEditing: () -> Unit,
     onLeaveEditingIncidentally: () -> Unit,
@@ -118,6 +128,7 @@ internal fun LogPanel(
             mapSlot = mapSlot,
             region = region,
             basemap = basemap,
+            night = night,
             onConfirm = { location ->
                 pickingLocationForEditingEntry = false
                 onEntryChanged(editing.copy(foundAt = location))
@@ -158,9 +169,11 @@ internal fun LogPanel(
                 isLoading = uiState.isLoadingEntries,
                 // This panel has no separate report step (see its own doc comment) — opening an
                 // entry goes straight to LogEntryDetailScreen below, so it must already be a draft
-                // by the time that happens. onStartEditingEntry is a no-op for a row opened from
-                // the Drafts tab (already one) and creates the draft row for a committed one.
-                onOpenEntry = { id -> onOpenEntry(id); onStartEditingEntry() },
+                // by the time that happens. onOpenEntryForEditing is a no-op-shaped success for a
+                // row already a draft and creates the draft row for a committed one — correct for
+                // either case on its own, so LogEntryListScreen's onOpenDraftEntry can default to
+                // this same callback (its own default) rather than needing an override here.
+                onOpenEntry = onOpenEntryForEditing,
                 modifier = Modifier.weight(1f),
                 loadErrorMessage = uiState.loadErrorMessage,
             )
@@ -176,8 +189,8 @@ private fun LogHeader(onBack: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = LogSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")

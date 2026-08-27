@@ -43,6 +43,12 @@ enum class ReducedMotionTreatment {
  * This is a mapping, not a kill switch: every treatment maps to a still-visible equivalent, never
  * to "nothing," so the state each animation communicates (route drawn, marker present, item
  * selected, panel open) is never silently dropped.
+ *
+ * Unchanged by docs/adr/0002-motion-scheme-adoption.md: this table is a statement about what a
+ * Reduce Motion user sees, not about which [androidx.compose.animation.core.FiniteAnimationSpec]
+ * drives the full-motion version, so moving every category from `tween` onto
+ * `MaterialTheme.motionScheme` needed no change here. A spring maps to a still-visible equivalent
+ * the same way a tween did.
  */
 fun reducedMotionEquivalent(treatment: MotionTreatment): ReducedMotionTreatment = when (treatment) {
     MotionTreatment.ROUTE_PROGRESSIVE_DRAW -> ReducedMotionTreatment.INSTANT_FULL_PATH

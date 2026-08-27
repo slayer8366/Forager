@@ -27,6 +27,7 @@ import com.forager.app.R
 import com.forager.app.domain.model.Feature
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Observed
+import com.forager.app.ui.theme.Spacing
 
 /**
  * True when any of [entry]'s characteristic fields are still [Observed.NotObserved]/
@@ -86,7 +87,7 @@ internal fun LogEntryListScreen(
             )
         }
         when {
-            isLoading -> Column(modifier = Modifier.fillMaxWidth().padding(LogSpacing.lg)) {
+            isLoading -> Column(modifier = Modifier.fillMaxWidth().padding(Spacing.lg)) {
                 CircularProgressIndicator()
             }
 
@@ -94,8 +95,8 @@ internal fun LogEntryListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LogSpacing.lg),
-                verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+                    .padding(horizontal = Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 if (showingDrafts) {
                     visibleEntries.forEach { entry -> LogEntryRow(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true) }
@@ -109,19 +110,19 @@ internal fun LogEntryListScreen(
             loadErrorMessage != null && !showingDrafts -> Text(
                 loadErrorMessage,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().padding(LogSpacing.lg),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
 
             showingDrafts -> Text(
                 "No drafts. Unsaved edits show up here.",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().padding(LogSpacing.lg),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
 
             else -> Text(
                 "No finds logged yet. Tap the add button on the map to log one.",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().padding(LogSpacing.lg),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
         }
     }
@@ -134,7 +135,7 @@ private fun LogEntryRow(entry: MushroomLogEntry, onClick: () -> Unit, isDraft: B
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = LogSpacing.sm),
+            .padding(vertical = Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -248,6 +248,121 @@ class MushroomLogViewModelTest {
         assertEquals(listOf(newPhoto), vm.uiState.value.galleryPhotos.map { it.photo })
     }
 
+    /**
+     * The mirror of §3's race, on the photo-attach path (L4c §2) — the verification pulse's own
+     * finding: if `loadEntries()` starts a read before a photo attach lands, but only *applies* its
+     * result after the attach's own state update has already landed, the merge can clobber a
+     * just-attached photo with the stale, pre-attach snapshot the read captured — and this is one
+     * race the photos-only merge cannot itself defend against, since `photos` is exactly the field
+     * it copies from that same stale read. Under [MushroomLogViewModel]'s serialization this can no
+     * longer happen: `loadEntries()` acquiring [editingEntryMutex] first means [onAddPhoto]'s own
+     * attach cannot even start until `loadEntries()` releases the lock, so by the time the attach
+     * runs, `loadEntries()`'s update has already landed (or not started at all) — never in a
+     * position to overwrite it afterward.
+     */
+    @Test
+    fun `a photo attach queued behind a loadEntries read is never lost to that read's stale snapshot`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "new-photo", relativePath = "photos/new-photo.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+
+        // Armed only now — see FakeMushroomLogRepository.readGate's own doc comment for why arming
+        // it any earlier would block the setup above's own loads forever.
+        val readGate = CompletableDeferred<Unit>()
+        repository.readGate = readGate
+
+        // loadEntries() acquires editingEntryMutex first (nothing else holds it yet), captures its
+        // (still photo-less) snapshot, then suspends on readGate — while still holding the lock.
+        vm.loadEntries()
+        // onAddPhoto's own coroutine can only queue behind the held lock; the attach cannot start.
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(
+            "the attach must not have started yet — it's queued behind loadEntries' held lock",
+            emptyList<LogPhoto>(),
+            vm.uiState.value.editingEntry?.photos,
+        )
+
+        // Release the gate: loadEntries applies its (still-accurate, since nothing had attached yet)
+        // merge and releases the lock; only then can onAddPhoto's own queued attach run.
+        readGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            "the photo attach must not be lost to loadEntries' earlier, now-stale snapshot",
+            listOf(newPhoto),
+            vm.uiState.value.editingEntry?.photos,
+        )
+        assertTrue(
+            "the attach must actually be persisted, not just reflected in memory",
+            repository.crossRefEntryIds().contains(draftId),
+        )
+    }
+
+    /**
+     * L4c §2's second required test: two photo operations issued back to back must apply in the
+     * order issued, not have the second's completion silently discard the first's. This is *not*
+     * automatic from serialization alone — a handler that captured `editingEntry` at call time,
+     * before its own turn in the lock, would compute its result from a snapshot that predates the
+     * other operation's effect regardless of execution order. [onAddPhoto]/[onPullPhoto] read
+     * `editingEntry` fresh, inside their own critical section, specifically so the second of two
+     * queued operations builds on the first's already-applied result rather than overwriting it.
+     * [FakeMushroomLogRepository.photoGate] holds the *first* issued operation (pulling
+     * [galleryPhotoA]) suspended while
+     * already holding the lock, so the second (attaching [newPhotoB]) is issued and queued before
+     * the first ever completes — proving the ordering is enforced by the queue, not by coincidental
+     * timing.
+     */
+    @Test
+    fun `two photo operations issued back to back apply in the order issued`() = runTest(dispatcher) {
+        val galleryPhotoA = LogPhoto(id = "gallery-photo-a", relativePath = "photos/a.jpg", createdAtEpochMillis = 1_000L)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        repository.addPhotoToGallery(galleryPhotoA)
+        val photoStore = FakePhotoStore()
+        val newPhotoB = LogPhoto(id = "new-photo-b", relativePath = "photos/b.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhotoB)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+
+        val pullGate = CompletableDeferred<Unit>()
+        repository.photoGate = pullGate
+
+        // Issued first: pulling galleryPhotoA. Acquires the lock, then suspends mid-attach, still
+        // holding it.
+        vm.onPullPhoto(galleryPhotoA)
+        // Issued second, immediately after, before the first has completed: attaching newPhotoB.
+        // Queues behind the held lock — cannot even read editingEntry yet, let alone apply.
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(
+            "neither operation has completed yet — both queued/suspended",
+            emptyList<LogPhoto>(),
+            vm.uiState.value.editingEntry?.photos,
+        )
+
+        pullGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            "both photos must be present — the second-issued operation must build on the " +
+                "first's result, not discard it",
+            listOf(galleryPhotoA, newPhotoB),
+            vm.uiState.value.editingEntry?.photos,
+        )
+    }
+
     /** Workstream G3: pulling a gallery photo into the currently-editing draft references it only — never a new file, never a new gallery row. Reworked (Workstream L4b-R) to open a real draft session first — see the "adding a photo" test above for why. */
     @Test
     fun `pulling a gallery photo into the editing draft adds a reference only`() = runTest(dispatcher) {
@@ -457,6 +572,7 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
 
         assertTrue("an incidental exit must never commit an unsaved entry to the log", vm.uiState.value.entries.isEmpty())
         assertEquals(listOf("new-entry"), vm.uiState.value.draftEntries.map { it.id })
@@ -482,6 +598,7 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
 
         assertTrue("nothing appears in the log", vm.uiState.value.entries.isEmpty())
         assertEquals(listOf("new-entry"), vm.uiState.value.draftEntries.map { it.id })
@@ -544,6 +661,111 @@ class MushroomLogViewModelTest {
     }
 
     /**
+     * Workstream L4c §5: [LogEntryDetailScreen]'s "Add Location"/"Change Location" button (wired in
+     * both [LogPanel] and [JournalTab]) reaches [MushroomLogViewModel.onEntryEdited] the same way
+     * every other field edit does — `onEntryChanged(editing.copy(foundAt = location))` — so a
+     * location set mid-edit is subject to exactly the same draft-only-write guarantee already proven
+     * above for photos. This test proves it for `foundAt` specifically rather than assuming the
+     * shared mechanism covers it.
+     */
+    @Test
+    fun `setting a location during a re-edit writes to the draft row only, never the committed entry`() = runTest(dispatcher) {
+        val originalLocation = entry.foundAt
+        val newLocation = LatLng(46.0, -123.0)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        assertTrue("a re-edit's draft is a separate row", draftId != entry.id)
+
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(foundAt = newLocation))
+        advanceUntilIdle()
+
+        assertEquals("the draft reflects the new location", newLocation, vm.uiState.value.editingEntry?.foundAt)
+        assertEquals(
+            "the committed row's own location must be untouched while the draft is being edited",
+            originalLocation,
+            vm.uiState.value.entries.single { it.id == entry.id }.foundAt,
+        )
+        assertEquals(
+            "on disk, the new location must land on the draft row, not the parent",
+            newLocation,
+            repository.getAll().getOrThrow().single { it.id == draftId }.foundAt,
+        )
+        assertEquals(
+            "on disk, the parent row's location must be untouched",
+            originalLocation,
+            repository.getAll().getOrThrow().single { it.id == entry.id }.foundAt,
+        )
+    }
+
+    /** The Cancel counterpart of the test above — see its own doc comment. */
+    @Test
+    fun `Cancelling an edit discards a location changed during the session, leaving the committed entry's location untouched`() = runTest(dispatcher) {
+        val originalLocation = entry.foundAt
+        val newLocation = LatLng(46.0, -123.0)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(foundAt = newLocation))
+        advanceUntilIdle()
+
+        vm.onCancelEditing()
+        advanceUntilIdle()
+
+        assertEquals(
+            "the committed entry's location must be exactly what it was before the edit session",
+            originalLocation,
+            vm.uiState.value.entries.single { it.id == entry.id }.foundAt,
+        )
+        assertTrue("the draft row itself must be gone", repository.getAll().getOrThrow().none { it.id == draftId })
+    }
+
+    /**
+     * The incidental-exit counterpart of the two tests above: leaving without answering (the form's
+     * back arrow, a tab switch, or backgrounding — never Cancel) must persist a location change the
+     * same way it already persists every other field, per [MushroomLogViewModel.onLeaveEditingIncidentally].
+     */
+    @Test
+    fun `an incidental exit persists a location changed during a re-edit into the draft row`() = runTest(dispatcher) {
+        val newLocation = LatLng(46.0, -123.0)
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(foundAt = newLocation))
+        advanceUntilIdle()
+
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+
+        assertNull("the form closes on an incidental exit", vm.uiState.value.editingEntry)
+        assertEquals(
+            "the committed entry must be untouched — an incidental exit never commits",
+            entry.foundAt,
+            vm.uiState.value.entries.single { it.id == entry.id }.foundAt,
+        )
+        assertEquals(listOf(draftId), vm.uiState.value.draftEntries.map { it.id })
+        assertEquals(
+            "the new location must be durably on the draft row, not just held in memory",
+            newLocation,
+            repository.getAll().getOrThrow().single { it.id == draftId }.foundAt,
+        )
+    }
+
+    /**
      * The known hazard this dispatch calls out by name: G3's [MushroomLogViewModel.loadEntries]
      * used to re-derive [MushroomLogUiState.editingEntry] wholesale from a fresh repository read —
      * safe only because nothing uncommitted existed to lose at the time. A refresh firing mid-edit
@@ -576,26 +798,39 @@ class MushroomLogViewModelTest {
     }
 
     /**
-     * L4b-R2 (the dispatch's own §3): the test above proves the merge's list-search matters, but
-     * doesn't by itself prove the *photos-only* scope of the merge matters, since
-     * [MushroomLogViewModel.onEntryEdited]'s per-keystroke write had already landed in the fake
-     * repository by the time `loadEntries()` ran there — a wholesale replace sourced from the
-     * correct list would have shown the same (already-persisted) text. This test closes that gap:
-     * [saveGate] holds the keystroke's own write suspended — never landing in the repository at
-     * all — while `loadEntries()` runs and returns its (still-stale) read in the same window. Under
-     * the real code, [MushroomLogViewModel.loadEntries]'s photos-only merge leaves `editingEntry`'s
-     * other fields exactly as the in-memory, not-yet-persisted [MushroomLogViewModel.onEntryEdited]
-     * call left them, so the freshly-typed text survives; a wholesale replace sourced from either
-     * list would instead show the stale, still-on-disk text, since that's genuinely all a fresh read
-     * can see while the write is still in flight. This is the answer to §3: yes, the merge protects
-     * something the list-search fix alone does not — the in-flight window between a keystroke's own
-     * local state update and that keystroke's write actually landing.
+     * §3 (L4b-R2), re-verified for Workstream L4c rather than assumed: the original version of this
+     * test forced a keystroke's *write* to acquire the lock first (via a gate on `save()`), which
+     * proved the photos-only merge protected the in-flight window between a keystroke's synchronous
+     * state update and that write landing. **Once editing-entry mutations serialize behind one
+     * [kotlinx.coroutines.sync.Mutex], that specific test no longer discriminates**: forcing the
+     * write to acquire the lock first means `loadEntries()`'s own critical section can't even start
+     * until the write's critical section has already released it, so the disk `loadEntries()` reads
+     * is never stale to begin with — the merge code never runs before the assertion, under either a
+     * real merge or a wholesale replace. Confirmed by mutation, not assumed: reverting the merge to a
+     * wholesale replace left that version of this test passing, identically (see the L4c report for
+     * the exact mutation-check output). Rather than leave a test that can no longer fail sitting in
+     * the suite as apparent coverage, it was replaced outright by the one below, which forces the
+     * *opposite* order — `loadEntries()`'s own read wins the race to the lock — and does still
+     * discriminate correctly, because that ordering survives serialization intact. This is the
+     * answer to §3: the merge is redundant for the write-first ordering, but load-bearing for the
+     * read-first one below.
+     *
+     * The surviving half of §3: this test forces `loadEntries()`'s own read to win the race to the
+     * race to the lock, and only *then* does a keystroke's write get queued behind it. [readGate]
+     * holds `loadEntries()`'s disk read suspended *while it already holds the lock*, so
+     * [MushroomLogViewModel.onEntryEdited]'s write — called after `loadEntries()`, per this test's
+     * own ordering — can only enqueue behind it, never run first. `onEntryEdited`'s own *immediate*
+     * local reflection still applies synchronously, before either coroutine's critical section runs,
+     * so by the time `loadEntries()`'s gate opens and its merge actually executes, `editingEntry` in
+     * memory already holds the fresh text while the disk read `loadEntries()` is mid-flight on is
+     * still the old value. That is exactly the shape the photos-only merge exists to protect: a
+     * wholesale replace here would overwrite the freshly-typed text with the stale disk value the
+     * very moment `loadEntries()` gets its turn.
      */
     @Test
-    fun `loadEntries racing ahead of a keystroke's own not-yet-landed write still shows the freshly typed field`() = runTest(dispatcher) {
-        val saveGate = CompletableDeferred<Unit>()
+    fun `loadEntries racing ahead of a keystroke's own write while loadEntries' own read wins the race to the lock`() = runTest(dispatcher) {
         val original = entry.copy(notes = "original")
-        val repository = FakeMushroomLogRepository(initial = listOf(original), saveGate = saveGate)
+        val repository = FakeMushroomLogRepository(initial = listOf(original))
         val vm = viewModel(repository)
         advanceUntilIdle()
         vm.onOpenEntry(original.id)
@@ -603,24 +838,40 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
         val draftId = vm.uiState.value.editingEntry!!.id
 
-        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "typing, write not yet landed"))
+        // Armed only now, after the ViewModel's own init-time loadEntries() and the setup above have
+        // already completed normally — see FakeMushroomLogRepository.readGate's own doc comment for
+        // why arming it any earlier would block that initial load forever.
+        val readGate = CompletableDeferred<Unit>()
+        repository.readGate = readGate
+
+        // loadEntries() is called first, so its coroutine acquires editingEntryMutex first (nothing
+        // else holds it yet) and then suspends on readGate — while still holding the lock.
         vm.loadEntries()
+        // onEntryEdited's own immediate local reflection applies synchronously regardless of the
+        // lock; its write coroutine queues behind loadEntries(), which already holds the lock.
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "typing, loadEntries got here first"))
+
+        assertEquals(
+            "the immediate local reflection must apply before either critical section runs",
+            "typing, loadEntries got here first",
+            vm.uiState.value.editingEntry?.notes,
+        )
+
+        // Release loadEntries()'s gated read. Its own critical section now runs against stale disk
+        // data (the write is still queued behind it) and must not clobber the in-memory field.
+        readGate.complete(Unit)
         advanceUntilIdle()
 
         assertEquals(
-            "editingEntry's in-memory field must survive even though its own write is still pending",
-            "typing, write not yet landed",
+            "loadEntries' merge must not overwrite the freshly-typed field with the stale disk value it just read",
+            "typing, loadEntries got here first",
             vm.uiState.value.editingEntry?.notes,
         )
         assertEquals(
-            "the repository itself must still be pre-write — this test is only meaningful if the race is real",
-            "original",
+            "the queued write must still land afterward, undisturbed",
+            "typing, loadEntries got here first",
             repository.getAll().getOrThrow().single { it.id == draftId }.notes,
         )
-
-        // Let the gated write land before the test ends, so nothing is left suspended.
-        saveGate.complete(Unit)
-        advanceUntilIdle()
     }
 
     @Test
@@ -637,6 +888,7 @@ class MushroomLogViewModelTest {
         assertEquals(listOf(orphanedDraft.id), vm.uiState.value.draftEntries.map { it.id })
 
         vm.onOpenEntry(orphanedDraft.id)
+        advanceUntilIdle()
 
         assertEquals("typed before the crash", vm.uiState.value.editingEntry?.notes)
     }
@@ -662,10 +914,12 @@ class MushroomLogViewModelTest {
         assertFalse(vm.uiState.value.entries.single().isDraft)
 
         vm.onOpenEntry(orphanedDraft.id)
+        advanceUntilIdle()
         assertEquals("typed right before the crash", vm.uiState.value.editingEntry?.notes)
 
         vm.onCloseEntry()
         vm.onOpenEntry(committed.id)
+        advanceUntilIdle()
         assertEquals("last saved before the crash", vm.uiState.value.editingEntry?.notes)
     }
 }
@@ -673,8 +927,15 @@ class MushroomLogViewModelTest {
 private class FakeMushroomLogRepository(
     initial: List<MushroomLogEntry> = emptyList(),
     var saveShouldFail: Boolean = false,
-    /** Held open by a test to reproduce the specific race [loadEntries]'s merge exists for: a read landing while an earlier keystroke's own write is still in flight. `null` (the default) never gates anything, so every other test here still runs a plain, immediate save. */
-    private val saveGate: CompletableDeferred<Unit>? = null,
+    /**
+     * Held open by a test to reproduce the *other* ordering of the same race — [loadEntries]'s own
+     * read acquiring [MushroomLogViewModel]'s serializing lock before a pending keystroke's write
+     * does. `null` (the default) never gates anything. A `var`, not a constructor-only `val`: this
+     * gates every [getAll] call, including [MushroomLogViewModel]'s own `init`-time [loadEntries]
+     * call — a test needs to let that first load complete normally (so `entries`/`draftEntries` are
+     * actually populated) before arming this for the specific [loadEntries] call it means to test.
+     */
+    var readGate: CompletableDeferred<Unit>? = null,
 ) : MushroomLogRepository {
     private val entries = initial.associateByTo(LinkedHashMap()) { it.id }
     private val galleryPhotos = mutableMapOf<String, LogPhoto>()
@@ -694,12 +955,19 @@ private class FakeMushroomLogRepository(
         }
     }
 
-    override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(
-        entries.values.map { entry ->
+    override suspend fun getAll(): Result<List<MushroomLogEntry>> {
+        // Snapshotted before the gate, not after: a real slow read returns the data it saw when it
+        // started, not whatever the table looks like by the time it happens to return. Gating after
+        // the snapshot instead would mean a released gate always sees the *current* table — which
+        // can never be stale — defeating the "read started early, applied late" race a test gates
+        // this to reproduce.
+        val snapshot = entries.values.map { entry ->
             val photos = crossRefs.filter { it.first == entry.id }.mapNotNull { galleryPhotos[it.second] }
             entry.copy(photos = photos)
-        },
-    )
+        }
+        readGate?.await()
+        return Result.success(snapshot)
+    }
 
     override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(
         galleryPhotos.values.map { photo ->
@@ -708,7 +976,6 @@ private class FakeMushroomLogRepository(
     )
 
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> {
-        saveGate?.await()
         if (saveShouldFail) return Result.failure(RuntimeException("save failed"))
         entries[entry.id] = entry
         return Result.success(Unit)
@@ -735,7 +1002,11 @@ private class FakeMushroomLogRepository(
         return Result.success(Unit)
     }
 
+    /** Held open by a test to reproduce the mirror of the §3 race on the photo-attach path — the `saveGate`/`readGate` mechanism, applied to the last write [AddPhotoToLogEntryUseCase] makes rather than to `save()`. `null` (the default) never gates anything. */
+    var photoGate: CompletableDeferred<Unit>? = null
+
     override suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit> {
+        photoGate?.await()
         crossRefs += entryId to photoId
         return Result.success(Unit)
     }

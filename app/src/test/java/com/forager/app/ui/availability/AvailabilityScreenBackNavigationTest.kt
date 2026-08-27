@@ -247,11 +247,11 @@ class AvailabilityScreenBackNavigationTest {
     fun `back returns to the Maps tab from another tab instead of warning to exit`() {
         setScreen()
         composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
+        composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
 
         pressBack()
 
-        composeRule.onNodeWithText("Choose Maps Service").assertDoesNotExist()
+        composeRule.onNodeWithText("Distance Unit").assertDoesNotExist()
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 

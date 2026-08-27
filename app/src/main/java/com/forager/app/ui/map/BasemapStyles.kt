@@ -19,7 +19,58 @@ package com.forager.app.ui.map
  * the same font that fix settled on, for the same reason: `"Open Sans Semibold"` is what
  * `demotiles.maplibre.org`'s own reference style actually ships in its glyph set, not a guess.
  */
-internal fun styleJsonFor(basemap: Basemap): String = """
+/**
+ * Night mode's raster paint block, applied to the basemap layer.
+ *
+ *  - `raster-saturation` pulls colour out of the basemap so the overlay's own hues are the only
+ *    saturated things on screen — the marks should be what the eye catches, not the terrain tint.
+ *  - `raster-contrast` recovers a little of the shape definition dimming used to flatten, back
+ *    when this block dimmed the ground — kept for now even though there is no more dimming for it
+ *    to recover shape from; revisit if a future pass finds it does something unwanted at full
+ *    brightness.
+ *
+ * Both are MapLibre style-spec v8 raster paint properties, so they need no code path of their own
+ * — they ride in the style JSON the basemap swap already rebuilds.
+ *
+ * ## Dimming removed, 2026-08-26
+ *
+ * `raster-brightness-max` dimmed the ground — `0.32` most recently (raised from an initial `0.22`,
+ * hardware-reported as unusably dark; see `MapPalette.NIGHT`'s doc comment, "Third pass," for that
+ * whole account). Requested directly: dimming created a *different* problem — the night map read
+ * lighter than the app's own dark-theme chrome around it (measured: this app's darkest surface
+ * colours sit at 0.005–0.038 relative luminance; the dimmed ground at 0.32 sat at 0.099, roughly
+ * 3–20× brighter), a visible imbalance between the map and the UI framing it.
+ *
+ * **Removed outright, not retargeted to a lower cap or a no-op value.** A lower cap reproduces the
+ * `0.22` legibility failure this file's own history already found and rejected once, and Android's
+ * own display/night-mode handling already does real work here that a per-app dim on top of it was
+ * fighting rather than complementing. `raster-brightness-max` is not a property this style JSON
+ * sets any more, night or day — night's ground is now the same brightness day's is.
+ *
+ * **The eventual replacement is colour inversion, not dimming — deliberately out of scope for this
+ * session.** Inverting the basemap's own colours (pale background → dark, dark linework → pale)
+ * would give a genuinely dark-toned map without dimming's flattened dynamic range, but MapLibre's
+ * raster paint properties (`opacity`/`hue-rotate`/`brightness-min`/`brightness-max`/`saturation`/
+ * `contrast`/`resampling`/`fade-duration` — the complete set, checked with `javap` against the
+ * pinned `13.5.0` artifact) have no per-pixel invert. Real inversion would mean intercepting and
+ * transforming tile images before MapLibre renders them, new infrastructure this session did not
+ * build. Tracked as a deferred research item in `docs/plans/map-redesign.md`, not just here, so it
+ * survives past this session rather than living only in a code comment.
+ *
+ * **Markers stay legible on the now-bright ground via shape, not colour.** `MapPalette.NIGHT_WARM`/
+ * `NIGHT_INK` are unchanged and no longer clear their contrast floors against the brighter ground
+ * on their own — but every night icon (`SightingsMap.kt`'s `*Bitmap` functions) now draws a
+ * darkened, semi-transparent halo behind its fill, which keeps it visible against a light or dark
+ * background alike. `MapPaletteTest`'s tile-contrast assertion is still expected to fail; the halo
+ * is what actually keeps markers visible now, not that contrast floor.
+ */
+private const val NIGHT_RASTER_PAINT = """,
+          "paint": {
+            "raster-saturation": -0.35,
+            "raster-contrast": 0.1
+          }"""
+
+internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String = """
     {
       "version": 8,
       "glyphs": "$GLYPHS_URL_TEMPLATE",
@@ -33,7 +84,7 @@ internal fun styleJsonFor(basemap: Basemap): String = """
         }
       },
       "layers": [
-        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID"}
+        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID"${if (night) NIGHT_RASTER_PAINT else ""}}
       ]
     }
 """.trimIndent()

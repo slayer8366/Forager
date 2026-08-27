@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.forager.app.crash.CrashFileStore
+import com.forager.app.ui.theme.Spacing
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -77,7 +78,7 @@ internal fun CrashLogsEntryRow(onClick: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = CrashLogSpacing.sm),
+            .padding(vertical = Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -94,8 +95,8 @@ private fun CrashLogHeader(onBack: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = CrashLogSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(CrashLogSpacing.sm),
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Settings")
@@ -109,7 +110,7 @@ private fun CrashLogList(files: List<File>, onOpen: (File) -> Unit, modifier: Mo
         Text(
             "No crash reports yet.",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(CrashLogSpacing.lg),
+            modifier = modifier.fillMaxWidth().padding(Spacing.lg),
         )
         return
     }
@@ -117,8 +118,8 @@ private fun CrashLogList(files: List<File>, onOpen: (File) -> Unit, modifier: Mo
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = CrashLogSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(CrashLogSpacing.xs),
+            .padding(horizontal = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         files.forEach { file -> CrashLogRow(file = file, onOpen = { onOpen(file) }) }
     }
@@ -132,7 +133,7 @@ private fun CrashLogRow(file: File, onOpen: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onOpen)
-            .padding(vertical = CrashLogSpacing.xs),
+            .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -160,7 +161,7 @@ private fun CrashLogDetail(file: File, onBack: () -> Unit, modifier: Modifier = 
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(CrashLogSpacing.lg),
+                .padding(Spacing.lg),
         )
     }
 }
@@ -173,8 +174,8 @@ private fun CrashLogDetailHeader(onBack: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = CrashLogSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(CrashLogSpacing.sm),
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to crash log list")
@@ -203,11 +204,4 @@ private fun shareCrashLog(context: Context, file: File) {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(intent, "Share crash report"))
-}
-
-/** Spacing scale for this package — mirrors `AvailabilityScreen`'s own `Spacing`, kept local since that one is file-private (see `com.forager.app.ui.log.LogSpacing`'s own doc comment for the same reasoning). */
-private object CrashLogSpacing {
-    val xs = 4.dp
-    val sm = 8.dp
-    val lg = 16.dp
 }

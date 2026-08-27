@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.R
 import com.forager.app.domain.model.LogPhoto
@@ -45,6 +46,7 @@ import com.forager.app.domain.model.PhotoSource
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.photo.ContentUriPhotoSource
 import com.forager.app.ui.availability.CollapsibleSection
+import com.forager.app.ui.theme.Spacing
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
@@ -70,13 +72,23 @@ import com.forager.app.ui.availability.CollapsibleSection
  *
  * Workstream L4 (`docs/plans/pr26-rework.md`): entry creation routes here directly now, so [entry]
  * routinely arrives with [MushroomLogEntry.foundAt] `null`. [onAddLocation] is this screen's own
- * way to set one — it joins [PhotosSection]'s Camera/Gallery row rather than living beside the
- * "Found at .../No location set." text above it, so the one action this screen can't itself carry
- * out (it hosts no map) reads as a peer of the other two "bring something in from outside this
- * form" actions, not as a fourth kind of thing.  Invoking the picker itself — full-screen, its own
- * state in [JournalTab]/[LogPanel], not embedded here — is the caller's job; see either composable's
- * own doc comment for why a centre-pin picker needs real screen space, the same reasoning
- * `OfflineMapsPanel` already established for the Offline Maps submenu.
+ * way to set one. Invoking the picker itself — full-screen, its own state in
+ * [JournalTab]/[LogPanel], not embedded here — is the caller's job; see either composable's own doc
+ * comment for why a centre-pin picker needs real screen space, the same reasoning `OfflineMapsPanel`
+ * already established for the Offline Maps submenu.
+ *
+ * **L4c correction (2026-08-25):** this button originally lived in [PhotosSection]'s Camera/Gallery/
+ * From Album row instead of beside the "Found at .../No location set." text it answers, reasoned at
+ * the time as reading as a peer of that row's other "bring something in from outside this form"
+ * actions. Two device reports turned out to be one bug: with all four buttons in one unconstrained,
+ * non-wrapping `Row`, the row's real (text-driven) width exceeds a phone's screen width, so the
+ * last button ran off-screen — not merely far from the text it answers, but frequently invisible
+ * entirely, which is what the owner's screenshot's "missing" affordance and stray edge-of-screen
+ * sliver both were. Moved here, next to the text, rather than duplicated: two affordances for one
+ * action diverge eventually, and grouping fixes both the distance and the overflow's own worst
+ * casualty in one edit. `Modifier.weight(1f)` on the text keeps a long coordinate string from
+ * pushing this button off-screen the same way; the remaining three-button row was converted to a
+ * wrapping `FlowRow` for the same reason.
  */
 @Composable
 internal fun LogEntryDetailScreen(
@@ -95,19 +107,39 @@ internal fun LogEntryDetailScreen(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = LogSpacing.lg, vertical = LogSpacing.sm),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+            Row(
+                // weight(fill = false), not a plain Row: without it, this row (in particular the
+                // date text, which has no width bound of its own) is measured at its own intrinsic
+                // width regardless of what the Cancel/Save/Delete row on the right needs, so on a
+                // long date string or a large font scale the two rows' combined width exceeds the
+                // screen and something has to give — what actually gave, on hardware, was the Save
+                // button being squeezed narrower than "Save" needs, wrapping it to "Sav"/"e". Same
+                // fix this file's own class doc comment already documents for the location row's
+                // near-identical overflow bug: bound the flexible side with weight so the fixed
+                // side (the buttons) always gets its full intrinsic width, and the date truncates
+                // with an ellipsis instead.
+                modifier = Modifier.weight(1f, fill = false),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
-                Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Find on ${entry.foundOn}",
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextButton(onClick = onCancel) { Text("Cancel") }
-                Button(onClick = onSave) { Text("Save") }
+                Button(onClick = onSave) { Text("Save", maxLines = 1, softWrap = false) }
                 IconButton(onClick = onDeleteEntry) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
                 }
@@ -119,14 +151,22 @@ internal fun LogEntryDetailScreen(
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = LogSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(LogSpacing.lg),
+                .padding(horizontal = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Text(
-                entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
-                    ?: stringResource(R.string.log_entry_no_location),
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
+                        ?: stringResource(R.string.log_entry_no_location),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(onClick = onAddLocation) { Text(if (entry.foundAt != null) "Change Location" else "Add Location") }
+            }
 
             OutlinedTextField(
                 value = entry.ownIdentification.orEmpty(),
@@ -142,8 +182,6 @@ internal fun LogEntryDetailScreen(
                 onPhotoSourceSelected = onAddPhoto,
                 onRemovePhoto = onRemovePhoto,
                 onPullPhoto = onPullPhoto,
-                hasLocation = entry.foundAt != null,
-                onAddLocation = onAddLocation,
             )
 
             HorizontalDivider()
@@ -172,7 +210,7 @@ internal fun LogEntryDetailScreen(
 
             NotesField(entry.notes, onValueChanged = { onEntryChanged(entry.copy(notes = it)) })
 
-            Spacer(modifier = Modifier.heightIn(min = LogSpacing.lg))
+            Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
         }
     }
 }
@@ -184,8 +222,6 @@ private fun PhotosSection(
     onPhotoSourceSelected: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: () -> Unit,
-    hasLocation: Boolean,
-    onAddLocation: () -> Unit,
 ) {
     var pendingCapture by remember { mutableStateOf<CameraCaptureFiles.Capture?>(null) }
 
@@ -209,9 +245,14 @@ private fun PhotosSection(
         if (uri != null) onPhotoSourceSelected(ContentUriPhotoSource(uri))
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Photos", style = MaterialTheme.typography.titleSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+        // FlowRow, not Row: three real-width Material3 buttons plus their labels can exceed a
+        // phone's screen width (confirmed analytically for the fourth button this row used to also
+        // carry — see this file's own top doc comment on the L4c correction). A plain, non-scrolling
+        // Row doesn't shrink or wrap overflowing children; they simply run past the screen edge,
+        // invisible rather than clipped. Wrapping to a second line keeps every button reachable.
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Button(onClick = { requestCameraPermission.launch(Manifest.permission.CAMERA) }) { Text("Camera") }
             Button(
                 onClick = {
@@ -225,10 +266,16 @@ private fun PhotosSection(
             // distinct exact string) rather than the bare word, checked against every other button
             // label and heading in this same screen and against the bottom nav before landing here.
             Button(onClick = onPullPhoto) { Text("From Album") }
-            Button(onClick = onAddLocation) { Text(if (hasLocation) "Change Location" else "Add Location") }
         }
         if (photos.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+            // fillMaxWidth is load-bearing here, not decorative: without it this FlowRow sizes to
+            // wrap its own content (the thumbnails plus their spacing) with no leftover width for
+            // horizontalArrangement's Alignment.CenterHorizontally to center within, so the group
+            // would sit flush left regardless of the arrangement passed here.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+            ) {
                 photos.forEach { photo -> LogPhotoThumbnail(photo = photo, onRemove = { onRemovePhoto(photo) }) }
             }
         }

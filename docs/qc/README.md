@@ -30,8 +30,26 @@ it does not need a separate home the way `docs/audits/` sometimes does for cross
 | 2026-08-25 | Report: L4b-R standalone-drafts correction | `dispatches/reports/2026-08-25-l4b-r-standalone-drafts-report.md` |
 | 2026-08-25 | Dispatch: L4b-R2, addendum (LogPanel discard offer, four report gaps, photo-race question) | `dispatches/2026-08-25-l4b-r2-addendum-dispatch.md` |
 | 2026-08-25 | Report: L4b-R2 addendum | `dispatches/reports/2026-08-25-l4b-r2-addendum-report.md` |
+| 2026-08-25 | L4 close-out checklist §2 verification pulse response (read-only, no code changes) | `pulses/reports/2026-08-25-l4-closeout-section2-verification-pulse.md` |
+| 2026-08-25 | Dispatch: L4c, serialized editing state, photo race, two form fixes (§1a corrected in place — see the block below its own text) | `dispatches/2026-08-25-l4c-serialized-editing-state-dispatch.md` |
+| 2026-08-25 | Report: L4c serialized editing state (corrects its own first pass on the §3 vacuous test and the §5 draft-only-write mutation check — see that report's own "Premises that turned out wrong" section) | `dispatches/reports/2026-08-25-l4c-serialized-editing-state-report.md` |
+
+## Understory — M3 Expressive design system (`docs/plans/understory-design-system.md`)
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-26 | Scoping proposal: a layout phase after Understory (session-authored, unsolicited — no pulse prompted it; input to a planner dispatch, not a plan) | `pulses/reports/2026-08-26-layout-phase-scoping-proposal.md` |
+
+Filed under `pulses/reports/` despite running the other direction from the usual
+pulse cycle: the document is a session's read-only scoping output going *to* the
+planner, rather than a session's response to a planner's pulse. It carries a
+correction to a measurement cited in `docs/plans/understory-design-system.md`,
+PR [#44](https://github.com/slayer8366/Forager/pull/44)'s description, and
+several commit messages on `claude/forager-m3-expressive-design-l4c` — see its
+§3.
 
 Landed on `claude/task-hwj91a` via PR [#40](https://github.com/slayer8366/Forager/pull/40)
 (`claude/l4b-persisted-drafts` → `claude/task-hwj91a`) — see `docs/plans/README.md`'s
 `pr26-rework.md` row for the full landing status of L4 alongside the rest of that plan's
-workstreams.
+workstreams. L4c is a further, not-yet-landed correction on top of that merge — see its own
+report for branch/PR status.

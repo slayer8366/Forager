@@ -228,6 +228,167 @@ one-tab-away cost; not decided here.
 This phase is compact-only, same as Phase 1 — `MEDIUM`/`EXPANDED`'s
 `PermanentNavigationDrawer` + `CombinedResultsPane` path is untouched.
 
+### Known defect in the untouched path (recorded 2026-08-25, deferred)
+
+The compact-only scope above is a deliberate decision, not an oversight —
+but it leaves a real defect in place on `MEDIUM`, and it is recorded here
+so a future reader neither repeats the discovery nor re-opens the scope by
+accident.
+
+**The defect.** `MEDIUM` starts at 600dp, and `PermanentNavigationDrawer`
+gives the drawer panel a fixed 360dp (see `DRAWER_PANEL_WIDTH` in
+`AvailabilityScreen.kt`). At the bottom of the `MEDIUM` range that is 60%
+of the window handed to controls a user sets far less than once per search
+— location, radius, month, the foraging-areas layer, trip planning — while
+the results the screen exists to show get the remaining 40%. Compact
+already resolved the same tension by moving those controls behind a drawer
+and giving the map the content area; `MEDIUM` inherited the pre-compact
+arrangement and was never revisited.
+
+**The fix, if it is ever taken.** The six `CompactTab` destinations become
+a `NavigationRail`, and the drawer becomes modal, opened from it. That is
+specified in `docs/plans/understory-design-system.md` §3S.
+
+**Why it is deferred rather than built** (owner decision, 2026-08-25):
+
+1. It is the only change in that document that contradicts a recorded
+   scope decision — this one.
+2. It is the only structural layout change in what is otherwise a design
+   token and motion pass, so it does not share that work's risk profile.
+3. It lands in the one window class this project cannot verify. Development
+   and testing happen on a physical phone with no emulator available, which
+   makes the medium-window rail simultaneously the change that most needs
+   hardware review and the one least able to get it.
+
+Reasons 1 and 2 are arguments about sequencing and would not survive the
+rail being wanted; reason 3 is the binding one and does not change until
+there is a medium-width device or emulator in the loop. Until then this
+stays a named deferral, not a queued step. `EXPANDED` is unaffected either
+way: its `PermanentNavigationDrawer` + `CombinedResultsPane` structure is
+kept intact by design, and takes the new tokens and nothing else.
+
+### Open question, `EXPANDED`: where do the six destinations live?
+
+Raised 2026-08-25 alongside the entry above, and recorded as a **question**
+rather than a proposal — nobody has verified any of this on a screen that
+size, and no answer is being assumed here.
+
+A draft of `understory-design-system.md` proposed adding a `NavigationRail`
+left of the `PermanentNavigationDrawer` on `EXPANDED`, then removed it
+again because the same document labelled `EXPANDED`'s treatment
+"tokens only," and a rail is a structural change. Removing it resolved the
+contradiction — but it also closed the question the rail existed to answer,
+which is worse than leaving the question open. So:
+
+**What the code does today** (read at `353d256`, re-verify before relying on
+it). The six `CompactTab` destinations are reached two different ways on
+`MEDIUM`/`EXPANDED`, split by which pane they happen to live in:
+
+- **List / Maps / Seasonal** are the `ResultsTab` enum, driving a
+  `SecondaryTabRow` over the content pane — peers, always visible.
+- **Journal / Album / Settings** are sticky footer rows at the bottom of
+  the permanent drawer's Search panel (`MushroomLogEntryRow`,
+  `PhotoGalleryEntryRow`, `SettingsEntryRow`). Tapping one swaps
+  `drawerPanel`, replacing the drawer sheet's contents in place — so the
+  search controls disappear while any of the three is open.
+
+**The questions that follows from that, none of them answered:**
+
+1. Is a top-level destination reached from a footer row inside a side
+   panel discoverable at `EXPANDED` widths, where there is room to show it
+   outright?
+2. Is it correct that three of the six destinations are permanently
+   visible peers and the other three are nested one level inside a panel
+   about something else? Compact treats all six as peers in one bottom nav.
+3. Does swapping the drawer's contents — losing the search controls to
+   reach Journal — read as navigation or as the panel breaking?
+4. Is the drawer *carrying* those three destinations a deliberate design,
+   or an artifact of them having been moved out of the compact drawer
+   (per the bottom-nav decision above) without the wide-window path being
+   revisited at the same time?
+
+Question 4 is the one that decides whether this is a defect at all. If the
+answer is "artifact," it is the same class of finding as the 360dp entry
+above — the wide-window path inheriting a pre-compact arrangement that was
+never revisited — and it would be resolved by the same rail. If the answer
+is "deliberate," this entry closes and the rail stays unwanted.
+
+Blocked on the same constraint as the entry above: this project builds and
+tests on a phone, and nobody has put the `EXPANDED` layout in front of a
+person on a screen that size. Not a task; a question with the evidence
+attached, so a future reader starts from what the code does rather than
+re-deriving it.
+
+**Stale doc comment noted while reading this.** `ForagerBottomNav`'s doc
+comment says the bottom nav was "extended by the project owner from 3
+destinations to `CompactTab`'s 5." `CompactTab` has six entries — `PHOTOS`
+("Album") was added by Workstream G2 after that comment was written. The
+comment was not updated. Cosmetic, but it will mislead the next reader
+counting destinations.
+
+## Icon stack: superseded from 5 to a 7-icon stopgap (recorded 2026-08-26)
+
+Decision #3 above fixed the right-edge stack at exactly 5 icons. Requested
+directly, after hardware review found the record start/stop control and the
+return-to-vehicle toggle — both living in a second row on
+`CompassElevationStripContent` — overlapping MapLibre's own native compass
+view (the "reset orientation to north" control the SDK renders itself, not
+something this project built) at the top of the screen, and the strip's
+owner wanted that second row gone so the strip reads as one line.
+
+Both controls moved into `MapIconStack` — record start/stop (icon and fill
+colour both change with state, same redundant-encoding property the
+original `RecordToggleButton` had) and return-to-vehicle (disabled, dimmed,
+until something is recording; its status — bearing/distance/elevation, or
+"waiting for a fix" — is now a `contentDescription` rather than visible
+text, since there is no room left in the stack for a text row). The stack
+is 7 icons now, not 5.
+
+**Stopgap, not a redesign — the fuller fix is still open.** The project
+owner separately asked for a proper right-edge *panel bar* (replacing the
+individual floating circles) that folds every one of these controls,
+including MapLibre's native compass/orientation control, into one bar
+hugging the map's right edge — not built yet as of this note. When that
+lands, this section's 7-icon stack is what it replaces, and decision #3
+above should be corrected in place rather than superseded a second time.
+
+## Icon stack superseded again: the panel bar landed (recorded 2026-08-26)
+
+Built the same session, right after the stopgap above. `MapIconBar`
+(`AvailabilityScreen.kt`, replacing `MapIconStack`) is one translucent,
+rounded `Surface` hugging the map's right edge — the individual floating
+circles are gone, each control is a row inside the shared bar instead. 8
+rows now, not 7: MapLibre's native compass view is disabled outright
+(`SightingsMap.kt`'s `DisposableEffect(mapView)` block,
+`uiSettings.isCompassEnabled = false`) and replaced by the bar's own
+orientation-reset row, wired the same changing-token way
+`resumeTrackingRequestId` already was
+(`MapOverlayContent.resetOrientationRequestId`, easing the camera's bearing
+back to `0.0` via `CameraUpdateFactory.bearingTo`).
+
+**Decision #3 is now corrected in place, not superseded a third time**: read
+`MapIconBar`'s own doc comment for the current 8-row shape (fullscreen,
+orientation-reset, GPS/locate-me, topo/plain, record, return-to-vehicle,
+search, add) rather than this section or decision #3 above, both of which
+are historical record from here on.
+
+Two related fixes landed in the same pass, in `SightingsMap.kt`, not the UI
+layer: switching topo/plain (or toggling night mode) was recentering the map
+on the user's live location even after they had deliberately panned away —
+`activateLiveLocationIfPermitted` was unconditionally re-forcing
+`CameraMode.TRACKING` every time `setStyle` discarded and needed to
+re-activate the `LocationComponent`, which is on every basemap/night-mode
+swap, not just first load. Fixed by capturing the `CameraMode` in effect
+right before the swap and restoring exactly that afterward, rather than
+always forcing tracking back on — `null` (never activated yet) is the only
+case that still defaults to `TRACKING`. That same "never activated yet" case
+also now eases the camera to a 16.0 zoom once, satisfying the project
+owner's separate ask that the map orient the user immediately on open rather
+than sitting at whatever the search-radius zoom heuristic left it at.
+Neither fix has a headless assertion — see README's "Not yet verified" for
+why (`LocationComponent` is native-backed) and what's still an open device
+question.
+
 ## New capability: compass
 
 No sensor code exists in this app. Needs an owned interface — e.g.
@@ -276,6 +437,47 @@ needs extending, rather than re-deriving the fix from scratch.
   (already a known limitation — report the *behavior* as tested, not the
   real-world number), how the full-bleed layout reads on very small/large
   screens or at large font scale. Add to README's "Not yet verified".
+
+## Deferred: night-mode colour inversion (recorded 2026-08-26)
+
+Raised during live hardware-testing feedback on the night map, after the
+owner reported an imbalance of light between the map and the app's own
+dark-theme chrome — the dimmed night ground (`raster-brightness-max` 0.32
+at the time) measured 0.099 relative luminance against the app's darkest
+surfaces at 0.005–0.038, roughly 3–20× brighter, a visible mismatch.
+
+**What was asked for:** keep the map at day-mode brightness, but invert its
+own colours (pale background → dark, dark linework → pale) for a genuinely
+dark-toned map without the flattened dynamic range dimming produces.
+
+**Why it wasn't built this session.** Checked with `javap` against the
+pinned MapLibre `13.5.0` AAR's `PropertyFactory`: the complete set of raster
+paint properties is `opacity`/`hue-rotate`/`brightness-min`/`brightness-max`/
+`saturation`/`contrast`/`resampling`/`fade-duration` — no per-pixel invert.
+Real inversion means intercepting and transforming tile images before
+MapLibre renders them (a custom `Source`/tile pipeline, or a post-process
+step on the raw tile bytes) — new infrastructure, not a paint-property
+tweak, and out of scope for a session already in progress on the marker
+redesign below.
+
+**What shipped instead, this session:** dimming was removed outright rather
+than retargeted (`BasemapStyles.kt`'s `NIGHT_RASTER_PAINT` doc comment,
+"Dimming removed" — night's ground is now the same brightness day's is, so
+the imbalance this section describes is resolved for now without inversion).
+Night-mode markers moved from per-marker hue differentiation to icon shape
+plus a shared warm fill/dark ink pair (`MapPalette.NIGHT`, "Fifth pass"),
+with a darkened, semi-transparent halo drawn behind every night icon
+(`SightingsMap.kt`'s `*Bitmap` functions) so they stay legible against a
+light or dark ground alike, since they no longer clear a tile-contrast floor
+on their own (see `MapPaletteTest.kt`'s removed-test note).
+
+**If inversion is picked up later:** it would let night mode use a genuinely
+dark map — likely simplifying the marker story back toward per-marker hue
+differentiation again, since a dark ground gives more contrast headroom
+than a light one ever could. Whether that's worth undoing the icon-shape
+work above is a call for whoever picks this up, informed by whatever
+hardware feedback the current (undimmed, icon-halo) approach gets in the
+meantime.
 
 ## Delivery
 

@@ -4,10 +4,10 @@ import kotlin.math.roundToInt
 
 /**
  * The unit distances are displayed in — a Settings preference, same lifetime and reasoning as
- * [com.forager.app.ui.map.MapService]: session-local Compose state in [AvailabilityScreen], not
+ * [com.forager.app.ui.map.MapMode]: session-local Compose state in [AvailabilityScreen], not
  * threaded into the ViewModel or persisted, since it changes nothing about what's searched or
  * fetched. The cost, stated rather than hidden: it resets to [KILOMETERS] on process death, the
- * same cost [AvailabilityScreen]'s own doc comment already accepts for `selectedMapService`.
+ * same cost [AvailabilityScreen]'s own doc comment already accepts for `mapMode`.
  *
  * Distance **values** stay kilometers everywhere else in this app, always — [Region.radiusKm]
  * (searched, sent to iNaturalist) is never converted; only [formatDistanceKm] below, called at each
