@@ -50,6 +50,15 @@ internal val LightColors = lightColorScheme(
 
     outline = OutlineLight,
     outlineVariant = OutlineVariantLight,
+
+    // Bark, not Material's baseline black -- ThemeCompletenessTest ("tag 01") requires every role
+    // the UI actually reads to be an intentional choice, not a passthrough that happens to render
+    // the same. Scrim backs arbitrary content (a photo, a map, anything under it), not this
+    // theme's own surfaces, so it stays the same warm dark tone in both schemes rather than
+    // flipping with light/dark mode -- the same reasoning Material's own baseline scrim already
+    // follows (pure black in both), and the same tone MapIconStackButtonColorDark/
+    // CompassStripBackgroundColorDark already use for the identical job elsewhere in this app.
+    scrim = Bark,
 )
 
 internal val DarkColors = darkColorScheme(
@@ -96,6 +105,10 @@ internal val DarkColors = darkColorScheme(
 
     outline = OutlineDark,
     outlineVariant = OutlineVariantDark,
+
+    // Same value and same reasoning as LightColors' own scrim above -- deliberately identical
+    // across both schemes, not a dark-mode variant of it.
+    scrim = Bark,
 )
 
 /**
