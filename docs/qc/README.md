@@ -35,6 +35,21 @@ it does not need a separate home the way `docs/audits/` sometimes does for cross
 | 2026-08-25 | Report: L4c serialized editing state (corrects its own first pass on the §3 vacuous test and the §5 draft-only-write mutation check — see that report's own "Premises that turned out wrong" section) | `dispatches/reports/2026-08-25-l4c-serialized-editing-state-report.md` |
 | 2026-08-26 | Pulse response: repo state before L4 close-out housekeeping (read-only, no code changes) — ground truth, branch/PR inventory, records audit, the two device bugs re-measured on `main`, migration/beta-readiness findings | `pulses/reports/2026-08-26-repo-state-pulse-response.md` |
 
+## Planner meta-documents
+
+Corrections to the Planner's own standing reference material, as distinct from a dispatch or
+pulse about the codebase itself.
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-25 | Correction patch: `planner-cold-start-handoff-2026-08-25.md`'s Save/Cancel standing rule, Workstream C status, and a new lesson 14 — filed standalone (2026-08-27) since neither that handoff document nor `planner-operating-guide-2026-08-25.md` has ever been filed in this repo; see the patch's own "Filing note" | `dispatches/2026-08-25-planner-cold-start-handoff-correction-patch.md` |
+
+**Still open:** the two documents this patch describes (`planner-cold-start-handoff-2026-08-25.md`,
+`planner-operating-guide-2026-08-25.md`) have only ever existed as chat uploads — confirmed absent
+from the full repo tree by the 2026-08-26 repo-state pulse. Filing the patch above does not close
+that gap; it only means the correction itself has a durable home to be folded into those documents
+once they're supplied.
+
 ## Understory — M3 Expressive design system (`docs/plans/understory-design-system.md`)
 
 | Date | Document | File |
