@@ -31,6 +31,7 @@ import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -146,6 +147,7 @@ class AvailabilityScreenMapIconStackTest {
             offlineMapRepository = IconStackStubOfflineMapRepository,
             mapPreferencesRepository = IconStackStubMapPreferencesRepository,
             distanceUnitPreferenceRepository = IconStackStubDistanceUnitPreferenceRepository,
+            appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -176,6 +178,7 @@ class AvailabilityScreenMapIconStackTest {
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                onDarkThemeChanged = viewModel::onDarkThemeChanged,
                 onStartLogEntry = onStartLogEntry,
                 onLocateMe = onLocateMe,
                 isRecording = isRecording,
@@ -612,4 +615,9 @@ private object IconStackStubMapPreferencesRepository : MapPreferencesRepository 
 private object IconStackStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
     override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.KILOMETERS)
     override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+}
+
+private object IconStackStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
 }

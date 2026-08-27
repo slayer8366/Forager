@@ -4,6 +4,7 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -130,6 +131,11 @@ private object PlannedTripsStubDistanceUnitPreferenceRepository : DistanceUnitPr
     override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
 }
 
+private object PlannedTripsStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
+}
+
 class AvailabilityViewModelPlannedTripsTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -169,6 +175,7 @@ class AvailabilityViewModelPlannedTripsTest {
         offlineMapRepository = PlannedTripsStubOfflineMapRepository,
         mapPreferencesRepository = PlannedTripsStubMapPreferencesRepository,
         distanceUnitPreferenceRepository = PlannedTripsStubDistanceUnitPreferenceRepository,
+        appThemePreferenceRepository = PlannedTripsStubAppThemePreferenceRepository,
     )
 
     @Test

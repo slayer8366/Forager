@@ -23,6 +23,7 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -141,6 +142,7 @@ class AvailabilityScreenTripPlanningFlowTest {
             offlineMapRepository = TripFlowStubOfflineMapRepository,
             mapPreferencesRepository = TripFlowStubMapPreferencesRepository,
             distanceUnitPreferenceRepository = TripFlowStubDistanceUnitPreferenceRepository,
+            appThemePreferenceRepository = TripFlowStubAppThemePreferenceRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -171,6 +173,7 @@ class AvailabilityScreenTripPlanningFlowTest {
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                onDarkThemeChanged = viewModel::onDarkThemeChanged,
                 onStartLogEntry = onStartLogEntry,
                 mapSlot = TriggerableMapSlot,
             )
@@ -391,4 +394,9 @@ private object TripFlowStubMapPreferencesRepository : MapPreferencesRepository {
 private object TripFlowStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
     override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
     override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+}
+
+private object TripFlowStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
 }

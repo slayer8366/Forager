@@ -3,6 +3,7 @@ package com.forager.app
 import android.content.Context
 import com.forager.app.crash.CrashFileStore
 import com.forager.app.data.local.ForagerDatabase
+import com.forager.app.data.repository.DataStoreAppThemePreferenceRepository
 import com.forager.app.data.remote.INaturalistClient
 import com.forager.app.data.remote.OpenMeteoArchiveClient
 import com.forager.app.data.remote.OpenMeteoClient
@@ -17,6 +18,7 @@ import com.forager.app.data.repository.RoomSearchCacheRepository
 import com.forager.app.data.repository.RoomTrackRepository
 import com.forager.app.data.repository.RoomWaypointRepository
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
@@ -138,6 +140,7 @@ class AppContainer(context: Context) {
     val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
     val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
     val distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository = DataStoreDistanceUnitPreferenceRepository(context)
+    val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context)
 
     val photoStore: PhotoStore = FilePhotoStore(context)
     val cameraCaptureFiles = CameraCaptureFiles(context)

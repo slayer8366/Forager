@@ -94,6 +94,7 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedBasemap: Basemap? = null
     private var capturedOfflinePickerBasemap: Basemap? = null
     private var capturedNightMode: Boolean? = null
+    private var capturedDarkTheme: Boolean? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, onCameraIdle, modifier ->
@@ -138,6 +139,7 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
+                onDarkThemeChanged = {},
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -180,6 +182,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
+                onDarkThemeChanged = { dark ->
+                    current = current.copy(darkTheme = dark)
+                    capturedDarkTheme = dark
+                },
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -234,6 +240,31 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText("Maps").performClick()
         composeRule.waitForIdle()
         assertEquals(false, capturedNightMode)
+    }
+
+    /**
+     * Settings' "Night Mode" checkbox — the app-wide theme [com.forager.app.ui.theme.ForagerTheme]
+     * renders, sitting directly above [NightModeMapsSection]'s own checkbox (see that composable's
+     * doc comment) rather than the other way around: this one is the toggle, Night Maps is the
+     * mode beneath it. Driven through the real checkbox row, same reasoning as the Night Maps
+     * checkbox test above. Unlike that one, this preference has no map-slot side channel to read
+     * back through — [AvailabilityUiState.darkTheme] only ever reaches [MainActivity] — so it's
+     * captured directly from [AvailabilityScreen.onDarkThemeChanged] instead.
+     */
+    @Test
+    fun `the Night Mode checkbox is above the Night Maps checkbox and toggles the app theme`() {
+        setScreenWithOfflineMapsState()
+        openSettings()
+
+        assertEquals(null, capturedDarkTheme)
+
+        composeRule.onNodeWithText("Night Mode").assertIsDisplayed().performClick()
+        composeRule.waitForIdle()
+        assertEquals(true, capturedDarkTheme)
+
+        composeRule.onNodeWithText("Night Mode").performClick()
+        composeRule.waitForIdle()
+        assertEquals(false, capturedDarkTheme)
     }
 
     private val mapModeContentDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
@@ -429,6 +460,7 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
+                onDarkThemeChanged = {},
                 mapSlot = CapturingMapSlot,
             )
         }

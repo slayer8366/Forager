@@ -158,6 +158,12 @@ data class AvailabilityUiState(
      */
     val nightModeMaps: Boolean = false,
     /**
+     * The app's own light/dark theme — Settings' "Night Mode" checkbox, restored from
+     * [com.forager.app.domain.AppThemePreferenceRepository.getDarkTheme]. `false` (light) until
+     * that load completes. Independent of [nightModeMaps], which controls only the map's basemap.
+     */
+    val darkTheme: Boolean = false,
+    /**
      * The offline-region picker map's opening viewport before a region has been picked —
      * restored from [com.forager.app.domain.MapPreferencesRepository.getLastPickedRegion] at
      * startup, then overridden by the device's current location every time the picker is opened

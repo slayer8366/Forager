@@ -5,6 +5,7 @@ import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -142,6 +143,11 @@ private object OfflineMapsStubDistanceUnitPreferenceRepository : DistanceUnitPre
     override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
 }
 
+private object OfflineMapsStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
+}
+
 /**
  * Fully controlled by each test: [listRegionsResult] answers `listRegions()` (called once on every
  * ViewModel init, and again after every successful download/delete), [downloadResult] and
@@ -219,6 +225,7 @@ class AvailabilityViewModelOfflineMapsTest {
         offlineMapRepository = offlineMapRepository,
         mapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
         distanceUnitPreferenceRepository = OfflineMapsStubDistanceUnitPreferenceRepository,
+        appThemePreferenceRepository = OfflineMapsStubAppThemePreferenceRepository,
     )
 
     /** Mirrors how [AvailabilityScreen]'s picker map now sets these — panning and confirming with OK, not typing. */

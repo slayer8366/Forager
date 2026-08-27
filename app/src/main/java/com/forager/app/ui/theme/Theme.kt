@@ -121,9 +121,11 @@ internal val DarkColors = darkColorScheme(
 val ForagerMotionScheme: MotionScheme = MotionScheme.expressive()
 
 /**
- * Light and dark variants both exist here already — [darkTheme] defaults to
- * [isSystemInDarkTheme], so the app follows the device's system theme setting rather than needing
- * its own in-app toggle, the same convention most Android apps use.
+ * Light and dark variants both exist here already. [darkTheme] defaults to [isSystemInDarkTheme]
+ * only as this parameter's own fallback — every real caller (`MainActivity`) passes
+ * `AvailabilityUiState.darkTheme` explicitly instead, Settings' own "Night Mode" checkbox (see
+ * that field's doc comment and [com.forager.app.domain.AppThemePreferenceRepository]), a direct
+ * persistent choice rather than the device's system theme setting.
  *
  * A real [MaterialExpressiveTheme], not a [androidx.compose.material3.MaterialTheme] wrapped around
  * one — understory-design-system.md's step 2, REV 03. All four token axes are supplied explicitly:

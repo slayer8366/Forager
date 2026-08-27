@@ -4,6 +4,7 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -170,6 +171,11 @@ class AvailabilityViewModelSeasonalPatternTest {
         override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
     }
 
+    private object StubAppThemePreferenceRepository : AppThemePreferenceRepository {
+        override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+        override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
+    }
+
     private fun viewModel(
         repository: MushroomRepository,
         historicalWeatherProvider: HistoricalWeatherProvider,
@@ -196,6 +202,7 @@ class AvailabilityViewModelSeasonalPatternTest {
             offlineMapRepository = StubOfflineMapRepository,
             mapPreferencesRepository = StubMapPreferencesRepository,
             distanceUnitPreferenceRepository = StubDistanceUnitPreferenceRepository,
+            appThemePreferenceRepository = StubAppThemePreferenceRepository,
         )
     }
 

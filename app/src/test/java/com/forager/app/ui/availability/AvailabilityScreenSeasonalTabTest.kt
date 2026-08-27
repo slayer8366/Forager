@@ -82,6 +82,7 @@ class AvailabilityScreenSeasonalTabTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
+                onDarkThemeChanged = {},
                 mapSlot = StubMapSlot,
             )
         }

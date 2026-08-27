@@ -20,6 +20,7 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -139,6 +140,7 @@ class AvailabilityScreenConditionsMonthTest {
             offlineMapRepository = FakeOfflineMapRepository,
             mapPreferencesRepository = FakeMapPreferencesRepository,
             distanceUnitPreferenceRepository = FakeDistanceUnitPreferenceRepository,
+            appThemePreferenceRepository = FakeAppThemePreferenceRepository,
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -170,6 +172,7 @@ class AvailabilityScreenConditionsMonthTest {
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                onDarkThemeChanged = viewModel::onDarkThemeChanged,
                 mapSlot = StubMapSlot,
             )
         }
@@ -383,4 +386,9 @@ private object FakeMapPreferencesRepository : MapPreferencesRepository {
 private object FakeDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
     override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
     override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+}
+
+private object FakeAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
 }

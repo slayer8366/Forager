@@ -2,6 +2,7 @@ package com.forager.app.ui.availability
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.AvailabilitySearchResult
 import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.ClusterForagingAreasUseCase
@@ -72,6 +73,7 @@ class AvailabilityViewModel(
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
     private val mapPreferencesRepository: MapPreferencesRepository,
     private val distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository,
+    private val appThemePreferenceRepository: AppThemePreferenceRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -96,6 +98,7 @@ class AvailabilityViewModel(
         loadOfflineMapPreferences()
         loadDistanceUnitPreference()
         loadNightModePreferences()
+        loadDarkThemePreference()
         // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
         // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
         // recording: "any time the map is open" was the explicit ask this answers. A denied/
@@ -689,6 +692,31 @@ class AvailabilityViewModel(
             mapPreferencesRepository.setNightModeMaps(night).fold(
                 onSuccess = {},
                 onFailure = { error -> errorLog.w(TAG, "Couldn't persist the night-maps preference.", error) },
+            )
+        }
+    }
+
+    /** Restores Settings' "Night Mode" checkbox (the app-wide theme) — same read-failure treatment as [loadOfflineMapPreferences]. */
+    private fun loadDarkThemePreference() {
+        viewModelScope.launch {
+            appThemePreferenceRepository.getDarkTheme().fold(
+                onSuccess = { dark -> _uiState.update { it.copy(darkTheme = dark) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the app theme preference.", error) },
+            )
+        }
+    }
+
+    /**
+     * Settings' "Night Mode" checkbox — the app-wide theme [MainActivity][com.forager.app.MainActivity]
+     * renders via [com.forager.app.ui.theme.ForagerTheme]. Same immediate-update-then-persist shape
+     * as [onNightModeMapsChanged].
+     */
+    fun onDarkThemeChanged(dark: Boolean) {
+        _uiState.update { it.copy(darkTheme = dark) }
+        viewModelScope.launch {
+            appThemePreferenceRepository.setDarkTheme(dark).fold(
+                onSuccess = {},
+                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the app theme preference.", error) },
             )
         }
     }
