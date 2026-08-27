@@ -233,6 +233,12 @@ fun SightingsMap(
     // from the device theme, which would have changed underneath the user.
     var appliedPalette by remember { mutableStateOf<MapPalette?>(null) }
 
+    // What the camera was last deliberately moved to by the data+camera refresh effect below —
+    // *not* re-derived from mapLibreMap.cameraPosition, which changes continuously while GPS
+    // tracking owns the camera and would make this comparison meaningless. See
+    // shouldMoveCameraToTarget's own doc comment for the hardware-reported bug this closes.
+    var lastAppliedCameraTarget by remember { mutableStateOf<Pair<Region, LatLng?>?>(null) }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -361,7 +367,8 @@ fun SightingsMap(
         // drops tracking, this resumes controlling the camera exactly as it did before that existed.
         val isGpsTracking = map.locationComponent.isLocationComponentActivated &&
             map.locationComponent.cameraMode != CameraMode.NONE
-        if (!isGpsTracking) {
+        val target = region to focusOverride
+        if (shouldMoveCameraToTarget(isGpsTracking, target, lastAppliedCameraTarget)) {
             val center = MapLibreLatLng(region.lat, region.lng)
             // focusOverride pans the camera without moving the search-location marker or the
             // zoom-from-radius heuristic below, both of which stay anchored to region — see
@@ -371,6 +378,7 @@ fun SightingsMap(
                 .target(cameraTarget)
                 .zoom(zoomForRadiusKm(region.radiusKm))
                 .build()
+            lastAppliedCameraTarget = target
         }
     }
 
@@ -616,6 +624,27 @@ private fun refreshOverlayData(
     style.getSourceAs<GeoJsonSource>(BREADCRUMB_SOURCE_ID)?.setGeoJson(breadcrumbFeatureCollection(breadcrumbPoints))
     style.getSourceAs<GeoJsonSource>(WAYPOINT_SOURCE_ID)?.setGeoJson(waypointsFeatureCollection(waypoints))
 }
+
+/**
+ * The data+camera refresh effect's own decision of whether to move the camera to [target] —
+ * extracted as a plain function, the same reason [locationIndicatorTrackingAnimationMultiplier]
+ * below is one, so the actual defect (not just the surrounding native-object plumbing) is
+ * unit-testable. Real hardware report this fixes: that effect is keyed on `loadedStyle` (needed so
+ * [refreshOverlayData] above re-runs after a basemap swap blanks the style), but with no guard, it
+ * also re-ran the camera move below whenever GPS tracking wasn't active — including on a basemap
+ * or night-mode swap that changed neither `region` nor `focusOverride` — which read as "changing
+ * map style brought the map back to my location" even though the GPS/locate-me icon is the only
+ * control meant to do that. Comparing [target] against [lastAppliedCameraTarget] — what was
+ * actually last applied, not merely that the effect ran again — is what tells "the search moved"
+ * apart from "the style reloaded." [isGpsTracking] itself is left as a native-backed computation
+ * at the call site (see that effect's own doc comment on why moving the camera while it's true
+ * would fight the puck), not folded into this function, so this stays a pure comparison.
+ */
+internal fun shouldMoveCameraToTarget(
+    isGpsTracking: Boolean,
+    target: Pair<Region, LatLng?>,
+    lastAppliedCameraTarget: Pair<Region, LatLng?>?,
+): Boolean = !isGpsTracking && target != lastAppliedCameraTarget
 
 /**
  * MapLibre's own puck-movement animation runs on a fixed internal base duration
