@@ -244,8 +244,19 @@ private fun PhotosSection(
             takePicture.launch(capture.uri)
         }
     }
-    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) onPhotoSourceSelected(ContentUriPhotoSource(uri))
+    // PickMultipleVisualMedia, not PickVisualMedia: the single-select contract only ever returns
+    // one Uri, which was the entire bug report this fixes — the system picker itself allows
+    // multi-select, but the launcher discarded every selection past the first. onPhotoSourceSelected
+    // still takes one PhotoSource at a time; MushroomLogViewModel.onAddPhoto's own doc comment
+    // already documents that back-to-back calls apply in issued order under its mutex, which is
+    // exactly what a multi-photo pick needs, so no ViewModel or use-case change is needed here.
+    // maxItems = MAX_PHOTOS_PER_PICK: an explicit cap per the project owner's own request, rather
+    // than the system default (device- and OS-version-dependent, and on some pickers effectively
+    // unbounded) — see that constant's own doc comment.
+    val pickPhotos = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS_PER_PICK),
+    ) { uris ->
+        uris.forEach { uri -> onPhotoSourceSelected(ContentUriPhotoSource(uri)) }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -259,7 +270,7 @@ private fun PhotosSection(
             Button(onClick = { requestCameraPermission.launch(Manifest.permission.CAMERA) }) { Text("Camera") }
             Button(
                 onClick = {
-                    pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
             ) { Text("Gallery") }
             // Workstream G3: "Gallery" above already means the system photo picker (a new file);
@@ -284,6 +295,9 @@ private fun PhotosSection(
         }
     }
 }
+
+/** How many photos a single "Gallery" pick can select at once — the project owner's own cap, not a platform default. */
+private const val MAX_PHOTOS_PER_PICK = 10
 
 private const val PHOTO_THUMBNAIL_SIZE_DP = 88
 private const val REMOVE_GLYPH_SCRIM_SIZE_DP = 28
