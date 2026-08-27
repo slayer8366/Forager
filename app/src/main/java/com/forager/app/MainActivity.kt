@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
                     container.offlineMapRepository,
                     androidErrorLog,
                     container.mapPreferencesRepository,
+                    container.distanceUnitPreferenceRepository,
                 )
             }
         }
@@ -253,6 +254,7 @@ class MainActivity : ComponentActivity() {
                     onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                     onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                    onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,

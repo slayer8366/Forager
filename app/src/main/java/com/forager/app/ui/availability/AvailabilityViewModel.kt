@@ -19,12 +19,14 @@ import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.estimateOfflineTileCount
+import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
@@ -69,6 +71,7 @@ class AvailabilityViewModel(
      */
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
     private val mapPreferencesRepository: MapPreferencesRepository,
+    private val distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -91,6 +94,7 @@ class AvailabilityViewModel(
         loadRecentSearches()
         loadOfflineRegions()
         loadOfflineMapPreferences()
+        loadDistanceUnitPreference()
         // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
         // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
         // recording: "any time the map is open" was the explicit ask this answers. A denied/
@@ -658,6 +662,32 @@ class AvailabilityViewModel(
             mapPreferencesRepository.getStaleThresholdDays().fold(
                 onSuccess = { days -> _uiState.update { it.copy(offlineStaleThresholdDays = days) } },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the offline staleness threshold.", error) },
+            )
+        }
+    }
+
+    /**
+     * Restores the persisted display unit at startup — see [AvailabilityUiState.distanceUnit]'s own
+     * doc comment for the bug this fixes. A read failure keeps [AvailabilityUiState.distanceUnit] at
+     * its default rather than surfacing an error the user never asked for, the same reasoning
+     * [loadOfflineMapPreferences] applies to its own reads; the throwable is still logged.
+     */
+    private fun loadDistanceUnitPreference() {
+        viewModelScope.launch {
+            distanceUnitPreferenceRepository.getDistanceUnit().fold(
+                onSuccess = { unit -> _uiState.update { it.copy(distanceUnit = unit) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the saved distance unit.", error) },
+            )
+        }
+    }
+
+    /** The Settings panel's km/mi toggle — updates the UI immediately and persists in the background. */
+    fun onDistanceUnitSelected(unit: DistanceUnit) {
+        _uiState.update { it.copy(distanceUnit = unit) }
+        viewModelScope.launch {
+            distanceUnitPreferenceRepository.setDistanceUnit(unit).fold(
+                onSuccess = {},
+                onFailure = { error -> errorLog.w(TAG, "Couldn't save the selected distance unit.", error) },
             )
         }
     }

@@ -5,6 +5,7 @@ import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
@@ -30,6 +31,7 @@ import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
+import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -133,6 +135,11 @@ private object OfflineMapsStubMapPreferencesRepository : MapPreferencesRepositor
     override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
 }
 
+private object OfflineMapsStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
+    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
+    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+}
+
 /**
  * Fully controlled by each test: [listRegionsResult] answers `listRegions()` (called once on every
  * ViewModel init, and again after every successful download/delete), [downloadResult] and
@@ -209,6 +216,7 @@ class AvailabilityViewModelOfflineMapsTest {
         ),
         offlineMapRepository = offlineMapRepository,
         mapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
+        distanceUnitPreferenceRepository = OfflineMapsStubDistanceUnitPreferenceRepository,
     )
 
     /** Mirrors how [AvailabilityScreen]'s picker map now sets these — panning and confirming with OK, not typing. */

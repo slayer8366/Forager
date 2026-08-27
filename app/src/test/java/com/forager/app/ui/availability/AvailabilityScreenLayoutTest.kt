@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.BuildConfig
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
@@ -171,6 +172,9 @@ private val SEARCHED_STATE = AvailabilityUiState(
     sightings = List(12) { sighting(it) },
     foragingAreas = ForagingAreas.Found(areas = List(3) { area(it + 1) }, ungroupedObservationCount = 5),
     showForagingAreas = true,
+    // Fixed explicitly — this file's assertions are hardcoded to "15 km" text and have nothing to
+    // do with the km/mi preference, so it must not drift with the default this field carries.
+    distanceUnit = DistanceUnit.KILOMETERS,
 )
 
 private val CONDITIONS = ConditionsSummary(

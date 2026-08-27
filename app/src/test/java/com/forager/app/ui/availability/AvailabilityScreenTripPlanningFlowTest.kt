@@ -23,6 +23,7 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
@@ -49,6 +50,7 @@ import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
+import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -138,6 +140,7 @@ class AvailabilityScreenTripPlanningFlowTest {
             ),
             offlineMapRepository = TripFlowStubOfflineMapRepository,
             mapPreferencesRepository = TripFlowStubMapPreferencesRepository,
+            distanceUnitPreferenceRepository = TripFlowStubDistanceUnitPreferenceRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -380,4 +383,9 @@ private object TripFlowStubMapPreferencesRepository : MapPreferencesRepository {
     override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
     override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
     override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
+}
+
+private object TripFlowStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
+    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
+    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
 }

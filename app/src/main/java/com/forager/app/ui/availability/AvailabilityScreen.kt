@@ -173,6 +173,8 @@ import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.formatDistanceKm
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
@@ -482,6 +484,8 @@ fun AvailabilityScreen(
      * on-device store, same [mapSlot]/[cameraCaptureFiles]/[compassProvider] pattern above.
      */
     crashFileStore: CrashFileStore = CrashFileStore.forContext(LocalContext.current),
+    /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
+    onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
@@ -540,9 +544,9 @@ fun AvailabilityScreen(
     val isNightMode = MapNightMode.resolve(automaticNight, nightModeHold)
     val onToggleNightMode = { nightModeHold = MapNightMode.toggled(automaticNight, nightModeHold) }
     val mapRenderMode = MapRenderMode(basemap = basemap, night = isNightMode)
-    // Same reasoning and cost as mapMode above — see DistanceUnit's own doc comment for
-    // why this stays session-local display state rather than a persisted preference.
-    var distanceUnit by remember { mutableStateOf(DistanceUnit.KILOMETERS) }
+    // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
+    // comment. mapMode above is still session-local; see the observation in that same doc comment.
+    val distanceUnit = uiState.distanceUnit
     var drawerPanel by remember { mutableStateOf(DrawerPanel.Search) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val context = LocalContext.current
@@ -725,7 +729,7 @@ fun AvailabilityScreen(
                 SettingsContent(
                     modifier = Modifier.weight(1f),
                     distanceUnit = distanceUnit,
-                    onDistanceUnitSelected = { distanceUnit = it },
+                    onDistanceUnitSelected = onDistanceUnitSelected,
                     onOpenOfflineMaps = {
                         drawerPanel = DrawerPanel.OfflineMaps
                         onOfflineMapsOpened()
@@ -1115,7 +1119,7 @@ fun AvailabilityScreen(
                         uiState = uiState,
                         mapSlot = mapSlot,
                         distanceUnit = distanceUnit,
-                        onDistanceUnitSelected = { distanceUnit = it },
+                        onDistanceUnitSelected = onDistanceUnitSelected,
                         currentTime = currentTime,
                         isNightMode = isNightMode,
                         onOfflineMapLatChanged = onOfflineMapLatChanged,
