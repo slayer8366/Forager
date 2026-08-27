@@ -8,8 +8,11 @@ name: CI
 on:
   push:
     branches: [main]
+  # No branches: filter here (unlike push above): this project stacks PRs against other
+  # working branches, not just main (e.g. PR #49, claude/l4-close-out-beta-prep-night-maps
+  # against claude/l4-close-out-beta-prep) -- restricting to main left every PR in that chain
+  # with no CI at all until it eventually landed on main.
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
