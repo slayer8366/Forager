@@ -26,6 +26,7 @@ import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -144,6 +145,7 @@ class AvailabilityScreenBackNavigationTest {
             offlineMapRepository = BackNavStubOfflineMapRepository,
             mapPreferencesRepository = BackNavStubMapPreferencesRepository,
             distanceUnitPreferenceRepository = BackNavStubDistanceUnitPreferenceRepository,
+            appThemePreferenceRepository = BackNavStubAppThemePreferenceRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -174,6 +176,8 @@ class AvailabilityScreenBackNavigationTest {
                 onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                onDarkThemeChanged = viewModel::onDarkThemeChanged,
                 logUiState = logState,
                 onStartLogEntry = { location, date ->
                     // Workstream L4b: a brand-new entry is a draft, never added to entries at
@@ -429,9 +433,16 @@ private object BackNavStubMapPreferencesRepository : MapPreferencesRepository {
     override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
     override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
     override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
+    override suspend fun getNightModeMaps(): Result<Boolean> = Result.success(false)
+    override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
 }
 
 private object BackNavStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
     override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
     override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+}
+
+private object BackNavStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
 }

@@ -48,9 +48,11 @@ report "no Color(0x literal outside ui/theme/" "$hits"
 #    next twenty look reasonable ("tag 05"). MapIconBarAccent is excluded for the same reason
 #    MapPalette already is: a component whose colours are deliberately not derived from the
 #    ambient ColorScheme (see that type's own doc comment) is an owned type in ui/theme/, not raw
-#    palette literals reaching into a feature package.
+#    palette literals reaching into a feature package. LocalForagerDarkTheme is excluded for the
+#    same reason ForagerTheme already is: it is the theme-resolution primitive itself (see its own
+#    doc comment for why it exists), not a colour or a palette constant.
 hits=$(grep -rn "^import com\.forager\.app\.ui\.theme\." app/src/main --include=*.kt \
-       | grep -vE "\.(ForagerTheme|MapPalette|MapIconBarAccent)$" || true)
+       | grep -vE "\.(ForagerTheme|LocalForagerDarkTheme|MapPalette|MapIconBarAccent)$" || true)
 report "no palette constant imported outside the theme package" "$hits"
 
 # 3. Motion comes from MaterialTheme.motionScheme. A tween at a call site is the tween-only rule

@@ -6,6 +6,8 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 
 /**
  * `internal`, not `private`: `ThemeCompletenessTest` and `ThemeContrastTest` assert against these
@@ -121,9 +123,11 @@ internal val DarkColors = darkColorScheme(
 val ForagerMotionScheme: MotionScheme = MotionScheme.expressive()
 
 /**
- * Light and dark variants both exist here already — [darkTheme] defaults to
- * [isSystemInDarkTheme], so the app follows the device's system theme setting rather than needing
- * its own in-app toggle, the same convention most Android apps use.
+ * Light and dark variants both exist here already. [darkTheme] defaults to [isSystemInDarkTheme]
+ * only as this parameter's own fallback — every real caller (`MainActivity`) passes
+ * `AvailabilityUiState.darkTheme` explicitly instead, Settings' own "Night Mode" checkbox (see
+ * that field's doc comment and [com.forager.app.domain.AppThemePreferenceRepository]), a direct
+ * persistent choice rather than the device's system theme setting.
  *
  * A real [MaterialExpressiveTheme], not a [androidx.compose.material3.MaterialTheme] wrapped around
  * one — understory-design-system.md's step 2, REV 03. All four token axes are supplied explicitly:
@@ -136,11 +140,27 @@ fun ForagerTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColors else LightColors
-    MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        typography = ForagerTypography,
-        shapes = ForagerShapes,
-        motionScheme = ForagerMotionScheme,
-        content = content,
-    )
+    CompositionLocalProvider(LocalForagerDarkTheme provides darkTheme) {
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            typography = ForagerTypography,
+            shapes = ForagerShapes,
+            motionScheme = ForagerMotionScheme,
+            content = content,
+        )
+    }
 }
+
+/**
+ * The [darkTheme] a [ForagerTheme] ancestor actually resolved to — for the handful of call sites
+ * across the map screen (`MapIconBar`'s accent colors, the map icon stack's own surface color, the
+ * compass strip, `MapModePicker`, `MapFloatingIconButton`, `AddActionTile`) that pick a color by
+ * light/dark theme but sit too far below [AvailabilityUiState.darkTheme] in the composable tree —
+ * several calls deep through `MapIconBar`/`CompactMapTab`/`MapTab` — to take it as a parameter
+ * without threading it through every intermediate signature. Calling [isSystemInDarkTheme] directly
+ * at those sites was the bug this local fixes: it reads the *device's* system setting, not this
+ * app's own "Night Mode" checkbox, so those elements stayed dark on a dark-system device even with
+ * the checkbox unchecked. Defaults to `false` only for a composable previewed or tested outside any
+ * [ForagerTheme] ancestor; every real call path has one.
+ */
+val LocalForagerDarkTheme = compositionLocalOf { false }

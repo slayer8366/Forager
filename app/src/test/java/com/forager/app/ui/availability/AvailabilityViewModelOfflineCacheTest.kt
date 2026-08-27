@@ -20,6 +20,7 @@ import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.MutableClock
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.OfflineMapRepository
@@ -149,11 +150,18 @@ private object OfflineCacheStubMapPreferencesRepository : MapPreferencesReposito
     override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
     override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
     override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
+    override suspend fun getNightModeMaps(): Result<Boolean> = Result.success(false)
+    override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
 }
 
 private object OfflineCacheStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
     override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
     override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+}
+
+private object OfflineCacheStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
 }
 
 class AvailabilityViewModelOfflineCacheTest {
@@ -190,6 +198,7 @@ class AvailabilityViewModelOfflineCacheTest {
         offlineMapRepository = OfflineCacheStubOfflineMapRepository,
         mapPreferencesRepository = OfflineCacheStubMapPreferencesRepository,
         distanceUnitPreferenceRepository = OfflineCacheStubDistanceUnitPreferenceRepository,
+        appThemePreferenceRepository = OfflineCacheStubAppThemePreferenceRepository,
     )
 
     /** Drives the real coordinate-entry callbacks rather than reaching into state. */

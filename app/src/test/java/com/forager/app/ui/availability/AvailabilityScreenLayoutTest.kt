@@ -254,6 +254,8 @@ abstract class AvailabilityScreenLayoutTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
+                onNightModeMapsChanged = {},
+                onDarkThemeChanged = {},
                 mapSlot = StubMapSlot,
             )
         }

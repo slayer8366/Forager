@@ -7,13 +7,28 @@ import androidx.compose.ui.graphics.toArgb
  * The nine colours the map overlay draws with, as `android.graphics` ARGB ints, in a day and a
  * night variant.
  *
- * **Day and night are no longer the same kind of palette.** [DAY] still differentiates its seven
- * marker roles by hue, as it always has. [NIGHT] does not — see "Fifth pass" below for why hue
- * stopped being a viable differentiator at night and shape took over instead, in
- * `SightingsMap.kt`'s icon bitmaps. Every field on [NIGHT] now holds one of exactly two values:
- * [NIGHT_WARM] (every marker's fill/line colour) or [NIGHT_INK] (every stroke/label colour drawn
- * on top of a [NIGHT_WARM] fill). `MapPalette`'s shape — nine named `Int` fields — is unchanged
- * so [SightingsMap] and the rest of this file didn't need restructuring around the split.
+ * ## Markers stay day-only, always (current)
+ *
+ * `SightingsMap.kt` reads [DAY] unconditionally now, regardless of `nightMode` — markers never
+ * change shape, colour, or halo based on night mode, per the project owner's own instruction: real
+ * hardware use showed night's icon-shape markers appearing over search-result observations and
+ * foraging-area markers, replacing the day markers those are meant to look like, which was never
+ * the intent. [NIGHT]/[forMode] still exist and are still exercised directly by `MapPaletteTest` —
+ * only `SightingsMap.kt`'s own call site was changed, not this type. `docs/plans/contrast_assertions.md`
+ * records the removed `SightingsMap.kt` code (the night-only `SymbolLayer`/icon-bitmap path this
+ * doc comment's "Fifth pass" section below describes) for whoever revives night-mode marker
+ * differentiation later — the design rationale below is historical, describing why [NIGHT] has the
+ * shape it has, not a statement of what's currently wired into rendering.
+ *
+ * ## Day and night are no longer the same kind of palette (historical, describes [NIGHT]'s own shape)
+ *
+ * [DAY] still differentiates its seven marker roles by hue, as it always has. [NIGHT] does not —
+ * see "Fifth pass" below for why hue stopped being a viable differentiator at night and shape took
+ * over instead, in `SightingsMap.kt`'s icon bitmaps (as they stood before the change recorded
+ * above). Every field on [NIGHT] still holds one of exactly two values: [NIGHT_WARM] (every
+ * marker's fill/line colour) or [NIGHT_INK] (every stroke/label colour drawn on top of a
+ * [NIGHT_WARM] fill). `MapPalette`'s shape — nine named `Int` fields — is unchanged so
+ * [SightingsMap] and the rest of this file didn't need restructuring around the split.
  *
  * MapLibre renders on a native canvas and cannot read a Compose `ColorScheme`, so `SightingsMap`
  * still takes ints — it just stops *defining* them. Before this existed, nine raw literals lived
