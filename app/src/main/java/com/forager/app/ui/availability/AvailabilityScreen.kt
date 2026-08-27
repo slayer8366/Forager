@@ -17,7 +17,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
@@ -217,6 +216,7 @@ import com.forager.app.ui.motion.MotionTokens
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
 import com.forager.app.ui.theme.Cream
+import com.forager.app.ui.theme.LocalForagerDarkTheme
 import com.forager.app.ui.theme.MapIconBarAccent
 import com.forager.app.ui.theme.Spacing
 import java.time.Instant
@@ -2287,7 +2287,7 @@ private fun MapModePicker(
     anchor: Alignment = Alignment.TopEnd,
     anchorOffset: DpOffset = DpOffset(x = -Spacing.sm, y = MIN_TOUCH_TARGET + Spacing.lg),
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     Box(modifier = modifier.fillMaxSize()) {
         // docs/motion-spec.md §2 "Panels and navigation" — same spec AddActionTile's own scrim uses.
         AnimatedVisibility(
@@ -3502,7 +3502,9 @@ private val MAP_ICON_BAR_FILL_DIAMETER = 36.dp
 private val MAP_ICON_BAR_CORNER_RADIUS = MIN_TOUCH_TARGET / 2
 
 /**
- * [MapIconBar]'s fill — see [MapBarIconButton]. Picked per [isSystemInDarkTheme], independent of
+ * [MapIconBar]'s fill — see [MapBarIconButton]. Picked per [com.forager.app.ui.theme.LocalForagerDarkTheme]
+ * (the app's own "Night Mode" checkbox, not the device's system theme — see that local's own doc
+ * comment for the bug reading [androidx.compose.foundation.isSystemInDarkTheme] directly here caused), independent of
  * the map's own night mode (deliberately not derived from it, the same way [MapPalette] is
  * deliberately not derived from the ambient scheme — this is app chrome over the map, not a mark
  * on it, but the two axes are still kept separate on principle: a device in light mode looking at
@@ -3561,7 +3563,7 @@ private fun mapIconBarRecordAccent(isDarkTheme: Boolean) =
 /** Translucent background for [CompassElevationStripContent] — dark-theme value unaffected by the icon bar's own opacity history above; this strip sits over the map the same way, but was not reported as illegible in the same hardware pass, so it is deliberately left as-is rather than changed on the strength of a fix aimed at a different element. */
 private val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.78f)
 
-/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [isSystemInDarkTheme], independent of the map's own night mode, unverified on hardware. */
+/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
 private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.78f)
 
 /**
@@ -3886,7 +3888,7 @@ private fun MapIconBar(
 ) {
     // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
     // comment for why the two axes are kept separate rather than one steering the other.
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     Surface(
         shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
         color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
@@ -4037,7 +4039,7 @@ private fun MapFloatingIconButton(
     modifier: Modifier = Modifier,
     filled: Boolean = false,
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     val addAccent = mapIconBarAddAccent(isDarkTheme)
     Surface(
         onClick = onClick,
@@ -4124,7 +4126,7 @@ private fun CompassElevationStripContent(
     var showDecimalDegrees by remember { mutableStateOf(false) }
     // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
     // comment for why the two axes are kept separate rather than one steering the other.
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         Box(
             modifier = modifier.background(
@@ -4340,7 +4342,7 @@ private fun AddActionTile(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     Box(modifier = modifier) {
         // docs/motion-spec.md §2 "Panels and navigation": panels accept mild spring overshoot as
         // a taste call, per docs/adr/0002-motion-scheme-adoption.md. Passing MotionTokens's spec
