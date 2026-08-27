@@ -238,14 +238,19 @@ class SightingsMapOverlayDataTest {
     }
 
     /**
-     * The closest a headless test can get to "the connector is still dashed" — see
-     * [CONNECTOR_DASH_PATTERN]'s own doc comment for exactly what this does and does not prove.
+     * The closest a headless test can get to "the breadcrumb trail is still dashed" — see
+     * [BREADCRUMB_DASH_PATTERN]'s own doc comment for exactly what this does and does not prove,
+     * and for why the dash moved here from the connector (now solid, deliberately — see that same
+     * doc comment for what still keeps it from reading as a real walkable route).
      */
     @Test
-    fun `the connector dash pattern is non-empty and holds the documented 18-to-14 ratio`() {
-        assertTrue("An empty dash array is a solid line, which would read as a walking route.", CONNECTOR_DASH_PATTERN.isNotEmpty())
-        assertEquals(2, CONNECTOR_DASH_PATTERN.size)
-        assertEquals(18f / 14f, CONNECTOR_DASH_PATTERN[0] / CONNECTOR_DASH_PATTERN[1], 0.001f)
+    fun `the breadcrumb dash pattern is non-empty, so it renders as dots and not a solid trail`() {
+        assertTrue("An empty dash array is a solid line, losing the trail-of-dots read.", BREADCRUMB_DASH_PATTERN.isNotEmpty())
+        assertEquals(2, BREADCRUMB_DASH_PATTERN.size)
+        assertTrue(
+            "The mark should be shorter than the gap -- a long mark reads as a dashed line, not dots.",
+            BREADCRUMB_DASH_PATTERN[0] < BREADCRUMB_DASH_PATTERN[1],
+        )
     }
 
     private val breadcrumbPoints = listOf(

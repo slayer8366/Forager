@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.R
 import com.forager.app.domain.model.LogPhoto
@@ -45,6 +46,7 @@ import com.forager.app.domain.model.PhotoSource
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.photo.ContentUriPhotoSource
 import com.forager.app.ui.availability.CollapsibleSection
+import com.forager.app.ui.theme.Spacing
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
@@ -105,19 +107,39 @@ internal fun LogEntryDetailScreen(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = LogSpacing.lg, vertical = LogSpacing.sm),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+            Row(
+                // weight(fill = false), not a plain Row: without it, this row (in particular the
+                // date text, which has no width bound of its own) is measured at its own intrinsic
+                // width regardless of what the Cancel/Save/Delete row on the right needs, so on a
+                // long date string or a large font scale the two rows' combined width exceeds the
+                // screen and something has to give — what actually gave, on hardware, was the Save
+                // button being squeezed narrower than "Save" needs, wrapping it to "Sav"/"e". Same
+                // fix this file's own class doc comment already documents for the location row's
+                // near-identical overflow bug: bound the flexible side with weight so the fixed
+                // side (the buttons) always gets its full intrinsic width, and the date truncates
+                // with an ellipsis instead.
+                modifier = Modifier.weight(1f, fill = false),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
-                Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Find on ${entry.foundOn}",
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextButton(onClick = onCancel) { Text("Cancel") }
-                Button(onClick = onSave) { Text("Save") }
+                Button(onClick = onSave) { Text("Save", maxLines = 1, softWrap = false) }
                 IconButton(onClick = onDeleteEntry) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
                 }
@@ -129,12 +151,12 @@ internal fun LogEntryDetailScreen(
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = LogSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(LogSpacing.lg),
+                .padding(horizontal = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -188,7 +210,7 @@ internal fun LogEntryDetailScreen(
 
             NotesField(entry.notes, onValueChanged = { onEntryChanged(entry.copy(notes = it)) })
 
-            Spacer(modifier = Modifier.heightIn(min = LogSpacing.lg))
+            Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
         }
     }
 }
@@ -223,14 +245,14 @@ private fun PhotosSection(
         if (uri != null) onPhotoSourceSelected(ContentUriPhotoSource(uri))
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Photos", style = MaterialTheme.typography.titleSmall)
         // FlowRow, not Row: three real-width Material3 buttons plus their labels can exceed a
         // phone's screen width (confirmed analytically for the fourth button this row used to also
         // carry — see this file's own top doc comment on the L4c correction). A plain, non-scrolling
         // Row doesn't shrink or wrap overflowing children; they simply run past the screen edge,
         // invisible rather than clipped. Wrapping to a second line keeps every button reachable.
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Button(onClick = { requestCameraPermission.launch(Manifest.permission.CAMERA) }) { Text("Camera") }
             Button(
                 onClick = {
@@ -252,7 +274,7 @@ private fun PhotosSection(
             // would sit flush left regardless of the arrangement passed here.
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
                 photos.forEach { photo -> LogPhotoThumbnail(photo = photo, onRemove = { onRemovePhoto(photo) }) }
             }

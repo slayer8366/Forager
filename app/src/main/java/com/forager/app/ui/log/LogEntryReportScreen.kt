@@ -49,6 +49,7 @@ import com.forager.app.domain.model.StipeDetails
 import com.forager.app.domain.model.StipeSection
 import com.forager.app.domain.model.VeilSection
 import com.forager.app.domain.model.valueOrNull
+import com.forager.app.ui.theme.Spacing
 
 /**
  * The Journal gallery's default view for an *existing* entry — a compiled, readable report of
@@ -75,11 +76,11 @@ internal fun LogEntryReportScreen(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = LogSpacing.lg, vertical = LogSpacing.sm),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
@@ -115,8 +116,8 @@ internal fun LogEntryReportScreen(
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = LogSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(LogSpacing.lg),
+                .padding(horizontal = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             Text(
                 entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
@@ -129,7 +130,7 @@ internal fun LogEntryReportScreen(
             }
 
             if (entry.photos.isNotEmpty()) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     entry.photos.forEach { photo -> ReportPhotoThumbnail(photo = photo) }
                 }
             }
@@ -148,7 +149,7 @@ internal fun LogEntryReportScreen(
                 ReportSection("Notes", listOf(entry.notes))
             }
 
-            Spacer(modifier = Modifier.heightIn(min = LogSpacing.lg))
+            Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
         }
     }
 }
@@ -156,7 +157,7 @@ internal fun LogEntryReportScreen(
 /** One report section: a heading, then either its compiled lines or an explicit "nothing yet" line. */
 @Composable
 private fun ReportSection(title: String, lines: List<String>) {
-    Column(verticalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(title, style = MaterialTheme.typography.titleSmall)
         if (lines.isEmpty()) {
             Text(

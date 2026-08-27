@@ -64,6 +64,8 @@ internal fun JournalTab(
     mapSlot: MapSlot,
     pickerRegion: Region,
     basemap: Basemap,
+    /** Night mode for the location picker this hosts — see [CentrePinLocationPicker]. */
+    night: Boolean = false,
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onStartEntry: (LatLng?, LocalDate) -> Unit,
@@ -139,6 +141,7 @@ internal fun JournalTab(
             mapSlot = mapSlot,
             region = pickerRegion,
             basemap = basemap,
+        night = night,
             onConfirm = { location ->
                 pickingLocationForEditingEntry = false
                 onEntryChanged(editing.copy(foundAt = location))

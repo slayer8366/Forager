@@ -50,17 +50,19 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * Three Phase 2 pieces of [AvailabilityScreen], measured headlessly:
+ * Two pieces of [AvailabilityScreen], measured headlessly:
  *
- * 1. The quick-fire mode toggle over the map's own top-right corner, and that tapping it actually
- *    changes which [Basemap] the map slot receives — not just that an icon is somewhere on screen.
- * 2. Settings' "Choose Maps Service" section.
- * 3. The "Offline Maps" submenu: reachable regardless of the selected [com.forager.app.ui.map.MapService]
- *    (offline downloads always target USGS internally, so nothing about reaching the submenu depends
- *    on the live service selection — see `com.forager.app.domain.OfflineMapRepository`'s doc comment),
- *    its navigation (entry row in → back arrow out), and picking a region by panning its
- *    [com.forager.app.ui.map.CentrePinLocationPicker] map and confirming with OK, instead of typing
- *    coordinates.
+ * 1. The quick-fire mode icon over the map's own top-right corner, and that tapping it opens
+ *    [MapModePicker], and that tapping a mode chip there actually changes which [Basemap] the map
+ *    slot receives — not just that an icon is somewhere on screen. Settings' old "Choose Maps
+ *    Service" section is gone entirely — see [com.forager.app.ui.map.MapMode]'s own doc comment for
+ *    what superseded it — so this file no longer tests it.
+ * 2. The "Offline Maps" submenu: reachable regardless of the selected [com.forager.app.ui.map.MapMode]
+ *    (offline downloads always target a fixed source internally, so nothing about reaching the
+ *    submenu depends on the live mode selection — see `com.forager.app.domain.OfflineMapRepository`'s
+ *    doc comment), its navigation (entry row in → back arrow out), and picking a region by panning
+ *    its [com.forager.app.ui.map.CentrePinLocationPicker] map and confirming with OK, instead of
+ *    typing coordinates.
  *
  * The map is stubbed, same reasoning as [AvailabilityScreenLayoutTest]: composing the real one
  * starts osmdroid. [CapturingMapSlot] backs *both* the main Map tab's map and the Offline Maps
@@ -93,14 +95,14 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedOfflinePickerBasemap: Basemap? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
-    private val CapturingMapSlot: MapSlot = { _, content, basemap, _, _, _, onCameraIdle, modifier ->
+    private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, onCameraIdle, modifier ->
         if (content.sightings.isEmpty() && content.areas.isEmpty() && content.plannedTrips.isEmpty()) {
-            capturedOfflinePickerBasemap = basemap
+            capturedOfflinePickerBasemap = renderMode.basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
                 Button(onClick = { onCameraIdle(PICKED_LOCATION) }) { Text("Simulate pan to test location") }
             }
         } else {
-            capturedBasemap = basemap
+            capturedBasemap = renderMode.basemap
             Box(modifier.testTag(MAP_SLOT_TAG))
         }
     }
@@ -189,20 +191,22 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `the map opens on the OpenTopoMap basemap, OpenStreetMap topo mode`() {
+    fun `the map opens on the OpenTopoMap basemap, MapMode's default`() {
         setScreen()
 
-        // Basemap.DEFAULT resolves through MapService.DEFAULT (OpenStreetMap) — see MapService's
-        // doc comment for why this changed from PR #13's USGS Topo default.
+        // Basemap.DEFAULT resolves through MapMode.DEFAULT (Topographical, via OpenStreetMap) —
+        // see MapMode's own doc comment for why this changed from PR #13's USGS Topo default.
         assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
     }
+
+    private val mapModeContentDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
 
     @Test
     fun `the quick-fire icon renders over the map's own top-right corner`() {
         setScreen()
 
         val iconBounds = composeRule
-            .onNodeWithContentDescription("Showing topo mode. Switch to regular mode.")
+            .onNodeWithContentDescription(mapModeContentDescription)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
         val mapBounds = composeRule.onNodeWithTag(MAP_SLOT_TAG).getUnclippedBoundsInRoot()
@@ -220,64 +224,44 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `tapping the quick-fire icon toggles the basemap the map slot receives`() {
+    fun `tapping the quick-fire icon opens the map mode picker, and a chip there changes the basemap`() {
         setScreen()
         assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
 
-        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode.").performClick()
+        composeRule.onNodeWithContentDescription(mapModeContentDescription).performClick()
+        composeRule.onNodeWithText("Street").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
         assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        composeRule.onNodeWithContentDescription("Showing regular mode. Switch to topo mode.").assertIsDisplayed()
+        // The picker dismisses itself on selection, so a second chip isn't on screen until the icon
+        // (now reflecting Street) is tapped again.
+        composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
 
-        composeRule.onNodeWithContentDescription("Showing regular mode. Switch to topo mode.").performClick()
+        composeRule.onNodeWithContentDescription(
+            "Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.",
+        ).performClick()
+        composeRule.onNodeWithText("Satellite").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
         assertNotEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertEquals(Basemap.USGS_IMAGERY_ONLY, capturedBasemap)
     }
 
     @Test
-    fun `switching MapService in Settings preserves the current topo or regular mode`() {
-        setScreen()
-        // Switch to regular mode under OpenStreetMap first.
-        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode.").performClick()
-        composeRule.waitForIdle()
-        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
-
-        openSettings()
-        composeRule.onNodeWithText("USGS").performClick()
-        composeRule.waitForIdle()
-
-        // Settings is its own bottom-nav tab now (not an overlay on the map), so the Maps tab's map
-        // slot is unmounted while here and won't observe the new service until it's recomposed —
-        // switch back to it, same as a real user would, before reading what it was handed.
-        composeRule.onNodeWithText("Maps").performClick()
-        composeRule.waitForIdle()
-
-        // "if a map has two modes, toggle the two": switching service must not reset the mode, so
-        // OpenStreetMap's regular mode carries over to USGS's regular mode (Imagery), not Topo.
-        assertEquals(Basemap.USGS_IMAGERY_TOPO, capturedBasemap)
-    }
-
-    @Test
-    fun `Settings shows Choose Maps Service with both options, and an Offline Maps entry row`() {
+    fun `Settings shows an Offline Maps entry row`() {
         setScreen()
         openSettings()
 
-        composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
-        composeRule.onNodeWithText("OpenStreetMap").assertIsDisplayed()
-        composeRule.onNodeWithText("USGS").assertIsDisplayed()
         composeRule.onNodeWithText("Offline Maps").assertIsDisplayed()
     }
 
     /**
-     * The behavior this project's owner explicitly asked for: offline downloads always use USGS
-     * internally, so reaching the submenu never depends on which service is selected for live
-     * browsing. OpenStreetMap is the default (untouched) service for this test.
+     * The behavior this project's owner explicitly asked for: offline downloads always use a fixed
+     * source internally, so reaching the submenu never depends on which map mode is selected for
+     * live browsing. Topographical is the default (untouched) mode for this test.
      */
     @Test
-    fun `Offline Maps is reachable under the default OpenStreetMap service, with no gating message`() {
+    fun `Offline Maps is reachable under the default map mode, with no gating message`() {
         setScreen()
         openOfflineMaps()
 
@@ -289,7 +273,7 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `the Offline Maps submenu always resolves the picker map to USGS Topo`() {
+    fun `the Offline Maps submenu always resolves the picker map to OpenTopoMap`() {
         setScreen()
         openOfflineMaps()
         // A synchronizing node query (as every other test in this file that reads capture state
@@ -298,7 +282,7 @@ class AvailabilityScreenSettingsPanelTest {
         // doesn't guarantee it here.
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
 
-        assertEquals(Basemap.USGS_TOPO, capturedOfflinePickerBasemap)
+        assertEquals(Basemap.OPEN_TOPO_MAP, capturedOfflinePickerBasemap)
     }
 
     @Test
@@ -308,12 +292,12 @@ class AvailabilityScreenSettingsPanelTest {
 
         composeRule.onNodeWithText("Offline Maps").performClick()
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
-        // Settings' own content — the map-service picker — is no longer on screen once inside the submenu.
-        composeRule.onAllNodesWithText("Choose Maps Service").assertCountEquals(0)
+        // Settings' own content — the distance-unit picker — is no longer on screen once inside the submenu.
+        composeRule.onAllNodesWithText("Distance Unit").assertCountEquals(0)
 
         composeRule.onNodeWithContentDescription("Back to Settings").performClick()
 
-        composeRule.onNodeWithText("Choose Maps Service").assertIsDisplayed()
+        composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
         composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
     }
 

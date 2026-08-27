@@ -51,11 +51,10 @@ enum class BasemapCoverage(val note: String?) {
  *
  * ## How a basemap actually gets chosen
  *
- * Not from this enum directly. [MapService] groups these four into two providers (OpenStreetMap,
- * USGS), each with a "topo" and a "regular" [Basemap]; the user picks the service occasionally, in
- * Settings, and a quick-fire icon over the map itself toggles topo/regular far more often, since
- * that's a during-the-walk decision. See [MapService]'s doc comment for the full picture, including
- * why the app's default moved off USGS Topo (PR #13's choice) onto OpenStreetMap.
+ * Not from this enum directly. [MapMode] names exactly three — Street and Topographical (both
+ * OpenStreetMap-derived), Satellite (USGS) — picked from the map's own quick-fire "Map Mode"
+ * control, [MapModePicker]. See [MapMode]'s own doc comment for the full picture, including what
+ * this superseded (a two-tier service/mode split, and PR #13's original USGS Topo default).
  *
  * **USGS National Map covers the United States only**, which is why it cannot be a hardcoded
  * default regardless of which type resolves it: that would break the map outright for any user
@@ -132,22 +131,21 @@ enum class Basemap(
      */
     internal val tileUrlTemplate: String,
 ) {
-    USGS_TOPO(
-        label = "USGS Topo",
-        description = "Topographic: terrain contours, forest cover and water. Public domain.",
-        coverage = BasemapCoverage.UNITED_STATES_ONLY,
-        maxZoom = 15,
-        attribution = "USGS The National Map — public domain",
-        tileUrlTemplate = "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
-    ),
-
-    USGS_IMAGERY_TOPO(
-        label = "USGS Imagery",
-        description = "Aerial imagery with topographic labels over it. Public domain.",
+    /**
+     * Pure aerial orthoimagery, no topo labels drawn over it — the "other one," per the project
+     * owner's own distinction from [USGS_IMAGERY_TOPO]'s look (deleted alongside [USGS_TOPO]; see
+     * [MapMode]'s own doc comment for why neither is reachable any more). Confirmed live: real
+     * JPEGs through z16, 404 from z17, 404 outside the US — the same behaviour this project already
+     * verified for its USGS siblings before they were removed, via the same three-part check
+     * `scripts/verify-usgs-basemap.sh` runs.
+     */
+    USGS_IMAGERY_ONLY(
+        label = "USGS Satellite",
+        description = "Aerial orthoimagery, no labels. Public domain.",
         coverage = BasemapCoverage.UNITED_STATES_ONLY,
         maxZoom = 15,
         attribution = "USGS The National Map, orthoimagery — public domain",
-        tileUrlTemplate = "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}",
+        tileUrlTemplate = "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
     ),
 
     OPEN_TOPO_MAP(
@@ -155,7 +153,12 @@ enum class Basemap(
         description = "Topographic contours and hillshading, worldwide.",
         coverage = BasemapCoverage.WORLDWIDE,
         maxZoom = 17,
-        attribution = "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)",
+        // Shortened from "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)" -- the
+        // full form wrapped to two lines over the always-visible caption (see SightingsMap.kt),
+        // covering more of the map than a credit line should. Still names all three required
+        // credits (OpenStreetMap, SRTM, OpenTopoMap's CC-BY-SA), just without the "contributors"
+        // qualifier and the " | " separator.
+        attribution = "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
         tileUrlTemplate = "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
     ),
 
@@ -171,11 +174,10 @@ enum class Basemap(
 
     companion object {
         /**
-         * What the map opens on. Derives from [MapService.DEFAULT] rather than naming a [Basemap]
+         * What the map opens on. Derives from [MapMode.DEFAULT] rather than naming a [Basemap]
          * directly, so there is exactly one place that decides the app's opening basemap — see
-         * [MapService]'s doc comment for why that default is OpenStreetMap rather than USGS Topo
-         * (PR #13's original choice) and for how the two enums relate.
+         * [MapMode]'s own doc comment for how the two types relate.
          */
-        val DEFAULT get() = MapService.DEFAULT.topoBasemap
+        val DEFAULT get() = MapMode.DEFAULT.basemap
     }
 }

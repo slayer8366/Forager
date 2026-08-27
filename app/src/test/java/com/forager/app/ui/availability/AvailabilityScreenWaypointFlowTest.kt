@@ -196,7 +196,7 @@ class AvailabilityScreenWaypointFlowTest {
     /** Opens the chooser, picks "Drop a waypoint", pans the stub map to [WAYPOINT_TEST_LOCATION], and confirms the centre-pin picker with OK. */
     private fun openChooserPanAndConfirm() {
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        composeRule.onNodeWithText("Waypoint").performClick()
         composeRule.onNodeWithText("Simulate pan to test location").performClick()
         composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()

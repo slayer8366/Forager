@@ -12,10 +12,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -24,6 +26,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
@@ -203,9 +206,41 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Showing topo mode. Switch to regular mode.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Search").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
+    }
+
+    /**
+     * Drives the real long-press gesture through [MapStackIconButton]'s `combinedClickable`, per
+     * CLAUDE.md's rule that pointer-input behaviour over the map needs a Robolectric test driving
+     * the actual gesture, not a direct call to `onToggleNightMode`. `automaticNight` resolves to
+     * `false` here — no test in this suite sets `uiState.liveLocation`, and `CivilTwilight` is
+     * never consulted without a fix — so the layers button starts "Night mode off." deterministically,
+     * with no dependency on wall-clock time.
+     */
+    @Test
+    fun `long-pressing the layers icon toggles night mode without also toggling the basemap`() {
+        setScreen()
+        searchAReferenceRegion()
+
+        val dayDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
+        val nightDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode on."
+
+        composeRule.onNodeWithContentDescription(dayDescription).assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription(dayDescription).performTouchInput { longClick() }
+        composeRule.waitForIdle()
+
+        // Still "Topographical" throughout: a long press must not also open the map mode picker.
+        composeRule.onNodeWithContentDescription(nightDescription).assertIsDisplayed()
+
+        // MapNightMode.toggled: pressing twice returns to automatic rather than leaving a hold
+        // that happens to agree, so this must land back on "Night mode off.", not toggle again.
+        composeRule.onNodeWithContentDescription(nightDescription).performTouchInput { longClick() }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription(dayDescription).assertIsDisplayed()
     }
 
     @Test
@@ -242,8 +277,8 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.onNodeWithText("Add...").assertIsDisplayed()
-        composeRule.onNodeWithText("Log a find").performClick()
+        composeRule.onNodeWithText("Find").assertIsDisplayed()
+        composeRule.onNodeWithText("Find").performClick()
         composeRule.waitForIdle()
         // Choosing an action opens the centre-pin picker rather than firing immediately — the
         // stub map never pans, so the pin stays at the seeded region center and OK confirms it.
@@ -393,12 +428,14 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the return-to-vehicle line is blank while not recording, and the record toggle still shows`() {
+    fun `the return-to-vehicle control is disabled while not recording, and the record toggle still shows`() {
         setScreen(isRecording = false)
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Start recording track").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Return:", substring = true).assertCountEquals(0)
+        // returnToStartStripText(false, null) is "" -- ifBlank falls back to this placeholder.
+        // See MapIconStack's own return-to-vehicle MapStackIconButton call.
+        composeRule.onNodeWithContentDescription("Return to vehicle — start recording first").assertIsNotEnabled()
     }
 
     @Test
@@ -406,7 +443,7 @@ class AvailabilityScreenMapIconStackTest {
         setScreen(isRecording = true, returnToStart = null)
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Recording — waiting for a fix to compute the way back").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Recording — waiting for a fix to compute the way back").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Stop recording track").assertIsDisplayed()
     }
 
@@ -418,7 +455,7 @@ class AvailabilityScreenMapIconStackTest {
         )
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Return: 180° S · 1.2 km · -45 m").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Return: 180° S · 1.2 km · -45 m").assertIsDisplayed()
     }
 
     @Test
@@ -429,7 +466,7 @@ class AvailabilityScreenMapIconStackTest {
         )
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Return: 45° NE · 350 m · elevation diff. unavailable").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Return: 45° NE · 350 m · elevation diff. unavailable").assertIsDisplayed()
     }
 
     @Test

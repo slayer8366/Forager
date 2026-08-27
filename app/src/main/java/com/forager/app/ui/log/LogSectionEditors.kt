@@ -49,6 +49,7 @@ import com.forager.app.domain.model.StipePosition
 import com.forager.app.domain.model.StipeSection
 import com.forager.app.domain.model.VeilSection
 import com.forager.app.domain.model.VolvaType
+import com.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -61,7 +62,7 @@ private fun KindChip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 internal fun CapEditor(section: CapSection, modifier: Modifier = Modifier, onChanged: (CapSection) -> Unit) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.md)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         ObservedEnumField("Shape", section.shape, CapShape.entries, CapShape::label) { onChanged(section.copy(shape = it)) }
         ObservedEnumField("Surface", section.surface, CapSurface.entries, CapSurface::label) { onChanged(section.copy(surface = it)) }
         CapDecorationsField(section.decorations) { onChanged(section.copy(decorations = it)) }
@@ -78,12 +79,12 @@ internal fun CapEditor(section: CapSection, modifier: Modifier = Modifier, onCha
  */
 @Composable
 internal fun HymenophoreEditor(section: HymenophoreSection, modifier: Modifier = Modifier, onChanged: (HymenophoreSection) -> Unit) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.md)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         val details = section.details
         val recorded = (details as? Observed.Recorded<HymenophoreDetails>)?.value
 
         Text("Type", style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             val gillsSelected = recorded is HymenophoreDetails.Gills
             KindChip("Gills", gillsSelected) {
                 onChanged(
@@ -133,12 +134,12 @@ internal fun HymenophoreEditor(section: HymenophoreSection, modifier: Modifier =
 
 @Composable
 internal fun StipeEditor(section: StipeSection, modifier: Modifier = Modifier, onChanged: (StipeSection) -> Unit) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.md)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         val details = section.details
         val recorded = (details as? Observed.Recorded<StipeDetails>)?.value
 
         Text("Stipe", style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             val absentSelected = recorded is StipeDetails.Absent
             KindChip("Absent", absentSelected) {
                 onChanged(section.copy(details = if (absentSelected) Observed.NotObserved else Observed.Recorded(StipeDetails.Absent)))
@@ -176,7 +177,7 @@ internal fun StipeEditor(section: StipeSection, modifier: Modifier = Modifier, o
 
 @Composable
 internal fun VeilEditor(section: VeilSection, modifier: Modifier = Modifier, onChanged: (VeilSection) -> Unit) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.md)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         FeatureEnumField("Annulus", section.annulus, AnnulusType.entries, AnnulusType::label) { onChanged(section.copy(annulus = it)) }
         FeatureEnumField("Volva", section.volva, VolvaType.entries, VolvaType::label) { onChanged(section.copy(volva = it)) }
         NotesField(section.notes) { onChanged(section.copy(notes = it)) }
@@ -185,7 +186,7 @@ internal fun VeilEditor(section: VeilSection, modifier: Modifier = Modifier, onC
 
 @Composable
 internal fun ContextFleshEditor(section: ContextFleshSection, modifier: Modifier = Modifier, onChanged: (ContextFleshSection) -> Unit) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.md)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         ObservedEnumField("Texture", section.texture, FleshTexture.entries, FleshTexture::label) { onChanged(section.copy(texture = it)) }
         FeatureTextField("Colour change on cutting", section.colorChangeOnCutting) { onChanged(section.copy(colorChangeOnCutting = it)) }
         FeatureTextField("Exudate (latex)", section.exudate) { onChanged(section.copy(exudate = it)) }
@@ -197,12 +198,12 @@ internal fun ContextFleshEditor(section: ContextFleshSection, modifier: Modifier
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SporePrintEditor(section: SporePrintSection, modifier: Modifier = Modifier, onChanged: (SporePrintSection) -> Unit) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.md)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         val details = section.details
         val recorded = (details as? Observed.Recorded<SporePrint>)?.value
 
         Text("Colour", style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             SporePrintColor.CLOSED_VARIANTS.forEach { colorOption ->
                 val selected = recorded?.color == colorOption
                 KindChip(colorOption.label, selected) {
@@ -252,7 +253,7 @@ private fun sporePrintColorToggled(
 @Composable
 private fun SporePrintDateField(date: LocalDate, onDateChanged: (LocalDate) -> Unit) {
     var showPicker by remember { mutableStateOf(false) }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Read on: $date", style = MaterialTheme.typography.bodyMedium)
         TextButton(onClick = { showPicker = true }) { Text("Change") }
     }
@@ -286,12 +287,12 @@ private fun SporePrintDateField(date: LocalDate, onDateChanged: (LocalDate) -> U
 
 @Composable
 internal fun HostSubstrateEditor(section: HostSubstrateSection, modifier: Modifier = Modifier, onChanged: (HostSubstrateSection) -> Unit) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LogSpacing.md)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         val association = section.association
         val recorded = (association as? Observed.Recorded<Association>)?.value
 
         Text("Growing on/with", style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(LogSpacing.xs)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             val mycoSelected = recorded is Association.Mycorrhizal
             KindChip("Mycorrhizal", mycoSelected) {
                 onChanged(section.copy(association = if (mycoSelected) Observed.NotObserved else Observed.Recorded(Association.Mycorrhizal(""))))

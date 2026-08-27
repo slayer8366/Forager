@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import com.forager.app.domain.model.GalleryPhoto
+import com.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
 
@@ -74,7 +75,7 @@ internal fun PhotoGalleryScreen(
         photos.isEmpty() && loadErrorMessage != null -> Text(
             loadErrorMessage,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(LogSpacing.lg),
+            modifier = modifier.fillMaxWidth().padding(Spacing.lg),
         )
 
         // Mirrors LogEntryListScreen's own "nothing logged yet" empty state (wording, styling, and
@@ -84,15 +85,15 @@ internal fun PhotoGalleryScreen(
         photos.isEmpty() -> Text(
             "No photos yet. Add one from a log entry's Photos section.",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(LogSpacing.lg),
+            modifier = modifier.fillMaxWidth().padding(Spacing.lg),
         )
 
         else -> LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(LogSpacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+            contentPadding = PaddingValues(Spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             items(photos, key = { it.photo.id }) { galleryPhoto ->
                 GalleryPhotoTile(galleryPhoto, onDelete = { onDeletePhoto(galleryPhoto) })
@@ -107,7 +108,7 @@ private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, onDelete: () -> Unit, m
 
     Card(
         modifier = modifier.fillMaxWidth().aspectRatio(GALLERY_PHOTO_TILE_ASPECT_RATIO),
-        shape = RoundedCornerShape(LogSpacing.sm),
+        shape = RoundedCornerShape(Spacing.sm),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
@@ -125,7 +126,7 @@ private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, onDelete: () -> Unit, m
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(LogSpacing.sm),
+                modifier = Modifier.padding(Spacing.sm),
             )
         }
     }

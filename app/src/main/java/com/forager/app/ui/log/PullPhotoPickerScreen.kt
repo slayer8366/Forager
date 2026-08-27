@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LogPhoto
+import com.forager.app.ui.theme.Spacing
 
 /**
  * Workstream G3 (`docs/plans/pr26-rework.md`): the grid [LogEntryDetailScreen]'s "From Album"
@@ -42,7 +43,7 @@ internal fun PullPhotoPickerScreen(
         Text(
             "No photos in the gallery yet. Add one with Camera or Gallery first.",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(LogSpacing.lg),
+            modifier = modifier.fillMaxWidth().padding(Spacing.lg),
         )
         return
     }
@@ -50,15 +51,15 @@ internal fun PullPhotoPickerScreen(
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(LogSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(LogSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(LogSpacing.sm),
+        contentPadding = PaddingValues(Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         items(photos, key = { it.photo.id }) { galleryPhoto ->
             Card(
                 onClick = { onPhotoSelected(galleryPhoto.photo) },
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-                shape = RoundedCornerShape(LogSpacing.sm),
+                shape = RoundedCornerShape(Spacing.sm),
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     DecodedPhoto(
