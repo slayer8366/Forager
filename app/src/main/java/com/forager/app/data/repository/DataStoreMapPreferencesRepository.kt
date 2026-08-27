@@ -2,6 +2,7 @@ package com.forager.app.data.repository
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -55,11 +56,20 @@ class DataStoreMapPreferencesRepository(context: Context) : MapPreferencesReposi
         dataStore.edit { prefs -> prefs[KEY_STALE_THRESHOLD_DAYS] = days }
     }
 
+    override suspend fun getNightModeMaps(): Result<Boolean> = runCatchingCancellable {
+        dataStore.data.first()[KEY_NIGHT_MODE_MAPS] ?: false
+    }
+
+    override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_NIGHT_MODE_MAPS] = night }
+    }
+
     private companion object {
         const val DATA_STORE_NAME = "map_preferences"
         val KEY_LAST_PICKED_LAT = doublePreferencesKey("offline_map.last_picked_lat")
         val KEY_LAST_PICKED_LNG = doublePreferencesKey("offline_map.last_picked_lng")
         val KEY_LAST_PICKED_RADIUS_KM = intPreferencesKey("offline_map.last_picked_radius_km")
         val KEY_STALE_THRESHOLD_DAYS = intPreferencesKey("offline_map.stale_threshold_days")
+        val KEY_NIGHT_MODE_MAPS = booleanPreferencesKey("night_mode.maps")
     }
 }

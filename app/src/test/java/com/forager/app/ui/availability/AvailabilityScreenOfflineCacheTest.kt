@@ -102,6 +102,7 @@ class AvailabilityScreenOfflineCacheTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
+                onNightModeMapsChanged = {},
                 mapSlot = StubMapSlot,
             )
         }

@@ -95,6 +95,7 @@ class AvailabilityViewModel(
         loadOfflineRegions()
         loadOfflineMapPreferences()
         loadDistanceUnitPreference()
+        loadNightModePreferences()
         // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
         // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
         // recording: "any time the map is open" was the explicit ask this answers. A denied/
@@ -662,6 +663,32 @@ class AvailabilityViewModel(
             mapPreferencesRepository.getStaleThresholdDays().fold(
                 onSuccess = { days -> _uiState.update { it.copy(offlineStaleThresholdDays = days) } },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the offline staleness threshold.", error) },
+            )
+        }
+    }
+
+    /** Restores Settings' "Night Maps" checkbox — same read-failure treatment as [loadOfflineMapPreferences]. */
+    private fun loadNightModePreferences() {
+        viewModelScope.launch {
+            mapPreferencesRepository.getNightModeMaps().fold(
+                onSuccess = { night -> _uiState.update { it.copy(nightModeMaps = night) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the night-maps preference.", error) },
+            )
+        }
+    }
+
+    /**
+     * Settings' "Night Maps" checkbox. Updates [AvailabilityUiState.nightModeMaps] immediately —
+     * the map should not wait on a DataStore round-trip to reflect what was just checked — then
+     * persists in the background; a persist failure is logged but not surfaced, the same
+     * not-essential-to-using-it treatment [loadNightModePreferences] gives a read failure.
+     */
+    fun onNightModeMapsChanged(night: Boolean) {
+        _uiState.update { it.copy(nightModeMaps = night) }
+        viewModelScope.launch {
+            mapPreferencesRepository.setNightModeMaps(night).fold(
+                onSuccess = {},
+                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the night-maps preference.", error) },
             )
         }
     }

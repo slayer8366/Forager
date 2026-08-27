@@ -114,6 +114,7 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
+                onNightModeMapsChanged = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -156,6 +157,7 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
+                onNightModeMapsChanged = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -226,6 +228,7 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
+                onNightModeMapsChanged = {},
                 mapSlot = mapSlot,
             )
         }
@@ -377,6 +380,7 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
+                onNightModeMapsChanged = {},
                 mapSlot = StubMapSlot,
                 onOpenLogEntry = { id ->
                     logUiState = logUiState.copy(editingEntry = logUiState.entries.first { it.id == id })
