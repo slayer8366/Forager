@@ -407,7 +407,7 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithContentDescription("Start recording track").assertIsDisplayed()
         // returnToStartStripText(false, null) is "" -- ifBlank falls back to this placeholder.
-        // See MapIconStack's own return-to-vehicle MapStackIconButton call.
+        // See MapIconBar's own return-to-vehicle MapBarIconButton call.
         composeRule.onNodeWithContentDescription("Return to vehicle — start recording first").assertIsNotEnabled()
     }
 
