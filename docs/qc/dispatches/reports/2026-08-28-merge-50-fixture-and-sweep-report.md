@@ -61,11 +61,23 @@ merge commits rather than squash/rebase) → **`82e7274`**, `origin/main`'s new 
 
 **(e) Full suite, fresh, against the merged commit — real numbers, not estimated.**
 
+Ran `./gradlew --stacktrace assembleDebug testDebugUnitTest` against `origin/main@82e7274` in an
+isolated `git worktree`, separate from this session's own branch checkout. `BUILD SUCCESSFUL in
+5m 1s`. JUnit XML parsed the same way `ci.yml`'s own summary step does
+(`app/build/test-results/testDebugUnitTest/TEST-*.xml`):
+
 ```
-<<results below, from a clean ./gradlew assembleDebug testDebugUnitTest run against
-origin/main@82e7274 in an isolated worktree, JUnit XML parsed the same way ci.yml's
-own summary step does>>
+suites=108
+{'tests': 742, 'failures': 0, 'errors': 0, 'skipped': 0}
 ```
+
+**742 tests across 108 suites, 0 failures, 0 errors, 0 skipped.** `assembleDebug` also succeeded
+(`app-debug.apk` produced) and `verifyNothingTestOnlyReachesTheApk` passed: `Verified: no
+test-only class or manifest entry in app-debug.apk.` Compared against this session's own earlier,
+independently-measured pre-merge baseline (732 tests / 104 suites, 0 failures — see `STATUS.md`):
+PR #50 added exactly 10 tests across 4 new suites, consistent with the new test files in its
+diff (`ForagerDatabaseDestructiveFallbackTest.kt`, `DataStoreDistanceUnitPreferenceRepositoryTest.kt`,
+`AvailabilityViewModelDistanceUnitTest.kt`, `CameraTargetRecenterGuardTest.kt`).
 
 ---
 
