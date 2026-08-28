@@ -102,9 +102,14 @@ data class MapOverlayContent(
  *
  * The parameters are exactly what the screen knows and the map needs. [content] is every list the
  * map draws over the basemap — see [MapOverlayContent]'s own doc comment for why those are bundled
- * rather than one parameter apiece. [onLongPress] is how the map reports a trip-planning gesture
- * back up without knowing anything about dates or persistence — the screen owns the date picker and
- * the save call, the map only reports where the finger was. [Basemap] crosses this seam as this
+ * rather than one parameter apiece. [onLongPress] is how the map *would* report a trip-planning
+ * gesture back up, when wired — the caller turns the reported point into a plan/log action without
+ * this composable knowing anything about dates or persistence. **No production call site wires it
+ * as of 2026-08-28** — both `AvailabilityScreen.kt` call sites (`MapTab`, `CompactMapTab`) pass
+ * `{}`. Kept deliberately, not left by accident (see [SightingsMap]'s own doc comment on the same
+ * parameter for the fuller reasoning); the interaction it used to drive now goes through panning
+ * the camera, tapping add (+), and confirming via `CentrePinLocationPickerOverlay` instead.
+ * [Basemap] crosses this seam as this
  * project's own type, not a vendor tile-source type, for the same reason the rest of the seam
  * exists: the screen names the basemap it wants and stays ignorant of which vendor supplies the
  * tiles. [modifier] is last because it is the slot's *size contract* — the screen decides how much

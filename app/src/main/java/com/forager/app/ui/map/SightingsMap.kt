@@ -80,13 +80,21 @@ import org.maplibre.geojson.Point
  * numbered foraging-area labels (where to go based on that history): a planned trip is neither of
  * those, it's a place the user chose for themselves.
  *
- * [onLongPress] fires with the geographic point under a long-press, for the caller to turn into a
- * planned trip (via a date picker it owns — this composable knows nothing about dates or
- * persistence, only where the gesture happened). Wired through `MapLibreMap.addOnMapLongClickListener`
- * rather than a gesture detector on the [AndroidView] itself, for the same reason the previous
- * osmdroid implementation used `MapEventsOverlay`: MapLibre's own touch handling already owns
- * pan/zoom on this `MapView`, and a second, independent gesture detector on top would race it for
- * the same touch stream.
+ * [onLongPress] fires with the geographic point under a long-press, when a caller actually listens
+ * for it — the intended consumer would turn it into a planned trip (via a date picker it owns; this
+ * composable knows nothing about dates or persistence, only where the gesture happened). Wired
+ * through `MapLibreMap.addOnMapLongClickListener` rather than a gesture detector on the
+ * [AndroidView] itself, for the same reason the previous osmdroid implementation used
+ * `MapEventsOverlay`: MapLibre's own touch handling already owns pan/zoom on this `MapView`, and a
+ * second, independent gesture detector on top would race it for the same touch stream.
+ *
+ * **No production call site consumes this as of 2026-08-28.** Both `mapSlot(...)` call sites in
+ * `AvailabilityScreen.kt` (`MapTab`, `CompactMapTab`) pass `{}` for [onLongPress] — the
+ * trip-planning/log-a-find interaction this parameter used to drive now goes through panning the
+ * camera, tapping the add (+) button, and confirming via
+ * [com.forager.app.ui.map.CentrePinLocationPickerOverlay] instead. Kept wired here deliberately,
+ * not left by accident: the listener costs nothing while dormant, and whether to remove it or give
+ * it a new consumer is a product decision this comment fix doesn't make.
  *
  * ## Migration note (osmdroid -> MapLibre, `docs/plans/maplibre-migration.md` §2b)
  *
