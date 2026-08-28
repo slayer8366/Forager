@@ -190,7 +190,14 @@ by `aac8520` along with `MapNightMode.kt` and its test.
 
 ## Verification
 
+`./gradlew testDebugUnitTest` against this session's exact two-file diff (`MapSlot.kt`,
+`SightingsMap.kt`), in an isolated worktree off `origin/main@bdd5b31`. `BUILD SUCCESSFUL in 1m
+41s`. JUnit XML parsed the same way `ci.yml`'s own summary step does:
+
 ```
-<<real numbers below, from ./gradlew testDebugUnitTest against this session's exact two-file
-diff, JUnit XML parsed the same way ci.yml's own summary step does>>
+suites=108
+{'tests': 742, 'failures': 0, 'errors': 0, 'skipped': 0}
 ```
+
+Identical to `main`'s own count immediately before this fix — comment-only, confirmed harmless.
+Pushed directly to `main` as **`4e72f06`**.
