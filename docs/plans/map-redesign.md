@@ -479,6 +479,39 @@ work above is a call for whoever picks this up, informed by whatever
 hardware feedback the current (undimmed, icon-halo) approach gets in the
 meantime.
 
+## Offline map hardware findings (recorded 2026-08-28, deferred)
+
+From a real hardware check of the offline map in airplane mode (the same
+check that confirmed offline tiles render at all — see
+`docs/qc/dispatches/reports/2026-08-28-tile-interception-report.md` for the
+networking-layer follow-up that check prompted). Both findings below are
+about the downloaded region's own presentation, not about storage capacity —
+recorded explicitly so neither gets filed away as "wait for a bigger storage
+tier," which would not touch either one.
+
+**The coverage edge is unmarked.** At the boundary of a downloaded region the
+map shows a hard diagonal seam, with stale content past it that reads as real
+terrain rather than as "no data here." A user with no signal at that moment
+has no way to tell "I've walked past what I downloaded" from "this is still
+loading" — the two look identical. A bigger download radius pushes the seam
+further away; it does not make the seam itself legible, so this is not a
+storage-budget problem in disguise. Not scoped here — the fix (some on-map
+signal for the coverage boundary, e.g. a visible ring at the downloaded
+region's radius, or a distinct fill for the area past it) needs its own
+design pass, not assumed.
+
+**The offline zoom ceiling isn't disclosed before the trip.** Offline detail
+stops at a shallower zoom than the live basemaps reach
+(`OfflineMapRepository.MAX_ZOOM`, `MapLibreOfflineMapRepository.kt`) — which
+means the map has the least detail to offer exactly when offline matters
+most: no signal, navigating on foot, past the point of turning back to
+re-download at a different radius. This is a pre-trip disclosure gap, not a
+capacity problem — showing the max zoom a downloaded region will actually
+render at, before or during the download (in `OfflineMapsPanel` or the
+region-summary UI), would let a user judge whether that's enough detail for
+where they're going while they still have signal to fix it. Not scoped
+here either.
+
 ## Delivery
 
 1. Confirm Phase 1 (`feature/mushroom-log`) is merged to `main`, and read
