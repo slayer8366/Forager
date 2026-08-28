@@ -72,3 +72,16 @@ workstreams. **L4c has since landed on `main`** via PR [#42](https://github.com/
 Understory (PR [#44](https://github.com/slayer8366/Forager/pull/44)'s content, merged into the
 L4c branch first as `fea6f6c`) onto `main` in the same commit. Corrected following the 2026-08-26 repo-state pulse (`pulses/reports/2026-08-26-repo-state-pulse-response.md`)
 — this paragraph previously called L4c "not-yet-landed."
+
+### Layout phase — 5S applied to the UI
+
+The layout-phase draft itself (owner-authored, "Layout phase — 5S applied to the UI") has not been
+filed in this repo as of this writing — it exists only as a chat upload, marked "draft for owner
+review." The two pulses verifying its claims against the tree are filed here since they're
+independently useful and, per `CLAUDE.md`'s own "an audit that lives only in a session transcript is
+not recorded" pitfall, worth a durable home regardless of whether the draft itself ever lands.
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-28 | Pulse: map/icon claims in the layout-phase draft (read-only, no code changes) — relocates the draft's central 1S finding from the compass strip to `MapIconBar`, answers its five "decisions needed" questions | `pulses/reports/2026-08-28-map-icon-pulse.md` |
+| 2026-08-28 | Pulse 2: `MapIconBar` touch-interception check, full row inventory, native-compass confirmation, Q5 provenance, full `map-redesign.md` decided-vs-provisional read, stale self-reference sweep (read-only, no code changes) | `pulses/reports/2026-08-28-mapiconbar-q5-provenance-pulse.md` |
