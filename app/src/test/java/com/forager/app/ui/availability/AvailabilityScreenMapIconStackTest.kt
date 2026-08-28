@@ -17,7 +17,6 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -26,13 +25,14 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
-import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
+import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
@@ -59,6 +59,7 @@ import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
+import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -145,6 +146,8 @@ class AvailabilityScreenMapIconStackTest {
             ),
             offlineMapRepository = IconStackStubOfflineMapRepository,
             mapPreferencesRepository = IconStackStubMapPreferencesRepository,
+            distanceUnitPreferenceRepository = IconStackStubDistanceUnitPreferenceRepository,
+            appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -174,6 +177,8 @@ class AvailabilityScreenMapIconStackTest {
                 onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                onDarkThemeChanged = viewModel::onDarkThemeChanged,
                 onStartLogEntry = onStartLogEntry,
                 onLocateMe = onLocateMe,
                 isRecording = isRecording,
@@ -209,38 +214,6 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Search").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
-    }
-
-    /**
-     * Drives the real long-press gesture through [MapBarIconButton]'s `combinedClickable`, per
-     * CLAUDE.md's rule that pointer-input behaviour over the map needs a Robolectric test driving
-     * the actual gesture, not a direct call to `onToggleNightMode`. `automaticNight` resolves to
-     * `false` here — no test in this suite sets `uiState.liveLocation`, and `CivilTwilight` is
-     * never consulted without a fix — so the layers button starts "Night mode off." deterministically,
-     * with no dependency on wall-clock time.
-     */
-    @Test
-    fun `long-pressing the layers icon toggles night mode without also toggling the basemap`() {
-        setScreen()
-        searchAReferenceRegion()
-
-        val dayDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
-        val nightDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode on."
-
-        composeRule.onNodeWithContentDescription(dayDescription).assertIsDisplayed()
-
-        composeRule.onNodeWithContentDescription(dayDescription).performTouchInput { longClick() }
-        composeRule.waitForIdle()
-
-        // Still "Topographical" throughout: a long press must not also open the map mode picker.
-        composeRule.onNodeWithContentDescription(nightDescription).assertIsDisplayed()
-
-        // MapNightMode.toggled: pressing twice returns to automatic rather than leaving a hold
-        // that happens to agree, so this must land back on "Night mode off.", not toggle again.
-        composeRule.onNodeWithContentDescription(nightDescription).performTouchInput { longClick() }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithContentDescription(dayDescription).assertIsDisplayed()
     }
 
     @Test
@@ -634,4 +607,17 @@ private object IconStackStubMapPreferencesRepository : MapPreferencesRepository 
     override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
     override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
     override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
+    override suspend fun getNightModeMaps(): Result<Boolean> = Result.success(false)
+    override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
+}
+
+/** [DistanceUnit.KILOMETERS] fixed — this file's assertions are hardcoded to "km" text and have nothing to do with the km/mi preference. */
+private object IconStackStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
+    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.KILOMETERS)
+    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+}
+
+private object IconStackStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
 }

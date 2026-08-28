@@ -57,18 +57,22 @@ reusable measurement tool.
 
 ## Planner meta-documents
 
-Corrections to the Planner's own standing reference material, as distinct from a dispatch or
-pulse about the codebase itself.
+The Planner's own standing reference material, as distinct from a dispatch or pulse about the
+codebase itself.
 
 | Date | Document | File |
 |---|---|---|
-| 2026-08-25 | Correction patch: `planner-cold-start-handoff-2026-08-25.md`'s Save/Cancel standing rule, Workstream C status, and a new lesson 14 — filed standalone (2026-08-27) since neither that handoff document nor `planner-operating-guide-2026-08-25.md` has ever been filed in this repo; see the patch's own "Filing note" | `dispatches/2026-08-25-planner-cold-start-handoff-correction-patch.md` |
+| 2026-08-25 | Cold-start handoff — project state for a planner session with no prior memory. Dated snapshot; see its own header for how stale the "Landed"/"Remaining" tables are as of filing | `planner-cold-start-handoff-2026-08-25.md` |
+| 2026-08-25 | Operating guide — the planner role's method (pulses, dispatches, standing test practices, working with the owner) | `planner-operating-guide-2026-08-25.md` |
+| 2026-08-25 | Correction patch to the handoff document above: Save/Cancel standing rule, a note on Workstream C (see below), and a new lesson 14 — originally filed standalone (2026-08-27) since neither base document existed in this repo yet; both base documents were supplied later the same day and the patch folded into them directly. Kept as the historical record — see its own "Update" section | `dispatches/2026-08-25-planner-cold-start-handoff-correction-patch.md` |
 
-**Still open:** the two documents this patch describes (`planner-cold-start-handoff-2026-08-25.md`,
-`planner-operating-guide-2026-08-25.md`) have only ever existed as chat uploads — confirmed absent
-from the full repo tree by the 2026-08-26 repo-state pulse. Filing the patch above does not close
-that gap; it only means the correction itself has a durable home to be folded into those documents
-once they're supplied.
+**One part of the patch did not transfer cleanly:** the patch's §2 describes replacing an
+"unaccounted for" claim about Workstream C with "superseded, not missing." The supplied handoff
+document contains no such claim anywhere — the only mention of Workstream C in it is inside an
+unrelated lesson's example. Rather than force text into the document correcting something it
+doesn't say, the filed handoff document instead notes, at that point, that the underlying fact is
+real and already correctly recorded (`docs/plans/README.md`'s PR #26 row;
+`docs/audits/2026-08-24-workstream-c-and-d-archive.md`).
 
 ## Understory — M3 Expressive design system (`docs/plans/understory-design-system.md`)
 

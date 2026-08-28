@@ -13,12 +13,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
@@ -76,6 +74,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -173,6 +172,8 @@ import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.formatDistanceKm
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
@@ -212,11 +213,10 @@ import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import com.forager.app.ui.map.foragingAreaSummary
 import com.forager.app.ui.motion.MotionTokens
-import com.forager.app.domain.CivilTwilight
-import com.forager.app.domain.MapNightMode
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
 import com.forager.app.ui.theme.Cream
+import com.forager.app.ui.theme.LocalForagerDarkTheme
 import com.forager.app.ui.theme.MapIconBarAccent
 import com.forager.app.ui.theme.Spacing
 import java.time.Instant
@@ -307,16 +307,6 @@ private enum class DrawerPanel {
 private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
 
 /**
- * How often the twilight decision is re-evaluated while the screen is open.
- *
- * Five minutes. The sun crosses the civil-twilight band in roughly twenty to forty minutes at
- * temperate latitudes, so this switches within a small fraction of the transition it is watching
- * for, and a tighter poll would buy precision nobody can perceive. `docs/adr/0001-motion-precedence.md`
- * ranks performance above the calm layer for exactly this kind of trade.
- */
-private const val TWILIGHT_RECHECK_INTERVAL_MS = 5 * 60 * 1000L
-
-/**
  * Map-first layout: the results (map or ranked list) own the content area, and everything set far
  * less than once per search — location, radius, month, the foraging-areas layer, and trip
  * planning — lives in a navigation drawer behind the app bar's tune icon, as two independently
@@ -385,6 +375,10 @@ fun AvailabilityScreen(
     onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
+    onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings' "Night Mode" checkbox (the app-wide theme) — see [AvailabilityUiState.darkTheme]'s own doc comment. */
+    onDarkThemeChanged: (Boolean) -> Unit,
     /**
      * The mushroom log drawer destination's own state — see [com.forager.app.ui.log.LogPanel].
      * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
@@ -486,6 +480,8 @@ fun AvailabilityScreen(
      * on-device store, same [mapSlot]/[cameraCaptureFiles]/[compassProvider] pattern above.
      */
     crashFileStore: CrashFileStore = CrashFileStore.forContext(LocalContext.current),
+    /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
+    onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
@@ -519,34 +515,16 @@ fun AvailabilityScreen(
     var mapMode by remember { mutableStateOf(MapMode.DEFAULT) }
     val basemap = mapMode.basemap
 
-    // Night mode. Automatic from civil twilight at the device's own position, with a long-press
-    // hold on the icon stack's layers slot for when the sun and the conditions disagree.
-    //
-    // The clock is re-read on a timer rather than derived from recomposition: dusk arrives while
-    // the app is open and nothing else would prompt a re-evaluation. TWILIGHT_RECHECK_INTERVAL_MS
-    // is coarse on purpose — the sun crosses the civil-twilight band in minutes, and a tighter
-    // poll would buy precision nobody can perceive at a cost ADR-0001 ranks above it.
-    var twilightClockMillis by remember { mutableStateOf(currentTime.nowEpochMillis()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(TWILIGHT_RECHECK_INTERVAL_MS)
-            twilightClockMillis = currentTime.nowEpochMillis()
-        }
-    }
-    // uiState.liveLocation, not the searched region: night mode is about the light where the
-    // *device* is, and those diverge exactly when a trip elsewhere is being planned. Falls back to
-    // day when there is no fix — an unrequested dark map is worse than a bright one, and "no
-    // location yet" is not evidence of darkness.
-    val automaticNight = uiState.liveLocation?.let { fix ->
-        CivilTwilight.isNight(twilightClockMillis, fix.lat, fix.lng)
-    } ?: false
-    var nightModeHold by remember { mutableStateOf<MapNightMode.NightModeHold?>(null) }
-    val isNightMode = MapNightMode.resolve(automaticNight, nightModeHold)
-    val onToggleNightMode = { nightModeHold = MapNightMode.toggled(automaticNight, nightModeHold) }
+    // Night mode: Settings' "Night Maps" checkbox, a direct persistent preference
+    // (uiState.nightModeMaps, backed by MapPreferencesRepository.getNightModeMaps/setNightModeMaps)
+    // rather than derived from time of day. Replaces this map's earlier civil-twilight-automatic/
+    // long-press-hold control (MapNightMode) per the project owner's own request to move night
+    // mode to a plain Settings checkbox instead.
+    val isNightMode = uiState.nightModeMaps
     val mapRenderMode = MapRenderMode(basemap = basemap, night = isNightMode)
-    // Same reasoning and cost as mapMode above — see DistanceUnit's own doc comment for
-    // why this stays session-local display state rather than a persisted preference.
-    var distanceUnit by remember { mutableStateOf(DistanceUnit.KILOMETERS) }
+    // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
+    // comment. mapMode above is still session-local; see the observation in that same doc comment.
+    val distanceUnit = uiState.distanceUnit
     var drawerPanel by remember { mutableStateOf(DrawerPanel.Search) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val context = LocalContext.current
@@ -730,7 +708,11 @@ fun AvailabilityScreen(
                 SettingsContent(
                     modifier = Modifier.weight(1f),
                     distanceUnit = distanceUnit,
-                    onDistanceUnitSelected = { distanceUnit = it },
+                    onDistanceUnitSelected = onDistanceUnitSelected,
+                    darkTheme = uiState.darkTheme,
+                    onDarkThemeChanged = onDarkThemeChanged,
+                    nightModeMaps = uiState.nightModeMaps,
+                    onNightModeMapsChanged = onNightModeMapsChanged,
                     onOpenOfflineMaps = {
                         drawerPanel = DrawerPanel.OfflineMaps
                         onOfflineMapsOpened()
@@ -1063,7 +1045,6 @@ fun AvailabilityScreen(
                         mapMode = mapMode,
                         onMapModeSelected = { mapMode = it },
                         isNightMode = isNightMode,
-                        onToggleNightMode = onToggleNightMode,
                         onPlaceTripPin = onPlaceTripPin,
                         // Opens straight to the log's edit form for the new entry, bypassing
                         // Search — see DrawerPanel's own doc comment on why Log is reachable
@@ -1120,9 +1101,12 @@ fun AvailabilityScreen(
                         uiState = uiState,
                         mapSlot = mapSlot,
                         distanceUnit = distanceUnit,
-                        onDistanceUnitSelected = { distanceUnit = it },
+                        onDistanceUnitSelected = onDistanceUnitSelected,
                         currentTime = currentTime,
                         isNightMode = isNightMode,
+                        onNightModeMapsChanged = onNightModeMapsChanged,
+                        darkTheme = uiState.darkTheme,
+                        onDarkThemeChanged = onDarkThemeChanged,
                         onOfflineMapLatChanged = onOfflineMapLatChanged,
                         onOfflineMapLngChanged = onOfflineMapLngChanged,
                         onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
@@ -1645,8 +1629,12 @@ private fun CompactSettingsTab(
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     currentTime: CurrentTimeProvider,
-    /** Night mode for the offline-download region picker this tab hosts. */
+    /** Night mode for the offline-download region picker this tab hosts, and Settings' own checkbox value. */
     isNightMode: Boolean,
+    onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings' "Night Mode" checkbox (the app-wide theme) — see [AvailabilityUiState.darkTheme]'s own doc comment. */
+    darkTheme: Boolean,
+    onDarkThemeChanged: (Boolean) -> Unit,
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
@@ -1704,6 +1692,10 @@ private fun CompactSettingsTab(
                     modifier = Modifier.weight(1f),
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = onDistanceUnitSelected,
+                    nightModeMaps = isNightMode,
+                    onNightModeMapsChanged = onNightModeMapsChanged,
+                    darkTheme = darkTheme,
+                    onDarkThemeChanged = onDarkThemeChanged,
                     onOpenOfflineMaps = {
                         showOfflineMaps = true
                         onOfflineMapsOpened()
@@ -1740,6 +1732,10 @@ private fun SettingsContent(
     modifier: Modifier = Modifier,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
+    darkTheme: Boolean,
+    onDarkThemeChanged: (Boolean) -> Unit,
+    nightModeMaps: Boolean,
+    onNightModeMapsChanged: (Boolean) -> Unit,
     onOpenOfflineMaps: () -> Unit,
     onOpenCrashLogs: () -> Unit,
 ) {
@@ -1751,9 +1747,54 @@ private fun SettingsContent(
     ) {
         DistanceUnitSection(distanceUnit = distanceUnit, onDistanceUnitSelected = onDistanceUnitSelected)
         HorizontalDivider()
+        DarkThemeSection(checked = darkTheme, onCheckedChange = onDarkThemeChanged)
+        NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
+        HorizontalDivider()
         OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
+    }
+}
+
+/**
+ * The app's own light/dark theme — a direct, persistent preference ([AvailabilityUiState.darkTheme]),
+ * not derived from the device's system theme ([androidx.compose.foundation.isSystemInDarkTheme]).
+ * [NightModeMapsSection] sits directly beneath this one: that checkbox controls only the map's own
+ * basemap styling, independent of this app-wide choice — see [AvailabilityUiState.nightModeMaps]'s
+ * own doc comment.
+ */
+@Composable
+private fun DarkThemeSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Text("Night Mode", style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/**
+ * Whether the map renders in night mode — a direct, persistent preference
+ * ([AvailabilityUiState.nightModeMaps]), not derived from time of day. Replaces the map's earlier
+ * civil-twilight-automatic/long-press-hold control per the project owner's own request to move
+ * this to a plain Settings checkbox instead. Sits directly beneath [DarkThemeSection] — see that
+ * composable's own doc comment.
+ */
+@Composable
+private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Text("Night Maps", style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -2255,7 +2296,7 @@ private fun MapModePicker(
     anchor: Alignment = Alignment.TopEnd,
     anchorOffset: DpOffset = DpOffset(x = -Spacing.sm, y = MIN_TOUCH_TARGET + Spacing.lg),
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     Box(modifier = modifier.fillMaxSize()) {
         // docs/motion-spec.md §2 "Panels and navigation" — same spec AddActionTile's own scrim uses.
         AnimatedVisibility(
@@ -3470,7 +3511,9 @@ private val MAP_ICON_BAR_FILL_DIAMETER = 36.dp
 private val MAP_ICON_BAR_CORNER_RADIUS = MIN_TOUCH_TARGET / 2
 
 /**
- * [MapIconBar]'s fill — see [MapBarIconButton]. Picked per [isSystemInDarkTheme], independent of
+ * [MapIconBar]'s fill — see [MapBarIconButton]. Picked per [com.forager.app.ui.theme.LocalForagerDarkTheme]
+ * (the app's own "Night Mode" checkbox, not the device's system theme — see that local's own doc
+ * comment for the bug reading [androidx.compose.foundation.isSystemInDarkTheme] directly here caused), independent of
  * the map's own night mode (deliberately not derived from it, the same way [MapPalette] is
  * deliberately not derived from the ambient scheme — this is app chrome over the map, not a mark
  * on it, but the two axes are still kept separate on principle: a device in light mode looking at
@@ -3529,7 +3572,7 @@ private fun mapIconBarRecordAccent(isDarkTheme: Boolean) =
 /** Translucent background for [CompassElevationStripContent] — dark-theme value unaffected by the icon bar's own opacity history above; this strip sits over the map the same way, but was not reported as illegible in the same hardware pass, so it is deliberately left as-is rather than changed on the strength of a fix aimed at a different element. */
 private val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.78f)
 
-/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [isSystemInDarkTheme], independent of the map's own night mode, unverified on hardware. */
+/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
 private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.78f)
 
 /**
@@ -3559,7 +3602,6 @@ private fun CompactMapTab(
     mapSlot: MapSlot,
     renderMode: MapRenderMode,
     isNightMode: Boolean,
-    onToggleNightMode: () -> Unit,
     mapMode: MapMode,
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
@@ -3719,7 +3761,6 @@ private fun CompactMapTab(
                     mapMode = mapMode,
                     onOpenMapModePicker = { showMapModePicker = true },
                     isNightMode = isNightMode,
-                    onToggleNightMode = onToggleNightMode,
                     isRecording = isRecording,
                     onToggleRecording = onToggleRecording,
                     returnToStart = returnToStart,
@@ -3846,21 +3887,17 @@ private fun MapIconBar(
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
     /**
-     * Night mode as it currently resolves — automatic from civil twilight unless the user is
-     * holding it. Shown in slot 4's content description so the state is readable rather than
-     * merely visible; see [MapNightMode] for why a hold expires.
+     * Night mode as it currently resolves — Settings' "Night Maps" checkbox
+     * ([AvailabilityUiState.nightModeMaps]), shown here in slot 4's content description so the
+     * state is readable rather than merely visible. No longer toggleable from this bar directly
+     * (a long-press here used to hold it; that control moved to Settings — see
+     * [com.forager.app.domain.MapPreferencesRepository.getNightModeMaps]'s own doc comment).
      */
     isNightMode: Boolean = false,
-    /**
-     * Long-press on the topo/plain slot. Night mode lives here rather than as its own row because
-     * that slot is already the map's render-mode control: tap changes the basemap, long-press
-     * changes whether it is dimmed. One control, one question — how should this map draw right now.
-     */
-    onToggleNightMode: () -> Unit = {},
 ) {
     // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
     // comment for why the two axes are kept separate rather than one steering the other.
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     Surface(
         shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
         color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
@@ -3895,12 +3932,10 @@ private fun MapIconBar(
                     append("Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.")
                     // Appended rather than replacing the tap description: the button still
                     // primarily opens the map mode picker, and a reader needs to know night mode
-                    // is on without having to discover the long press first.
+                    // is on — now toggled from Settings' "Night Maps" checkbox, not from here.
                     append(if (isNightMode) " Night mode on." else " Night mode off.")
                 },
                 onClick = onOpenMapModePicker,
-                onLongClick = onToggleNightMode,
-                longClickLabel = if (isNightMode) "Turn night mode off" else "Turn night mode on",
             )
             MapBarIconButton(
                 icon = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
@@ -3959,14 +3994,6 @@ private fun MapBarIconButton(
     /** The icon's own tint while [filled] — must be picked for contrast against [fillColor] specifically, not [MapIconBar]'s own bar-level contentColor. */
     fillContentColor: Color = Color.White,
     /**
-     * Optional secondary action on a long press. Only the layers slot uses it today, for night
-     * mode — see [MapIconBar]. `null` leaves the button a plain tap target rather than one that
-     * silently swallows long presses.
-     */
-    onLongClick: (() -> Unit)? = null,
-    /** Overrides [contentDescription] for the long-press action, for screen readers and tests. */
-    longClickLabel: String? = null,
-    /**
      * `false` dims and disables the tap target — the return-to-vehicle row's state while nothing
      * is recording, when there is nothing yet to return to.
      */
@@ -3978,12 +4005,7 @@ private fun MapBarIconButton(
         modifier = modifier
             .size(MIN_TOUCH_TARGET)
             .alpha(if (enabled) 1f else 0.4f)
-            .combinedClickable(
-                enabled = enabled,
-                onClick = onClick,
-                onLongClick = onLongClick,
-                onLongClickLabel = longClickLabel,
-            ),
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (filled) {
@@ -4026,7 +4048,7 @@ private fun MapFloatingIconButton(
     modifier: Modifier = Modifier,
     filled: Boolean = false,
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     val addAccent = mapIconBarAddAccent(isDarkTheme)
     Surface(
         onClick = onClick,
@@ -4114,7 +4136,7 @@ private fun CompassElevationStripContent(
     var showDecimalDegrees by remember { mutableStateOf(false) }
     // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
     // comment for why the two axes are kept separate rather than one steering the other.
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         Box(
             modifier = modifier.background(
@@ -4330,7 +4352,7 @@ private fun AddActionTile(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = LocalForagerDarkTheme.current
     Box(modifier = modifier) {
         // docs/motion-spec.md §2 "Panels and navigation": panels accept mild spring overshoot as
         // a taste call, per docs/adr/0002-motion-scheme-adoption.md. Passing MotionTokens's spec

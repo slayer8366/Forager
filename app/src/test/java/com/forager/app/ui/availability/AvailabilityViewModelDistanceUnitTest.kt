@@ -1,10 +1,11 @@
 package com.forager.app.ui.availability
 
+import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
+import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.DeletePlannedTripUseCase
-import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
@@ -19,9 +20,8 @@ import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.LocationTracker
-import com.forager.app.domain.MushroomRepository
-import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.MapPreferencesRepository
+import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.PlannedTripRepository
@@ -33,7 +33,6 @@ import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
-import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -53,18 +52,20 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
 /**
- * Headless cover of [AvailabilityViewModel.locateMe] and the [LocationResult.altitude] field it
- * reads — the map redesign's GPS/locate-me button, decisions #3.2 and #8 in
- * `docs/plans/map-redesign.md`. No Robolectric needed: the ViewModel is Android-framework-free
- * apart from `viewModelScope`, which `Dispatchers.setMain` is enough to satisfy — mirrors
- * [AvailabilityViewModelFilterTest].
+ * The km/mi persistence fix (2026-08-27): [AvailabilityUiState.distanceUnit] used to be plain
+ * Compose state in `AvailabilityScreen`, resetting to the default on any configuration change (a
+ * system theme switch among them) — a real device report. This covers the two halves of the fix at
+ * the ViewModel level, headless, the same [DistanceUnitPreferenceRepository] contract
+ * [AvailabilityViewModelLocateMeTest] mirrors for its own preference dependency: the value is
+ * restored from the repository at startup (not hardcoded), and a selection both updates the UI
+ * state immediately and persists through the repository, using a fake that records what it was
+ * called with rather than asserting on a proxy like "no exception was thrown."
  */
-class AvailabilityViewModelLocateMeTest {
+class AvailabilityViewModelDistanceUnitTest {
 
     private val dispatcher = StandardTestDispatcher()
 
@@ -76,111 +77,91 @@ class AvailabilityViewModelLocateMeTest {
 
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun viewModel(locationProvider: LocationProvider): AvailabilityViewModel {
-        val plannedTripRepository = LocateMeInMemoryPlannedTripRepository()
+    private fun viewModel(distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository): AvailabilityViewModel {
+        val plannedTripRepository = DistanceUnitInMemoryPlannedTripRepository()
         return AvailabilityViewModel(
-            locationProvider = locationProvider,
-            locationTracker = LocateMeNoOpLocationTracker,
-            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(LocateMeEmptyRepository), searchCache),
+            locationProvider = DistanceUnitUnusedLocationProvider,
+            locationTracker = DistanceUnitNoOpLocationTracker,
+            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(DistanceUnitEmptyRepository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
-            getSightings = GetSightingsUseCase(LocateMeEmptyRepository),
-            searchTaxa = SearchTaxaUseCase(LocateMeEmptyRepository),
-            getConditions = GetConditionsUseCase(LocateMeStubWeatherProvider),
+            getSightings = GetSightingsUseCase(DistanceUnitEmptyRepository),
+            searchTaxa = SearchTaxaUseCase(DistanceUnitEmptyRepository),
+            getConditions = GetConditionsUseCase(DistanceUnitStubWeatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
-            getTripWindows = GetTripWindowsUseCase(LocateMeStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
+            getTripWindows = GetTripWindowsUseCase(DistanceUnitStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(plannedTripRepository),
             getSeasonalPattern = GetSeasonalPatternUseCase(
-                GetSightingsUseCase(LocateMeEmptyRepository),
-                LocateMeStubHistoricalWeatherProvider,
+                GetSightingsUseCase(DistanceUnitEmptyRepository),
+                DistanceUnitStubHistoricalWeatherProvider,
                 ComputeFruitingLagDistributionUseCase(),
             ),
-            offlineMapRepository = LocateMeStubOfflineMapRepository,
-            mapPreferencesRepository = LocateMeStubMapPreferencesRepository,
-            distanceUnitPreferenceRepository = LocateMeStubDistanceUnitPreferenceRepository,
-            appThemePreferenceRepository = LocateMeStubAppThemePreferenceRepository,
+            offlineMapRepository = DistanceUnitStubOfflineMapRepository,
+            mapPreferencesRepository = DistanceUnitStubMapPreferencesRepository,
+            distanceUnitPreferenceRepository = distanceUnitPreferenceRepository,
+            appThemePreferenceRepository = DistanceUnitStubAppThemePreferenceRepository,
         )
     }
 
     @Test
-    fun `a fix with altitude reports Located carrying that altitude`() = runTest(dispatcher) {
-        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -122.6, altitude = 123.4)))
+    fun `restores the persisted unit at startup rather than always defaulting to miles`() = runTest(dispatcher) {
+        val repository = DistanceUnitRecordingPreferenceRepository(initial = DistanceUnit.KILOMETERS)
 
-        vm.locateMe()
+        val vm = viewModel(repository)
         advanceUntilIdle()
 
-        val status = vm.uiState.value.locateMeStatus
-        assertEquals(LocateMeStatus.Located(LatLng(45.5, -122.6), 123.4), status)
+        assertEquals(DistanceUnit.KILOMETERS, vm.uiState.value.distanceUnit)
     }
 
     @Test
-    fun `a fix with no altitude (a network-based fix) reports Located with null altitude, never a guessed value`() = runTest(dispatcher) {
-        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -122.6, altitude = null)))
-
-        vm.locateMe()
+    fun `selecting a unit updates the UI state immediately`() = runTest(dispatcher) {
+        val repository = DistanceUnitRecordingPreferenceRepository(initial = DistanceUnit.MILES)
+        val vm = viewModel(repository)
         advanceUntilIdle()
 
-        val status = vm.uiState.value.locateMeStatus as LocateMeStatus.Located
-        assertNull(status.altitude)
+        vm.onDistanceUnitSelected(DistanceUnit.KILOMETERS)
+
+        assertEquals(DistanceUnit.KILOMETERS, vm.uiState.value.distanceUnit)
     }
 
     @Test
-    fun `permission denied reports LocateMeStatus PermissionDenied, distinct from the search-region control's flag`() = runTest(dispatcher) {
-        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.PermissionDenied))
-
-        vm.locateMe()
+    fun `selecting a unit persists it through the repository, not just in memory`() = runTest(dispatcher) {
+        val repository = DistanceUnitRecordingPreferenceRepository(initial = DistanceUnit.MILES)
+        val vm = viewModel(repository)
         advanceUntilIdle()
 
-        assertEquals(LocateMeStatus.PermissionDenied, vm.uiState.value.locateMeStatus)
-        // The unrelated "use current location for search region" flag must be untouched.
-        assertEquals(false, vm.uiState.value.locationPermissionDenied)
-    }
-
-    @Test
-    fun `location unavailable reports LocateMeStatus Unavailable, not a silent fallback`() = runTest(dispatcher) {
-        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.LocationUnavailable))
-
-        vm.locateMe()
+        vm.onDistanceUnitSelected(DistanceUnit.KILOMETERS)
         advanceUntilIdle()
 
-        assertEquals(LocateMeStatus.Unavailable, vm.uiState.value.locateMeStatus)
-    }
-
-    @Test
-    fun `locateMe never touches the search region, unlike useCurrentLocation`() = runTest(dispatcher) {
-        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -122.6, altitude = 10.0)))
-
-        vm.locateMe()
-        advanceUntilIdle()
-
-        assertNull("locateMe must not perform a search or set a region", vm.uiState.value.region)
-    }
-
-    @Test
-    fun `an OS-level permission denial (before the provider is ever asked) also reports PermissionDenied`() {
-        val vm = viewModel(LocateMeUnusedLocationProvider)
-
-        vm.onLocateMePermissionDenied()
-
-        assertEquals(LocateMeStatus.PermissionDenied, vm.uiState.value.locateMeStatus)
+        assertEquals(listOf(DistanceUnit.KILOMETERS), repository.savedUnits)
     }
 }
 
-private class LocateMeFixedLocationProvider(private val result: LocationResult) : LocationProvider {
-    override suspend fun getCurrentLocation(): LocationResult = result
+/** Records every [setDistanceUnit] call rather than silently succeeding, so a test can assert persistence actually happened. */
+private class DistanceUnitRecordingPreferenceRepository(initial: DistanceUnit) : DistanceUnitPreferenceRepository {
+    private var stored = initial
+    val savedUnits = mutableListOf<DistanceUnit>()
+
+    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(stored)
+
+    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> {
+        stored = unit
+        savedUnits += unit
+        return Result.success(Unit)
+    }
 }
 
-private object LocateMeUnusedLocationProvider : LocationProvider {
+private object DistanceUnitUnusedLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation(): LocationResult =
         error("getCurrentLocation() is not part of this test's path and must not be called")
 }
 
-private object LocateMeNoOpLocationTracker : LocationTracker {
+private object DistanceUnitNoOpLocationTracker : LocationTracker {
     override val fixes: Flow<LocationFix> = emptyFlow()
 }
 
-private object LocateMeEmptyRepository : MushroomRepository {
+private object DistanceUnitEmptyRepository : MushroomRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =
@@ -188,22 +169,22 @@ private object LocateMeEmptyRepository : MushroomRepository {
     override suspend fun searchTaxa(query: String) = Result.success(emptyList<TaxonSearchResult>())
 }
 
-private object LocateMeStubWeatherProvider : WeatherProvider {
+private object DistanceUnitStubWeatherProvider : WeatherProvider {
     override suspend fun getRecentPrecipitation(region: Region) =
         Result.success(ConditionsSummary(region = region, totalPrecipitationMm = 0.0, daysSinceSignificantRain = null))
 }
 
-private object LocateMeStubTripPlanningWeatherProvider : TripPlanningWeatherProvider {
+private object DistanceUnitStubTripPlanningWeatherProvider : TripPlanningWeatherProvider {
     override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
         Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
 }
 
-private object LocateMeStubHistoricalWeatherProvider : HistoricalWeatherProvider {
+private object DistanceUnitStubHistoricalWeatherProvider : HistoricalWeatherProvider {
     override suspend fun getHistoricalPrecipitation(region: Region, from: LocalDate, through: LocalDate): Result<List<DailyWeather>> =
         Result.failure(UnsupportedOperationException("seasonal pattern not exercised by this test"))
 }
 
-private class LocateMeInMemoryPlannedTripRepository : PlannedTripRepository {
+private class DistanceUnitInMemoryPlannedTripRepository : PlannedTripRepository {
     private val trips = mutableMapOf<String, PlannedTrip>()
 
     override suspend fun getAll(): Result<List<PlannedTrip>> = Result.success(trips.values.toList())
@@ -217,7 +198,7 @@ private class LocateMeInMemoryPlannedTripRepository : PlannedTripRepository {
     }
 }
 
-private object LocateMeStubOfflineMapRepository : OfflineMapRepository {
+private object DistanceUnitStubOfflineMapRepository : OfflineMapRepository {
     override suspend fun download(name: String, region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineRegionSummary> =
         Result.failure(UnsupportedOperationException("offline maps not exercised by this test"))
     override suspend fun deleteRegion(id: Long): Result<Unit> =
@@ -225,7 +206,7 @@ private object LocateMeStubOfflineMapRepository : OfflineMapRepository {
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
 }
 
-private object LocateMeStubMapPreferencesRepository : MapPreferencesRepository {
+private object DistanceUnitStubMapPreferencesRepository : MapPreferencesRepository {
     override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(null)
     override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
     override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
@@ -234,12 +215,7 @@ private object LocateMeStubMapPreferencesRepository : MapPreferencesRepository {
     override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
 }
 
-private object LocateMeStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
-    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
-    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
-}
-
-private object LocateMeStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+private object DistanceUnitStubAppThemePreferenceRepository : AppThemePreferenceRepository {
     override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
     override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
 }

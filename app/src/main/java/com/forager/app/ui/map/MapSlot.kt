@@ -31,16 +31,18 @@ import com.forager.app.domain.model.Waypoint
  * headroom before the same wall. Folding it in beside [basemap] keeps the count at eight.
  *
  * The grouping is not only expedient. Both fields answer one question — *how should this map draw
- * right now* — and they are chosen at the same moment by the same control: the icon stack's third
- * slot toggles [basemap] on tap and [night] on long-press. A type that holds exactly what one
- * control governs is easier to reason about than two parameters that happen to travel together.
+ * right now* — even though how each is chosen has since diverged: [basemap] is still the icon
+ * bar's own quick-fire control, [night] is now Settings' persistent "Night Maps" checkbox rather
+ * than a control on the map itself — see [night]'s own doc comment.
  */
 data class MapRenderMode(
     val basemap: Basemap,
     /**
-     * Night mode: a dimmed basemap and the light-on-dark overlay palette. Not the device's dark
-     * theme, and deliberately not derived from it — see `MapPalette` for why that was tried,
-     * measured and abandoned.
+     * Night mode: a slightly desaturated, higher-contrast basemap (`BasemapStyles.kt`'s
+     * `NIGHT_RASTER_PAINT`). Overlay markers (sightings, area markers, planned trips, waypoints)
+     * render identically regardless of this flag — see `MapPalette`'s own doc comment, "Markers
+     * stay day-only, always." Not the device's dark theme, and deliberately not derived from it —
+     * see `MapPalette` for why that was tried, measured and abandoned.
      */
     val night: Boolean = false,
 )
@@ -100,9 +102,14 @@ data class MapOverlayContent(
  *
  * The parameters are exactly what the screen knows and the map needs. [content] is every list the
  * map draws over the basemap — see [MapOverlayContent]'s own doc comment for why those are bundled
- * rather than one parameter apiece. [onLongPress] is how the map reports a trip-planning gesture
- * back up without knowing anything about dates or persistence — the screen owns the date picker and
- * the save call, the map only reports where the finger was. [Basemap] crosses this seam as this
+ * rather than one parameter apiece. [onLongPress] is how the map *would* report a trip-planning
+ * gesture back up, when wired — the caller turns the reported point into a plan/log action without
+ * this composable knowing anything about dates or persistence. **No production call site wires it
+ * as of 2026-08-28** — both `AvailabilityScreen.kt` call sites (`MapTab`, `CompactMapTab`) pass
+ * `{}`. Kept deliberately, not left by accident (see [SightingsMap]'s own doc comment on the same
+ * parameter for the fuller reasoning); the interaction it used to drive now goes through panning
+ * the camera, tapping add (+), and confirming via `CentrePinLocationPickerOverlay` instead.
+ * [Basemap] crosses this seam as this
  * project's own type, not a vendor tile-source type, for the same reason the rest of the seam
  * exists: the screen names the basemap it wants and stays ignorant of which vendor supplies the
  * tiles. [modifier] is last because it is the slot's *size contract* — the screen decides how much

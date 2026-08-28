@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -36,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -241,8 +244,19 @@ private fun PhotosSection(
             takePicture.launch(capture.uri)
         }
     }
-    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) onPhotoSourceSelected(ContentUriPhotoSource(uri))
+    // PickMultipleVisualMedia, not PickVisualMedia: the single-select contract only ever returns
+    // one Uri, which was the entire bug report this fixes — the system picker itself allows
+    // multi-select, but the launcher discarded every selection past the first. onPhotoSourceSelected
+    // still takes one PhotoSource at a time; MushroomLogViewModel.onAddPhoto's own doc comment
+    // already documents that back-to-back calls apply in issued order under its mutex, which is
+    // exactly what a multi-photo pick needs, so no ViewModel or use-case change is needed here.
+    // maxItems = MAX_PHOTOS_PER_PICK: an explicit cap per the project owner's own request, rather
+    // than the system default (device- and OS-version-dependent, and on some pickers effectively
+    // unbounded) — see that constant's own doc comment.
+    val pickPhotos = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS_PER_PICK),
+    ) { uris ->
+        uris.forEach { uri -> onPhotoSourceSelected(ContentUriPhotoSource(uri)) }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -256,7 +270,7 @@ private fun PhotosSection(
             Button(onClick = { requestCameraPermission.launch(Manifest.permission.CAMERA) }) { Text("Camera") }
             Button(
                 onClick = {
-                    pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
             ) { Text("Gallery") }
             // Workstream G3: "Gallery" above already means the system photo picker (a new file);
@@ -282,14 +296,40 @@ private fun PhotosSection(
     }
 }
 
+/** How many photos a single "Gallery" pick can select at once — the project owner's own cap, not a platform default. */
+private const val MAX_PHOTOS_PER_PICK = 10
+
 private const val PHOTO_THUMBNAIL_SIZE_DP = 88
+private const val REMOVE_GLYPH_SCRIM_SIZE_DP = 28
+
+/** Exposed at file scope (not inlined into the composable) so [LogPhotoThumbnailRemoveAffordanceContrastTest] checks this exact value, not a copy that can drift from it. */
+internal const val REMOVE_GLYPH_SCRIM_ALPHA = 0.6f
 
 @Composable
 private fun LogPhotoThumbnail(photo: LogPhoto, onRemove: () -> Unit) {
     Box(modifier = Modifier.size(PHOTO_THUMBNAIL_SIZE_DP.dp)) {
         DecodedPhoto(relativePath = photo.relativePath, modifier = Modifier.fillMaxSize())
+        // B3 (2026-08-27): the bare glyph read near-invisible against pale photo content —
+        // LocalContentColor here tracks the theme, not the photo underneath, so it had no
+        // guaranteed contrast against arbitrary imagery. MaterialTheme.colorScheme.scrim is this
+        // theme's own token for exactly that job (a backing layer that keeps content legible over
+        // whatever's beneath it, the same role it plays behind a modal), so the fix reuses it
+        // rather than introducing a new colour. A fixed white glyph on that scrim, not a
+        // theme-following tint: the scrim's whole purpose is a stable, opaque-enough backdrop, so
+        // the glyph on top only needs to contrast against the scrim's own dark tone, not against
+        // the photo — the same reasoning that keeps a system status bar icon fixed-colour over a
+        // scrim rather than swapping per background. IconButton itself is untouched, so its
+        // default 48dp minimum touch target (already comfortably inside the 88dp thumbnail) is
+        // unaffected — only the glyph and its backing circle, both drawn inside it, are smaller.
         IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd)) {
-            Icon(Icons.Filled.Close, contentDescription = "Remove photo")
+            Box(
+                modifier = Modifier
+                    .size(REMOVE_GLYPH_SCRIM_SIZE_DP.dp)
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = REMOVE_GLYPH_SCRIM_ALPHA), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Remove photo", tint = Color.White)
+            }
         }
     }
 }

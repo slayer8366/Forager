@@ -25,6 +25,8 @@ import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
+import com.forager.app.domain.AppThemePreferenceRepository
+import com.forager.app.domain.DistanceUnitPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
@@ -51,6 +53,7 @@ import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
+import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -131,6 +134,8 @@ class AvailabilityScreenWaypointFlowTest {
             ),
             offlineMapRepository = WaypointFlowStubOfflineMapRepository,
             mapPreferencesRepository = WaypointFlowStubMapPreferencesRepository,
+            distanceUnitPreferenceRepository = WaypointFlowStubDistanceUnitPreferenceRepository,
+            appThemePreferenceRepository = WaypointFlowStubAppThemePreferenceRepository,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -161,6 +166,8 @@ class AvailabilityScreenWaypointFlowTest {
                 onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                onDarkThemeChanged = viewModel::onDarkThemeChanged,
                 waypoints = waypoints,
                 waypointsErrorMessage = waypointsErrorMessage,
                 onDropWaypoint = { location, name ->
@@ -433,4 +440,16 @@ private object WaypointFlowStubMapPreferencesRepository : MapPreferencesReposito
     override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
     override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
     override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
+    override suspend fun getNightModeMaps(): Result<Boolean> = Result.success(false)
+    override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
+}
+
+private object WaypointFlowStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
+    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
+    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+}
+
+private object WaypointFlowStubAppThemePreferenceRepository : AppThemePreferenceRepository {
+    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
+    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
 }

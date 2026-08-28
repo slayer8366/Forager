@@ -59,6 +59,8 @@ class MainActivity : ComponentActivity() {
                     container.offlineMapRepository,
                     androidErrorLog,
                     container.mapPreferencesRepository,
+                    container.distanceUnitPreferenceRepository,
+                    container.appThemePreferenceRepository,
                 )
             }
         }
@@ -168,8 +170,11 @@ class MainActivity : ComponentActivity() {
         // background show through underneath it instead of a separately-colored system bar.
         enableEdgeToEdge()
         setContent {
-            ForagerTheme {
-                val uiState by viewModel.uiState.collectAsState()
+            // Read before ForagerTheme wraps content, not inside it: darkTheme is this state's own
+            // AvailabilityUiState.darkTheme (Settings' "Night Mode" checkbox), so ForagerTheme needs
+            // it to pick a color scheme rather than the other way around.
+            val uiState by viewModel.uiState.collectAsState()
+            ForagerTheme(darkTheme = uiState.darkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
 
@@ -253,6 +258,9 @@ class MainActivity : ComponentActivity() {
                     onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                     onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                    onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onDarkThemeChanged = viewModel::onDarkThemeChanged,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
