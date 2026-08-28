@@ -429,10 +429,14 @@ fun AvailabilityScreen(
      */
     onLocateMe: () -> Unit = {},
     /**
-     * Whether a track is currently being recorded, and the compact map's start/stop toggle for it.
-     * Rendered inside the same compass/elevation/MGRS strip box, on its right-hand side, rather than
-     * as a sixth [MapIconStack] icon — `map-redesign.md` §3 fixes that stack at exactly five, a
-     * settled owner decision this doesn't re-litigate. See `MainActivity`'s `LaunchedEffect` on
+     * Whether a track is currently being recorded, and [MapIconBar]'s start/stop toggle for it —
+     * that bar's 5th row (fullscreen, orientation-reset, GPS/locate-me, map mode, **record**,
+     * return-to-vehicle, search, add), not the compass/elevation/MGRS strip: record and
+     * return-to-vehicle moved out of the strip and into the icon bar on 2026-08-26 (see
+     * `map-redesign.md`'s "Icon stack: superseded from 5 to a 7-icon stopgap" section), and the
+     * bar itself grew from floating circles to one panel bar the same session (see [MapIconBar]'s
+     * own doc comment for the current 8-row shape). **Corrected 2026-08-28** — this comment
+     * previously described the pre-2026-08-26 placement. See `MainActivity`'s `LaunchedEffect` on
      * [isRecording] for what actually starts/stops [com.forager.app.service.TrackRecordingService].
      */
     isRecording: Boolean = false,
@@ -589,7 +593,8 @@ fun AvailabilityScreen(
     // stops being true. Verified end to end (not just reasoned about) in
     // AvailabilityScreenBackNavigationTest, including the case only compact width can reach where
     // isDrawerOpen and isMapFullscreen are both true (the drawer's own Search entry point is still
-    // reachable while fullscreen — see MapIconStack).
+    // reachable while fullscreen — see MapIconBar). Corrected 2026-08-28: named MapIconStack here
+    // before that composable was renamed.
     //
     // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are compact-only state
     // that a medium/expanded window never changes away from its own defaults (isDrawerOpen stays
@@ -1208,10 +1213,14 @@ fun AvailabilityScreen(
 
 /**
  * Replaces the compact-only top [SecondaryTabRow] — decision #4 in `docs/plans/map-redesign.md`,
- * extended by the project owner from 3 destinations to [CompactTab]'s 5: List/Maps/Seasonal (the
- * original three), Journal, and Settings, the latter two moved here from the drawer (see
- * [CompactSearchDrawerContent]'s own doc comment). MEDIUM/EXPANDED windows still use
- * [SecondaryTabRow] via [mainScaffold], untouched.
+ * extended by the project owner from 3 destinations to [CompactTab]'s **6**: List/Maps/Seasonal
+ * (the original three), Journal, Album, and Settings — Journal and Settings moved here from the
+ * drawer (see [CompactSearchDrawerContent]'s own doc comment), and Album (Workstream G2,
+ * `docs/plans/pr26-rework.md`) added afterward as the gallery's own top-level destination. MEDIUM/
+ * EXPANDED windows still use [SecondaryTabRow] via [mainScaffold], untouched. **Corrected
+ * 2026-08-28**: this comment said "5" from before Album was added — `map-redesign.md:322-327`
+ * flagged the same drift and `docs/qc/pulses/reports/2026-08-28-mapiconbar-q5-provenance-pulse.md`
+ * re-confirmed it against current source.
  *
  * Colored entirely from [MaterialTheme.colorScheme] rather than the fixed [Bark]/[Color.White] an
  * earlier revision used — that hardcoding was a real bug, not a style choice: it left this bar the
@@ -4079,8 +4088,9 @@ private fun CompassElevationStrip(
 /**
  * Heading, elevation, and coordinates only — one centered line. The return-to-vehicle status/
  * toggle and the record start/stop control used to live in a second row here; both moved into
- * [MapIconStack] (project owner's call: this strip should stay a single line, not grow a second
- * row for track-recording controls that already have their own home in the icon stack).
+ * [MapIconBar] (project owner's call: this strip should stay a single line, not grow a second
+ * row for track-recording controls that already have their own home in the icon bar).
+ * **Corrected 2026-08-28**: named `MapIconStack` here before that composable was renamed.
  */
 @Composable
 private fun CompassElevationStripContent(

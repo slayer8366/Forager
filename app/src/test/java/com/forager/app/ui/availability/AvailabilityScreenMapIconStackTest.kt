@@ -212,7 +212,7 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Drives the real long-press gesture through [MapStackIconButton]'s `combinedClickable`, per
+     * Drives the real long-press gesture through [MapBarIconButton]'s `combinedClickable`, per
      * CLAUDE.md's rule that pointer-input behaviour over the map needs a Robolectric test driving
      * the actual gesture, not a direct call to `onToggleNightMode`. `automaticNight` resolves to
      * `false` here — no test in this suite sets `uiState.liveLocation`, and `CivilTwilight` is
@@ -434,7 +434,7 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithContentDescription("Start recording track").assertIsDisplayed()
         // returnToStartStripText(false, null) is "" -- ifBlank falls back to this placeholder.
-        // See MapIconStack's own return-to-vehicle MapStackIconButton call.
+        // See MapIconBar's own return-to-vehicle MapBarIconButton call.
         composeRule.onNodeWithContentDescription("Return to vehicle — start recording first").assertIsNotEnabled()
     }
 

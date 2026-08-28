@@ -86,17 +86,23 @@ more certainty than the data supports. See `AvailabilityForecast` and
    `ClusterForagingAreasUseCase`, not data-derived facts.
 
    **On a compact (phone-width) window, the Maps tab is full-bleed**, with a
-   bottom nav — **List / Maps / Seasonal / Journal / Settings**, five
+   bottom nav — **List / Maps / Seasonal / Journal / Album / Settings**, six
    destinations, replacing the old top tab row — and a right-edge floating
-   icon stack over the map itself: fullscreen (hides the bottom nav and the
-   quick-search strip, leaving only the map and the stack — tap the map or
-   the icon again to bring chrome back), GPS locate-me (recenters the map on
-   the device's live location; distinct from "use current location" above,
-   which sets the *search region* instead — the two never share state), the
-   topo/regular toggle described below, **Search** (the only way to reach the
-   search drawer on compact — there is no app bar or tune icon here; before a
-   first search has run the icon stack doesn't exist yet, so the Maps tab
-   shows an **Open Search** button in its place), and an add (+) button. The
+   icon bar over the map itself (`MapIconBar`, one panel bar since
+   2026-08-26, replacing five separately-floating circles — see "Project
+   layout" below): fullscreen (hides the bottom nav and the quick-search
+   strip, leaving only the map and the bar — tap the map or the icon again to
+   bring chrome back), orientation-reset (replaces MapLibre's own native
+   compass, disabled to avoid overlapping this), GPS locate-me (recenters the
+   map on the device's live location; distinct from "use current location"
+   above, which sets the *search region* instead — the two never share
+   state), the topo/regular/satellite mode toggle described below, record
+   start/stop and return-to-vehicle (track recording — see below;
+   return-to-vehicle stays disabled until something is recording), **Search**
+   (the only way to reach the search drawer on compact — there is no app bar
+   or tune icon here; before a first search has run the bar doesn't exist
+   yet, so the Maps tab shows an **Open Search** button in its place), and an
+   add (+) button. The
    add button opens the exact same "Plan a trip / Log a find" chooser the
    map's long-press gesture opens — it sets the identical pending-location
    state the gesture sets, not a parallel handler, so the two entry points
