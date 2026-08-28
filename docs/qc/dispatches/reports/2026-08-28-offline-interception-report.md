@@ -182,3 +182,62 @@ offline to intercept in the first place, and no live rendering of the offline st
 Whatever "tiles rendered in airplane mode" turns out to have actually been is worth pinning down
 before Phase 2/3 proceed, since the two candidate explanations (ambiently-cached live raster tiles
 vs. the offline vector path) lead to different scopes of work.
+
+---
+
+## Addendum (2026-08-28) — the flagged tension is resolved, and the real explanation is simpler than either candidate above
+
+New hardware evidence settles this, and points to a mechanism this report didn't consider at all:
+**where** MapLibre's tile storage lives on disk, not which rendering path (live raster vs. offline
+vector) was in play.
+
+**The evidence, in two steps:**
+
+1. Android Settings → Storage → Forager showed **Cache: 0 B** after pressing "Clear cache," Data
+   still 72 MB. The app, in airplane mode, still rendered a full topographic map — hillshading,
+   place labels ("Mount Hood," "Mount Jefferson"), and the attribution string
+   `"© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)"`, an exact match for
+   `Basemap.OPEN_TOPO_MAP`'s hardcoded `attribution` field (`Basemap.kt`).
+2. A follow-up screenshot, **cache and data both cleared**, same airplane-mode conditions: the map
+   is now **completely blank** — black background, only the red sighting-location pin, no tiles at
+   all.
+
+**Mechanism, confirmed from source — `app/src/main/java/com/forager/app/map/MapLibreStorage.kt:40-59`,
+`ensureMapLibreStorageOutsideCache()`:**
+
+```kotlin
+val offlineStorageDir = File(appContext.filesDir, "maplibre-offline").apply { mkdirs() }
+FileSource.setResourcesCachePath(appContext, offlineStorageDir.absolutePath, ...)
+```
+
+This function's own doc comment records the reason it exists: MapLibre's `FileSource` defaults its
+tile/offline-region database into the app's **cache** directory (confirmed there via `javap` against
+the pinned AAR — the API is literally `getResourcesCachePath`/`setResourcesCachePath`), which used to
+mean downloaded regions showed up under Android's "Cache" storage bucket and could be silently wiped
+by the OS under storage pressure or by this app's own in-app cache-clear control. This function
+redirects that database to a subdirectory of `filesDir` instead — persistent "Data," not "Cache" —
+specifically so a cache clear can't touch it.
+
+**This fully accounts for both screenshots, with no need to invoke which rendering path was active:**
+"Clear cache" (step 1) wipes `cacheDir`, where nothing MapLibre-related lives anymore — so tiles kept
+rendering, untouched. "Clear data" (step 2) wipes `filesDir`, which removes `filesDir/maplibre-offline`
+along with everything else the app stores there — combined with airplane mode blocking any network
+re-fetch, the result is exactly the blank map observed: no stored bytes, no network bytes, nothing to
+render.
+
+**What this does and doesn't resolve:**
+
+- **Resolved**: the tension itself. The two candidate explanations this report offered (ambiently-cached
+  live raster vs. the offline vector path) were both looking in the wrong place — the deciding factor
+  was storage location, not which style was rendering. Both screenshots are equally well explained
+  whether the tiles in step 1 were live-raster or offline-vector, because `ensureMapLibreStorageOutsideCache`
+  applies to the same underlying `FileSource`/database regardless of which caller populated it (this
+  report's own §2 already established there's one shared native store).
+- **Not resolved, and not newer evidence for it either way**: this report's separate, still-standing
+  finding that this app never renders `OFFLINE_STYLE_URL` through any live `MapView` (§3, confirmed by
+  the exact-one-construction-site grep) is unaffected by this addendum — nothing in this new evidence
+  says which style was on screen in step 1, only that its persistence was unrelated to that question.
+  The likeliest reading (unchanged from the original report): step 1's map was the live raster
+  OpenTopoMap basemap, ambiently cached, not the offline Protomaps vector style — the label text and
+  OSM/OpenTopoMap attribution string are still the strongest evidence for that, and the offline style
+  is glyph-stripped and carries no such attribution.
