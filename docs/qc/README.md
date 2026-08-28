@@ -19,6 +19,17 @@ This directory travels with the work: it merges into `main` by the same path the
 does, and survives a squash merge (each document carries its own date and dispatch reference) —
 it does not need a separate home the way `docs/audits/` sometimes does for cross-branch findings.
 
+## Night-mode tile inversion (`docs/plans/map-redesign.md`'s "Deferred: night-mode colour inversion")
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-28 | Dispatch: night-mode tile inversion, Phase 1 (investigation + measurement, no behaviour change) — the dispatch document itself is a chat upload, not filed here | (dispatch not filed — see report) |
+| 2026-08-28 | Report: Phase 1 findings — `nightModeMaps`' only current effect is a subtle raster-saturation/-contrast tweak, no dimming or marker change; there is no offline rendering path to measure (offline downloads use an entirely different vector style the live map never renders); real basemap luminance measured (pooled P50 0.638 as-is, 0.078 under a hue-preserving inversion) against three real-world locations, sufficient to retire R5's provisional `DAY_TILE_REFERENCE`; "water turns orange" reproduced with real sampled pixels under a naive RGB invert, contrasted against the hue-preserving transform that doesn't rotate hue at all | `dispatches/reports/2026-08-28-night-inversion-phase1-report.md` |
+
+Pushed directly to `main` as `c526525` (script) — same low-ceremony pattern as `bdd5b31`/`4e72f06`,
+since Phase 1 changed no app behavior. `scripts/measure-night-inversion.py` is the committed,
+reusable measurement tool.
+
 ## L4b — persisted drafts (Workstream L4 of `docs/plans/pr26-rework.md`)
 
 | Date | Document | File |
