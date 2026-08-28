@@ -169,10 +169,12 @@ fun SightingsMap(
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onCameraIdle: (LatLng) -> Unit = {},
     /**
-     * Night mode: a dimmed basemap and the light-on-dark overlay palette that goes with it.
-     * Defaults to `false`, so nothing changes until a caller opts in — the twilight trigger and
-     * the long-press override that will drive this are separate work, and this parameter is
-     * deliberately landed ahead of them so the palettes can be reviewed on their own.
+     * Night mode: a slightly desaturated, higher-contrast basemap (`BasemapStyles.kt`'s
+     * `NIGHT_RASTER_PAINT`). Sightings, area markers and every other overlay marker draw
+     * identically to day mode regardless of this flag — see [MapPalette]'s own doc comment,
+     * "Markers stay day-only, always" for why that's deliberate, not an oversight. Still drives
+     * the map's own twilight trigger and long-press override; only what those feed into markers
+     * has changed.
      *
      * Not the device's dark theme, and not derived from it: see [MapPalette]'s doc comment for
      * why that was tried, measured and abandoned.
@@ -189,9 +191,10 @@ fun SightingsMap(
 ) {
     val context = LocalContext.current
 
-    // Resolved here rather than inside the LaunchedEffect below, which is not a composable.
-    // MapPalette.forMode is a lookup, so there is nothing worth remembering.
-    val mapPalette = MapPalette.forMode(night = nightMode)
+    // Always MapPalette.DAY, deliberately independent of nightMode — see MapPalette's own doc
+    // comment, "Markers stay day-only, always." MapPalette.NIGHT/forMode still exist and are
+    // still tested (MapPaletteTest), just not read here any more.
+    val mapPalette = MapPalette.DAY
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
@@ -232,6 +235,12 @@ fun SightingsMap(
     // recomposition. That is a property of the mode being chosen for the map rather than inherited
     // from the device theme, which would have changed underneath the user.
     var appliedPalette by remember { mutableStateOf<MapPalette?>(null) }
+
+    // What the camera was last deliberately moved to by the data+camera refresh effect below —
+    // *not* re-derived from mapLibreMap.cameraPosition, which changes continuously while GPS
+    // tracking owns the camera and would make this comparison meaningless. See
+    // shouldMoveCameraToTarget's own doc comment for the hardware-reported bug this closes.
+    var lastAppliedCameraTarget by remember { mutableStateOf<Pair<Region, LatLng?>?>(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -329,7 +338,7 @@ fun SightingsMap(
         }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap, night = nightMode))) { style ->
-            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette, night = nightMode)
+            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
             appliedBasemap = basemap
             appliedPalette = mapPalette
             loadedStyle = style
@@ -361,7 +370,8 @@ fun SightingsMap(
         // drops tracking, this resumes controlling the camera exactly as it did before that existed.
         val isGpsTracking = map.locationComponent.isLocationComponentActivated &&
             map.locationComponent.cameraMode != CameraMode.NONE
-        if (!isGpsTracking) {
+        val target = region to focusOverride
+        if (shouldMoveCameraToTarget(isGpsTracking, target, lastAppliedCameraTarget)) {
             val center = MapLibreLatLng(region.lat, region.lng)
             // focusOverride pans the camera without moving the search-location marker or the
             // zoom-from-radius heuristic below, both of which stay anchored to region — see
@@ -371,6 +381,7 @@ fun SightingsMap(
                 .target(cameraTarget)
                 .zoom(zoomForRadiusKm(region.radiusKm))
                 .build()
+            lastAppliedCameraTarget = target
         }
     }
 
@@ -438,75 +449,41 @@ fun SightingsMap(
  * the deleted osmdroid version's overlay list order: search centre, sightings, connector, area
  * markers (circle then its label), planned trips last so a diamond never sits under a numbered area
  * marker.
+ *
+ * Every marker is a plain [CircleLayer] now, day or night — see [MapPalette]'s own doc comment,
+ * "Markers stay day-only, always." `docs/plans/contrast_assertions.md` archives the night-specific
+ * `SymbolLayer`/icon-bitmap version this replaced, for whoever revives night-mode marker
+ * differentiation later.
  */
-private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette, night: Boolean) {
-    // Every night icon gets a darkened, semi-transparent halo behind its fill so it stays visible
-    // against a light *or* dark background — see NIGHT_ICON_HALO_ALPHA's own doc comment for why
-    // this replaced tile-contrast-against-the-ground as the way markers stay legible at night.
-    // null on day, unchanged from before this existed.
-    val nightHaloColor = if (night) withAlpha(palette.sightingDotStroke, NIGHT_ICON_HALO_ALPHA) else null
-
-    style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip, nightHaloColor))
+private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
+    style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
 
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
-    if (night) {
-        // Night differentiates markers by icon shape, not hue — see MapPalette.NIGHT's own doc
-        // comment, "Fifth pass", for why. A target ring around a dot, distinct from every other
-        // night icon's silhouette.
-        style.addImage(
-            SEARCH_CENTER_ICON_ID,
-            searchCentreTargetBitmap(density, palette.searchCentre, palette.sightingDotStroke, nightHaloColor!!),
-        )
-        style.addLayer(
-            SymbolLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
-                PropertyFactory.iconImage(SEARCH_CENTER_ICON_ID),
-                PropertyFactory.iconAllowOverlap(true),
-                PropertyFactory.iconAnchor("center"),
-            ),
-        )
-    } else {
-        style.addLayer(
-            CircleLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
-                PropertyFactory.circleRadius(SEARCH_CENTER_RADIUS_PX),
-                PropertyFactory.circleColor(palette.searchCentre),
-                PropertyFactory.circleStrokeColor(Color.WHITE),
-                PropertyFactory.circleStrokeWidth(SEARCH_CENTER_STROKE_WIDTH_PX),
-            ),
-        )
-    }
+    style.addLayer(
+        CircleLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
+            PropertyFactory.circleRadius(SEARCH_CENTER_RADIUS_PX),
+            PropertyFactory.circleColor(palette.searchCentre),
+            PropertyFactory.circleStrokeColor(Color.WHITE),
+            PropertyFactory.circleStrokeWidth(SEARCH_CENTER_STROKE_WIDTH_PX),
+        ),
+    )
 
     style.addSource(GeoJsonSource(SIGHTING_SOURCE_ID, emptyFeatureCollection()))
-    if (night) {
-        style.addImage(
-            SIGHTING_DOT_ICON_ID,
-            sightingDotBitmap(density, palette.sightingDot, palette.sightingDotStroke, nightHaloColor!!),
-        )
-        style.addLayer(
-            SymbolLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
-                PropertyFactory.iconImage(SIGHTING_DOT_ICON_ID),
-                PropertyFactory.iconOpacity(SIGHTING_DOT_OPACITY),
-                PropertyFactory.iconAllowOverlap(true),
-                PropertyFactory.iconAnchor("center"),
-            ),
-        )
-    } else {
-        style.addLayer(
-            // One shared layer for every observation, styled once — unlike osmdroid, which built
-            // one Drawable and stamped it per Marker, MapLibre draws every feature in the source
-            // with the same layer properties, so there is nothing per-sighting to construct here.
-            CircleLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
-                PropertyFactory.circleColor(palette.sightingDot),
-                PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
-                PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
-                PropertyFactory.circleStrokeColor(palette.sightingDotStroke),
-                PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
-                PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
-            ),
-        )
-    }
+    style.addLayer(
+        // One shared layer for every observation, styled once — unlike osmdroid, which built
+        // one Drawable and stamped it per Marker, MapLibre draws every feature in the source
+        // with the same layer properties, so there is nothing per-sighting to construct here.
+        CircleLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
+            PropertyFactory.circleColor(palette.sightingDot),
+            PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
+            PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
+            PropertyFactory.circleStrokeColor(palette.sightingDotStroke),
+            PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
+            PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
+        ),
+    )
 
-    // Line style (dashed vs. solid), not colour, now carries the connector/breadcrumb distinction
-    // — true day and night alike, since night mode shares one colour across every marker and line.
+    // Line style (dashed vs. solid), not colour, carries the connector/breadcrumb distinction.
     // Breadcrumb is dashed (a short dash with round caps reads as a trail of dots — "breadcrumbs"
     // should look like breadcrumbs); connector is solid. See BREADCRUMB_DASH_PATTERN's own doc
     // comment for why the connector reading solid no longer implies a real walkable route, the
@@ -533,26 +510,12 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
     )
 
     style.addSource(GeoJsonSource(AREA_MARKER_SOURCE_ID, emptyFeatureCollection()))
-    if (night) {
-        style.addImage(
-            AREA_MARKER_ICON_ID,
-            areaMarkerBadgeBitmap(density, palette.areaMarkerBackground, nightHaloColor!!),
-        )
-        style.addLayer(
-            SymbolLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
-                PropertyFactory.iconImage(AREA_MARKER_ICON_ID),
-                PropertyFactory.iconAllowOverlap(true),
-                PropertyFactory.iconAnchor("center"),
-            ),
-        )
-    } else {
-        style.addLayer(
-            CircleLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
-                PropertyFactory.circleColor(palette.areaMarkerBackground),
-                PropertyFactory.circleRadius(AREA_MARKER_RADIUS_PX),
-            ),
-        )
-    }
+    style.addLayer(
+        CircleLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
+            PropertyFactory.circleColor(palette.areaMarkerBackground),
+            PropertyFactory.circleRadius(AREA_MARKER_RADIUS_PX),
+        ),
+    )
     style.addLayer(
         SymbolLayer(AREA_MARKER_LABEL_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
             // "{label}" is MapLibre's own token-substitution syntax inside a literal text-field
@@ -581,7 +544,7 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
 
     // Last, so a waypoint marker never sits under a planned-trip diamond or an area label if two
     // ever land on the same point.
-    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density, palette.waypoint, nightHaloColor))
+    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density, palette.waypoint))
     style.addSource(GeoJsonSource(WAYPOINT_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         SymbolLayer(WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID).withProperties(
@@ -616,6 +579,27 @@ private fun refreshOverlayData(
     style.getSourceAs<GeoJsonSource>(BREADCRUMB_SOURCE_ID)?.setGeoJson(breadcrumbFeatureCollection(breadcrumbPoints))
     style.getSourceAs<GeoJsonSource>(WAYPOINT_SOURCE_ID)?.setGeoJson(waypointsFeatureCollection(waypoints))
 }
+
+/**
+ * The data+camera refresh effect's own decision of whether to move the camera to [target] —
+ * extracted as a plain function, the same reason [locationIndicatorTrackingAnimationMultiplier]
+ * below is one, so the actual defect (not just the surrounding native-object plumbing) is
+ * unit-testable. Real hardware report this fixes: that effect is keyed on `loadedStyle` (needed so
+ * [refreshOverlayData] above re-runs after a basemap swap blanks the style), but with no guard, it
+ * also re-ran the camera move below whenever GPS tracking wasn't active — including on a basemap
+ * or night-mode swap that changed neither `region` nor `focusOverride` — which read as "changing
+ * map style brought the map back to my location" even though the GPS/locate-me icon is the only
+ * control meant to do that. Comparing [target] against [lastAppliedCameraTarget] — what was
+ * actually last applied, not merely that the effect ran again — is what tells "the search moved"
+ * apart from "the style reloaded." [isGpsTracking] itself is left as a native-backed computation
+ * at the call site (see that effect's own doc comment on why moving the camera while it's true
+ * would fight the puck), not folded into this function, so this stays a pure comparison.
+ */
+internal fun shouldMoveCameraToTarget(
+    isGpsTracking: Boolean,
+    target: Pair<Region, LatLng?>,
+    lastAppliedCameraTarget: Pair<Region, LatLng?>?,
+): Boolean = !isGpsTracking && target != lastAppliedCameraTarget
 
 /**
  * MapLibre's own puck-movement animation runs on a fixed internal base duration
@@ -817,219 +801,57 @@ internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureColle
 }
 
 /**
- * Multiplies [color]'s existing alpha by [fraction] (0f–1f), keeping its RGB untouched. Used to
- * turn [MapPalette.NIGHT]'s opaque ink colour into the semi-transparent halo every night icon
- * draws behind its fill — see [NIGHT_ICON_HALO_ALPHA]'s own doc comment.
- */
-private fun withAlpha(color: Int, fraction: Float): Int {
-    val alpha = ((color ushr 24) * fraction).toInt().coerceIn(0, 255)
-    return (alpha shl 24) or (color and 0x00FFFFFF)
-}
-
-/**
  * A solid diamond bitmap for the planned-trip [SymbolLayer]'s `icon-image`, distinct in shape and
  * colour from both the translucent sighting-dot circles and the numbered area-marker circles, so
  * "planned" reads as its own kind of pin rather than a variant of either — same intent as the
  * deleted osmdroid `plannedTripIcon`, redrawn because MapLibre's `SymbolLayer` needs a named image
  * registered on the [Style] (`Style.addImage`) rather than a per-`Marker` `Drawable`.
- *
- * [haloColor] is `null` on day (this icon's shape and behaviour are otherwise unchanged there) and
- * a semi-transparent ink on night — see [NIGHT_ICON_HALO_ALPHA]'s doc comment for why. When
- * present, the halo is drawn at this function's original, un-inset diamond bounds, and the coloured
- * fill shrinks to [NIGHT_ICON_INNER_SCALE] of that, centred, so the halo shows as a border.
  */
-private fun plannedTripDiamondBitmap(density: Float, markerColor: Int, haloColor: Int? = null): Bitmap {
+private fun plannedTripDiamondBitmap(density: Float, markerColor: Int): Bitmap {
     val sizePx = (PLANNED_TRIP_MARKER_SIZE_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    fun diamondPath(scale: Float): Path {
-        val inset = sizePx * (1f - scale) / 2f
-        return Path().apply {
-            moveTo(sizePx / 2f, inset)
-            lineTo(sizePx - inset, sizePx / 2f)
-            lineTo(sizePx / 2f, sizePx - inset)
-            lineTo(inset, sizePx / 2f)
-            close()
-        }
+    val diamond = Path().apply {
+        moveTo(sizePx / 2f, 0f)
+        lineTo(sizePx.toFloat(), sizePx / 2f)
+        lineTo(sizePx / 2f, sizePx.toFloat())
+        lineTo(0f, sizePx / 2f)
+        close()
     }
-
-    if (haloColor != null) {
-        canvas.drawPath(diamondPath(1f), Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true })
-    }
-    canvas.drawPath(
-        diamondPath(if (haloColor != null) NIGHT_ICON_INNER_SCALE else 1f),
-        Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true },
-    )
+    canvas.drawPath(diamond, Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true })
     return bitmap
 }
 
 /**
  * A teardrop pin bitmap for the waypoint [SymbolLayer]'s `icon-image` — round head, pointed tail
  * touching the actual coordinate (see [initializeOverlayLayers]'s `iconAnchor(BOTTOM)` for why the
- * tail, not the shape's center, has to be what's anchored). By day, a distinct amber — the "you
- * dropped a pin here" colour convention day mode's other roles don't otherwise use. By night,
- * [MapPalette.NIGHT_WARM] like every other marker; the pin *shape* itself, not colour, is what
- * keeps a waypoint distinct at night — see [MapPalette.NIGHT]'s doc comment, "Fifth pass."
- *
- * [haloColor] follows [plannedTripDiamondBitmap]'s own convention: `null` on day, a semi-
- * transparent ink on night. The halo pin is drawn at this function's original, un-inset bounds —
- * tip included, so [initializeOverlayLayers]'s `iconAnchor(BOTTOM)` still anchors precisely to the
- * real coordinate — and the coloured fill insets uniformly inside it.
+ * tail, not the shape's center, has to be what's anchored). A distinct amber — the "you dropped a
+ * pin here" colour convention this app's other roles don't otherwise use.
  */
-private fun waypointPinBitmap(density: Float, markerColor: Int, haloColor: Int? = null): Bitmap {
+private fun waypointPinBitmap(density: Float, markerColor: Int): Bitmap {
     val widthPx = (WAYPOINT_MARKER_WIDTH_DP * density).toInt().coerceAtLeast(1)
     val heightPx = (WAYPOINT_MARKER_HEIGHT_DP * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    fun pinPath(scale: Float): Path {
-        val inset = widthPx * (1f - scale) / 2f
-        val headRadius = widthPx / 2f - inset
-        val headCenterX = widthPx / 2f
-        val headCenterY = headRadius + inset
-        val path = Path().apply {
-            addCircle(headCenterX, headCenterY, headRadius, Path.Direction.CW)
-        }
-        // The tail: a triangle from the circle's sides down to the bottom-center tip, unioned with
-        // the circle above so the whole pin fills as one shape.
-        path.addPath(
-            Path().apply {
-                moveTo(headCenterX - headRadius, headCenterY)
-                lineTo(headCenterX, heightPx.toFloat() - inset)
-                lineTo(headCenterX + headRadius, headCenterY)
-                close()
-            },
-        )
-        return path
+    val headRadius = widthPx / 2f
+    val headCenterX = widthPx / 2f
+    val headCenterY = headRadius
+    val pin = Path().apply {
+        addCircle(headCenterX, headCenterY, headRadius, Path.Direction.CW)
     }
-
-    if (haloColor != null) {
-        canvas.drawPath(pinPath(1f), Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true })
-    }
-    canvas.drawPath(
-        pinPath(if (haloColor != null) NIGHT_ICON_INNER_SCALE else 1f),
-        Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true },
-    )
-    return bitmap
-}
-
-/**
- * Night mode's sighting-dot icon: a filled circle with an ink ring, the same visual language day
- * mode's [CircleLayer] draws natively (`circleColor`/`circleStrokeColor`/`circleStrokeWidth`),
- * baked into a bitmap instead because night now differentiates every marker by icon shape — see
- * [MapPalette.NIGHT]'s doc comment, "Fifth pass." The simplest silhouette of the three new night
- * icons, matching this marker's own name: a plain dot is what "sighting dot" already says it is.
- *
- * [haloColor]: see [NIGHT_ICON_HALO_ALPHA]'s doc comment. Drawn first, at the full icon bounds, so
- * it shows beyond the existing ink stroke rather than being covered by it.
- */
-private fun sightingDotBitmap(density: Float, fillColor: Int, strokeColor: Int, haloColor: Int): Bitmap {
-    val sizePx = (SIGHTING_DOT_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val center = sizePx / 2f
-    canvas.drawCircle(center, center, center, Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true })
-    val strokeWidthPx = SIGHTING_DOT_ICON_STROKE_WIDTH_DP * density
-    val fillRadius = center - strokeWidthPx / 2f - (NIGHT_ICON_HALO_MARGIN_DP * density)
-    canvas.drawCircle(
-        center,
-        center,
-        fillRadius,
-        Paint().apply {
-            color = fillColor
-            style = Paint.Style.FILL
-            isAntiAlias = true
+    // The tail: a triangle from the circle's sides down to the bottom-center tip, unioned with
+    // the circle above so the whole pin fills as one shape.
+    pin.addPath(
+        Path().apply {
+            moveTo(headCenterX - headRadius, headCenterY)
+            lineTo(headCenterX, heightPx.toFloat())
+            lineTo(headCenterX + headRadius, headCenterY)
+            close()
         },
     )
-    canvas.drawCircle(
-        center,
-        center,
-        fillRadius,
-        Paint().apply {
-            color = strokeColor
-            style = Paint.Style.STROKE
-            strokeWidth = strokeWidthPx
-            isAntiAlias = true
-        },
-    )
-    return bitmap
-}
-
-/**
- * Night mode's search-centre icon: an ink ring around a smaller filled dot — a target/bullseye,
- * reading as "centred here" rather than "a location," distinct from [sightingDotBitmap]'s plain
- * dot and every other night icon's silhouette. Replaces day mode's plain circle-with-white-stroke
- * [CircleLayer] for the same reason as [sightingDotBitmap] — see [MapPalette.NIGHT]'s doc comment.
- *
- * [haloColor]: see [NIGHT_ICON_HALO_ALPHA]'s doc comment. Drawn first, at the full icon bounds, so
- * it shows beyond the target ring rather than being covered by it.
- */
-private fun searchCentreTargetBitmap(density: Float, ringColor: Int, dotColor: Int, haloColor: Int): Bitmap {
-    val sizePx = (SEARCH_CENTER_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val center = sizePx / 2f
-    canvas.drawCircle(center, center, center, Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true })
-    val ringStrokeWidthPx = SEARCH_CENTER_ICON_RING_WIDTH_DP * density
-    val ringRadius = center - ringStrokeWidthPx / 2f - (NIGHT_ICON_HALO_MARGIN_DP * density)
-    canvas.drawCircle(
-        center,
-        center,
-        ringRadius,
-        Paint().apply {
-            color = ringColor
-            style = Paint.Style.STROKE
-            strokeWidth = ringStrokeWidthPx
-            isAntiAlias = true
-        },
-    )
-    canvas.drawCircle(
-        center,
-        center,
-        ringRadius * SEARCH_CENTER_ICON_DOT_RATIO,
-        Paint().apply {
-            color = dotColor
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        },
-    )
-    return bitmap
-}
-
-/**
- * Night mode's area-marker badge: a rounded-square background for the numbered-area label (still
- * drawn by `AREA_MARKER_LABEL_LAYER_ID` on top of this, unconditionally, day and night — only the
- * background shape this label sits on changes). Distinct from [sightingDotBitmap]'s circle and
- * [searchCentreTargetBitmap]'s ring, so a numbered area reads as its own kind of marker at a
- * glance even before the number itself is legible. Replaces day mode's plain circle [CircleLayer]
- * for the same reason as the other two — see [MapPalette.NIGHT]'s doc comment.
- *
- * [haloColor]: see [NIGHT_ICON_HALO_ALPHA]'s doc comment. Drawn first, at the full icon bounds; the
- * coloured badge insets inside it by [NIGHT_ICON_HALO_MARGIN_DP] on every side.
- */
-private fun areaMarkerBadgeBitmap(density: Float, fillColor: Int, haloColor: Int): Bitmap {
-    val sizePx = (AREA_MARKER_ICON_SIZE_DP * density).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val cornerRadiusPx = AREA_MARKER_ICON_CORNER_RADIUS_DP * density
-    canvas.drawRoundRect(
-        RectF(0f, 0f, sizePx.toFloat(), sizePx.toFloat()),
-        cornerRadiusPx,
-        cornerRadiusPx,
-        Paint().apply { color = haloColor; style = Paint.Style.FILL; isAntiAlias = true },
-    )
-    val margin = NIGHT_ICON_HALO_MARGIN_DP * density
-    canvas.drawRoundRect(
-        RectF(margin, margin, sizePx - margin, sizePx - margin),
-        cornerRadiusPx,
-        cornerRadiusPx,
-        Paint().apply {
-            color = fillColor
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        },
-    )
+    canvas.drawPath(pin, Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true })
     return bitmap
 }
 
@@ -1053,9 +875,6 @@ private const val BREADCRUMB_LAYER_ID = "breadcrumb-trail-layer"
 private const val WAYPOINT_SOURCE_ID = "waypoints"
 private const val WAYPOINT_LAYER_ID = "waypoints-layer"
 private const val WAYPOINT_ICON_ID = "waypoint-pin"
-private const val SIGHTING_DOT_ICON_ID = "sighting-dot"
-private const val SEARCH_CENTER_ICON_ID = "search-centre-target"
-private const val AREA_MARKER_ICON_ID = "area-marker-badge"
 
 // The overlay's colours now come from ui/theme/MapPalette.kt, derived from the active
 // ColorScheme and passed in -- see that type's doc comment for the derivation rule, and for
@@ -1082,38 +901,6 @@ private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 
 private const val SEARCH_CENTER_RADIUS_PX = 8f
 private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
-
-// Night-only icon sizes -- day mode keeps drawing SEARCH_CENTER_RADIUS_PX/SIGHTING_DOT_RADIUS_PX/
-// AREA_MARKER_RADIUS_PX above via CircleLayer directly, unaffected by these.
-private const val SIGHTING_DOT_ICON_SIZE_DP = 16f
-private const val SIGHTING_DOT_ICON_STROKE_WIDTH_DP = 1.5f
-private const val SEARCH_CENTER_ICON_SIZE_DP = 18f
-private const val SEARCH_CENTER_ICON_RING_WIDTH_DP = 2.5f
-private const val SEARCH_CENTER_ICON_DOT_RATIO = 0.4f
-private const val AREA_MARKER_ICON_SIZE_DP = 26f
-private const val AREA_MARKER_ICON_CORNER_RADIUS_DP = 6f
-
-// The night-icon halo -- see initializeOverlayLayers' nightHaloColor and the *Bitmap functions'
-// own doc comments ("darkened transparent borders around the icons") for the problem this solves:
-// once BasemapStyles.kt stopped dimming the night ground, MapPalette.NIGHT_WARM/NIGHT_INK no
-// longer clear a contrast floor against it on their own, so every night icon now draws this halo
-// behind its fill instead, keeping it visible against a light or dark ground alike.
-//
-// NIGHT_ICON_HALO_ALPHA: how opaque the halo ring is, as a fraction of NIGHT_INK's own alpha
-// (which is fully opaque, so this is the halo's effective opacity outright). High enough to read
-// as a solid border against either a pale or a dark tile, low enough that it doesn't itself read
-// as a second, competing marker.
-private const val NIGHT_ICON_HALO_ALPHA = 0.55f
-
-// NIGHT_ICON_INNER_SCALE: the coloured fill shrinks to this fraction of the full icon bounds,
-// centred, so the halo shows as a visible border rather than being fully covered by the fill.
-private const val NIGHT_ICON_INNER_SCALE = 0.82f
-
-// NIGHT_ICON_HALO_MARGIN_DP: for the icons whose fill is inset by a fixed margin rather than a
-// uniform scale (sightingDot/searchCentre/areaMarker, all of which already had a stroke or ring
-// width to reason about), the same border-width intent as NIGHT_ICON_INNER_SCALE expressed as an
-// absolute inset instead, so the halo border reads as roughly the same visual width across icons.
-private const val NIGHT_ICON_HALO_MARGIN_DP = 2f
 
 // Breadcrumb thicker than connector now (was the other way around) -- see CONNECTOR_STROKE_WIDTH_PX.
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f

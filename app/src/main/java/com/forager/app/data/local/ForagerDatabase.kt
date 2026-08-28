@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.forager.app.BuildConfig
 
 /**
  * The app's only local database, holding planned trips, the offline search cache, and the
@@ -75,6 +76,25 @@ import androidx.room.RoomDatabase
  * stacking a 9→10 on a version that was never released. Every pre-existing row is a real,
  * previously-committed entry, never a draft under the pre-L4b model, so this migration marks every
  * one of them `isDraft = 0`/`draftOfEntryId = NULL` explicitly.
+ *
+ * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
+ *
+ * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
+ * because the migration chain above covers every version this database has ever shipped and
+ * nothing has been distributed. That framing stops holding the moment a real device exists: the
+ * fallback doesn't just cover *old* installs missing a migration, it silently wipes the database
+ * for *any future* version jump nobody wrote a migration for — a schema change lands, someone
+ * forgets to register the migration, every test passes because the fixtures register everything,
+ * and the first person to find out is a beta user whose journal is gone. That inverts this
+ * project's own standing preference for a loud failure over a quiet one, and beta is exactly when
+ * a quiet one starts costing real data.
+ *
+ * The fallback now applies only to debug builds ([BuildConfig.DEBUG]). Release builds get none: a
+ * missing migration path throws instead of wiping the database, the same way any other unhandled
+ * error would. Kept for debug because alpha-cycle schema experiments are routine here and a
+ * crash-and-reinstall loop on every one of them is friction with no safety value on a device that,
+ * by policy, holds no real data yet. **Do not "fix" this asymmetry by making the two build types
+ * match** — it's the point, not an oversight.
  */
 @Database(
     entities = [
@@ -105,10 +125,23 @@ abstract class ForagerDatabase : RoomDatabase() {
     abstract fun offlineRegionDao(): OfflineRegionDao
 
     companion object {
-        fun create(context: Context): ForagerDatabase = Room.databaseBuilder(
-            context.applicationContext,
-            ForagerDatabase::class.java,
-            "forager.db",
-        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).fallbackToDestructiveMigration(true).build()
+        /**
+         * [isDebug] defaults to [BuildConfig.DEBUG] — the parameter exists so a test can force the
+         * release path (`isDebug = false`) against a real missing-migration scenario without needing
+         * an actual release build variant, not so a caller has a reason to override it.
+         */
+        fun create(context: Context, isDebug: Boolean = BuildConfig.DEBUG): ForagerDatabase {
+            val builder = Room.databaseBuilder(
+                context.applicationContext,
+                ForagerDatabase::class.java,
+                "forager.db",
+            ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+            // Debug-only — see this class's own doc comment ("Destructive fallback, debug-only") for
+            // why release must never wipe a database instead of crashing on a missing migration.
+            if (isDebug) {
+                builder.fallbackToDestructiveMigration(true)
+            }
+            return builder.build()
+        }
     }
 }

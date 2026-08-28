@@ -6,6 +6,7 @@ import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.LatLng
@@ -151,6 +152,18 @@ data class AvailabilityUiState(
      */
     val offlineStaleThresholdDays: Int = DEFAULT_STALE_THRESHOLD_DAYS,
     /**
+     * Whether the map renders in night mode — Settings' "Night Maps" checkbox, restored from
+     * [com.forager.app.domain.MapPreferencesRepository.getNightModeMaps]. `false` (day) until that
+     * load completes.
+     */
+    val nightModeMaps: Boolean = false,
+    /**
+     * The app's own light/dark theme — Settings' "Night Mode" checkbox, restored from
+     * [com.forager.app.domain.AppThemePreferenceRepository.getDarkTheme]. `false` (light) until
+     * that load completes. Independent of [nightModeMaps], which controls only the map's basemap.
+     */
+    val darkTheme: Boolean = false,
+    /**
      * The offline-region picker map's opening viewport before a region has been picked —
      * restored from [com.forager.app.domain.MapPreferencesRepository.getLastPickedRegion] at
      * startup, then overridden by the device's current location every time the picker is opened
@@ -178,6 +191,14 @@ data class AvailabilityUiState(
     val liveLocation: LatLng? = null,
     /** See [liveLocation] — the same fix's altitude, `null` whenever the device didn't report one. */
     val liveAltitudeMeters: Double? = null,
+    /**
+     * The unit distances are displayed in, restored from
+     * [com.forager.app.domain.DistanceUnitPreferenceRepository.getDistanceUnit] at startup and
+     * persisted on every change — see [DistanceUnit]'s own doc comment for the bug this fixes
+     * (a system theme switch, among other configuration changes, used to reset this to the
+     * default because it was plain Compose state, not ViewModel/persisted state).
+     */
+    val distanceUnit: DistanceUnit = DistanceUnit.MILES,
 ) {
     val hasSearched: Boolean get() = region != null
 }

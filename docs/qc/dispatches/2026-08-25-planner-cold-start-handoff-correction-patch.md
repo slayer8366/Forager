@@ -55,3 +55,14 @@ Checked against the repo per the 2026-08-26 repo-state pulse: **neither `planner
 That means this patch cannot be applied "in place" the way it was written to be — there is no filed copy of the cold-start handoff for §1–§3 to replace text *in*. Filing the patch itself, standalone, is what's possible right now: it's a complete, self-contained correction (the replacement rule text, the Workstream C correction, and lesson 14 are each quoted in full above, not diffed against a base this repo doesn't have). If and when the two base documents are supplied, the corrections above should be folded into them directly, and this file's own status updated to say so rather than left implying the correction is still pending once it isn't.
 
 **Current status of the two documents the patch describes: still not filed.** That part of this workstream's housekeeping remains open until they're supplied.
+
+## Update (2026-08-27, same day): both base documents supplied and filed
+
+The owner supplied both documents. They are now filed at `docs/qc/planner-cold-start-handoff-2026-08-25.md` and `docs/qc/planner-operating-guide-2026-08-25.md`, and this patch has been folded into them directly rather than staying a standalone correction:
+
+- **§1** (Save/Cancel standing rule) — applied. The supplied handoff document's Standing Rules section did carry the exact "flag on the entry row" text §1 describes; it's now replaced in place with §1's text, with a short parenthetical noting the source.
+- **§2** (Workstream C as superseded, not missing) — **did not apply.** The supplied handoff document does not contain an "unaccounted for" (or any other landing-status) claim about Workstream C anywhere — the only occurrence of "Workstream C" in the document is inside lesson 10's own example, which asserts nothing about its status. Rather than force §2's replacement text into a document that doesn't say what it's meant to correct, the filed handoff document instead carries a note, at the point lesson 10 mentions Workstream C, recording that the underlying fact is real and already correctly documented elsewhere (`docs/plans/README.md`'s PR #26 row; `docs/audits/2026-08-24-workstream-c-and-d-archive.md`). Whatever earlier draft of the handoff document had the line §2 describes, it was not the one supplied here.
+- **§3** (lesson 14) — applied verbatim, appended after lesson 13.
+- **§4** (the arrangement note) — applied to `planner-operating-guide-2026-08-25.md`'s "Failure modes to watch in yourself" list as a new bullet, since that's the section §4 names.
+
+This file's own status: superseded as the working copy of the correction — the corrections it holds now live in the two documents above — but kept as the historical record of the patch as originally written and why §2 didn't transfer cleanly.
