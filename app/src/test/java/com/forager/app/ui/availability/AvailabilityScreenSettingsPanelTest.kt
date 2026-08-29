@@ -301,7 +301,10 @@ class AvailabilityScreenSettingsPanelTest {
                 "(${mapBounds.left}..${mapBounds.right})",
             iconCenterX in mapBounds.left..mapBounds.right,
         )
-        assertTrue(iconBounds.top < mapBounds.top + mapBounds.height / 2)
+        assertTrue(
+            "iconBounds.top=${iconBounds.top} mapBounds.top=${mapBounds.top} mapBounds.height=${mapBounds.height} half=${mapBounds.top + mapBounds.height / 2}",
+            iconBounds.top < mapBounds.top + mapBounds.height / 2,
+        )
         assertTrue(iconCenterX > mapBounds.left + mapBounds.width / 2)
     }
 
