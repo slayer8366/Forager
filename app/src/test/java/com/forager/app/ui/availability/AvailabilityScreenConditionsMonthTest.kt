@@ -180,17 +180,16 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     /**
-     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] shows a real map (and
-     * so the icon stack) from its very first composition, not only once a region has been searched,
-     * so this works identically before and after the first search.
-     *
-     * That icon lives inside [CompactMapTab], which only composes while the Maps bottom-nav tab is
-     * selected — this test also drives the List tab (to check the Conditions card), so this
-     * switches back to Maps first rather than assuming it's already there.
+     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
+     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer. Tools
+     * opens the drawer as an overlay over whatever `compactTab` is already showing rather than
+     * becoming a tab itself, so switching to Maps first isn't strictly required for reachability
+     * the way it was for the old icon-stack button — kept anyway so this test's own tab state stays
+     * deterministic across the List-tab detour its own assertions make.
      */
     private fun openDrawer() {
         composeRule.onNodeWithText("Maps").performClick()
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
     }
 
     /**

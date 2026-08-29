@@ -218,13 +218,15 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] now shows a real map
-     * (and so the icon stack) even before a first search, GPS-centred or on a fixed fallback while
-     * that's still pending, so this icon is reachable from the very first composition rather than
-     * only once a region exists.
+     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
+     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer (see
+     * [CompactSearchDrawerContent]'s own doc comment), so this is now the drawer's one entry
+     * point. [CompactMapTab] shows a real map (and so the icon stack) even before a first search,
+     * GPS-centred or on a fixed fallback while that's still pending, so Tools is reachable from the
+     * very first composition rather than only once a region exists.
      */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
@@ -271,9 +273,9 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Reset orientation to north").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Search").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
@@ -294,13 +296,13 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the search icon opens the search drawer`() {
+    fun `the Tools tab opens the search drawer`() {
         setScreen()
         searchAReferenceRegion()
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
 
-        // The drawer's own content — proof the icon opened the real drawer, not a parallel search UI.
+        // The drawer's own content — proof Tools opened the real drawer, not a parallel search UI.
         composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
     }
 
@@ -328,14 +330,14 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
         CountingStubMapSlotState.compositionCount = 0
 
-        // "Settings" (bottom nav) and the "Fungi · August · 15 km" search summary (top strip) stand
+        // "Tools" (bottom nav) and the "Fungi · August · 15 km" search summary (top strip) stand
         // in for the two chrome regions decision #5 hides together — there's no more app-bar tune
         // icon to check now that species/category search and "Advanced search" both moved into the
         // drawer. Matched by the summary's exact text rather than a "15 km" substring: the drawer
         // sheet stays composed off-screen while closed (see openSearchDrawer()'s doc comment
         // elsewhere in this suite) and its own "Search radius: 15 km" text would otherwise double
         // the substring match.
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
         composeRule.onNodeWithText("Fungi · August · 15 km").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
@@ -343,13 +345,13 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
         assertEquals("the map slot must not be torn down and recomposed from scratch on a chrome toggle", 0, CountingStubMapSlotState.compositionCount)
-        composeRule.onAllNodesWithText("Settings").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
         composeRule.onAllNodesWithText("Fungi · August · 15 km").assertCountEquals(0)
 
         composeRule.onNodeWithContentDescription("Exit fullscreen").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
         composeRule.onNodeWithText("Fungi · August · 15 km").assertIsDisplayed()
     }
 
@@ -360,12 +362,12 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithText("Settings").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
 
         composeRule.onNodeWithTag("map-slot").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
     }
 
     @Test
@@ -473,6 +475,40 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithText("Maps").performClick()
         composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
+    }
+
+    /**
+     * The bottom nav has five destinations now (List, Seasonal, Maps, Journal, Tools), not the
+     * three [ResultsTab] drives above — and Tools is not a `compactTab` at all: tapping it opens
+     * the drawer as an overlay over whichever tab was already showing (see the bottom nav's own
+     * `onTabSelected` handler in `AvailabilityScreen`), rather than switching away from it the way
+     * List/Seasonal/Maps/Journal do. Proven on List specifically, not Maps: the map slot's own
+     * absence throughout is the signal that Tools never silently switched `compactTab` underneath
+     * the drawer, and that closing the drawer lands back on List directly rather than being bounced
+     * to some other tab (e.g. the Maps default) in between.
+     */
+    @Test
+    fun `all five bottom nav destinations are present, and Tools opens the drawer as an overlay over List rather than switching tabs`() {
+        setScreen()
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("List").assertIsDisplayed()
+        composeRule.onNodeWithText("Seasonal").assertIsDisplayed()
+        composeRule.onNodeWithText("Maps").assertIsDisplayed()
+        composeRule.onNodeWithText("Journal").assertIsDisplayed()
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
+
+        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Tools").performClick()
+        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+        composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("Close search options").performClick()
+
+        composeRule.onNodeWithText("Advanced search").assertIsNotDisplayed()
+        composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
     }
 
     @Test
@@ -745,7 +781,7 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithText("Settings").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
 
         val pillBounds = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot()
         val gapPoint = with(composeRule.density) {
@@ -754,7 +790,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onRoot().performTouchInput { click(gapPoint) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
     }
 
     /**
@@ -774,7 +810,7 @@ class AvailabilityScreenMapIconStackTest {
         searchAReferenceRegion()
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithText("Settings").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
 
         val armBounds = composeRule.onNodeWithTag("distance-arm").getUnclippedBoundsInRoot()
         val besideArmPoint = with(composeRule.density) {
@@ -783,7 +819,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onRoot().performTouchInput { click(besideArmPoint) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
     }
 
     @Test
@@ -855,7 +891,7 @@ class AvailabilityScreenMapIconStackTest {
         // not assertDoesNotExist, is what actually distinguishes "closed" from "open" here.
         composeRule.onNodeWithText("Foraging areas").assertIsNotDisplayed()
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
 
         composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
     }

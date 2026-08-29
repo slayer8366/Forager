@@ -257,39 +257,50 @@ private enum class ResultsTab(val label: String) {
 }
 
 /**
- * The compact bottom nav's five destinations — List/Maps/Seasonal (the same three [ResultsTab]
- * values the medium/expanded window's top tab row switches between, kept in sync with
- * [ResultsTab]'s own `selectedTab` state — see [AvailabilityScreen]'s `ForagerBottomNav` call site)
- * plus Journal and Settings, both moved here from the drawer per the project owner's own framing:
- * the compact bottom nav is where a user reaches every top-level destination now, and the drawer
- * (see [CompactSearchDrawerContent]) is search-only. [ResultsTab] itself stays a 3-way enum,
- * unchanged, since the medium/expanded window's tab row still switches only between those three.
+ * The compact bottom nav's five destinations, in trip order left to right — Pre-trip surfaces
+ * (List, Seasonal) then the surface the user is actually in (Maps, a true centre — depends on
+ * this being an odd count; a sixth destination would break the centring), then Post-trip and rare
+ * (Journal, Tools). [ResultsTab] itself stays a 3-way enum, unchanged, since the medium/expanded
+ * window's tab row still switches only between List/Maps/Seasonal, kept in sync with this enum's
+ * own `selectedTab` (see [AvailabilityScreen]'s `ForagerBottomNav` call site) whenever the tapped
+ * destination is one of those three.
+ *
+ * **Album is not a destination here any more.** It folds into [JOURNAL] as a third top tab
+ * alongside Log/Drafts (see [LogGalleryScreen]'s own doc comment) — Album and log entries share a
+ * phase and a frequency (per-find capture at the specimen, Post-trip review at home), so they
+ * belong in one destination rather than two separate ones that only existed apart because they
+ * were built apart.
+ *
+ * **[TOOLS] does not behave like the other four.** Tapping it never sets `compactTab` to
+ * [TOOLS] — see [ForagerBottomNav]'s own call site — it opens [CompactSearchDrawerContent] as an
+ * overlay instead, over whatever tab was already showing, the same drawer the removed MapIconBar
+ * search icon used to open (that icon is gone — see `MapIconBar`'s own doc comment — this tab is
+ * its replacement entry point, not a new destination alongside it). "Tools" is deliberately a
+ * catch-all for things used but not wanted in the immediate way — per-trip and rare items that are
+ * not destinations in their own right (species/category search, advanced search, recent searches,
+ * trip planner, waypoints, foraging areas, and now Settings too — see that composable's own doc
+ * comment). That inclusion rule is what the next addition here has to argue against becoming a
+ * junk drawer.
  */
 private enum class CompactTab(val label: String) {
     LIST("List"),
-    MAP("Maps"),
     SEASONAL("Seasonal"),
+    MAP("Maps"),
     JOURNAL("Journal"),
-    // Workstream G2 (`docs/plans/pr26-rework.md`): a top-level destination on both window classes
-    // (owner decision, 2026-08-22), not a branch inside JOURNAL — see PhotoGalleryScreen's own doc
-    // comment. Placed next to JOURNAL, the other mushroom-log destination, rather than at the end.
-    // Labelled "Album" rather than "Photos"/"Gallery": both of those exact strings are already
-    // on-screen text elsewhere in this feature (LogEntryDetailScreen's "Photos" section header and
-    // its own "Gallery" picker button), which made an existing Compose test's onNodeWithText query
-    // ambiguous the moment this tab's label rendered alongside them. "Album" also echoes G1's own
-    // "the album model" framing for many-to-many photo ownership, not picked arbitrarily.
-    PHOTOS("Album"),
-    SETTINGS("Settings"),
+    TOOLS("Tools"),
 }
 
 /** The compact bottom nav's icon per destination — see [ForagerBottomNav]. */
 private fun CompactTab.icon(): ImageVector = when (this) {
     CompactTab.LIST -> Icons.AutoMirrored.Filled.List
-    CompactTab.MAP -> Icons.Filled.Map
     CompactTab.SEASONAL -> Icons.Filled.WbSunny
+    CompactTab.MAP -> Icons.Filled.Map
     CompactTab.JOURNAL -> Icons.Filled.MenuBook
-    CompactTab.PHOTOS -> Icons.Filled.PhotoLibrary
-    CompactTab.SETTINGS -> Icons.Filled.Settings
+    // Same icon Settings itself used before this dispatch folded it into Tools' own drawer — no
+    // "tools/build" icon exists in this app's icon set (only the core Material icons module is a
+    // dependency, not the extended one a wrench/handyman glyph would need), and Settings is still
+    // genuinely part of what this destination opens.
+    CompactTab.TOOLS -> Icons.Filled.Settings
 }
 
 /**
@@ -304,11 +315,14 @@ private fun CompactTab.icon(): ImageVector = when (this) {
  * (chosen from [ThreeWayActionDialog], then placed via [com.forager.app.ui.map.CentrePinLocationPicker]);
  * see [MapTab]'s `onLogFindHere` call site in [AvailabilityScreen].
  *
- * **Compact windows no longer use this at all.** [Settings] and [Log] moved to the bottom nav
- * ([CompactTab.SETTINGS]/[CompactTab.JOURNAL] — see [ForagerBottomNav]'s doc comment) per the
- * project owner's own framing; the compact drawer ([CompactSearchDrawerContent]) is search-only
- * and reaches its own Offline Maps-equivalent nowhere, since Settings itself is a bottom-nav
- * destination there (see [CompactSettingsTab]). This enum, [drawerSheetContent], and the
+ * **Compact windows no longer use this at all.** [Log] moved to the bottom nav
+ * ([CompactTab.JOURNAL] — see [ForagerBottomNav]'s doc comment); [Settings] is reached one level
+ * deeper still, from a sticky entry at the bottom of the compact drawer's own content (see
+ * [CompactSearchDrawerContent]'s `showSettings` state, which hosts [CompactSettingsTab] the same
+ * way this enum's own [Settings] does here). That compact drawer is now [CompactTab.TOOLS]'s
+ * destination (map/navigation redesign dispatch B) rather than search-only, so unlike [Search]
+ * above it is not the drawer's single fixed content — [Settings] there is a nested state within
+ * it, not a sibling reached by closing and reopening. This enum, [drawerSheetContent], and the
  * `PermanentNavigationDrawer` it feeds stay exactly as they were before any of that — untouched,
  * medium/expanded-only — see docs/plans/map-redesign.md's "Scope decision" section.
  */
@@ -322,8 +336,10 @@ private enum class DrawerPanel {
     Tracks,
     Log,
     // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
-    // top-level, both-window-classes destination — see PhotoGalleryScreen's own doc comment and
-    // CompactTab.PHOTOS, its compact counterpart.
+    // top-level destination — see PhotoGalleryScreen's own doc comment. No longer a
+    // both-window-classes destination as of map/navigation redesign dispatch B: the compact side
+    // folded into LogGalleryScreen's own Album tab (reached via CompactTab.JOURNAL) rather than
+    // keeping a standalone compact counterpart.
     PhotoGallery,
 }
 
@@ -1003,15 +1019,6 @@ fun AvailabilityScreen(
     // longer lives where this strip is — its whole point now is answering that question *without*
     // opening the drawer, not being a second way to open it.
     val compactMainScaffold: @Composable () -> Unit = {
-        // Reused by both the drawer content's own close-and-search flow and the map icon stack's
-        // search icon — decision #3.4: the stack's search icon is a second entry point into this
-        // same drawer panel, not a new search feature, so it calls this identical lambda rather
-        // than a parallel one.
-        val openSearchDrawer = {
-            onDismissTaxonSuggestions()
-            isDrawerOpen = true
-        }
-
         // The quick species-search panel under ActiveSearchSummary — see that composable's own
         // onOpenQuickSearch doc comment. Local to this scaffold, not AvailabilityUiState: which
         // panel is showing is a display decision the ViewModel has no part in, same reasoning as
@@ -1085,6 +1092,7 @@ fun AvailabilityScreen(
                 if (!isMapFullscreen) {
                     ForagerBottomNav(
                         selectedTab = compactTab,
+                        isDrawerOpen = isDrawerOpen,
                         onTabSelected = { tab ->
                             // Workstream L4b: switching away from Journal while an entry is open is
                             // "leaving without answering" — the same incidental-exit auto-save as
@@ -1092,18 +1100,32 @@ fun AvailabilityScreen(
                             // MushroomLogViewModel's own doc comment on the three exits). Checked
                             // before compactTab actually changes, so this only fires on a genuine
                             // tab switch, never on tapping the already-selected Journal tab again.
+                            // Also correct for Tools, below, since that never sets compactTab at
+                            // all — tab != CompactTab.JOURNAL is still true when tab is TOOLS.
                             if (compactTab == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
                                 leaveLogEntryEditingOfferingDiscard()
                             }
-                            compactTab = tab
-                            // Keep the shared ResultsTab-driven state in sync for the three
-                            // destinations both it and CompactTab describe — see compactTab's own
-                            // doc comment for why.
-                            when (tab) {
-                                CompactTab.LIST -> selectedTab = ResultsTab.LIST
-                                CompactTab.MAP -> selectedTab = ResultsTab.MAP
-                                CompactTab.SEASONAL -> selectedTab = ResultsTab.SEASONAL
-                                CompactTab.JOURNAL, CompactTab.PHOTOS, CompactTab.SETTINGS -> Unit
+                            if (tab == CompactTab.TOOLS) {
+                                // CompactTab.TOOLS's own doc comment: opens the drawer as an
+                                // overlay over whatever tab is already showing, rather than
+                                // becoming compactTab itself — the same drawer the removed
+                                // MapIconBar search icon used to open (see that composable's own
+                                // doc comment), including the same "dismiss any open taxon
+                                // suggestion popup first" step openSearchDrawer used to do.
+                                onDismissTaxonSuggestions()
+                                isDrawerOpen = true
+                            } else {
+                                compactTab = tab
+                                // Keep the shared ResultsTab-driven state in sync for the three
+                                // destinations both it and CompactTab describe — see compactTab's
+                                // own doc comment for why.
+                                when (tab) {
+                                    CompactTab.LIST -> selectedTab = ResultsTab.LIST
+                                    CompactTab.MAP -> selectedTab = ResultsTab.MAP
+                                    CompactTab.SEASONAL -> selectedTab = ResultsTab.SEASONAL
+                                    CompactTab.JOURNAL -> Unit
+                                    CompactTab.TOOLS -> Unit // unreachable — handled above
+                                }
                             }
                         },
                     )
@@ -1173,7 +1195,6 @@ fun AvailabilityScreen(
                         isFullscreen = isMapFullscreen,
                         onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
                         onLocateMe = onLocateMe,
-                        onOpenSearchDrawer = openSearchDrawer,
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording,
                         startRecordingErrorMessage = startRecordingErrorMessage,
@@ -1210,37 +1231,20 @@ fun AvailabilityScreen(
                         onPullPhoto = onPullLogPhoto,
                         onDeleteEntry = onDeleteLogEntry,
                         onSaveErrorDismissed = onSaveLogErrorDismissed,
+                        // Album folded into this tab as a third top tab (Log/Drafts/Album) — see
+                        // LogGalleryScreen's own doc comment. Threaded through unchanged from
+                        // where CompactTab.PHOTOS used to read them directly.
+                        galleryPhotos = logUiState.galleryPhotos,
+                        isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
+                        onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                        galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
                         modifier = Modifier.weight(1f),
                     )
-                    CompactTab.PHOTOS -> PhotoGalleryScreen(
-                        photos = logUiState.galleryPhotos,
-                        isLoading = logUiState.isLoadingGalleryPhotos,
-                        onDeletePhoto = onDeleteGalleryPhoto,
-                        modifier = Modifier.weight(1f),
-                        loadErrorMessage = logUiState.galleryLoadErrorMessage,
-                    )
-                    CompactTab.SETTINGS -> CompactSettingsTab(
-                        uiState = uiState,
-                        mapSlot = mapSlot,
-                        distanceUnit = distanceUnit,
-                        onDistanceUnitSelected = onDistanceUnitSelected,
-                        currentTime = currentTime,
-                        isNightMode = isNightMode,
-                        onNightModeMapsChanged = onNightModeMapsChanged,
-                        themeMode = uiState.themeMode,
-                        onThemeModeChanged = onThemeModeChanged,
-                        onOfflineMapLatChanged = onOfflineMapLatChanged,
-                        onOfflineMapLngChanged = onOfflineMapLngChanged,
-                        onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                        onOfflineMapNameChanged = onOfflineMapNameChanged,
-                        onOfflineMapsOpened = onOfflineMapsOpened,
-                        onDownloadOfflineMaps = onDownloadOfflineMaps,
-                        onDeleteOfflineRegion = onDeleteOfflineRegion,
-                        crashFileStore = crashFileStore,
-                        tracks = tracks,
-                        onTracksOpened = onTracksOpened,
-                        modifier = Modifier.weight(1f),
-                    )
+                    // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
+                    // see that entry's own doc comment. Kept as a real branch (not an else) so this
+                    // stays an exhaustive, honest `when` rather than one that silently compiles
+                    // around a case the compiler can't see is impossible.
+                    CompactTab.TOOLS -> Unit
                 }
             }
         }
@@ -1258,7 +1262,9 @@ fun AvailabilityScreen(
                 ModalDrawerSheet {
                     CompactSearchDrawerContent(
                         uiState = uiState,
+                        mapSlot = mapSlot,
                         distanceUnit = distanceUnit,
+                        onDistanceUnitSelected = onDistanceUnitSelected,
                         onClose = { isDrawerOpen = false },
                         onUseCurrentLocation = {
                             isDrawerOpen = false
@@ -1286,6 +1292,20 @@ fun AvailabilityScreen(
                         },
                         currentTime = currentTime,
                         onToggleForagingAreas = onToggleForagingAreas,
+                        isNightMode = isNightMode,
+                        onNightModeMapsChanged = onNightModeMapsChanged,
+                        themeMode = uiState.themeMode,
+                        onThemeModeChanged = onThemeModeChanged,
+                        onOfflineMapLatChanged = onOfflineMapLatChanged,
+                        onOfflineMapLngChanged = onOfflineMapLngChanged,
+                        onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                        onOfflineMapNameChanged = onOfflineMapNameChanged,
+                        onOfflineMapsOpened = onOfflineMapsOpened,
+                        onDownloadOfflineMaps = onDownloadOfflineMaps,
+                        onDeleteOfflineRegion = onDeleteOfflineRegion,
+                        crashFileStore = crashFileStore,
+                        tracks = tracks,
+                        onTracksOpened = onTracksOpened,
                     )
                 }
             },
@@ -1321,38 +1341,42 @@ fun AvailabilityScreen(
 
 /**
  * Replaces the compact-only top [SecondaryTabRow] — decision #4 in `docs/plans/map-redesign.md`,
- * extended by the project owner from 3 destinations to [CompactTab]'s **6**: List/Maps/Seasonal
- * (the original three), Journal, Album, and Settings — Journal and Settings moved here from the
- * drawer (see [CompactSearchDrawerContent]'s own doc comment), and Album (Workstream G2,
- * `docs/plans/pr26-rework.md`) added afterward as the gallery's own top-level destination. MEDIUM/
- * EXPANDED windows still use [SecondaryTabRow] via [mainScaffold], untouched. **Corrected
- * 2026-08-28**: this comment said "5" from before Album was added — `map-redesign.md:322-327`
- * flagged the same drift and `docs/qc/pulses/reports/2026-08-28-mapiconbar-q5-provenance-pulse.md`
- * re-confirmed it against current source.
+ * back down to [CompactTab]'s **5** destinations as of this dispatch: List, Seasonal, Maps,
+ * Journal, Tools. **Corrected twice now**: this comment said "5" before Album was added as its own
+ * destination (2026-08-28 correction), then needed correcting again to "6" once Album actually
+ * landed, and is "5" again for real now that Album folded into Journal and Settings folded into
+ * Tools — re-derived directly against [CompactTab.entries] rather than trusted from either prior
+ * count, per this project's own repeated history of exactly this drift.
  *
- * Colored entirely from [MaterialTheme.colorScheme] rather than the fixed [Bark]/[Color.White] an
- * earlier revision used — that hardcoding was a real bug, not a style choice: it left this bar the
- * same dark brown regardless of system light/dark theme, while every other surface in the app (and
- * this same bar's own active-tab color, already `MaterialTheme.colorScheme.primary`) switched with
- * it. [NavigationBarItemDefaults.colors]' own defaults already give the unselected/indicator roles
- * sensible theme-following values, so this only overrides `selectedIconColor`/`selectedTextColor`
- * to keep the app's own forest green (`colorScheme.primary` —
- * [com.forager.app.ui.theme.ForestGreen] in light theme, [com.forager.app.ui.theme.MossGreen] in
- * dark, per that theme's own doc comment) as the active-tab accent, matching this file's other
- * hand-picked accents rather than leaving it at M3's default secondary-container tint.
+ * [selectedTab] is [AvailabilityScreen]'s own `compactTab`, with one exception: [CompactTab.TOOLS]
+ * never actually becomes the selected `compactTab` (see that entry's own doc comment — tapping it
+ * opens a drawer instead), so [isDrawerOpen] stands in for its own highlight specifically. Every
+ * other entry highlights the ordinary way.
  */
 @Composable
-private fun ForagerBottomNav(selectedTab: CompactTab, onTabSelected: (CompactTab) -> Unit) {
+private fun ForagerBottomNav(selectedTab: CompactTab, isDrawerOpen: Boolean, onTabSelected: (CompactTab) -> Unit) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
-                selected = selectedTab == tab,
+                selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
                 onClick = { onTabSelected(tab) },
                 icon = { Icon(tab.icon(), contentDescription = null) },
                 label = { Text(tab.label) },
+                // Colored entirely from MaterialTheme.colorScheme rather than the fixed Bark/
+                // Color.White an earlier revision used — that hardcoding was a real bug, not a
+                // style choice: it left this bar the same dark brown regardless of system light/
+                // dark theme, while every other surface in the app (and this same bar's own
+                // active-tab color, already colorScheme.primary) switched with it.
+                // NavigationBarItemDefaults.colors' own defaults already give the unselected/
+                // indicator roles sensible theme-following values, so this only overrides
+                // selectedIconColor/selectedTextColor to keep the app's own forest green
+                // (colorScheme.primary — ForestGreen in light theme, MossGreen in dark, per that
+                // theme's own doc comment) as the active-tab accent, matching this file's other
+                // hand-picked accents rather than leaving it at M3's default secondary-container
+                // tint.
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -1744,14 +1768,19 @@ private fun PhotoGalleryHeader(onBack: () -> Unit) {
 }
 
 /**
- * [CompactTab.SETTINGS]'s body — [SettingsContent] hosted as a bottom-nav tab's own content
- * instead of a drawer panel, with the Offline Maps submenu as local `showOfflineMaps` state instead
- * of [DrawerPanel.OfflineMaps]. Reuses [SettingsContent]/[OfflineMapsPanel]/[OfflineMapsHeader]/
- * [BuildIdentityFooter] unmodified — only the navigation host around them changed, from a drawer
- * panel switch to a tab-local one. No header for the main Settings state, unlike the drawer
- * panel's [SettingsHeader]: there is nothing to go "back" to here — Settings is a top-level
- * destination now, and the bottom nav is how you leave it, the same reason [CompactMapTab]/
- * [ListTab]/[SeasonalTab] have no such header either.
+ * Settings' body, reached by tapping the Settings entry at the bottom of [CompactSearchDrawerContent]
+ * (the compact "Tools" drawer, map/navigation redesign dispatch B) — [SettingsContent] hosted as a
+ * `showSettings`-gated state within that drawer instead of a drawer panel of its own, with the
+ * Offline Maps submenu as local `showOfflineMaps` state instead of [DrawerPanel.OfflineMaps].
+ * Reuses [SettingsContent]/[OfflineMapsPanel]/[OfflineMapsHeader]/[BuildIdentityFooter] unmodified —
+ * only the navigation host around them changed, from a drawer panel switch to a nested-state one.
+ * No header for the main Settings state, unlike the drawer panel's [SettingsHeader]: there is
+ * nothing to go "back" to here via an in-content affordance — [CompactSearchDrawerContent]'s own
+ * `BackHandler` unwinds `showSettings` back to the rest of the Tools drawer, the same
+ * most-recently-composed-callback-wins pattern [JournalTab]'s nested states use.
+ *
+ * **Was** [CompactTab.SETTINGS]'s body — a standalone sixth bottom-nav destination — before dispatch
+ * B collapsed the bottom nav to five destinations and folded Settings one level deeper, behind Tools.
  */
 @Composable
 private fun CompactSettingsTab(
@@ -2521,10 +2550,11 @@ private fun MapModePicker(
 }
 
 /**
- * The compact drawer's entire content — "the whole side panel is the search feature," per the
- * project owner's own framing once the redesign's icon stack gave the Maps tab a second entry
- * point into this same drawer. Three things moved here from where they used to live once that
- * framing landed:
+ * The compact "Tools" drawer's entire content — "the whole side panel is the search feature," per
+ * the project owner's own original framing, extended by this dispatch's own owner call: this
+ * drawer stays exactly what it already was, now opened from the bottom nav's `CompactTab.TOOLS`
+ * entry instead of a MapIconBar icon (see that entry's own doc comment), with one addition rather
+ * than a rebuild. Four things live here:
  *
  * 1. **Species/category search** ([SpeciesSearchControls]) — used to be [AvailabilitySearchTopBar],
  *    a bar of its own above the (now-removed, see [ForagerBottomNav]) compact top tab row. With
@@ -2542,15 +2572,22 @@ private fun MapModePicker(
  *    the bottom, not scrolling with [SearchControls]: [ForagingAreasPanel]'s own
  *    [FORAGING_AREAS_PANEL_MAX_HEIGHT] cap already bounds it to a footnote-sized block, the same
  *    fixed-height treatment [MapTab] gave it before this redesign, just relocated.
+ * 4. **Settings** ([showSettings]) — new as of this dispatch, per the owner's own call: this
+ *    drawer *is* the Tools destination now, so Settings (which had its own bottom-nav tab before
+ *    this dispatch) lives here instead, reached one tap deeper via the entry row fixed below
+ *    Foraging areas — the same "drill in, own back step" shape [CompactSettingsTab] already uses
+ *    for its own OfflineMaps/CrashLogs/Tracks submenus, not a new pattern invented for this.
  *
- * [DrawerHeader] stays the one visible way to close this drawer, same as before. No sticky
- * Settings/Log rows any more — both left the drawer entirely for the bottom nav (decision made
- * alongside the above), so this content is Search and only Search now, matching its new sole job.
+ * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
+ * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again, the one
+ * reversal of this composable's own prior "Search and only Search now" framing.
  */
 @Composable
 private fun CompactSearchDrawerContent(
     uiState: AvailabilityUiState,
+    mapSlot: MapSlot,
     distanceUnit: DistanceUnit,
+    onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onClose: () -> Unit,
     onUseCurrentLocation: () -> Unit,
     onCategorySelected: (TaxonFilter) -> Unit,
@@ -2569,7 +2606,58 @@ private fun CompactSearchDrawerContent(
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
     onToggleForagingAreas: (Boolean) -> Unit,
+    isNightMode: Boolean,
+    onNightModeMapsChanged: (Boolean) -> Unit,
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit,
+    onOfflineMapLatChanged: (String) -> Unit,
+    onOfflineMapLngChanged: (String) -> Unit,
+    onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
+    onOfflineMapsOpened: () -> Unit,
+    onDownloadOfflineMaps: () -> Unit,
+    onDeleteOfflineRegion: (Long) -> Unit,
+    crashFileStore: CrashFileStore,
+    tracks: List<Track>,
+    onTracksOpened: () -> Unit,
 ) {
+    // Own drill-in step, same shape as CompactSettingsTab's own OfflineMaps/CrashLogs/Tracks
+    // submenus — see this composable's own doc comment, item 4. Composed inside this drawer sheet
+    // (which the ModalNavigationDrawer keeps mounted even while visually closed, same as
+    // CollapsibleSection's own expand state), so its own BackHandler below takes priority over the
+    // top-level isDrawerOpen one — the same "most-recently-composed enabled callback wins"
+    // precedence AvailabilityScreen's own top-level BackHandler chain already documents.
+    var showSettings by remember { mutableStateOf(false) }
+    BackHandler(enabled = showSettings) {
+        showSettings = false
+    }
+
+    if (showSettings) {
+        CompactSettingsTab(
+            uiState = uiState,
+            mapSlot = mapSlot,
+            distanceUnit = distanceUnit,
+            onDistanceUnitSelected = onDistanceUnitSelected,
+            currentTime = currentTime,
+            isNightMode = isNightMode,
+            onNightModeMapsChanged = onNightModeMapsChanged,
+            themeMode = themeMode,
+            onThemeModeChanged = onThemeModeChanged,
+            onOfflineMapLatChanged = onOfflineMapLatChanged,
+            onOfflineMapLngChanged = onOfflineMapLngChanged,
+            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+            onOfflineMapNameChanged = onOfflineMapNameChanged,
+            onOfflineMapsOpened = onOfflineMapsOpened,
+            onDownloadOfflineMaps = onDownloadOfflineMaps,
+            onDeleteOfflineRegion = onDeleteOfflineRegion,
+            crashFileStore = crashFileStore,
+            tracks = tracks,
+            onTracksOpened = onTracksOpened,
+            modifier = Modifier.fillMaxSize(),
+        )
+        return
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         DrawerHeader(onClose = onClose)
         SpeciesSearchControls(
@@ -2615,6 +2703,7 @@ private fun CompactSearchDrawerContent(
                 }
             }
         }
+        SettingsEntryRow(onClick = { showSettings = true })
     }
 }
 
@@ -3832,7 +3921,6 @@ private fun CompactMapTab(
     isFullscreen: Boolean,
     onToggleFullscreen: () -> Unit,
     onLocateMe: () -> Unit,
-    onOpenSearchDrawer: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     startRecordingErrorMessage: String?,
@@ -4076,7 +4164,6 @@ private fun CompactMapTab(
                     mapMode = mapMode,
                     onOpenMapModePicker = { showMapModePicker = true },
                     isNightMode = isNightMode,
-                    onOpenSearchDrawer = onOpenSearchDrawer,
                     onAdd = {
                         // No location to grab any more — the button just opens the menu; the
                         // location comes from CentrePinLocationPickerOverlay's own camera tracking
@@ -4222,10 +4309,9 @@ private fun CompactMapTab(
  *
  * Top to bottom: fullscreen, orientation-reset, GPS/locate-me, map mode (slot 4 opens
  * [MapModePicker] — the same picker [MapModeToggle] opens for the untouched MEDIUM/EXPANDED path,
- * restyled rather than reused directly so MEDIUM/EXPANDED's own styling stays untouched), search,
- * add. The add button keeps its own green fill — real state, not decoration — everything else
- * tints its icon rather than its own background, since the bar itself is the shared background
- * now.
+ * restyled rather than reused directly so MEDIUM/EXPANDED's own styling stays untouched), add. The
+ * add button keeps its own green fill — real state, not decoration — everything else tints its
+ * icon rather than its own background, since the bar itself is the shared background now.
  *
  * **No return-to-vehicle row.** Field-test dispatch item 2 gave the compass strip's own
  * `ReturnToVehicleStripControl` a visible readout and kept this bar's identical row alongside it
@@ -4233,14 +4319,21 @@ private fun CompactMapTab(
  * for. The owner's verdict, from real hardware: the compass strip control alone — this row was a
  * confusing duplicate and is removed, not merely hidden.
  *
- * **No record row either, as of this dispatch's Part B.** Record start/stop moved into
- * `ControlPill` alongside return-to-vehicle — the two Trailhead/Return controls belong together,
- * not split across this bar and the compass strip. Re-derived directly against the tree rather
- * than assumed: this bar was 7 rows before this change (fullscreen, orientation-reset, locate-me,
- * map mode, record, search, add — return-to-vehicle's own row was already gone above), not 8;
- * removing record leaves 6. [mapIconBarRowAnchorOffset]'s `rowCount` and [ADD_TILE_ANCHOR_OFFSET]'s
- * row index are updated to match — both were still keyed to 8 despite the bar already sitting at
- * 7, a staleness this same re-derivation catches and fixes rather than compounds.
+ * **No record row**, as of an earlier dispatch's Part B — record start/stop moved into
+ * `ControlPill` alongside return-to-vehicle, the two Trailhead/Return controls, which belong
+ * together rather than split across this bar and the compass strip.
+ *
+ * **No search row either, as of this dispatch.** The icon here used to open
+ * [CompactSearchDrawerContent]; that drawer now opens from the bottom nav's own `CompactTab.TOOLS`
+ * entry instead (see that entry's own doc comment) — one entry point, not two, now that Tools is a
+ * real bottom-nav destination rather than a row buried in a map-verbs bar. Re-derived directly
+ * against the tree rather than assumed: this bar was 6 rows before this change (fullscreen,
+ * orientation-reset, locate-me, map mode, search, add), not 7 or 8 as either of the last two
+ * dispatches' own text claimed at the time each was written; removing search leaves 5 — fullscreen,
+ * orientation-reset, locate-me, map mode, add — which still reads as a coherent group of map verbs
+ * (viewport and pin-drop actions only, now that both Trailhead controls and search have moved to
+ * homes of their own). [mapIconBarRowAnchorOffset]'s `rowCount` and [ADD_TILE_ANCHOR_OFFSET]'s row
+ * index are updated to match.
  */
 @Composable
 private fun MapIconBar(
@@ -4250,7 +4343,6 @@ private fun MapIconBar(
     onResetOrientation: () -> Unit,
     mapMode: MapMode,
     onOpenMapModePicker: () -> Unit,
-    onOpenSearchDrawer: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
     /**
@@ -4303,11 +4395,6 @@ private fun MapIconBar(
                     append(if (isNightMode) " Night mode on." else " Night mode off.")
                 },
                 onClick = onOpenMapModePicker,
-            )
-            MapBarIconButton(
-                icon = Icons.Filled.Search,
-                contentDescription = "Search",
-                onClick = onOpenSearchDrawer,
             )
             MapBarIconButton(
                 icon = Icons.Filled.Add,
@@ -5051,22 +5138,21 @@ internal const val ADD_ACTION_TILE_SCRIM_TAG = "add-action-tile-scrim"
  * caller tracks its own button's real measured position — but close enough that each popup visibly
  * grows from that button's corner rather than from an unrelated point on screen.
  */
-// rowCount re-derived directly against the tree, not assumed: this bar sits at 6 rows as of this
-// dispatch's Part B (fullscreen, orientation-reset, locate-me, map mode, search, add). Both this
-// count and ADD_TILE_ANCHOR_OFFSET's row index below were still keyed to a stale 8 (from before
-// return-to-vehicle's own row was removed in an earlier dispatch), corrected here alongside
-// removing the record row rather than left to drift further.
+// rowCount re-derived directly against the tree, not assumed: this bar sits at 5 rows as of this
+// dispatch (fullscreen, orientation-reset, locate-me, map mode, add) — removing the search row
+// (see MapIconBar's own doc comment). Both this count and ADD_TILE_ANCHOR_OFFSET's row index below
+// are updated to match, rather than left to drift the way this constant already has twice before.
 private fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
-    val rowCount = 6
+    val rowCount = 5
     val contentHeight = MIN_TOUCH_TARGET * rowCount + Spacing.xs * (rowCount - 1)
     val rowCenterFromTop = (MIN_TOUCH_TARGET + Spacing.xs) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
     return rowCenterFromTop - contentHeight / 2
 }
 
-/** [MapIconBar]'s add row is its 6th (last) of 6 — see [mapIconBarRowAnchorOffset]. */
-private val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 6)
+/** [MapIconBar]'s add row is its 5th (last) of 5 — see [mapIconBarRowAnchorOffset]. */
+private val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 5)
 
-/** [MapIconBar]'s layers ("Map Mode") row is its 4th of 8 — see [mapIconBarRowAnchorOffset]. */
+/** [MapIconBar]'s layers ("Map Mode") row is its 4th of 5 — see [mapIconBarRowAnchorOffset]. */
 private val MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)
 
 /**

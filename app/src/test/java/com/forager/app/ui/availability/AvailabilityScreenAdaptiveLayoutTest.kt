@@ -79,11 +79,12 @@ class AvailabilityScreenCompactWidthDrawerTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     /**
-     * "Settings" itself no longer works as this pin: it moved to the bottom nav (see
-     * `AvailabilityScreen`'s `CompactTab` and `ForagerBottomNav`) as part of the map redesign, so
-     * it's always on screen now regardless of drawer state. "Recent searches" — the drawer's own
-     * first section header, still exclusively drawer content — replaces it as the "behind the
-     * modal drawer" marker this test exists to pin.
+     * "Settings" itself no longer works as this pin: it's the drawer's own sticky entry row now
+     * (map/navigation redesign dispatch B's `CompactSearchDrawerContent.showSettings`), so it
+     * renders exactly whenever the rest of the drawer's content does, telling this test nothing
+     * about open vs. closed on its own. "Recent searches" — the drawer's own first section header,
+     * still exclusively drawer content — replaces it as the "behind the modal drawer" marker this
+     * test exists to pin.
      */
     @Test
     fun `the drawer's search controls are not shown until the drawer is opened`() {
@@ -250,10 +251,11 @@ class AvailabilityScreenWideWindowLayoutTest {
     }
 
     /**
-     * Workstream G2 (`docs/plans/pr26-rework.md`): the gallery is a top-level destination on both
-     * window classes, not just compact — see `PhotoGalleryScreen`'s own doc comment. This is the
-     * medium/expanded half; `AvailabilityScreenBackNavigationTest`'s own "Album" tab test covers
-     * the compact half.
+     * Workstream G2 (`docs/plans/pr26-rework.md`) made the gallery a top-level destination on both
+     * window classes; map/navigation redesign dispatch B folded the compact half into
+     * `LogGalleryScreen`'s own Album tab instead (see `PhotoGalleryScreen`'s own doc comment for
+     * why), but left this medium/expanded drawer entry untouched. This is that untouched half;
+     * `AvailabilityScreenBackNavigationTest`'s own "Album" tab test covers the compact one.
      */
     @Test
     fun `the drawer's Photo Gallery entry is shown without opening the drawer, and opens the gallery`() {

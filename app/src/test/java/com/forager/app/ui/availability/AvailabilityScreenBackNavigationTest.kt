@@ -217,8 +217,12 @@ class AvailabilityScreenBackNavigationTest {
         }
     }
 
+    /**
+     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
+     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer.
+     */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
@@ -229,7 +233,7 @@ class AvailabilityScreenBackNavigationTest {
     @Test
     fun `back closes the open drawer instead of warning to exit`() {
         setScreen()
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
 
         pressBack()
@@ -263,50 +267,42 @@ class AvailabilityScreenBackNavigationTest {
         searchAReferenceRegion()
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         // The bottom nav is conditionally composed away while fullscreen, not merely hidden.
-        composeRule.onNodeWithText("Settings").assertDoesNotExist()
+        composeRule.onNodeWithText("Tools").assertDoesNotExist()
 
         pressBack()
 
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
-        assertEquals(null, ShadowToast.getTextOfLatestToast())
-    }
-
-    @Test
-    fun `back returns to the Maps tab from another tab instead of warning to exit`() {
-        setScreen()
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
-
-        pressBack()
-
-        composeRule.onNodeWithText("Distance Unit").assertDoesNotExist()
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 
     /**
-     * With the drawer open *and* the map fullscreen at once — reachable because the icon stack's
-     * own Search button stays up while fullscreen — back must close the drawer first. Settles
-     * whether the top-level fullscreen-exit `BackHandler` or the drawer-close one actually wins,
-     * which only the real dispatcher's stack ordering can answer.
+     * Was driven through "Settings" before map/navigation redesign dispatch B collapsed it into a
+     * nested state inside the "Tools" drawer (see [CompactSearchDrawerContent]'s `showSettings`) —
+     * Settings is no longer its own `compactTab`, so it can't stand in for "another tab" here.
+     * "List" is a real, still-standalone `compactTab` this handler chain treats identically.
      */
     @Test
-    fun `with the drawer open while fullscreen, back closes the drawer before exiting fullscreen`() {
+    fun `back returns to the Maps tab from another tab instead of warning to exit`() {
         setScreen()
-        searchAReferenceRegion()
-        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
-        composeRule.onNodeWithContentDescription("Search").performClick()
-        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
 
         pressBack()
 
-        composeRule.onNodeWithText("Advanced search").assertIsNotDisplayed()
-        // Still fullscreen — the bottom nav is conditionally composed away, not just hidden.
-        composeRule.onNodeWithText("Settings").assertDoesNotExist()
-
-        pressBack()
-
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
+
+    // The "drawer open while fullscreen" back-priority test that used to live here is gone, not
+    // relocated: it depended on the icon stack's own "Search" button, which stayed up while
+    // fullscreen and so could open the drawer in that state. Map/navigation redesign dispatch B
+    // removed that button — Tools now lives only on the bottom nav, which itself is conditionally
+    // composed away while fullscreen (see the "back exits fullscreen" test's own assertion above) —
+    // and the drawer's scrim blocks MapIconBar's Fullscreen button while the drawer is open, so
+    // there is no path left to reach *and* leave fullscreen with the drawer open at the same time.
+    // "Drawer open and fullscreen at once" is accordingly no longer a reachable state to assert
+    // back-priority over, not merely an untested one — this is the same accepted reachability
+    // tradeoff as removing the Search icon itself.
 
     /**
      * A Journal entry's own edit form is more nested than "which bottom-nav tab is selected" — back
@@ -336,9 +332,12 @@ class AvailabilityScreenBackNavigationTest {
     }
 
     /**
-     * Workstream G2 (`docs/plans/pr26-rework.md`): the gallery is a top-level destination on both
-     * window classes — this is the compact half (a bottom-nav tab); the medium/expanded half (a
-     * drawer entry) is `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. Labelled
+     * Workstream G2 (`docs/plans/pr26-rework.md`) made the gallery a top-level destination on both
+     * window classes; map/navigation redesign dispatch B folded the compact half back in as
+     * [com.forager.app.ui.log.LogGalleryScreen]'s own third tab (Log/Drafts/Album), reached through
+     * Journal rather than standing alone on the bottom nav, to make room for a fifth bottom-nav slot
+     * — see that composable's own doc comment. The medium/expanded half (a drawer entry) is
+     * untouched and stays `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. Labelled
      * "Album" rather than "Photos" — see `CompactTab`'s own doc comment for why that exact string
      * collides with existing on-screen text elsewhere in this same feature.
      */
@@ -350,6 +349,7 @@ class AvailabilityScreenBackNavigationTest {
         )
         setScreen(logUiState = MushroomLogUiState(galleryPhotos = listOf(photo)))
 
+        composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Album").performClick()
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()

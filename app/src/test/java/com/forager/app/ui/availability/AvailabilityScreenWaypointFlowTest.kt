@@ -192,8 +192,12 @@ class AvailabilityScreenWaypointFlowTest {
         }
     }
 
+    /**
+     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
+     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer.
+     */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
@@ -286,7 +290,7 @@ class AvailabilityScreenWaypointFlowTest {
     fun `the drawer's Waypoints section shows a no-waypoints message when empty`() {
         setScreen()
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
         composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
@@ -306,7 +310,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint))
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
@@ -340,7 +344,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint), waypointsErrorMessage = "Couldn't load waypoints.")
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
         composeRule.onNodeWithText("Couldn't load waypoints.").assertIsDisplayed()
@@ -362,7 +366,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint))
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()

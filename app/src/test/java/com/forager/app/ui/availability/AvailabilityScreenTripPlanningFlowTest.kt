@@ -181,8 +181,12 @@ class AvailabilityScreenTripPlanningFlowTest {
         }
     }
 
+    /**
+     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
+     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer.
+     */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")

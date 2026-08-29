@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.Feature
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Observed
 import com.forager.app.ui.theme.Spacing
@@ -74,8 +75,16 @@ private fun MushroomLogEntry.hasUnrecordedFields(): Boolean =
  * **Log / Drafts toggle (Workstream L4b-R, owner decision 2026-08-25):** a draft never appears
  * alongside committed entries — "unsaved work is held in a Drafts section." Implemented here as a
  * filter/toggle on this same screen rather than a separate destination, per the owner's own choice:
- * [showingDrafts] selects which of [entries]/[draftEntries] the grid below actually shows, never
- * both at once.
+ * [selectedTab] selects which of [entries]/[draftEntries] the grid below actually shows, never both
+ * at once.
+ *
+ * **Album, folded in as a third tab (map/navigation redesign dispatch B):** [CompactTab.PHOTOS] is
+ * gone — the bottom nav has five destinations now (List, Seasonal, Maps, Journal, Tools), not six,
+ * and the photo gallery was the one that had to give. It moves here rather than under Tools because
+ * it is entry-adjacent, not a utility: [PhotoGalleryScreen] embeds unchanged as this tab's content,
+ * receiving [photos]/[isLoadingPhotos]/[onDeletePhoto]/[photosLoadErrorMessage] the same way Log and
+ * Drafts receive [entries]/[draftEntries] — [selectedTab] just picks which of the three the grid
+ * below shows.
  */
 @Composable
 internal fun LogGalleryScreen(
@@ -84,7 +93,7 @@ internal fun LogGalleryScreen(
     onOpenEntry: (String) -> Unit,
     onAddEntry: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Every current draft — live edit sessions, incidentally-exited ones, and crash-orphaned ones alike (see [MushroomLogUiState.draftEntries]'s own doc comment) — shown only when [showingDrafts] is selected. */
+    /** Every current draft — live edit sessions, incidentally-exited ones, and crash-orphaned ones alike (see [MushroomLogUiState.draftEntries]'s own doc comment) — shown only when the Drafts tab is selected. */
     draftEntries: List<MushroomLogEntry> = emptyList(),
     onOpenDraftEntry: (String) -> Unit = onOpenEntry,
     /**
@@ -94,9 +103,13 @@ internal fun LogGalleryScreen(
      * to show because the read failed, per docs/error-presentation-spec.md.
      */
     loadErrorMessage: String? = null,
+    /** Every photo in the gallery, independent of any entry — see [PhotoGalleryScreen]'s own doc comment. Shown only when the Album tab is selected. */
+    photos: List<GalleryPhoto> = emptyList(),
+    isLoadingPhotos: Boolean = false,
+    onDeletePhoto: (GalleryPhoto) -> Unit = {},
+    photosLoadErrorMessage: String? = null,
 ) {
-    var showingDrafts by remember { mutableStateOf(false) }
-    val visibleEntries = if (showingDrafts) draftEntries else entries
+    var selectedTab by remember { mutableStateOf(LogGalleryTab.LOG) }
 
     if (isLoading && entries.isEmpty() && draftEntries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -106,14 +119,28 @@ internal fun LogGalleryScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        SecondaryTabRow(selectedTabIndex = if (showingDrafts) 1 else 0) {
-            Tab(selected = !showingDrafts, onClick = { showingDrafts = false }, text = { Text("Log") })
+        SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
+            Tab(selected = selectedTab == LogGalleryTab.LOG, onClick = { selectedTab = LogGalleryTab.LOG }, text = { Text("Log") })
             Tab(
-                selected = showingDrafts,
-                onClick = { showingDrafts = true },
+                selected = selectedTab == LogGalleryTab.DRAFTS,
+                onClick = { selectedTab = LogGalleryTab.DRAFTS },
                 text = { Text(if (draftEntries.isEmpty()) "Drafts" else "Drafts (${draftEntries.size})") },
             )
+            Tab(selected = selectedTab == LogGalleryTab.ALBUM, onClick = { selectedTab = LogGalleryTab.ALBUM }, text = { Text("Album") })
         }
+
+        if (selectedTab == LogGalleryTab.ALBUM) {
+            PhotoGalleryScreen(
+                photos = photos,
+                isLoading = isLoadingPhotos,
+                onDeletePhoto = onDeletePhoto,
+                modifier = Modifier.weight(1f),
+                loadErrorMessage = photosLoadErrorMessage,
+            )
+            return@Column
+        }
+
+        val visibleEntries = if (selectedTab == LogGalleryTab.DRAFTS) draftEntries else entries
         if (visibleEntries.isEmpty() && loadErrorMessage != null) {
             Text(
                 loadErrorMessage,
@@ -132,8 +159,8 @@ internal fun LogGalleryScreen(
             // draft either way (see MushroomLogViewModel.onStartNewEntry), but tapping "+" while
             // looking at Drafts would read as "add a draft," which isn't a distinct action from
             // "add an entry."
-            if (!showingDrafts) item { AddEntryTile(onClick = onAddEntry) }
-            if (showingDrafts) {
+            if (selectedTab == LogGalleryTab.LOG) item { AddEntryTile(onClick = onAddEntry) }
+            if (selectedTab == LogGalleryTab.DRAFTS) {
                 items(visibleEntries, key = { it.id }) { entry -> LogEntryTile(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true) }
             } else {
                 items(visibleEntries, key = { it.id }) { entry -> LogEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) }) }
@@ -141,6 +168,9 @@ internal fun LogGalleryScreen(
         }
     }
 }
+
+/** Which of [LogGalleryScreen]'s three tabs is selected — ordinal order matches display order (Log, Drafts, Album), read directly by [SecondaryTabRow]'s `selectedTabIndex`. */
+private enum class LogGalleryTab { LOG, DRAFTS, ALBUM }
 
 /**
  * The gallery's "start a new entry" tile — a blank journal-entry outline with a centered `+`, per

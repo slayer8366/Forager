@@ -267,19 +267,15 @@ abstract class AvailabilityScreenLayoutTest {
     private fun rootBounds(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
 
     /**
-     * Opens the search drawer via the map icon stack's own "Search" button — the compact drawer's
-     * only entry point now that the app bar (and its tune icon) is gone; species/category search
-     * and "Advanced search" both moved into the drawer itself — see
-     * [CompactSearchDrawerContent]'s doc comment. [setScreen] always lands on the Maps tab by
-     * default, so the icon is already on screen with no tab switch needed.
-     */
-    /**
-     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] shows a real map (and
-     * so the icon stack) from its very first composition, GPS-centred or on a fixed fallback while
-     * that's still pending, not only once a region has been searched.
+     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
+     * removed the map icon stack's own "Search" button and repointed Tools at this same drawer;
+     * species/category search and "Advanced search" both live inside it — see
+     * [CompactSearchDrawerContent]'s doc comment. Tools opens the drawer as an overlay over
+     * whatever `compactTab` is already showing rather than becoming a tab itself, and [setScreen]
+     * always lands on the Maps tab by default, so it's already on screen with no tab switch needed.
      */
     private fun openSearchDrawer() {
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
     }
 
     /**
@@ -407,6 +403,14 @@ abstract class AvailabilityScreenLayoutTest {
      * needs the same "nothing chosen yet" gate [MapTab] has for its own content — otherwise
      * expanding the section before any search would render an empty card with nothing explaining
      * why.
+     *
+     * `performScrollTo()` before the assertion, not just `assertIsDisplayed()` — needed since map/
+     * navigation redesign dispatch B added [SettingsEntryRow] as a fixed sibling below
+     * [SearchControls] in the drawer's outer `Column`, which shrinks [SearchControls]'s own
+     * `weight(1f)` share of the sheet by that row's height. At `fontScale = 2.0`, the gate message
+     * (after Trip Planner, the third of three collapsed sections) no longer fits the now-slightly-
+     * shorter internal scroll viewport without scrolling to it, matching the same pattern this
+     * file's sibling Trip Planner tests already use for content reached the same way.
      */
     @Test
     fun `the drawer's Trip Planner section shows a no-search message before any region is chosen`() {
@@ -416,6 +420,7 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNodeWithText("Choose a region in search options to see rain-driven trip windows.")
+            .performScrollTo()
             .assertIsDisplayed()
         composeRule.onNodeWithText("Trip Windows").assertDoesNotExist()
     }
@@ -569,18 +574,20 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * Settings is a bottom-nav destination now, not a drawer panel — moved there, alongside
-     * Journal, per the project owner's own call ("move settings and mushroom log from the side
-     * panel, add them both to the bottom row"). This asserts it's reachable with a single bottom
-     * nav tap, no drawer involved at all, replacing the old "Settings entry row stays visible
-     * without scrolling" and "the Settings panel shows Choose Maps Service and the build identity
-     * footer" tests (both bundled into one now that reaching Settings is one step instead of two).
+     * Settings moved twice: first out of the drawer onto its own bottom-nav tab ("move settings and
+     * mushroom log from the side panel, add them both to the bottom row"), then — map/navigation
+     * redesign dispatch B, collapsing the bottom nav to five destinations to make room for Tools —
+     * one level back in, as a sticky entry at the bottom of the "Tools" drawer's own content (see
+     * [CompactSearchDrawerContent]'s `showSettings` state). This asserts it's reachable through
+     * that drawer entry, replacing the old "one bottom-nav tap, no drawer involved" claim, which no
+     * longer holds now that Tools — not Settings — is what's on the bottom nav.
      */
     @Test
-    fun `the Settings tab is reachable from the bottom nav, with no drawer involved`() {
+    fun `the Settings entry is reachable inside the Tools drawer`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithText("Settings").performClick()
+        openSearchDrawer()
+        composeRule.onNodeWithText("Settings").assertIsDisplayed().performClick()
 
         composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
         composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
@@ -592,9 +599,9 @@ abstract class AvailabilityScreenLayoutTest {
      * means "pan", not "close" — see [AvailabilityScreen]'s doc comment), so tapping the scrim was
      * the only way out before this button existed; this asserts the button actually closes it
      * rather than just existing in the tree. "Recent searches" (the drawer's own first section
-     * header) stands in for "the drawer is open" now — "Settings" no longer works for this, since
-     * it moved to the always-visible bottom nav and would be displayed whether the drawer is open
-     * or not.
+     * header) stands in for "the drawer is open" — "Settings" doesn't work for this: it's the
+     * drawer's own sticky entry row now (map/navigation redesign dispatch B), so it renders exactly
+     * whenever the drawer's own content does and says nothing about open vs. closed on its own.
      */
     @Test
     fun `the drawer close button closes the drawer`() {

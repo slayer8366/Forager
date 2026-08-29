@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
@@ -87,6 +88,15 @@ internal fun JournalTab(
     onDeleteEntry: (String) -> Unit,
     /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — see [LogPanel]'s identical parameter for the full reasoning. */
     onSaveErrorDismissed: () -> Unit,
+    /**
+     * The Album tab folded into [LogGalleryScreen] (map/navigation redesign dispatch B) — see that
+     * composable's own doc comment. Threaded straight through from [MushroomLogUiState], the same
+     * data the now-removed standalone `CompactTab.PHOTOS` destination used to receive directly.
+     */
+    galleryPhotos: List<GalleryPhoto> = emptyList(),
+    isLoadingGalleryPhotos: Boolean = false,
+    onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
+    galleryLoadErrorMessage: String? = null,
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -207,6 +217,10 @@ internal fun JournalTab(
             },
             modifier = modifier,
             loadErrorMessage = uiState.loadErrorMessage,
+            photos = galleryPhotos,
+            isLoadingPhotos = isLoadingGalleryPhotos,
+            onDeletePhoto = onDeleteGalleryPhoto,
+            photosLoadErrorMessage = galleryLoadErrorMessage,
         )
     }
 }

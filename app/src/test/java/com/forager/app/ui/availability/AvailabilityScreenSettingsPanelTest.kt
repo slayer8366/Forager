@@ -200,7 +200,18 @@ class AvailabilityScreenSettingsPanelTest {
         }
     }
 
+    /**
+     * Settings moved one level deeper (map/navigation redesign dispatch B): no longer its own
+     * bottom-nav tab, it's a sticky entry at the bottom of the "Tools" drawer's content (see
+     * [CompactSearchDrawerContent]'s `showSettings` state and [SettingsEntryRow]). No
+     * `performScrollTo()` needed: [SettingsEntryRow] sits outside [SearchControls]'s own internal
+     * `verticalScroll` region, as a fixed sibling below it in the drawer's outer `Column` — that
+     * outer Column has no scroll of its own, and `SearchControls`'s `Modifier.weight(1f)` sizes it
+     * to exactly the remaining space, so the row is always laid out on screen at the Column's
+     * bottom rather than scrolled out of view.
+     */
     private fun openSettings() {
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Settings").performClick()
     }
 
@@ -223,10 +234,14 @@ class AvailabilityScreenSettingsPanelTest {
      * ([AvailabilityUiState.nightModeMaps]), replacing the map's earlier civil-twilight-automatic/
      * long-press-hold control (`MapNightMode`, deleted). Driven through the real checkbox row
      * rather than calling `onNightModeMapsChanged` directly, and asserts the map slot's own
-     * [com.forager.app.ui.map.MapRenderMode.night] actually flips, not just local Settings state —
-     * read back via the Maps tab, since [CompactMapTab] (and so [CapturingMapSlot]'s "else" branch)
-     * isn't composed at all while the Settings tab is showing, per the bottom-nav's own one-tab-
-     * at-a-time model.
+     * [com.forager.app.ui.map.MapRenderMode.night] actually flips, not just local Settings state.
+     *
+     * No trip through the Maps tab needed to read it back (unlike before map/navigation redesign
+     * dispatch B, when Settings was its own bottom-nav tab and hid the Map tab's content entirely):
+     * Settings now opens as a nested state inside the "Tools" drawer, which overlays whatever
+     * `compactTab` is already showing rather than replacing it — [CompactMapTab] (and so
+     * [CapturingMapSlot]'s "else" branch) stays composed underneath the whole time, since this test
+     * never switches `compactTab` away from its own MAP default.
      */
     @Test
     fun `the Night Maps checkbox toggles night mode on the map`() {
@@ -237,16 +252,9 @@ class AvailabilityScreenSettingsPanelTest {
         openSettings()
         composeRule.onNodeWithText("Night Maps").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Maps").performClick()
-        composeRule.waitForIdle()
         assertEquals(true, capturedNightMode)
 
-        composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Night Maps").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Maps").performClick()
         composeRule.waitForIdle()
         assertEquals(false, capturedNightMode)
     }

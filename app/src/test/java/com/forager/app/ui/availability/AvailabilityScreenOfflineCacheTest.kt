@@ -9,7 +9,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -160,7 +159,7 @@ class AvailabilityScreenOfflineCacheTest {
     fun `the recent searches picker lists its entries on screen`() {
         setScreen(CACHED_STATE.copy(recentSearches = listOf(RECENT_FUNGI, RECENT_PLANTS)))
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText("Fungi · ${monthName(8)}").performScrollTo().assertIsDisplayed()
@@ -176,7 +175,7 @@ class AvailabilityScreenOfflineCacheTest {
     fun `the recent searches picker states when nothing is saved yet`() {
         setScreen(CACHED_STATE.copy(recentSearches = emptyList()))
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText(
@@ -192,7 +191,7 @@ class AvailabilityScreenOfflineCacheTest {
     @Test
     fun `tapping a recent search reports that entry and closes the drawer`() {
         setScreen(CACHED_STATE.copy(recentSearches = listOf(RECENT_FUNGI, RECENT_PLANTS)))
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText("Plants · ${monthName(10)}").performScrollTo().performClick()
