@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
                     container.mapPreferencesRepository,
                     container.distanceUnitPreferenceRepository,
                     container.appThemePreferenceRepository,
+                    container.getTodaysForecastUseCase,
                 )
             }
         }

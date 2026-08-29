@@ -7,6 +7,7 @@ import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagDistribution
@@ -63,6 +64,15 @@ data class AvailabilityUiState(
     val conditions: ConditionsSummary? = null,
     val isLoadingConditions: Boolean = false,
     val conditionsErrorMessage: String? = null,
+    /**
+     * The reference day's own forecast, shown alongside [conditions] in the Seasonal tab's
+     * weather panel — see [com.forager.app.domain.GetTodaysForecastUseCase]. Gated to the current
+     * month exactly like [conditions]: a forecast is only "today's" when the browsed month
+     * actually is this one.
+     */
+    val todaysForecast: DailyWeather? = null,
+    val isLoadingTodaysForecast: Boolean = false,
+    val todaysForecastErrorMessage: String? = null,
     /**
      * Which group's weather guidance text applies to [taxonFilter], carried alongside it because
      * [TaxonFilter] alone cannot answer that — see [ForagingSelection]'s doc comment.

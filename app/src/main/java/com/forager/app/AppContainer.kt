@@ -47,6 +47,7 @@ import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTracksUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
@@ -111,6 +112,7 @@ class AppContainer(context: Context) {
     val getSightingsUseCase = GetSightingsUseCase(mushroomRepository)
     val searchTaxaUseCase = SearchTaxaUseCase(mushroomRepository)
     val getConditionsUseCase = GetConditionsUseCase(weatherProvider)
+    val getTodaysForecastUseCase = GetTodaysForecastUseCase(tripPlanningWeatherProvider)
     val getTripWindowsUseCase = GetTripWindowsUseCase(
         tripPlanningWeatherProvider,
         ComputeTripWindowsUseCase(),

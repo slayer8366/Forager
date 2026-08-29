@@ -9,11 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
@@ -28,6 +26,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
@@ -54,6 +53,7 @@ import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SightingsPage
+import com.forager.app.domain.model.SoilAvailability
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -77,6 +77,9 @@ import org.robolectric.annotation.Config
 /**
  * The Conditions card, end to end: the real [AvailabilityScreen] over the real
  * [AvailabilityViewModel], driven by real taps and typing.
+ *
+ * The card lives in the Seasonal tab (PANEL-CONTENTS-DISPATCH.md item 2 moved it out of List — see
+ * [ConditionsCard]'s own doc comment), so every test here opens Seasonal, not List.
  *
  * Two separate things have to hold for this card to behave, and they live in different places:
  *
@@ -119,7 +122,10 @@ class AvailabilityScreenConditionsMonthTest {
      */
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun setScreen(weatherProvider: WeatherProvider = FakeWeatherProvider) {
+    private fun setScreen(
+        weatherProvider: WeatherProvider = FakeWeatherProvider,
+        tripPlanningWeatherProvider: TripPlanningWeatherProvider = FakeTripPlanningWeatherProvider,
+    ) {
         val viewModel = AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,
             locationTracker = NoOpLocationTracker,
@@ -129,7 +135,7 @@ class AvailabilityScreenConditionsMonthTest {
             searchTaxa = SearchTaxaUseCase(FakeRepository),
             getConditions = GetConditionsUseCase(weatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
-            getTripWindows = GetTripWindowsUseCase(FakeTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
+            getTripWindows = GetTripWindowsUseCase(tripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(FakePlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(FakePlannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(FakePlannedTripRepository),
@@ -142,6 +148,7 @@ class AvailabilityScreenConditionsMonthTest {
             mapPreferencesRepository = FakeMapPreferencesRepository,
             distanceUnitPreferenceRepository = FakeDistanceUnitPreferenceRepository,
             appThemePreferenceRepository = FakeAppThemePreferenceRepository,
+            getTodaysForecast = GetTodaysForecastUseCase(tripPlanningWeatherProvider),
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -180,46 +187,52 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     /**
-     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] shows a real map (and
-     * so the icon stack) from its very first composition, not only once a region has been searched,
-     * so this works identically before and after the first search.
-     *
-     * That icon lives inside [CompactMapTab], which only composes while the Maps bottom-nav tab is
-     * selected — this test also drives the List tab (to check the Conditions card), so this
-     * switches back to Maps first rather than assuming it's already there.
+     * Opens [SearchDropdown] via the search summary bar — map/navigation redesign dispatch C, item
+     * 1 moved location/radius/month out of the Tools drawer entirely, to float over the map from
+     * where quick species search used to sit. The dropdown floats over whatever `compactTab` is
+     * already showing, so switching to Maps first isn't strictly required for reachability — kept
+     * anyway so this test's own tab state stays deterministic across the List-tab detour its own
+     * assertions make.
      */
-    private fun openDrawer() {
+    private fun openSearchDropdown() {
         composeRule.onNodeWithText("Maps").performClick()
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
     }
 
     /**
-     * Opens the drawer and expands its "Advanced search" section, exactly as a user would tap it.
-     * The drawer sheet stays composed (just animated off-screen) while closed, so the section's
-     * own expand/collapse state survives a close-and-reopen — this only taps the header when the
-     * section isn't already open, rather than blindly toggling it shut again.
+     * Opens the dropdown and expands its "Advanced search" section — a follow-up owner call nested
+     * location/radius/month one level deeper here, behind that section, once species search and
+     * Recent Searches joined this same surface at its own top level.
      */
-    private fun openDrawerToAdvancedSearch() {
-        openDrawer()
-        val alreadyExpanded = composeRule.onAllNodesWithText("Latitude").fetchSemanticsNodes().isNotEmpty()
-        if (!alreadyExpanded) {
-            composeRule.onNodeWithText("Advanced search").performClick()
-        }
+    private fun openSearchDropdownToAdvancedSearch() {
+        openSearchDropdown()
+        composeRule.onNodeWithText("Advanced search").performClick()
     }
 
-    /** Types coordinates into the drawer and searches, exactly as a user would. */
+    /**
+     * Opens the dropdown to Advanced search and expands its "Enter coordinates manually" section,
+     * exactly as a user would tap it. Unlike the old drawer section this replaces, the dropdown is
+     * removed from composition when closed (`AnimatedVisibility` disposes it, not just moves it
+     * off-screen), so every open starts collapsed again — no "already expanded" check needed.
+     */
+    private fun openSearchDropdownToManualCoordinates() {
+        openSearchDropdownToAdvancedSearch()
+        composeRule.onNodeWithText("Enter coordinates manually").performClick()
+    }
+
+    /** Types coordinates into the dropdown and searches, exactly as a user would. */
     private fun searchAReferenceRegion() {
-        openDrawerToAdvancedSearch()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
-        // Closes the drawer itself, which is why nothing closes it here.
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        openSearchDropdownToManualCoordinates()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        // Closes the dropdown itself, which is why nothing closes it here.
+        composeRule.onNodeWithText("Search this location").performClick()
         composeRule.waitForIdle()
     }
 
     private fun selectMonth(month: Month) {
-        openDrawerToAdvancedSearch()
-        composeRule.onNodeWithText("Month").performScrollTo().performClick()
+        openSearchDropdownToAdvancedSearch()
+        composeRule.onNodeWithText("Month").performClick()
         composeRule.onNodeWithText(month.getDisplayName(TextStyle.FULL, Locale.getDefault()))
             .performClick()
         composeRule.waitForIdle()
@@ -230,7 +243,7 @@ class AvailabilityScreenConditionsMonthTest {
         setScreen()
 
         searchAReferenceRegion()
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
         composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertIsDisplayed()
@@ -242,7 +255,7 @@ class AvailabilityScreenConditionsMonthTest {
         setScreen()
 
         searchAReferenceRegion()
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
 
         selectMonth(aMonthOtherThanThisOne())
@@ -268,7 +281,7 @@ class AvailabilityScreenConditionsMonthTest {
         setScreen(weatherProvider = FailingWeatherProvider)
 
         searchAReferenceRegion()
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
         composeRule.onNodeWithText("Rainfall data unavailable.").assertIsDisplayed()
@@ -280,9 +293,37 @@ class AvailabilityScreenConditionsMonthTest {
         setScreen()
 
         searchAReferenceRegion()
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Rainfall data unavailable.").assertDoesNotExist()
+    }
+
+    /**
+     * [AvailabilityUiState.todaysForecast] — the card's other half, alongside [ConditionsSummary]'s
+     * observed rainfall. Fetched from [TripPlanningWeatherProvider.getWeatherSeries], a different
+     * provider method from [WeatherProvider.getRecentPrecipitation] — see
+     * [com.forager.app.domain.GetTodaysForecastUseCase]'s own doc comment.
+     */
+    @Test
+    fun `today's forecast shows the reference day's own forecast rainfall`() {
+        setScreen(tripPlanningWeatherProvider = FakeSuccessfulTripPlanningWeatherProvider)
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("Today's Forecast").assertIsDisplayed()
+        composeRule.onNodeWithText("3.2mm of rain forecast today.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a failed forecast fetch shows the neutral unavailable text`() {
+        setScreen()
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("Today's Forecast").assertIsDisplayed()
+        composeRule.onNodeWithText("Forecast unavailable.").assertIsDisplayed()
     }
 }
 
@@ -345,10 +386,51 @@ private object FailingWeatherProvider : WeatherProvider {
         Result.failure<ConditionsSummary>(IllegalStateException("archive api down for this fetch"))
 }
 
-/** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */
+/**
+ * The default trip-planning/forecast provider for this file: most tests here are about the
+ * rainfall half of the card, not the forecast half or the drawer's Trip Planner section, so a
+ * failure is the honest, low-effort stand-in — exercised directly by
+ * `a failed forecast fetch shows the neutral unavailable text`.
+ */
 private object FakeTripPlanningWeatherProvider : TripPlanningWeatherProvider {
     override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
         Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
+}
+
+/**
+ * Returns a forecast for the reference day, for the one test that asserts on the forecast half of
+ * the card. The precipitation figure is the one that test names, so a card rendering a stale or
+ * default value would fail rather than pass on the heading alone — same reasoning as
+ * [FakeWeatherProvider].
+ */
+private object FakeSuccessfulTripPlanningWeatherProvider : TripPlanningWeatherProvider {
+    override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> {
+        val referenceDay = LocalDate.now()
+        return Result.success(
+            WeatherSeries(
+                region = region,
+                referenceDay = referenceDay,
+                days = listOf(
+                    DailyWeather(
+                        date = referenceDay,
+                        isForecast = true,
+                        precipitationMm = 3.2,
+                        evapotranspirationMm = null,
+                        shallowSoilMoistureM3M3 = null,
+                        deeperSoilMoistureM3M3 = null,
+                        soilTemperatureMeanC = null,
+                        soilTemperatureMinC = null,
+                        soilTemperatureMaxC = null,
+                    ),
+                ),
+                soilAvailability = SoilAvailability(
+                    shallowMoistureBand = null,
+                    deeperMoistureBand = null,
+                    temperatureBand = null,
+                ),
+            ),
+        )
+    }
 }
 
 /** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */

@@ -200,7 +200,18 @@ class AvailabilityScreenSettingsPanelTest {
         }
     }
 
+    /**
+     * Settings moved one level deeper (map/navigation redesign dispatch B): no longer its own
+     * bottom-nav tab, it's a sticky entry at the bottom of the "Tools" drawer's content (see
+     * [CompactSearchDrawerContent]'s `showSettings` state and [SettingsEntryRow]). No
+     * `performScrollTo()` needed: [SettingsEntryRow] sits outside [SearchControls]'s own internal
+     * `verticalScroll` region, as a fixed sibling below it in the drawer's outer `Column` — that
+     * outer Column has no scroll of its own, and `SearchControls`'s `Modifier.weight(1f)` sizes it
+     * to exactly the remaining space, so the row is always laid out on screen at the Column's
+     * bottom rather than scrolled out of view.
+     */
     private fun openSettings() {
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Settings").performClick()
     }
 
@@ -223,10 +234,14 @@ class AvailabilityScreenSettingsPanelTest {
      * ([AvailabilityUiState.nightModeMaps]), replacing the map's earlier civil-twilight-automatic/
      * long-press-hold control (`MapNightMode`, deleted). Driven through the real checkbox row
      * rather than calling `onNightModeMapsChanged` directly, and asserts the map slot's own
-     * [com.forager.app.ui.map.MapRenderMode.night] actually flips, not just local Settings state —
-     * read back via the Maps tab, since [CompactMapTab] (and so [CapturingMapSlot]'s "else" branch)
-     * isn't composed at all while the Settings tab is showing, per the bottom-nav's own one-tab-
-     * at-a-time model.
+     * [com.forager.app.ui.map.MapRenderMode.night] actually flips, not just local Settings state.
+     *
+     * No trip through the Maps tab needed to read it back (unlike before map/navigation redesign
+     * dispatch B, when Settings was its own bottom-nav tab and hid the Map tab's content entirely):
+     * Settings now opens as a nested state inside the "Tools" drawer, which overlays whatever
+     * `compactTab` is already showing rather than replacing it — [CompactMapTab] (and so
+     * [CapturingMapSlot]'s "else" branch) stays composed underneath the whole time, since this test
+     * never switches `compactTab` away from its own MAP default.
      */
     @Test
     fun `the Night Maps checkbox toggles night mode on the map`() {
@@ -237,16 +252,9 @@ class AvailabilityScreenSettingsPanelTest {
         openSettings()
         composeRule.onNodeWithText("Night Maps").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Maps").performClick()
-        composeRule.waitForIdle()
         assertEquals(true, capturedNightMode)
 
-        composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Night Maps").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Maps").performClick()
         composeRule.waitForIdle()
         assertEquals(false, capturedNightMode)
     }
@@ -283,8 +291,25 @@ class AvailabilityScreenSettingsPanelTest {
 
     private val mapModeContentDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
 
+    /**
+     * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
+     * above the map's vertical center. Re-derived, not re-run as-is: a mapicon-pill dispatch
+     * dropped [MapIconBar] from 8 rows to 6 (record start/stop moved into `ControlPill`), and that
+     * bar is `Alignment.CenterEnd` — shrinking its own row count moves every row's position closer
+     * to true center, since [mapIconBarRowAnchorOffset] centers the whole row stack on the bar's
+     * own midpoint. Measured directly against the tree (not assumed): row 4 of 6 (map mode)'s own
+     * top edge now lands 2dp *below* the map's vertical center — a real flip from comfortably above
+     * it at 8 rows, but only by 2dp out of a 512dp-tall map, too close to the line for a strict
+     * above/below comparison in either direction to be a meaningful, stable assertion (a font-scale
+     * or density difference could flip it back). The icon's own vertical *center*, not its top edge,
+     * landing in the map's middle third is the invariant that actually survives this: "top-right
+     * corner" no longer describes this icon's position, but "over the map, right side, roughly
+     * centered rather than pinned to an edge" still does, and is what actually matters for a popover
+     * anchor not to open jammed against the top or bottom edge. Re-derive again if the row count
+     * changes further (the search row leaves next, per that same dispatch's own follow-up).
+     */
     @Test
-    fun `the quick-fire icon renders over the map's own top-right corner`() {
+    fun `the quick-fire icon renders over the map's own right side, roughly vertically centered`() {
         setScreen()
 
         val iconBounds = composeRule
@@ -294,14 +319,22 @@ class AvailabilityScreenSettingsPanelTest {
         val mapBounds = composeRule.onNodeWithTag(MAP_SLOT_TAG).getUnclippedBoundsInRoot()
 
         // Over the map, not beside it: the icon's horizontal center must fall within the map's own
-        // width, and it sits in the map's top half and right half — top-right, not merely "on top of".
+        // width, and it sits in the map's middle third (vertically) and right half — see this
+        // test's own doc comment for why "top-right corner" no longer holds exactly.
         val iconCenterX = iconBounds.left + iconBounds.width / 2
         assertTrue(
             "expected the icon's horizontal center ($iconCenterX) to fall inside the map's bounds " +
                 "(${mapBounds.left}..${mapBounds.right})",
             iconCenterX in mapBounds.left..mapBounds.right,
         )
-        assertTrue(iconBounds.top < mapBounds.top + mapBounds.height / 2)
+        val iconCenterY = iconBounds.top + iconBounds.height / 2
+        val middleThirdStart = mapBounds.top + mapBounds.height / 3
+        val middleThirdEnd = mapBounds.top + mapBounds.height * 2 / 3
+        assertTrue(
+            "expected the icon's vertical center ($iconCenterY) inside the map's own middle third " +
+                "($middleThirdStart..$middleThirdEnd) — see this test's own doc comment",
+            iconCenterY in middleThirdStart..middleThirdEnd,
+        )
         assertTrue(iconCenterX > mapBounds.left + mapBounds.width / 2)
     }
 

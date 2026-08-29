@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -33,6 +34,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
@@ -137,6 +139,7 @@ class AvailabilityScreenWaypointFlowTest {
             mapPreferencesRepository = WaypointFlowStubMapPreferencesRepository,
             distanceUnitPreferenceRepository = WaypointFlowStubDistanceUnitPreferenceRepository,
             appThemePreferenceRepository = WaypointFlowStubAppThemePreferenceRepository,
+            getTodaysForecast = GetTodaysForecastUseCase(WaypointFlowStubTripPlanningWeatherProvider),
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -192,12 +195,22 @@ class AvailabilityScreenWaypointFlowTest {
         }
     }
 
+    /**
+     * Opens [AdvancedSearchDropdown] via the search summary bar and expands its "Enter coordinates
+     * manually" section — map/navigation redesign dispatch C, item 1 moved location/radius/month
+     * out of the Tools drawer entirely, to float over the map from where quick species search used
+     * to sit. No `performScrollTo()` calls needed: every action below is a semantic
+     * `performClick`/`performTextReplacement`, which acts on the node regardless of whether it is
+     * currently scrolled into view — [SearchDropdown] does carry a `verticalScroll` (see its own
+     * doc comment), but that only matters for an `assertIsDisplayed()`, and this helper makes none.
+     */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithText("Enter coordinates manually").performClick()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        composeRule.onNodeWithText("Search this location").performClick()
         composeRule.waitForIdle()
     }
 
@@ -286,7 +299,7 @@ class AvailabilityScreenWaypointFlowTest {
     fun `the drawer's Waypoints section shows a no-waypoints message when empty`() {
         setScreen()
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
         composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
@@ -306,7 +319,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint))
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
@@ -340,7 +353,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint), waypointsErrorMessage = "Couldn't load waypoints.")
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
         composeRule.onNodeWithText("Couldn't load waypoints.").assertIsDisplayed()
@@ -362,7 +375,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint))
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Waypoints").performClick()
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
