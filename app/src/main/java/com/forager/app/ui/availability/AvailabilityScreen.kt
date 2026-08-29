@@ -3977,14 +3977,7 @@ private fun CompactMapTab(
             // not fully pin down inside Compose's own recomposition-scope internals. A remembered,
             // one-time measurement carries no such risk: it never changes after first composition,
             // so nothing here ever triggers a later recomposition.
-            val compassStripTextMeasurer = rememberTextMeasurer()
-            val compassStripLabelStyle = MaterialTheme.typography.labelMedium
-            val compassStripDensity = LocalDensity.current
-            val compassStripClearance = remember(compassStripLabelStyle, compassStripDensity) {
-                with(compassStripDensity) {
-                    compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
-                }
-            }
+            val compassStripClearance = 24.dp
 
             Box(modifier = modifier.fillMaxSize()) {
                 mapSlot(
