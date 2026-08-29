@@ -837,7 +837,12 @@ class AvailabilityScreenMapIconStackTest {
     fun `the search summary bar shows a chevron marking it as expandable for advanced search`() {
         setScreen()
 
-        composeRule.onNodeWithTag(ADVANCED_SEARCH_CHEVRON_TAG).assertIsDisplayed()
+        // useUnmergedTree = true: ActiveSearchSummary's own Surface(onClick = ...) merges its
+        // descendants' semantics into one clickable node (Compose's default for any clickable
+        // container), so the chevron's own testTag isn't independently visible in the default
+        // merged tree even though it renders with real, on-screen bounds — verified directly
+        // (bounds=Rect.fromLTRB(652.0, 30.0, 688.0, 66.0), size=36x36) before landing on this fix.
+        composeRule.onNodeWithTag(ADVANCED_SEARCH_CHEVRON_TAG, useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test

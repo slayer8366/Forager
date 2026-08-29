@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -193,15 +194,18 @@ class AvailabilityScreenWaypointFlowTest {
     }
 
     /**
-     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
-     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer.
+     * Opens [AdvancedSearchDropdown] via the search summary bar and expands its "Enter coordinates
+     * manually" section — map/navigation redesign dispatch C, item 1 moved location/radius/month
+     * out of the Tools drawer entirely, to float over the map from where quick species search used
+     * to sit. No `performScrollTo()`: unlike the old drawer section, this dropdown has no scroll
+     * modifier at all (Understory rule 3), so its content has to fit without one, and does.
      */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        composeRule.onNodeWithText("Enter coordinates manually").performClick()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        composeRule.onNodeWithText("Search this location").performClick()
         composeRule.waitForIdle()
     }
 

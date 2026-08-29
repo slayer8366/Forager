@@ -9,11 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
@@ -180,45 +178,42 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     /**
-     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
-     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer. Tools
-     * opens the drawer as an overlay over whatever `compactTab` is already showing rather than
-     * becoming a tab itself, so switching to Maps first isn't strictly required for reachability
-     * the way it was for the old icon-stack button — kept anyway so this test's own tab state stays
-     * deterministic across the List-tab detour its own assertions make.
+     * Opens [AdvancedSearchDropdown] via the search summary bar — map/navigation redesign dispatch
+     * C, item 1 moved location/radius/month out of the Tools drawer entirely, to float over the
+     * map from where quick species search used to sit. The dropdown floats over whatever
+     * `compactTab` is already showing, so switching to Maps first isn't strictly required for
+     * reachability — kept anyway so this test's own tab state stays deterministic across the
+     * List-tab detour its own assertions make.
      */
-    private fun openDrawer() {
+    private fun openAdvancedSearchDropdown() {
         composeRule.onNodeWithText("Maps").performClick()
-        composeRule.onNodeWithText("Tools").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
     }
 
     /**
-     * Opens the drawer and expands its "Advanced search" section, exactly as a user would tap it.
-     * The drawer sheet stays composed (just animated off-screen) while closed, so the section's
-     * own expand/collapse state survives a close-and-reopen — this only taps the header when the
-     * section isn't already open, rather than blindly toggling it shut again.
+     * Opens the dropdown and expands its "Enter coordinates manually" section, exactly as a user
+     * would tap it. Unlike the old drawer section this replaces, the dropdown is removed from
+     * composition when closed (`AnimatedVisibility` disposes it, not just moves it off-screen), so
+     * every open starts collapsed again — no "already expanded" check needed.
      */
-    private fun openDrawerToAdvancedSearch() {
-        openDrawer()
-        val alreadyExpanded = composeRule.onAllNodesWithText("Latitude").fetchSemanticsNodes().isNotEmpty()
-        if (!alreadyExpanded) {
-            composeRule.onNodeWithText("Advanced search").performClick()
-        }
+    private fun openAdvancedSearchDropdownToManualCoordinates() {
+        openAdvancedSearchDropdown()
+        composeRule.onNodeWithText("Enter coordinates manually").performClick()
     }
 
-    /** Types coordinates into the drawer and searches, exactly as a user would. */
+    /** Types coordinates into the dropdown and searches, exactly as a user would. */
     private fun searchAReferenceRegion() {
-        openDrawerToAdvancedSearch()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
-        // Closes the drawer itself, which is why nothing closes it here.
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        openAdvancedSearchDropdownToManualCoordinates()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        // Closes the dropdown itself, which is why nothing closes it here.
+        composeRule.onNodeWithText("Search this location").performClick()
         composeRule.waitForIdle()
     }
 
     private fun selectMonth(month: Month) {
-        openDrawerToAdvancedSearch()
-        composeRule.onNodeWithText("Month").performScrollTo().performClick()
+        openAdvancedSearchDropdown()
+        composeRule.onNodeWithText("Month").performClick()
         composeRule.onNodeWithText(month.getDisplayName(TextStyle.FULL, Locale.getDefault()))
             .performClick()
         composeRule.waitForIdle()
