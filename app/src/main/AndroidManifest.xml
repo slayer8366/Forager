@@ -18,6 +18,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Field-test dispatch item 4: DetectOffTrackUseCase's off-track signal reaching a pocketed
+         phone needs a real vibration, not just a notification post — LOW-importance channels
+         (see TrackRecordingService's own "track_recording" channel, reused for this alert) don't
+         vibrate through the notification system on their own. VIBRATE is a normal permission —
+         granted at install, no runtime prompt needed. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!--
       Without this, PlannedTripRow's "Directions" action always reports no maps app installed,

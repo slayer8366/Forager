@@ -149,6 +149,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -190,6 +191,7 @@ import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.ReturnToStartInfo
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
+import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.domain.model.Waypoint
@@ -199,6 +201,8 @@ import com.forager.app.ui.adaptive.WindowWidthClass
 import com.forager.app.ui.adaptive.currentWindowWidthClass
 import com.forager.app.ui.crash.CrashLogPanel
 import com.forager.app.ui.crash.CrashLogsEntryRow
+import com.forager.app.ui.track.TrackExportEntryRow
+import com.forager.app.ui.track.TrackExportPanel
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
@@ -296,6 +300,9 @@ private enum class DrawerPanel {
     Settings,
     OfflineMaps,
     CrashLogs,
+    // Field-test dispatch item 1: the Settings "Recorded Tracks" export panel — see TrackExportPanel's
+    // own doc comment for why it lives here rather than a dedicated new screen.
+    Tracks,
     Log,
     // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
     // top-level, both-window-classes destination — see PhotoGalleryScreen's own doc comment and
@@ -482,6 +489,15 @@ fun AvailabilityScreen(
     crashFileStore: CrashFileStore = CrashFileStore.forContext(LocalContext.current),
     /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
     onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
+    /**
+     * Every recorded track, for the Settings "Recorded Tracks" export panel — see
+     * [com.forager.app.ui.track.TrackExportPanel]'s own doc comment. Empty by default, same
+     * [breadcrumbPoints]/[waypoints] shape above: the real list is [trackUiState.tracks][com.forager.app.ui.track.TrackRecordingUiState.tracks],
+     * threaded in by `MainActivity`.
+     */
+    tracks: List<Track> = emptyList(),
+    /** Refreshes [tracks] — called whenever the export panel opens, mirroring [onOfflineMapsOpened]'s own "reload on open" shape. */
+    onTracksOpened: () -> Unit = {},
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
@@ -718,6 +734,10 @@ fun AvailabilityScreen(
                         onOfflineMapsOpened()
                     },
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
+                    onOpenTracks = {
+                        drawerPanel = DrawerPanel.Tracks
+                        onTracksOpened()
+                    },
                 )
                 BuildIdentityFooter()
             }
@@ -750,6 +770,16 @@ fun AvailabilityScreen(
                 CrashLogPanel(
                     modifier = Modifier.weight(1f),
                     files = crashFileStore.list(),
+                    onBack = { drawerPanel = DrawerPanel.Settings },
+                )
+            }
+
+            DrawerPanel.Tracks -> {
+                // Back returns to Settings, one level up — same reasoning as DrawerPanel.OfflineMaps/
+                // CrashLogs above.
+                TrackExportPanel(
+                    modifier = Modifier.weight(1f),
+                    tracks = tracks,
                     onBack = { drawerPanel = DrawerPanel.Settings },
                 )
             }
@@ -1115,6 +1145,8 @@ fun AvailabilityScreen(
                         onDownloadOfflineMaps = onDownloadOfflineMaps,
                         onDeleteOfflineRegion = onDeleteOfflineRegion,
                         crashFileStore = crashFileStore,
+                        tracks = tracks,
+                        onTracksOpened = onTracksOpened,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1643,10 +1675,13 @@ private fun CompactSettingsTab(
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     crashFileStore: CrashFileStore,
+    tracks: List<Track>,
+    onTracksOpened: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showOfflineMaps by remember { mutableStateOf(false) }
     var showCrashLogs by remember { mutableStateOf(false) }
+    var showTracks by remember { mutableStateOf(false) }
 
     // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
     // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
@@ -1655,6 +1690,9 @@ private fun CompactSettingsTab(
     }
     BackHandler(enabled = showCrashLogs) {
         showCrashLogs = false
+    }
+    BackHandler(enabled = showTracks) {
+        showTracks = false
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -1687,6 +1725,14 @@ private fun CompactSettingsTab(
                 )
             }
 
+            showTracks -> {
+                TrackExportPanel(
+                    modifier = Modifier.weight(1f),
+                    tracks = tracks,
+                    onBack = { showTracks = false },
+                )
+            }
+
             else -> {
                 SettingsContent(
                     modifier = Modifier.weight(1f),
@@ -1701,6 +1747,10 @@ private fun CompactSettingsTab(
                         onOfflineMapsOpened()
                     },
                     onOpenCrashLogs = { showCrashLogs = true },
+                    onOpenTracks = {
+                        showTracks = true
+                        onTracksOpened()
+                    },
                 )
                 BuildIdentityFooter()
             }
@@ -1738,6 +1788,7 @@ private fun SettingsContent(
     onNightModeMapsChanged: (Boolean) -> Unit,
     onOpenOfflineMaps: () -> Unit,
     onOpenCrashLogs: () -> Unit,
+    onOpenTracks: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -1751,6 +1802,10 @@ private fun SettingsContent(
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
         OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
+        HorizontalDivider()
+        // Field-test dispatch item 1 — see TrackExportPanel's own doc comment for why this reuses
+        // the crash-log row's exact shape rather than a new screen.
+        TrackExportEntryRow(onClick = onOpenTracks)
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
     }
@@ -3738,18 +3793,21 @@ private fun CompactMapTab(
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
-                CompassElevationStrip(
-                    compassProvider = compassProvider,
-                    elevationMeters = uiState.liveAltitudeMeters,
-                    location = uiState.liveLocation,
-                    // Full width, flush against the top of the map — "just below" ActiveSearchSummary
-                    // (the sibling Column entry directly above this Box) rather than a narrow
-                    // floating pill with margins on both sides, per the project owner's own redesign
-                    // call.
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth(),
-                )
+                // MapIconBar composed *before* CompassElevationStrip now, not after — field-test
+                // dispatch item 2 gave the strip a real touch target at its own far right edge, the
+                // same horizontal column MapIconBar's CenterEnd alignment already claims.
+                // MapIconBar's Surface intercepts touches across its full bounds (see this
+                // composable's own CLAUDE.md-documented precedent), and on a short enough viewport
+                // its vertically-centered 8-row stack reaches all the way up into the compass
+                // strip's own row — confirmed directly by AvailabilityScreenMapIconStackTest's own
+                // touch-interaction test on a w360dp-h640dp viewport, not assumed from visual review
+                // alone (the exact class of miss that same file's own history warns visual review
+                // alone won't catch). Composition order is paint AND hit-test order for overlapping
+                // siblings in a Box, so moving this earlier guarantees the strip's own control wins
+                // any overlap on every screen size, not just typical ones — a small cosmetic cost
+                // (the strip's opaque background could cover a sliver of one icon bar row on a
+                // screen too short for MapIconBar's own 8 rows to fit at all — already a degraded
+                // state before this change) traded for a control that always actually works.
                 MapIconBar(
                     isFullscreen = isFullscreen,
                     onToggleFullscreen = onToggleFullscreen,
@@ -3777,6 +3835,23 @@ private fun CompactMapTab(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(Spacing.sm),
+                )
+                CompassElevationStrip(
+                    compassProvider = compassProvider,
+                    elevationMeters = uiState.liveAltitudeMeters,
+                    location = uiState.liveLocation,
+                    isRecording = isRecording,
+                    returnToStart = returnToStart,
+                    isReturning = isReturning,
+                    isOffTrack = isOffTrack,
+                    onToggleReturning = onToggleReturning,
+                    // Full width, flush against the top of the map — "just below" ActiveSearchSummary
+                    // (the sibling Column entry directly above this Box) rather than a narrow
+                    // floating pill with margins on both sides, per the project owner's own redesign
+                    // call.
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth(),
                 )
 
                 // Inside this Box, not alongside it, so it can align near the add button's own
@@ -3956,6 +4031,10 @@ private fun MapIconBar(
                     isReturning -> MaterialTheme.colorScheme.primary
                     else -> null
                 },
+                // Disambiguates this row from CompassElevationStripContent's own
+                // ReturnToVehicleStripControl once both share the same contentDescription text —
+                // see that composable's own doc comment for why both exist.
+                modifier = Modifier.testTag("map-icon-bar-return-to-vehicle"),
             )
             MapBarIconButton(
                 icon = Icons.Filled.Search,
@@ -4096,6 +4175,11 @@ private fun CompassElevationStrip(
     compassProvider: CompassProvider,
     elevationMeters: Double?,
     location: LatLng?,
+    isRecording: Boolean,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val headingDegrees by compassProvider.heading.collectAsState(initial = null)
@@ -4103,15 +4187,29 @@ private fun CompassElevationStrip(
         headingDegrees = headingDegrees,
         elevationMeters = elevationMeters,
         location = location,
+        isRecording = isRecording,
+        returnToStart = returnToStart,
+        isReturning = isReturning,
+        isOffTrack = isOffTrack,
+        onToggleReturning = onToggleReturning,
         modifier = modifier,
     )
 }
 
 /**
- * Heading, elevation, and coordinates only — one centered line. The return-to-vehicle status/
- * toggle and the record start/stop control used to live in a second row here; both moved into
- * [MapIconBar] (project owner's call: this strip should stay a single line, not grow a second
- * row for track-recording controls that already have their own home in the icon bar).
+ * Heading, elevation, and coordinates on one centered line, plus — field-test dispatch item 2 —
+ * a compact return-to-vehicle readout docked at the strip's far right. The record start/stop
+ * control and the return-to-vehicle *toggle* still live in [MapIconBar] (project owner's original
+ * call: this strip should stay a single line, not grow a second row for track-recording controls
+ * that already have a home in the icon bar) — this doesn't move that control, it duplicates its
+ * state into a second, actually-visible surface, deliberately: [MapIconBar]'s own row computes the
+ * identical [ReturnToStartInfo] and wires it only to a `contentDescription` (TalkBack-only) and an
+ * icon tint most testers won't consciously register — see `AvailabilityScreenMapIconStackTest`'s
+ * own "recording with a real fix shows..." tests, which pass by asserting that same
+ * contentDescription and never once render anything a sighted tester can read. Both controls are
+ * kept, on purpose, rather than one replacing the other: the field test itself is what should
+ * decide which placement testers actually reach for (see this dispatch's own tester-interview
+ * question, "where did you look first when you wanted to get back to the car?").
  * **Corrected 2026-08-28**: named `MapIconStack` here before that composable was renamed.
  */
 @Composable
@@ -4119,6 +4217,11 @@ private fun CompassElevationStripContent(
     headingDegrees: Float?,
     elevationMeters: Double?,
     location: LatLng?,
+    isRecording: Boolean,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
@@ -4139,70 +4242,173 @@ private fun CompassElevationStripContent(
     val isDarkTheme = LocalForagerDarkTheme.current
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         Box(
-            modifier = modifier.background(
-                color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
-                shape = RectangleShape,
-            ),
+            modifier = modifier
+                // The one deliberate height change field-test dispatch item 2 asks for — see
+                // COMPASS_STRIP_MIN_HEIGHT's own doc comment for why 48dp and why it's here at all.
+                .heightIn(min = COMPASS_STRIP_MIN_HEIGHT)
+                .background(
+                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    shape = RectangleShape,
+                ),
         ) {
-            // Heading, elevation, and coordinates on one centered line — the project owner's own
-            // call to make the strip read as a slim, single-line bar. labelMedium (down from
-            // heading/elevation's earlier labelLarge) is meant to let a typical phone width show
-            // the whole line; on a narrower screen, the coordinates segment (the longest of the
-            // three, and the one that grew when Lat./Long. were added alongside the MGRS grid) is
-            // the one that gives way — Modifier.weight(1f, fill = false) + TextOverflow.Ellipsis on
-            // just that Text, not horizontalScroll on the whole Row: horizontalScroll installs a
-            // real pointer-input handler even at zero scroll range, which intercepted touches meant
-            // for the map underneath this strip (the same touch-interception class this
-            // composable's own Box-not-Surface comment above already documents;
-            // AvailabilityScreenTripPlanningFlowTest and AvailabilityScreenWaypointFlowTest caught
-            // this one the same way). Weight-based sizing truncates with an ellipsis rather than an
-            // abrupt hard clip, and adds no pointer input of its own, so the map stays reachable
-            // everywhere under the strip.
-            //
-            // Arrangement.spacedBy(space, alignment) rather than plain spacedBy: keeps the fixed
-            // gap between the three segments while also centering the whole group horizontally
-            // within the full-width strip, per the project owner's own placement call.
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    .fillMaxSize()
+                    .padding(horizontal = Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Navigation,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .rotate(headingDegrees ?: 0f),
-                )
-                Text(
-                    text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                )
-                Text("·", style = MaterialTheme.typography.labelMedium)
-                Text(
-                    // Meters, matching this app's existing metric convention (radiusKm) rather
-                    // than introducing feet — nothing else in the app displays imperial units.
-                    text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                )
-                Text("·", style = MaterialTheme.typography.labelMedium)
-                Text(
-                    text = coordinatesStripText(location, showDecimalDegrees),
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .clickable(
-                            enabled = location != null,
-                            onClick = { showDecimalDegrees = !showDecimalDegrees },
-                        ),
+                // Heading, elevation, and coordinates on one centered line — the project owner's
+                // own call to make the strip read as a slim, single-line bar. labelMedium (down
+                // from heading/elevation's earlier labelLarge) is meant to let a typical phone
+                // width show the whole line; on a narrower screen, the coordinates segment (the
+                // longest of the three, and the one that grew when Lat./Long. were added alongside
+                // the MGRS grid) is the one that gives way — Modifier.weight(1f, fill = false) +
+                // TextOverflow.Ellipsis on just that Text, not horizontalScroll on the whole Row:
+                // horizontalScroll installs a real pointer-input handler even at zero scroll range,
+                // which intercepted touches meant for the map underneath this strip (the same
+                // touch-interception class this composable's own Box-not-Surface comment above
+                // already documents; AvailabilityScreenTripPlanningFlowTest and
+                // AvailabilityScreenWaypointFlowTest caught this one the same way). Weight-based
+                // sizing truncates with an ellipsis rather than an abrupt hard clip, and adds no
+                // pointer input of its own, so the map stays reachable everywhere under the strip.
+                //
+                // Now wrapped in its own weight(1f) Row (it used to be this composable's only Row):
+                // field-test dispatch item 2's return-to-vehicle control docks at the strip's true
+                // far right, outside this centered group, so this group centers within whatever
+                // width is left rather than the full strip — the deliberate overflow choice for a
+                // strip that already had no room to spare: the coordinates segment's own ellipsis
+                // absorbs the width the new control takes, the same way it already absorbs a
+                // narrow phone.
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Navigation,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .rotate(headingDegrees ?: 0f),
+                    )
+                    Text(
+                        text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                    )
+                    Text("·", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        // Meters, matching this app's existing metric convention (radiusKm) rather
+                        // than introducing feet — nothing else in the app displays imperial units.
+                        text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                    )
+                    Text("·", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = coordinatesStripText(location, showDecimalDegrees),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clickable(
+                                enabled = location != null,
+                                onClick = { showDecimalDegrees = !showDecimalDegrees },
+                            ),
+                    )
+                }
+                ReturnToVehicleStripControl(
+                    isRecording = isRecording,
+                    returnToStart = returnToStart,
+                    isReturning = isReturning,
+                    isOffTrack = isOffTrack,
+                    onToggleReturning = onToggleReturning,
                 )
             }
+        }
+    }
+}
+
+/** This strip's own [MIN_TOUCH_TARGET], not a separate constant — see that value's own doc comment for the source. */
+private val COMPASS_STRIP_MIN_HEIGHT = MIN_TOUCH_TARGET
+
+/** "1.2 km"/"999 m" at [MaterialTheme.typography]'s `labelMedium` never needs more than this — see [ReturnToVehicleStripControl]'s own doc comment for why the slot is fixed-width at all. */
+private val RETURN_TO_VEHICLE_TEXT_WIDTH = 48.dp
+
+/**
+ * Field-test dispatch item 2's visible return-to-vehicle control — see
+ * [CompassElevationStripContent]'s own doc comment for why this exists alongside, not instead of,
+ * [MapIconBar]'s identical-data row.
+ *
+ * **Distance only**, not the full bearing/distance/elevation sentence [MapIconBar]'s row carries in
+ * its `contentDescription`: this strip already shows a heading arrow immediately to its left, so
+ * "which way" is covered by the existing compass, and there is no room in a strip this narrow for a
+ * second full sentence — "412 m" answers the one question distance alone covers ("how much
+ * further") without needing the rest. Full bearing/elevation stay reachable through [MapIconBar]'s
+ * row and its `contentDescription` for TalkBack.
+ *
+ * The text lives in a [RETURN_TO_VEHICLE_TEXT_WIDTH]-wide, vertically-centered [Box] — reserved
+ * whether or not [returnToStart] has a value yet, so a fix landing or being lost never shifts the
+ * icon (and the coordinates segment measured against it) sideways.
+ *
+ * **Transparent and themed, not a filled chip**: [tint] alone carries state (the same
+ * error/primary/default three-way [MapIconBar]'s own row already uses), never a background fill —
+ * a filled circle here would read as a fourth accent color competing with the strip's own two
+ * (add/record) rather than a plain, in-line readout.
+ *
+ * **A real ripple, not a static icon**: [IconButton] gives a ripple bounded to its own
+ * [MIN_TOUCH_TARGET] box plus the tint's own state change on tap — the one element in this
+ * otherwise-static strip (besides the coordinates segment) that visibly reacts, so it reads as the
+ * interactive one it is.
+ */
+@Composable
+private fun ReturnToVehicleStripControl(
+    isRecording: Boolean,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
+) {
+    val tint = when {
+        isOffTrack -> MaterialTheme.colorScheme.error
+        isReturning -> MaterialTheme.colorScheme.primary
+        else -> LocalContentColor.current
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        // Same disabled treatment as MapBarIconButton's own — nothing to return to while nothing
+        // is recording.
+        modifier = Modifier.alpha(if (isRecording) 1f else 0.4f),
+    ) {
+        Box(
+            modifier = Modifier
+                .width(RETURN_TO_VEHICLE_TEXT_WIDTH)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = if (isRecording) returnToStart?.let { formatReturnDistance(it.distanceMeters) }.orEmpty() else "",
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                color = tint,
+            )
+        }
+        IconButton(
+            onClick = onToggleReturning,
+            enabled = isRecording,
+            modifier = Modifier
+                .size(MIN_TOUCH_TARGET)
+                .testTag("compass-strip-return-to-vehicle"),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Directions,
+                contentDescription = returnToStartStripText(isRecording, returnToStart)
+                    .ifBlank { "Return to vehicle — start recording first" },
+                tint = tint,
+            )
         }
     }
 }
@@ -4216,17 +4422,16 @@ private fun CompassElevationStripContent(
 internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInfo?): String {
     if (!isRecording) return ""
     if (info == null) return "Recording — waiting for a fix to compute the way back"
-    val distanceText = if (info.distanceMeters < 1000) {
-        "${info.distanceMeters.roundToInt()} m"
-    } else {
-        "${"%.1f".format(info.distanceMeters / 1000)} km"
-    }
     val elevationText = info.elevationDifferenceMeters?.let {
         "${if (it >= 0) "+" else ""}${it.roundToInt()} m"
     } ?: "elevation diff. unavailable"
     val bearing = info.bearingDegrees.roundToInt()
-    return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · $distanceText · $elevationText"
+    return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · ${formatReturnDistance(info.distanceMeters)} · $elevationText"
 }
+
+/** "412 m" below 1 km, "1.2 km" at or above — shared by [returnToStartStripText] and [ReturnToVehicleStripControl]'s own compact readout. */
+private fun formatReturnDistance(distanceMeters: Double): String =
+    if (distanceMeters < 1000) "${distanceMeters.roundToInt()} m" else "${"%.1f".format(distanceMeters / 1000)} km"
 
 /**
  * "Coordinates unavailable" before a first fix (distinct wording from [MgrsCoordinate.Unsupported]

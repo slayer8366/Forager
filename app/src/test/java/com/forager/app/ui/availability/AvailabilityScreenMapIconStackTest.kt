@@ -13,18 +13,24 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
@@ -77,6 +83,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -123,6 +130,9 @@ class AvailabilityScreenMapIconStackTest {
         locationTracker: LocationTracker = IconStackNoOpLocationTracker,
         isRecording: Boolean = false,
         returnToStart: ReturnToStartInfo? = null,
+        isReturning: Boolean = false,
+        isOffTrack: Boolean = false,
+        onToggleReturning: () -> Unit = {},
         mushroomRepository: MushroomRepository = IconStackEmptyRepository,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
@@ -183,6 +193,9 @@ class AvailabilityScreenMapIconStackTest {
                 onLocateMe = onLocateMe,
                 isRecording = isRecording,
                 returnToStart = returnToStart,
+                isReturning = isReturning,
+                isOffTrack = isOffTrack,
+                onToggleReturning = onToggleReturning,
                 compassProvider = compassProvider,
                 mapSlot = mapSlot,
             )
@@ -400,46 +413,131 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Coordinates unavailable").assertIsDisplayed()
     }
 
+    /**
+     * Two independent return-to-vehicle controls exist now — [MapIconBar]'s row and the compass
+     * strip's own [ReturnToVehicleStripControl] — deliberately sharing the same state and the same
+     * `contentDescription` text, so both are found by [hasTestTag], not
+     * [onNodeWithContentDescription] alone, which would match both and fail on ambiguity. See
+     * `CompassElevationStripContent`'s own doc comment for why both exist.
+     */
     @Test
-    fun `the return-to-vehicle control is disabled while not recording, and the record toggle still shows`() {
+    fun `both return-to-vehicle controls are disabled while not recording, and the record toggle still shows`() {
         setScreen(isRecording = false)
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Start recording track").assertIsDisplayed()
-        // returnToStartStripText(false, null) is "" -- ifBlank falls back to this placeholder.
-        // See MapIconBar's own return-to-vehicle MapBarIconButton call.
-        composeRule.onNodeWithContentDescription("Return to vehicle — start recording first").assertIsNotEnabled()
+        composeRule.onNodeWithTag("map-icon-bar-return-to-vehicle").assertIsNotEnabled()
+        composeRule.onNodeWithTag("compass-strip-return-to-vehicle").assertIsNotEnabled()
     }
 
     @Test
-    fun `recording with no fix yet shows a waiting message, not a guessed return`() {
+    fun `recording with no fix yet shows a waiting message on the icon bar row, and no distance yet on the compass strip`() {
         setScreen(isRecording = true, returnToStart = null)
         searchAReferenceRegion()
 
-        composeRule.onNodeWithContentDescription("Recording — waiting for a fix to compute the way back").assertIsDisplayed()
+        composeRule.onNode(
+            hasTestTag("map-icon-bar-return-to-vehicle") and
+                hasContentDescription("Recording — waiting for a fix to compute the way back"),
+        ).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Stop recording track").assertIsDisplayed()
+        // The compass strip's slot is too narrow for a full sentence — see
+        // ReturnToVehicleStripControl's own doc comment — so it stays reserved but blank rather
+        // than showing a guessed or truncated distance.
+        composeRule.onNodeWithTag("compass-strip-return-to-vehicle").assertIsDisplayed()
     }
 
+    /**
+     * The exact bug this dispatch's item 2 exists to fix: the same [ReturnToStartInfo] used to reach
+     * a sighted user nowhere but [MapIconBar]'s `contentDescription` (TalkBack-only), and this same
+     * test file's own earlier version of this test passed throughout by asserting only that —
+     * proving nothing about what a sighted tester actually sees. This now also asserts the compact
+     * distance readout via [onNodeWithText] on the compass strip itself, the visible surface field
+     * testers can actually read.
+     */
     @Test
-    fun `recording with a real fix shows bearing, distance, and elevation difference back to the start`() {
+    fun `recording with a real fix shows the full sentence on the icon bar row and the distance on the compass strip`() {
         setScreen(
             isRecording = true,
             returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 1200.0, elevationDifferenceMeters = -45.0),
         )
         searchAReferenceRegion()
 
-        composeRule.onNodeWithContentDescription("Return: 180° S · 1.2 km · -45 m").assertIsDisplayed()
+        composeRule.onNode(
+            hasTestTag("map-icon-bar-return-to-vehicle") and
+                hasContentDescription("Return: 180° S · 1.2 km · -45 m"),
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText("1.2 km").assertIsDisplayed()
+    }
+
+    /**
+     * The one deliberate height change field-test dispatch item 2 calls for: this control is used
+     * on the return leg — walking, possibly dark, possibly gloved — so its touch target must be a
+     * full 48dp, not shrunk to fit the strip's old, shorter, text-driven height.
+     */
+    @Test
+    fun `the compass strip's return-to-vehicle control has a full 48dp touch target`() {
+        setScreen(isRecording = true)
+        searchAReferenceRegion()
+
+        val bounds = composeRule.onNodeWithTag("compass-strip-return-to-vehicle").getUnclippedBoundsInRoot()
+
+        assertTrue("expected a 48dp-tall touch target, was ${bounds.height}", bounds.height >= 48.dp)
+    }
+
+    /**
+     * A real click, not just a visibility/enabled check: on this suite's own w360dp-h640dp
+     * viewport, this test initially failed with `toggleCalls` staying `0` — MapIconBar's Surface
+     * (vertically centered on the same right-edge column, spanning all 8 of its rows as one
+     * continuous touch-intercepting background) reached up far enough to sit on top of the compass
+     * strip's own control and silently swallow the tap, the exact touch-interception class CLAUDE.md
+     * already documents twice over for this map. Fixed by composing MapIconBar before
+     * CompassElevationStrip so the strip's own control wins any overlap — see that call site's own
+     * doc comment. Kept as a real [performClick] specifically so a future regression of this exact
+     * kind fails here again, not silently.
+     */
+    @Test
+    fun `tapping the compass strip's return-to-vehicle control calls onToggleReturning, the same as the icon bar row`() {
+        var toggleCalls = 0
+        setScreen(isRecording = true, onToggleReturning = { toggleCalls++ })
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("compass-strip-return-to-vehicle").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, toggleCalls)
     }
 
     @Test
-    fun `a return distance under a kilometer is shown in meters`() {
+    fun `an off-track fix tints both return-to-vehicle controls with the error color's contentDescription state`() {
+        // isOffTrack only changes tint color, not text/contentDescription — this asserts the state
+        // reaches both controls at all (enabled, present, still showing the right distance) rather
+        // than the tint's actual pixel value, which this suite has no existing way to assert either.
+        setScreen(
+            isRecording = true,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
+            isReturning = true,
+            isOffTrack = true,
+        )
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("map-icon-bar-return-to-vehicle").assertIsDisplayed()
+        composeRule.onNodeWithTag("compass-strip-return-to-vehicle").assertIsDisplayed()
+        composeRule.onNodeWithText("500 m").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a return distance under a kilometer is shown in meters on both controls`() {
         setScreen(
             isRecording = true,
             returnToStart = ReturnToStartInfo(bearingDegrees = 45.0, distanceMeters = 350.0, elevationDifferenceMeters = null),
         )
         searchAReferenceRegion()
 
-        composeRule.onNodeWithContentDescription("Return: 45° NE · 350 m · elevation diff. unavailable").assertIsDisplayed()
+        composeRule.onNode(
+            hasTestTag("map-icon-bar-return-to-vehicle") and
+                hasContentDescription("Return: 45° NE · 350 m · elevation diff. unavailable"),
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText("350 m").assertIsDisplayed()
     }
 
     @Test

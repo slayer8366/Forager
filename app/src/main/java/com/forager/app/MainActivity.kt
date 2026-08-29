@@ -1,10 +1,16 @@
 package com.forager.app
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,11 +23,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.forager.app.domain.ErrorLog
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.service.TrackRecordingService
 import com.forager.app.ui.availability.AvailabilityScreen
 import com.forager.app.ui.availability.AvailabilityViewModel
@@ -99,6 +108,7 @@ class MainActivity : ComponentActivity() {
                     container.computeReturnToStartUseCase,
                     container.detectOffTrackUseCase,
                     container.locationTracker,
+                    container.getTracksUseCase,
                     androidErrorLog,
                 )
             }
@@ -163,6 +173,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Field-test dispatch item 4: a dedicated channel, not TrackRecordingService's own
+        // "track_recording" one — that channel is IMPORTANCE_LOW on purpose (an ongoing, silent
+        // "recording is running" notice), and a LOW-importance channel won't sound or vibrate a
+        // posted notification on its own regardless of what the notification itself requests.
+        // off_track_notification_channel_name/_title/_text already existed in strings.xml, unused
+        // anywhere in the tree — this wires up exactly the channel they were named for rather than
+        // inventing new copy.
+        createOffTrackNotificationChannel(this)
         // Without this, the system nav bar stays whatever the platform default is — light on
         // most devices — regardless of this app's own theme, which is why it read as a stray
         // white bar under an otherwise dark screen. enableEdgeToEdge() makes it transparent and
@@ -212,6 +230,17 @@ class MainActivity : ComponentActivity() {
                         intent.action = TrackRecordingService.ACTION_STOP
                         startService(intent)
                     }
+                }
+
+                // Field-test dispatch item 4: DetectOffTrackUseCase's own output used to reach a
+                // user nowhere but an icon tint — see TrackRecordingViewModel.returnToStart()'s own
+                // doc comment for the debounce this id reflects. offTrackAlertId starts at 0, which
+                // this LaunchedEffect's own first firing (on initial composition) must not treat as
+                // a real alert — 0 is never itself bumped to by returnToStart().
+                LaunchedEffect(trackUiState.offTrackAlertId) {
+                    if (trackUiState.offTrackAlertId == 0) return@LaunchedEffect
+                    postOffTrackAlert(this@MainActivity)
+                    vibrateOffTrackAlert(this@MainActivity)
                 }
 
                 AvailabilityScreen(
@@ -295,7 +324,14 @@ class MainActivity : ComponentActivity() {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
-                            trackRecordingViewModel.startRecording()
+                            // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
+                            // too sparse to evaluate against Gaia's own recording. Testers already
+                            // run Gaia concurrently, so the extra GPS draw is a cost already
+                            // committed either way — see startRecording()'s own default-parameter
+                            // doc comment for why this is an explicit override here rather than a
+                            // changed default: a future non-tester-build caller should still get
+                            // BALANCED unless it deliberately asks otherwise.
+                            trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
                         }
                     },
                     startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
@@ -312,8 +348,67 @@ class MainActivity : ComponentActivity() {
                     },
                     compassProvider = container.compassProvider,
                     crashFileStore = container.crashFileStore,
+                    tracks = trackUiState.tracks,
+                    onTracksOpened = trackRecordingViewModel::loadTracks,
                 )
             }
         }
     }
+}
+
+private const val OFF_TRACK_CHANNEL_ID = "off_track_alert"
+private const val OFF_TRACK_NOTIFICATION_ID = 1002
+
+/** Two short buzzes, not one — more likely to be felt through fabric than a single pulse, still brief enough not to feel alarmist. */
+private val OFF_TRACK_VIBRATION_PATTERN_MILLIS = longArrayOf(0L, 250L, 150L, 250L)
+
+internal fun createOffTrackNotificationChannel(context: Context) {
+    val manager = context.getSystemService(NotificationManager::class.java)
+    val channel = NotificationChannel(
+        OFF_TRACK_CHANNEL_ID,
+        context.getString(R.string.off_track_notification_channel_name),
+        // HIGH, not TrackRecordingService's own LOW — this is a safety alert meant to be noticed
+        // on a pocketed phone, not a silent ongoing-status notice.
+        NotificationManager.IMPORTANCE_HIGH,
+    ).apply { enableVibration(true) }
+    manager.createNotificationChannel(channel)
+}
+
+/**
+ * Field-test dispatch item 4 — see [com.forager.app.ui.track.TrackRecordingViewModel.returnToStart]'s
+ * own doc comment for the debounce that decides when this gets called at all. Split out as a plain,
+ * `Context`-taking top-level function — not a private `MainActivity` method — the same
+ * `directionsIntent`/`launchDirections` split `com.forager.app.ui.availability` uses, so the real
+ * notification this builds is testable under Robolectric without needing this app's full DI graph.
+ *
+ * Posting is best-effort: same "declared, not forced" stance [com.forager.app.service.TrackRecordingService]'s
+ * own ongoing notification takes on POST_NOTIFICATIONS (see AndroidManifest.xml's own comment) — a
+ * denial here means no notification shows, not a crash, and [vibrateOffTrackAlert] (a different,
+ * VIBRATE-gated permission) still runs regardless.
+ */
+internal fun postOffTrackAlert(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+    ) {
+        return
+    }
+    val notification = NotificationCompat.Builder(context, OFF_TRACK_CHANNEL_ID)
+        .setContentTitle(context.getString(R.string.off_track_notification_title))
+        .setContentText(context.getString(R.string.off_track_notification_text))
+        .setSmallIcon(R.drawable.ic_track_recording)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setAutoCancel(true)
+        .build()
+    NotificationManagerCompat.from(context).notify(OFF_TRACK_NOTIFICATION_ID, notification)
+}
+
+/** VIBRATE is a normal (install-time) permission — declared in AndroidManifest.xml, no runtime check needed, unlike [postOffTrackAlert]'s own POST_NOTIFICATIONS gate. */
+internal fun vibrateOffTrackAlert(context: Context) {
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
+    vibrator.vibrate(VibrationEffect.createWaveform(OFF_TRACK_VIBRATION_PATTERN_MILLIS, -1))
 }
