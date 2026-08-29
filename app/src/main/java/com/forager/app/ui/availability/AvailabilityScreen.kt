@@ -1,8 +1,5 @@
 package com.forager.app.ui.availability
 
-/** TEMPORARY diagnostic scaffolding — will be removed once the regression under investigation is root-caused. */
-internal val DEBUG_TAP_LOG = mutableListOf<String>()
-
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -252,6 +249,9 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+
+/** TEMPORARY diagnostic scaffolding — will be removed once the regression under investigation is root-caused. */
+internal val DEBUG_TAP_LOG = mutableListOf<String>()
 
 private enum class ResultsTab(val label: String) {
     LIST("List"),
@@ -4002,12 +4002,14 @@ private fun CompactMapTab(
                         DEBUG_TAP_LOG.add("onTap done, tappedSighting now ${tappedSighting?.commonName}")
                     },
                     { sighting, screenPosition ->
+                        DEBUG_TAP_LOG.add("onSightingTap fired with ${sighting.commonName}")
                         tappedSighting = sighting
                         tappedSightingScreenPosition = screenPosition
                     },
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
+                DEBUG_TAP_LOG.add("recomposed CompactMapTab body, tappedSighting = ${tappedSighting?.commonName}")
                 tappedSighting?.let { sighting ->
                     // minY = the compass strip's own measured height (compassStripHeightPx), not a
                     // hardcoded constant and not 0 — the strip is composed after this in the same Box
