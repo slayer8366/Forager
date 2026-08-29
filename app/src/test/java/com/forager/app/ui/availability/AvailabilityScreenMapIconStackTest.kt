@@ -485,6 +485,35 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
+     * A hardware screenshot caught a real regression a touch-target-floor assertion on the
+     * IconButton itself could never fail on: the strip's content `Row` used `fillMaxSize()`
+     * instead of `fillMaxWidth()`, so — with no upper bound of its own on a Box only
+     * bottom-bounded by `heightIn(min = COMPASS_STRIP_MIN_HEIGHT)` — it inherited the *whole
+     * remaining map height* from its parent, stretching the strip to fill the map and landing its
+     * vertically-centered content in the screen's middle, on top of `MapIconBar`'s own
+     * vertically-centered column ("grouped with the icon bar"). The return-to-vehicle
+     * `IconButton`'s own `Modifier.size(48.dp)` is a fixed size, unaffected by how tall its
+     * surrounding container grows — `bounds.height >= 48.dp` on that tag stayed true throughout,
+     * which is exactly why that assertion alone couldn't catch this. Only a bound on the strip's
+     * *own* container (`compass-elevation-strip`) can — confirmed by reintroducing the exact bug
+     * and watching this specific assertion fail while the touch-target one above kept passing.
+     */
+    @Test
+    fun `the compass strip container itself stays a slim bar, not the whole map's height`() {
+        setScreen(isRecording = true)
+        searchAReferenceRegion()
+
+        val bounds = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
+
+        assertTrue(
+            "expected the compass strip to stay a slim, top-pinned bar close to its 48dp minimum, " +
+                "not stretch to the map's own height (was ${bounds.height}) — see this test's own " +
+                "doc comment for the regression this specifically guards against",
+            bounds.height <= 64.dp,
+        )
+    }
+
+    /**
      * A real click, not just a visibility/enabled check: on this suite's own w360dp-h640dp
      * viewport, this test initially failed with `toggleCalls` staying `0` — MapIconBar's Surface
      * (vertically centered on the same right-edge column, spanning all 8 of its rows as one

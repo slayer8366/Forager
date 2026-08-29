@@ -4249,11 +4249,29 @@ private fun CompassElevationStripContent(
                 .background(
                     color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
                     shape = RectangleShape,
-                ),
+                )
+                // Lets a test assert this Box's own measured height directly — the return-to-
+                // vehicle IconButton's fixed Modifier.size(48.dp) inside it stays 48dp regardless of
+                // how tall this outer Box ends up, so a test targeting that tag alone can't catch
+                // this Box itself stretching to fill the map (see this tag's own test for the real
+                // regression that shape of assertion missed).
+                .testTag("compass-elevation-strip"),
         ) {
             Row(
+                // fillMaxWidth, not fillMaxSize: this Box's own height is only bottom-bounded by
+                // heightIn(min = COMPASS_STRIP_MIN_HEIGHT) above, with no upper bound of its own,
+                // so any descendant anywhere in this Row asking to fill *available* height (there
+                // was a second one, deeper down — see ReturnToVehicleStripControl's own doc
+                // comment) inherits whatever the parent map Box can offer and propagates that
+                // height back up through every ancestor lacking its own explicit bound, including
+                // this Row and the strip's outer Box. That's the real, hardware-caught bug this
+                // had: the strip stretched to the map's full height and its vertically-centered
+                // content landed in the screen's middle, on top of MapIconBar's own
+                // vertically-centered column, reading as "grouped with the icon bar." Both sources
+                // had to go before this Row's height (from its tallest child, the return-to-vehicle
+                // IconButton's fixed 48dp) actually stuck.
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(horizontal = Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -4382,9 +4400,16 @@ private fun ReturnToVehicleStripControl(
         modifier = Modifier.alpha(if (isRecording) 1f else 0.4f),
     ) {
         Box(
-            modifier = Modifier
-                .width(RETURN_TO_VEHICLE_TEXT_WIDTH)
-                .fillMaxHeight(),
+            // No fillMaxHeight: the outer Row's own verticalAlignment = CenterVertically already
+            // centers this Box (sized to its own text content) within the row, the same way the
+            // heading/elevation/coordinates group's own Texts rely on their Row's alignment rather
+            // than filling height themselves. fillMaxHeight here was the second, deeper source of
+            // this composable's own real regression (see CompassElevationStripContent's content
+            // Row doc comment for the first): asking to fill max *available* height, with nothing
+            // above it ever capping that max, is what propagated all the way up through every
+            // ancestor Row/Box lacking its own explicit height bound, stretching the whole compass
+            // strip to the map's full height.
+            modifier = Modifier.width(RETURN_TO_VEHICLE_TEXT_WIDTH),
             contentAlignment = Alignment.Center,
         ) {
             Text(
