@@ -395,6 +395,39 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
+    fun `dismissing the bubble via its close icon does not let a later pan bring it back`() {
+        setScreen(mapSlot = PannableSightingStubMapSlot)
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("sighting-dot").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("observation-bubble-close").performClick()
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
+
+        // Simulates the map settling after a pan/zoom, the same re-projection
+        // SightingsMap's own camera-idle listener fires — a real hardware report found the
+        // bubble reappearing here with nothing tapped.
+        composeRule.onNodeWithTag("simulate-pan").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a pan while the bubble is still showing keeps it glued to its marker`() {
+        setScreen(mapSlot = PannableSightingStubMapSlot)
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("sighting-dot").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("simulate-pan").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Chanterelle").assertIsDisplayed()
+    }
+
+    @Test
     fun `tapping elsewhere on the map dismisses the observation bubble`() {
         setScreen(mapSlot = SightingAndPlainTapStubMapSlot)
         searchAReferenceRegion()
@@ -781,6 +814,31 @@ private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, on
     Column(modifier.testTag("map-slot")) {
         Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) }))
         Text("elsewhere", modifier = Modifier.testTag("map-elsewhere").clickable(onClick = onTap))
+    }
+}
+
+/**
+ * Regression coverage for the bug [com.forager.app.ui.map.MapOverlayContent.focusedObservationId]'s
+ * own doc comment describes: "simulate-pan" mimics what the real [com.forager.app.ui.map.SightingsMap]'s
+ * camera-idle listener now does after that fix — re-fire [onSightingTap] only when
+ * `content.focusedObservationId` still names [TAPPED_SIGHTING], not unconditionally the way the old
+ * internal-only `focusedSighting` var did (which kept re-firing after a caller-side dismissal,
+ * since nothing about that dismissal ever reached back down into the map). A stub that fired
+ * unconditionally on "simulate-pan" would let the bug back in without this test noticing; this one
+ * is shaped to actually exercise [AvailabilityScreen]'s own `tappedSighting`/`focusedObservationId`
+ * wiring, the same as the real map does.
+ */
+private val PannableSightingStubMapSlot: MapSlot = { _, content, _, _, _, _, onSightingTap, _, modifier ->
+    Column(modifier.testTag("map-slot")) {
+        Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) }))
+        Text(
+            "simulate-pan",
+            modifier = Modifier.testTag("simulate-pan").clickable(onClick = {
+                if (content.focusedObservationId == TAPPED_SIGHTING.observationId) {
+                    onSightingTap(TAPPED_SIGHTING, Offset.Zero)
+                }
+            }),
+        )
     }
 }
 

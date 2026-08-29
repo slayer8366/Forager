@@ -3539,6 +3539,7 @@ private fun MapTab(
                                 plannedTrips = uiState.plannedTrips,
                                 breadcrumbPoints = breadcrumbPoints,
                                 waypoints = waypoints,
+                                focusedObservationId = tappedSighting?.observationId,
                             ),
                             renderMode,
                             null,
@@ -3938,6 +3939,7 @@ private fun CompactMapTab(
                         waypoints = waypoints,
                         resumeTrackingRequestId = resumeTrackingRequestId,
                         resetOrientationRequestId = resetOrientationRequestId,
+                        focusedObservationId = tappedSighting?.observationId,
                     ),
                     renderMode,
                     focusOverride,
@@ -4459,8 +4461,12 @@ private fun CompassElevationStripContent(
                 // had to go before this Row's height (from its tallest child, the return-to-vehicle
                 // IconButton's fixed 48dp) actually stuck.
                 modifier = Modifier
+                    // Spacing.sm, not Spacing.md — still cut off on real hardware after the icon
+                    // moved to its own fixed box (see this Row's own doc comment above), so the
+                    // margin itself had to shrink too rather than trusting that fix alone to
+                    // reclaim enough width for "10T ER 2869…" to read in full.
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.md),
+                    .padding(horizontal = Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Fixed at the strip's own far left, the same MIN_TOUCH_TARGET box
@@ -5289,23 +5295,36 @@ internal fun launchINaturalistTaxon(context: Context, taxonId: Long) =
 
 private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
-/** Clearance between the tapped dot and the bubble's own bottom edge — enough to read as "pointing at it," not covering it. */
-private val OBSERVATION_BUBBLE_ANCHOR_GAP = Spacing.sm
+/**
+ * Rightward half of the clearance from the dot's own center to the bubble's sharp corner — see
+ * [AnchoredAtScreenPoint]'s own doc comment for the "5 o'clock" placement this is part of. Smaller
+ * than [OBSERVATION_BUBBLE_ANCHOR_GAP_Y]: that hour sits mostly below the dot and only partway
+ * across from it, not equally in both directions the way a plain diagonal offset would read.
+ */
+private val OBSERVATION_BUBBLE_ANCHOR_GAP_X = Spacing.xs
+
+/** Downward half of the same clearance — see [OBSERVATION_BUBBLE_ANCHOR_GAP_X]'s own doc comment. */
+private val OBSERVATION_BUBBLE_ANCHOR_GAP_Y = Spacing.sm
 
 /**
- * Places [content] (exactly one child — [ObservationBubble] itself) so its own bottom-center sits
- * just above [anchorPx] — the tapped sighting's live screen position, in the same px coordinate
- * space [MapSlot]'s own `onSightingTap` reports (see that callback's doc comment) — rather than a
- * fixed corner of the map, so the bubble reads as belonging to the marker it names, per the
- * hardware report this answers ("put the chat bubble next to the observation... have it stay
- * there when we move the map, so we know which one it belongs to").
+ * Places [content] (exactly one child — [ObservationBubble] itself) so its own sharp corner
+ * ([ObservationBubble]'s `bottomEnd`) sits just past [anchorPx] — the tapped sighting's live screen
+ * position, in the same px coordinate space [MapSlot]'s own `onSightingTap` reports (see that
+ * callback's doc comment) — at that marker's own 5-o'clock point (down and partway across from its
+ * center, by [OBSERVATION_BUBBLE_ANCHOR_GAP_X]/[OBSERVATION_BUBBLE_ANCHOR_GAP_Y]) rather than
+ * centering the whole bubble above it. The rest of the bubble then reads up and to the left from
+ * that corner, so the one squared-off corner works as an arrow tip aimed back at the marker it
+ * names, per the hardware report asking for exactly that ("have the sharp edge of the chat bubble
+ * hover at the 5 o'clock position on the dot it represents, this will act like an arrow pointing at
+ * it") — replacing an earlier revision that only centered the bubble above the dot with no part of
+ * it actually pointing anywhere.
  *
- * A custom [Layout], not a plain [Box] + `Modifier.offset`: horizontally centering on the anchor
- * needs the bubble's own measured width, which isn't known until after it's laid out — a fixed
- * offset guessed in advance would only center correctly for one particular bubble content length.
- * Reports its own occupied size as the full incoming [Constraints] (the whole map [Box]), with the
- * child placed freely inside at the computed point, clamped to stay on-screen — placing a child
- * outside its parent's own declared bounds would leave it undependably hit-testable.
+ * A custom [Layout], not a plain [Box] + `Modifier.offset`: placing the corner precisely needs the
+ * bubble's own measured size, which isn't known until after it's laid out — a fixed offset guessed
+ * in advance would only land correctly for one particular bubble content length. Reports its own
+ * occupied size as the full incoming [Constraints] (the whole map [Box]), with the child placed
+ * freely inside at the computed point, clamped to stay on-screen — placing a child outside its
+ * parent's own declared bounds would leave it undependably hit-testable.
  *
  * [minY] raises the lowest the bubble's own top edge may land — [CompactMapTab]'s own call site
  * passes [COMPASS_STRIP_MIN_HEIGHT] so a marker tapped near the map's top edge never anchors a
@@ -5321,13 +5340,14 @@ private fun AnchoredAtScreenPoint(
     content: @Composable () -> Unit,
 ) {
     Layout(content = content, modifier = modifier) { measurables, constraints ->
-        val gapPx = OBSERVATION_BUBBLE_ANCHOR_GAP.roundToPx()
+        val gapXPx = OBSERVATION_BUBBLE_ANCHOR_GAP_X.roundToPx()
+        val gapYPx = OBSERVATION_BUBBLE_ANCHOR_GAP_Y.roundToPx()
         val minYPx = minY.roundToPx()
         val placeable = measurables.first().measure(Constraints())
-        val x = (anchorPx.x - placeable.width / 2f)
+        val x = (anchorPx.x + gapXPx - placeable.width)
             .roundToInt()
             .coerceIn(0, (constraints.maxWidth - placeable.width).coerceAtLeast(0))
-        val y = (anchorPx.y - placeable.height - gapPx)
+        val y = (anchorPx.y + gapYPx - placeable.height)
             .roundToInt()
             .coerceIn(minYPx, (constraints.maxHeight - placeable.height).coerceAtLeast(minYPx))
         layout(constraints.maxWidth, constraints.maxHeight) {
@@ -5350,9 +5370,10 @@ private fun AnchoredAtScreenPoint(
  * every tap outside its own bounds fall straight through to the map beneath — dismissing itself is
  * the caller's job, wired to the map's plain [onTap] the same way `CompactMapTab`'s "tap to restore
  * chrome while fullscreen" already works, not something this composable can do on its own the way
- * [AlertDialog]'s `onDismissRequest` (a tap on the scrim, or system back) could. The asymmetric top
- * corner — squared off rather than rounded, unlike the other three — is what reads as a speech/
- * notification bubble rather than a plain card, without needing a hand-drawn tail shape.
+ * [AlertDialog]'s `onDismissRequest` (a tap on the scrim, or system back) could. The asymmetric
+ * bottom-end corner — squared off rather than rounded, unlike the other three — is what reads as a
+ * speech/notification bubble rather than a plain card, without needing a hand-drawn tail shape; see
+ * [AnchoredAtScreenPoint]'s own doc comment for why that corner specifically, and where it's placed.
  */
 @Composable
 private fun ObservationBubble(
@@ -5378,7 +5399,7 @@ private fun ObservationBubble(
             // gesture. The close icon and "View on iNaturalist" text below still get first crack at
             // any tap that actually lands on them, same as any nested clickable inside one of these.
             .pointerInput(Unit) { detectTapGestures {} },
-        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp),
         color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
         contentColor = if (isDarkTheme) Color.White else Bark,
         shadowElevation = 6.dp,
@@ -5404,19 +5425,26 @@ private fun ObservationBubble(
                 if (sighting.commonName != null) {
                     Text(sighting.scientificName, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
                 }
-                Text(
-                    sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Text(
-                    "View on iNaturalist",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(top = Spacing.xs)
-                        .clickable(onClick = onViewOnINaturalist)
-                        .testTag("observation-bubble-view-on-inaturalist"),
-                )
+                Row(
+                    // fillMaxWidth so SpaceBetween has real room to push the link to the far
+                    // right — same reasoning as the outer Row's own fillMaxWidth comment above.
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        "View on iNaturalist",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable(onClick = onViewOnINaturalist)
+                            .testTag("observation-bubble-view-on-inaturalist"),
+                    )
+                }
             }
             IconButton(
                 onClick = onDismiss,

@@ -84,6 +84,22 @@ data class MapOverlayContent(
      * SDK's own compass widget doesn't expose one for).
      */
     val resetOrientationRequestId: Int = 0,
+    /**
+     * Which [Sighting] (by [Sighting.observationId]), if any, the caller is currently showing an
+     * observation bubble for — null once the caller has dismissed it, whether by its own close icon
+     * or by tapping elsewhere on the map. [SightingsMap] re-derives its own "which sighting to keep
+     * re-projecting on camera idle" state from this on every recomposition rather than latching it
+     * internally at tap time and never clearing it: a real hardware report found the bubble
+     * reappearing after a dismiss, on the very next pan, with no sighting tapped — the previous
+     * internal `focusedSighting` var was set once when a dot was tapped and never told about a
+     * later dismissal (the caller's own close/tap-elsewhere handling is pure Compose state on the
+     * [AvailabilityScreen] side, and never reaches this far down), so every subsequent camera-idle
+     * event kept re-firing `onSightingTap` for the same sighting and silently undid the dismissal.
+     * Threading the caller's own dismissed-or-not state back in here as plain data closes that gap:
+     * once the caller's tracked sighting goes null, this goes null too on the next recomposition,
+     * and the camera-idle listener has nothing left to re-fire for.
+     */
+    val focusedObservationId: Long? = null,
 )
 
 /**
@@ -191,6 +207,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         waypoints = content.waypoints,
         resumeTrackingRequestId = content.resumeTrackingRequestId,
         resetOrientationRequestId = content.resetOrientationRequestId,
+        focusedObservationId = content.focusedObservationId,
         modifier = modifier,
     )
 }

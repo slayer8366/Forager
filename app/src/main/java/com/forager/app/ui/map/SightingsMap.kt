@@ -200,6 +200,8 @@ fun SightingsMap(
     resumeTrackingRequestId: Int = 0,
     /** See [com.forager.app.ui.map.MapOverlayContent.resetOrientationRequestId]'s own doc comment. */
     resetOrientationRequestId: Int = 0,
+    /** See [com.forager.app.ui.map.MapOverlayContent.focusedObservationId]'s own doc comment. */
+    focusedObservationId: Long? = null,
 ) {
     val context = LocalContext.current
 
@@ -228,13 +230,11 @@ fun SightingsMap(
     // comment) so a tapped dot resolves against whichever sightings list is current, not whichever
     // one was in scope the moment the listener was registered.
     val currentSightings by rememberUpdatedState(sightings)
-
-    // The sighting a tap most recently landed on, kept (not cleared on later camera moves) purely
-    // so the camera-idle listener below knows whose screen position to keep recomputing and
-    // reporting — see that listener's own comment. Harmless to keep reporting after the caller has
-    // dismissed its own bubble for this sighting: the caller simply stops reading updates once its
-    // own tappedSighting state goes back to null, so no explicit "stop tracking" signal is needed.
-    var focusedSighting by remember { mutableStateOf<Sighting?>(null) }
+    // See MapOverlayContent.focusedObservationId's own doc comment for the dismiss-then-reappear
+    // bug this closes: read fresh on every camera-idle event rather than latched into a local var
+    // at tap time, so a caller-side dismissal (which only ever changes this parameter, never reaches
+    // the click listener below) is visible here too.
+    val currentFocusedObservationId by rememberUpdatedState(focusedObservationId)
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     // The Style instance from the most recently completed setStyle callback. Distinct from
     // "which Basemap is currently applied" (appliedBasemap, below) because this is what the data
@@ -305,7 +305,6 @@ fun SightingsMap(
                     ?.toLong()
                     ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
                 if (tappedSighting != null) {
-                    focusedSighting = tappedSighting
                     currentOnSightingTap(tappedSighting, Offset(screenPoint.x, screenPoint.y))
                 } else {
                     currentOnTap()
@@ -334,14 +333,20 @@ fun SightingsMap(
                 }
                 // Keeps a shown observation bubble glued to its own marker's real screen position
                 // across a pan/zoom — a hardware report asked for exactly this ("have it stay there
-                // when we move the map, so we know which one it belongs to"), and re-projecting the
-                // same focusedSighting's LatLng on every idle (the same projection call the click
-                // listener above uses once, at tap time) is what answers it without this composable
-                // needing to reimplement MapLibre's own screen<->geo math.
-                focusedSighting?.let { sighting ->
-                    val screenPoint = map.projection.toScreenLocation(MapLibreLatLng(sighting.lat, sighting.lng))
-                    currentOnSightingTap(sighting, Offset(screenPoint.x, screenPoint.y))
-                }
+                // when we move the map, so we know which one it belongs to"), and re-projecting
+                // whichever sighting currentFocusedObservationId currently names on every idle (the
+                // same projection call the click listener above uses once, at tap time) is what
+                // answers it without this composable needing to reimplement MapLibre's own
+                // screen<->geo math. Resolved fresh against currentSightings/currentFocusedObservationId
+                // rather than a sighting captured at tap time, so a dismissal that's since cleared
+                // the caller's own focused id (see MapOverlayContent.focusedObservationId's doc
+                // comment) is reflected here too instead of silently re-reviving a closed bubble.
+                currentFocusedObservationId
+                    ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
+                    ?.let { sighting ->
+                        val screenPoint = map.projection.toScreenLocation(MapLibreLatLng(sighting.lat, sighting.lng))
+                        currentOnSightingTap(sighting, Offset(screenPoint.x, screenPoint.y))
+                    }
             }
             // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
             // corner this composable's own always-visible Basemap.attribution caption occupies (see
