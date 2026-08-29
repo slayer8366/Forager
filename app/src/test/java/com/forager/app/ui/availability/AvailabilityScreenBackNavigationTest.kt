@@ -35,6 +35,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
@@ -148,6 +149,7 @@ class AvailabilityScreenBackNavigationTest {
             mapPreferencesRepository = BackNavStubMapPreferencesRepository,
             distanceUnitPreferenceRepository = BackNavStubDistanceUnitPreferenceRepository,
             appThemePreferenceRepository = BackNavStubAppThemePreferenceRepository,
+            getTodaysForecast = GetTodaysForecastUseCase(BackNavStubTripPlanningWeatherProvider),
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()

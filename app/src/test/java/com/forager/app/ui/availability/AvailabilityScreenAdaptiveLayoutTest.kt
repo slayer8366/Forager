@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
-import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.AvailabilityEntry
+import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
@@ -35,6 +36,7 @@ import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.MapSlot
@@ -276,14 +278,18 @@ class AvailabilityScreenWideWindowLayoutTest {
 
     /**
      * The M3 "reveal" pattern: List and Map show together rather than one tab at a time. Proven
-     * by asserting on content unique to each — [ConditionsCard]'s "Current Conditions" for List,
-     * the foraging-areas toggle for Map — displayed simultaneously with no tab click in between.
+     * by asserting on content unique to each — a ranked [SpeciesRow] for List, the foraging-areas
+     * toggle for Map — displayed simultaneously with no tab click in between.
+     *
+     * Used to assert on [ConditionsCard]'s "Current Conditions" for the List-unique half; that card
+     * now lives in the Seasonal tab instead (PANEL-CONTENTS-DISPATCH.md item 2), so this asserts on
+     * the ranked list's own content ([FORECAST]) rather than a card that no longer sits here.
      */
     @Test
     fun `list and map content are both displayed together without switching tabs`() {
-        setScreen(SEARCHED_STATE.copy(conditions = CONDITIONS, selectedMonth = LocalDate.now().monthValue))
+        setScreen(SEARCHED_STATE.copy(forecast = FORECAST, selectedMonth = LocalDate.now().monthValue))
 
-        composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
+        composeRule.onNodeWithText("artist's bracket").assertIsDisplayed()
         composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
     }
 
@@ -467,10 +473,25 @@ private val SEARCHED_STATE = AvailabilityUiState(
     showForagingAreas = true,
 )
 
-private val CONDITIONS = ConditionsSummary(
+/** A single ranked entry, so [ResultsSection] renders something List-unique to assert on. */
+private val FORECAST = AvailabilityForecast(
     region = REGION,
-    totalPrecipitationMm = 12.4,
-    daysSinceSignificantRain = 2,
+    month = 8,
+    filter = TaxonFilter.FUNGI,
+    entries = listOf(
+        AvailabilityEntry(
+            species = SpeciesObservationCount(
+                taxonId = 48473L,
+                scientificName = "Ganoderma applanatum",
+                commonName = "artist's bracket",
+                rank = "species",
+                observationCount = 14,
+                photoUrl = null,
+                wikipediaUrl = null,
+            ),
+            relativeLikelihood = 1.0f,
+        ),
+    ),
 )
 
 private val DISTRIBUTION = FruitingLagDistribution(

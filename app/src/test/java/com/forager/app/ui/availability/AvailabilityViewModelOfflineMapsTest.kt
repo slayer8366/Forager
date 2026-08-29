@@ -13,6 +13,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
@@ -227,6 +228,7 @@ class AvailabilityViewModelOfflineMapsTest {
         mapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
         distanceUnitPreferenceRepository = OfflineMapsStubDistanceUnitPreferenceRepository,
         appThemePreferenceRepository = OfflineMapsStubAppThemePreferenceRepository,
+        getTodaysForecast = GetTodaysForecastUseCase(OfflineMapsStubTripPlanningWeatherProvider),
     )
 
     /** Mirrors how [AvailabilityScreen]'s picker map now sets these — panning and confirming with OK, not typing. */

@@ -26,6 +26,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
@@ -52,6 +53,7 @@ import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SightingsPage
+import com.forager.app.domain.model.SoilAvailability
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
@@ -75,6 +77,9 @@ import org.robolectric.annotation.Config
 /**
  * The Conditions card, end to end: the real [AvailabilityScreen] over the real
  * [AvailabilityViewModel], driven by real taps and typing.
+ *
+ * The card lives in the Seasonal tab (PANEL-CONTENTS-DISPATCH.md item 2 moved it out of List — see
+ * [ConditionsCard]'s own doc comment), so every test here opens Seasonal, not List.
  *
  * Two separate things have to hold for this card to behave, and they live in different places:
  *
@@ -117,7 +122,10 @@ class AvailabilityScreenConditionsMonthTest {
      */
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun setScreen(weatherProvider: WeatherProvider = FakeWeatherProvider) {
+    private fun setScreen(
+        weatherProvider: WeatherProvider = FakeWeatherProvider,
+        tripPlanningWeatherProvider: TripPlanningWeatherProvider = FakeTripPlanningWeatherProvider,
+    ) {
         val viewModel = AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,
             locationTracker = NoOpLocationTracker,
@@ -127,7 +135,7 @@ class AvailabilityScreenConditionsMonthTest {
             searchTaxa = SearchTaxaUseCase(FakeRepository),
             getConditions = GetConditionsUseCase(weatherProvider),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
-            getTripWindows = GetTripWindowsUseCase(FakeTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
+            getTripWindows = GetTripWindowsUseCase(tripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(FakePlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(FakePlannedTripRepository),
             deletePlannedTrip = DeletePlannedTripUseCase(FakePlannedTripRepository),
@@ -140,6 +148,7 @@ class AvailabilityScreenConditionsMonthTest {
             mapPreferencesRepository = FakeMapPreferencesRepository,
             distanceUnitPreferenceRepository = FakeDistanceUnitPreferenceRepository,
             appThemePreferenceRepository = FakeAppThemePreferenceRepository,
+            getTodaysForecast = GetTodaysForecastUseCase(tripPlanningWeatherProvider),
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -234,7 +243,7 @@ class AvailabilityScreenConditionsMonthTest {
         setScreen()
 
         searchAReferenceRegion()
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
         composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertIsDisplayed()
@@ -246,7 +255,7 @@ class AvailabilityScreenConditionsMonthTest {
         setScreen()
 
         searchAReferenceRegion()
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
 
         selectMonth(aMonthOtherThanThisOne())
@@ -272,7 +281,7 @@ class AvailabilityScreenConditionsMonthTest {
         setScreen(weatherProvider = FailingWeatherProvider)
 
         searchAReferenceRegion()
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
         composeRule.onNodeWithText("Rainfall data unavailable.").assertIsDisplayed()
@@ -284,9 +293,37 @@ class AvailabilityScreenConditionsMonthTest {
         setScreen()
 
         searchAReferenceRegion()
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Rainfall data unavailable.").assertDoesNotExist()
+    }
+
+    /**
+     * [AvailabilityUiState.todaysForecast] — the card's other half, alongside [ConditionsSummary]'s
+     * observed rainfall. Fetched from [TripPlanningWeatherProvider.getWeatherSeries], a different
+     * provider method from [WeatherProvider.getRecentPrecipitation] — see
+     * [com.forager.app.domain.GetTodaysForecastUseCase]'s own doc comment.
+     */
+    @Test
+    fun `today's forecast shows the reference day's own forecast rainfall`() {
+        setScreen(tripPlanningWeatherProvider = FakeSuccessfulTripPlanningWeatherProvider)
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("Today's Forecast").assertIsDisplayed()
+        composeRule.onNodeWithText("3.2mm of rain forecast today.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a failed forecast fetch shows the neutral unavailable text`() {
+        setScreen()
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("Today's Forecast").assertIsDisplayed()
+        composeRule.onNodeWithText("Forecast unavailable.").assertIsDisplayed()
     }
 }
 
@@ -349,10 +386,51 @@ private object FailingWeatherProvider : WeatherProvider {
         Result.failure<ConditionsSummary>(IllegalStateException("archive api down for this fetch"))
 }
 
-/** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */
+/**
+ * The default trip-planning/forecast provider for this file: most tests here are about the
+ * rainfall half of the card, not the forecast half or the drawer's Trip Planner section, so a
+ * failure is the honest, low-effort stand-in — exercised directly by
+ * `a failed forecast fetch shows the neutral unavailable text`.
+ */
 private object FakeTripPlanningWeatherProvider : TripPlanningWeatherProvider {
     override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
         Result.failure(UnsupportedOperationException("trip windows not exercised by this test"))
+}
+
+/**
+ * Returns a forecast for the reference day, for the one test that asserts on the forecast half of
+ * the card. The precipitation figure is the one that test names, so a card rendering a stale or
+ * default value would fail rather than pass on the heading alone — same reasoning as
+ * [FakeWeatherProvider].
+ */
+private object FakeSuccessfulTripPlanningWeatherProvider : TripPlanningWeatherProvider {
+    override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> {
+        val referenceDay = LocalDate.now()
+        return Result.success(
+            WeatherSeries(
+                region = region,
+                referenceDay = referenceDay,
+                days = listOf(
+                    DailyWeather(
+                        date = referenceDay,
+                        isForecast = true,
+                        precipitationMm = 3.2,
+                        evapotranspirationMm = null,
+                        shallowSoilMoistureM3M3 = null,
+                        deeperSoilMoistureM3M3 = null,
+                        soilTemperatureMeanC = null,
+                        soilTemperatureMinC = null,
+                        soilTemperatureMaxC = null,
+                    ),
+                ),
+                soilAvailability = SoilAvailability(
+                    shallowMoistureBand = null,
+                    deeperMoistureBand = null,
+                    temperatureBand = null,
+                ),
+            ),
+        )
+    }
 }
 
 /** Not exercised by this test's assertions, so a failure is the honest, low-effort stand-in. */

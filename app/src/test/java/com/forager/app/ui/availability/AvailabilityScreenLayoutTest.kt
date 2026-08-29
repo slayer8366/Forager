@@ -381,16 +381,19 @@ abstract class AvailabilityScreenLayoutTest {
      * tree, and nobody ever saw it. [assertIsDisplayed] is the assertion that distinguishes those
      * two states — it fails both for a missing node and for a node with no area on screen.
      *
+     * Lives in the Seasonal tab, not List — PANEL-CONTENTS-DISPATCH.md item 2 moved it there; see
+     * [ConditionsCard]'s own doc comment.
+     *
      * The month half of this is asserted end to end in [AvailabilityScreenConditionsMonthTest]:
      * the screen renders the card whenever the state carries conditions, and it is the ViewModel
      * that clears them for a non-current month, so that gate is exercised there by picking a
      * month from the real dropdown rather than by restating the screen's own `if` here.
      */
     @Test
-    fun `the conditions card is displayed on the list tab when conditions are present`() {
+    fun `the conditions card is displayed on the seasonal tab when conditions are present`() {
         setScreen(SEARCHED_STATE.copy(conditions = CONDITIONS, selectedMonth = LocalDate.now().monthValue))
 
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
         composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertIsDisplayed()
@@ -402,7 +405,7 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the conditions card is absent when the state carries no conditions`() {
         setScreen(SEARCHED_STATE.copy(conditions = null))
 
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertDoesNotExist()
     }

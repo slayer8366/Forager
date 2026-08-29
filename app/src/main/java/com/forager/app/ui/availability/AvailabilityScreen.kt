@@ -191,6 +191,7 @@ import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.formatDistanceKm
 import com.forager.app.domain.model.ForagingArea
@@ -3386,17 +3387,18 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
 }
 
 /**
- * The ranked list, with the conditions card above it.
+ * The ranked list.
  *
- * The card sits here rather than in the drawer or over the map because rainfall is context for
- * the ranking and belongs next to it — but *next to*, not fused into it: it keeps its own card,
- * its own heading, and says nothing about the ranking below. See [ConditionsCard].
+ * The Current Conditions/forecast weather panel used to sit here, above the list; it now lives in
+ * the Seasonal tab instead — see [ConditionsCard] and [SeasonalTab]'s own doc comment for why
+ * (PANEL-CONTENTS-DISPATCH.md item 2: Seasonal and weather are both pre-trip checks, so they were
+ * consolidated into one destination).
  *
- * Trip windows used to be shown here too; they now live in the drawer's Trip Planner section —
- * see [TripPlannerSection] — because "what's likely nearby this month" and "when in the next few
- * days is worth going" are different questions with different lifetimes (the ranking depends on
- * the browsed month, trip windows only on the next several days), and fusing them into one
- * scrolling column was one more step to reach whichever one wasn't currently showing.
+ * Trip windows are shown in the drawer's Trip Planner section — see [TripPlannerSection] — because
+ * "what's likely nearby this month" and "when in the next few days is worth going" are different
+ * questions with different lifetimes (the ranking depends on the browsed month, trip windows only
+ * on the next several days), and fusing them into one scrolling column was one more step to reach
+ * whichever one wasn't currently showing.
  */
 @Composable
 private fun ListTab(
@@ -3413,21 +3415,15 @@ private fun ListTab(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Spacer(Modifier.height(Spacing.xs))
-        // Above the conditions card and the ranking alike: it changes what everything below it
-        // means, so it cannot be something the user meets after reading the list.
+        // Above the ranking: it changes what everything below it means, so it cannot be something
+        // the user meets after reading the list.
         if (uiState.isShowingCachedResults) {
             OfflineResultsBanner(
                 cachedAtEpochMillis = uiState.cachedResultsAsOfEpochMillis,
                 nowEpochMillis = currentTime.nowEpochMillis(),
             )
         }
-        if (uiState.conditions != null) {
-            ConditionsCard(conditions = uiState.conditions)
-        } else if (uiState.conditionsErrorMessage != null) {
-            ConditionsCard(errorMessage = uiState.conditionsErrorMessage)
-        }
-        // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
-        // bounded height rather than whatever the card above it happens to leave.
+        // Weighted so the ranked list scrolls within a bounded height.
         ResultsSection(uiState = uiState, distanceUnit = distanceUnit, onViewOnMap = onViewOnMap, modifier = Modifier.weight(1f))
     }
 }
@@ -3562,17 +3558,22 @@ private fun ResultsSection(
 }
 
 /**
- * The Seasonal tab: tests [FruitingPatternAssumptions.FRUITING_LAG_DAYS] — the 7–21 day
- * rain-to-fruiting-lag rule of thumb [TripWindowsCard] and [ForagingWeatherGuidanceSection]
- * already state as unmeasured field lore — against real historical iNaturalist sightings and real
- * historical Open-Meteo rainfall for the current search, and reports what it finds.
+ * The Seasonal tab: the [ConditionsCard] weather panel (current conditions plus today's forecast),
+ * above a test of [FruitingPatternAssumptions.FRUITING_LAG_DAYS] — the 7–21 day rain-to-fruiting-lag
+ * rule of thumb [TripWindowsCard] and [ForagingWeatherGuidanceSection] already state as unmeasured
+ * field lore — against real historical iNaturalist sightings and real historical Open-Meteo
+ * rainfall for the current search.
  *
- * **This tab does not feed [AvailabilityEntry.relativeLikelihood] or the ranked List tab.** It
- * answers one narrow question — does the data support this one named lag range — and nothing here
- * changes how species are ranked. See [FruitingLagDistribution]'s own doc comment.
+ * The two sit in one destination per PANEL-CONTENTS-DISPATCH.md item 2: Seasonal and weather are
+ * both pre-trip checks (Seasonal rare, weather per-trip), so consolidating them puts everything
+ * checked before leaving in one place. The weather panel is listed first — it's the more frequently
+ * consulted of the two — and does not gate on or wait for the fruiting-lag fetch below it: they are
+ * fetched independently (see [AvailabilityViewModel.refresh] for the conditions/forecast fetch,
+ * [AvailabilityViewModel.onSeasonalTabSelected] for the lazily-fetched fruiting-lag pattern below).
  *
- * Fetched lazily, keyed on region+month+filter, the same pattern [MapTab] already uses for
- * sightings — see [AvailabilityViewModel.onSeasonalTabSelected].
+ * **The fruiting-lag section does not feed [AvailabilityEntry.relativeLikelihood] or the ranked
+ * List tab.** It answers one narrow question — does the data support this one named lag range —
+ * and nothing here changes how species are ranked. See [FruitingLagDistribution]'s own doc comment.
  */
 @Composable
 private fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
@@ -3600,6 +3601,17 @@ private fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modif
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Spacer(Modifier.height(Spacing.xs))
+            if (uiState.conditions != null || uiState.conditionsErrorMessage != null ||
+                uiState.isLoadingTodaysForecast || uiState.todaysForecast != null || uiState.todaysForecastErrorMessage != null
+            ) {
+                ConditionsCard(
+                    conditions = uiState.conditions,
+                    conditionsErrorMessage = uiState.conditionsErrorMessage,
+                    isLoadingTodaysForecast = uiState.isLoadingTodaysForecast,
+                    todaysForecast = uiState.todaysForecast,
+                    todaysForecastErrorMessage = uiState.todaysForecastErrorMessage,
+                )
+            }
             when {
                 !uiState.hasSearched -> Text(
                     "Choose a region in search options to test the rain-to-fruiting-lag rule of thumb " +
@@ -6145,18 +6157,29 @@ private fun noAreasMessage(none: ForagingAreas.None): String {
 }
 
 /**
- * Recent rainfall, shown as a standalone fact at the top of the ranked list — never described as
- * having factored into it. See [com.forager.app.domain.GetConditionsUseCase]'s doc comment for
- * why this stays unfused with the ranked list.
+ * Recent rainfall plus today's own forecast, shown as a standalone fact at the top of the Seasonal
+ * tab — never described as having factored into the ranked List tab. See
+ * [com.forager.app.domain.GetConditionsUseCase] and [com.forager.app.domain.GetTodaysForecastUseCase]'s
+ * own doc comments for why the two halves are separate fetches from separate provider methods, and
+ * [SeasonalTab]'s own doc comment for why this card lives here rather than next to the ranking.
  *
- * [errorMessage] is the non-belief-changing empty state for a failed fetch — the user wanted
- * rainfall data, not a report on the network, so it renders with the same neutral (no `color`
- * argument) treatment [WaypointsSection]'s empty state and [MapMessage]'s default use — never
- * `colorScheme.error` — per docs/error-presentation-spec.md's per-field table. Exactly one of
- * [conditions]/[errorMessage] is non-null at any call site (see [ListTab]).
+ * [conditionsErrorMessage]/[todaysForecastErrorMessage] are the non-belief-changing empty state for
+ * a failed fetch — the user wanted weather data, not a report on the network, so they render with
+ * the same neutral (no `color` argument) treatment [WaypointsSection]'s empty state and
+ * [MapMessage]'s default use — never `colorScheme.error` — per
+ * docs/error-presentation-spec.md's per-field table. Exactly one of
+ * [conditions]/[conditionsErrorMessage] is non-null at any call site, and independently the same
+ * for [todaysForecast]/[todaysForecastErrorMessage]/[isLoadingTodaysForecast] — the two halves load
+ * from separate fetches and can be in different states at once (see [SeasonalTab]).
  */
 @Composable
-private fun ConditionsCard(conditions: ConditionsSummary? = null, errorMessage: String? = null) {
+private fun ConditionsCard(
+    conditions: ConditionsSummary? = null,
+    conditionsErrorMessage: String? = null,
+    isLoadingTodaysForecast: Boolean = false,
+    todaysForecast: DailyWeather? = null,
+    todaysForecastErrorMessage: String? = null,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text("Current Conditions", style = MaterialTheme.typography.titleSmall)
@@ -6176,8 +6199,29 @@ private fun ConditionsCard(conditions: ConditionsSummary? = null, errorMessage: 
                     },
                     style = MaterialTheme.typography.bodySmall,
                 )
-            } else if (errorMessage != null) {
-                Text(errorMessage, style = MaterialTheme.typography.bodyMedium)
+            } else if (conditionsErrorMessage != null) {
+                Text(conditionsErrorMessage, style = MaterialTheme.typography.bodyMedium)
+            }
+
+            HorizontalDivider()
+            Text("Today's Forecast", style = MaterialTheme.typography.titleSmall)
+            when {
+                isLoadingTodaysForecast -> CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                )
+
+                todaysForecastErrorMessage != null -> Text(
+                    todaysForecastErrorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+
+                todaysForecast != null -> Text(
+                    "${"%.1f".format(todaysForecast.precipitationMm)}mm of rain forecast today.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+
+                else -> Text("No forecast available for today.", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

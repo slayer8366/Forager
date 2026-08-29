@@ -34,6 +34,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
@@ -138,6 +139,7 @@ class AvailabilityScreenWaypointFlowTest {
             mapPreferencesRepository = WaypointFlowStubMapPreferencesRepository,
             distanceUnitPreferenceRepository = WaypointFlowStubDistanceUnitPreferenceRepository,
             appThemePreferenceRepository = WaypointFlowStubAppThemePreferenceRepository,
+            getTodaysForecast = GetTodaysForecastUseCase(WaypointFlowStubTripPlanningWeatherProvider),
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
