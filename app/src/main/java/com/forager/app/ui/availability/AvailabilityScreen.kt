@@ -250,6 +250,9 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
+/** TEMPORARY diagnostic scaffolding — will be removed once the regression under investigation is root-caused. */
+internal val DEBUG_TAP_LOG = mutableListOf<String>()
+
 private enum class ResultsTab(val label: String) {
     LIST("List"),
     MAP("Maps"),
@@ -3993,36 +3996,37 @@ private fun CompactMapTab(
                     // tap elsewhere on the map is its whole dismiss gesture, see ObservationBubble's
                     // own doc comment). Harmless to clear when nothing is showing.
                     {
+                        DEBUG_TAP_LOG.add("onTap fired, tappedSighting was ${tappedSighting?.commonName}")
                         if (isFullscreen) onToggleFullscreen()
                         tappedSighting = null
+                        DEBUG_TAP_LOG.add("onTap done, tappedSighting now ${tappedSighting?.commonName}")
                     },
                     { sighting, screenPosition ->
+                        DEBUG_TAP_LOG.add("onSightingTap fired with ${sighting.commonName}")
                         tappedSighting = sighting
                         tappedSightingScreenPosition = screenPosition
                     },
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
+                DEBUG_TAP_LOG.add("recomposed CompactMapTab body, tappedSighting = ${tappedSighting?.commonName}")
                 tappedSighting?.let { sighting ->
-                    // minYPx = { compassStripHeightPx }, the compass strip's own measured height —
-                    // not a hardcoded constant and not 0 — the strip is composed after this in the
-                    // same Box (deliberately, so its own controls win any overlap — see
-                    // CompactMapTab's own doc comment above MapIconBar), and is full-width/flush
-                    // against the map's top edge. A marker tapped near the map's own top edge would
-                    // otherwise anchor a bubble underneath that strip's band: its own taps (including
-                    // the close icon's) would never reach this composable, silently swallowed by the
-                    // strip's own Surface the exact way CLAUDE.md's "Known pitfalls" already
-                    // documents for this app's map overlays — the same class of miss that entry
-                    // warns visual review alone won't catch, this time guarded against directly
-                    // rather than only caught by this bubble's own close-icon interaction test.
-                    // Measured rather than a fixed 48dp constant since Part A item 1 of this
-                    // dispatch un-pinned the strip's own height back to wrapping its text content.
-                    // A lambda, not compassStripHeightPx converted to Dp inline here — see
-                    // AnchoredAtScreenPoint's own minYPx doc comment for the regression an inline
-                    // composition-time read of that state caused.
+                    // minY = the compass strip's own measured height (compassStripHeightPx), not a
+                    // hardcoded constant and not 0 — the strip is composed after this in the same Box
+                    // (deliberately, so its own controls win any overlap — see CompactMapTab's own
+                    // doc comment above MapIconBar), and is full-width/flush against the map's top
+                    // edge. A marker tapped near the map's own top edge would otherwise anchor a
+                    // bubble underneath that strip's band: its own taps (including the close icon's)
+                    // would never reach this composable, silently swallowed by the strip's own
+                    // Surface the exact way CLAUDE.md's "Known pitfalls" already documents for this
+                    // app's map overlays — the same class of miss that entry warns visual review
+                    // alone won't catch, this time guarded against directly rather than only caught
+                    // by this bubble's own close-icon interaction test. Measured rather than a fixed
+                    // 48dp constant since Part A item 1 of this dispatch un-pinned the strip's own
+                    // height back to wrapping its text content.
                     AnchoredAtScreenPoint(
                         anchorPx = tappedSightingScreenPosition,
-                        minYPx = { 48 },
+                        minY = 48.dp,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         ObservationBubble(
@@ -4118,25 +4122,18 @@ private fun CompactMapTab(
                     modifier = Modifier.align(Alignment.TopEnd),
                 )
 
-                // Below the compass strip (its own measured compassStripHeightPx as a Y offset),
-                // same reasoning as AnchoredAtScreenPoint's own minYPx — the strip's Surface
+                // Below the compass strip (its own measured compassStripHeightPx as top padding),
+                // same reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface
                 // intercepts touches across its full width, so a chip placed underneath it would
                 // have its own "Show all species" tap silently swallowed the same way a bubble
-                // anchored there would. Modifier.offset { } (a layout-phase read), not
-                // .padding(top = ...) with compassStripHeightPx converted to Dp inline: that
-                // composition-time conversion is the exact regression AnchoredAtScreenPoint's own
-                // minYPx doc comment records — a plain Dp/padding argument forces the caller's own
-                // composable scope to read the state to construct it, which corrupted mapSlot(...)'s
-                // own onTap wiring one frame later. The offset lambda defers the read to this
-                // Layout's own placement pass instead, the same as minYPx and TrailheadControls'
-                // own anchor both already do.
+                // anchored there would.
                 mapTaxonFilterLabel?.let { label ->
                     TaxonMapFilterChip(
                         label = label,
                         onClear = onClearTaxonFilter,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 48.dp),
+                            .padding(top = with(LocalDensity.current) { compassStripHeightPx.toDp() } + Spacing.sm),
                     )
                 }
 
@@ -4447,14 +4444,6 @@ private val DISTANCE_ARM_TUCK_UNDER = 2.dp
  * stale by the time the next dispatch lands, and this pill would visibly drift on exactly the
  * build field testers are using. A real measured value tracks whatever the bar's current row count
  * happens to be, automatically, with no second edit required when it changes again.
- *
- * **[mapIconBarBottomPx] is a lambda, not a plain [Float]**, for the same reason
- * `AnchoredAtScreenPoint`'s own `minYPx` is — see that composable's own doc comment for the real,
- * reproduced regression a plain-value read of a `mutableStateOf` written by `onGloballyPositioned`
- * caused elsewhere in this same `Box`: reading such state at composition time to *construct* an
- * argument subscribes the whole calling scope to it, and recomposing that scope corrupted a
- * sibling call's own callback wiring one frame later. Captured here but not called until this
- * composable's own `Modifier.offset { }` block runs, deferring the read to layout.
  *
  * **Composition order: [DistanceArm] first, [ControlPill] second**, both inside one [Box] so a
  * [Box]'s own paint-and-hit-test-order-by-declaration rule (the same rule [MapIconBar] composing
@@ -5517,48 +5506,31 @@ private val OBSERVATION_BUBBLE_ANCHOR_GAP_Y = Spacing.sm
  * freely inside at the computed point, clamped to stay on-screen — placing a child outside its
  * parent's own declared bounds would leave it undependably hit-testable.
  *
- * [minYPx] raises the lowest the bubble's own top edge may land — [CompactMapTab]'s own call site
- * passes `{ compassStripHeightPx }`, the compass strip's real measured height, so a marker tapped
- * near the map's top edge never anchors a bubble underneath that strip's full-width
+ * [minY] raises the lowest the bubble's own top edge may land — [CompactMapTab]'s own call site
+ * passes the compass strip's real measured height (`compassStripHeightPx`, converted to `Dp`) so a
+ * marker tapped near the map's top edge never anchors a bubble underneath that strip's full-width
  * touch-interception band (the exact hazard this file's own "Known pitfalls" precedent already
  * documents, and the reason the strip is composed after the map's own content in the first place).
- * See [minYPx]'s own doc comment for why this is a lambda rather than a plain [Dp]. [MapTab] has
- * no such strip and passes the default.
+ * [MapTab] has no such strip and passes `0`.
  */
 @Composable
 private fun AnchoredAtScreenPoint(
     anchorPx: Offset,
-    /**
-     * A lambda, not a plain [Dp] — read here, inside this [Layout]'s own measure block, rather
-     * than by the caller at composition time. [CompactMapTab]'s own call site captures
-     * `compassStripHeightPx` (a `mutableStateOf<Int>` written by [CompassElevationStrip]'s own
-     * `onGloballyPositioned`) directly in this lambda instead of converting it to a `Dp` inline in
-     * its own composable body: that inline conversion was a real, reproducible regression —
-     * reading state at composition time to *construct* an argument value gives that read its own
-     * recomposition scope, and recomposing that scope (which also holds `mapSlot(...)`'s own call)
-     * corrupted the map's `onTap` wiring on the next frame, caught directly by
-     * `AvailabilityScreenMapIconStackTest`'s "tapping elsewhere on the map dismisses the
-     * observation bubble" test (green-to-failing on that one line, confirmed by bisection). A
-     * lambda captured but not *called* until this measure block runs is a layout-phase read, the
-     * same category [MapModifier][androidx.compose.ui.layout] `Modifier.offset { }` already uses
-     * elsewhere in this file (`TrailheadControls`) for the identical reason — it triggers a
-     * relayout of this `Layout` alone, never a recomposition of the caller.
-     */
-    minYPx: () -> Int = { 0 },
+    minY: Dp = 0.dp,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     Layout(content = content, modifier = modifier) { measurables, constraints ->
         val gapXPx = OBSERVATION_BUBBLE_ANCHOR_GAP_X.roundToPx()
         val gapYPx = OBSERVATION_BUBBLE_ANCHOR_GAP_Y.roundToPx()
-        val minYPxValue = minYPx()
+        val minYPx = minY.roundToPx()
         val placeable = measurables.first().measure(Constraints())
         val x = (anchorPx.x + gapXPx - placeable.width)
             .roundToInt()
             .coerceIn(0, (constraints.maxWidth - placeable.width).coerceAtLeast(0))
         val y = (anchorPx.y + gapYPx - placeable.height)
             .roundToInt()
-            .coerceIn(minYPxValue, (constraints.maxHeight - placeable.height).coerceAtLeast(minYPxValue))
+            .coerceIn(minYPx, (constraints.maxHeight - placeable.height).coerceAtLeast(minYPx))
         layout(constraints.maxWidth, constraints.maxHeight) {
             placeable.placeRelative(x, y)
         }
