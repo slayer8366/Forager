@@ -457,7 +457,8 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag("map-elsewhere").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
+        composeRule.onRoot().printToLog("DEBUGTREE")
+        error(org.robolectric.shadows.ShadowLog.getLogs().joinToString("\n") { it.msg })
     }
 
     @Test
