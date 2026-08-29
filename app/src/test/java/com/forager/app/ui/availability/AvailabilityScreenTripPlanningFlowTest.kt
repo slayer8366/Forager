@@ -319,7 +319,7 @@ private val TEST_LOCATION = LatLng(45.40, -122.70)
  * button that reports a pan to a fixed location, the same way a real pan reports one via
  * [MapSlot.onCameraIdle] once the camera settles — see that parameter's own doc comment.
  */
-private val TriggerableMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+private val TriggerableMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
         Button(onClick = { onCameraIdle(TEST_LOCATION) }) {
             Text("Simulate pan to test location")

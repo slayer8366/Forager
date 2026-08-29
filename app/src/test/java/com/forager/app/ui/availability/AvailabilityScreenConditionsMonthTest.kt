@@ -285,7 +285,7 @@ class AvailabilityScreenConditionsMonthTest {
     }
 }
 
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag("map-slot")) }
 
 /** The coordinate path is what this test drives, so the device-location path is never reached. */
 private object NoOpLocationTracker : LocationTracker {

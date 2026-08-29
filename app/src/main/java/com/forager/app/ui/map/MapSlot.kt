@@ -136,6 +136,15 @@ typealias MapSlot = @Composable (
      */
     onTap: () -> Unit,
     /**
+     * Fires instead of [onTap] when the tap actually lands on a real observation dot — see
+     * [SightingsMap]'s own doc comment ("Partially rebuilt") for how that's resolved
+     * (`queryRenderedFeatures` against the sighting layer, matched back to the tapped [Sighting] by
+     * `observationId`). Every production call site wires this to show a species-name/date detail
+     * with a "View on iNaturalist" action; `{}` is still the right default for anything that has no
+     * such detail view (tests, previews).
+     */
+    onSightingTap: (Sighting) -> Unit,
+    /**
      * Fires with the geographic point under the screen's centre every time the camera finishes
      * moving (a pan, a fling settling, a programmatic jump) — the read side of [region]/
      * [focusOverride]'s write-only camera control, added for [CentrePinLocationPicker]: a picker
@@ -151,8 +160,15 @@ typealias MapSlot = @Composable (
 /**
  * The real map. This is the default every production call path gets, so introducing the seam
  * changed no caller: `MainActivity` passes nothing new.
+ *
+ * [onSightingTap] brought this typealias's declared parameter count to 9 — still short of the 10
+ * that previously crashed the Compose compiler lowering this exact lambda (see
+ * [MapOverlayContent]'s own doc comment for that `ComposableFunctionBodyTransformer` failure and
+ * why [MapOverlayContent] exists at all); confirmed by this file's own
+ * `./gradlew :app:compileDebugKotlin` passing with this parameter added, not assumed safe from the
+ * count alone.
  */
-val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, onLongPress, onTap, onCameraIdle, modifier ->
+val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, onLongPress, onTap, onSightingTap, onCameraIdle, modifier ->
     SightingsMap(
         region = region,
         sightings = content.sightings,
@@ -163,6 +179,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         focusOverride = focusOverride,
         onLongPress = onLongPress,
         onTap = onTap,
+        onSightingTap = onSightingTap,
         onCameraIdle = onCameraIdle,
         breadcrumbPoints = content.breadcrumbPoints,
         waypoints = content.waypoints,

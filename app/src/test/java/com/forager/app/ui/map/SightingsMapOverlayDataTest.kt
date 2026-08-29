@@ -146,6 +146,19 @@ class SightingsMapOverlayDataTest {
     }
 
     /**
+     * The property the map click listener's `queryRenderedFeatures` round-trip actually reads back
+     * (see [SightingsMap]'s own doc comment, "Partially rebuilt") to look a tapped dot back up
+     * against the current sightings list — unlike title/snippet, this one has a real reader.
+     */
+    @Test
+    fun `every sighting feature carries its own observationId as a number property`() {
+        val features = sightingsFeatureCollection(sightings).features()!!
+
+        assertEquals(1L, features[0].getNumberProperty("observationId").toLong())
+        assertEquals(2L, features[1].getNumberProperty("observationId").toLong())
+    }
+
+    /**
      * The fact that actually matters for the numbered markers rendering the right number: the
      * `"label"` property is what the `SymbolLayer`'s `text-field` token `"{label}"` substitutes —
      * see `areaMarkersFeatureCollection`'s own doc comment.

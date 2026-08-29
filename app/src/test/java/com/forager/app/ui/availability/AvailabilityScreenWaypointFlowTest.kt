@@ -372,7 +372,7 @@ class AvailabilityScreenWaypointFlowTest {
 private val WAYPOINT_TEST_LOCATION = LatLng(45.40, -122.70)
 
 /** Same shape as [AvailabilityScreenTripPlanningFlowTest]'s `TriggerableMapSlot` — see that file's own doc comment. */
-private val TriggerableWaypointMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+private val TriggerableWaypointMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
         Button(onClick = { onCameraIdle(WAYPOINT_TEST_LOCATION) }) {
             Text("Simulate pan to test location")

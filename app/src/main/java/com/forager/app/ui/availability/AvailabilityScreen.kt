@@ -189,6 +189,7 @@ import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.ReturnToStartInfo
+import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.Track
@@ -3411,6 +3412,8 @@ private fun MapTab(
             val region = uiState.region
             if (region != null) {
                 var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
+                var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
+                val context = LocalContext.current
                 Column(modifier = modifier.fillMaxWidth()) {
                     // Areas are only handed to the map when the layer is switched on; the
                     // clustering itself was already computed when the sightings loaded.
@@ -3433,9 +3436,20 @@ private fun MapTab(
                             null,
                             {},
                             {},
+                            { sighting -> tappedSighting = sighting },
                             { location -> cameraCenter = location },
                             Modifier.fillMaxSize(),
                         )
+                        tappedSighting?.let { sighting ->
+                            ObservationDetailDialog(
+                                sighting = sighting,
+                                onViewOnINaturalist = {
+                                    launchINaturalistObservation(context, sighting.observationId)
+                                    tappedSighting = null
+                                },
+                                onDismiss = { tappedSighting = null },
+                            )
+                        }
                         MapModeToggle(
                             mapMode = mapMode,
                             onClick = { showMapModePicker = true },
@@ -3683,6 +3697,7 @@ private fun CompactMapTab(
     var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
+    var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
@@ -3790,9 +3805,20 @@ private fun CompactMapTab(
                     // fullscreen icon itself, so a tap while chrome is already showing is a
                     // no-op rather than toggling it away.
                     { if (isFullscreen) onToggleFullscreen() },
+                    { sighting -> tappedSighting = sighting },
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
+                tappedSighting?.let { sighting ->
+                    ObservationDetailDialog(
+                        sighting = sighting,
+                        onViewOnINaturalist = {
+                            launchINaturalistObservation(context, sighting.observationId)
+                            tappedSighting = null
+                        },
+                        onDismiss = { tappedSighting = null },
+                    )
+                }
                 // MapIconBar composed *before* CompassElevationStrip now, not after — field-test
                 // dispatch item 2 gave the strip a real touch target at its own far right edge, the
                 // same horizontal column MapIconBar's CenterEnd alignment already claims.
@@ -5002,6 +5028,71 @@ internal fun launchDirections(context: Context, name: String, location: LatLng) 
 
 /** [launchDirections] for a [PlannedTrip] specifically — see [WaypointRow] for the other caller of the shared, name-plus-location overload. */
 internal fun launchDirections(context: Context, trip: PlannedTrip) = launchDirections(context, trip.name, trip.location)
+
+/** Shown when nothing can handle [inaturalistObservationIntent] — CLAUDE.md: report, don't swallow. */
+private const val NO_INATURALIST_LINK_MESSAGE = "Nothing installed can open this observation."
+
+/**
+ * The web URL for a single iNaturalist observation — the only per-observation link iNaturalist
+ * itself publishes, not a scheme this app owns. An implicit `ACTION_VIEW` against it is what lets
+ * Android hand off to the iNaturalist app directly when it's installed (iNaturalist registers
+ * inaturalist.org as a verified Android App Link) and fall back to a browser otherwise — the same
+ * "let the OS pick, don't guess a package name" reasoning [directionsIntent] above uses for
+ * whichever maps app is installed.
+ */
+internal fun inaturalistObservationIntent(observationId: Long): Intent {
+    val uri = Uri.parse("https://www.inaturalist.org/observations/$observationId")
+    return Intent(Intent.ACTION_VIEW, uri)
+}
+
+/** Opens [observationId]'s iNaturalist page — same resolve-then-launch defensiveness as [launchDirections]. */
+internal fun launchINaturalistObservation(context: Context, observationId: Long) {
+    val intent = inaturalistObservationIntent(observationId)
+    if (intent.resolveActivity(context.packageManager) == null) {
+        Toast.makeText(context, NO_INATURALIST_LINK_MESSAGE, Toast.LENGTH_SHORT).show()
+        return
+    }
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, NO_INATURALIST_LINK_MESSAGE, Toast.LENGTH_SHORT).show()
+    }
+}
+
+private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+
+/**
+ * Tapping a sighting dot's own detail — species name and observed date, the two facts
+ * [SightingsMap]'s doc comment describes this dialog as rebuilding from the vendor-native
+ * title/snippet popup MapLibre's style-layer geometry has no equivalent for. "View on iNaturalist"
+ * hands off to [launchINaturalistObservation] rather than showing anything about the observation
+ * this app doesn't already have cached in [Sighting] — no confidence score, no candidate species
+ * list, nothing this app would need to fetch or judge itself.
+ */
+@Composable
+private fun ObservationDetailDialog(
+    sighting: Sighting,
+    onViewOnINaturalist: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(sighting.commonName ?: sighting.scientificName) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                if (sighting.commonName != null) {
+                    Text(sighting.scientificName, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
+                }
+                Text(
+                    sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onViewOnINaturalist) { Text("View on iNaturalist") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
 
 @Composable
 private fun MapMessage(

@@ -104,7 +104,7 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedDarkTheme: Boolean? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
-    private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, onCameraIdle, modifier ->
+    private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
         if (content.sightings.isEmpty() && content.areas.isEmpty() && content.plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = renderMode.basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {

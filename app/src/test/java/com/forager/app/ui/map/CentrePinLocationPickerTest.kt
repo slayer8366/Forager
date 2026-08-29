@@ -151,7 +151,7 @@ class CentrePinLocationPickerTest {
 private val PANNED_LOCATION = LatLng(45.40, -122.70)
 
 /** Exposes [MapSlot.onCameraIdle] as a button, the same pattern every `AvailabilityScreen*FlowTest` map stub uses. */
-private val PanningStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+private val PanningStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier) {
         Button(onClick = { onCameraIdle(PANNED_LOCATION) }) {
             Text("Simulate pan")

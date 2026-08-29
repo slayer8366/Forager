@@ -97,6 +97,7 @@ fun CentrePinLocationPicker(
                 null,
                 {},
                 {},
+                {},
                 { location -> cameraCenter = location },
                 Modifier.fillMaxSize(),
             )

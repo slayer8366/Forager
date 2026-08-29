@@ -168,7 +168,7 @@ class LogPanelTest {
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)
 
-private val StubPickerMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+private val StubPickerMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("picker-map")) {
         Button(onClick = { onCameraIdle(PICKED_LOCATION) }) { Text("Simulate pan to test location") }
     }

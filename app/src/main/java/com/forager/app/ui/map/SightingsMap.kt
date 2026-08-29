@@ -149,17 +149,18 @@ import org.maplibre.geojson.Point
  *   several sightings cluster there), so the fix is boundary definition, not maximum contrast. Not
  *   yet re-confirmed on hardware, and not yet checked on the imagery basemap specifically.
  *
- * **Not re-confirmed, and known to have changed:** the tap-to-see-title/snippet popup osmdroid's
- * `Marker.title`/`.snippet` gave for free. Style-layer geometry has no built-in equivalent —
- * `MapLibreMap.queryRenderedFeatures` plus a hand-built Compose info card would be needed to rebuild
- * it, and that is real UI work this pass doesn't include. The title/snippet strings themselves are
- * not lost: every [Feature] built by [searchCenterFeatureCollection]/[sightingsFeatureCollection]/
+ * **Partially rebuilt:** the tap-to-see-title/snippet popup osmdroid's `Marker.title`/`.snippet`
+ * gave for free had no style-layer equivalent — until [onSightingTap], added for a real observation
+ * marker's info card, which does query the tapped point back (`MapLibreMap.queryRenderedFeatures`
+ * against [SIGHTING_LAYER_ID] in the click listener below) and calls out with the matching
+ * [Sighting]. Every other marker type — search centre, foraging areas, planned trips, waypoints —
+ * still has no click handler; their [Feature]s built by [searchCenterFeatureCollection]/
  * [areaMarkersFeatureCollection]/[connectorFeatureCollection]/[plannedTripsFeatureCollection] still
- * carries them as GeoJSON properties, ready for that future click handler. The one piece of that
- * text carrying an actual safety property — [VISITING_ORDER_DISCLAIMER] — does not depend on the
- * popup at all: `AvailabilityScreen` already renders it as a standing caption under the map
- * (verified: `grep -n VISITING_ORDER_DISCLAIMER` finds that call site independent of this file), so
- * the disclaimer stays user-visible with or without a tap.
+ * carry title/snippet as GeoJSON properties only, ready for the same treatment when one of those
+ * needs it too. The one piece of that text carrying an actual safety property —
+ * [VISITING_ORDER_DISCLAIMER] — does not depend on any popup at all: `AvailabilityScreen` already
+ * renders it as a standing caption under the map (verified: `grep -n VISITING_ORDER_DISCLAIMER`
+ * finds that call site independent of this file), so the disclaimer stays user-visible regardless.
  */
 @Composable
 fun SightingsMap(
@@ -174,6 +175,8 @@ fun SightingsMap(
     onLongPress: (LatLng) -> Unit = {},
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onTap: () -> Unit = {},
+    /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
+    onSightingTap: (Sighting) -> Unit = {},
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onCameraIdle: (LatLng) -> Unit = {},
     /**
@@ -217,8 +220,13 @@ fun SightingsMap(
     // below — without this indirection, a listener registered once would keep calling whichever
     // onTap/onLongPress lambda instance was current at registration time, not the caller's latest.
     val currentOnTap by rememberUpdatedState(onTap)
+    val currentOnSightingTap by rememberUpdatedState(onSightingTap)
     val currentOnLongPress by rememberUpdatedState(onLongPress)
     val currentOnCameraIdle by rememberUpdatedState(onCameraIdle)
+    // Read inside the click listener below (registered once, see that DisposableEffect's own
+    // comment) so a tapped dot resolves against whichever sightings list is current, not whichever
+    // one was in scope the moment the listener was registered.
+    val currentSightings by rememberUpdatedState(sightings)
 
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     // The Style instance from the most recently completed setStyle callback. Distinct from
@@ -277,8 +285,23 @@ fun SightingsMap(
     // guard against the way applyBasemap's guard above is needed for setStyle.
     DisposableEffect(mapView) {
         mapView.getMapAsync { map ->
-            map.addOnMapClickListener {
-                currentOnTap()
+            map.addOnMapClickListener { latLng ->
+                // queryRenderedFeatures/toScreenLocation signatures confirmed via javap against the
+                // pinned org.maplibre.gl:android-sdk:13.5.0 (Projection) and
+                // org.maplibre.gl:android-sdk-geojson:6.0.1 (Feature) artifacts. Sighting dots share
+                // one CircleLayer (SIGHTING_LAYER_ID) — restricting the query to it is what makes
+                // this "did the tap land on a dot" rather than "did it land on the map at all."
+                val screenPoint = map.projection.toScreenLocation(latLng)
+                val tappedSighting = map.queryRenderedFeatures(screenPoint, SIGHTING_LAYER_ID)
+                    .firstOrNull()
+                    ?.getNumberProperty("observationId")
+                    ?.toLong()
+                    ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
+                if (tappedSighting != null) {
+                    currentOnSightingTap(tappedSighting)
+                } else {
+                    currentOnTap()
+                }
                 // false: unconsumed, matching the deleted osmdroid MapEventsOverlay's
                 // singleTapConfirmedHelper — a plain tap isn't meant to swallow the event.
                 false
@@ -741,6 +764,11 @@ internal fun sightingsFeatureCollection(sightings: List<Sighting>): FeatureColle
         Feature.fromGeometry(Point.fromLngLat(sighting.lng, sighting.lat)).apply {
             addStringProperty("title", sighting.commonName ?: sighting.scientificName)
             addStringProperty("snippet", sighting.observedOn?.toString() ?: sighting.scientificName)
+            // Round-trips through queryRenderedFeatures in the map click listener below, to look the
+            // tapped feature back up in the current `sightings` list — the only property here that's
+            // actually read back, rather than kept "for a future click handler" the way title/snippet
+            // were before this.
+            addNumberProperty("observationId", sighting.observationId)
         }
     }
     return FeatureCollection.fromFeatures(features)

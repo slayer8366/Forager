@@ -485,14 +485,14 @@ private val DISTRIBUTION = FruitingLagDistribution(
 )
 
 /** Same stub as [AvailabilityScreenLayoutTest]'s — see that file for why the real map isn't used here. */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag("map-slot"))
 }
 
 private val WIDE_WINDOW_TEST_LOCATION = LatLng(45.40, -122.70)
 
 /** Exposes [MapSlot.onCameraIdle] as a button — same pattern [AvailabilityScreenTripPlanningFlowTest]'s `TriggerableMapSlot` uses. */
-private val TriggerableWideStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+private val TriggerableWideStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
         Button(onClick = { onCameraIdle(WIDE_WINDOW_TEST_LOCATION) }) {
             Text("Simulate pan to test location")

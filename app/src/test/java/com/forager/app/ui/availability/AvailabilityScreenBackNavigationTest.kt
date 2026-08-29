@@ -363,7 +363,7 @@ class AvailabilityScreenBackNavigationTest {
     }
 }
 
-private val BackNavStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+private val BackNavStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
         Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
     }

@@ -2,6 +2,7 @@ package com.forager.app.ui.availability
 
 import android.app.Application
 import android.content.ComponentName
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -18,7 +19,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -105,7 +106,12 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
 class AvailabilityScreenMapIconStackTest {
 
-    private val composeRule = createComposeRule()
+    // createAndroidComposeRule<ComponentActivity>(), not the plain createComposeRule() this file
+    // used before — same underlying rule (createComposeRule() is implemented as exactly this call),
+    // just with a static type that actually exposes .activity, needed below to read back a real
+    // started-activity Intent via Shadows.shadowOf(activity) the same way
+    // AvailabilityScreenSettingsPanelTest.kt's own share-sheet test already does.
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val declareHostActivity = object : ExternalResource() {
         override fun before() {
@@ -217,6 +223,26 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Registers a fake `https:` handler on [composeRule]'s own host activity, mirroring
+     * [DirectionsIntentTest]'s `registerFakeMapsApp` for the same reason: Robolectric's package
+     * manager starts with nothing able to resolve an implicit intent, so
+     * [launchINaturalistObservation]'s own resolve-then-launch guard would otherwise always take
+     * its "nothing installed" branch and never actually call `startActivity`.
+     */
+    private fun registerFakeBrowser() {
+        val componentName = ComponentName(composeRule.activity, "com.example.fakebrowser.BrowserActivity")
+        val shadowPackageManager = Shadows.shadowOf(composeRule.activity.packageManager)
+        shadowPackageManager.addActivityIfNotPresent(componentName)
+        shadowPackageManager.addIntentFilterForActivity(
+            componentName,
+            android.content.IntentFilter(Intent.ACTION_VIEW).apply {
+                addCategory(Intent.CATEGORY_DEFAULT)
+                addDataScheme("https")
+            },
+        )
+    }
+
     @Test
     fun `all five icon stack buttons are present`() {
         setScreen()
@@ -318,6 +344,36 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping an observation dot shows its species name and observed date`() {
+        setScreen(mapSlot = SightingTappableStubMapSlot)
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("map-slot").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Chanterelle").assertIsDisplayed()
+        composeRule.onNodeWithText("Cantharellus formosus").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
+    }
+
+    @Test
+    fun `View on iNaturalist launches the observation's web page and dismisses the dialog`() {
+        setScreen(mapSlot = SightingTappableStubMapSlot)
+        registerFakeBrowser()
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("map-slot").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("View on iNaturalist").performClick()
+        composeRule.waitForIdle()
+
+        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, started?.action)
+        assertEquals("https://www.inaturalist.org/observations/42", started?.data.toString())
+        composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
     }
 
     @Test
@@ -649,7 +705,7 @@ private object CountingStubMapSlotState {
     var compositionCount = 0
 }
 
-private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
+private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     androidx.compose.runtime.remember { CountingStubMapSlotState.compositionCount++ }
     Column(modifier.testTag("map-slot")) {
         Text("map")
@@ -657,8 +713,27 @@ private val CountingStubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
 }
 
 /** Exposes [onTap] as a clickable surface, for the "tap the map to restore chrome" test. */
-private val TappableStubMapSlot: MapSlot = { _, _, _, _, _, onTap, _, modifier ->
+private val TappableStubMapSlot: MapSlot = { _, _, _, _, _, onTap, _, _, modifier ->
     Column(modifier.testTag("map-slot").clickable(onClick = onTap)) {
+        Text("map")
+    }
+}
+
+/** A fixed [Sighting], reported by [SightingTappableStubMapSlot] regardless of the real sightings list. */
+private val TAPPED_SIGHTING = Sighting(
+    observationId = 42L,
+    taxonId = 47348L,
+    scientificName = "Cantharellus formosus",
+    commonName = "Chanterelle",
+    lat = 45.33,
+    lng = -122.64,
+    observedOn = LocalDate.of(2026, 8, 1),
+    photoUrl = null,
+)
+
+/** Exposes [onSightingTap] as a clickable surface reporting [TAPPED_SIGHTING], for the observation-detail dialog tests. */
+private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightingTap, _, modifier ->
+    Column(modifier.testTag("map-slot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING) })) {
         Text("map")
     }
 }
