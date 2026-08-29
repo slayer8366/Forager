@@ -141,6 +141,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -156,6 +157,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -3460,6 +3462,7 @@ private fun MapTab(
             if (region != null) {
                 var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
                 var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
+                var tappedSightingScreenPosition by remember { mutableStateOf(Offset.Zero) }
                 val context = LocalContext.current
                 Column(modifier = modifier.fillMaxWidth()) {
                     // Areas are only handed to the map when the layer is switched on; the
@@ -3486,20 +3489,24 @@ private fun MapTab(
                             // see ObservationBubble's own doc comment for why this replaced a modal
                             // AlertDialog. Harmless to clear when nothing is showing.
                             { tappedSighting = null },
-                            { sighting -> tappedSighting = sighting },
+                            { sighting, screenPosition ->
+                                tappedSighting = sighting
+                                tappedSightingScreenPosition = screenPosition
+                            },
                             { location -> cameraCenter = location },
                             Modifier.fillMaxSize(),
                         )
                         tappedSighting?.let { sighting ->
-                            ObservationBubble(
-                                sighting = sighting,
-                                onViewOnINaturalist = {
-                                    launchINaturalistObservation(context, sighting.observationId)
-                                    tappedSighting = null
-                                },
-                                onDismiss = { tappedSighting = null },
-                                modifier = Modifier.align(Alignment.TopCenter).padding(Spacing.md),
-                            )
+                            AnchoredAtScreenPoint(anchorPx = tappedSightingScreenPosition, modifier = Modifier.fillMaxSize()) {
+                                ObservationBubble(
+                                    sighting = sighting,
+                                    onViewOnINaturalist = {
+                                        launchINaturalistObservation(context, sighting.observationId)
+                                        tappedSighting = null
+                                    },
+                                    onDismiss = { tappedSighting = null },
+                                )
+                            }
                         }
                         MapModeToggle(
                             mapMode = mapMode,
@@ -3749,6 +3756,7 @@ private fun CompactMapTab(
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
     var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
+    var tappedSightingScreenPosition by remember { mutableStateOf(Offset.Zero) }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
@@ -3859,32 +3867,38 @@ private fun CompactMapTab(
                         if (isFullscreen) onToggleFullscreen()
                         tappedSighting = null
                     },
-                    { sighting -> tappedSighting = sighting },
+                    { sighting, screenPosition ->
+                        tappedSighting = sighting
+                        tappedSightingScreenPosition = screenPosition
+                    },
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
                 tappedSighting?.let { sighting ->
-                    ObservationBubble(
-                        sighting = sighting,
-                        onViewOnINaturalist = {
-                            launchINaturalistObservation(context, sighting.observationId)
-                            tappedSighting = null
-                        },
-                        onDismiss = { tappedSighting = null },
-                        // Cleared below COMPASS_STRIP_MIN_HEIGHT, not just Spacing.md — the compass
-                        // strip is composed after this in the same Box (deliberately, so its own
-                        // controls win any overlap — see CompactMapTab's own doc comment above
-                        // MapIconBar), and is full-width/flush against the map's top edge. A plain
-                        // top-aligned bubble sat squarely inside that band: its own taps (including
-                        // the close icon's) never reached this composable, silently swallowed by the
-                        // strip's own Surface the exact way CLAUDE.md's "Known pitfalls" already
-                        // documents for this app's map overlays — caught here by this bubble's own
-                        // close-icon interaction test, not visual review, the same class of miss
-                        // that entry warns visual review alone won't catch.
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = COMPASS_STRIP_MIN_HEIGHT + Spacing.md, start = Spacing.md, end = Spacing.md),
-                    )
+                    // minY = COMPASS_STRIP_MIN_HEIGHT, not 0 — the compass strip is composed after
+                    // this in the same Box (deliberately, so its own controls win any overlap — see
+                    // CompactMapTab's own doc comment above MapIconBar), and is full-width/flush
+                    // against the map's top edge. A marker tapped near the map's own top edge would
+                    // otherwise anchor a bubble underneath that strip's band: its own taps (including
+                    // the close icon's) would never reach this composable, silently swallowed by the
+                    // strip's own Surface the exact way CLAUDE.md's "Known pitfalls" already
+                    // documents for this app's map overlays — the same class of miss that entry
+                    // warns visual review alone won't catch, this time guarded against directly
+                    // rather than only caught by this bubble's own close-icon interaction test.
+                    AnchoredAtScreenPoint(
+                        anchorPx = tappedSightingScreenPosition,
+                        minY = COMPASS_STRIP_MIN_HEIGHT,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        ObservationBubble(
+                            sighting = sighting,
+                            onViewOnINaturalist = {
+                                launchINaturalistObservation(context, sighting.observationId)
+                                tappedSighting = null
+                            },
+                            onDismiss = { tappedSighting = null },
+                        )
+                    }
                 }
                 // MapIconBar composed *before* CompassElevationStrip now, not after — field-test
                 // dispatch item 2 gave the strip a real touch target at its own far right edge, the
@@ -4352,33 +4366,14 @@ private fun CompassElevationStripContent(
                     .padding(horizontal = Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Heading, elevation, and coordinates on one centered line — the project owner's
-                // own call to make the strip read as a slim, single-line bar. labelMedium (down
-                // from heading/elevation's earlier labelLarge) is meant to let a typical phone
-                // width show the whole line; on a narrower screen, the coordinates segment (the
-                // longest of the three, and the one that grew when Lat./Long. were added alongside
-                // the MGRS grid) is the one that gives way — Modifier.weight(1f, fill = false) +
-                // TextOverflow.Ellipsis on just that Text, not horizontalScroll on the whole Row:
-                // horizontalScroll installs a real pointer-input handler even at zero scroll range,
-                // which intercepted touches meant for the map underneath this strip (the same
-                // touch-interception class this composable's own Box-not-Surface comment above
-                // already documents; AvailabilityScreenTripPlanningFlowTest and
-                // AvailabilityScreenWaypointFlowTest caught this one the same way). Weight-based
-                // sizing truncates with an ellipsis rather than an abrupt hard clip, and adds no
-                // pointer input of its own, so the map stays reachable everywhere under the strip.
-                //
-                // Now wrapped in its own weight(1f) Row (it used to be this composable's only Row):
-                // field-test dispatch item 2's return-to-vehicle control docks at the strip's true
-                // far right, outside this centered group, so this group centers within whatever
-                // width is left rather than the full strip — the deliberate overflow choice for a
-                // strip that already had no room to spare: the coordinates segment's own ellipsis
-                // absorbs the width the new control takes, the same way it already absorbs a
-                // narrow phone.
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
-                ) {
+                // Fixed at the strip's own far left, the same MIN_TOUCH_TARGET box
+                // ReturnToVehicleStripControl reserves at the far right — same size, same padding
+                // (this Row's own horizontal padding above, symmetric on both ends), for the same
+                // reason: a hardware report found the compass needle visibly drifting left/right as
+                // the heading/elevation/coordinates text next to it changed length, because it used
+                // to be the first child of the centered text group below rather than its own fixed
+                // slot — this box's position never depends on any text's width.
+                Box(modifier = Modifier.size(MIN_TOUCH_TARGET), contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
@@ -4386,6 +4381,26 @@ private fun CompassElevationStripContent(
                             .size(18.dp)
                             .rotate(headingDegrees ?: 0f),
                     )
+                }
+                // Heading, elevation, and coordinates, centered in whatever width is left between
+                // the two fixed end boxes — Arrangement.Center, not spacedBy's own centering, now
+                // that the compass icon moved out to its own fixed box above: this group used to
+                // share its weight(1f) budget with that icon's inline width, which is exactly the
+                // width the coordinates segment's own ellipsis was giving up first on a narrow
+                // screen (a hardware report: "cut off for no reason" — there was room, it just
+                // wasn't reaching this Text). Pulling the icon out of this Row's own measurement
+                // entirely is the fix, not a wider budget: Compose reserves both fixed siblings'
+                // width before dividing what's left to this weight(1f) Row, so this group's own
+                // available width is strictly larger now than when the icon competed for it from
+                // inside. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
+                // safety net for a screen too narrow for all three fields regardless, not
+                // horizontalScroll — see this composable's own doc comment above for why
+                // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                ) {
                     Text(
                         text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
                         style = MaterialTheme.typography.labelMedium,
@@ -5146,6 +5161,53 @@ internal fun launchINaturalistObservation(context: Context, observationId: Long)
 
 private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
+/** Clearance between the tapped dot and the bubble's own bottom edge — enough to read as "pointing at it," not covering it. */
+private val OBSERVATION_BUBBLE_ANCHOR_GAP = Spacing.sm
+
+/**
+ * Places [content] (exactly one child — [ObservationBubble] itself) so its own bottom-center sits
+ * just above [anchorPx] — the tapped sighting's live screen position, in the same px coordinate
+ * space [MapSlot]'s own `onSightingTap` reports (see that callback's doc comment) — rather than a
+ * fixed corner of the map, so the bubble reads as belonging to the marker it names, per the
+ * hardware report this answers ("put the chat bubble next to the observation... have it stay
+ * there when we move the map, so we know which one it belongs to").
+ *
+ * A custom [Layout], not a plain [Box] + `Modifier.offset`: horizontally centering on the anchor
+ * needs the bubble's own measured width, which isn't known until after it's laid out — a fixed
+ * offset guessed in advance would only center correctly for one particular bubble content length.
+ * Reports its own occupied size as the full incoming [Constraints] (the whole map [Box]), with the
+ * child placed freely inside at the computed point, clamped to stay on-screen — placing a child
+ * outside its parent's own declared bounds would leave it undependably hit-testable.
+ *
+ * [minY] raises the lowest the bubble's own top edge may land — [CompactMapTab]'s own call site
+ * passes [COMPASS_STRIP_MIN_HEIGHT] so a marker tapped near the map's top edge never anchors a
+ * bubble underneath that strip's full-width touch-interception band (the exact hazard this file's
+ * own "Known pitfalls" precedent already documents, and the reason the strip is composed after the
+ * map's own content in the first place). [MapTab] has no such strip and passes `0`.
+ */
+@Composable
+private fun AnchoredAtScreenPoint(
+    anchorPx: Offset,
+    minY: Dp = 0.dp,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Layout(content = content, modifier = modifier) { measurables, constraints ->
+        val gapPx = OBSERVATION_BUBBLE_ANCHOR_GAP.roundToPx()
+        val minYPx = minY.roundToPx()
+        val placeable = measurables.first().measure(Constraints())
+        val x = (anchorPx.x - placeable.width / 2f)
+            .roundToInt()
+            .coerceIn(0, (constraints.maxWidth - placeable.width).coerceAtLeast(0))
+        val y = (anchorPx.y - placeable.height - gapPx)
+            .roundToInt()
+            .coerceIn(minYPx, (constraints.maxHeight - placeable.height).coerceAtLeast(minYPx))
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            placeable.placeRelative(x, y)
+        }
+    }
+}
+
 /**
  * Tapping a sighting dot's own detail — species name and observed date, the two facts
  * [SightingsMap]'s doc comment describes this as rebuilding from the vendor-native
@@ -5171,6 +5233,10 @@ private fun ObservationBubble(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Same theme-aware, 80%-opacity fill as MapIconBar/MapModePicker/AddActionTile — one visual
+    // language for every control floating over the map, per the project owner's own request to
+    // bring this bubble in line with the rest rather than Material's own surfaceContainerHigh.
+    val isDarkTheme = LocalForagerDarkTheme.current
     Surface(
         modifier = modifier
             .widthIn(max = 280.dp)
@@ -5185,7 +5251,8 @@ private fun ObservationBubble(
             // any tap that actually lands on them, same as any nested clickable inside one of these.
             .pointerInput(Unit) { detectTapGestures {} },
         shape = RoundedCornerShape(topStart = 4.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        contentColor = if (isDarkTheme) Color.White else Bark,
         shadowElevation = 6.dp,
         tonalElevation = 3.dp,
     ) {

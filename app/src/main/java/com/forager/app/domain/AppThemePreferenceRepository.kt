@@ -20,11 +20,12 @@ import com.forager.app.domain.model.AppThemeMode
  * of the app's UI. That independence is deliberate and stays true of the tri-state form too: the
  * "have it only apply to the theme, not the maps" instruction that came with this change.
  *
- * Defaults to [AppThemeMode.LIGHT] until the user has ever explicitly chosen otherwise — the same
- * always-explicit-until-chosen default this preference already had as a boolean (`false`/light),
- * kept rather than defaulting fresh installs to [AppThemeMode.SYSTEM_DEFAULT]: adding a new option
- * to what's choosable here shouldn't also silently change what everyone who has never touched this
- * setting already sees.
+ * Defaults to [AppThemeMode.SYSTEM_DEFAULT] for a brand-new install with nothing persisted at all —
+ * the project owner's own explicit choice, made once [AppThemeMode.SYSTEM_DEFAULT] existed as an
+ * option to default to. An existing install that already has a persisted choice (including the
+ * pre-tri-state boolean this preference started as) keeps exactly what it already had; see
+ * [com.forager.app.data.repository.DataStoreAppThemePreferenceRepository]'s own doc comment for the
+ * two fallback layers that distinguish those cases.
  */
 interface AppThemePreferenceRepository {
     suspend fun getThemeMode(): Result<AppThemeMode>

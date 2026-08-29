@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
@@ -765,7 +766,7 @@ private val TAPPED_SIGHTING = Sighting(
 
 /** Exposes [onSightingTap] as a clickable surface reporting [TAPPED_SIGHTING], for the observation bubble tests. */
 private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightingTap, _, modifier ->
-    Column(modifier.testTag("map-slot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING) })) {
+    Column(modifier.testTag("map-slot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) })) {
         Text("map")
     }
 }
@@ -778,7 +779,7 @@ private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightin
  */
 private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, onSightingTap, _, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING) }))
+        Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) }))
         Text("elsewhere", modifier = Modifier.testTag("map-elsewhere").clickable(onClick = onTap))
     }
 }

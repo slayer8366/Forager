@@ -38,6 +38,18 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
+        <!--
+          Same package-visibility rule as the geo: query above, for
+          launchINaturalistObservation's own explicit Intent.setPackage(INATURALIST_PACKAGE) call
+          (AvailabilityScreen.kt). Without this, PackageManager.resolveActivity() for that
+          explicitly-package-targeted intent reports no match on API 30+ even with the iNaturalist
+          app installed — its own resolveActivity() check would then always fall through to the
+          plain implicit web intent, silently never reaching the installed app. A <package> element,
+          not another <intent> filter: Intent.setPackage narrows resolution to one already-known
+          package name, which is exactly what <queries><package> declares visibility into, per
+          Android's own package-visibility docs.
+        -->
+        <package android:name="org.inaturalist.android" />
     </queries>
 
     <application

@@ -52,8 +52,8 @@ class DataStoreAppThemePreferenceRepositoryTest {
     private fun repository() = DataStoreAppThemePreferenceRepository(context())
 
     @Test
-    fun `nothing picked yet defaults to Light`() = runTest {
-        assertEquals(AppThemeMode.LIGHT, repository().getThemeMode().getOrThrow())
+    fun `nothing picked yet defaults to System Default`() = runTest {
+        assertEquals(AppThemeMode.SYSTEM_DEFAULT, repository().getThemeMode().getOrThrow())
     }
 
     @Test

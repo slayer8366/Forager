@@ -2,6 +2,7 @@ package com.forager.app.ui.map
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
@@ -142,8 +143,13 @@ typealias MapSlot = @Composable (
      * `observationId`). Every production call site wires this to show a species-name/date detail
      * with a "View on iNaturalist" action; `{}` is still the right default for anything that has no
      * such detail view (tests, previews).
+     *
+     * The [Offset] is that [Sighting]'s own current on-screen position (px, in this slot's own
+     * coordinate space) — re-fired on every camera move for as long as the same sighting stays
+     * tapped, not just once at tap time, so a caller's detail bubble can stay glued to its marker
+     * across a pan/zoom instead of reading as detached from whichever dot it was originally about.
      */
-    onSightingTap: (Sighting) -> Unit,
+    onSightingTap: (Sighting, Offset) -> Unit,
     /**
      * Fires with the geographic point under the screen's centre every time the camera finishes
      * moving (a pan, a fling settling, a programmatic jump) — the read side of [region]/
