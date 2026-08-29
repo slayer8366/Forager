@@ -197,11 +197,14 @@ class AvailabilityScreenWaypointFlowTest {
      * Opens [AdvancedSearchDropdown] via the search summary bar and expands its "Enter coordinates
      * manually" section — map/navigation redesign dispatch C, item 1 moved location/radius/month
      * out of the Tools drawer entirely, to float over the map from where quick species search used
-     * to sit. No `performScrollTo()`: unlike the old drawer section, this dropdown has no scroll
-     * modifier at all (Understory rule 3), so its content has to fit without one, and does.
+     * to sit. No `performScrollTo()` calls needed: every action below is a semantic
+     * `performClick`/`performTextReplacement`, which acts on the node regardless of whether it is
+     * currently scrolled into view — [SearchDropdown] does carry a `verticalScroll` (see its own
+     * doc comment), but that only matters for an `assertIsDisplayed()`, and this helper makes none.
      */
     private fun searchAReferenceRegion() {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Enter coordinates manually").performClick()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")

@@ -178,32 +178,42 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     /**
-     * Opens [AdvancedSearchDropdown] via the search summary bar — map/navigation redesign dispatch
-     * C, item 1 moved location/radius/month out of the Tools drawer entirely, to float over the
-     * map from where quick species search used to sit. The dropdown floats over whatever
-     * `compactTab` is already showing, so switching to Maps first isn't strictly required for
-     * reachability — kept anyway so this test's own tab state stays deterministic across the
-     * List-tab detour its own assertions make.
+     * Opens [SearchDropdown] via the search summary bar — map/navigation redesign dispatch C, item
+     * 1 moved location/radius/month out of the Tools drawer entirely, to float over the map from
+     * where quick species search used to sit. The dropdown floats over whatever `compactTab` is
+     * already showing, so switching to Maps first isn't strictly required for reachability — kept
+     * anyway so this test's own tab state stays deterministic across the List-tab detour its own
+     * assertions make.
      */
-    private fun openAdvancedSearchDropdown() {
+    private fun openSearchDropdown() {
         composeRule.onNodeWithText("Maps").performClick()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
     }
 
     /**
-     * Opens the dropdown and expands its "Enter coordinates manually" section, exactly as a user
-     * would tap it. Unlike the old drawer section this replaces, the dropdown is removed from
-     * composition when closed (`AnimatedVisibility` disposes it, not just moves it off-screen), so
-     * every open starts collapsed again — no "already expanded" check needed.
+     * Opens the dropdown and expands its "Advanced search" section — a follow-up owner call nested
+     * location/radius/month one level deeper here, behind that section, once species search and
+     * Recent Searches joined this same surface at its own top level.
      */
-    private fun openAdvancedSearchDropdownToManualCoordinates() {
-        openAdvancedSearchDropdown()
+    private fun openSearchDropdownToAdvancedSearch() {
+        openSearchDropdown()
+        composeRule.onNodeWithText("Advanced search").performClick()
+    }
+
+    /**
+     * Opens the dropdown to Advanced search and expands its "Enter coordinates manually" section,
+     * exactly as a user would tap it. Unlike the old drawer section this replaces, the dropdown is
+     * removed from composition when closed (`AnimatedVisibility` disposes it, not just moves it
+     * off-screen), so every open starts collapsed again — no "already expanded" check needed.
+     */
+    private fun openSearchDropdownToManualCoordinates() {
+        openSearchDropdownToAdvancedSearch()
         composeRule.onNodeWithText("Enter coordinates manually").performClick()
     }
 
     /** Types coordinates into the dropdown and searches, exactly as a user would. */
     private fun searchAReferenceRegion() {
-        openAdvancedSearchDropdownToManualCoordinates()
+        openSearchDropdownToManualCoordinates()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
         // Closes the dropdown itself, which is why nothing closes it here.
@@ -212,7 +222,7 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     private fun selectMonth(month: Month) {
-        openAdvancedSearchDropdown()
+        openSearchDropdownToAdvancedSearch()
         composeRule.onNodeWithText("Month").performClick()
         composeRule.onNodeWithText(month.getDisplayName(TextStyle.FULL, Locale.getDefault()))
             .performClick()

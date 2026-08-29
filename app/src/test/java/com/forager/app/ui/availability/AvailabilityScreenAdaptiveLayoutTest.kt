@@ -82,9 +82,10 @@ class AvailabilityScreenCompactWidthDrawerTest {
      * "Settings" itself no longer works as this pin: it's the drawer's own sticky entry row now
      * (map/navigation redesign dispatch B's `CompactSearchDrawerContent.showSettings`), so it
      * renders exactly whenever the rest of the drawer's content does, telling this test nothing
-     * about open vs. closed on its own. "Recent searches" — the drawer's own first section header,
-     * still exclusively drawer content — replaces it as the "behind the modal drawer" marker this
-     * test exists to pin.
+     * about open vs. closed on its own. "Recent searches" doesn't work either any more — dispatch C
+     * moved it into `SearchDropdown`, over the map, not behind this drawer at all. "Trip Planner"
+     * — the drawer's own first section header now — replaces both as the "behind the modal drawer"
+     * marker this test exists to pin.
      */
     @Test
     fun `the drawer's search controls are not shown until the drawer is opened`() {
@@ -121,7 +122,7 @@ class AvailabilityScreenCompactWidthDrawerTest {
             )
         }
 
-        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
+        composeRule.onNodeWithText("Trip Planner").assertIsNotDisplayed()
     }
 
     /**

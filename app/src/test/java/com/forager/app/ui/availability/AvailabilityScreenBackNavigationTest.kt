@@ -221,11 +221,15 @@ class AvailabilityScreenBackNavigationTest {
      * Opens [AdvancedSearchDropdown] via the search summary bar and expands its "Enter coordinates
      * manually" section — map/navigation redesign dispatch C, item 1 moved advanced search out of
      * the Tools drawer entirely, to float over the map from where quick species search used to sit.
-     * No `performScrollTo()` calls: unlike the old drawer section, this dropdown has no scroll
-     * modifier at all (Understory rule 3), so its content has to fit without one, and does.
+     * No `performScrollTo()` calls needed: [SearchDropdown] does carry a `verticalScroll` now (see
+     * its own doc comment), but every action below is a semantic `performClick`/
+     * `performTextReplacement`, which act on the node regardless of whether it is currently
+     * scrolled into view — only an `assertIsDisplayed()` would need scrolling first, and this
+     * helper makes none.
      */
     private fun searchAReferenceRegion() {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        composeRule.onNodeWithText("Advanced search").performClick()
         composeRule.onNodeWithText("Enter coordinates manually").performClick()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
@@ -237,11 +241,14 @@ class AvailabilityScreenBackNavigationTest {
     fun `back closes the open drawer instead of warning to exit`() {
         setScreen()
         composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Recent searches").assertIsDisplayed()
+        // "Trip Planner" (the drawer's own first section header) stands in for "the drawer is
+        // open" — "Recent searches" doesn't work for this any more: dispatch C moved it into
+        // SearchDropdown, over the map, not behind this drawer at all.
+        composeRule.onNodeWithText("Trip Planner").assertIsDisplayed()
 
         pressBack()
 
-        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
+        composeRule.onNodeWithText("Trip Planner").assertIsNotDisplayed()
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 
@@ -256,11 +263,11 @@ class AvailabilityScreenBackNavigationTest {
     fun `back closes the advanced search dropdown instead of warning to exit`() {
         setScreen()
         composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
-        composeRule.onNodeWithTag(ADVANCED_SEARCH_DROPDOWN_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
 
         pressBack()
 
-        composeRule.onNodeWithTag(ADVANCED_SEARCH_DROPDOWN_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertDoesNotExist()
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 
