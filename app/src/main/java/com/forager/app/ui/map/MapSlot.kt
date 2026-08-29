@@ -2,6 +2,7 @@ package com.forager.app.ui.map
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
@@ -83,6 +84,22 @@ data class MapOverlayContent(
      * SDK's own compass widget doesn't expose one for).
      */
     val resetOrientationRequestId: Int = 0,
+    /**
+     * Which [Sighting] (by [Sighting.observationId]), if any, the caller is currently showing an
+     * observation bubble for — null once the caller has dismissed it, whether by its own close icon
+     * or by tapping elsewhere on the map. [SightingsMap] re-derives its own "which sighting to keep
+     * re-projecting on camera idle" state from this on every recomposition rather than latching it
+     * internally at tap time and never clearing it: a real hardware report found the bubble
+     * reappearing after a dismiss, on the very next pan, with no sighting tapped — the previous
+     * internal `focusedSighting` var was set once when a dot was tapped and never told about a
+     * later dismissal (the caller's own close/tap-elsewhere handling is pure Compose state on the
+     * [AvailabilityScreen] side, and never reaches this far down), so every subsequent camera-idle
+     * event kept re-firing `onSightingTap` for the same sighting and silently undid the dismissal.
+     * Threading the caller's own dismissed-or-not state back in here as plain data closes that gap:
+     * once the caller's tracked sighting goes null, this goes null too on the next recomposition,
+     * and the camera-idle listener has nothing left to re-fire for.
+     */
+    val focusedObservationId: Long? = null,
 )
 
 /**
@@ -136,6 +153,20 @@ typealias MapSlot = @Composable (
      */
     onTap: () -> Unit,
     /**
+     * Fires instead of [onTap] when the tap actually lands on a real observation dot — see
+     * [SightingsMap]'s own doc comment ("Partially rebuilt") for how that's resolved
+     * (`queryRenderedFeatures` against the sighting layer, matched back to the tapped [Sighting] by
+     * `observationId`). Every production call site wires this to show a species-name/date detail
+     * with a "View on iNaturalist" action; `{}` is still the right default for anything that has no
+     * such detail view (tests, previews).
+     *
+     * The [Offset] is that [Sighting]'s own current on-screen position (px, in this slot's own
+     * coordinate space) — re-fired on every camera move for as long as the same sighting stays
+     * tapped, not just once at tap time, so a caller's detail bubble can stay glued to its marker
+     * across a pan/zoom instead of reading as detached from whichever dot it was originally about.
+     */
+    onSightingTap: (Sighting, Offset) -> Unit,
+    /**
      * Fires with the geographic point under the screen's centre every time the camera finishes
      * moving (a pan, a fling settling, a programmatic jump) — the read side of [region]/
      * [focusOverride]'s write-only camera control, added for [CentrePinLocationPicker]: a picker
@@ -151,8 +182,15 @@ typealias MapSlot = @Composable (
 /**
  * The real map. This is the default every production call path gets, so introducing the seam
  * changed no caller: `MainActivity` passes nothing new.
+ *
+ * [onSightingTap] brought this typealias's declared parameter count to 9 — still short of the 10
+ * that previously crashed the Compose compiler lowering this exact lambda (see
+ * [MapOverlayContent]'s own doc comment for that `ComposableFunctionBodyTransformer` failure and
+ * why [MapOverlayContent] exists at all); confirmed by this file's own
+ * `./gradlew :app:compileDebugKotlin` passing with this parameter added, not assumed safe from the
+ * count alone.
  */
-val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, onLongPress, onTap, onCameraIdle, modifier ->
+val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, onLongPress, onTap, onSightingTap, onCameraIdle, modifier ->
     SightingsMap(
         region = region,
         sightings = content.sightings,
@@ -163,11 +201,13 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         focusOverride = focusOverride,
         onLongPress = onLongPress,
         onTap = onTap,
+        onSightingTap = onSightingTap,
         onCameraIdle = onCameraIdle,
         breadcrumbPoints = content.breadcrumbPoints,
         waypoints = content.waypoints,
         resumeTrackingRequestId = content.resumeTrackingRequestId,
         resetOrientationRequestId = content.resetOrientationRequestId,
+        focusedObservationId = content.focusedObservationId,
         modifier = modifier,
     )
 }

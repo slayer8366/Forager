@@ -43,11 +43,13 @@ import java.time.ZoneId
  * standing rule this repo's `CLAUDE.md` states. Pulling a photo into an entry is
  * [PullPhotoPickerScreen]'s job instead, reached from the entry side, not from here.
  *
- * A top-level destination on *both* window classes (owner decision, 2026-08-22: "the gallery is a
- * place the user goes, not a mode hidden inside the journal") — [CompactTab.PHOTOS] for compact,
- * [DrawerPanel.PhotoGallery] for medium/expanded, in `AvailabilityScreen.kt` — rather than a branch
- * inside [JournalTab]/[LogPanel], which would need the identical dual-file wiring L4a's Add
- * Location button already paid for once.
+ * Originally a top-level destination on *both* window classes (owner decision, 2026-08-22: "the
+ * gallery is a place the user goes, not a mode hidden inside the journal") — a standalone
+ * `CompactTab.PHOTOS` for compact, [DrawerPanel.PhotoGallery] for medium/expanded, in
+ * `AvailabilityScreen.kt`. Map/navigation redesign dispatch B folded the compact side into
+ * [LogGalleryScreen]'s own Album tab (this composable embedded unchanged as that tab's content)
+ * to make room for a fifth bottom-nav slot — [DrawerPanel.PhotoGallery] is untouched, so the
+ * medium/expanded window still reaches this directly, only the compact path changed.
  *
  * [photos] can contain a [GalleryPhoto] with an empty [GalleryPhoto.referencingEntryIds] — a real,
  * reachable state (see that type's own doc comment), not a hypothetical one this screen can assume

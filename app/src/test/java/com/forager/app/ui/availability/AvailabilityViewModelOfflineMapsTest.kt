@@ -13,6 +13,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
@@ -30,6 +31,7 @@ import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
@@ -144,8 +146,8 @@ private object OfflineMapsStubDistanceUnitPreferenceRepository : DistanceUnitPre
 }
 
 private object OfflineMapsStubAppThemePreferenceRepository : AppThemePreferenceRepository {
-    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
-    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
+    override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
 
 /**
@@ -226,6 +228,7 @@ class AvailabilityViewModelOfflineMapsTest {
         mapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
         distanceUnitPreferenceRepository = OfflineMapsStubDistanceUnitPreferenceRepository,
         appThemePreferenceRepository = OfflineMapsStubAppThemePreferenceRepository,
+        getTodaysForecast = GetTodaysForecastUseCase(OfflineMapsStubTripPlanningWeatherProvider),
     )
 
     /** Mirrors how [AvailabilityScreen]'s picker map now sets these — panning and confirming with OK, not typing. */

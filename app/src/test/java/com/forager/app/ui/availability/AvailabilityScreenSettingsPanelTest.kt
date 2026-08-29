@@ -2,6 +2,7 @@ package com.forager.app.ui.availability
 
 import android.app.Application
 import android.content.ComponentName
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -30,15 +31,22 @@ import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.Track
+import com.forager.app.domain.model.TrackPoint
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.MapSlot
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -78,7 +86,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
 class AvailabilityScreenSettingsPanelTest {
 
-    private val composeRule = createComposeRule()
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val declareHostActivity = object : ExternalResource() {
         override fun before() {
@@ -94,10 +102,10 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedBasemap: Basemap? = null
     private var capturedOfflinePickerBasemap: Basemap? = null
     private var capturedNightMode: Boolean? = null
-    private var capturedDarkTheme: Boolean? = null
+    private var capturedThemeMode: AppThemeMode? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
-    private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, onCameraIdle, modifier ->
+    private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
         if (content.sightings.isEmpty() && content.areas.isEmpty() && content.plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = renderMode.basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
@@ -110,7 +118,7 @@ class AvailabilityScreenSettingsPanelTest {
         }
     }
 
-    private fun setScreen() {
+    private fun setScreen(tracks: List<Track> = emptyList()) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = SEARCHED_STATE,
@@ -139,8 +147,9 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = CapturingMapSlot,
+                tracks = tracks,
             )
         }
     }
@@ -182,16 +191,27 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
-                onDarkThemeChanged = { dark ->
-                    current = current.copy(darkTheme = dark)
-                    capturedDarkTheme = dark
+                onThemeModeChanged = { mode ->
+                    current = current.copy(themeMode = mode)
+                    capturedThemeMode = mode
                 },
                 mapSlot = CapturingMapSlot,
             )
         }
     }
 
+    /**
+     * Settings moved one level deeper (map/navigation redesign dispatch B): no longer its own
+     * bottom-nav tab, it's a sticky entry at the bottom of the "Tools" drawer's content (see
+     * [CompactSearchDrawerContent]'s `showSettings` state and [SettingsEntryRow]). No
+     * `performScrollTo()` needed: [SettingsEntryRow] sits outside [SearchControls]'s own internal
+     * `verticalScroll` region, as a fixed sibling below it in the drawer's outer `Column` — that
+     * outer Column has no scroll of its own, and `SearchControls`'s `Modifier.weight(1f)` sizes it
+     * to exactly the remaining space, so the row is always laid out on screen at the Column's
+     * bottom rather than scrolled out of view.
+     */
     private fun openSettings() {
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Settings").performClick()
     }
 
@@ -214,10 +234,14 @@ class AvailabilityScreenSettingsPanelTest {
      * ([AvailabilityUiState.nightModeMaps]), replacing the map's earlier civil-twilight-automatic/
      * long-press-hold control (`MapNightMode`, deleted). Driven through the real checkbox row
      * rather than calling `onNightModeMapsChanged` directly, and asserts the map slot's own
-     * [com.forager.app.ui.map.MapRenderMode.night] actually flips, not just local Settings state —
-     * read back via the Maps tab, since [CompactMapTab] (and so [CapturingMapSlot]'s "else" branch)
-     * isn't composed at all while the Settings tab is showing, per the bottom-nav's own one-tab-
-     * at-a-time model.
+     * [com.forager.app.ui.map.MapRenderMode.night] actually flips, not just local Settings state.
+     *
+     * No trip through the Maps tab needed to read it back (unlike before map/navigation redesign
+     * dispatch B, when Settings was its own bottom-nav tab and hid the Map tab's content entirely):
+     * Settings now opens as a nested state inside the "Tools" drawer, which overlays whatever
+     * `compactTab` is already showing rather than replacing it — [CompactMapTab] (and so
+     * [CapturingMapSlot]'s "else" branch) stays composed underneath the whole time, since this test
+     * never switches `compactTab` away from its own MAP default.
      */
     @Test
     fun `the Night Maps checkbox toggles night mode on the map`() {
@@ -228,49 +252,64 @@ class AvailabilityScreenSettingsPanelTest {
         openSettings()
         composeRule.onNodeWithText("Night Maps").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Maps").performClick()
-        composeRule.waitForIdle()
         assertEquals(true, capturedNightMode)
 
-        composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Night Maps").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Maps").performClick()
         composeRule.waitForIdle()
         assertEquals(false, capturedNightMode)
     }
 
     /**
-     * Settings' "Night Mode" checkbox — the app-wide theme [com.forager.app.ui.theme.ForagerTheme]
-     * renders, sitting directly above [NightModeMapsSection]'s own checkbox (see that composable's
-     * doc comment) rather than the other way around: this one is the toggle, Night Maps is the
-     * mode beneath it. Driven through the real checkbox row, same reasoning as the Night Maps
+     * Settings' Night Mode radio group (Light/Dark/System Default) — the app-wide theme
+     * [com.forager.app.ui.theme.ForagerTheme] renders, sitting directly above
+     * [NightModeMapsSection]'s own checkbox (see that composable's doc comment) rather than the
+     * other way around. Driven through the real radio rows, same reasoning as the Night Maps
      * checkbox test above. Unlike that one, this preference has no map-slot side channel to read
-     * back through — [AvailabilityUiState.darkTheme] only ever reaches [MainActivity] — so it's
-     * captured directly from [AvailabilityScreen.onDarkThemeChanged] instead.
+     * back through — [AvailabilityUiState.themeMode] only ever reaches [MainActivity] for
+     * resolution against the device theme — so it's captured directly from
+     * [AvailabilityScreen.onThemeModeChanged] instead.
      */
     @Test
-    fun `the Night Mode checkbox is above the Night Maps checkbox and toggles the app theme`() {
+    fun `the Night Mode radio group is above the Night Maps checkbox and selects the app theme`() {
         setScreenWithOfflineMapsState()
         openSettings()
 
-        assertEquals(null, capturedDarkTheme)
+        assertEquals(null, capturedThemeMode)
 
-        composeRule.onNodeWithText("Night Mode").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Dark").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
-        assertEquals(true, capturedDarkTheme)
+        assertEquals(AppThemeMode.DARK, capturedThemeMode)
 
-        composeRule.onNodeWithText("Night Mode").performClick()
+        composeRule.onNodeWithText("System Default").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
-        assertEquals(false, capturedDarkTheme)
+        assertEquals(AppThemeMode.SYSTEM_DEFAULT, capturedThemeMode)
+
+        composeRule.onNodeWithText("Light").assertIsDisplayed().performClick()
+        composeRule.waitForIdle()
+        assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
     private val mapModeContentDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
 
+    /**
+     * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
+     * above the map's vertical center. Re-derived, not re-run as-is: a mapicon-pill dispatch
+     * dropped [MapIconBar] from 8 rows to 6 (record start/stop moved into `ControlPill`), and that
+     * bar is `Alignment.CenterEnd` — shrinking its own row count moves every row's position closer
+     * to true center, since [mapIconBarRowAnchorOffset] centers the whole row stack on the bar's
+     * own midpoint. Measured directly against the tree (not assumed): row 4 of 6 (map mode)'s own
+     * top edge now lands 2dp *below* the map's vertical center — a real flip from comfortably above
+     * it at 8 rows, but only by 2dp out of a 512dp-tall map, too close to the line for a strict
+     * above/below comparison in either direction to be a meaningful, stable assertion (a font-scale
+     * or density difference could flip it back). The icon's own vertical *center*, not its top edge,
+     * landing in the map's middle third is the invariant that actually survives this: "top-right
+     * corner" no longer describes this icon's position, but "over the map, right side, roughly
+     * centered rather than pinned to an edge" still does, and is what actually matters for a popover
+     * anchor not to open jammed against the top or bottom edge. Re-derive again if the row count
+     * changes further (the search row leaves next, per that same dispatch's own follow-up).
+     */
     @Test
-    fun `the quick-fire icon renders over the map's own top-right corner`() {
+    fun `the quick-fire icon renders over the map's own right side, roughly vertically centered`() {
         setScreen()
 
         val iconBounds = composeRule
@@ -280,14 +319,22 @@ class AvailabilityScreenSettingsPanelTest {
         val mapBounds = composeRule.onNodeWithTag(MAP_SLOT_TAG).getUnclippedBoundsInRoot()
 
         // Over the map, not beside it: the icon's horizontal center must fall within the map's own
-        // width, and it sits in the map's top half and right half — top-right, not merely "on top of".
+        // width, and it sits in the map's middle third (vertically) and right half — see this
+        // test's own doc comment for why "top-right corner" no longer holds exactly.
         val iconCenterX = iconBounds.left + iconBounds.width / 2
         assertTrue(
             "expected the icon's horizontal center ($iconCenterX) to fall inside the map's bounds " +
                 "(${mapBounds.left}..${mapBounds.right})",
             iconCenterX in mapBounds.left..mapBounds.right,
         )
-        assertTrue(iconBounds.top < mapBounds.top + mapBounds.height / 2)
+        val iconCenterY = iconBounds.top + iconBounds.height / 2
+        val middleThirdStart = mapBounds.top + mapBounds.height / 3
+        val middleThirdEnd = mapBounds.top + mapBounds.height * 2 / 3
+        assertTrue(
+            "expected the icon's vertical center ($iconCenterY) inside the map's own middle third " +
+                "($middleThirdStart..$middleThirdEnd) — see this test's own doc comment",
+            iconCenterY in middleThirdStart..middleThirdEnd,
+        )
         assertTrue(iconCenterX > mapBounds.left + mapBounds.width / 2)
     }
 
@@ -321,6 +368,113 @@ class AvailabilityScreenSettingsPanelTest {
         openSettings()
 
         composeRule.onNodeWithText("Offline Maps").assertIsDisplayed()
+    }
+
+    /**
+     * Field-test dispatch item 1: `GpxCodec` was fully implemented and tested but called from
+     * nowhere. Settings' existing crash-log list-then-share pattern is the surface this reuses —
+     * see `TrackExportPanel`'s own doc comment.
+     */
+    @Test
+    fun `Settings shows a Recorded Tracks entry row`() {
+        setScreen()
+        openSettings()
+
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `Recorded Tracks shows an empty state with nothing recorded yet`() {
+        setScreen()
+        openSettings()
+
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
+
+        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
+    }
+
+    /**
+     * The exact failure shape item 2 of this dispatch documents for return-to-vehicle: a value
+     * wired only to `contentDescription` passes every existing test while showing a sighted user
+     * nothing. This asserts the track's timestamp and its share affordance are found by
+     * [onNodeWithText]/[onNodeWithTag] — proof they're actually visible, not merely
+     * TalkBack-reachable.
+     */
+    @Test
+    fun `Recorded Tracks lists a track by visible text and a taggable share action, not contentDescription alone`() {
+        val track = Track(
+            id = "track-1",
+            name = null,
+            startedAtEpochMillis = TRACK_STARTED_AT,
+            endedAtEpochMillis = TRACK_STARTED_AT + 60_000L,
+            points = listOf(
+                TrackPoint(lat = 45.0, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = TRACK_STARTED_AT),
+                TrackPoint(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = TRACK_STARTED_AT + 15_000L),
+            ),
+        )
+        setScreen(tracks = listOf(track))
+        openSettings()
+
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
+
+        composeRule.onNodeWithText(expectedTrackTimestampText(TRACK_STARTED_AT)).assertIsDisplayed()
+        composeRule.onNodeWithText("2 points").assertIsDisplayed()
+        composeRule.onNodeWithTag("share-track-track-1").assertIsDisplayed()
+    }
+
+    @Suppress("DEPRECATION")
+    @Test
+    fun `tapping a track's share action starts a real ACTION_SEND chooser for a GPX file`() {
+        val track = Track(
+            id = "track-1",
+            name = null,
+            startedAtEpochMillis = TRACK_STARTED_AT,
+            endedAtEpochMillis = TRACK_STARTED_AT + 60_000L,
+            points = listOf(
+                TrackPoint(lat = 45.0, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = TRACK_STARTED_AT),
+            ),
+        )
+        setScreen(tracks = listOf(track))
+        openSettings()
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
+
+        composeRule.onNodeWithTag("share-track-track-1").performClick()
+        // The share action writes the GPX file on Dispatchers.IO (a real thread pool) before
+        // starting the chooser — waitForIdle() only synchronizes Compose's own recomposition/
+        // animation clock, not that background hop, so this polls for the real effect instead.
+        // Robolectric's nextStartedActivity is a consuming (dequeuing) getter, not a peek — it's
+        // captured into `started` the first time the predicate finds it, rather than queried again
+        // afterward, which would otherwise find the queue already drained and read back null.
+        var started: Intent? = null
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            started = started ?: Shadows.shadowOf(composeRule.activity).nextStartedActivity
+            started != null
+        }
+
+        assertEquals(Intent.ACTION_CHOOSER, started?.action)
+        val inner = started?.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+        assertEquals(Intent.ACTION_SEND, inner?.action)
+        assertEquals("application/gpx+xml", inner?.type)
+        assertTrue(inner?.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM) != null)
+    }
+
+    /** No recording in progress, no tap yet — nothing should have started an activity. */
+    @Test
+    fun `Recorded Tracks starts nothing until the share action is actually tapped`() {
+        val track = Track(
+            id = "track-1",
+            name = null,
+            startedAtEpochMillis = TRACK_STARTED_AT,
+            endedAtEpochMillis = null,
+            points = emptyList(),
+        )
+        setScreen(tracks = listOf(track))
+        openSettings()
+
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
+        composeRule.onNodeWithText("0 points · recording").assertIsDisplayed()
+
+        assertNull(Shadows.shadowOf(composeRule.activity).nextStartedActivity)
     }
 
     /**
@@ -460,7 +614,7 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -477,6 +631,12 @@ private const val OFFLINE_PICKER_MAP_TAG = "settings-panel-test-offline-picker-m
 
 private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 private val PICKED_LOCATION = LatLng(lat = 44.5, lng = -121.5)
+
+private const val TRACK_STARTED_AT = 1_756_400_000_000L
+
+/** Mirrors `TrackExportPanel`'s own private `formatTrackTimestamp` exactly, against the JVM's own default zone, so this stays correct under whatever timezone the test runs in. */
+private fun expectedTrackTimestampText(epochMillis: Long): String =
+    DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a").format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
 
 private fun sighting(index: Int) = Sighting(
     observationId = index.toLong(),

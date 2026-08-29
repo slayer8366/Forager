@@ -4,8 +4,10 @@ import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.OfflineRegionSummary
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagDistribution
@@ -62,6 +64,15 @@ data class AvailabilityUiState(
     val conditions: ConditionsSummary? = null,
     val isLoadingConditions: Boolean = false,
     val conditionsErrorMessage: String? = null,
+    /**
+     * The reference day's own forecast, shown alongside [conditions] in the Seasonal tab's
+     * weather panel — see [com.forager.app.domain.GetTodaysForecastUseCase]. Gated to the current
+     * month exactly like [conditions]: a forecast is only "today's" when the browsed month
+     * actually is this one.
+     */
+    val todaysForecast: DailyWeather? = null,
+    val isLoadingTodaysForecast: Boolean = false,
+    val todaysForecastErrorMessage: String? = null,
     /**
      * Which group's weather guidance text applies to [taxonFilter], carried alongside it because
      * [TaxonFilter] alone cannot answer that — see [ForagingSelection]'s doc comment.
@@ -158,11 +169,13 @@ data class AvailabilityUiState(
      */
     val nightModeMaps: Boolean = false,
     /**
-     * The app's own light/dark theme — Settings' "Night Mode" checkbox, restored from
-     * [com.forager.app.domain.AppThemePreferenceRepository.getDarkTheme]. `false` (light) until
-     * that load completes. Independent of [nightModeMaps], which controls only the map's basemap.
+     * The app's own theme choice — Settings' Light/Dark/System Default radio group, restored from
+     * [com.forager.app.domain.AppThemePreferenceRepository.getThemeMode]. [AppThemeMode.LIGHT]
+     * until that load completes. Independent of [nightModeMaps], which controls only the map's
+     * basemap. [AppThemeMode.SYSTEM_DEFAULT] is resolved against the device's own theme in
+     * `MainActivity`, not here — see [AppThemeMode]'s own doc comment.
      */
-    val darkTheme: Boolean = false,
+    val themeMode: AppThemeMode = AppThemeMode.LIGHT,
     /**
      * The offline-region picker map's opening viewport before a region has been picked —
      * restored from [com.forager.app.domain.MapPreferencesRepository.getLastPickedRegion] at

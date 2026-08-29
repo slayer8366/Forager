@@ -255,7 +255,7 @@ abstract class AvailabilityScreenLayoutTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -267,19 +267,26 @@ abstract class AvailabilityScreenLayoutTest {
     private fun rootBounds(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
 
     /**
-     * Opens the search drawer via the map icon stack's own "Search" button — the compact drawer's
-     * only entry point now that the app bar (and its tune icon) is gone; species/category search
-     * and "Advanced search" both moved into the drawer itself — see
-     * [CompactSearchDrawerContent]'s doc comment. [setScreen] always lands on the Maps tab by
-     * default, so the icon is already on screen with no tab switch needed.
-     */
-    /**
-     * Opens the drawer via the icon stack's "Search" icon — [CompactMapTab] shows a real map (and
-     * so the icon stack) from its very first composition, GPS-centred or on a fixed fallback while
-     * that's still pending, not only once a region has been searched.
+     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
+     * removed the map icon stack's own "Search" button and repointed Tools at this same drawer.
+     * Dispatch C moved species/category search, Recent Searches, and Advanced Search all out of it
+     * and into [SearchDropdown] instead (see [openSearchDropdown]) — what's left here is Trip
+     * Planner, Waypoints, Foraging areas, and Settings; see [CompactSearchDrawerContent]'s own doc
+     * comment. Tools opens the drawer as an overlay over whatever `compactTab` is already showing
+     * rather than becoming a tab itself, and [setScreen] always lands on the Maps tab by default,
+     * so it's already on screen with no tab switch needed.
      */
     private fun openSearchDrawer() {
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
+    }
+
+    /**
+     * Opens [SearchDropdown] via the search summary bar — map/navigation redesign dispatch C moved
+     * species/category search, Recent Searches, and Advanced Search (location/radius/month) out of
+     * the Tools drawer entirely, to float over the map from where quick species search used to sit.
+     */
+    private fun openSearchDropdown() {
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
     }
 
     /**
@@ -374,16 +381,19 @@ abstract class AvailabilityScreenLayoutTest {
      * tree, and nobody ever saw it. [assertIsDisplayed] is the assertion that distinguishes those
      * two states — it fails both for a missing node and for a node with no area on screen.
      *
+     * Lives in the Seasonal tab, not List — PANEL-CONTENTS-DISPATCH.md item 2 moved it there; see
+     * [ConditionsCard]'s own doc comment.
+     *
      * The month half of this is asserted end to end in [AvailabilityScreenConditionsMonthTest]:
      * the screen renders the card whenever the state carries conditions, and it is the ViewModel
      * that clears them for a non-current month, so that gate is exercised there by picking a
      * month from the real dropdown rather than by restating the screen's own `if` here.
      */
     @Test
-    fun `the conditions card is displayed on the list tab when conditions are present`() {
+    fun `the conditions card is displayed on the seasonal tab when conditions are present`() {
         setScreen(SEARCHED_STATE.copy(conditions = CONDITIONS, selectedMonth = LocalDate.now().monthValue))
 
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
         composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertIsDisplayed()
@@ -395,7 +405,7 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the conditions card is absent when the state carries no conditions`() {
         setScreen(SEARCHED_STATE.copy(conditions = null))
 
-        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertDoesNotExist()
     }
@@ -407,6 +417,14 @@ abstract class AvailabilityScreenLayoutTest {
      * needs the same "nothing chosen yet" gate [MapTab] has for its own content — otherwise
      * expanding the section before any search would render an empty card with nothing explaining
      * why.
+     *
+     * `performScrollTo()` before the assertion, not just `assertIsDisplayed()` — needed since map/
+     * navigation redesign dispatch B added [SettingsEntryRow] as a fixed sibling below
+     * [SearchControls] in the drawer's outer `Column`, which shrinks [SearchControls]'s own
+     * `weight(1f)` share of the sheet by that row's height. At `fontScale = 2.0`, the gate message
+     * (after Trip Planner, the third of three collapsed sections) no longer fits the now-slightly-
+     * shorter internal scroll viewport without scrolling to it, matching the same pattern this
+     * file's sibling Trip Planner tests already use for content reached the same way.
      */
     @Test
     fun `the drawer's Trip Planner section shows a no-search message before any region is chosen`() {
@@ -416,6 +434,7 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNodeWithText("Choose a region in search options to see rain-driven trip windows.")
+            .performScrollTo()
             .assertIsDisplayed()
         composeRule.onNodeWithText("Trip Windows").assertDoesNotExist()
     }
@@ -474,24 +493,32 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 5 — every advanced-search drawer control can actually be reached.**
+     * **Test 5 — every advanced-search dropdown control can actually be reached.**
      *
-     * The tall stack of controls that starved the map is now behind a scroll in the drawer sheet,
-     * *and* behind the "Advanced search" section's own expand tap — both have to be defeated for
-     * a control to count as reachable. "Reachable" is the property that matters: unreachable is
-     * exactly what they were before, and a control measured off the bottom of a fixed-height sheet
-     * (or behind a collapsed section nobody expanded) is no better than one measured to zero
-     * height. Each is scrolled to through the real scroll container and then asserted to be on
-     * screen, which is a stronger claim than existing in the tree.
+     * Map/navigation redesign dispatch C, item 1 moved this content out of the drawer entirely,
+     * into [SearchDropdown]'s own "Advanced search" section, nested a level deeper still once a
+     * follow-up owner call folded species search and Recent Searches into that same surface at its
+     * own top level — "Search this location" specifically is now behind both that section's own
+     * expand tap and its "Enter coordinates manually" sub-section. `performScrollTo()` before each
+     * assertion, same as the drawer sheet this replaces: fully expanding both nested sections at
+     * once genuinely doesn't fit `w360dp-h640dp-xhdpi`'s own [SearchDropdown] share of the screen
+     * (measured — the earlier "no scroll modifier" version of this dropdown went from failing on
+     * "Search this location" to failing on "Month" the moment [SearchDropdown]'s `Column` gained a
+     * `verticalScroll`, proving the content really does extend past the fold rather than being
+     * genuinely absent), so [SearchDropdown] carries the same `weight(1f)`-bounded scroll
+     * [SearchControls] does — see that composable's own doc comment for why this is safe over the
+     * map despite Understory rule 2.
      */
     @Test
-    fun `every advanced-search drawer control is reachable`() {
+    fun `every advanced-search dropdown control is reachable`() {
         setScreen(SEARCHED_STATE)
 
-        openSearchDrawer()
+        openSearchDropdown()
         composeRule.onNodeWithText("Advanced search").performClick()
+        composeRule.onNodeWithText("Enter coordinates manually").performClick()
 
         listOf(
+            "Set on map",
             "Use current location",
             "Search this location",
             "Search radius: 15 km",
@@ -520,19 +547,20 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 6 — the species search bar is reachable inside the search drawer.**
+     * **Test 6 — the species search bar is reachable inside the search dropdown.**
      *
-     * This is the control the user originally reported as buried, then promoted out of the drawer
-     * into the app bar — and now, per the project owner's later call ("the whole side panel is
-     * the search feature"), moved back into the drawer, alongside every other search control
-     * rather than split across two surfaces. It's the first thing in the drawer, above
-     * [SearchControls]'s own scroll region, so it needs no scrolling or section-expanding to reach.
+     * This is the control the user originally reported as buried, promoted out of a drawer section
+     * into the app bar, moved back into the drawer ("the whole side panel is the search feature"),
+     * and finally — map/navigation redesign dispatch C's own follow-up owner call — into
+     * [SearchDropdown], over the map, alongside Recent Searches and Advanced Search rather than
+     * split across two surfaces. It's the first thing in the dropdown, above its own "Recent
+     * searches"/"Advanced search" sections, so it needs no section-expanding to reach.
      */
     @Test
-    fun `the species search bar is reachable inside the search drawer`() {
+    fun `the species search bar is reachable inside the search dropdown`() {
         setScreen(SEARCHED_STATE)
 
-        openSearchDrawer()
+        openSearchDropdown()
 
         listOf(
             "Fungi",
@@ -569,18 +597,20 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * Settings is a bottom-nav destination now, not a drawer panel — moved there, alongside
-     * Journal, per the project owner's own call ("move settings and mushroom log from the side
-     * panel, add them both to the bottom row"). This asserts it's reachable with a single bottom
-     * nav tap, no drawer involved at all, replacing the old "Settings entry row stays visible
-     * without scrolling" and "the Settings panel shows Choose Maps Service and the build identity
-     * footer" tests (both bundled into one now that reaching Settings is one step instead of two).
+     * Settings moved twice: first out of the drawer onto its own bottom-nav tab ("move settings and
+     * mushroom log from the side panel, add them both to the bottom row"), then — map/navigation
+     * redesign dispatch B, collapsing the bottom nav to five destinations to make room for Tools —
+     * one level back in, as a sticky entry at the bottom of the "Tools" drawer's own content (see
+     * [CompactSearchDrawerContent]'s `showSettings` state). This asserts it's reachable through
+     * that drawer entry, replacing the old "one bottom-nav tap, no drawer involved" claim, which no
+     * longer holds now that Tools — not Settings — is what's on the bottom nav.
      */
     @Test
-    fun `the Settings tab is reachable from the bottom nav, with no drawer involved`() {
+    fun `the Settings entry is reachable inside the Tools drawer`() {
         setScreen(SEARCHED_STATE)
 
-        composeRule.onNodeWithText("Settings").performClick()
+        openSearchDrawer()
+        composeRule.onNodeWithText("Settings").assertIsDisplayed().performClick()
 
         composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
         composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
@@ -591,36 +621,39 @@ abstract class AvailabilityScreenLayoutTest {
      * The drawer's own close affordance. Gestures are off on this drawer (a swipe over the map
      * means "pan", not "close" — see [AvailabilityScreen]'s doc comment), so tapping the scrim was
      * the only way out before this button existed; this asserts the button actually closes it
-     * rather than just existing in the tree. "Recent searches" (the drawer's own first section
-     * header) stands in for "the drawer is open" now — "Settings" no longer works for this, since
-     * it moved to the always-visible bottom nav and would be displayed whether the drawer is open
-     * or not.
+     * rather than just existing in the tree. "Trip Planner" (the drawer's own first section header
+     * now that Recent Searches has moved to [SearchDropdown] — dispatch C's own follow-up) stands
+     * in for "the drawer is open" — "Settings" doesn't work for this: it's the drawer's own sticky
+     * entry row (map/navigation redesign dispatch B), so it renders exactly whenever the drawer's
+     * own content does and says nothing about open vs. closed on its own.
      */
     @Test
     fun `the drawer close button closes the drawer`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDrawer()
-        composeRule.onNodeWithText("Recent searches").assertIsDisplayed()
+        composeRule.onNodeWithText("Trip Planner").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Close search options").performClick()
 
-        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
+        composeRule.onNodeWithText("Trip Planner").assertIsNotDisplayed()
     }
 
     /**
-     * The "use current location" shortcut on the species search field, inside the drawer. It has
-     * to call the same [AvailabilityScreen.onUseCurrentLocation] callback [RegionControls]' own
-     * button calls — not a second location-fetch path — which this proves by wiring a recorder
-     * into that single callback and tapping the species field's icon rather than the drawer's
-     * "Advanced search" button.
+     * The "use current location" shortcut on the species search field — moved, along with the rest
+     * of species search, from the Tools drawer into [SearchDropdown] (dispatch C's own follow-up
+     * owner call). It has to call the same [AvailabilityScreen.onUseCurrentLocation] callback
+     * [RegionControls]' own button calls (inside that same dropdown's nested "Advanced search"
+     * section) — not a second location-fetch path — which this proves by wiring a recorder into
+     * that single callback and tapping the species field's icon rather than that section's own
+     * button.
      */
     @Test
     fun `the species search field's location icon calls onUseCurrentLocation`() {
         var callCount = 0
         setScreen(SEARCHED_STATE, onUseCurrentLocation = { callCount++ })
 
-        openSearchDrawer()
+        openSearchDropdown()
         composeRule.onNodeWithContentDescription("Use current location").performClick()
 
         assertTrue("onUseCurrentLocation should have been called exactly once", callCount == 1)
@@ -635,6 +668,6 @@ abstract class AvailabilityScreenLayoutTest {
  * which would render anything measurable under Robolectric anyway. This fills the same box and
  * carries a tag, so the box itself can be measured.
  */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag(MAP_SLOT_TAG))
 }

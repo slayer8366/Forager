@@ -1,6 +1,7 @@
 package com.forager.app.ui.track
 
 import com.forager.app.domain.model.ReturnToStartInfo
+import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
 import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.domain.model.Waypoint
@@ -43,6 +44,25 @@ data class TrackRecordingUiState(
      * no breadcrumb exists yet to compute a start point from.
      */
     val returnToStart: ReturnToStartInfo? = null,
+    /**
+     * Every recorded track, newest-started first — the Settings "Recorded Tracks" export surface's
+     * only data source. Loaded on init and refreshed whenever that panel is opened (see
+     * [TrackRecordingViewModel.loadTracks]), not reactively: [TrackRepository] is plain suspend
+     * calls, same reasoning as [breadcrumbPoints]'s own doc comment.
+     */
+    val tracks: List<Track> = emptyList(),
+    /**
+     * Field-test dispatch item 4: incremented each time [TrackRecordingViewModel.returnToStart]
+     * decides a pocketed-phone off-track alert should fire — a one-shot event counter, the same
+     * "increment, and let the observer diff against the last value it saw" shape
+     * [startRecordingErrorMessage]'s own `LaunchedEffect` consumer uses for a Toast, except this
+     * needs to fire again on a *repeated* condition ("still off track"), which a nulled-out single
+     * message field can't represent. `MainActivity` observes this to post a notification and
+     * vibrate — see [TrackRecordingViewModel.returnToStart]'s own doc comment for the debounce this
+     * counter reflects. Starts at 0, which is never itself treated as a real alert — the observer's
+     * `LaunchedEffect` fires once on first composition with whatever value is already here.
+     */
+    val offTrackAlertId: Int = 0,
 ) {
     val isRecording: Boolean get() = activeTrack != null
 }

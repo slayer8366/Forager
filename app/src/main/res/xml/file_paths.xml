@@ -10,8 +10,15 @@
   than internal filesDir — see that class's own doc comment for why. Exposed here so the Settings
   crash-log viewer can hand a captured trace to another app (email, a text editor) via
   Intent.ACTION_SEND.
+
+  `tracks/` is com.forager.app.export.TrackGpxExporter's directory, under Context.cacheDir rather
+  than external-files-path — unlike a crash report, an exported GPX file only needs to survive
+  long enough for the share-sheet target app to read it, not to accumulate for later on-device
+  inspection. Exposed here so the Settings "Recorded Tracks" export action can hand a track to
+  another app (Gaia, CalTopo, email) via Intent.ACTION_SEND.
 -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="captures" path="captures/" />
     <external-files-path name="crashes" path="crashes/" />
+    <cache-path name="tracks" path="tracks/" />
 </paths>

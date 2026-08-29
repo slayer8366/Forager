@@ -17,3 +17,4 @@ Audits are committed here so they survive the session that produced them.
 | 2026-08-24 | Structural finding: migration test fixtures that reuse a production entity class break when a migration alters that entity rather than only adding tables (found via `MIGRATION_5_6`) | `2026-08-24-migration-fixture-entity-reuse-pitfall.md` |
 | 2026-08-24 | Session handoff: Workstreams A and B landed, C/D rescoping pulse superseded by the Log & Location rework pulse, not yet dispatched | `2026-08-24-session-handoff.md` |
 | 2026-08-24 | Archive: Workstreams C (delete-block flow) and D (entry-level tile capture), verbatim, and why they were superseded by the six-piece Log & Location rework split (L1–L6) | `2026-08-24-workstream-c-and-d-archive.md` |
+| 2026-08-29 | Update report: PR #52's field-test dispatch and two-round hardware-feedback iteration (observation-tap feature, List-tab View on Map, bubble/compass-strip polish) | `2026-08-29-pr52-update-report.md` |

@@ -9,10 +9,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.MutableClock
@@ -103,7 +102,7 @@ class AvailabilityScreenOfflineCacheTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -160,15 +159,15 @@ class AvailabilityScreenOfflineCacheTest {
     fun `the recent searches picker lists its entries on screen`() {
         setScreen(CACHED_STATE.copy(recentSearches = listOf(RECENT_FUNGI, RECENT_PLANTS)))
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
-        composeRule.onNodeWithText("Fungi · ${monthName(8)}").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("45.3260, -122.6340 · 15 km").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("cached 3 hours ago").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Plants · ${monthName(10)}").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("47.6060, -122.3320 · 25 km").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("cached 2 days ago").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Fungi · ${monthName(8)}").assertIsDisplayed()
+        composeRule.onNodeWithText("45.3260, -122.6340 · 15 km").assertIsDisplayed()
+        composeRule.onNodeWithText("cached 3 hours ago").assertIsDisplayed()
+        composeRule.onNodeWithText("Plants · ${monthName(10)}").assertIsDisplayed()
+        composeRule.onNodeWithText("47.6060, -122.3320 · 25 km").assertIsDisplayed()
+        composeRule.onNodeWithText("cached 2 days ago").assertIsDisplayed()
     }
 
     /** An empty picker says so rather than expanding to blank space. */
@@ -176,26 +175,26 @@ class AvailabilityScreenOfflineCacheTest {
     fun `the recent searches picker states when nothing is saved yet`() {
         setScreen(CACHED_STATE.copy(recentSearches = emptyList()))
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText(
             "No searches saved yet. Each search you run is saved here, and the last five can be " +
                 "reopened without a connection.",
-        ).performScrollTo().assertIsDisplayed()
+        ).assertIsDisplayed()
     }
 
     /**
      * Tapping an entry has to hand back the entry that was tapped — the picker's entire job — and
-     * close the drawer, since the search it starts renders behind the sheet.
+     * close the dropdown, since the search it starts renders behind it.
      */
     @Test
-    fun `tapping a recent search reports that entry and closes the drawer`() {
+    fun `tapping a recent search reports that entry and closes the dropdown`() {
         setScreen(CACHED_STATE.copy(recentSearches = listOf(RECENT_FUNGI, RECENT_PLANTS)))
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithText("Recent searches").performClick()
 
-        composeRule.onNodeWithText("Plants · ${monthName(10)}").performScrollTo().performClick()
+        composeRule.onNodeWithText("Plants · ${monthName(10)}").performClick()
 
         assertEquals(listOf(RECENT_PLANTS), selectedRecentSearches)
         composeRule.onNodeWithText("Fungi · ${monthName(8)}").assertIsNotDisplayed()
@@ -265,6 +264,6 @@ class AvailabilityScreenOfflineCacheTest {
 }
 
 /** Stands in for the real map; see [AvailabilityScreenLayoutTest]'s own stub for why. */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag("offline-cache-map-slot"))
 }

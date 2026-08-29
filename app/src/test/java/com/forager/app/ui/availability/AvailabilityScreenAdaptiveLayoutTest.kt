@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
-import com.forager.app.domain.model.ConditionsSummary
+import com.forager.app.domain.model.AvailabilityEntry
+import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
@@ -35,6 +36,7 @@ import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
+import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.MapSlot
@@ -79,11 +81,13 @@ class AvailabilityScreenCompactWidthDrawerTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     /**
-     * "Settings" itself no longer works as this pin: it moved to the bottom nav (see
-     * `AvailabilityScreen`'s `CompactTab` and `ForagerBottomNav`) as part of the map redesign, so
-     * it's always on screen now regardless of drawer state. "Recent searches" — the drawer's own
-     * first section header, still exclusively drawer content — replaces it as the "behind the
-     * modal drawer" marker this test exists to pin.
+     * "Settings" itself no longer works as this pin: it's the drawer's own sticky entry row now
+     * (map/navigation redesign dispatch B's `CompactSearchDrawerContent.showSettings`), so it
+     * renders exactly whenever the rest of the drawer's content does, telling this test nothing
+     * about open vs. closed on its own. "Recent searches" doesn't work either any more — dispatch C
+     * moved it into `SearchDropdown`, over the map, not behind this drawer at all. "Trip Planner"
+     * — the drawer's own first section header now — replaces both as the "behind the modal drawer"
+     * marker this test exists to pin.
      */
     @Test
     fun `the drawer's search controls are not shown until the drawer is opened`() {
@@ -115,12 +119,12 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = StubMapSlot,
             )
         }
 
-        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
+        composeRule.onNodeWithText("Trip Planner").assertIsNotDisplayed()
     }
 
     /**
@@ -159,7 +163,7 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = StubMapSlot,
             )
         }
@@ -231,7 +235,7 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = mapSlot,
             )
         }
@@ -250,10 +254,11 @@ class AvailabilityScreenWideWindowLayoutTest {
     }
 
     /**
-     * Workstream G2 (`docs/plans/pr26-rework.md`): the gallery is a top-level destination on both
-     * window classes, not just compact — see `PhotoGalleryScreen`'s own doc comment. This is the
-     * medium/expanded half; `AvailabilityScreenBackNavigationTest`'s own "Album" tab test covers
-     * the compact half.
+     * Workstream G2 (`docs/plans/pr26-rework.md`) made the gallery a top-level destination on both
+     * window classes; map/navigation redesign dispatch B folded the compact half into
+     * `LogGalleryScreen`'s own Album tab instead (see `PhotoGalleryScreen`'s own doc comment for
+     * why), but left this medium/expanded drawer entry untouched. This is that untouched half;
+     * `AvailabilityScreenBackNavigationTest`'s own "Album" tab test covers the compact one.
      */
     @Test
     fun `the drawer's Photo Gallery entry is shown without opening the drawer, and opens the gallery`() {
@@ -273,14 +278,18 @@ class AvailabilityScreenWideWindowLayoutTest {
 
     /**
      * The M3 "reveal" pattern: List and Map show together rather than one tab at a time. Proven
-     * by asserting on content unique to each — [ConditionsCard]'s "Current Conditions" for List,
-     * the foraging-areas toggle for Map — displayed simultaneously with no tab click in between.
+     * by asserting on content unique to each — a ranked [SpeciesRow] for List, the foraging-areas
+     * toggle for Map — displayed simultaneously with no tab click in between.
+     *
+     * Used to assert on [ConditionsCard]'s "Current Conditions" for the List-unique half; that card
+     * now lives in the Seasonal tab instead (PANEL-CONTENTS-DISPATCH.md item 2), so this asserts on
+     * the ranked list's own content ([FORECAST]) rather than a card that no longer sits here.
      */
     @Test
     fun `list and map content are both displayed together without switching tabs`() {
-        setScreen(SEARCHED_STATE.copy(conditions = CONDITIONS, selectedMonth = LocalDate.now().monthValue))
+        setScreen(SEARCHED_STATE.copy(forecast = FORECAST, selectedMonth = LocalDate.now().monthValue))
 
-        composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
+        composeRule.onNodeWithText("artist's bracket").assertIsDisplayed()
         composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
     }
 
@@ -384,7 +393,7 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = StubMapSlot,
                 onOpenLogEntry = { id ->
                     logUiState = logUiState.copy(editingEntry = logUiState.entries.first { it.id == id })
@@ -464,10 +473,25 @@ private val SEARCHED_STATE = AvailabilityUiState(
     showForagingAreas = true,
 )
 
-private val CONDITIONS = ConditionsSummary(
+/** A single ranked entry, so [ResultsSection] renders something List-unique to assert on. */
+private val FORECAST = AvailabilityForecast(
     region = REGION,
-    totalPrecipitationMm = 12.4,
-    daysSinceSignificantRain = 2,
+    month = 8,
+    filter = TaxonFilter.FUNGI,
+    entries = listOf(
+        AvailabilityEntry(
+            species = SpeciesObservationCount(
+                taxonId = 48473L,
+                scientificName = "Ganoderma applanatum",
+                commonName = "artist's bracket",
+                rank = "species",
+                observationCount = 14,
+                photoUrl = null,
+                wikipediaUrl = null,
+            ),
+            relativeLikelihood = 1.0f,
+        ),
+    ),
 )
 
 private val DISTRIBUTION = FruitingLagDistribution(
@@ -485,14 +509,14 @@ private val DISTRIBUTION = FruitingLagDistribution(
 )
 
 /** Same stub as [AvailabilityScreenLayoutTest]'s — see that file for why the real map isn't used here. */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
     Box(modifier.testTag("map-slot"))
 }
 
 private val WIDE_WINDOW_TEST_LOCATION = LatLng(45.40, -122.70)
 
 /** Exposes [MapSlot.onCameraIdle] as a button — same pattern [AvailabilityScreenTripPlanningFlowTest]'s `TriggerableMapSlot` uses. */
-private val TriggerableWideStubMapSlot: MapSlot = { _, _, _, _, _, _, onCameraIdle, modifier ->
+private val TriggerableWideStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
         Button(onClick = { onCameraIdle(WIDE_WINDOW_TEST_LOCATION) }) {
             Text("Simulate pan to test location")

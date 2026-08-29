@@ -12,6 +12,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
 import com.forager.app.domain.InMemorySearchCacheRepository
@@ -30,6 +31,7 @@ import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
@@ -132,8 +134,8 @@ private object PlannedTripsStubDistanceUnitPreferenceRepository : DistanceUnitPr
 }
 
 private object PlannedTripsStubAppThemePreferenceRepository : AppThemePreferenceRepository {
-    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
-    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
+    override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
 
 class AvailabilityViewModelPlannedTripsTest {
@@ -176,6 +178,7 @@ class AvailabilityViewModelPlannedTripsTest {
         mapPreferencesRepository = PlannedTripsStubMapPreferencesRepository,
         distanceUnitPreferenceRepository = PlannedTripsStubDistanceUnitPreferenceRepository,
         appThemePreferenceRepository = PlannedTripsStubAppThemePreferenceRepository,
+        getTodaysForecast = GetTodaysForecastUseCase(PlannedTripsStubTripPlanningWeatherProvider),
     )
 
     @Test

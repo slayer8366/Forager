@@ -5,6 +5,7 @@ import com.forager.app.domain.CreateWaypointUseCase
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.DeleteWaypointUseCase
 import com.forager.app.domain.DetectOffTrackUseCase
+import com.forager.app.domain.GetTracksUseCase
 import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
@@ -63,6 +64,7 @@ class TrackRecordingViewModelTest {
         // TrackRecordingViewModel's own doc comment for why that's equivalent — so an empty
         // stream is enough there; nothing needs beginLocationTracking() to ever actually emit.
         locationTracker: LocationTracker = NoOpLocationTracker(),
+        offTrackAlertClock: CurrentTimeProvider = fixedTime,
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
@@ -72,6 +74,8 @@ class TrackRecordingViewModelTest {
         computeReturnToStart = ComputeReturnToStartUseCase(),
         detectOffTrack = DetectOffTrackUseCase(),
         locationTracker = locationTracker,
+        getTracks = GetTracksUseCase(trackRepository),
+        currentTime = offTrackAlertClock,
     )
 
     @Test
@@ -306,6 +310,118 @@ class TrackRecordingViewModelTest {
         vm.stopRecording()
     }
 
+    /**
+     * Field-test dispatch item 4: [TrackRecordingUiState.offTrackAlertId] is what `MainActivity`
+     * observes to post a notification and vibrate — this suite can't drive an Activity, so it
+     * asserts the counter [MainActivity] reacts to instead, the same boundary
+     * [AvailabilityViewModelLocateMeTest] draws for its own permission-dialog side effects.
+     */
+    @Test
+    fun `going off-track bumps offTrackAlertId once, not once per fix`() = runTest(dispatcher) {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository, offTrackAlertClock = CurrentTimeProvider { 1_000L })
+
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        vm.startReturn()
+        assertEquals(0, vm.uiState.value.offTrackAlertId)
+
+        vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 2_000L))
+        vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 3_000L))
+        vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        assertTrue(vm.uiState.value.isOffTrack)
+        assertEquals(1, vm.uiState.value.offTrackAlertId)
+
+        // Still off-track (net distance keeps increasing) on the very next fix, same clock instant
+        // — the cooldown, not the heuristic, is what must keep this from bumping again immediately.
+        vm.returnToStart(point(lat = 45.004, lng = -122.0, t = 5_000L))
+        assertEquals(1, vm.uiState.value.offTrackAlertId)
+
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `a sustained drift alerts again once the cooldown elapses`() = runTest(dispatcher) {
+        val trackRepository = InMemoryTrackRepository()
+        var nowMillis = 1_000L
+        val vm = viewModel(trackRepository, offTrackAlertClock = CurrentTimeProvider { nowMillis })
+
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        vm.startReturn()
+
+        vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 2_000L))
+        vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 3_000L))
+        vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        assertEquals(1, vm.uiState.value.offTrackAlertId)
+
+        // Just short of the cooldown: still just the one alert.
+        nowMillis += OFF_TRACK_ALERT_COOLDOWN_MILLIS - 1
+        vm.returnToStart(point(lat = 45.004, lng = -122.0, t = 5_000L))
+        assertEquals(1, vm.uiState.value.offTrackAlertId)
+
+        // Cooldown elapsed, and the drift continues: a second, real reminder.
+        nowMillis += 1
+        vm.returnToStart(point(lat = 45.005, lng = -122.0, t = 6_000L))
+        assertEquals(2, vm.uiState.value.offTrackAlertId)
+
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `staying on track never bumps offTrackAlertId`() = runTest(dispatcher) {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository)
+
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        vm.startReturn()
+
+        vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 2_000L))
+        vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 3_000L))
+        vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 4_000L))
+
+        assertEquals(0, vm.uiState.value.offTrackAlertId)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `stopReturn resets the cooldown so a later return attempt can alert immediately`() = runTest(dispatcher) {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository, offTrackAlertClock = CurrentTimeProvider { 1_000L })
+
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        vm.startReturn()
+        vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 2_000L))
+        vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 3_000L))
+        vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        assertEquals(1, vm.uiState.value.offTrackAlertId)
+
+        vm.stopReturn()
+        vm.startReturn()
+        // Same fixed clock instant as the first alert — without the cooldown reset on stopReturn(),
+        // this would be blocked exactly like the immediate-repeat case above.
+        vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 5_000L))
+        vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 6_000L))
+        vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 7_000L))
+
+        assertEquals(2, vm.uiState.value.offTrackAlertId)
+        vm.stopRecording()
+    }
+
     @Test
     fun `moving steadily toward the start while returning stays on track`() = runTest(dispatcher) {
         val trackRepository = InMemoryTrackRepository()
@@ -403,6 +519,9 @@ class TrackRecordingViewModelTest {
 
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
+
+        /** Mirrors TrackRecordingViewModel's own private constant of the same name — see its own doc comment. */
+        const val OFF_TRACK_ALERT_COOLDOWN_MILLIS = 120_000L
     }
 }
 

@@ -15,6 +15,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationProvider
@@ -27,6 +28,7 @@ import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.estimateOfflineTileCount
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
@@ -74,6 +76,7 @@ class AvailabilityViewModel(
     private val mapPreferencesRepository: MapPreferencesRepository,
     private val distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository,
     private val appThemePreferenceRepository: AppThemePreferenceRepository,
+    private val getTodaysForecast: GetTodaysForecastUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -98,7 +101,7 @@ class AvailabilityViewModel(
         loadOfflineMapPreferences()
         loadDistanceUnitPreference()
         loadNightModePreferences()
-        loadDarkThemePreference()
+        loadThemeModePreference()
         // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
         // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
         // recording: "any time the map is open" was the explicit ask this answers. A denied/
@@ -449,8 +452,37 @@ class AvailabilityViewModel(
                     },
                 )
             }
+            // Independent fetch from the one above: a separate provider method (and, in
+            // production, a separate identical-parameter request — see GetTodaysForecastUseCase's
+            // own doc comment for why that duplication is accepted rather than threaded through
+            // GetTripWindowsUseCase's unrelated, already-tested return type).
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoadingTodaysForecast = true, todaysForecastErrorMessage = null) }
+                getTodaysForecast(region).fold(
+                    onSuccess = { forecast -> _uiState.update { it.copy(isLoadingTodaysForecast = false, todaysForecast = forecast) } },
+                    onFailure = { error ->
+                        errorLog.w(TAG, "Couldn't load today's forecast.", error)
+                        _uiState.update {
+                            it.copy(
+                                isLoadingTodaysForecast = false,
+                                todaysForecast = null,
+                                todaysForecastErrorMessage = "Forecast unavailable.",
+                            )
+                        }
+                    },
+                )
+            }
         } else {
-            _uiState.update { it.copy(conditions = null, isLoadingConditions = false, conditionsErrorMessage = null) }
+            _uiState.update {
+                it.copy(
+                    conditions = null,
+                    isLoadingConditions = false,
+                    conditionsErrorMessage = null,
+                    todaysForecast = null,
+                    isLoadingTodaysForecast = false,
+                    todaysForecastErrorMessage = null,
+                )
+            }
         }
 
         // Trip windows are about the days ahead of today, not about the browsed month, so unlike
@@ -696,25 +728,25 @@ class AvailabilityViewModel(
         }
     }
 
-    /** Restores Settings' "Night Mode" checkbox (the app-wide theme) — same read-failure treatment as [loadOfflineMapPreferences]. */
-    private fun loadDarkThemePreference() {
+    /** Restores Settings' theme choice (Light/Dark/System Default) — same read-failure treatment as [loadOfflineMapPreferences]. */
+    private fun loadThemeModePreference() {
         viewModelScope.launch {
-            appThemePreferenceRepository.getDarkTheme().fold(
-                onSuccess = { dark -> _uiState.update { it.copy(darkTheme = dark) } },
+            appThemePreferenceRepository.getThemeMode().fold(
+                onSuccess = { mode -> _uiState.update { it.copy(themeMode = mode) } },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the app theme preference.", error) },
             )
         }
     }
 
     /**
-     * Settings' "Night Mode" checkbox — the app-wide theme [MainActivity][com.forager.app.MainActivity]
-     * renders via [com.forager.app.ui.theme.ForagerTheme]. Same immediate-update-then-persist shape
-     * as [onNightModeMapsChanged].
+     * Settings' theme choice — the app-wide theme [MainActivity][com.forager.app.MainActivity]
+     * resolves and renders via [com.forager.app.ui.theme.ForagerTheme]. Same immediate-update-then-
+     * persist shape as [onNightModeMapsChanged].
      */
-    fun onDarkThemeChanged(dark: Boolean) {
-        _uiState.update { it.copy(darkTheme = dark) }
+    fun onThemeModeChanged(mode: AppThemeMode) {
+        _uiState.update { it.copy(themeMode = mode) }
         viewModelScope.launch {
-            appThemePreferenceRepository.setDarkTheme(dark).fold(
+            appThemePreferenceRepository.setThemeMode(mode).fold(
                 onSuccess = {},
                 onFailure = { error -> errorLog.w(TAG, "Couldn't persist the app theme preference.", error) },
             )

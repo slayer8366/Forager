@@ -4,15 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.ComputeReturnToStartUseCase
 import com.forager.app.domain.CreateWaypointUseCase
+import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.DeleteWaypointUseCase
 import com.forager.app.domain.DetectOffTrackUseCase
 import com.forager.app.domain.ErrorLog
+import com.forager.app.domain.GetTracksUseCase
 import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.StartTrackUseCase
+import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.TrackRepository
 import com.forager.app.domain.model.ReturnToStartInfo
+import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
 import com.forager.app.domain.model.TrackRecordingMode
 import kotlinx.coroutines.Job
@@ -74,6 +78,7 @@ class TrackRecordingViewModel(
     private val computeReturnToStart: ComputeReturnToStartUseCase,
     private val detectOffTrack: DetectOffTrackUseCase,
     private val locationTracker: LocationTracker,
+    private val getTracks: GetTracksUseCase,
     /**
      * Logs a failure's throwable for diagnosis, without ever exposing its text to the user — see
      * [ErrorLog]'s own doc comment for why this exists rather than calling [android.util.Log]
@@ -82,6 +87,8 @@ class TrackRecordingViewModel(
      * `Log.w`-backed one for production.
      */
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
+    /** Injected so a test can fix the off-track alert cooldown's clock — see [returnToStart]'s own doc comment. */
+    private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -95,8 +102,14 @@ class TrackRecordingViewModel(
     // itself (it's tracking history feeding a decision, not state the UI reads directly).
     private val recentReturnDistancesMeters = mutableListOf<Double>()
 
+    // When the last off-track alert fired, for returnToStart()'s own cooldown — cleared alongside
+    // recentReturnDistancesMeters for the same reason: a new return attempt should never be blocked
+    // by a cooldown left over from a much earlier one.
+    private var lastOffTrackAlertAtMillis: Long? = null
+
     init {
         loadWaypoints()
+        loadTracks()
     }
 
     /**
@@ -153,6 +166,7 @@ class TrackRecordingViewModel(
         locationJob?.cancel()
         locationJob = null
         recentReturnDistancesMeters.clear()
+        lastOffTrackAlertAtMillis = null
         _uiState.update { it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null) }
     }
 
@@ -172,6 +186,7 @@ class TrackRecordingViewModel(
     /** Clears returning/off-track state without touching the recording itself — see [startReturn]. */
     fun stopReturn() {
         recentReturnDistancesMeters.clear()
+        lastOffTrackAlertAtMillis = null
         _uiState.update { it.copy(isReturning = false, isOffTrack = false) }
     }
 
@@ -218,6 +233,24 @@ class TrackRecordingViewModel(
         }
     }
 
+    /**
+     * Refreshes [TrackRecordingUiState.tracks] — called on init and again whenever the Settings
+     * "Recorded Tracks" export panel opens, the same "reload on open" shape
+     * `AvailabilityViewModel.onOfflineMapsOpened` already uses for its own submenu. A failure here
+     * just leaves the list stale rather than surfacing a dedicated error message: unlike starting a
+     * recording or saving a waypoint, this isn't a user-triggered write whose outcome needs
+     * reporting, only a read backing a read-only export list.
+     */
+    fun loadTracks() {
+        viewModelScope.launch {
+            getTracks()
+                .onSuccess { tracks ->
+                    _uiState.update { it.copy(tracks = tracks.sortedByDescending(Track::startedAtEpochMillis)) }
+                }
+                .onFailure { error -> errorLog.w(TAG, "Couldn't load tracks.", error) }
+        }
+    }
+
     fun addWaypoint(lat: Double, lng: Double, name: String, note: String = "") {
         viewModelScope.launch {
             createWaypoint(lat, lng, altitude = null, name = name, note = note)
@@ -250,17 +283,46 @@ class TrackRecordingViewModel(
      * against the updated history, updating [TrackRecordingUiState.isOffTrack]. Not fed at all while
      * not returning, so the history only ever reflects an actual return attempt, never outbound
      * travel.
+     *
+     * **Field-test dispatch item 4.** [DetectOffTrackUseCase]'s own output used to reach a user
+     * nowhere but an icon tint (see [com.forager.app.ui.availability.AvailabilityScreen]'s
+     * `MapIconBar`) — nothing a forager with the phone pocketed on the return leg, exactly the body
+     * state this alert exists for, could ever perceive. Every call where the heuristic reads `true`
+     * bumps [TrackRecordingUiState.offTrackAlertId] — which `MainActivity` observes to post a
+     * notification and vibrate — but **only** once [OFF_TRACK_ALERT_COOLDOWN_MILLIS] has passed
+     * since the last one: this method runs on every live fix while returning (as often as every few
+     * seconds — see [com.forager.app.domain.model.TrackRecordingMode]), and a heuristic that stays
+     * `true` for a sustained drift would otherwise re-fire on every single one of those, buzzing a
+     * wandering forager continuously rather than reminding them periodically. Deliberately **not**
+     * edge-triggered (alert only on the false→true transition): a real, sustained drift should keep
+     * reminding every cooldown window for as long as it lasts, not go silent after the first buzz —
+     * see [DetectOffTrackUseCase]'s own doc comment on why the heuristic itself is left exactly as
+     * it was; only where its output goes is new here.
      */
     fun returnToStart(current: TrackPoint): ReturnToStartInfo? {
         val start = uiState.value.breadcrumbPoints.firstOrNull() ?: return null
         val info = computeReturnToStart(current, start)
         if (uiState.value.isReturning) {
             recentReturnDistancesMeters += info.distanceMeters
-            _uiState.update { it.copy(returnToStart = info, isOffTrack = detectOffTrack(recentReturnDistancesMeters)) }
+            val isOffTrackNow = detectOffTrack(recentReturnDistancesMeters)
+            val shouldAlert = isOffTrackNow && canFireOffTrackAlert()
+            if (shouldAlert) lastOffTrackAlertAtMillis = currentTime.nowEpochMillis()
+            _uiState.update {
+                it.copy(
+                    returnToStart = info,
+                    isOffTrack = isOffTrackNow,
+                    offTrackAlertId = if (shouldAlert) it.offTrackAlertId + 1 else it.offTrackAlertId,
+                )
+            }
         } else {
             _uiState.update { it.copy(returnToStart = info) }
         }
         return info
+    }
+
+    private fun canFireOffTrackAlert(): Boolean {
+        val last = lastOffTrackAlertAtMillis ?: return true
+        return currentTime.nowEpochMillis() - last >= OFF_TRACK_ALERT_COOLDOWN_MILLIS
     }
 
     override fun onCleared() {
@@ -271,5 +333,15 @@ class TrackRecordingViewModel(
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
         const val TAG = "TrackRecordingViewModel"
+
+        /**
+         * Long enough that a forager checking their pocket after one buzz has time to actually
+         * look and self-correct before a second one, short enough that a sustained drift is still
+         * a real, periodic reminder rather than a single easily-missed alert — an adjustable
+         * assumption in the same spirit as [DetectOffTrackUseCase]'s own threshold, not a
+         * data-derived constant (this project has no field data yet on what cooldown a real
+         * forager would actually want).
+         */
+        const val OFF_TRACK_ALERT_COOLDOWN_MILLIS = 120_000L
     }
 }
