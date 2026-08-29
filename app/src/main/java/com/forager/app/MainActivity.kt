@@ -18,6 +18,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -31,6 +32,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.forager.app.domain.ErrorLog
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.service.TrackRecordingService
@@ -184,38 +186,49 @@ class MainActivity : ComponentActivity() {
         // inventing new copy.
         createOffTrackNotificationChannel(this)
         setContent {
-            // Read before ForagerTheme wraps content, not inside it: darkTheme is this state's own
-            // AvailabilityUiState.darkTheme (Settings' "Night Mode" checkbox), so ForagerTheme needs
-            // it to pick a color scheme rather than the other way around.
+            // Read before ForagerTheme wraps content, not inside it: themeMode is this state's own
+            // AvailabilityUiState.themeMode (Settings' Light/Dark/System Default choice), so
+            // ForagerTheme needs the resolved boolean below rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
+            // AppThemeMode.SYSTEM_DEFAULT is the one choice this app doesn't store as an explicit
+            // light/dark value — it means "follow the device" — and isSystemInDarkTheme() is a
+            // @Composable-only signal (backed by LocalConfiguration), so this resolution has to
+            // happen here, not in the ViewModel or domain/. AppThemeMode.LIGHT/DARK stay direct,
+            // device-independent choices either way.
+            val systemInDarkTheme = isSystemInDarkTheme()
+            val effectiveDarkTheme = when (uiState.themeMode) {
+                AppThemeMode.LIGHT -> false
+                AppThemeMode.DARK -> true
+                AppThemeMode.SYSTEM_DEFAULT -> systemInDarkTheme
+            }
             // enableEdgeToEdge() makes the system bars transparent and lets this app's own
             // background show through underneath them instead of a separately-colored system bar —
-            // called here, keyed on uiState.darkTheme via SideEffect (a synchronous per-recomposition
+            // called here, keyed on effectiveDarkTheme via SideEffect (a synchronous per-recomposition
             // effect, not LaunchedEffect: this call isn't suspending), rather than once with no
             // arguments in onCreate() as before.
             //
             // The no-arg call this replaces picks each bar's icon appearance from the *device's*
             // system dark-mode resource qualifier at the single moment it runs (SystemBarStyle.auto's
-            // own default detectDarkMode) — not from AvailabilityUiState.darkTheme, this app's own
-            // persisted Night Mode checkbox, which is a deliberately independent setting (see
-            // ForagerTheme's own doc comment) that can also change at runtime without recreating this
-            // Activity. LocalForagerDarkTheme's own doc comment already names this exact mistake for
-            // a different set of call sites (map screen colors reading the device theme instead of
+            // own default detectDarkMode) — not from this app's own resolved theme, which can also
+            // change at runtime (a Light/Dark/System Default switch, or the device's own theme
+            // changing while System Default is selected) without recreating this Activity.
+            // LocalForagerDarkTheme's own doc comment already names this exact mistake for a
+            // different set of call sites (map screen colors reading the device theme instead of
             // this state) as a real, previously-hit bug; this is the same mistake in the system bar
-            // icon appearance. A device in system dark mode with this app's own theme set to Day
+            // icon appearance. A device in system dark mode with this app's own theme set to Light
             // produces exactly the "status bar is white and washes out the notifications" hardware
-            // report this fixes: a light (uiState.darkTheme == false) app background under status
+            // report this fixes: a light (effectiveDarkTheme == false) app background under status
             // bar icons chosen for a dark background (light/white icons, from the device's dark
             // system setting) — invisible against white.
             SideEffect {
-                val statusBarStyle = if (uiState.darkTheme) {
+                val statusBarStyle = if (effectiveDarkTheme) {
                     SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                 } else {
                     SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
                 }
                 enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
             }
-            ForagerTheme(darkTheme = uiState.darkTheme) {
+            ForagerTheme(darkTheme = effectiveDarkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
 
@@ -312,7 +325,7 @@ class MainActivity : ComponentActivity() {
                     onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                     onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                    onDarkThemeChanged = viewModel::onDarkThemeChanged,
+                    onThemeModeChanged = viewModel::onThemeModeChanged,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,

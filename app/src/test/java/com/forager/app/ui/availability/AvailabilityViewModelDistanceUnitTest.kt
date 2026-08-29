@@ -30,6 +30,7 @@ import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
@@ -216,6 +217,6 @@ private object DistanceUnitStubMapPreferencesRepository : MapPreferencesReposito
 }
 
 private object DistanceUnitStubAppThemePreferenceRepository : AppThemePreferenceRepository {
-    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
-    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
+    override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }

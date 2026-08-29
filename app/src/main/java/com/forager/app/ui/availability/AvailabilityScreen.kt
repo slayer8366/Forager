@@ -174,6 +174,7 @@ import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.isOfflineRegionStale
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DistanceUnit
@@ -388,8 +389,8 @@ fun AvailabilityScreen(
     onDeleteOfflineRegion: (Long) -> Unit,
     /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
     onNightModeMapsChanged: (Boolean) -> Unit,
-    /** Settings' "Night Mode" checkbox (the app-wide theme) — see [AvailabilityUiState.darkTheme]'s own doc comment. */
-    onDarkThemeChanged: (Boolean) -> Unit,
+    /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
+    onThemeModeChanged: (AppThemeMode) -> Unit,
     /**
      * The mushroom log drawer destination's own state — see [com.forager.app.ui.log.LogPanel].
      * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
@@ -729,8 +730,8 @@ fun AvailabilityScreen(
                     modifier = Modifier.weight(1f),
                     distanceUnit = distanceUnit,
                     onDistanceUnitSelected = onDistanceUnitSelected,
-                    darkTheme = uiState.darkTheme,
-                    onDarkThemeChanged = onDarkThemeChanged,
+                    themeMode = uiState.themeMode,
+                    onThemeModeChanged = onThemeModeChanged,
                     nightModeMaps = uiState.nightModeMaps,
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     onOpenOfflineMaps = {
@@ -1139,8 +1140,8 @@ fun AvailabilityScreen(
                         currentTime = currentTime,
                         isNightMode = isNightMode,
                         onNightModeMapsChanged = onNightModeMapsChanged,
-                        darkTheme = uiState.darkTheme,
-                        onDarkThemeChanged = onDarkThemeChanged,
+                        themeMode = uiState.themeMode,
+                        onThemeModeChanged = onThemeModeChanged,
                         onOfflineMapLatChanged = onOfflineMapLatChanged,
                         onOfflineMapLngChanged = onOfflineMapLngChanged,
                         onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
@@ -1668,9 +1669,9 @@ private fun CompactSettingsTab(
     /** Night mode for the offline-download region picker this tab hosts, and Settings' own checkbox value. */
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    /** Settings' "Night Mode" checkbox (the app-wide theme) — see [AvailabilityUiState.darkTheme]'s own doc comment. */
-    darkTheme: Boolean,
-    onDarkThemeChanged: (Boolean) -> Unit,
+    /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit,
     onOfflineMapLatChanged: (String) -> Unit,
     onOfflineMapLngChanged: (String) -> Unit,
     onOfflineMapRadiusChanged: (Int) -> Unit,
@@ -1744,8 +1745,8 @@ private fun CompactSettingsTab(
                     onDistanceUnitSelected = onDistanceUnitSelected,
                     nightModeMaps = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
-                    darkTheme = darkTheme,
-                    onDarkThemeChanged = onDarkThemeChanged,
+                    themeMode = themeMode,
+                    onThemeModeChanged = onThemeModeChanged,
                     onOpenOfflineMaps = {
                         showOfflineMaps = true
                         onOfflineMapsOpened()
@@ -1786,8 +1787,8 @@ private fun SettingsContent(
     modifier: Modifier = Modifier,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
-    darkTheme: Boolean,
-    onDarkThemeChanged: (Boolean) -> Unit,
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     onOpenOfflineMaps: () -> Unit,
@@ -1802,7 +1803,7 @@ private fun SettingsContent(
     ) {
         DistanceUnitSection(distanceUnit = distanceUnit, onDistanceUnitSelected = onDistanceUnitSelected)
         HorizontalDivider()
-        DarkThemeSection(checked = darkTheme, onCheckedChange = onDarkThemeChanged)
+        ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
         OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
@@ -1816,23 +1817,35 @@ private fun SettingsContent(
 }
 
 /**
- * The app's own light/dark theme — a direct, persistent preference ([AvailabilityUiState.darkTheme]),
- * not derived from the device's system theme ([androidx.compose.foundation.isSystemInDarkTheme]).
- * [NightModeMapsSection] sits directly beneath this one: that checkbox controls only the map's own
- * basemap styling, independent of this app-wide choice — see [AvailabilityUiState.nightModeMaps]'s
- * own doc comment.
+ * The app's own theme — a direct, persistent preference ([AvailabilityUiState.themeMode]), a
+ * three-way choice rather than a single on/off checkbox now that [AppThemeMode.SYSTEM_DEFAULT]
+ * exists alongside the two explicit choices this setting started as
+ * ([AppThemeMode.LIGHT]/[AppThemeMode.DARK]) — only [AppThemeMode.SYSTEM_DEFAULT] is derived from
+ * the device's own theme ([androidx.compose.foundation.isSystemInDarkTheme], resolved in
+ * `MainActivity`); [AppThemeMode.LIGHT]/[AppThemeMode.DARK] stay direct choices independent of it.
+ * Same radio-group shape as [DistanceUnitSection] above, for the same reason: more than two mutually
+ * exclusive choices reads as a choice, not a toggle. [NightModeMapsSection] sits directly beneath
+ * this one: that checkbox controls only the map's own basemap styling, independent of this app-wide
+ * choice — see [AvailabilityUiState.nightModeMaps]'s own doc comment, and
+ * [com.forager.app.domain.AppThemePreferenceRepository]'s own doc comment for why that independence
+ * held even once this setting grew a third option.
  */
 @Composable
-private fun DarkThemeSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Text("Night Mode", style = MaterialTheme.typography.bodyLarge)
+private fun ThemeModeSection(themeMode: AppThemeMode, onThemeModeSelected: (AppThemeMode) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text("Night Mode", style = MaterialTheme.typography.titleMedium)
+        AppThemeMode.entries.forEach { mode ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.RadioButton) { onThemeModeSelected(mode) },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                RadioButton(selected = mode == themeMode, onClick = { onThemeModeSelected(mode) })
+                Text(mode.label, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
     }
 }
 
@@ -1840,7 +1853,7 @@ private fun DarkThemeSection(checked: Boolean, onCheckedChange: (Boolean) -> Uni
  * Whether the map renders in night mode — a direct, persistent preference
  * ([AvailabilityUiState.nightModeMaps]), not derived from time of day. Replaces the map's earlier
  * civil-twilight-automatic/long-press-hold control per the project owner's own request to move
- * this to a plain Settings checkbox instead. Sits directly beneath [DarkThemeSection] — see that
+ * this to a plain Settings checkbox instead. Sits directly beneath [ThemeModeSection] — see that
  * composable's own doc comment.
  */
 @Composable

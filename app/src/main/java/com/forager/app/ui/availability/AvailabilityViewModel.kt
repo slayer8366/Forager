@@ -27,6 +27,7 @@ import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.estimateOfflineTileCount
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
@@ -98,7 +99,7 @@ class AvailabilityViewModel(
         loadOfflineMapPreferences()
         loadDistanceUnitPreference()
         loadNightModePreferences()
-        loadDarkThemePreference()
+        loadThemeModePreference()
         // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
         // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
         // recording: "any time the map is open" was the explicit ask this answers. A denied/
@@ -696,25 +697,25 @@ class AvailabilityViewModel(
         }
     }
 
-    /** Restores Settings' "Night Mode" checkbox (the app-wide theme) — same read-failure treatment as [loadOfflineMapPreferences]. */
-    private fun loadDarkThemePreference() {
+    /** Restores Settings' theme choice (Light/Dark/System Default) — same read-failure treatment as [loadOfflineMapPreferences]. */
+    private fun loadThemeModePreference() {
         viewModelScope.launch {
-            appThemePreferenceRepository.getDarkTheme().fold(
-                onSuccess = { dark -> _uiState.update { it.copy(darkTheme = dark) } },
+            appThemePreferenceRepository.getThemeMode().fold(
+                onSuccess = { mode -> _uiState.update { it.copy(themeMode = mode) } },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the app theme preference.", error) },
             )
         }
     }
 
     /**
-     * Settings' "Night Mode" checkbox — the app-wide theme [MainActivity][com.forager.app.MainActivity]
-     * renders via [com.forager.app.ui.theme.ForagerTheme]. Same immediate-update-then-persist shape
-     * as [onNightModeMapsChanged].
+     * Settings' theme choice — the app-wide theme [MainActivity][com.forager.app.MainActivity]
+     * resolves and renders via [com.forager.app.ui.theme.ForagerTheme]. Same immediate-update-then-
+     * persist shape as [onNightModeMapsChanged].
      */
-    fun onDarkThemeChanged(dark: Boolean) {
-        _uiState.update { it.copy(darkTheme = dark) }
+    fun onThemeModeChanged(mode: AppThemeMode) {
+        _uiState.update { it.copy(themeMode = mode) }
         viewModelScope.launch {
-            appThemePreferenceRepository.setDarkTheme(dark).fold(
+            appThemePreferenceRepository.setThemeMode(mode).fold(
                 onSuccess = {},
                 onFailure = { error -> errorLog.w(TAG, "Couldn't persist the app theme preference.", error) },
             )

@@ -46,6 +46,7 @@ import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
@@ -172,7 +173,7 @@ class AvailabilityScreenConditionsMonthTest {
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onDarkThemeChanged = viewModel::onDarkThemeChanged,
+                onThemeModeChanged = viewModel::onThemeModeChanged,
                 mapSlot = StubMapSlot,
             )
         }
@@ -389,6 +390,6 @@ private object FakeDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepo
 }
 
 private object FakeAppThemePreferenceRepository : AppThemePreferenceRepository {
-    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
-    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
+    override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }

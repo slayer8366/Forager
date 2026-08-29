@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
@@ -101,7 +102,7 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedBasemap: Basemap? = null
     private var capturedOfflinePickerBasemap: Basemap? = null
     private var capturedNightMode: Boolean? = null
-    private var capturedDarkTheme: Boolean? = null
+    private var capturedThemeMode: AppThemeMode? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
@@ -146,7 +147,7 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = CapturingMapSlot,
                 tracks = tracks,
             )
@@ -190,9 +191,9 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
-                onDarkThemeChanged = { dark ->
-                    current = current.copy(darkTheme = dark)
-                    capturedDarkTheme = dark
+                onThemeModeChanged = { mode ->
+                    current = current.copy(themeMode = mode)
+                    capturedThemeMode = mode
                 },
                 mapSlot = CapturingMapSlot,
             )
@@ -251,28 +252,33 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     /**
-     * Settings' "Night Mode" checkbox — the app-wide theme [com.forager.app.ui.theme.ForagerTheme]
-     * renders, sitting directly above [NightModeMapsSection]'s own checkbox (see that composable's
-     * doc comment) rather than the other way around: this one is the toggle, Night Maps is the
-     * mode beneath it. Driven through the real checkbox row, same reasoning as the Night Maps
+     * Settings' Night Mode radio group (Light/Dark/System Default) — the app-wide theme
+     * [com.forager.app.ui.theme.ForagerTheme] renders, sitting directly above
+     * [NightModeMapsSection]'s own checkbox (see that composable's doc comment) rather than the
+     * other way around. Driven through the real radio rows, same reasoning as the Night Maps
      * checkbox test above. Unlike that one, this preference has no map-slot side channel to read
-     * back through — [AvailabilityUiState.darkTheme] only ever reaches [MainActivity] — so it's
-     * captured directly from [AvailabilityScreen.onDarkThemeChanged] instead.
+     * back through — [AvailabilityUiState.themeMode] only ever reaches [MainActivity] for
+     * resolution against the device theme — so it's captured directly from
+     * [AvailabilityScreen.onThemeModeChanged] instead.
      */
     @Test
-    fun `the Night Mode checkbox is above the Night Maps checkbox and toggles the app theme`() {
+    fun `the Night Mode radio group is above the Night Maps checkbox and selects the app theme`() {
         setScreenWithOfflineMapsState()
         openSettings()
 
-        assertEquals(null, capturedDarkTheme)
+        assertEquals(null, capturedThemeMode)
 
-        composeRule.onNodeWithText("Night Mode").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Dark").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
-        assertEquals(true, capturedDarkTheme)
+        assertEquals(AppThemeMode.DARK, capturedThemeMode)
 
-        composeRule.onNodeWithText("Night Mode").performClick()
+        composeRule.onNodeWithText("System Default").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
-        assertEquals(false, capturedDarkTheme)
+        assertEquals(AppThemeMode.SYSTEM_DEFAULT, capturedThemeMode)
+
+        composeRule.onNodeWithText("Light").assertIsDisplayed().performClick()
+        composeRule.waitForIdle()
+        assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
     private val mapModeContentDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
@@ -341,7 +347,7 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openSettings()
 
-        composeRule.onNodeWithText("Recorded Tracks").assertIsDisplayed()
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -349,7 +355,7 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openSettings()
 
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
 
         composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
     }
@@ -376,7 +382,7 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen(tracks = listOf(track))
         openSettings()
 
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
 
         composeRule.onNodeWithText(expectedTrackTimestampText(TRACK_STARTED_AT)).assertIsDisplayed()
         composeRule.onNodeWithText("2 points").assertIsDisplayed()
@@ -397,7 +403,7 @@ class AvailabilityScreenSettingsPanelTest {
         )
         setScreen(tracks = listOf(track))
         openSettings()
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
 
         composeRule.onNodeWithTag("share-track-track-1").performClick()
         // The share action writes the GPX file on Dispatchers.IO (a real thread pool) before
@@ -432,7 +438,7 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen(tracks = listOf(track))
         openSettings()
 
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
         composeRule.onNodeWithText("0 points · recording").assertIsDisplayed()
 
         assertNull(Shadows.shadowOf(composeRule.activity).nextStartedActivity)
@@ -575,7 +581,7 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
-                onDarkThemeChanged = {},
+                onThemeModeChanged = {},
                 mapSlot = CapturingMapSlot,
             )
         }

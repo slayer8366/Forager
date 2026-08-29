@@ -52,6 +52,7 @@ import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
+import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
@@ -177,7 +178,7 @@ class AvailabilityScreenBackNavigationTest {
                 onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onDarkThemeChanged = viewModel::onDarkThemeChanged,
+                onThemeModeChanged = viewModel::onThemeModeChanged,
                 logUiState = logState,
                 onStartLogEntry = { location, date ->
                     // Workstream L4b: a brand-new entry is a draft, never added to entries at
@@ -443,6 +444,6 @@ private object BackNavStubDistanceUnitPreferenceRepository : DistanceUnitPrefere
 }
 
 private object BackNavStubAppThemePreferenceRepository : AppThemePreferenceRepository {
-    override suspend fun getDarkTheme(): Result<Boolean> = Result.success(false)
-    override suspend fun setDarkTheme(dark: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
+    override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
