@@ -3798,16 +3798,19 @@ private fun CompactMapTab(
                 // same horizontal column MapIconBar's CenterEnd alignment already claims.
                 // MapIconBar's Surface intercepts touches across its full bounds (see this
                 // composable's own CLAUDE.md-documented precedent), and on a short enough viewport
-                // its vertically-centered 8-row stack reaches all the way up into the compass
-                // strip's own row — confirmed directly by AvailabilityScreenMapIconStackTest's own
+                // its vertically-centered row stack reaches all the way up into the compass strip's
+                // own row — confirmed directly by AvailabilityScreenMapIconStackTest's own
                 // touch-interaction test on a w360dp-h640dp viewport, not assumed from visual review
                 // alone (the exact class of miss that same file's own history warns visual review
                 // alone won't catch). Composition order is paint AND hit-test order for overlapping
                 // siblings in a Box, so moving this earlier guarantees the strip's own control wins
                 // any overlap on every screen size, not just typical ones — a small cosmetic cost
                 // (the strip's opaque background could cover a sliver of one icon bar row on a
-                // screen too short for MapIconBar's own 8 rows to fit at all — already a degraded
-                // state before this change) traded for a control that always actually works.
+                // screen too short for MapIconBar's own rows to fit at all — already a degraded
+                // state before this change) traded for a control that always actually works. Still
+                // true after MapIconBar's own return-to-vehicle row was removed (see that
+                // composable's own doc comment) — the overlap this guards against is with the bar's
+                // Surface as a whole, not specifically with that one row.
                 MapIconBar(
                     isFullscreen = isFullscreen,
                     onToggleFullscreen = onToggleFullscreen,
@@ -3821,10 +3824,6 @@ private fun CompactMapTab(
                     isNightMode = isNightMode,
                     isRecording = isRecording,
                     onToggleRecording = onToggleRecording,
-                    returnToStart = returnToStart,
-                    isReturning = isReturning,
-                    isOffTrack = isOffTrack,
-                    onToggleReturning = onToggleReturning,
                     onOpenSearchDrawer = onOpenSearchDrawer,
                     onAdd = {
                         // No location to grab any more — the button just opens the menu; the
@@ -3939,10 +3938,15 @@ private fun CompactMapTab(
  * Top to bottom: fullscreen, orientation-reset, GPS/locate-me, map mode (slot 4 opens
  * [MapModePicker] — the same picker [MapModeToggle] opens for the untouched MEDIUM/EXPANDED path,
  * restyled rather than reused directly so MEDIUM/EXPANDED's own styling stays untouched), record
- * start/stop, return-to-vehicle, search, add. The add button keeps its own green fill and the
- * record button its own error-colour fill while active — both real state, not decoration —
- * everything else tints its icon rather than its own background, since the bar itself is the
- * shared background now.
+ * start/stop, search, add. The add button keeps its own green fill and the record button its own
+ * error-colour fill while active — both real state, not decoration — everything else tints its
+ * icon rather than its own background, since the bar itself is the shared background now.
+ *
+ * **No return-to-vehicle row.** Field-test dispatch item 2 gave the compass strip's own
+ * `ReturnToVehicleStripControl` a visible readout and kept this bar's identical row alongside it
+ * deliberately, so the field test itself would decide which placement testers actually reached
+ * for. The owner's verdict, from real hardware: the compass strip control alone — this row was a
+ * confusing duplicate and is removed, not merely hidden.
  */
 @Composable
 private fun MapIconBar(
@@ -3954,10 +3958,6 @@ private fun MapIconBar(
     onOpenMapModePicker: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
     onOpenSearchDrawer: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
@@ -4019,22 +4019,6 @@ private fun MapIconBar(
                 filled = isRecording,
                 fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
                 fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
-            )
-            MapBarIconButton(
-                icon = Icons.Filled.Directions,
-                contentDescription = returnToStartStripText(isRecording, returnToStart)
-                    .ifBlank { "Return to vehicle — start recording first" },
-                onClick = onToggleReturning,
-                enabled = isRecording,
-                activeColor = when {
-                    isOffTrack -> MaterialTheme.colorScheme.error
-                    isReturning -> MaterialTheme.colorScheme.primary
-                    else -> null
-                },
-                // Disambiguates this row from CompassElevationStripContent's own
-                // ReturnToVehicleStripControl once both share the same contentDescription text —
-                // see that composable's own doc comment for why both exist.
-                modifier = Modifier.testTag("map-icon-bar-return-to-vehicle"),
             )
             MapBarIconButton(
                 icon = Icons.Filled.Search,
