@@ -929,7 +929,7 @@ private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, on
         Text(
             "elsewhere",
             modifier = Modifier
-                .padding(top = 500.dp)
+                .padding(top = 200.dp)
                 .testTag("map-elsewhere")
                 .clickable(onClick = onTap),
         )
