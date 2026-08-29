@@ -10,8 +10,9 @@ import com.forager.app.domain.model.AppThemeMode
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -109,6 +110,16 @@ class DataStoreAppThemePreferenceRepositoryTest {
      * itself throws if two instances are simultaneously active on the same file, so this one has to
      * be fully torn down before [repository] opens its own instance on the same
      * `app_theme_preferences` file.
+     *
+     * `scope.cancel()` alone only *requests* cancellation — it returns immediately, before
+     * DataStore's own internal actor coroutine (launched as a child of [scope]) has necessarily
+     * noticed and released its file-storage connection. That race was real, not hypothetical: it
+     * passed reliably on this machine but failed deterministically in CI with
+     * `IllegalStateException: There are multiple DataStores active for the same file` from the very
+     * next test to construct a [DataStoreAppThemePreferenceRepository] on this same file —
+     * confirmed by downloading that run's own JUnit XML rather than assumed from the summary count.
+     * [cancelAndJoin] instead suspends until the cancelled job (and its children) have actually
+     * finished, so the file connection is guaranteed released before this function returns.
      */
     private suspend fun writeLegacyDarkTheme(dark: Boolean) {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -117,6 +128,6 @@ class DataStoreAppThemePreferenceRepositoryTest {
             produceFile = { context().preferencesDataStoreFile("app_theme_preferences") },
         )
         legacyDataStore.edit { prefs -> prefs[booleanPreferencesKey("app_theme.dark")] = dark }
-        scope.cancel()
+        scope.coroutineContext[Job]?.cancelAndJoin()
     }
 }
