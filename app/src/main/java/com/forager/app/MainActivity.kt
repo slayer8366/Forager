@@ -13,11 +13,13 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -181,17 +183,38 @@ class MainActivity : ComponentActivity() {
         // anywhere in the tree — this wires up exactly the channel they were named for rather than
         // inventing new copy.
         createOffTrackNotificationChannel(this)
-        // Without this, the system nav bar stays whatever the platform default is — light on
-        // most devices — regardless of this app's own theme, which is why it read as a stray
-        // white bar under an otherwise dark screen. enableEdgeToEdge() makes it transparent and
-        // switches its icon color to match light/dark automatically, and lets this app's own
-        // background show through underneath it instead of a separately-colored system bar.
-        enableEdgeToEdge()
         setContent {
             // Read before ForagerTheme wraps content, not inside it: darkTheme is this state's own
             // AvailabilityUiState.darkTheme (Settings' "Night Mode" checkbox), so ForagerTheme needs
             // it to pick a color scheme rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
+            // enableEdgeToEdge() makes the system bars transparent and lets this app's own
+            // background show through underneath them instead of a separately-colored system bar —
+            // called here, keyed on uiState.darkTheme via SideEffect (a synchronous per-recomposition
+            // effect, not LaunchedEffect: this call isn't suspending), rather than once with no
+            // arguments in onCreate() as before.
+            //
+            // The no-arg call this replaces picks each bar's icon appearance from the *device's*
+            // system dark-mode resource qualifier at the single moment it runs (SystemBarStyle.auto's
+            // own default detectDarkMode) — not from AvailabilityUiState.darkTheme, this app's own
+            // persisted Night Mode checkbox, which is a deliberately independent setting (see
+            // ForagerTheme's own doc comment) that can also change at runtime without recreating this
+            // Activity. LocalForagerDarkTheme's own doc comment already names this exact mistake for
+            // a different set of call sites (map screen colors reading the device theme instead of
+            // this state) as a real, previously-hit bug; this is the same mistake in the system bar
+            // icon appearance. A device in system dark mode with this app's own theme set to Day
+            // produces exactly the "status bar is white and washes out the notifications" hardware
+            // report this fixes: a light (uiState.darkTheme == false) app background under status
+            // bar icons chosen for a dark background (light/white icons, from the device's dark
+            // system setting) — invisible against white.
+            SideEffect {
+                val statusBarStyle = if (uiState.darkTheme) {
+                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                } else {
+                    SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+                }
+                enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
+            }
             ForagerTheme(darkTheme = uiState.darkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
