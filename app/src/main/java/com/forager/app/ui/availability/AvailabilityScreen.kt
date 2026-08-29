@@ -8,9 +8,11 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -142,11 +144,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -155,11 +160,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -3854,6 +3862,20 @@ private fun CompactMapTab(
     var resumeTrackingRequestId by remember { mutableStateOf(0) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
     var resetOrientationRequestId by remember { mutableStateOf(0) }
+    // The compass strip's own real measured height, in px, reported by its onGloballyPositioned
+    // below — both AnchoredAtScreenPoint's minY and the taxon filter chip's top padding need to
+    // clear the strip, and it no longer has a fixed 48dp height to hardcode (Part A item 1's
+    // revert: the strip now wraps its own text content, which varies with font scale). Starts at
+    // 0 and updates after the strip's own first layout pass; anything anchored against it appears
+    // only in response to a later user action (a marker tap, a taxon filter), which by then always
+    // has a real measured value.
+    var compassStripHeightPx by remember { mutableStateOf(0) }
+    // MapIconBar's own real measured bottom edge, in px relative to this Box — the anchor
+    // ControlPill/DistanceArm position themselves against below. See MapIconBar's own call site
+    // for why this is measured rather than a hardcoded offset or a value computed from the bar's
+    // row count (that row count changes twice in quick succession across this dispatch and the
+    // next one, so any such constant goes stale before the layout phase finishes).
+    var mapIconBarBottomPx by remember { mutableStateOf(0f) }
 
     // AddActionTile and CentrePinLocationPickerOverlay are both plain overlays, not real Dialogs,
     // so — unlike TripDatePickerDialog below, an M3 DatePickerDialog whose own Dialog window
@@ -3982,19 +4004,22 @@ private fun CompactMapTab(
                     Modifier.fillMaxSize(),
                 )
                 tappedSighting?.let { sighting ->
-                    // minY = COMPASS_STRIP_MIN_HEIGHT, not 0 — the compass strip is composed after
-                    // this in the same Box (deliberately, so its own controls win any overlap — see
-                    // CompactMapTab's own doc comment above MapIconBar), and is full-width/flush
-                    // against the map's top edge. A marker tapped near the map's own top edge would
-                    // otherwise anchor a bubble underneath that strip's band: its own taps (including
-                    // the close icon's) would never reach this composable, silently swallowed by the
-                    // strip's own Surface the exact way CLAUDE.md's "Known pitfalls" already
-                    // documents for this app's map overlays — the same class of miss that entry
-                    // warns visual review alone won't catch, this time guarded against directly
-                    // rather than only caught by this bubble's own close-icon interaction test.
+                    // minY = the compass strip's own measured height (compassStripHeightPx), not a
+                    // hardcoded constant and not 0 — the strip is composed after this in the same Box
+                    // (deliberately, so its own controls win any overlap — see CompactMapTab's own
+                    // doc comment above MapIconBar), and is full-width/flush against the map's top
+                    // edge. A marker tapped near the map's own top edge would otherwise anchor a
+                    // bubble underneath that strip's band: its own taps (including the close icon's)
+                    // would never reach this composable, silently swallowed by the strip's own
+                    // Surface the exact way CLAUDE.md's "Known pitfalls" already documents for this
+                    // app's map overlays — the same class of miss that entry warns visual review
+                    // alone won't catch, this time guarded against directly rather than only caught
+                    // by this bubble's own close-icon interaction test. Measured rather than a fixed
+                    // 48dp constant since Part A item 1 of this dispatch un-pinned the strip's own
+                    // height back to wrapping its text content.
                     AnchoredAtScreenPoint(
                         anchorPx = tappedSightingScreenPosition,
-                        minY = COMPASS_STRIP_MIN_HEIGHT,
+                        minY = with(LocalDensity.current) { compassStripHeightPx.toDp() },
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         ObservationBubble(
@@ -4036,8 +4061,6 @@ private fun CompactMapTab(
                     mapMode = mapMode,
                     onOpenMapModePicker = { showMapModePicker = true },
                     isNightMode = isNightMode,
-                    isRecording = isRecording,
-                    onToggleRecording = onToggleRecording,
                     onOpenSearchDrawer = onOpenSearchDrawer,
                     onAdd = {
                         // No location to grab any more — the button just opens the menu; the
@@ -4047,37 +4070,63 @@ private fun CompactMapTab(
                     },
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                        .padding(Spacing.sm),
+                        .padding(Spacing.sm)
+                        // Reports this bar's own actual laid-out bottom edge, relative to this Box,
+                        // into mapIconBarBottomPx — what ControlPill/DistanceArm anchor against
+                        // below. See mapIconBarBottomPx's own doc comment for why this is measured
+                        // rather than a hardcoded offset or a value computed from the bar's row
+                        // count.
+                        .onGloballyPositioned { coordinates ->
+                            mapIconBarBottomPx = coordinates.boundsInParent().bottom
+                        },
                 )
                 CompassElevationStrip(
                     compassProvider = compassProvider,
                     elevationMeters = uiState.liveAltitudeMeters,
                     location = uiState.liveLocation,
-                    isRecording = isRecording,
-                    returnToStart = returnToStart,
-                    isReturning = isReturning,
-                    isOffTrack = isOffTrack,
-                    onToggleReturning = onToggleReturning,
                     // Full width, flush against the top of the map — "just below" ActiveSearchSummary
                     // (the sibling Column entry directly above this Box) rather than a narrow
                     // floating pill with margins on both sides, per the project owner's own redesign
                     // call.
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        // See compassStripHeightPx's own doc comment — reports this strip's real
+                        // measured height for AnchoredAtScreenPoint's minY and the taxon filter
+                        // chip's own top padding below.
+                        .onGloballyPositioned { coordinates ->
+                            compassStripHeightPx = coordinates.size.height
+                        },
+                )
+                // Always composed, regardless of isRecording — record start/stop must stay reachable
+                // before the first recording starts, the same as it was as an always-enabled
+                // MapIconBar row before this dispatch. isRecording flows in as a plain parameter
+                // (see TrailheadControls' own doc comment for how it drives the return-to-vehicle
+                // row's disabled state), not a presence check, so a tester never sees this pill
+                // appear from nowhere the first time they hit record.
+                TrailheadControls(
+                    isRecording = isRecording,
+                    onToggleRecording = onToggleRecording,
+                    returnToStart = returnToStart,
+                    isReturning = isReturning,
+                    isOffTrack = isOffTrack,
+                    onToggleReturning = onToggleReturning,
+                    mapIconBarBottomPx = mapIconBarBottomPx,
+                    modifier = Modifier.align(Alignment.TopEnd),
                 )
 
-                // Below the compass strip (COMPASS_STRIP_MIN_HEIGHT top padding), same reasoning
-                // as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts touches
-                // across its full width, so a chip placed underneath it would have its own "Show
-                // all species" tap silently swallowed the same way a bubble anchored there would.
+                // Below the compass strip (its own measured compassStripHeightPx as top padding),
+                // same reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface
+                // intercepts touches across its full width, so a chip placed underneath it would
+                // have its own "Show all species" tap silently swallowed the same way a bubble
+                // anchored there would.
                 mapTaxonFilterLabel?.let { label ->
                     TaxonMapFilterChip(
                         label = label,
                         onClear = onClearTaxonFilter,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = COMPASS_STRIP_MIN_HEIGHT + Spacing.sm),
+                            .padding(top = with(LocalDensity.current) { compassStripHeightPx.toDp() } + Spacing.sm),
                     )
                 }
 
@@ -4165,16 +4214,25 @@ private fun CompactMapTab(
  *
  * Top to bottom: fullscreen, orientation-reset, GPS/locate-me, map mode (slot 4 opens
  * [MapModePicker] — the same picker [MapModeToggle] opens for the untouched MEDIUM/EXPANDED path,
- * restyled rather than reused directly so MEDIUM/EXPANDED's own styling stays untouched), record
- * start/stop, search, add. The add button keeps its own green fill and the record button its own
- * error-colour fill while active — both real state, not decoration — everything else tints its
- * icon rather than its own background, since the bar itself is the shared background now.
+ * restyled rather than reused directly so MEDIUM/EXPANDED's own styling stays untouched), search,
+ * add. The add button keeps its own green fill — real state, not decoration — everything else
+ * tints its icon rather than its own background, since the bar itself is the shared background
+ * now.
  *
  * **No return-to-vehicle row.** Field-test dispatch item 2 gave the compass strip's own
  * `ReturnToVehicleStripControl` a visible readout and kept this bar's identical row alongside it
  * deliberately, so the field test itself would decide which placement testers actually reached
  * for. The owner's verdict, from real hardware: the compass strip control alone — this row was a
  * confusing duplicate and is removed, not merely hidden.
+ *
+ * **No record row either, as of this dispatch's Part B.** Record start/stop moved into
+ * `ControlPill` alongside return-to-vehicle — the two Trailhead/Return controls belong together,
+ * not split across this bar and the compass strip. Re-derived directly against the tree rather
+ * than assumed: this bar was 7 rows before this change (fullscreen, orientation-reset, locate-me,
+ * map mode, record, search, add — return-to-vehicle's own row was already gone above), not 8;
+ * removing record leaves 6. [mapIconBarRowAnchorOffset]'s `rowCount` and [ADD_TILE_ANCHOR_OFFSET]'s
+ * row index are updated to match — both were still keyed to 8 despite the bar already sitting at
+ * 7, a staleness this same re-derivation catches and fixes rather than compounds.
  */
 @Composable
 private fun MapIconBar(
@@ -4184,8 +4242,6 @@ private fun MapIconBar(
     onResetOrientation: () -> Unit,
     mapMode: MapMode,
     onOpenMapModePicker: () -> Unit,
-    isRecording: Boolean,
-    onToggleRecording: () -> Unit,
     onOpenSearchDrawer: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
@@ -4239,14 +4295,6 @@ private fun MapIconBar(
                     append(if (isNightMode) " Night mode on." else " Night mode off.")
                 },
                 onClick = onOpenMapModePicker,
-            )
-            MapBarIconButton(
-                icon = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
-                contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
-                onClick = onToggleRecording,
-                filled = isRecording,
-                fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
-                fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
             )
             MapBarIconButton(
                 icon = Icons.Filled.Search,
@@ -4368,6 +4416,247 @@ private fun MapFloatingIconButton(
     }
 }
 
+/** Gap between [MapIconBar]'s own measured bottom edge and [ControlPill]'s top edge — matches [MapIconBar]'s own `Spacing.sm` inset from the screen edge, so the pill reads as continuing the same margin rather than sitting at an arbitrarily different distance. */
+private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
+
+/** How far [DistanceArm] overlaps under [ControlPill]'s own left edge at the junction — a few px of real overlap, not a flush zero-gap abutment, so the pill's rounded left corner (drawn on top, per this dispatch's own composition-order requirement) fully covers the seam rather than leaving a hairline gap at the exact boundary pixel. */
+private val DISTANCE_ARM_TUCK_UNDER = 2.dp
+
+/**
+ * The two Trailhead/Return controls — record start/stop and return-to-vehicle — anchored together
+ * below [MapIconBar], per this dispatch's own Part B: they used to be split across a
+ * [MapIconBar] row and a duplicate compass-strip readout; now they share one home.
+ *
+ * **Anchored relative to [MapIconBar]'s own measured bottom edge, not a hardcoded offset and not
+ * a value computed from the bar's row count.** [mapIconBarBottomPx] comes from
+ * [CompactMapTab]'s own `onGloballyPositioned` on the bar's call site (`boundsInParent().bottom`),
+ * not from [mapIconBarRowAnchorOffset]-style row-count arithmetic the way [MapModePicker] and
+ * [AddActionTile] anchor themselves — deliberately: the bar's own row count changes twice in quick
+ * succession across this dispatch and the next one (record leaves here, search leaves in the
+ * follow-up dispatch), so any constant derived from today's row count or height would already be
+ * stale by the time the next dispatch lands, and this pill would visibly drift on exactly the
+ * build field testers are using. A real measured value tracks whatever the bar's current row count
+ * happens to be, automatically, with no second edit required when it changes again.
+ *
+ * **Composition order: [DistanceArm] first, [ControlPill] second**, both inside one [Box] so a
+ * [Box]'s own paint-and-hit-test-order-by-declaration rule (the same rule [MapIconBar] composing
+ * before [CompassElevationStrip] already relies on, see that call site's own doc comment) makes
+ * the pill win any overlap at their shared junction — the correct precedence, since a tap near
+ * that corner should reach a control, not the arm's own plain readout. This is the third surface
+ * in the same outer [Box] whose composition order is now load-bearing, alongside the
+ * bar-before-strip ordering above; the two are independent (this pair doesn't overlap either the
+ * bar or the strip) but both must survive the AvailabilityScreen split this file is scheduled for.
+ *
+ * `isRecording` is passed through as a plain parameter, not a presence check gating whether this
+ * composable runs at all — record start/stop must stay reachable before the first recording
+ * starts, the same as when it was an always-enabled [MapIconBar] row.
+ */
+@Composable
+private fun TrailheadControls(
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
+    mapIconBarBottomPx: Float,
+    modifier: Modifier = Modifier,
+) {
+    // ControlPill's own real measured size, in px — what DistanceArm positions itself against (its
+    // right edge at the pill's left edge, its bottom edge at the pill's bottom edge) below.
+    var pillSizePx by remember { mutableStateOf(IntSize.Zero) }
+    Box(
+        modifier = modifier
+            .padding(end = Spacing.sm)
+            .offset {
+                IntOffset(x = 0, y = (mapIconBarBottomPx + CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR.toPx()).roundToInt())
+            },
+    ) {
+        // First: DistanceArm. Both children align TopEnd against this Box's own corner — the same
+        // corner ControlPill's own top-right lands on — so DistanceArm's negative x offset below
+        // (by the pill's own measured width, less a small tuck-under) lands its right edge just
+        // under the pill's left edge, and its y offset (pill height minus the arm's own fixed
+        // one-row height) lands its bottom edge flush with the pill's bottom edge. Both offsets
+        // depend on pillSizePx, which is why ControlPill (below) must report its size before either
+        // offset can be correct — harmless on the frame or two before the first measurement lands,
+        // since DistanceArm is invisible (isReturning starts false) until a real return leg begins.
+        DistanceArm(
+            visible = isReturning,
+            distanceMeters = returnToStart?.distanceMeters,
+            isOffTrack = isOffTrack,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset {
+                    IntOffset(
+                        x = -(pillSizePx.width - DISTANCE_ARM_TUCK_UNDER.roundToPx()),
+                        y = pillSizePx.height - MIN_TOUCH_TARGET.roundToPx(),
+                    )
+                },
+        )
+        // Second: ControlPill, so it paints on top of DistanceArm at their shared junction.
+        ControlPill(
+            isRecording = isRecording,
+            onToggleRecording = onToggleRecording,
+            returnToStart = returnToStart,
+            isReturning = isReturning,
+            isOffTrack = isOffTrack,
+            onToggleReturning = onToggleReturning,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .onGloballyPositioned { coordinates -> pillSizePx = coordinates.size },
+        )
+    }
+}
+
+/**
+ * The vertical control pill at the bottom right, below [MapIconBar] — record start/stop and
+ * return-to-vehicle, the two Trailhead/Return controls, sharing one home per this dispatch's own
+ * Part B rather than split across a [MapIconBar] row and a duplicate compass-strip readout.
+ *
+ * Same visual language as [MapIconBar] on purpose — same [MAP_ICON_BAR_CORNER_RADIUS] stadium
+ * shape, same theme-aware surface/border colors, same [MapBarIconButton] rows — so this reads as a
+ * sibling of the bar, not a new kind of floating control. Both rows carry over unchanged from
+ * [MapIconBar]'s own former record/return-to-vehicle rows, including their accents
+ * ([mapIconBarRecordAccent]) and the return row's disabled-while-not-recording treatment.
+ */
+@Composable
+private fun ControlPill(
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    Surface(
+        shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        contentColor = if (isDarkTheme) Color.White else Bark,
+        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
+        modifier = modifier.testTag("control-pill"),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = Spacing.xs),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            MapBarIconButton(
+                icon = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
+                contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
+                onClick = onToggleRecording,
+                filled = isRecording,
+                fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
+                fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
+                modifier = Modifier.testTag("control-pill-record"),
+            )
+            MapBarIconButton(
+                icon = Icons.Filled.Directions,
+                contentDescription = returnToStartStripText(isRecording, returnToStart)
+                    .ifBlank { "Return to vehicle — start recording first" },
+                onClick = onToggleReturning,
+                enabled = isRecording,
+                activeColor = when {
+                    isOffTrack -> MaterialTheme.colorScheme.error
+                    isReturning -> MaterialTheme.colorScheme.primary
+                    else -> null
+                },
+                modifier = Modifier.testTag("control-pill-return-to-vehicle"),
+            )
+        }
+    }
+}
+
+/** The widest plausible [formatReturnDistance] output — measured, not counted: a two-digit km reading with its decimal ("99.9 km") is wider in this typeface than any three-digit metre reading ("999 m"), so this is what [DistanceArm] sizes its own fixed-width readout against. */
+private const val DISTANCE_ARM_WIDEST_TEXT = "99.9 km"
+
+/**
+ * The horizontal arm that extends left from [ControlPill] while return-to-vehicle is active,
+ * holding the distance-only readout — see [ControlPill]'s own return row for the full
+ * bearing/distance/elevation sentence this supplements (that row's `contentDescription` carries
+ * it; this arm shows plain visible text only, so a test can assert it via `onNodeWithText` rather
+ * than `onNodeWithContentDescription` alone, per this repo's own testing rule).
+ *
+ * **Sized to the widest plausible string, not to content.** [DISTANCE_ARM_WIDEST_TEXT] is measured
+ * at this Text's own real [MaterialTheme.typography] style via [rememberTextMeasurer] — not
+ * counted in characters — so the fixed width this arm animates to is the actual rendered pixel
+ * width in the actual typeface at the actual size, not a guess.
+ *
+ * **Tabular figures** (`fontFeatureSettings = "tnum"`): this number updates live while someone
+ * walks toward their car, and proportional digits would shimmer the text sideways as the value
+ * changes on exactly the leg where someone is watching it.
+ *
+ * **A width animation, not shape morphing** — [AnimatedVisibility]'s
+ * [expandHorizontally]/[shrinkHorizontally], driven by [MotionTokens.navigationMotionSpec] (chrome;
+ * no positional truth to distort, per docs/adr/0002-motion-scheme-adoption.md's category table —
+ * this is that category's first production caller). Shape morphing is listed experimental in the
+ * M3 design study's own stable/experimental table; a width animation reads the same at a fraction
+ * of the cost and needs nothing beyond what this codebase already uses elsewhere
+ * ([AddActionTile]'s own `expandIn`/`shrinkOut`).
+ *
+ * **Square on its right end, stadium-rounded on its left** (`topEnd`/`bottomEnd` = 0,
+ * `topStart`/`bottomStart` = [MAP_ICON_BAR_CORNER_RADIUS]) — the right end tucks under
+ * [ControlPill]'s own rounded left edge (see [TrailheadControls]' own composition-order doc
+ * comment), so the only visible curve at the junction is the pill's, and the pair reads as one L
+ * shape rather than two overlapping rounded shapes meeting mid-curve.
+ *
+ * Height is a fixed [MIN_TOUCH_TARGET] — this arm is always exactly one row, unlike [ControlPill],
+ * so [TrailheadControls] uses that as a known constant rather than measuring it, the same way
+ * [MapBarIconButton]'s own rows are sized.
+ */
+@Composable
+private fun DistanceArm(
+    visible: Boolean,
+    distanceMeters: Double?,
+    isOffTrack: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    val textMeasurer = rememberTextMeasurer()
+    val numberStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+    val widestNumberWidthPx = remember(numberStyle) {
+        textMeasurer.measure(DISTANCE_ARM_WIDEST_TEXT, numberStyle).size.width
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = expandHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), expandFrom = Alignment.End),
+        exit = shrinkHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), shrinkTowards = Alignment.End),
+        modifier = modifier,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(
+                topStart = MAP_ICON_BAR_CORNER_RADIUS,
+                bottomStart = MAP_ICON_BAR_CORNER_RADIUS,
+                topEnd = 0.dp,
+                bottomEnd = 0.dp,
+            ),
+            color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+            contentColor = if (isDarkTheme) Color.White else Bark,
+            shadowElevation = 2.dp,
+            border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
+            modifier = Modifier
+                .height(MIN_TOUCH_TARGET)
+                .testTag("distance-arm"),
+        ) {
+            Box(
+                modifier = Modifier.width(with(LocalDensity.current) { widestNumberWidthPx.toDp() } + Spacing.md),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = distanceMeters?.let { formatReturnDistance(it) }.orEmpty(),
+                    style = numberStyle,
+                    color = if (isOffTrack) MaterialTheme.colorScheme.error else LocalContentColor.current,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
 /**
  * Decisions #7-8: compass heading + GPS elevation folded into one bar at the top of the map — a
  * compass-tape-style heading readout, not a separate elevation/speed stats pill (that would be
@@ -4387,11 +4676,6 @@ private fun CompassElevationStrip(
     compassProvider: CompassProvider,
     elevationMeters: Double?,
     location: LatLng?,
-    isRecording: Boolean,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val headingDegrees by compassProvider.heading.collectAsState(initial = null)
@@ -4399,41 +4683,23 @@ private fun CompassElevationStrip(
         headingDegrees = headingDegrees,
         elevationMeters = elevationMeters,
         location = location,
-        isRecording = isRecording,
-        returnToStart = returnToStart,
-        isReturning = isReturning,
-        isOffTrack = isOffTrack,
-        onToggleReturning = onToggleReturning,
         modifier = modifier,
     )
 }
 
 /**
- * Heading, elevation, and coordinates on one centered line, plus — field-test dispatch item 2 —
- * a compact return-to-vehicle readout docked at the strip's far right. The record start/stop
- * control and the return-to-vehicle *toggle* still live in [MapIconBar] (project owner's original
- * call: this strip should stay a single line, not grow a second row for track-recording controls
- * that already have a home in the icon bar) — this doesn't move that control, it duplicates its
- * state into a second, actually-visible surface, deliberately: [MapIconBar]'s own row computes the
- * identical [ReturnToStartInfo] and wires it only to a `contentDescription` (TalkBack-only) and an
- * icon tint most testers won't consciously register — see `AvailabilityScreenMapIconStackTest`'s
- * own "recording with a real fix shows..." tests, which pass by asserting that same
- * contentDescription and never once render anything a sighted tester can read. Both controls are
- * kept, on purpose, rather than one replacing the other: the field test itself is what should
- * decide which placement testers actually reach for (see this dispatch's own tester-interview
- * question, "where did you look first when you wanted to get back to the car?").
- * **Corrected 2026-08-28**: named `MapIconStack` here before that composable was renamed.
+ * Heading, elevation, and coordinates only — one centered line. Pure readout, per this dispatch's
+ * Part A item 3: the return-to-vehicle readout field-test dispatch item 2 added here is removed,
+ * not merely hidden — it moved into [ControlPill]/[DistanceArm] instead, alongside record
+ * start/stop, so the two Trailhead/Return controls live in one place rather than split between
+ * this strip and [MapIconBar]. **Corrected 2026-08-28**: named `MapIconStack` here before that
+ * composable was renamed.
  */
 @Composable
 private fun CompassElevationStripContent(
     headingDegrees: Float?,
     elevationMeters: Double?,
     location: LatLng?,
-    isRecording: Boolean,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
@@ -4455,51 +4721,51 @@ private fun CompassElevationStripContent(
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         Box(
             modifier = modifier
-                // The one deliberate height change field-test dispatch item 2 asks for — see
-                // COMPASS_STRIP_MIN_HEIGHT's own doc comment for why 48dp and why it's here at all.
-                .heightIn(min = COMPASS_STRIP_MIN_HEIGHT)
+                // No heightIn(min = ...) any more — Part A item 1's revert. The 48dp touch-target
+                // floor field-test dispatch item 2 pinned here existed only to give the strip's own
+                // return-to-vehicle IconButton a real touch target; that control moved out to
+                // ControlPill (Part B), so this strip wraps its Row's natural text-content height
+                // again, the same as before that dispatch.
                 .background(
                     color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
                     shape = RectangleShape,
                 )
-                // Lets a test assert this Box's own measured height directly — the return-to-
-                // vehicle IconButton's fixed Modifier.size(48.dp) inside it stays 48dp regardless of
-                // how tall this outer Box ends up, so a test targeting that tag alone can't catch
-                // this Box itself stretching to fill the map (see this tag's own test for the real
-                // regression that shape of assertion missed).
+                // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
+                // AnchoredAtScreenPoint's minY and the taxon filter chip's top padding both need to
+                // clear it, and now that it wraps content instead of sitting at a fixed 48dp, a
+                // measured value is the only one that stays correct as font scale or content change
+                // it. Also still what this composable's own regression test targets directly.
                 .testTag("compass-elevation-strip"),
         ) {
             Row(
-                // fillMaxWidth, not fillMaxSize: this Box's own height is only bottom-bounded by
-                // heightIn(min = COMPASS_STRIP_MIN_HEIGHT) above, with no upper bound of its own,
-                // so any descendant anywhere in this Row asking to fill *available* height (there
-                // was a second one, deeper down — see ReturnToVehicleStripControl's own doc
-                // comment) inherits whatever the parent map Box can offer and propagates that
-                // height back up through every ancestor lacking its own explicit bound, including
-                // this Row and the strip's outer Box. That's the real, hardware-caught bug this
-                // had: the strip stretched to the map's full height and its vertically-centered
-                // content landed in the screen's middle, on top of MapIconBar's own
-                // vertically-centered column, reading as "grouped with the icon bar." Both sources
-                // had to go before this Row's height (from its tallest child, the return-to-vehicle
-                // IconButton's fixed 48dp) actually stuck.
+                // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
+                // hardware-caught bug an unbounded-height descendant caused here previously; nothing
+                // in this Row asks for available height any more, but the fillMaxWidth-not-fillMaxSize
+                // choice stays deliberate rather than reverting to whichever one happens to still work.
                 modifier = Modifier
-                    // No horizontal padding at all here any more (was Spacing.md, then Spacing.sm)
-                    // — still cut off on real hardware at Spacing.sm, and the two end boxes already
-                    // carry their own visual margin: each is MIN_TOUCH_TARGET (48dp) wide with an
-                    // 18-24dp icon centered inside, so dropping this Row's own padding entirely
-                    // still leaves real whitespace before either icon, it just stops taking width
-                    // away from the coordinates text on top of that.
+                    // A little horizontal padding again, unlike the zero this Row held right before
+                    // Part A: that zero relied on two MIN_TOUCH_TARGET end boxes (this icon's, and
+                    // the return-to-vehicle control's) to supply real whitespace at both edges by
+                    // themselves. The return-to-vehicle box is gone (moved to ControlPill) and this
+                    // icon's own box no longer holds itself to a 48dp touch target (it isn't one —
+                    // see below), so nothing is left to keep the text off the strip's own edges
+                    // without this. Re-added once, in the direction opposite the three prior trims
+                    // Part A item 4 warns about, and explained rather than blindly re-trimmed.
+                    .padding(horizontal = Spacing.sm)
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Fixed at the strip's own far left, the same MIN_TOUCH_TARGET box
-                // ReturnToVehicleStripControl reserves at the far right — same size, symmetric on
-                // both ends now that this Row has no horizontal padding of its own, for the same
-                // reason: a hardware report found the compass needle visibly drifting left/right as
-                // the heading/elevation/coordinates text next to it changed length, because it used
-                // to be the first child of the centered text group below rather than its own fixed
-                // slot — this box's position never depends on any text's width.
-                Box(modifier = Modifier.size(MIN_TOUCH_TARGET), contentAlignment = Alignment.Center) {
+                // Fixed-width slot, not inline in the text group below — a hardware report found the
+                // compass needle visibly drifting left/right as the heading/elevation/coordinates
+                // text next to it changed length, because it used to be the first child of that
+                // centered group rather than its own fixed slot; this box's position never depends on
+                // any text's width. Sized to its own content (no explicit .size()), not
+                // MIN_TOUCH_TARGET: Part A item 2's revert — this icon is decorative (no click
+                // affordance of its own), so pinning it to a 48dp touch-target box only existed to
+                // match the return-to-vehicle control's box that shared this Row; that control is
+                // gone, and holding this box at 48dp anyway would defeat item 1's height revert by
+                // becoming the Row's own tallest child in the vehicle box's place.
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
@@ -4508,17 +4774,15 @@ private fun CompassElevationStripContent(
                             .rotate(headingDegrees ?: 0f),
                     )
                 }
-                // Heading, elevation, and coordinates, centered in whatever width is left between
-                // the two fixed end boxes — Arrangement.Center, not spacedBy's own centering, now
-                // that the compass icon moved out to its own fixed box above: this group used to
-                // share its weight(1f) budget with that icon's inline width, which is exactly the
-                // width the coordinates segment's own ellipsis was giving up first on a narrow
-                // screen (a hardware report: "cut off for no reason" — there was room, it just
-                // wasn't reaching this Text). Pulling the icon out of this Row's own measurement
-                // entirely is the fix, not a wider budget: Compose reserves both fixed siblings'
-                // width before dividing what's left to this weight(1f) Row, so this group's own
-                // available width is strictly larger now than when the icon competed for it from
-                // inside. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
+                // Heading, elevation, and coordinates, taking whatever width is left after the fixed
+                // compass-icon box above — this group used to share its weight(1f) budget with that
+                // icon's inline width, which is exactly the width the coordinates segment's own
+                // ellipsis was giving up first on a narrow screen (a hardware report: "cut off for no
+                // reason" — there was room, it just wasn't reaching this Text). Pulling the icon out
+                // of this Row's own measurement entirely is the fix, not a wider budget. Only one
+                // fixed sibling now (Part A item 3 removed the strip's own return-to-vehicle box),
+                // so this group's own available width is wider still than when that box also took a
+                // share. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
                 // safety net for a screen too narrow for all three fields regardless, not
                 // horizontalScroll — see this composable's own doc comment above for why
                 // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
@@ -4554,104 +4818,7 @@ private fun CompassElevationStripContent(
                             ),
                     )
                 }
-                ReturnToVehicleStripControl(
-                    isRecording = isRecording,
-                    returnToStart = returnToStart,
-                    isReturning = isReturning,
-                    isOffTrack = isOffTrack,
-                    onToggleReturning = onToggleReturning,
-                )
             }
-        }
-    }
-}
-
-/** This strip's own [MIN_TOUCH_TARGET], not a separate constant — see that value's own doc comment for the source. */
-private val COMPASS_STRIP_MIN_HEIGHT = MIN_TOUCH_TARGET
-
-/** "1.2 km"/"999 m" at [MaterialTheme.typography]'s `labelMedium` never needs more than this — see [ReturnToVehicleStripControl]'s own doc comment for why the slot is fixed-width at all. */
-private val RETURN_TO_VEHICLE_TEXT_WIDTH = 48.dp
-
-/**
- * Field-test dispatch item 2's visible return-to-vehicle control — see
- * [CompassElevationStripContent]'s own doc comment for why this exists alongside, not instead of,
- * [MapIconBar]'s identical-data row.
- *
- * **Distance only**, not the full bearing/distance/elevation sentence [MapIconBar]'s row carries in
- * its `contentDescription`: this strip already shows a heading arrow immediately to its left, so
- * "which way" is covered by the existing compass, and there is no room in a strip this narrow for a
- * second full sentence — "412 m" answers the one question distance alone covers ("how much
- * further") without needing the rest. Full bearing/elevation stay reachable through [MapIconBar]'s
- * row and its `contentDescription` for TalkBack.
- *
- * The text lives in a [RETURN_TO_VEHICLE_TEXT_WIDTH]-wide, vertically-centered [Box] — reserved
- * whether or not [returnToStart] has a value yet, so a fix landing or being lost never shifts the
- * icon (and the coordinates segment measured against it) sideways.
- *
- * **Transparent and themed, not a filled chip**: [tint] alone carries state (the same
- * error/primary/default three-way [MapIconBar]'s own row already uses), never a background fill —
- * a filled circle here would read as a fourth accent color competing with the strip's own two
- * (add/record) rather than a plain, in-line readout.
- *
- * **A real ripple, not a static icon**: [IconButton] gives a ripple bounded to its own
- * [MIN_TOUCH_TARGET] box plus the tint's own state change on tap — the one element in this
- * otherwise-static strip (besides the coordinates segment) that visibly reacts, so it reads as the
- * interactive one it is.
- */
-@Composable
-private fun ReturnToVehicleStripControl(
-    isRecording: Boolean,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
-) {
-    val tint = when {
-        isOffTrack -> MaterialTheme.colorScheme.error
-        isReturning -> MaterialTheme.colorScheme.primary
-        else -> LocalContentColor.current
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        // Same disabled treatment as MapBarIconButton's own — nothing to return to while nothing
-        // is recording.
-        modifier = Modifier.alpha(if (isRecording) 1f else 0.4f),
-    ) {
-        Box(
-            // No fillMaxHeight: the outer Row's own verticalAlignment = CenterVertically already
-            // centers this Box (sized to its own text content) within the row, the same way the
-            // heading/elevation/coordinates group's own Texts rely on their Row's alignment rather
-            // than filling height themselves. fillMaxHeight here was the second, deeper source of
-            // this composable's own real regression (see CompassElevationStripContent's content
-            // Row doc comment for the first): asking to fill max *available* height, with nothing
-            // above it ever capping that max, is what propagated all the way up through every
-            // ancestor Row/Box lacking its own explicit height bound, stretching the whole compass
-            // strip to the map's full height.
-            modifier = Modifier.width(RETURN_TO_VEHICLE_TEXT_WIDTH),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = if (isRecording) returnToStart?.let { formatReturnDistance(it.distanceMeters) }.orEmpty() else "",
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                color = tint,
-            )
-        }
-        IconButton(
-            onClick = onToggleReturning,
-            enabled = isRecording,
-            modifier = Modifier
-                .size(MIN_TOUCH_TARGET)
-                .testTag("compass-strip-return-to-vehicle"),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Directions,
-                contentDescription = returnToStartStripText(isRecording, returnToStart)
-                    .ifBlank { "Return to vehicle — start recording first" },
-                tint = tint,
-            )
         }
     }
 }
@@ -4659,7 +4826,10 @@ private fun ReturnToVehicleStripControl(
 /**
  * The return-to-vehicle line's text — blank while not recording (nothing to return to), a status
  * message once recording starts but before the first breadcrumb lands (bearing/distance need a
- * start point), then bearing, distance, and elevation difference once [info] is real.
+ * start point), then bearing, distance, and elevation difference once [info] is real. Now
+ * [ControlPill]'s own `contentDescription` for its return-to-vehicle row (this used to also feed
+ * the compass strip's own visible readout via `ReturnToVehicleStripControl`, removed in this
+ * dispatch's Part A — see [CompassElevationStripContent]'s own doc comment).
  * [ReturnToStartInfo]'s own doc comment covers why there's no ETA here.
  */
 internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInfo?): String {
@@ -4672,7 +4842,7 @@ internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInf
     return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · ${formatReturnDistance(info.distanceMeters)} · $elevationText"
 }
 
-/** "412 m" below 1 km, "1.2 km" at or above — shared by [returnToStartStripText] and [ReturnToVehicleStripControl]'s own compact readout. */
+/** "412 m" below 1 km, "1.2 km" at or above — shared by [returnToStartStripText] and [DistanceArm]'s own readout. */
 private fun formatReturnDistance(distanceMeters: Double): String =
     if (distanceMeters < 1000) "${distanceMeters.roundToInt()} m" else "${"%.1f".format(distanceMeters / 1000)} km"
 
@@ -4873,15 +5043,20 @@ internal const val ADD_ACTION_TILE_SCRIM_TAG = "add-action-tile-scrim"
  * caller tracks its own button's real measured position — but close enough that each popup visibly
  * grows from that button's corner rather than from an unrelated point on screen.
  */
+// rowCount re-derived directly against the tree, not assumed: this bar sits at 6 rows as of this
+// dispatch's Part B (fullscreen, orientation-reset, locate-me, map mode, search, add). Both this
+// count and ADD_TILE_ANCHOR_OFFSET's row index below were still keyed to a stale 8 (from before
+// return-to-vehicle's own row was removed in an earlier dispatch), corrected here alongside
+// removing the record row rather than left to drift further.
 private fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
-    val rowCount = 8
+    val rowCount = 6
     val contentHeight = MIN_TOUCH_TARGET * rowCount + Spacing.xs * (rowCount - 1)
     val rowCenterFromTop = (MIN_TOUCH_TARGET + Spacing.xs) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
     return rowCenterFromTop - contentHeight / 2
 }
 
-/** [MapIconBar]'s add row is its 8th (last) of 8 — see [mapIconBarRowAnchorOffset]. */
-private val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 8)
+/** [MapIconBar]'s add row is its 6th (last) of 6 — see [mapIconBarRowAnchorOffset]. */
+private val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 6)
 
 /** [MapIconBar]'s layers ("Map Mode") row is its 4th of 8 — see [mapIconBarRowAnchorOffset]. */
 private val MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)
@@ -5325,10 +5500,11 @@ private val OBSERVATION_BUBBLE_ANCHOR_GAP_Y = Spacing.sm
  * parent's own declared bounds would leave it undependably hit-testable.
  *
  * [minY] raises the lowest the bubble's own top edge may land — [CompactMapTab]'s own call site
- * passes [COMPASS_STRIP_MIN_HEIGHT] so a marker tapped near the map's top edge never anchors a
- * bubble underneath that strip's full-width touch-interception band (the exact hazard this file's
- * own "Known pitfalls" precedent already documents, and the reason the strip is composed after the
- * map's own content in the first place). [MapTab] has no such strip and passes `0`.
+ * passes the compass strip's real measured height (`compassStripHeightPx`, converted to `Dp`) so a
+ * marker tapped near the map's top edge never anchors a bubble underneath that strip's full-width
+ * touch-interception band (the exact hazard this file's own "Known pitfalls" precedent already
+ * documents, and the reason the strip is composed after the map's own content in the first place).
+ * [MapTab] has no such strip and passes `0`.
  */
 @Composable
 private fun AnchoredAtScreenPoint(

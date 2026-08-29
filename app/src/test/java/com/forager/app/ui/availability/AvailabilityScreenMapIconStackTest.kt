@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
@@ -28,8 +29,10 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
@@ -139,6 +142,7 @@ class AvailabilityScreenMapIconStackTest {
         locationProvider: LocationProvider = IconStackUnusedLocationProvider,
         locationTracker: LocationTracker = IconStackNoOpLocationTracker,
         isRecording: Boolean = false,
+        onToggleRecording: () -> Unit = {},
         returnToStart: ReturnToStartInfo? = null,
         isReturning: Boolean = false,
         isOffTrack: Boolean = false,
@@ -202,6 +206,7 @@ class AvailabilityScreenMapIconStackTest {
                 onStartLogEntry = onStartLogEntry,
                 onLocateMe = onLocateMe,
                 isRecording = isRecording,
+                onToggleRecording = onToggleRecording,
                 returnToStart = returnToStart,
                 isReturning = isReturning,
                 isOffTrack = isOffTrack,
@@ -245,6 +250,19 @@ class AvailabilityScreenMapIconStackTest {
                 addDataScheme("https")
             },
         )
+    }
+
+    /**
+     * The center of [tag]'s own node, in root-relative px — what [performTouchInput]'s own `click`
+     * needs (screen coordinates), as opposed to [getUnclippedBoundsInRoot]'s Dp. Used only by the
+     * real touch-routing tests below, per this dispatch's own item 5: `performTouchInput` at screen
+     * coordinates, not a semantic node lookup, is the point of those tests.
+     */
+    private fun centerOfTag(tag: String): Offset {
+        val bounds = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+        return with(composeRule.density) {
+            Offset(((bounds.left + bounds.right) / 2).toPx(), ((bounds.top + bounds.bottom) / 2).toPx())
+        }
     }
 
     @Test
@@ -536,126 +554,113 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * The owner's own verdict from real hardware testing: keep the compass strip's visible
-     * control, remove [MapIconBar]'s identical row — a confusing duplicate, not a useful second
-     * placement. See [MapIconBar]'s own doc comment for the removal.
+     * The two Trailhead/Return controls moved off [MapIconBar] and the compass strip's own
+     * duplicate readout into one shared [ControlPill] this dispatch's Part B adds — see that
+     * composable's own doc comment.
      */
     @Test
-    fun `the compass strip's return-to-vehicle control is disabled while not recording, and the record toggle still shows`() {
+    fun `the control pill's return-to-vehicle button is disabled while not recording, and the record toggle still shows`() {
         setScreen(isRecording = false)
         searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Start recording track").assertIsDisplayed()
-        composeRule.onNodeWithTag("compass-strip-return-to-vehicle").assertIsNotEnabled()
+        composeRule.onNodeWithTag("control-pill-return-to-vehicle").assertIsNotEnabled()
     }
 
     @Test
-    fun `recording with no fix yet shows a waiting message via contentDescription, and no distance yet visibly`() {
+    fun `recording with no fix yet shows a waiting message via contentDescription, and no distance arm yet`() {
         setScreen(isRecording = true, returnToStart = null)
         searchAReferenceRegion()
 
         composeRule.onNode(
-            hasTestTag("compass-strip-return-to-vehicle") and
+            hasTestTag("control-pill-return-to-vehicle") and
                 hasContentDescription("Recording — waiting for a fix to compute the way back"),
         ).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Stop recording track").assertIsDisplayed()
-        // The strip's slot is too narrow for a full sentence — see ReturnToVehicleStripControl's
-        // own doc comment — so it stays reserved but blank rather than showing a guessed or
-        // truncated distance.
-        composeRule.onNodeWithTag("compass-strip-return-to-vehicle").assertIsDisplayed()
+        // isReturning defaults false in this test — DistanceArm only shows once return-to-vehicle
+        // is actually toggled on, not merely while recording (see TrailheadControls' own doc
+        // comment), so it stays out of the tree entirely rather than reserved-but-blank the way
+        // the old compass-strip control's fixed-width slot used to.
+        composeRule.onNodeWithTag("distance-arm").assertDoesNotExist()
     }
 
     /**
-     * The exact bug this dispatch's item 2 exists to fix: the same [ReturnToStartInfo] used to
-     * reach a sighted user nowhere but a `contentDescription` (TalkBack-only), and this same test
-     * file's own earlier version of this test passed throughout by asserting only that — proving
-     * nothing about what a sighted tester actually sees. This now also asserts the compact
-     * distance readout via [onNodeWithText], the visible surface field testers can actually read.
+     * The exact bug field-test dispatch item 2 (an earlier dispatch) existed to fix: the same
+     * [ReturnToStartInfo] used to reach a sighted user nowhere but a `contentDescription`
+     * (TalkBack-only). This asserts both the full sentence via contentDescription on
+     * [ControlPill]'s own return row, and the compact distance readout via [onNodeWithText] on
+     * [DistanceArm] — the visible surface field testers can actually read. `isReturning = true` is
+     * what makes the arm visible at all; without it, the button's contentDescription is still the
+     * full sentence, but there is no visible arm to read "1.2 km" from (see the test above).
      */
     @Test
-    fun `recording with a real fix shows the full sentence via contentDescription and the distance visibly`() {
+    fun `recording with a real fix and return-to-vehicle active shows the full sentence via contentDescription and the distance visibly`() {
         setScreen(
             isRecording = true,
+            isReturning = true,
             returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 1200.0, elevationDifferenceMeters = -45.0),
         )
         searchAReferenceRegion()
 
         composeRule.onNode(
-            hasTestTag("compass-strip-return-to-vehicle") and
+            hasTestTag("control-pill-return-to-vehicle") and
                 hasContentDescription("Return: 180° S · 1.2 km · -45 m"),
         ).assertIsDisplayed()
         composeRule.onNodeWithText("1.2 km").assertIsDisplayed()
     }
 
     /**
-     * The one deliberate height change field-test dispatch item 2 calls for: this control is used
-     * on the return leg — walking, possibly dark, possibly gloved — so its touch target must be a
-     * full 48dp, not shrunk to fit the strip's old, shorter, text-driven height.
+     * This control is used on the return leg — walking, possibly dark, possibly gloved — so its
+     * touch target must be a full 48dp regardless of how tall [ControlPill] itself ends up.
      */
     @Test
-    fun `the compass strip's return-to-vehicle control has a full 48dp touch target`() {
+    fun `the control pill's return-to-vehicle button has a full 48dp touch target`() {
         setScreen(isRecording = true)
         searchAReferenceRegion()
 
-        val bounds = composeRule.onNodeWithTag("compass-strip-return-to-vehicle").getUnclippedBoundsInRoot()
+        val bounds = composeRule.onNodeWithTag("control-pill-return-to-vehicle").getUnclippedBoundsInRoot()
 
         assertTrue("expected a 48dp-tall touch target, was ${bounds.height}", bounds.height >= 48.dp)
     }
 
     /**
-     * A hardware screenshot caught a real regression a touch-target-floor assertion on the
-     * IconButton itself could never fail on: the strip's content `Row` used `fillMaxSize()`
-     * instead of `fillMaxWidth()`, so — with no upper bound of its own on a Box only
-     * bottom-bounded by `heightIn(min = COMPASS_STRIP_MIN_HEIGHT)` — it inherited the *whole
-     * remaining map height* from its parent, stretching the strip to fill the map and landing its
-     * vertically-centered content in the screen's middle, on top of `MapIconBar`'s own
-     * vertically-centered column ("grouped with the icon bar"). The return-to-vehicle
-     * `IconButton`'s own `Modifier.size(48.dp)` is a fixed size, unaffected by how tall its
-     * surrounding container grows — `bounds.height >= 48.dp` on that tag stayed true throughout,
-     * which is exactly why that assertion alone couldn't catch this. Only a bound on the strip's
-     * *own* container (`compass-elevation-strip`) can — confirmed by reintroducing the exact bug
-     * and watching this specific assertion fail while the touch-target one above kept passing.
+     * Part A item 1 of this dispatch reverts the strip's own `heightIn(min = 48.dp)` pin — it
+     * existed only to give the strip's now-removed return-to-vehicle control a real touch target
+     * (see [CompassElevationStripContent]'s own doc comment) — back to wrapping its Row's natural
+     * text-content height. `< 48.dp`, not `<= 64.dp` the way this test used to read: that older
+     * bound would have passed identically whether or not the revert actually took effect (the
+     * strip was always well under 64dp even while pinned to exactly 48dp), so it proved nothing
+     * about this specific change. `< 48.dp` fails if the old pin — or the `fillMaxSize()` regression
+     * this test originally guarded against — ever comes back.
      */
     @Test
-    fun `the compass strip container itself stays a slim bar, not the whole map's height`() {
+    fun `the compass strip container wraps its text content, not a fixed touch-target height or the whole map's height`() {
         setScreen(isRecording = true)
         searchAReferenceRegion()
 
         val bounds = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
 
         assertTrue(
-            "expected the compass strip to stay a slim, top-pinned bar close to its 48dp minimum, " +
-                "not stretch to the map's own height (was ${bounds.height}) — see this test's own " +
-                "doc comment for the regression this specifically guards against",
-            bounds.height <= 64.dp,
+            "expected the compass strip to wrap its own text content height, well under the old " +
+                "48dp touch-target pin (was ${bounds.height}) — see this test's own doc comment",
+            bounds.height < 48.dp,
         )
     }
 
-    /**
-     * A real click, not just a visibility/enabled check: on this suite's own w360dp-h640dp
-     * viewport, this test initially failed with `toggleCalls` staying `0` — MapIconBar's Surface
-     * (vertically centered on the same right-edge column, spanning all 8 of its rows as one
-     * continuous touch-intercepting background) reached up far enough to sit on top of the compass
-     * strip's own control and silently swallow the tap, the exact touch-interception class CLAUDE.md
-     * already documents twice over for this map. Fixed by composing MapIconBar before
-     * CompassElevationStrip so the strip's own control wins any overlap — see that call site's own
-     * doc comment. Kept as a real [performClick] specifically so a future regression of this exact
-     * kind fails here again, not silently.
-     */
     @Test
-    fun `tapping the compass strip's return-to-vehicle control calls onToggleReturning, the same as the icon bar row`() {
+    fun `tapping the control pill's return-to-vehicle button calls onToggleReturning`() {
         var toggleCalls = 0
         setScreen(isRecording = true, onToggleReturning = { toggleCalls++ })
         searchAReferenceRegion()
 
-        composeRule.onNodeWithTag("compass-strip-return-to-vehicle").performClick()
+        composeRule.onNodeWithTag("control-pill-return-to-vehicle").performClick()
         composeRule.waitForIdle()
 
         assertEquals(1, toggleCalls)
     }
 
     @Test
-    fun `an off-track fix tints the return-to-vehicle control with the error color's contentDescription state`() {
+    fun `an off-track fix tints the return-to-vehicle button with the error color's contentDescription state`() {
         // isOffTrack only changes tint color, not text/contentDescription — this asserts the state
         // reaches the control at all (enabled, present, still showing the right distance) rather
         // than the tint's actual pixel value, which this suite has no existing way to assert either.
@@ -667,23 +672,118 @@ class AvailabilityScreenMapIconStackTest {
         )
         searchAReferenceRegion()
 
-        composeRule.onNodeWithTag("compass-strip-return-to-vehicle").assertIsDisplayed()
+        composeRule.onNodeWithTag("control-pill-return-to-vehicle").assertIsDisplayed()
         composeRule.onNodeWithText("500 m").assertIsDisplayed()
     }
 
     @Test
-    fun `a return distance under a kilometer is shown in meters on the compass strip control`() {
+    fun `a return distance under a kilometer is shown in meters on the distance arm`() {
         setScreen(
             isRecording = true,
+            isReturning = true,
             returnToStart = ReturnToStartInfo(bearingDegrees = 45.0, distanceMeters = 350.0, elevationDifferenceMeters = null),
         )
         searchAReferenceRegion()
 
         composeRule.onNode(
-            hasTestTag("compass-strip-return-to-vehicle") and
+            hasTestTag("control-pill-return-to-vehicle") and
                 hasContentDescription("Return: 45° NE · 350 m · elevation diff. unavailable"),
         ).assertIsDisplayed()
         composeRule.onNodeWithText("350 m").assertIsDisplayed()
+    }
+
+    /**
+     * Item 5 of this dispatch, the part that matters most: this codebase has shipped
+     * pointer-interception regressions before this one (this file's own history already documents
+     * two — one over the compass strip, one over the icon bar), always over a floating surface
+     * added to a screen corner with zero [performTouchInput] coverage anywhere in the suite. This
+     * is the first such coverage, scoped to the [TrailheadControls] corner this dispatch adds, on
+     * this suite's own w360dp-h640dp viewport — the same short viewport the icon-bar interception
+     * bug only reproduced on. Real [performTouchInput] at screen coordinates, not a semantic
+     * [performClick]: a semantic click finds a node by tag and clicks it directly, bypassing real
+     * hit-testing and z-order — exactly the mechanism that let those two earlier bugs ship
+     * unnoticed.
+     */
+    @Test
+    fun `a real touch at each trailhead control's own screen coordinates reaches that control`() {
+        var recordCalls = 0
+        var returnCalls = 0
+        setScreen(
+            isRecording = true,
+            isReturning = true,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 90.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
+            onToggleRecording = { recordCalls++ },
+            onToggleReturning = { returnCalls++ },
+        )
+        searchAReferenceRegion()
+
+        composeRule.onRoot().performTouchInput { click(centerOfTag("control-pill-record")) }
+        composeRule.waitForIdle()
+        composeRule.onRoot().performTouchInput { click(centerOfTag("control-pill-return-to-vehicle")) }
+        composeRule.waitForIdle()
+
+        assertEquals("a real touch on the record button must reach it", 1, recordCalls)
+        assertEquals("a real touch on the return-to-vehicle button must reach it", 1, returnCalls)
+    }
+
+    /**
+     * The other half of item 5: a tap in the real empty space around [TrailheadControls] — the gap
+     * between [MapIconBar]'s own bottom edge and [ControlPill]'s top edge — must still reach the
+     * map underneath, not get silently swallowed by either surface's own bounding box. Reuses the
+     * same fullscreen-restore signal `tapping the map while fullscreen restores chrome` already
+     * relies on for exactly this reason: it is a real, already-proven way to observe "this tap
+     * reached the map slot's own onTap," not a new assertion mechanism invented for this test.
+     */
+    @Test
+    fun `a real touch in the gap above the control pill still reaches the map`() {
+        setScreen(
+            mapSlot = TappableStubMapSlot,
+            isRecording = true,
+            isReturning = true,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 90.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
+        )
+        searchAReferenceRegion()
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithText("Settings").assertCountEquals(0)
+
+        val pillBounds = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot()
+        val gapPoint = with(composeRule.density) {
+            Offset(((pillBounds.left + pillBounds.right) / 2).toPx(), (pillBounds.top - 4.dp).toPx())
+        }
+        composeRule.onRoot().performTouchInput { click(gapPoint) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+    }
+
+    /**
+     * Same as above, checked beside [DistanceArm]'s own left edge instead of above [ControlPill] —
+     * the arm's own width is animated and content-measured (see that composable's own doc
+     * comment), so this is a second, independent point rather than assuming the first point's
+     * result generalizes to the arm's own bounding box.
+     */
+    @Test
+    fun `a real touch beside the distance arm still reaches the map`() {
+        setScreen(
+            mapSlot = TappableStubMapSlot,
+            isRecording = true,
+            isReturning = true,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 90.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
+        )
+        searchAReferenceRegion()
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithText("Settings").assertCountEquals(0)
+
+        val armBounds = composeRule.onNodeWithTag("distance-arm").getUnclippedBoundsInRoot()
+        val besideArmPoint = with(composeRule.density) {
+            Offset((armBounds.left - 8.dp).toPx().coerceAtLeast(0f), ((armBounds.top + armBounds.bottom) / 2).toPx())
+        }
+        composeRule.onRoot().performTouchInput { click(besideArmPoint) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
     }
 
     @Test
