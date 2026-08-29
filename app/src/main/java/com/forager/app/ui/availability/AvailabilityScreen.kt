@@ -10,10 +10,12 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandIn
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -1019,25 +1021,32 @@ fun AvailabilityScreen(
     // longer lives where this strip is — its whole point now is answering that question *without*
     // opening the drawer, not being a second way to open it.
     val compactMainScaffold: @Composable () -> Unit = {
-        // The quick species-search panel under ActiveSearchSummary — see that composable's own
-        // onOpenQuickSearch doc comment. Local to this scaffold, not AvailabilityUiState: which
+        // AdvancedSearchDropdown, under ActiveSearchSummary — see that composable's own
+        // onToggleAdvancedSearch doc comment. Local to this scaffold, not AvailabilityUiState: which
         // panel is showing is a display decision the ViewModel has no part in, same reasoning as
         // mapMode/drawerPanel above.
-        var showQuickSearch by remember { mutableStateOf(false) }
+        var showAdvancedSearchDropdown by remember { mutableStateOf(false) }
+        // "Set on map" (AdvancedSearchDropdown's item 2) hands off to the exact same
+        // pan-to-centre-pin-plus-confirm flow every other pin placement in this app uses
+        // (CentrePinLocationPickerOverlay) rather than a second picker — see CompactMapTab's own
+        // pendingAction-driven overlay for the established shape this mirrors. Lifted to this
+        // scaffold's own scope, not into CompactMapTab, because the trigger (the dropdown) lives up
+        // here and can be tapped from any bottom-nav tab, not just while already on Maps.
+        var pickingSearchLocationOnMap by remember { mutableStateOf(false) }
         // Nested inside this scaffold, so Compose's OnBackPressedDispatcher tries it before the
         // four home-chain handlers above (isDrawerOpen/isMapFullscreen/compactTab/exit-confirmation)
         // — the same "innermost enabled handler wins" precedence those four already rely on for
         // JournalTab/CompactSettingsTab/CompactMapTab. Genuinely missing before this fix: back
         // pressed while this panel was open (species field focused, keyboard up) fell straight
         // through to whichever of those four was enabled instead of just closing this panel first.
-        BackHandler(enabled = showQuickSearch) {
-            showQuickSearch = false
+        BackHandler(enabled = showAdvancedSearchDropdown) {
+            showAdvancedSearchDropdown = false
         }
         // Same "actually hide the IME" fix as isDrawerOpen's own LaunchedEffect above — this panel
-        // holds the species search TextField, so it's exactly as prone to a stuck keyboard on close
-        // (scrim tap, the close button, or now the BackHandler above) as the drawer's own fields are.
-        LaunchedEffect(showQuickSearch) {
-            if (!showQuickSearch) {
+        // holds the manual-coordinate TextFields, so it's exactly as prone to a stuck keyboard on
+        // close (the BackHandler above, or collapsing the bar again) as the drawer's own fields are.
+        LaunchedEffect(showAdvancedSearchDropdown) {
+            if (!showAdvancedSearchDropdown) {
                 focusManager.clearFocus(force = true)
                 keyboardController?.hide()
             }
@@ -1144,19 +1153,9 @@ fun AvailabilityScreen(
                         uiState,
                         distanceUnit,
                         onReopenTaxonSuggestions = {},
-                        onOpenQuickSearch = { showQuickSearch = !showQuickSearch },
+                        onToggleAdvancedSearch = { showAdvancedSearchDropdown = !showAdvancedSearchDropdown },
+                        advancedSearchExpanded = showAdvancedSearchDropdown,
                     )
-                    if (showQuickSearch) {
-                        QuickSearchPanel(
-                            uiState = uiState,
-                            onUseCurrentLocation = onUseCurrentLocation,
-                            onCategorySelected = onCategorySelected,
-                            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                            onTaxonSearchResultSelected = onTaxonSearchResultSelected,
-                            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                            onClose = { showQuickSearch = false },
-                        )
-                    }
                     SearchNotice(uiState)
                 }
 
@@ -1169,82 +1168,139 @@ fun AvailabilityScreen(
                     onStartLogEntry(location, LocalDate.now())
                 }
 
-                // weight(1f) states the intent: the results get whatever is left after the
-                // wrap-content siblings above (empty in fullscreen, so the map then gets the
-                // entire padded area) — see mainScaffold's own doc comment on this same pattern.
-                when (compactTab) {
-                    CompactTab.LIST -> ListTab(
-                        uiState = uiState,
-                        currentTime = currentTime,
-                        distanceUnit = distanceUnit,
-                        onViewOnMap = onViewSpeciesOnMap,
-                        modifier = Modifier.weight(1f),
-                    )
-                    CompactTab.MAP -> CompactMapTab(
-                        uiState = uiState,
-                        mapSlot = mapSlot,
-                        renderMode = mapRenderMode,
-                        mapMode = mapMode,
-                        onMapModeSelected = { mapMode = it },
-                        isNightMode = isNightMode,
-                        onPlaceTripPin = onPlaceTripPin,
-                        // Opens straight to the log's edit form for the new entry, bypassing
-                        // Search — see DrawerPanel's own doc comment on why Log is reachable
-                        // both ways.
-                        onLogFindHere = onLogFindHere,
-                        isFullscreen = isMapFullscreen,
-                        onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
-                        onLocateMe = onLocateMe,
-                        isRecording = isRecording,
-                        onToggleRecording = onToggleRecording,
-                        startRecordingErrorMessage = startRecordingErrorMessage,
-                        breadcrumbPoints = breadcrumbPoints,
-                        waypoints = waypoints,
-                        onDropWaypoint = onDropWaypoint,
-                        returnToStart = returnToStart,
-                        isReturning = isReturning,
-                        isOffTrack = isOffTrack,
-                        onToggleReturning = onToggleReturning,
-                        compassProvider = compassProvider,
-                        taxonFilter = mapTaxonFilter,
-                        onClearTaxonFilter = onClearMapTaxonFilter,
-                        modifier = Modifier.weight(1f),
-                    )
-                    CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
-                    CompactTab.JOURNAL -> JournalTab(
-                        uiState = logUiState,
-                        cameraCaptureFiles = cameraCaptureFiles,
-                        mapSlot = mapSlot,
-                        pickerRegion = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
-                        basemap = basemap,
-                        night = isNightMode,
-                        onOpenEntry = onOpenLogEntry,
-                        onCloseEntry = onCloseLogEntry,
-                        onStartEntry = onStartLogEntry,
-                        onEntryChanged = onLogEntryChanged,
-                        onStartEditingEntry = onStartEditingLogEntry,
-                        onSaveEntry = onSaveLogEntry,
-                        onCancelEditing = onCancelLogEntryEditing,
-                        onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
-                        onAddPhoto = onAddLogPhoto,
-                        onRemovePhoto = onRemoveLogPhoto,
-                        onPullPhoto = onPullLogPhoto,
-                        onDeleteEntry = onDeleteLogEntry,
-                        onSaveErrorDismissed = onSaveLogErrorDismissed,
-                        // Album folded into this tab as a third top tab (Log/Drafts/Album) — see
-                        // LogGalleryScreen's own doc comment. Threaded through unchanged from
-                        // where CompactTab.PHOTOS used to read them directly.
-                        galleryPhotos = logUiState.galleryPhotos,
-                        isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
-                        onDeleteGalleryPhoto = onDeleteGalleryPhoto,
-                        galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
-                        modifier = Modifier.weight(1f),
-                    )
-                    // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
-                    // see that entry's own doc comment. Kept as a real branch (not an else) so this
-                    // stays an exhaustive, honest `when` rather than one that silently compiles
-                    // around a case the compiler can't see is impossible.
-                    CompactTab.TOOLS -> Unit
+                // A Box, not a plain weighted child, as of map/navigation redesign dispatch C: this
+                // is now also where AdvancedSearchDropdown floats over whatever tab content shows
+                // below it, composed after that content so it draws on top by composition order
+                // alone (AdvancedSearchDropdown's own doc comment). weight(1f) here (unchanged from
+                // before this dispatch) states the intent: this gets whatever is left after the
+                // wrap-content siblings above (empty in fullscreen, so the map then gets the entire
+                // padded area) — see mainScaffold's own doc comment on this same pattern. Each branch
+                // below now fills this Box (fillMaxSize()) rather than carrying its own weight(1f),
+                // since a Box — unlike the Column this used to be a direct child of — doesn't
+                // distribute weight among its children.
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    when (compactTab) {
+                        CompactTab.LIST -> ListTab(
+                            uiState = uiState,
+                            currentTime = currentTime,
+                            distanceUnit = distanceUnit,
+                            onViewOnMap = onViewSpeciesOnMap,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        CompactTab.MAP -> CompactMapTab(
+                            uiState = uiState,
+                            mapSlot = mapSlot,
+                            renderMode = mapRenderMode,
+                            mapMode = mapMode,
+                            onMapModeSelected = { mapMode = it },
+                            isNightMode = isNightMode,
+                            onPlaceTripPin = onPlaceTripPin,
+                            // Opens straight to the log's edit form for the new entry, bypassing
+                            // Search — see DrawerPanel's own doc comment on why Log is reachable
+                            // both ways.
+                            onLogFindHere = onLogFindHere,
+                            isFullscreen = isMapFullscreen,
+                            onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
+                            onLocateMe = onLocateMe,
+                            isRecording = isRecording,
+                            onToggleRecording = onToggleRecording,
+                            startRecordingErrorMessage = startRecordingErrorMessage,
+                            breadcrumbPoints = breadcrumbPoints,
+                            waypoints = waypoints,
+                            onDropWaypoint = onDropWaypoint,
+                            returnToStart = returnToStart,
+                            isReturning = isReturning,
+                            isOffTrack = isOffTrack,
+                            onToggleReturning = onToggleReturning,
+                            compassProvider = compassProvider,
+                            taxonFilter = mapTaxonFilter,
+                            onClearTaxonFilter = onClearMapTaxonFilter,
+                            // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
+                            // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
+                            // pickingSearchLocationOnMap doc comment.
+                            pickingSearchLocation = pickingSearchLocationOnMap,
+                            onSearchLocationPicked = { location ->
+                                onManualLatChanged("%.4f".format(location.lat))
+                                onManualLngChanged("%.4f".format(location.lng))
+                                onSearchManualCoordinates()
+                                pickingSearchLocationOnMap = false
+                            },
+                            onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
+                        CompactTab.JOURNAL -> JournalTab(
+                            uiState = logUiState,
+                            cameraCaptureFiles = cameraCaptureFiles,
+                            mapSlot = mapSlot,
+                            pickerRegion = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
+                            basemap = basemap,
+                            night = isNightMode,
+                            onOpenEntry = onOpenLogEntry,
+                            onCloseEntry = onCloseLogEntry,
+                            onStartEntry = onStartLogEntry,
+                            onEntryChanged = onLogEntryChanged,
+                            onStartEditingEntry = onStartEditingLogEntry,
+                            onSaveEntry = onSaveLogEntry,
+                            onCancelEditing = onCancelLogEntryEditing,
+                            onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
+                            onAddPhoto = onAddLogPhoto,
+                            onRemovePhoto = onRemoveLogPhoto,
+                            onPullPhoto = onPullLogPhoto,
+                            onDeleteEntry = onDeleteLogEntry,
+                            onSaveErrorDismissed = onSaveLogErrorDismissed,
+                            // Album folded into this tab as a third top tab (Log/Drafts/Album) — see
+                            // LogGalleryScreen's own doc comment. Threaded through unchanged from
+                            // where CompactTab.PHOTOS used to read them directly.
+                            galleryPhotos = logUiState.galleryPhotos,
+                            isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
+                            onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                            galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
+                        // see that entry's own doc comment. Kept as a real branch (not an else) so
+                        // this stays an exhaustive, honest `when` rather than one that silently
+                        // compiles around a case the compiler can't see is impossible.
+                        CompactTab.TOOLS -> Unit
+                    }
+
+                    if (!isMapFullscreen) {
+                        // Fully qualified: an implicit ColumnScope receiver is still in scope from
+                        // the outer Column this Box sits inside, which makes the bare name resolve
+                        // to ColumnScope's own AnimatedVisibility overload instead of this top-level
+                        // one — Kotlin then refuses it ("cannot be called with an implicit
+                        // receiver") since a BoxScope, not a ColumnScope, is this call's real one.
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = showAdvancedSearchDropdown,
+                            enter = expandVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
+                            exit = shrinkVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeOut(animationSpec = MotionTokens.panelMotionSpec()),
+                            modifier = Modifier.align(Alignment.TopStart),
+                        ) {
+                            AdvancedSearchDropdown(
+                                uiState = uiState,
+                                distanceUnit = distanceUnit,
+                                onManualLatChanged = onManualLatChanged,
+                                onManualLngChanged = onManualLngChanged,
+                                onSearchManualCoordinates = {
+                                    showAdvancedSearchDropdown = false
+                                    onSearchManualCoordinates()
+                                },
+                                onRadiusChanged = onRadiusChanged,
+                                onMonthSelected = onMonthSelected,
+                                onUseCurrentLocation = {
+                                    showAdvancedSearchDropdown = false
+                                    onUseCurrentLocation()
+                                },
+                                onSetOnMap = {
+                                    showAdvancedSearchDropdown = false
+                                    compactTab = CompactTab.MAP
+                                    selectedTab = ResultsTab.MAP
+                                    pickingSearchLocationOnMap = true
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1471,17 +1527,24 @@ private fun ActiveSearchSummary(
     distanceUnit: DistanceUnit,
     onReopenTaxonSuggestions: () -> Unit,
     /**
-     * Compact-only: opens the quick species-search panel instead of [onReopenTaxonSuggestions]
-     * when tapped, and draws a search icon at the far left so the bar reads as tappable-for-search.
+     * Compact-only: opens [AdvancedSearchDropdown] instead of [onReopenTaxonSuggestions] when
+     * tapped — map/navigation redesign dispatch C, item 1: "advanced search moves to where regular
+     * search currently sits... so search and its parameters are one place instead of two." Species
+     * search stays reachable the same way it always was, one tap into the Tools drawer
+     * ([SpeciesSearchControls] is the first thing there); this bar's own quick species panel is
+     * gone, since it duplicated that drawer copy rather than the drawer duplicating this one.
      * `null` on the medium/expanded call site, which already shows [SpeciesSearchControls] directly
-     * in its app bar — a quick-search panel underneath this bar would be a second, redundant way to
-     * do the same thing there.
+     * in its app bar and keeps its drawer's own "Advanced search" section untouched — see that
+     * section's own doc comment for why this dispatch is compact-only.
      */
-    onOpenQuickSearch: (() -> Unit)? = null,
+    onToggleAdvancedSearch: (() -> Unit)? = null,
+    /** Whether [AdvancedSearchDropdown] is currently showing — flips this bar's own trailing chevron, the collapsed-state affordance dispatch C's item 1 asked for ("it needs to read as expandable without a tap"). Meaningless when [onToggleAdvancedSearch] is null. */
+    advancedSearchExpanded: Boolean = false,
 ) {
     Surface(
-        onClick = onOpenQuickSearch ?: onReopenTaxonSuggestions,
+        onClick = onToggleAdvancedSearch ?: onReopenTaxonSuggestions,
         color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1490,10 +1553,10 @@ private fun ActiveSearchSummary(
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         ) {
-            if (onOpenQuickSearch != null) {
+            if (onToggleAdvancedSearch != null) {
                 Icon(
                     Icons.Filled.Search,
-                    contentDescription = "Quick species search",
+                    contentDescription = null,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -1505,54 +1568,146 @@ private fun ActiveSearchSummary(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
+            if (onToggleAdvancedSearch != null) {
+                Icon(
+                    imageVector = if (advancedSearchExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (advancedSearchExpanded) "Collapse advanced search" else "Expand advanced search",
+                    modifier = Modifier.size(18.dp).testTag(ADVANCED_SEARCH_CHEVRON_TAG),
+                )
+            }
         }
     }
 }
 
 /**
- * Compact-only quick species search — [SpeciesSearchControls] itself, in a small panel under
- * [ActiveSearchSummary] rather than behind the full search drawer ("Advanced search" stays where
- * it is, reachable the same way it always was). Closes itself once a result is picked, so tapping
- * the bar, picking a species, and being done reads as one action rather than needing an explicit
- * close step too.
+ * Map/navigation redesign dispatch C, item 1: advanced search (location and its parameters) moved
+ * here, to where quick species search used to sit — see [ActiveSearchSummary]'s own doc comment on
+ * why the quick species panel it replaces is gone rather than kept alongside it.
  *
- * [ModalNavigationDrawer] keeps its content composed even while closed (translated off-screen, not
- * removed), so while this panel is open there are briefly two [SpeciesSearchControls] instances in
- * the tree — this one, and the drawer's own closed-and-off-screen copy. Both read the same
- * [AvailabilityUiState.taxonSearchQuery], so they never disagree, and the drawer's copy is neither
- * visible nor reachable while closed — [QUICK_SEARCH_PANEL_TAG] exists so tests can address this
- * one specifically rather than tripping over that duplication.
+ * **Floats over whatever tab content is currently showing (usually the map), not inline.** Composed
+ * after that content in the same [Box] at its call site, so it draws on top by composition order
+ * alone — the same "later-composed wins" rule already governing the Tools drawer's own relationship
+ * to the tab content it overlays. Understory's four over-the-map rules apply here as an entry
+ * condition, not a guideline (this dispatch's own text, since this surface sits over the map when
+ * expanded):
+ * 1. No [Surface] — a plain [Box] with [background], the same non-intercepting shape
+ *    [CompassElevationStripContent] already uses, so nothing here swallows a touch meant for the
+ *    map underneath once this closes.
+ * 2. No scroll modifier at any range — why manual coordinates below stays behind its own
+ *    [CollapsibleSection] instead of always-expanded content that might need one.
+ * 3. Full width is the deliberate choice here, not left to default [fillMaxWidth] creep: a
+ *    location/radius/month panel needs real width for its fields and slider to be usable, the same
+ *    reasoning [CompassElevationStripContent]'s own doc comment already states for going full width.
+ * 4. A long-press/real-touch test accompanies this, per [AvailabilityScreenMapIconStackTest]'s own
+ *    "item 5" precedent from Dispatch A.
+ *
+ * Item 2 of dispatch C — location input, SIDE BY SIDE: "Set on map" reuses the exact same
+ * pan-to-centre-pin-plus-confirm flow every other pin placement in this app already uses
+ * ([CentrePinLocationPickerOverlay], surfaced over [CompactMapTab]'s own real map — see
+ * `compactMainScaffold`'s `pickingSearchLocationOnMap` state for the plumbing), not a second
+ * picker. "Use current location" is the existing behaviour, unchanged.
+ *
+ * Item 3 — manual coordinates, kept, collapsed by default: "Enter coordinates manually" is the
+ * label chosen for [CollapsibleSection]'s own header row, reused unmodified rather than a bare
+ * chevron nobody would find on a first look, per that item's own explicit ask.
+ *
+ * Item 4 — the "redundant list" this dispatch asks to confirm and remove: none exists. The only
+ * list this drawer's advanced-search content has ever shown is [ResultsSection]'s ranked species
+ * list, and that has exactly one call site, inside [ListTab] — nothing resembling it lived in
+ * [RegionControls]/[MonthSelector] (the content this dropdown's own radius/month controls are
+ * drawn from) before this dispatch, confirmed by reading both, so there is nothing to remove.
  */
 @Composable
-private fun QuickSearchPanel(
+private fun AdvancedSearchDropdown(
     uiState: AvailabilityUiState,
+    distanceUnit: DistanceUnit,
+    onManualLatChanged: (String) -> Unit,
+    onManualLngChanged: (String) -> Unit,
+    onSearchManualCoordinates: () -> Unit,
+    onRadiusChanged: (Int) -> Unit,
+    onMonthSelected: (Int) -> Unit,
     onUseCurrentLocation: () -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
-    onTaxonSearchQueryChanged: (String) -> Unit,
-    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
-    onDismissTaxonSuggestions: () -> Unit,
-    onClose: () -> Unit,
+    onSetOnMap: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.testTag(QUICK_SEARCH_PANEL_TAG)) {
-        SpeciesSearchControls(
-            uiState = uiState,
-            onUseCurrentLocation = onUseCurrentLocation,
-            onCategorySelected = onCategorySelected,
-            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-            onTaxonSearchResultSelected = { result ->
-                onTaxonSearchResultSelected(result)
-                onClose()
-            },
-            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-            chipRowModifier = Modifier
+    val isDarkTheme = LocalForagerDarkTheme.current
+    CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
+        Box(
+            modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.sm),
-        )
+                // Rule 1 above: Box + background, never Surface, over the map.
+                .background(
+                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    shape = RectangleShape,
+                )
+                .testTag(ADVANCED_SEARCH_DROPDOWN_TAG),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    OutlinedButton(onClick = onSetOnMap, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(Spacing.sm))
+                        Text("Set on map")
+                    }
+                    Button(onClick = onUseCurrentLocation, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(Spacing.sm))
+                        Text("Use current location")
+                    }
+                }
+
+                CollapsibleSection(title = "Enter coordinates manually") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        OutlinedTextField(
+                            value = uiState.manualLatText,
+                            onValueChange = onManualLatChanged,
+                            label = { Text("Latitude") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = uiState.manualLngText,
+                            onValueChange = onManualLngChanged,
+                            label = { Text("Longitude") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                        )
+                    }
+                    OutlinedButton(onClick = onSearchManualCoordinates, modifier = Modifier.fillMaxWidth()) {
+                        Text("Search this location")
+                    }
+                }
+
+                HorizontalDivider()
+                Text(
+                    "Search radius: ${formatDistanceKm(uiState.radiusKm, distanceUnit)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Slider(
+                    value = uiState.radiusKm.toFloat(),
+                    onValueChange = { onRadiusChanged(it.toInt()) },
+                    valueRange = 1f..50f,
+                    steps = 48,
+                )
+                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
+            }
+        }
     }
 }
 
-/** See [QuickSearchPanel]'s own doc comment. */
-internal const val QUICK_SEARCH_PANEL_TAG = "quick-search-panel"
+/** See [AdvancedSearchDropdown]'s own doc comment. */
+internal const val ADVANCED_SEARCH_DROPDOWN_TAG = "advanced-search-dropdown"
+
+/** See [ActiveSearchSummary]'s own trailing-chevron doc comment. */
+internal const val ADVANCED_SEARCH_CHEVRON_TAG = "advanced-search-chevron"
+
+/** [ActiveSearchSummary]'s own clickable row — a stable trigger regardless of its state-dependent summary text, for tests that don't want to depend on exact category/month/region wording. */
+internal const val ACTIVE_SEARCH_SUMMARY_TAG = "active-search-summary"
 
 private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: DistanceUnit): String {
     val month = Month.of(uiState.selectedMonth).getDisplayName(TextStyle.FULL, Locale.getDefault())
@@ -2688,6 +2843,9 @@ private fun CompactSearchDrawerContent(
             onDeleteWaypoint = onDeleteWaypoint,
             onRecentSearchSelected = onRecentSearchSelected,
             currentTime = currentTime,
+            // See SearchControls' own doc comment on this param: Advanced search now lives in
+            // AdvancedSearchDropdown, over the map, not here too.
+            includeAdvancedSearch = false,
         )
         HorizontalDivider()
         Column(
@@ -2727,6 +2885,12 @@ private fun CompactSearchDrawerContent(
  * short screen or at a large font scale. Collapsing all sections by default shortens that stack
  * further, but doesn't remove the need for scroll — a large font scale with all sections expanded
  * still needs it.
+ *
+ * [includeAdvancedSearch] defaults `true` — medium/expanded's own call site doesn't pass it, so its
+ * drawer is untouched. Compact passes `false`: map/navigation redesign dispatch C, item 1 moved
+ * "Advanced search" (location, radius, month) to [AdvancedSearchDropdown], floating over the map
+ * from where quick species search used to sit, so keeping a second copy here would put it back to
+ * "two places instead of one" — the exact duplication that move exists to remove.
  */
 @Composable
 private fun SearchControls(
@@ -2745,6 +2909,7 @@ private fun SearchControls(
     onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
+    includeAdvancedSearch: Boolean = true,
 ) {
     Column(
         modifier = modifier
@@ -2767,19 +2932,21 @@ private fun SearchControls(
                 onRecentSearchSelected = onRecentSearchSelected,
             )
         }
-        HorizontalDivider()
-        CollapsibleSection(title = "Advanced search") {
-            RegionControls(
-                uiState = uiState,
-                distanceUnit = distanceUnit,
-                onUseCurrentLocation = onUseCurrentLocation,
-                onManualLatChanged = onManualLatChanged,
-                onManualLngChanged = onManualLngChanged,
-                onSearchManualCoordinates = onSearchManualCoordinates,
-                onRadiusChanged = onRadiusChanged,
-            )
+        if (includeAdvancedSearch) {
             HorizontalDivider()
-            MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
+            CollapsibleSection(title = "Advanced search") {
+                RegionControls(
+                    uiState = uiState,
+                    distanceUnit = distanceUnit,
+                    onUseCurrentLocation = onUseCurrentLocation,
+                    onManualLatChanged = onManualLatChanged,
+                    onManualLngChanged = onManualLngChanged,
+                    onSearchManualCoordinates = onSearchManualCoordinates,
+                    onRadiusChanged = onRadiusChanged,
+                )
+                HorizontalDivider()
+                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
+            }
         }
         HorizontalDivider()
         CollapsibleSection(title = "Trip Planner") {
@@ -3935,6 +4102,15 @@ private fun CompactMapTab(
     /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
     taxonFilter: Long?,
     onClearTaxonFilter: () -> Unit,
+    /**
+     * True while [AdvancedSearchDropdown]'s "Set on map" is active — a [compactMainScaffold]-owned
+     * state, not local to this tab, since the dropdown that triggers it lives above the bottom-nav
+     * switch and can be reached from any tab. Shows [CentrePinLocationPickerOverlay] over this same
+     * map the same way [pendingAction] already does, rather than a second picker.
+     */
+    pickingSearchLocation: Boolean = false,
+    onSearchLocationPicked: (LatLng) -> Unit = {},
+    onCancelSearchLocationPick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
@@ -3962,9 +4138,15 @@ private fun CompactMapTab(
     // already handles system back for free — this needs its own BackHandler or system back would
     // fall straight through either, same reasoning as AvailabilityScreen's own top-level "unwind
     // before falling through" chain. One pop at a time: the picker phase first if it's showing,
-    // the menu only once the picker's already closed.
-    BackHandler(enabled = pendingAction != null || showActionMenu) {
-        if (pendingAction != null) pendingAction = null else showActionMenu = false
+    // the menu only once the picker's already closed. pickingSearchLocation joins the same picker
+    // tier as pendingAction (both show the identical CentrePinLocationPickerOverlay, just for a
+    // different caller) rather than a third priority level of its own.
+    BackHandler(enabled = pendingAction != null || pickingSearchLocation || showActionMenu) {
+        when {
+            pendingAction != null -> pendingAction = null
+            pickingSearchLocation -> onCancelSearchLocationPick()
+            else -> showActionMenu = false
+        }
     }
 
     val context = LocalContext.current
@@ -4267,6 +4449,15 @@ private fun CompactMapTab(
                             pendingAction = null
                         },
                         onCancel = { pendingAction = null },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else if (pickingSearchLocation) {
+                    // AdvancedSearchDropdown's own "Set on map" — same overlay, same already-shown
+                    // map, same cameraCenter this tab already tracks via onCameraIdle; see this
+                    // param's own doc comment for why it isn't a second picker.
+                    CentrePinLocationPickerOverlay(
+                        onConfirm = { onSearchLocationPicked(cameraCenter) },
+                        onCancel = onCancelSearchLocationPick,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

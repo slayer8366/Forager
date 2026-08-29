@@ -218,15 +218,18 @@ class AvailabilityScreenBackNavigationTest {
     }
 
     /**
-     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
-     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer.
+     * Opens [AdvancedSearchDropdown] via the search summary bar and expands its "Enter coordinates
+     * manually" section — map/navigation redesign dispatch C, item 1 moved advanced search out of
+     * the Tools drawer entirely, to float over the map from where quick species search used to sit.
+     * No `performScrollTo()` calls: unlike the old drawer section, this dropdown has no scroll
+     * modifier at all (Understory rule 3), so its content has to fit without one, and does.
      */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        composeRule.onNodeWithText("Enter coordinates manually").performClick()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        composeRule.onNodeWithText("Search this location").performClick()
         composeRule.waitForIdle()
     }
 
@@ -234,30 +237,30 @@ class AvailabilityScreenBackNavigationTest {
     fun `back closes the open drawer instead of warning to exit`() {
         setScreen()
         composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+        composeRule.onNodeWithText("Recent searches").assertIsDisplayed()
 
         pressBack()
 
-        composeRule.onNodeWithText("Advanced search").assertIsNotDisplayed()
+        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 
     /**
-     * The top quick-search panel (species field, category chips) had no `BackHandler` at all
-     * before this fix — a hardware report that back didn't close it, unlike every other nested UI
-     * this suite already covers. Same "one step toward home, no exit warning" shape as the drawer
-     * test above.
+     * The top [AdvancedSearchDropdown] (map/navigation redesign dispatch C, item 1 — replaces the
+     * old quick species-search panel this test used to cover, per [ActiveSearchSummary]'s own doc
+     * comment) had no `BackHandler` at all before the original fix this test guards — a hardware
+     * report that back didn't close it, unlike every other nested UI this suite already covers.
+     * Same "one step toward home, no exit warning" shape as the drawer test above.
      */
     @Test
-    fun `back closes the quick-search panel instead of warning to exit`() {
+    fun `back closes the advanced search dropdown instead of warning to exit`() {
         setScreen()
-        searchAReferenceRegion()
-        composeRule.onNodeWithContentDescription("Quick species search").performClick()
-        composeRule.onNodeWithTag(QUICK_SEARCH_PANEL_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
+        composeRule.onNodeWithTag(ADVANCED_SEARCH_DROPDOWN_TAG).assertIsDisplayed()
 
         pressBack()
 
-        composeRule.onNodeWithTag(QUICK_SEARCH_PANEL_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(ADVANCED_SEARCH_DROPDOWN_TAG).assertDoesNotExist()
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 

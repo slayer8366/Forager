@@ -218,19 +218,19 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Opens the drawer via the bottom nav's "Tools" tab — map/navigation redesign dispatch B
-     * removed the icon stack's own "Search" icon and repointed Tools at this same drawer (see
-     * [CompactSearchDrawerContent]'s own doc comment), so this is now the drawer's one entry
-     * point. [CompactMapTab] shows a real map (and so the icon stack) even before a first search,
-     * GPS-centred or on a fixed fallback while that's still pending, so Tools is reachable from the
-     * very first composition rather than only once a region exists.
+     * Opens [AdvancedSearchDropdown] via the search summary bar and expands its "Enter coordinates
+     * manually" section — map/navigation redesign dispatch C, item 1 moved advanced search out of
+     * the Tools drawer entirely, to float over the map from where quick species search used to sit
+     * (see [ActiveSearchSummary]'s own doc comment). No `performScrollTo()` calls: unlike the old
+     * drawer section, this dropdown has no scroll modifier at all — Understory rule 3 — so its
+     * content has to fit without one, and does.
      */
     private fun searchAReferenceRegion() {
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performScrollTo().performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        composeRule.onNodeWithText("Enter coordinates manually").performClick()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        composeRule.onNodeWithText("Search this location").performClick()
         composeRule.waitForIdle()
     }
 
@@ -303,7 +303,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Tools").performClick()
 
         // The drawer's own content — proof Tools opened the real drawer, not a parallel search UI.
-        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+        composeRule.onNodeWithText("Recent searches").assertIsDisplayed()
     }
 
     @Test
@@ -332,11 +332,12 @@ class AvailabilityScreenMapIconStackTest {
 
         // "Tools" (bottom nav) and the "Fungi · August · 15 km" search summary (top strip) stand
         // in for the two chrome regions decision #5 hides together — there's no more app-bar tune
-        // icon to check now that species/category search and "Advanced search" both moved into the
-        // drawer. Matched by the summary's exact text rather than a "15 km" substring: the drawer
-        // sheet stays composed off-screen while closed (see openSearchDrawer()'s doc comment
-        // elsewhere in this suite) and its own "Search radius: 15 km" text would otherwise double
-        // the substring match.
+        // icon to check now that species/category search moved into the drawer and "Advanced
+        // search" moved into AdvancedSearchDropdown. Matched by the summary's exact text rather
+        // than a "15 km" substring: that dropdown's own "Search radius: 15 km" text would
+        // otherwise double the substring match, if it stayed composed while closed the way the
+        // drawer's own content does — it doesn't (AnimatedVisibility disposes it, not just moves
+        // it off-screen), but matching the full summary avoids relying on that either way.
         composeRule.onNodeWithText("Tools").assertIsDisplayed()
         composeRule.onNodeWithText("Fungi · August · 15 km").assertIsDisplayed()
 
@@ -502,12 +503,12 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
 
         composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+        composeRule.onNodeWithText("Recent searches").assertIsDisplayed()
         composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
 
         composeRule.onNodeWithContentDescription("Close search options").performClick()
 
-        composeRule.onNodeWithText("Advanced search").assertIsNotDisplayed()
+        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
         composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
     }
 
@@ -822,61 +823,104 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Tools").assertIsDisplayed()
     }
 
-    @Test
-    fun `the search summary bar shows a magnifying glass marking it as tappable for search`() {
-        setScreen()
-
-        composeRule.onNodeWithContentDescription("Quick species search").assertIsDisplayed()
-    }
-
     /**
-     * [ModalNavigationDrawer] keeps the drawer's own [SpeciesSearchControls] composed even while
-     * closed — see [QuickSearchPanel]'s own doc comment — so queries here are scoped to
-     * [QUICK_SEARCH_PANEL_TAG] rather than matching by text/tag alone, which would find both the
-     * (closed, off-screen) drawer copy and this panel's own.
+     * Map/navigation redesign dispatch C, item 1: the search summary bar's own trailing chevron —
+     * not a bare icon nobody would read as interactive — is the "reads as expandable without a
+     * tap" affordance that item's own text asked for, replacing the leading magnifying glass this
+     * test used to check (now decorative, `contentDescription = null`, since the chevron alone
+     * carries the meaning). Addressed by [ADVANCED_SEARCH_CHEVRON_TAG], not a bare
+     * `onNodeWithContentDescription`, per this dispatch's own standing constraint: "anything
+     * asserted as visible gets `onNodeWithText` or a testTag, never `onNodeWithContentDescription`
+     * alone."
      */
-    private fun quickSearchNodeWithText(text: String) =
-        composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(QUICK_SEARCH_PANEL_TAG)))
-
     @Test
-    fun `tapping the search summary bar opens a quick search panel, tapping again closes it`() {
+    fun `the search summary bar shows a chevron marking it as expandable for advanced search`() {
         setScreen()
 
-        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
-        composeRule.onNodeWithTag(QUICK_SEARCH_PANEL_TAG).assertIsDisplayed()
-
-        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
-        composeRule.onNodeWithTag(QUICK_SEARCH_PANEL_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(ADVANCED_SEARCH_CHEVRON_TAG).assertIsDisplayed()
     }
 
     @Test
-    fun `the quick search panel does not open the full search drawer`() {
+    fun `tapping the search summary bar opens the advanced search dropdown, tapping again closes it`() {
+        setScreen()
+
+        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
+        composeRule.onNodeWithTag(ADVANCED_SEARCH_DROPDOWN_TAG).assertIsDisplayed()
+
+        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
+        composeRule.onNodeWithTag(ADVANCED_SEARCH_DROPDOWN_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the advanced search dropdown does not open the full search drawer`() {
         setScreen()
 
         composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
 
-        // The drawer's "Advanced search" entry point structurally exists either way (see
-        // QuickSearchPanel's own doc comment on ModalNavigationDrawer) — the real assertion is
-        // that it isn't showing, not that it's absent from the tree.
-        composeRule.onNodeWithText("Advanced search").assertIsNotDisplayed()
+        // "Recent searches" (the drawer's own first section header) stands in for "the drawer is
+        // open" — see searchAReferenceRegion()'s own doc comment elsewhere in this suite for why
+        // that's the marker this suite settled on.
+        composeRule.onNodeWithText("Recent searches").assertIsNotDisplayed()
     }
 
     /**
-     * Category selection, not species text search: [SpeciesSearchControls]' category chips apply
-     * synchronously (no debounce, no Popup dropdown), so this exercises quick search wired to the
-     * real [AvailabilityViewModel] without the timing fragility a debounced-search-to-dropdown test
+     * Category selection through the real [AvailabilityViewModel] — moved here from the top bar's
+     * own now-removed quick-search panel (map/navigation redesign dispatch C, item 1 folded that
+     * panel's species/category search back into the Tools drawer's [SpeciesSearchControls], its
+     * only copy now that the duplicate at the top is gone). Synchronous, no debounce, no Popup
+     * dropdown, so this stays free of the timing fragility a debounced-search-to-dropdown test
      * would need — [SearchTaxaUseCase]'s own debounce/dropdown mechanics are shared, pre-existing
      * logic with no dedicated test anywhere in this codebase yet, compact or otherwise; not a gap
      * this task introduced.
      */
     @Test
-    fun `picking a category chip in quick search applies the filter through the real ViewModel`() {
+    fun `picking a category chip in the Tools drawer applies the filter through the real ViewModel`() {
+        setScreen()
+
+        composeRule.onNodeWithText("Tools").performClick()
+        composeRule.onNodeWithText("Plants").performClick()
+
+        assertEquals(TaxonFilter.PLANTS, viewModel.uiState.value.taxonFilter)
+    }
+
+    /**
+     * Map/navigation redesign dispatch C's own explicit ask: "this repo has shipped pointer
+     * interception four times. Extend Dispatch A's performTouchInput coverage to this surface" —
+     * [AdvancedSearchDropdown] floats over the map exactly like [ControlPill]/[DistanceArm] did,
+     * and it's new content over that same surface, so it gets the same real-touch proof those two
+     * did rather than trusting Understory rule 1 (no [Surface], so nothing here should intercept a
+     * touch meant for a sibling) on inspection alone. Real [performTouchInput] at screen
+     * coordinates, not a semantic [performClick]: a semantic click bypasses real hit-testing and
+     * z-order, exactly the mechanism the three earlier regressions this file's own history already
+     * documents shipped through unnoticed.
+     *
+     * "Set on map" specifically, not one of the simpler controls: it's the one Item 2 of this
+     * dispatch asks to hand off to [CentrePinLocationPickerOverlay] over this tab's own real map —
+     * the reachable-through-a-real-touch proof and the hand-off wiring proof in one test, rather
+     * than two smaller ones that would each only cover half of what actually matters here.
+     */
+    @Test
+    fun `a real touch on the advanced search dropdown's Set on map button reaches it and opens the centre-pin picker over the real map`() {
         setScreen()
 
         composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
-        quickSearchNodeWithText("Plants").performClick()
+        composeRule.onNodeWithTag(ADVANCED_SEARCH_DROPDOWN_TAG).assertIsDisplayed()
 
-        assertEquals(TaxonFilter.PLANTS, viewModel.uiState.value.taxonFilter)
+        val setOnMapBounds = composeRule.onNodeWithText("Set on map").getUnclippedBoundsInRoot()
+        val setOnMapCenter = with(composeRule.density) {
+            Offset(
+                ((setOnMapBounds.left + setOnMapBounds.right) / 2).toPx(),
+                ((setOnMapBounds.top + setOnMapBounds.bottom) / 2).toPx(),
+            )
+        }
+        composeRule.onRoot().performTouchInput { click(setOnMapCenter) }
+        composeRule.waitForIdle()
+
+        // The dropdown closed and the centre-pin picker's own confirm row is up — proof the touch
+        // actually reached "Set on map", not some other node it happened to land on.
+        composeRule.onNodeWithTag(ADVANCED_SEARCH_DROPDOWN_TAG).assertDoesNotExist()
+        composeRule.onNodeWithText("OK").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
     }
 
     @Test
