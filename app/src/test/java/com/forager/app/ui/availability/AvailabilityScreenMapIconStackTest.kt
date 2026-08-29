@@ -33,7 +33,6 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -453,17 +452,11 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag("sighting-dot").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Chanterelle").assertIsDisplayed()
-        val afterFirstTap = composeRule.onAllNodesWithTag("observation-bubble").fetchSemanticsNodes().size
 
         composeRule.onNodeWithTag("map-elsewhere").performClick()
         composeRule.waitForIdle()
-        val afterSecondTap = composeRule.onAllNodesWithTag("observation-bubble").fetchSemanticsNodes().size
 
-        composeRule.onNodeWithTag("map-elsewhere").performClick()
-        composeRule.waitForIdle()
-        val afterThirdTap = composeRule.onAllNodesWithTag("observation-bubble").fetchSemanticsNodes().size
-
-        error("afterFirstTap=$afterFirstTap afterSecondTap=$afterSecondTap afterThirdTap=$afterThirdTap\n${DEBUG_TAP_LOG.joinToString("\n")}")
+        composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
     }
 
     @Test
@@ -919,11 +912,7 @@ private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightin
 private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, onSightingTap, _, modifier ->
     Column(modifier.testTag("map-slot")) {
         Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) }))
-        Text("elsewhere", modifier = Modifier.testTag("map-elsewhere").clickable(onClick = {
-            DEBUG_TAP_LOG.add("stub: elsewhere clicked, calling onTap()")
-            onTap()
-            DEBUG_TAP_LOG.add("stub: onTap() returned")
-        }))
+        Text("elsewhere", modifier = Modifier.testTag("map-elsewhere").clickable(onClick = onTap))
     }
 }
 

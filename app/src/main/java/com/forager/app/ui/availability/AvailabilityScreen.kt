@@ -250,9 +250,6 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
-/** TEMPORARY diagnostic scaffolding — will be removed once the regression under investigation is root-caused. */
-internal val DEBUG_TAP_LOG = mutableListOf<String>()
-
 private enum class ResultsTab(val label: String) {
     LIST("List"),
     MAP("Maps"),
@@ -3974,6 +3971,19 @@ private fun CompactMapTab(
             }
 
             var cameraCenter by remember(displayRegion) { mutableStateOf(LatLng(displayRegion.lat, displayRegion.lng)) }
+            // Computed once, unconditionally, here rather than inline inside the tappedSighting?.let
+            // block below (where an equivalent expression lived until this was moved): reading
+            // LocalDensity.current + compassStripHeightPx from inside that conditional block gave
+            // it its own recomposition scope, keyed to a value that changes shortly after the block
+            // first starts emitting (compassStripHeightPx settling from 0 to its real measured
+            // height once CompassElevationStrip's own layout catches up) — recomposing just that
+            // scope corrupted the mapSlot(...) call's own onTap wiring on the very next frame, a
+            // real regression AvailabilityScreenMapIconStackTest's own "tapping elsewhere on the map
+            // dismisses the observation bubble" test caught directly (green-to-failing on this exact
+            // change, not a hypothetical). Hoisting the conversion to an unconditional value here,
+            // read once per recomposition of this whole branch rather than gated behind a
+            // conditional child scope, removes that scope-churn path entirely.
+            val compassStripHeightDp = with(LocalDensity.current) { compassStripHeightPx.toDp() }
 
             Box(modifier = modifier.fillMaxSize()) {
                 mapSlot(
@@ -3996,22 +4006,18 @@ private fun CompactMapTab(
                     // tap elsewhere on the map is its whole dismiss gesture, see ObservationBubble's
                     // own doc comment). Harmless to clear when nothing is showing.
                     {
-                        DEBUG_TAP_LOG.add("onTap fired, tappedSighting was ${tappedSighting?.commonName}")
                         if (isFullscreen) onToggleFullscreen()
                         tappedSighting = null
-                        DEBUG_TAP_LOG.add("onTap done, tappedSighting now ${tappedSighting?.commonName}")
                     },
                     { sighting, screenPosition ->
-                        DEBUG_TAP_LOG.add("onSightingTap fired with ${sighting.commonName}")
                         tappedSighting = sighting
                         tappedSightingScreenPosition = screenPosition
                     },
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
-                DEBUG_TAP_LOG.add("recomposed CompactMapTab body, tappedSighting = ${tappedSighting?.commonName}")
                 tappedSighting?.let { sighting ->
-                    // minY = the compass strip's own measured height (compassStripHeightPx), not a
+                    // minY = the compass strip's own measured height (compassStripHeightDp), not a
                     // hardcoded constant and not 0 — the strip is composed after this in the same Box
                     // (deliberately, so its own controls win any overlap — see CompactMapTab's own
                     // doc comment above MapIconBar), and is full-width/flush against the map's top
@@ -4023,10 +4029,12 @@ private fun CompactMapTab(
                     // alone won't catch, this time guarded against directly rather than only caught
                     // by this bubble's own close-icon interaction test. Measured rather than a fixed
                     // 48dp constant since Part A item 1 of this dispatch un-pinned the strip's own
-                    // height back to wrapping its text content.
+                    // height back to wrapping its text content. See compassStripHeightDp's own doc
+                    // comment for why this is hoisted out of this conditional block rather than
+                    // computed inline here.
                     AnchoredAtScreenPoint(
                         anchorPx = tappedSightingScreenPosition,
-                        minY = 48.dp,
+                        minY = compassStripHeightDp,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         ObservationBubble(
@@ -4122,18 +4130,20 @@ private fun CompactMapTab(
                     modifier = Modifier.align(Alignment.TopEnd),
                 )
 
-                // Below the compass strip (its own measured compassStripHeightPx as top padding),
+                // Below the compass strip (its own measured compassStripHeightDp as top padding),
                 // same reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface
                 // intercepts touches across its full width, so a chip placed underneath it would
                 // have its own "Show all species" tap silently swallowed the same way a bubble
-                // anchored there would.
+                // anchored there would. Uses the same hoisted compassStripHeightDp AnchoredAtScreenPoint's
+                // own minY does, not a second inline conversion inside this conditional block — see
+                // that value's own doc comment for the real regression an inline read here caused.
                 mapTaxonFilterLabel?.let { label ->
                     TaxonMapFilterChip(
                         label = label,
                         onClear = onClearTaxonFilter,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = with(LocalDensity.current) { compassStripHeightPx.toDp() } + Spacing.sm),
+                            .padding(top = compassStripHeightDp + Spacing.sm),
                     )
                 }
 
