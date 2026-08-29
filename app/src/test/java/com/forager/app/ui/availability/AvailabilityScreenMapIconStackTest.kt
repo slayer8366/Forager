@@ -453,12 +453,17 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag("sighting-dot").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Chanterelle").assertIsDisplayed()
+        val afterFirstTap = composeRule.onAllNodesWithTag("observation-bubble").fetchSemanticsNodes().size
 
         composeRule.onNodeWithTag("map-elsewhere").performClick()
         composeRule.waitForIdle()
+        val afterSecondTap = composeRule.onAllNodesWithTag("observation-bubble").fetchSemanticsNodes().size
 
-        composeRule.onRoot().printToLog("DEBUGTREE")
-        error(org.robolectric.shadows.ShadowLog.getLogs().joinToString("\n") { it.msg })
+        composeRule.onNodeWithTag("map-elsewhere").performClick()
+        composeRule.waitForIdle()
+        val afterThirdTap = composeRule.onAllNodesWithTag("observation-bubble").fetchSemanticsNodes().size
+
+        error("afterFirstTap=$afterFirstTap afterSecondTap=$afterSecondTap afterThirdTap=$afterThirdTap")
     }
 
     @Test
