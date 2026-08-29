@@ -919,7 +919,11 @@ private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightin
 private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, onSightingTap, _, modifier ->
     Column(modifier.testTag("map-slot")) {
         Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) }))
-        Text("elsewhere", modifier = Modifier.testTag("map-elsewhere").clickable(onClick = onTap))
+        Text("elsewhere", modifier = Modifier.testTag("map-elsewhere").clickable(onClick = {
+            DEBUG_TAP_LOG.add("stub: elsewhere clicked, calling onTap()")
+            onTap()
+            DEBUG_TAP_LOG.add("stub: onTap() returned")
+        }))
     }
 }
 
