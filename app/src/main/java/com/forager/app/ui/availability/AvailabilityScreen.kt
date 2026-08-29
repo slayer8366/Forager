@@ -527,14 +527,36 @@ fun AvailabilityScreen(
     // sighting view.
     var mapTaxonFilter by remember { mutableStateOf<Long?>(null) }
 
+    // Whether the foraging-areas layer was showing right before a "View on Map" filter was first
+    // applied — read back on clear so the layer returns to whatever the user actually had, not
+    // unconditionally forced back on. Only snapshotted/toggled off when mapTaxonFilter is still
+    // null in onViewSpeciesOnMap below: without that guard, tapping "View on Map" for a second
+    // species while already filtered would re-read uiState.showForagingAreas after this same
+    // effect already turned it off, silently forgetting the user's real original preference.
+    var wasShowingForagingAreasBeforeMapFilter by remember { mutableStateOf(false) }
+
     // Sets the filter and jumps to whichever map surface the current window class actually shows —
     // both selectedTab and compactTab are updated unconditionally rather than branching on
     // windowWidthClass here, since only the one the active layout reads has any effect; see
     // CompactTab's own doc comment for why the two are kept as separate state instead of one.
+    // Also hides the foraging-areas layer while the filtered view is up — a single species'
+    // sightings grouped into "areas" reads as a misleading claim about that species' own foraging
+    // pattern, not the general-purpose grouping the layer is for — restored on
+    // onClearMapTaxonFilter below.
     val onViewSpeciesOnMap: (Long) -> Unit = { taxonId ->
+        if (mapTaxonFilter == null) {
+            wasShowingForagingAreasBeforeMapFilter = uiState.showForagingAreas
+            if (uiState.showForagingAreas) onToggleForagingAreas(false)
+        }
         mapTaxonFilter = taxonId
         compactTab = CompactTab.MAP
         selectedTab = ResultsTab.MAP
+    }
+
+    /** Clears the filter and restores the foraging-areas layer to whatever it was before — see [wasShowingForagingAreasBeforeMapFilter]'s own doc comment. */
+    val onClearMapTaxonFilter: () -> Unit = {
+        mapTaxonFilter = null
+        if (wasShowingForagingAreasBeforeMapFilter) onToggleForagingAreas(true)
     }
 
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
@@ -949,7 +971,7 @@ fun AvailabilityScreen(
                         waypoints = waypoints,
                         onDropWaypoint = onDropWaypoint,
                         taxonFilter = mapTaxonFilter,
-                        onClearTaxonFilter = { mapTaxonFilter = null },
+                        onClearTaxonFilter = onClearMapTaxonFilter,
                         onViewOnMap = onViewSpeciesOnMap,
                         modifier = Modifier.weight(1f),
                     )
@@ -1156,7 +1178,7 @@ fun AvailabilityScreen(
                         onToggleReturning = onToggleReturning,
                         compassProvider = compassProvider,
                         taxonFilter = mapTaxonFilter,
-                        onClearTaxonFilter = { mapTaxonFilter = null },
+                        onClearTaxonFilter = onClearMapTaxonFilter,
                         modifier = Modifier.weight(1f),
                     )
                     CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
@@ -3571,7 +3593,7 @@ private fun MapTab(
                             TaxonMapFilterChip(
                                 label = label,
                                 onClear = onClearTaxonFilter,
-                                modifier = Modifier.align(Alignment.TopStart).padding(Spacing.sm),
+                                modifier = Modifier.align(Alignment.TopCenter).padding(Spacing.sm),
                             )
                         }
                         MapModeToggle(
@@ -4054,8 +4076,8 @@ private fun CompactMapTab(
                         label = label,
                         onClear = onClearTaxonFilter,
                         modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(top = COMPASS_STRIP_MIN_HEIGHT + Spacing.sm, start = Spacing.sm),
+                            .align(Alignment.TopCenter)
+                            .padding(top = COMPASS_STRIP_MIN_HEIGHT + Spacing.sm),
                     )
                 }
 
@@ -4461,17 +4483,18 @@ private fun CompassElevationStripContent(
                 // had to go before this Row's height (from its tallest child, the return-to-vehicle
                 // IconButton's fixed 48dp) actually stuck.
                 modifier = Modifier
-                    // Spacing.sm, not Spacing.md — still cut off on real hardware after the icon
-                    // moved to its own fixed box (see this Row's own doc comment above), so the
-                    // margin itself had to shrink too rather than trusting that fix alone to
-                    // reclaim enough width for "10T ER 2869…" to read in full.
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.sm),
+                    // No horizontal padding at all here any more (was Spacing.md, then Spacing.sm)
+                    // — still cut off on real hardware at Spacing.sm, and the two end boxes already
+                    // carry their own visual margin: each is MIN_TOUCH_TARGET (48dp) wide with an
+                    // 18-24dp icon centered inside, so dropping this Row's own padding entirely
+                    // still leaves real whitespace before either icon, it just stops taking width
+                    // away from the coordinates text on top of that.
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Fixed at the strip's own far left, the same MIN_TOUCH_TARGET box
-                // ReturnToVehicleStripControl reserves at the far right — same size, same padding
-                // (this Row's own horizontal padding above, symmetric on both ends), for the same
+                // ReturnToVehicleStripControl reserves at the far right — same size, symmetric on
+                // both ends now that this Row has no horizontal padding of its own, for the same
                 // reason: a hardware report found the compass needle visibly drifting left/right as
                 // the heading/elevation/coordinates text next to it changed length, because it used
                 // to be the first child of the centered text group below rather than its own fixed
@@ -5239,20 +5262,9 @@ internal fun inaturalistObservationIntent(observationId: Long): Intent {
 }
 
 /**
- * The web URL for one taxon's page — what the List tab's species rows link to. A row there is an
- * aggregate ([SpeciesObservationCount]) across many observations, not one tapped marker, so
- * [taxonId] is the only iNaturalist-recognized identifier a row has to point at.
- */
-internal fun inaturalistTaxonIntent(taxonId: Long): Intent {
-    val uri = Uri.parse("https://www.inaturalist.org/taxa/$taxonId")
-    return Intent(Intent.ACTION_VIEW, uri)
-}
-
-/**
  * Resolves [webIntent] against [INATURALIST_PACKAGE] first, falling back to the plain implicit
  * intent (typically a browser) when the app doesn't claim it, and to a [Toast] when nothing does —
- * the shared resolve-then-launch defensiveness both [launchINaturalistObservation] and
- * [launchINaturalistTaxon] need, same as [launchDirections].
+ * shared with [launchINaturalistObservation]'s own doc comment, same as [launchDirections].
  */
 private fun launchINaturalist(context: Context, webIntent: Intent) {
     val appIntent = Intent(webIntent).setPackage(INATURALIST_PACKAGE)
@@ -5278,20 +5290,6 @@ private fun launchINaturalist(context: Context, webIntent: Intent) {
  */
 internal fun launchINaturalistObservation(context: Context, observationId: Long) =
     launchINaturalist(context, inaturalistObservationIntent(observationId))
-
-/**
- * Opens [taxonId]'s iNaturalist taxon page, same app-first/browser-fallback behavior as
- * [launchINaturalistObservation] — but unlike an observation link, this one has nowhere to land in
- * the installed app today: the iNaturalist Android app's own public manifest
- * (`iNaturalist/src/main/AndroidManifest.xml` in `inaturalist/iNaturalistAndroid`) declares
- * autoVerify intent-filters only for `/observations/.*`, `/people/.*` and `/messages/.*` — no
- * activity claims `/taxa/.*`, so [INATURALIST_PACKAGE]'s resolve attempt here will not find a match
- * and this will in practice always fall through to the browser. The app-first attempt is kept
- * anyway, same as every other iNaturalist link in this file: it costs nothing when it doesn't
- * resolve, and starts working automatically if iNaturalist's own app ever adds taxon-page support.
- */
-internal fun launchINaturalistTaxon(context: Context, taxonId: Long) =
-    launchINaturalist(context, inaturalistTaxonIntent(taxonId))
 
 private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -5815,27 +5813,29 @@ private fun ForagingWeatherGuidanceSection(selection: ForagingSelection) {
 }
 
 /**
- * Tapping the row offers the same "View on iNaturalist" hand-off the map's observation bubble
- * gives a tapped marker — see [launchINaturalistTaxon]'s own doc comment for how a taxon link
- * differs from an observation link in what the installed app can actually do with it. "View on
- * Map" is the second, in-app affordance beside it: [onViewOnMap] hands [entry]'s own
+ * Tapping the row (or its own explicit "View on Map" text) hands [entry]'s own
  * [SpeciesObservationCount.taxonId] up to [AvailabilityScreen]'s `onViewSpeciesOnMap`, which both
  * switches to whichever map surface the current window class shows and sets the taxon filter
  * [MapTab]/[CompactMapTab] read to limit their sightings to this one species — see that filter's
- * own doc comment on [AvailabilityScreen] for why it lives there rather than in either tab. Both
- * texts are explicit affordances on the same line as the observation count (not the row's only way
- * to trigger either action) so they read as discoverable rather than a hidden tap-anywhere
- * gesture; tapping anywhere else on the row still falls through to the iNaturalist hand-off, the
- * behavior this row had before "View on Map" existed.
+ * own doc comment on [AvailabilityScreen] for why it lives there rather than in either tab. The
+ * text is a second, explicit affordance on the same line as the observation count (not the row's
+ * only way to trigger it) so the action reads as discoverable rather than a hidden tap-anywhere
+ * gesture.
+ *
+ * An earlier revision also offered "View on iNaturalist" here, opening the species' taxon page —
+ * removed at the project owner's own request ("the view on iNaturalist idea was a bad one"), not
+ * merely hidden: [launchINaturalistTaxon]/[inaturalistTaxonIntent] were deleted outright rather
+ * than left unreferenced, since nothing else in this file used them (the map's own observation
+ * bubble still uses [launchINaturalistObservation], a distinct per-observation link this removal
+ * doesn't touch).
  */
 @Composable
 private fun SpeciesRow(entry: AvailabilityEntry, onViewOnMap: (Long) -> Unit) {
-    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("species-row")
-            .clickable { launchINaturalistTaxon(context, entry.species.taxonId) },
+            .clickable { onViewOnMap(entry.species.taxonId) },
     ) {
         Column(
             modifier = Modifier.padding(Spacing.md),
@@ -5862,25 +5862,14 @@ private fun SpeciesRow(entry: AvailabilityEntry, onViewOnMap: (Long) -> Unit) {
                     "${entry.species.observationCount} observations",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text(
-                        "View on Map",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clickable { onViewOnMap(entry.species.taxonId) }
-                            .testTag("species-row-view-on-map"),
-                    )
-                    Text("·", style = MaterialTheme.typography.bodySmall)
-                    Text(
-                        "View on iNaturalist",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clickable { launchINaturalistTaxon(context, entry.species.taxonId) }
-                            .testTag("species-row-view-on-inaturalist"),
-                    )
-                }
+                Text(
+                    "View on Map",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clickable { onViewOnMap(entry.species.taxonId) }
+                        .testTag("species-row-view-on-map"),
+                )
             }
         }
     }

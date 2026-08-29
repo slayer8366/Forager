@@ -63,7 +63,7 @@ class AvailabilityScreenListTabViewOnMapTest {
         Box(modifier.testTag("map-slot"))
     }
 
-    private fun setScreen(uiState: AvailabilityUiState) {
+    private fun setScreen(uiState: AvailabilityUiState, onToggleForagingAreas: (Boolean) -> Unit = {}) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
@@ -75,7 +75,7 @@ class AvailabilityScreenListTabViewOnMapTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
+                onToggleForagingAreas = onToggleForagingAreas,
                 onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
@@ -128,6 +128,42 @@ class AvailabilityScreenListTabViewOnMapTest {
 
         composeRule.onNodeWithText("Showing: Pacific Golden Chanterelle (1)").assertDoesNotExist()
         assertEquals(listOf(MATCHING_SIGHTING, OTHER_SIGHTING), capturedSightings)
+    }
+
+    /**
+     * A single species' sightings grouped into "areas" would read as a claim about that species'
+     * own foraging pattern, not the general-purpose grouping the layer is for — see
+     * [AvailabilityScreen]'s own `wasShowingForagingAreasBeforeMapFilter` doc comment.
+     */
+    @Test
+    fun `View on Map turns off Foraging Areas if it was on, and restores it on clear`() {
+        val foragingAreasCalls = mutableListOf<Boolean>()
+        setScreen(SEARCHED_STATE.copy(showForagingAreas = true), onToggleForagingAreas = { foragingAreasCalls += it })
+
+        openListTab()
+        composeRule.onNodeWithText("View on Map").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(false), foragingAreasCalls)
+
+        composeRule.onNodeWithContentDescription("Show all species").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(false, true), foragingAreasCalls)
+    }
+
+    @Test
+    fun `View on Map leaves Foraging Areas alone if it was already off`() {
+        val foragingAreasCalls = mutableListOf<Boolean>()
+        setScreen(SEARCHED_STATE.copy(showForagingAreas = false), onToggleForagingAreas = { foragingAreasCalls += it })
+
+        openListTab()
+        composeRule.onNodeWithText("View on Map").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Show all species").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(emptyList<Boolean>(), foragingAreasCalls)
     }
 }
 
