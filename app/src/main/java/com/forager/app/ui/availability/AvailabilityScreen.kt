@@ -1,5 +1,8 @@
 package com.forager.app.ui.availability
 
+/** TEMPORARY diagnostic scaffolding — will be removed once the regression under investigation is root-caused. */
+internal val DEBUG_TAP_LOG = mutableListOf<String>()
+
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -3993,10 +3996,10 @@ private fun CompactMapTab(
                     // tap elsewhere on the map is its whole dismiss gesture, see ObservationBubble's
                     // own doc comment). Harmless to clear when nothing is showing.
                     {
-                        System.err.println("DEBUGTAP onTap fired, tappedSighting was ${tappedSighting?.commonName}")
+                        DEBUG_TAP_LOG.add("onTap fired, tappedSighting was ${tappedSighting?.commonName}")
                         if (isFullscreen) onToggleFullscreen()
                         tappedSighting = null
-                        System.err.println("DEBUGTAP onTap done, tappedSighting now ${tappedSighting?.commonName}")
+                        DEBUG_TAP_LOG.add("onTap done, tappedSighting now ${tappedSighting?.commonName}")
                     },
                     { sighting, screenPosition ->
                         tappedSighting = sighting

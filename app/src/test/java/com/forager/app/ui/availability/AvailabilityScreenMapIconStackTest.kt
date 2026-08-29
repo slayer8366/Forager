@@ -463,8 +463,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
         val afterThirdTap = composeRule.onAllNodesWithTag("observation-bubble").fetchSemanticsNodes().size
 
-        val debugTapLogs = org.robolectric.shadows.ShadowLog.getLogs().filter { it.tag == "DEBUGTAP" }.joinToString("\n") { it.msg }
-        error("afterFirstTap=$afterFirstTap afterSecondTap=$afterSecondTap afterThirdTap=$afterThirdTap\n$debugTapLogs")
+        error("afterFirstTap=$afterFirstTap afterSecondTap=$afterSecondTap afterThirdTap=$afterThirdTap\n${DEBUG_TAP_LOG.joinToString("\n")}")
     }
 
     @Test
