@@ -3993,8 +3993,10 @@ private fun CompactMapTab(
                     // tap elsewhere on the map is its whole dismiss gesture, see ObservationBubble's
                     // own doc comment). Harmless to clear when nothing is showing.
                     {
+                        System.err.println("DEBUGTAP onTap fired, tappedSighting was ${tappedSighting?.commonName}")
                         if (isFullscreen) onToggleFullscreen()
                         tappedSighting = null
+                        System.err.println("DEBUGTAP onTap done, tappedSighting now ${tappedSighting?.commonName}")
                     },
                     { sighting, screenPosition ->
                         tappedSighting = sighting
