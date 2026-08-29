@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
@@ -84,6 +85,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -360,7 +362,7 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `View on iNaturalist launches the observation's web page and dismisses the dialog`() {
+    fun `View on iNaturalist launches the observation's web page and dismisses the bubble`() {
         setScreen(mapSlot = SightingTappableStubMapSlot)
         registerFakeBrowser()
         searchAReferenceRegion()
@@ -373,6 +375,35 @@ class AvailabilityScreenMapIconStackTest {
         val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, started?.action)
         assertEquals("https://www.inaturalist.org/observations/42", started?.data.toString())
+        composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
+    }
+
+    @Test
+    fun `tapping the bubble's close icon dismisses it without navigating anywhere`() {
+        setScreen(mapSlot = SightingTappableStubMapSlot)
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("map-slot").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("observation-bubble-close").performClick()
+        composeRule.waitForIdle()
+
+        assertNull(Shadows.shadowOf(composeRule.activity).nextStartedActivity)
+        composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
+    }
+
+    @Test
+    fun `tapping elsewhere on the map dismisses the observation bubble`() {
+        setScreen(mapSlot = SightingAndPlainTapStubMapSlot)
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("sighting-dot").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Chanterelle").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("map-elsewhere").performClick()
+        composeRule.waitForIdle()
+
         composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
     }
 
@@ -731,10 +762,23 @@ private val TAPPED_SIGHTING = Sighting(
     photoUrl = null,
 )
 
-/** Exposes [onSightingTap] as a clickable surface reporting [TAPPED_SIGHTING], for the observation-detail dialog tests. */
+/** Exposes [onSightingTap] as a clickable surface reporting [TAPPED_SIGHTING], for the observation bubble tests. */
 private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightingTap, _, modifier ->
     Column(modifier.testTag("map-slot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING) })) {
         Text("map")
+    }
+}
+
+/**
+ * Exposes both [onSightingTap] (via a small "sighting-dot" tag) and the plain [onTap] (via a
+ * separate "map-elsewhere" tag) as independently clickable surfaces — [SightingTappableStubMapSlot]
+ * collapses both into one tag, which can't distinguish "tap the dot" from "tap elsewhere on the
+ * map" the way the bubble's dismiss-on-elsewhere-tap test needs to.
+ */
+private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, onSightingTap, _, modifier ->
+    Column(modifier.testTag("map-slot")) {
+        Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING) }))
+        Text("elsewhere", modifier = Modifier.testTag("map-elsewhere").clickable(onClick = onTap))
     }
 }
 

@@ -16,6 +16,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -50,6 +52,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.ExpandLess
@@ -3435,19 +3438,23 @@ private fun MapTab(
                             renderMode,
                             null,
                             {},
-                            {},
+                            // A plain tap elsewhere on the map is what dismisses the bubble below —
+                            // see ObservationBubble's own doc comment for why this replaced a modal
+                            // AlertDialog. Harmless to clear when nothing is showing.
+                            { tappedSighting = null },
                             { sighting -> tappedSighting = sighting },
                             { location -> cameraCenter = location },
                             Modifier.fillMaxSize(),
                         )
                         tappedSighting?.let { sighting ->
-                            ObservationDetailDialog(
+                            ObservationBubble(
                                 sighting = sighting,
                                 onViewOnINaturalist = {
                                     launchINaturalistObservation(context, sighting.observationId)
                                     tappedSighting = null
                                 },
                                 onDismiss = { tappedSighting = null },
+                                modifier = Modifier.align(Alignment.TopCenter).padding(Spacing.md),
                             )
                         }
                         MapModeToggle(
@@ -3800,23 +3807,39 @@ private fun CompactMapTab(
                     renderMode,
                     focusOverride,
                     {},
-                    // Tapping the map restores chrome while fullscreen — decision #5. Only
-                    // meaningful in that state: chrome is never hidden by a tap, only by the
-                    // fullscreen icon itself, so a tap while chrome is already showing is a
-                    // no-op rather than toggling it away.
-                    { if (isFullscreen) onToggleFullscreen() },
+                    // Tapping the map restores chrome while fullscreen — decision #5 — AND, now,
+                    // dismisses the observation bubble below regardless of fullscreen state (a plain
+                    // tap elsewhere on the map is its whole dismiss gesture, see ObservationBubble's
+                    // own doc comment). Harmless to clear when nothing is showing.
+                    {
+                        if (isFullscreen) onToggleFullscreen()
+                        tappedSighting = null
+                    },
                     { sighting -> tappedSighting = sighting },
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
                 tappedSighting?.let { sighting ->
-                    ObservationDetailDialog(
+                    ObservationBubble(
                         sighting = sighting,
                         onViewOnINaturalist = {
                             launchINaturalistObservation(context, sighting.observationId)
                             tappedSighting = null
                         },
                         onDismiss = { tappedSighting = null },
+                        // Cleared below COMPASS_STRIP_MIN_HEIGHT, not just Spacing.md — the compass
+                        // strip is composed after this in the same Box (deliberately, so its own
+                        // controls win any overlap — see CompactMapTab's own doc comment above
+                        // MapIconBar), and is full-width/flush against the map's top edge. A plain
+                        // top-aligned bubble sat squarely inside that band: its own taps (including
+                        // the close icon's) never reached this composable, silently swallowed by the
+                        // strip's own Surface the exact way CLAUDE.md's "Known pitfalls" already
+                        // documents for this app's map overlays — caught here by this bubble's own
+                        // close-icon interaction test, not visual review, the same class of miss
+                        // that entry warns visual review alone won't catch.
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = COMPASS_STRIP_MIN_HEIGHT + Spacing.md, start = Spacing.md, end = Spacing.md),
                     )
                 }
                 // MapIconBar composed *before* CompassElevationStrip now, not after — field-test
@@ -5033,22 +5056,40 @@ internal fun launchDirections(context: Context, trip: PlannedTrip) = launchDirec
 private const val NO_INATURALIST_LINK_MESSAGE = "Nothing installed can open this observation."
 
 /**
+ * iNaturalist's own Android app package — confirmed on the Play Store listing
+ * (`https://play.google.com/store/apps/details?id=org.inaturalist.android`), not guessed. Used to
+ * target the app explicitly rather than relying on an implicit intent's own app-link resolution:
+ * hardware testing found the plain implicit `ACTION_VIEW` below always opened a browser even with
+ * the iNaturalist app installed, meaning its own intent filter for inaturalist.org isn't a verified
+ * Android App Link on real devices — an unverified `BROWSABLE` filter only wins a disambiguation
+ * dialog, never an automatic hand-off, so an implicit intent alone can't do what item 2's dispatch
+ * ("open in the app first, else a browser") actually wants.
+ */
+private const val INATURALIST_PACKAGE = "org.inaturalist.android"
+
+/**
  * The web URL for a single iNaturalist observation — the only per-observation link iNaturalist
- * itself publishes, not a scheme this app owns. An implicit `ACTION_VIEW` against it is what lets
- * Android hand off to the iNaturalist app directly when it's installed (iNaturalist registers
- * inaturalist.org as a verified Android App Link) and fall back to a browser otherwise — the same
- * "let the OS pick, don't guess a package name" reasoning [directionsIntent] above uses for
- * whichever maps app is installed.
+ * itself publishes, not a scheme this app owns.
  */
 internal fun inaturalistObservationIntent(observationId: Long): Intent {
     val uri = Uri.parse("https://www.inaturalist.org/observations/$observationId")
     return Intent(Intent.ACTION_VIEW, uri)
 }
 
-/** Opens [observationId]'s iNaturalist page — same resolve-then-launch defensiveness as [launchDirections]. */
+/**
+ * Opens [observationId]'s iNaturalist page, preferring the installed iNaturalist app over a
+ * browser. Tries [INATURALIST_PACKAGE] explicitly first ([Intent.setPackage] skips any
+ * disambiguation and resolves straight to that app if it declares a matching intent filter at
+ * all, verified or not); only when that doesn't resolve does this fall back to the plain implicit
+ * intent, which resolves to whatever the device would otherwise pick (typically a browser).
+ * Same resolve-then-launch defensiveness as [launchDirections] either way.
+ */
 internal fun launchINaturalistObservation(context: Context, observationId: Long) {
-    val intent = inaturalistObservationIntent(observationId)
-    if (intent.resolveActivity(context.packageManager) == null) {
+    val webIntent = inaturalistObservationIntent(observationId)
+    val appIntent = Intent(webIntent).setPackage(INATURALIST_PACKAGE)
+    val packageManager = context.packageManager
+    val intent = if (appIntent.resolveActivity(packageManager) != null) appIntent else webIntent
+    if (intent.resolveActivity(packageManager) == null) {
         Toast.makeText(context, NO_INATURALIST_LINK_MESSAGE, Toast.LENGTH_SHORT).show()
         return
     }
@@ -5063,35 +5104,89 @@ private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPat
 
 /**
  * Tapping a sighting dot's own detail — species name and observed date, the two facts
- * [SightingsMap]'s doc comment describes this dialog as rebuilding from the vendor-native
+ * [SightingsMap]'s doc comment describes this as rebuilding from the vendor-native
  * title/snippet popup MapLibre's style-layer geometry has no equivalent for. "View on iNaturalist"
  * hands off to [launchINaturalistObservation] rather than showing anything about the observation
  * this app doesn't already have cached in [Sighting] — no confidence score, no candidate species
  * list, nothing this app would need to fetch or judge itself.
+ *
+ * A small floating bubble over the map, not a modal [AlertDialog] (this composable's first form,
+ * replaced after hardware feedback that a blocking dialog for something this minor "got in the
+ * way of the UX"). No scrim, no window of its own: it sits in the same [Box] as the map and lets
+ * every tap outside its own bounds fall straight through to the map beneath — dismissing itself is
+ * the caller's job, wired to the map's plain [onTap] the same way `CompactMapTab`'s "tap to restore
+ * chrome while fullscreen" already works, not something this composable can do on its own the way
+ * [AlertDialog]'s `onDismissRequest` (a tap on the scrim, or system back) could. The asymmetric top
+ * corner — squared off rather than rounded, unlike the other three — is what reads as a speech/
+ * notification bubble rather than a plain card, without needing a hand-drawn tail shape.
  */
 @Composable
-private fun ObservationDetailDialog(
+private fun ObservationBubble(
     sighting: Sighting,
     onViewOnINaturalist: () -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(sighting.commonName ?: sighting.scientificName) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Surface(
+        modifier = modifier
+            .widthIn(max = 280.dp)
+            .testTag("observation-bubble")
+            // Consumes its own taps via a plain pointerInput, not Modifier.clickable — this
+            // backdrop isn't itself a button (no ripple, no accessibility click action to fake),
+            // it only needs to swallow the gesture so it doesn't fall through to the map beneath.
+            // The same "a Surface wins hit-testing over whatever's beneath it in a Box" fact
+            // MapIconBar's own doc comment documents, relied on here rather than guarded against:
+            // a tap on the bubble should never also count as the map's own "tap elsewhere" dismiss
+            // gesture. The close icon and "View on iNaturalist" text below still get first crack at
+            // any tap that actually lands on them, same as any nested clickable inside one of these.
+            .pointerInput(Unit) { detectTapGestures {} },
+        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 6.dp,
+        tonalElevation = 3.dp,
+    ) {
+        Row(
+            // fillMaxWidth() matters here, not just padding: a Row that wraps to its own content's
+            // size can't also give the Column below a meaningful weight(1f) — Compose measures a
+            // weighted child against "remaining space" that only exists once the Row's own width is
+            // bounded/definite. Without this, the Column collapsed to near zero and wrapped
+            // "Chanterelle" one character per line (caught by this bubble's own interaction tests,
+            // not visual review).
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = Spacing.md, top = Spacing.sm, end = Spacing.xs, bottom = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    sighting.commonName ?: sighting.scientificName,
+                    style = MaterialTheme.typography.titleSmall,
+                )
                 if (sighting.commonName != null) {
                     Text(sighting.scientificName, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
                 }
                 Text(
                     sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    "View on iNaturalist",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(top = Spacing.xs)
+                        .clickable(onClick = onViewOnINaturalist)
+                        .testTag("observation-bubble-view-on-inaturalist"),
                 )
             }
-        },
-        confirmButton = { TextButton(onClick = onViewOnINaturalist) { Text("View on iNaturalist") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(24.dp).testTag("observation-bubble-close"),
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
+            }
+        }
+    }
 }
 
 @Composable

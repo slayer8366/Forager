@@ -15,15 +15,16 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 /**
- * "View on iNaturalist" on a tapped observation's [ObservationDetailDialog]: the web [Intent] it
- * builds ([inaturalistObservationIntent]) and what [launchINaturalistObservation] actually does
- * with it — same "real (shadowed) framework object, not a hand-rolled fake" reasoning
- * [DirectionsIntentTest] documents for [directionsIntent]/[launchDirections].
+ * "View on iNaturalist" on a tapped observation's bubble: the web [Intent] it builds
+ * ([inaturalistObservationIntent]) and what [launchINaturalistObservation] actually does with it —
+ * same "real (shadowed) framework object, not a hand-rolled fake" reasoning [DirectionsIntentTest]
+ * documents for [directionsIntent]/[launchDirections].
  *
- * A plain `https://` URL rather than a scheme this app owns: iNaturalist registers
- * inaturalist.org as a verified Android App Link, so the OS itself is what decides whether the
- * installed iNaturalist app or a browser handles it — this project has no way to force that
- * choice, and [inaturalistObservationIntent]'s own doc comment explains why it doesn't try.
+ * A hardware-reported bug drives the app-preferring behavior tested here: a plain implicit
+ * `ACTION_VIEW` against the observation's web URL always opened a browser, never the installed
+ * iNaturalist app — its own intent filter for inaturalist.org isn't a verified Android App Link on
+ * real devices, so nothing routes there automatically without [launchINaturalistObservation]
+ * explicitly targeting [INATURALIST_PACKAGE] first.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -39,13 +40,29 @@ class INaturalistObservationIntentTest {
     }
 
     @Test
-    fun `when a handler is registered, launchINaturalistObservation starts it with the built intent`() {
+    fun `when the iNaturalist app is installed, launchINaturalistObservation targets it directly`() {
         val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
         registerFakeINaturalistApp(activity)
+        // A browser is also installed here — the app must still win over it.
+        registerFakeBrowser(activity)
 
         launchINaturalistObservation(activity, 123456L)
 
         val started = Shadows.shadowOf(activity).nextStartedActivity
+        assertEquals("org.inaturalist.android", started?.`package`)
+        assertEquals(Intent.ACTION_VIEW, started?.action)
+        assertEquals("https://www.inaturalist.org/observations/123456", started?.data.toString())
+    }
+
+    @Test
+    fun `when only a browser is installed, launchINaturalistObservation falls back to the plain web intent`() {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        registerFakeBrowser(activity)
+
+        launchINaturalistObservation(activity, 123456L)
+
+        val started = Shadows.shadowOf(activity).nextStartedActivity
+        assertNull("the fallback intent must not target any specific package", started?.`package`)
         assertEquals(Intent.ACTION_VIEW, started?.action)
         assertEquals("https://www.inaturalist.org/observations/123456", started?.data.toString())
     }
@@ -65,8 +82,28 @@ class INaturalistObservationIntentTest {
         assertEquals("Nothing installed can open this observation.", ShadowToast.getTextOfLatestToast())
     }
 
+    /**
+     * A [ComponentName] built from a package name string, not [ComponentName]'s `(Context,
+     * String)` overload — that overload takes the *context's own* package
+     * (`com.forager.app`/whatever the test package is), which would silently register this
+     * component under the wrong package and defeat the exact `setPackage("org.inaturalist.android")`
+     * targeting this test exists to verify.
+     */
     private fun registerFakeINaturalistApp(activity: Activity) {
-        val componentName = ComponentName(activity, "org.inaturalist.android.ObservationActivity")
+        val componentName = ComponentName("org.inaturalist.android", "org.inaturalist.android.ObservationActivity")
+        val shadowPackageManager = Shadows.shadowOf(activity.packageManager)
+        shadowPackageManager.addActivityIfNotPresent(componentName)
+        shadowPackageManager.addIntentFilterForActivity(
+            componentName,
+            IntentFilter(Intent.ACTION_VIEW).apply {
+                addCategory(Intent.CATEGORY_DEFAULT)
+                addDataScheme("https")
+            },
+        )
+    }
+
+    private fun registerFakeBrowser(activity: Activity) {
+        val componentName = ComponentName("com.example.fakebrowser", "com.example.fakebrowser.BrowserActivity")
         val shadowPackageManager = Shadows.shadowOf(activity.packageManager)
         shadowPackageManager.addActivityIfNotPresent(componentName)
         shadowPackageManager.addIntentFilterForActivity(
