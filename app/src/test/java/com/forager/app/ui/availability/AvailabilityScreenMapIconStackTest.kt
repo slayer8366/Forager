@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -908,11 +909,30 @@ private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightin
  * separate "map-elsewhere" tag) as independently clickable surfaces — [SightingTappableStubMapSlot]
  * collapses both into one tag, which can't distinguish "tap the dot" from "tap elsewhere on the
  * map" the way the bubble's dismiss-on-elsewhere-tap test needs to.
+ *
+ * "map-elsewhere" carries a large top padding, not zero: [onSightingTap] here reports
+ * `Offset.Zero` as the tapped marker's screen position, which anchors `ObservationBubble` near the
+ * screen's own top edge — real [performClick] in this Compose UI test version dispatches through
+ * real hit-testing at the target node's own center, not a bare semantics-action invocation, so a
+ * "map-elsewhere" node placed immediately below "sighting-dot" (as this fixture originally was)
+ * sits inside the bubble's own footprint once that footprint's top clearance shrinks (this file's
+ * own `compassStripClearance`, a real dimension that changes as the compass strip's own height
+ * does) — a tap dispatched there lands on the bubble's own tap-consuming Surface, not on this
+ * clickable, and the test fails for a reason that has nothing to do with [onTap] itself. Real
+ * hardware never taps "elsewhere" at a point still covered by the very bubble being dismissed;
+ * this offset keeps the fixture's own layout matching that, well clear of anywhere
+ * `AnchoredAtScreenPoint` could ever place the bubble on this suite's own w360dp-h640dp viewport.
  */
 private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, onSightingTap, _, modifier ->
     Column(modifier.testTag("map-slot")) {
         Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) }))
-        Text("elsewhere", modifier = Modifier.testTag("map-elsewhere").clickable(onClick = onTap))
+        Text(
+            "elsewhere",
+            modifier = Modifier
+                .padding(top = 500.dp)
+                .testTag("map-elsewhere")
+                .clickable(onClick = onTap),
+        )
     }
 }
 
