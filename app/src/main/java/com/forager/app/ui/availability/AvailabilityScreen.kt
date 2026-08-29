@@ -4026,7 +4026,7 @@ private fun CompactMapTab(
                     // height back to wrapping its text content.
                     AnchoredAtScreenPoint(
                         anchorPx = tappedSightingScreenPosition,
-                        minY = with(LocalDensity.current) { compassStripHeightPx.toDp() },
+                        minY = 48.dp,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         ObservationBubble(
