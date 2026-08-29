@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -234,6 +235,25 @@ class AvailabilityScreenBackNavigationTest {
         pressBack()
 
         composeRule.onNodeWithText("Advanced search").assertIsNotDisplayed()
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
+    }
+
+    /**
+     * The top quick-search panel (species field, category chips) had no `BackHandler` at all
+     * before this fix — a hardware report that back didn't close it, unlike every other nested UI
+     * this suite already covers. Same "one step toward home, no exit warning" shape as the drawer
+     * test above.
+     */
+    @Test
+    fun `back closes the quick-search panel instead of warning to exit`() {
+        setScreen()
+        searchAReferenceRegion()
+        composeRule.onNodeWithContentDescription("Quick species search").performClick()
+        composeRule.onNodeWithTag(QUICK_SEARCH_PANEL_TAG).assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithTag(QUICK_SEARCH_PANEL_TAG).assertDoesNotExist()
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 

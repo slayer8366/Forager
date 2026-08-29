@@ -146,6 +146,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -561,6 +563,15 @@ fun AvailabilityScreen(
     // animated drawer as a side effect of this flag, and Compose's animateTo cancels and reverses
     // cleanly if the flag flips again before a prior animation finished, so rapid open/close
     // toggling stays responsive rather than queuing up stale animations.
+    // Read once here, reused below and inside compactMainScaffold's own showQuickSearch handling —
+    // both close points need the same "actually dismiss the IME" fix, not just clear this
+    // composable's own idea of which panel is showing. Neither call was made anywhere in this app
+    // before this fix (grepped the whole tree) — closing a panel that held focus (the drawer's own
+    // search fields, the quick-search species field) unmounts the focused TextField, which doesn't
+    // reliably hide the IME on every device/OEM on its own; a stray back press or drawer-close could
+    // leave a device's keyboard visibly "stuck" over whatever's shown next.
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     var isDrawerOpen by remember { mutableStateOf(false) }
     LaunchedEffect(isDrawerOpen) {
         if (isDrawerOpen) {
@@ -571,6 +582,8 @@ fun AvailabilityScreen(
             // that closes the drawer itself — rather than leaving Settings showing the next time the
             // drawer opens. A minor, easily-revisited default: see this task's own notes.
             drawerPanel = DrawerPanel.Search
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
         }
     }
 
@@ -951,6 +964,24 @@ fun AvailabilityScreen(
         // panel is showing is a display decision the ViewModel has no part in, same reasoning as
         // mapMode/drawerPanel above.
         var showQuickSearch by remember { mutableStateOf(false) }
+        // Nested inside this scaffold, so Compose's OnBackPressedDispatcher tries it before the
+        // four home-chain handlers above (isDrawerOpen/isMapFullscreen/compactTab/exit-confirmation)
+        // — the same "innermost enabled handler wins" precedence those four already rely on for
+        // JournalTab/CompactSettingsTab/CompactMapTab. Genuinely missing before this fix: back
+        // pressed while this panel was open (species field focused, keyboard up) fell straight
+        // through to whichever of those four was enabled instead of just closing this panel first.
+        BackHandler(enabled = showQuickSearch) {
+            showQuickSearch = false
+        }
+        // Same "actually hide the IME" fix as isDrawerOpen's own LaunchedEffect above — this panel
+        // holds the species search TextField, so it's exactly as prone to a stuck keyboard on close
+        // (scrim tap, the close button, or now the BackHandler above) as the drawer's own fields are.
+        LaunchedEffect(showQuickSearch) {
+            if (!showQuickSearch) {
+                focusManager.clearFocus(force = true)
+                keyboardController?.hide()
+            }
+        }
 
         // Pings the device's live location once, as soon as the compact Maps experience is shown,
         // so the map opens already centred on it rather than waiting for an explicit locate-me tap
