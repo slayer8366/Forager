@@ -4022,7 +4022,7 @@ private fun CompactMapTab(
                     // composition-time read of that state caused.
                     AnchoredAtScreenPoint(
                         anchorPx = tappedSightingScreenPosition,
-                        minYPx = { compassStripHeightPx },
+                        minYPx = { 48 },
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         ObservationBubble(
@@ -4080,7 +4080,7 @@ private fun CompactMapTab(
                         // rather than a hardcoded offset or a value computed from the bar's row
                         // count.
                         .onGloballyPositioned { coordinates ->
-                            // TEMP BISECT: write disabled
+                            mapIconBarBottomPx = coordinates.boundsInParent().bottom
                         },
                 )
                 CompassElevationStrip(
@@ -4098,7 +4098,7 @@ private fun CompactMapTab(
                         // measured height for AnchoredAtScreenPoint's minY and the taxon filter
                         // chip's own top padding below.
                         .onGloballyPositioned { coordinates ->
-                            // TEMP BISECT: write disabled
+                            compassStripHeightPx = coordinates.size.height
                         },
                 )
                 // Always composed, regardless of isRecording — record start/stop must stay reachable
@@ -4114,7 +4114,7 @@ private fun CompactMapTab(
                     isReturning = isReturning,
                     isOffTrack = isOffTrack,
                     onToggleReturning = onToggleReturning,
-                    mapIconBarBottomPx = { mapIconBarBottomPx },
+                    mapIconBarBottomPx = mapIconBarBottomPx,
                     modifier = Modifier.align(Alignment.TopEnd),
                 )
 
@@ -4477,7 +4477,7 @@ private fun TrailheadControls(
     isReturning: Boolean,
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
-    mapIconBarBottomPx: () -> Float,
+    mapIconBarBottomPx: Float,
     modifier: Modifier = Modifier,
 ) {
     // ControlPill's own real measured size, in px — what DistanceArm positions itself against (its
@@ -4487,7 +4487,7 @@ private fun TrailheadControls(
         modifier = modifier
             .padding(end = Spacing.sm)
             .offset {
-                IntOffset(x = 0, y = (mapIconBarBottomPx() + CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR.toPx()).roundToInt())
+                IntOffset(x = 0, y = (mapIconBarBottomPx + CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR.toPx()).roundToInt())
             },
     ) {
         // First: DistanceArm. Both children align TopEnd against this Box's own corner — the same
