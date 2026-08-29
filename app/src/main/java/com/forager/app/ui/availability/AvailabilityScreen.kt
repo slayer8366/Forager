@@ -519,6 +519,24 @@ fun AvailabilityScreen(
     // window lands on the same List/Maps/Seasonal tab compact was just showing.
     var compactTab by remember { mutableStateOf(CompactTab.MAP) }
 
+    // "View on Map" on a List-tab species row: which taxon (if any) the map tabs should limit
+    // their sightings to. Lives here, alongside selectedTab/compactTab, because both the List and
+    // Map tabs read and clear it and neither is an ancestor of the other in either window-class
+    // layout (CombinedResultsPane and compactMainScaffold each show only one at a time, but both
+    // are built from this same function's state). Null means "no filter" — the ordinary, every
+    // sighting view.
+    var mapTaxonFilter by remember { mutableStateOf<Long?>(null) }
+
+    // Sets the filter and jumps to whichever map surface the current window class actually shows —
+    // both selectedTab and compactTab are updated unconditionally rather than branching on
+    // windowWidthClass here, since only the one the active layout reads has any effect; see
+    // CompactTab's own doc comment for why the two are kept as separate state instead of one.
+    val onViewSpeciesOnMap: (Long) -> Unit = { taxonId ->
+        mapTaxonFilter = taxonId
+        compactTab = CompactTab.MAP
+        selectedTab = ResultsTab.MAP
+    }
+
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
     // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
     // this — see CompactMapTab's call site. Compact-only: WindowWidthClass.MEDIUM/EXPANDED never
@@ -930,6 +948,9 @@ fun AvailabilityScreen(
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
                         onDropWaypoint = onDropWaypoint,
+                        taxonFilter = mapTaxonFilter,
+                        onClearTaxonFilter = { mapTaxonFilter = null },
+                        onViewOnMap = onViewSpeciesOnMap,
                         modifier = Modifier.weight(1f),
                     )
                     ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
@@ -1104,6 +1125,7 @@ fun AvailabilityScreen(
                         uiState = uiState,
                         currentTime = currentTime,
                         distanceUnit = distanceUnit,
+                        onViewOnMap = onViewSpeciesOnMap,
                         modifier = Modifier.weight(1f),
                     )
                     CompactTab.MAP -> CompactMapTab(
@@ -1133,6 +1155,8 @@ fun AvailabilityScreen(
                         isOffTrack = isOffTrack,
                         onToggleReturning = onToggleReturning,
                         compassProvider = compassProvider,
+                        taxonFilter = mapTaxonFilter,
+                        onClearTaxonFilter = { mapTaxonFilter = null },
                         modifier = Modifier.weight(1f),
                     )
                     CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
@@ -1337,6 +1361,10 @@ private fun CombinedResultsPane(
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
+    /** See [AvailabilityScreen]'s own `mapTaxonFilter`/`onViewSpeciesOnMap` — threaded to both tabs here. */
+    taxonFilter: Long?,
+    onClearTaxonFilter: () -> Unit,
+    onViewOnMap: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier.fillMaxHeight()) {
@@ -1344,6 +1372,7 @@ private fun CombinedResultsPane(
             uiState = uiState,
             currentTime = currentTime,
             distanceUnit = distanceUnit,
+            onViewOnMap = onViewOnMap,
             modifier = Modifier.width(COMBINED_PANE_LIST_WIDTH).fillMaxHeight(),
         )
         VerticalDivider()
@@ -1359,6 +1388,8 @@ private fun CombinedResultsPane(
             breadcrumbPoints = breadcrumbPoints,
             waypoints = waypoints,
             onDropWaypoint = onDropWaypoint,
+            taxonFilter = taxonFilter,
+            onClearTaxonFilter = onClearTaxonFilter,
             modifier = Modifier.weight(1f).fillMaxHeight(),
         )
     }
@@ -3040,6 +3071,7 @@ private fun ListTab(
     uiState: AvailabilityUiState,
     currentTime: CurrentTimeProvider,
     distanceUnit: DistanceUnit,
+    onViewOnMap: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -3064,7 +3096,7 @@ private fun ListTab(
         }
         // Weighted for the same reason the tab content is: the ranked list scrolls, so it needs a
         // bounded height rather than whatever the card above it happens to leave.
-        ResultsSection(uiState = uiState, distanceUnit = distanceUnit, modifier = Modifier.weight(1f))
+        ResultsSection(uiState = uiState, distanceUnit = distanceUnit, onViewOnMap = onViewOnMap, modifier = Modifier.weight(1f))
     }
 }
 
@@ -3150,7 +3182,12 @@ private const val MILLIS_PER_HOUR = 60 * MILLIS_PER_MINUTE
 private const val MILLIS_PER_DAY = 24 * MILLIS_PER_HOUR
 
 @Composable
-private fun ResultsSection(uiState: AvailabilityUiState, distanceUnit: DistanceUnit, modifier: Modifier = Modifier) {
+private fun ResultsSection(
+    uiState: AvailabilityUiState,
+    distanceUnit: DistanceUnit,
+    onViewOnMap: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier.fillMaxWidth()) {
         when {
             uiState.isLoading -> Column(
@@ -3184,7 +3221,7 @@ private fun ResultsSection(uiState: AvailabilityUiState, distanceUnit: DistanceU
                 Spacer(Modifier.height(Spacing.sm))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(forecast.entries, key = { it.species.taxonId }) { entry ->
-                        SpeciesRow(entry)
+                        SpeciesRow(entry, onViewOnMap = onViewOnMap)
                     }
                 }
             }
@@ -3429,6 +3466,9 @@ private fun MapTab(
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
+    /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
+    taxonFilter: Long?,
+    onClearTaxonFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
@@ -3472,11 +3512,29 @@ private fun MapTab(
                     } else {
                         emptyList()
                     }
+                    // "View on Map" from a List-tab row: limits the map to one species' sightings
+                    // rather than every mapped one. Filtered against uiState.sightings itself
+                    // (what the map actually draws), not against uiState.forecast's own
+                    // observationCount — the two can legitimately disagree (the forecast is a
+                    // separate historical query; the map only shows what actually loaded for this
+                    // region), so the count in mapTaxonFilterLabel below is what's really on screen.
+                    val filteredSightings = if (taxonFilter != null) {
+                        uiState.sightings.filter { it.taxonId == taxonFilter }
+                    } else {
+                        uiState.sightings
+                    }
+                    val mapTaxonFilterLabel = taxonFilter?.let { id ->
+                        val name = uiState.forecast?.entries?.firstOrNull { it.species.taxonId == id }?.species
+                            ?.let { it.commonName ?: it.scientificName }
+                            ?: filteredSightings.firstOrNull()?.let { it.commonName ?: it.scientificName }
+                            ?: "this species"
+                        "$name (${filteredSightings.size})"
+                    }
                     Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         mapSlot(
                             region,
                             MapOverlayContent(
-                                sightings = uiState.sightings,
+                                sightings = filteredSightings,
                                 areas = visibleAreas,
                                 plannedTrips = uiState.plannedTrips,
                                 breadcrumbPoints = breadcrumbPoints,
@@ -3507,6 +3565,13 @@ private fun MapTab(
                                     onDismiss = { tappedSighting = null },
                                 )
                             }
+                        }
+                        mapTaxonFilterLabel?.let { label ->
+                            TaxonMapFilterChip(
+                                label = label,
+                                onClear = onClearTaxonFilter,
+                                modifier = Modifier.align(Alignment.TopStart).padding(Spacing.sm),
+                            )
                         }
                         MapModeToggle(
                             mapMode = mapMode,
@@ -3748,6 +3813,9 @@ private fun CompactMapTab(
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
     compassProvider: CompassProvider,
+    /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
+    taxonFilter: Long?,
+    onClearTaxonFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
@@ -3841,6 +3909,21 @@ private fun CompactMapTab(
             } else {
                 emptyList()
             }
+            // "View on Map" from a List-tab row — see MapTab's own doc comment on the identical
+            // filteredSightings/mapTaxonFilterLabel pair for why this filters uiState.sightings
+            // itself rather than trusting uiState.forecast's own observationCount.
+            val filteredSightings = when {
+                !hasSearched -> emptyList()
+                taxonFilter != null -> uiState.sightings.filter { it.taxonId == taxonFilter }
+                else -> uiState.sightings
+            }
+            val mapTaxonFilterLabel = taxonFilter?.let { id ->
+                val name = uiState.forecast?.entries?.firstOrNull { it.species.taxonId == id }?.species
+                    ?.let { it.commonName ?: it.scientificName }
+                    ?: filteredSightings.firstOrNull()?.let { it.commonName ?: it.scientificName }
+                    ?: "this species"
+                "$name (${filteredSightings.size})"
+            }
 
             var cameraCenter by remember(displayRegion) { mutableStateOf(LatLng(displayRegion.lat, displayRegion.lng)) }
 
@@ -3848,7 +3931,7 @@ private fun CompactMapTab(
                 mapSlot(
                     displayRegion,
                     MapOverlayContent(
-                        sightings = if (hasSearched) uiState.sightings else emptyList(),
+                        sightings = filteredSightings,
                         areas = visibleAreas,
                         plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList(),
                         breadcrumbPoints = breadcrumbPoints,
@@ -3959,6 +4042,20 @@ private fun CompactMapTab(
                         .align(Alignment.TopCenter)
                         .fillMaxWidth(),
                 )
+
+                // Below the compass strip (COMPASS_STRIP_MIN_HEIGHT top padding), same reasoning
+                // as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts touches
+                // across its full width, so a chip placed underneath it would have its own "Show
+                // all species" tap silently swallowed the same way a bubble anchored there would.
+                mapTaxonFilterLabel?.let { label ->
+                    TaxonMapFilterChip(
+                        label = label,
+                        onClear = onClearTaxonFilter,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = COMPASS_STRIP_MIN_HEIGHT + Spacing.sm, start = Spacing.sm),
+                    )
+                }
 
                 // Inside this Box, not alongside it, so it can align near the add button's own
                 // corner of the icon stack above — see AddActionTile's doc comment for why this
@@ -5136,15 +5233,22 @@ internal fun inaturalistObservationIntent(observationId: Long): Intent {
 }
 
 /**
- * Opens [observationId]'s iNaturalist page, preferring the installed iNaturalist app over a
- * browser. Tries [INATURALIST_PACKAGE] explicitly first ([Intent.setPackage] skips any
- * disambiguation and resolves straight to that app if it declares a matching intent filter at
- * all, verified or not); only when that doesn't resolve does this fall back to the plain implicit
- * intent, which resolves to whatever the device would otherwise pick (typically a browser).
- * Same resolve-then-launch defensiveness as [launchDirections] either way.
+ * The web URL for one taxon's page — what the List tab's species rows link to. A row there is an
+ * aggregate ([SpeciesObservationCount]) across many observations, not one tapped marker, so
+ * [taxonId] is the only iNaturalist-recognized identifier a row has to point at.
  */
-internal fun launchINaturalistObservation(context: Context, observationId: Long) {
-    val webIntent = inaturalistObservationIntent(observationId)
+internal fun inaturalistTaxonIntent(taxonId: Long): Intent {
+    val uri = Uri.parse("https://www.inaturalist.org/taxa/$taxonId")
+    return Intent(Intent.ACTION_VIEW, uri)
+}
+
+/**
+ * Resolves [webIntent] against [INATURALIST_PACKAGE] first, falling back to the plain implicit
+ * intent (typically a browser) when the app doesn't claim it, and to a [Toast] when nothing does —
+ * the shared resolve-then-launch defensiveness both [launchINaturalistObservation] and
+ * [launchINaturalistTaxon] need, same as [launchDirections].
+ */
+private fun launchINaturalist(context: Context, webIntent: Intent) {
     val appIntent = Intent(webIntent).setPackage(INATURALIST_PACKAGE)
     val packageManager = context.packageManager
     val intent = if (appIntent.resolveActivity(packageManager) != null) appIntent else webIntent
@@ -5158,6 +5262,30 @@ internal fun launchINaturalistObservation(context: Context, observationId: Long)
         Toast.makeText(context, NO_INATURALIST_LINK_MESSAGE, Toast.LENGTH_SHORT).show()
     }
 }
+
+/**
+ * Opens [observationId]'s iNaturalist page, preferring the installed iNaturalist app over a
+ * browser. Tries [INATURALIST_PACKAGE] explicitly first ([Intent.setPackage] skips any
+ * disambiguation and resolves straight to that app if it declares a matching intent filter at
+ * all, verified or not); only when that doesn't resolve does this fall back to the plain implicit
+ * intent, which resolves to whatever the device would otherwise pick (typically a browser).
+ */
+internal fun launchINaturalistObservation(context: Context, observationId: Long) =
+    launchINaturalist(context, inaturalistObservationIntent(observationId))
+
+/**
+ * Opens [taxonId]'s iNaturalist taxon page, same app-first/browser-fallback behavior as
+ * [launchINaturalistObservation] — but unlike an observation link, this one has nowhere to land in
+ * the installed app today: the iNaturalist Android app's own public manifest
+ * (`iNaturalist/src/main/AndroidManifest.xml` in `inaturalist/iNaturalistAndroid`) declares
+ * autoVerify intent-filters only for `/observations/.*`, `/people/.*` and `/messages/.*` — no
+ * activity claims `/taxa/.*`, so [INATURALIST_PACKAGE]'s resolve attempt here will not find a match
+ * and this will in practice always fall through to the browser. The app-first attempt is kept
+ * anyway, same as every other iNaturalist link in this file: it costs nothing when it doesn't
+ * resolve, and starts working automatically if iNaturalist's own app ever adds taxon-page support.
+ */
+internal fun launchINaturalistTaxon(context: Context, taxonId: Long) =
+    launchINaturalist(context, inaturalistTaxonIntent(taxonId))
 
 private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -5295,6 +5423,41 @@ private fun ObservationBubble(
                 modifier = Modifier.size(24.dp).testTag("observation-bubble-close"),
             ) {
                 Icon(Icons.Filled.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+/**
+ * The standing indicator that [MapTab]/[CompactMapTab] are showing "View on Map"'s filtered
+ * sightings rather than every mapped one — CLAUDE.md: a partial/filtered result has to say so, not
+ * render identically to the unfiltered view. [label] is `"<species> (<count>)"`, computed by each
+ * caller from the same [Sighting] list the map actually draws (see [MapTab]'s own doc comment on
+ * `mapTaxonFilterLabel` for why it isn't read from [AvailabilityForecast] directly). Same
+ * theme-aware, 80%-opacity fill as [ObservationBubble]/`MapIconBar`/`MapModePicker` — one visual
+ * language for every control floating over the map.
+ */
+@Composable
+private fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Modifier = Modifier) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    Surface(
+        modifier = modifier.testTag("map-taxon-filter-chip"),
+        shape = RoundedCornerShape(percent = 50),
+        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        contentColor = if (isDarkTheme) Color.White else Bark,
+        shadowElevation = 4.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Showing: $label", style = MaterialTheme.typography.labelMedium)
+            IconButton(
+                onClick = onClear,
+                modifier = Modifier.size(24.dp).testTag("map-taxon-filter-clear"),
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Show all species", modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -5623,9 +5786,29 @@ private fun ForagingWeatherGuidanceSection(selection: ForagingSelection) {
     }
 }
 
+/**
+ * Tapping the row offers the same "View on iNaturalist" hand-off the map's observation bubble
+ * gives a tapped marker — see [launchINaturalistTaxon]'s own doc comment for how a taxon link
+ * differs from an observation link in what the installed app can actually do with it. "View on
+ * Map" is the second, in-app affordance beside it: [onViewOnMap] hands [entry]'s own
+ * [SpeciesObservationCount.taxonId] up to [AvailabilityScreen]'s `onViewSpeciesOnMap`, which both
+ * switches to whichever map surface the current window class shows and sets the taxon filter
+ * [MapTab]/[CompactMapTab] read to limit their sightings to this one species — see that filter's
+ * own doc comment on [AvailabilityScreen] for why it lives there rather than in either tab. Both
+ * texts are explicit affordances on the same line as the observation count (not the row's only way
+ * to trigger either action) so they read as discoverable rather than a hidden tap-anywhere
+ * gesture; tapping anywhere else on the row still falls through to the iNaturalist hand-off, the
+ * behavior this row had before "View on Map" existed.
+ */
 @Composable
-private fun SpeciesRow(entry: AvailabilityEntry) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun SpeciesRow(entry: AvailabilityEntry, onViewOnMap: (Long) -> Unit) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("species-row")
+            .clickable { launchINaturalistTaxon(context, entry.species.taxonId) },
+    ) {
         Column(
             modifier = Modifier.padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -5643,10 +5826,34 @@ private fun SpeciesRow(entry: AvailabilityEntry) {
                 progress = { entry.relativeLikelihood },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text(
-                "${entry.species.observationCount} observations",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "${entry.species.observationCount} observations",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        "View on Map",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable { onViewOnMap(entry.species.taxonId) }
+                            .testTag("species-row-view-on-map"),
+                    )
+                    Text("·", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "View on iNaturalist",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable { launchINaturalistTaxon(context, entry.species.taxonId) }
+                            .testTag("species-row-view-on-inaturalist"),
+                    )
+                }
+            }
         }
     }
 }
