@@ -4136,7 +4136,7 @@ private fun CompactMapTab(
                         onClear = onClearTaxonFilter,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .offset { IntOffset(x = 0, y = compassStripHeightPx + Spacing.sm.roundToPx()) },
+                            .padding(top = 48.dp),
                     )
                 }
 
