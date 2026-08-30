@@ -547,11 +547,14 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.circleColor(palette.sightingDot),
             PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
             PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
-            // See sightingStrokeColorExpression/sightingStrokeWidthExpression's own doc comments —
-            // both key off each feature's own "selected" property, so nothing here needs seeding
-            // with the current focusedObservationId the way an id-comparison expression would.
+            // See sightingStrokeColorExpression's own doc comment — it keys off each feature's own
+            // "selected" property, so nothing here needs seeding with the current
+            // focusedObservationId the way an id-comparison expression would. Stroke width stays a
+            // flat SIGHTING_DOT_STROKE_WIDTH_PX for every dot, selected or not — a prior widened
+            // selected-width was tried and reverted on request, to keep the highlight to colour
+            // alone (see SIGHTING_DOT_STROKE_WIDTH_PX's own doc comment for that history).
             PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(palette)),
-            PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression()),
+            PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
             PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
         ),
     )
@@ -818,7 +821,7 @@ internal fun sightingsFeatureCollection(sightings: List<Sighting>, focusedObserv
             // were before this.
             addNumberProperty("observationId", sighting.observationId)
             // Computed in Kotlin, once, per push — not read back by anything on this side, only by
-            // sightingStrokeColorExpression/sightingStrokeWidthExpression's own GL expressions.
+            // sightingStrokeColorExpression's own GL expression.
             addBooleanProperty("selected", sighting.observationId == focusedObservationId)
         }
     }
@@ -844,12 +847,11 @@ internal fun sightingsFeatureCollection(sightings: List<Sighting>, focusedObserv
  * entire class of doubt: there is no representation for a boolean read back from GeoJSON to
  * disagree with.
  *
- * Colour alone was also tried first and separately confirmed too subtle even before the
- * comparison bug was found: at [SIGHTING_DOT_STROKE_WIDTH_PX]'s own 1.5px, even a saturated blue
- * against the default white reads as barely-there — a hairline is hard to read by hue at a glance
- * regardless of what this file's own mark-on-mark contrast maths say, which score a solid fill,
- * not a 1.5px ring. See [sightingStrokeWidthExpression], its paired fix: the selected dot's own
- * stroke also widens, so the highlight is legible by *shape* even before colour is read at all.
+ * A widened selected-stroke width (first 3.5px, then 4.5px, alongside a deeper blue) was tried as
+ * a second signal on top of colour, on the reasoning that a hairline is hard to read by hue alone
+ * at a glance — and reverted on request, twice, to keep the highlight to colour alone: see
+ * [SIGHTING_DOT_STROKE_WIDTH_PX]'s own doc comment for that history. `circle-stroke-width` is a
+ * flat constant for every dot now, selected or not; only this colour expression is data-driven.
  *
  * A plain function, not inlined into [initializeOverlayLayers]: both [Expression] and
  * [org.maplibre.android.style.layers.PropertyValue] carry no native methods (`javap` against the
@@ -863,19 +865,6 @@ internal fun sightingStrokeColorExpression(palette: MapPalette): Expression =
         Expression.get("selected"),
         Expression.color(palette.sightingDotStrokeSelected),
         Expression.color(palette.sightingDotStroke),
-    )
-
-/**
- * The sighting layer's `circle-stroke-width` — see [sightingStrokeColorExpression]'s own doc
- * comment both for why the selected dot needs a wider ring, not just a differently-coloured one,
- * and for why this reads the same `"selected"` boolean property rather than comparing
- * `observationId` itself.
- */
-internal fun sightingStrokeWidthExpression(): Expression =
-    Expression.switchCase(
-        Expression.get("selected"),
-        Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
-        Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
     )
 
 /** [ForagingArea.visitOrder] as the "label" property the area-marker SymbolLayer's `text-field` reads via `"{label}"`. */
@@ -1027,22 +1016,12 @@ private const val SIGHTING_DOT_RADIUS_PX = 9f
 // class doc comment, "The overlay colours", for the hardware finding this fixes. A light, near-
 // opaque stroke (not translucent like the fill) so the boundary itself stays crisp regardless of
 // how many dots overlap or what opacity the fill composites to underneath.
+//
+// The selected dot's ring used to widen this on top of recolouring — first to 3.5px, then to
+// 4.5px alongside MapPalette.sightingDotStrokeSelected moving to a deeper blue — and both were
+// reverted on request: the highlight is colour alone now, [sightingStrokeColorExpression] against
+// this one flat width for every dot, selected or not.
 internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
-
-/**
- * The selected dot's own stroke width — see [sightingStrokeWidthExpression]'s own doc comment for
- * why a data-driven width, not just a data-driven colour, is what actually makes the highlight
- * legible: at [SIGHTING_DOT_STROKE_WIDTH_PX]'s own 1.5px, a colour swap alone is barely
- * perceptible on real hardware (confirmed against a real device, not just this file's own
- * mark-on-mark contrast maths, which say nothing about how visible a hairline is at a glance).
- * More than double, not a subtle bump, for the same reason.
- *
- * A second widening (to 4.5) was tried alongside [MapPalette.sightingDotStrokeSelected] moving to
- * a deeper, lower-contrast blue (Material Blue 500, 4.195:1 against `sightingDot` — see that
- * field's own doc comment) and reverted on request, to isolate how the colour change alone reads
- * before compounding it with more width.
- */
-internal const val SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX = 3.5f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 private const val AREA_MARKER_FONT_SIZE_PX = 14f
 private const val AREA_MARKER_RADIUS_PX = 16f
