@@ -301,7 +301,7 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the Tools tab opens the search drawer`() {
+    fun `the Tools tab opens the drawer`() {
         setScreen()
         searchAReferenceRegion()
 
@@ -862,7 +862,7 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the advanced search dropdown does not open the full search drawer`() {
+    fun `the advanced search dropdown does not open the full Tools drawer`() {
         setScreen()
 
         composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
@@ -935,7 +935,7 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the foraging areas toggle lives in the search drawer, not floating over the map`() {
+    fun `the foraging areas toggle lives in the Tools drawer, not floating over the map`() {
         setScreen()
         searchAReferenceRegion()
 

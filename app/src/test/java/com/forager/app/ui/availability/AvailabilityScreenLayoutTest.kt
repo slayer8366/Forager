@@ -271,12 +271,12 @@ abstract class AvailabilityScreenLayoutTest {
      * removed the map icon stack's own "Search" button and repointed Tools at this same drawer.
      * Dispatch C moved species/category search, Recent Searches, and Advanced Search all out of it
      * and into [SearchDropdown] instead (see [openSearchDropdown]) — what's left here is Trip
-     * Planner, Waypoints, Foraging areas, and Settings; see [CompactSearchDrawerContent]'s own doc
+     * Planner, Waypoints, Foraging areas, and Settings; see [CompactToolsDrawerContent]'s own doc
      * comment. Tools opens the drawer as an overlay over whatever `compactTab` is already showing
      * rather than becoming a tab itself, and [setScreen] always lands on the Maps tab by default,
      * so it's already on screen with no tab switch needed.
      */
-    private fun openSearchDrawer() {
+    private fun openToolsDrawer() {
         composeRule.onNodeWithText("Tools").performClick()
     }
 
@@ -294,8 +294,9 @@ abstract class AvailabilityScreenLayoutTest {
      * own rendered text rather than a hard-coded height, so a Material change can't make this
      * quietly wrong. Replaces the pre-redesign `tabRowBottom()`, and the app-bar-based
      * `appBarBottom()` that replaced it in turn: there is no more app bar for compact at all now
-     * — species/category search moved into the drawer (see [CompactSearchDrawerContent]) — so
-     * [ActiveSearchSummary] is the one thing still visible above the map in the default state, and
+     * — species/category search moved out entirely, first into the Tools drawer (see
+     * [CompactToolsDrawerContent]), then into [SearchDropdown] — so [ActiveSearchSummary] is the
+     * one thing still visible above the map in the default state, and
      * the sibling this regression test now guards against. [SEARCHED_STATE]'s 15 km radius is
      * stable text regardless of which month the test happens to run in; the month portion of that
      * summary is not.
@@ -361,15 +362,15 @@ abstract class AvailabilityScreenLayoutTest {
      * Before the map redesign, [VISITING_ORDER_DISCLAIMER] rendered in a fixed-height box below
      * the map. The redesign first made it a floating overlay on the map itself, then the project
      * owner's own later call ("move the foraging areas to the side search panel") moved it again,
-     * into [CompactSearchDrawerContent] alongside the rest of the foraging-areas section — it no
+     * into [CompactToolsDrawerContent] alongside the rest of the foraging-areas section — it no
      * longer touches the map's own bounds at all, so a geometry claim relative to the map slot is
      * no longer the right invariant. What stays true across all three homes: the caption must
      * still be reachable, not lost in whichever container currently holds it.
      */
     @Test
-    fun `the visiting order caption is reachable inside the search drawer`() {
+    fun `the visiting order caption is reachable inside the Tools drawer`() {
         setScreen(SEARCHED_STATE)
-        openSearchDrawer()
+        openToolsDrawer()
 
         composeRule.onNodeWithText(VISITING_ORDER_DISCLAIMER).assertIsDisplayed()
     }
@@ -430,7 +431,7 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the drawer's Trip Planner section shows a no-search message before any region is chosen`() {
         setScreen(AvailabilityUiState())
 
-        openSearchDrawer()
+        openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNodeWithText("Choose a region in search options to see rain-driven trip windows.")
@@ -444,7 +445,7 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the drawer's Trip Planner section shows the trip windows card once a region is searched`() {
         setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_NO_WINDOWS))
 
-        openSearchDrawer()
+        openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         // Scrolled to the guidance heading below both assertions, not to "Trip Windows" itself:
@@ -484,7 +485,7 @@ abstract class AvailabilityScreenLayoutTest {
         val futureTrip = PlannedTrip(id = "future-trip", name = "Future Trip", location = LatLng(45.50, -122.80), date = today.plusDays(5))
         setScreen(SEARCHED_STATE.copy(plannedTrips = listOf(todayTrip, futureTrip)))
 
-        openSearchDrawer()
+        openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNodeWithText("Today").performScrollTo().assertIsDisplayed()
@@ -532,16 +533,16 @@ abstract class AvailabilityScreenLayoutTest {
      * The foraging-areas toggle's own reachability claim. It has moved twice since the map
      * redesign started: out of the drawer to sit below the map, then to float as an overlay on
      * the map itself, and finally — the project owner's own later call, "move the foraging areas
-     * to the side search panel" — into [CompactSearchDrawerContent], where it lives now. Unlike
+     * to the side search panel" — into [CompactToolsDrawerContent], where it lives now. Unlike
      * [SearchControls]'s three sections, it's placed outside that composable's own scroll region
      * (a fixed block below it, mirroring [FORAGING_AREAS_PANEL_MAX_HEIGHT]'s old below-map
      * treatment — see that composable's doc comment), so it needs no section to expand first.
      */
     @Test
-    fun `the foraging areas toggle is reachable inside the search drawer`() {
+    fun `the foraging areas toggle is reachable inside the Tools drawer`() {
         setScreen(SEARCHED_STATE)
 
-        openSearchDrawer()
+        openToolsDrawer()
 
         composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
     }
@@ -582,7 +583,7 @@ abstract class AvailabilityScreenLayoutTest {
         val trip = PlannedTrip(id = "reachable-trip", name = "Reachable Trip", location = LatLng(45.40, -122.70), date = LocalDate.now())
         setScreen(SEARCHED_STATE.copy(plannedTrips = listOf(trip)))
 
-        openSearchDrawer()
+        openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNodeWithText("Planned Trips").performScrollTo().assertIsDisplayed()
@@ -601,7 +602,7 @@ abstract class AvailabilityScreenLayoutTest {
      * mushroom log from the side panel, add them both to the bottom row"), then — map/navigation
      * redesign dispatch B, collapsing the bottom nav to five destinations to make room for Tools —
      * one level back in, as a sticky entry at the bottom of the "Tools" drawer's own content (see
-     * [CompactSearchDrawerContent]'s `showSettings` state). This asserts it's reachable through
+     * [CompactToolsDrawerContent]'s `showSettings` state). This asserts it's reachable through
      * that drawer entry, replacing the old "one bottom-nav tap, no drawer involved" claim, which no
      * longer holds now that Tools — not Settings — is what's on the bottom nav.
      */
@@ -609,7 +610,7 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the Settings entry is reachable inside the Tools drawer`() {
         setScreen(SEARCHED_STATE)
 
-        openSearchDrawer()
+        openToolsDrawer()
         composeRule.onNodeWithText("Settings").assertIsDisplayed().performClick()
 
         composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
@@ -631,7 +632,7 @@ abstract class AvailabilityScreenLayoutTest {
     fun `the drawer close button closes the drawer`() {
         setScreen(SEARCHED_STATE)
 
-        openSearchDrawer()
+        openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Close search options").performClick()

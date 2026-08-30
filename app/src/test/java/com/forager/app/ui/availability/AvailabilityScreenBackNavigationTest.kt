@@ -289,7 +289,7 @@ class AvailabilityScreenBackNavigationTest {
 
     /**
      * Was driven through "Settings" before map/navigation redesign dispatch B collapsed it into a
-     * nested state inside the "Tools" drawer (see [CompactSearchDrawerContent]'s `showSettings`) —
+     * nested state inside the "Tools" drawer (see [CompactToolsDrawerContent]'s `showSettings`) —
      * Settings is no longer its own `compactTab`, so it can't stand in for "another tab" here.
      * "List" is a real, still-standalone `compactTab` this handler chain treats identically.
      */

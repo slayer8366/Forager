@@ -275,15 +275,17 @@ private enum class ResultsTab(val label: String) {
  * were built apart.
  *
  * **[TOOLS] does not behave like the other four.** Tapping it never sets `compactTab` to
- * [TOOLS] — see [ForagerBottomNav]'s own call site — it opens [CompactSearchDrawerContent] as an
+ * [TOOLS] — see [ForagerBottomNav]'s own call site — it opens [CompactToolsDrawerContent] as an
  * overlay instead, over whatever tab was already showing, the same drawer the removed MapIconBar
  * search icon used to open (that icon is gone — see `MapIconBar`'s own doc comment — this tab is
  * its replacement entry point, not a new destination alongside it). "Tools" is deliberately a
  * catch-all for things used but not wanted in the immediate way — per-trip and rare items that are
- * not destinations in their own right (species/category search, advanced search, recent searches,
- * trip planner, waypoints, foraging areas, and now Settings too — see that composable's own doc
- * comment). That inclusion rule is what the next addition here has to argue against becoming a
- * junk drawer.
+ * not destinations in their own right (trip planner, waypoints, foraging areas, and now Settings
+ * too — see that composable's own doc comment). Search itself — basic species/category search,
+ * Recent Searches, and Advanced Search — is **not** part of that list any more: it moved out into
+ * [SearchDropdown], reached from [ActiveSearchSummary] up top rather than from this drawer, exactly
+ * so it would not read as one more Tools entry. That inclusion rule is what the next addition here
+ * has to argue against becoming a junk drawer.
  */
 private enum class CompactTab(val label: String) {
     LIST("List"),
@@ -321,7 +323,7 @@ private fun CompactTab.icon(): ImageVector = when (this) {
  * **Compact windows no longer use this at all.** [Log] moved to the bottom nav
  * ([CompactTab.JOURNAL] — see [ForagerBottomNav]'s doc comment); [Settings] is reached one level
  * deeper still, from a sticky entry at the bottom of the compact drawer's own content (see
- * [CompactSearchDrawerContent]'s `showSettings` state, which hosts [CompactSettingsTab] the same
+ * [CompactToolsDrawerContent]'s `showSettings` state, which hosts [CompactSettingsTab] the same
  * way this enum's own [Settings] does here). That compact drawer is now [CompactTab.TOOLS]'s
  * destination (map/navigation redesign dispatch B) rather than search-only, so unlike [Search]
  * above it is not the drawer's single fixed content — [Settings] there is a nested state within
@@ -397,7 +399,11 @@ fun AvailabilityScreen(
     /** Called when a date and name are confirmed for a trip pin placed via [com.forager.app.ui.map.CentrePinLocationPicker]. */
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
-    /** Called when one of the drawer's recent searches is tapped; see [RecentSearchesSection]. */
+    /**
+     * Called when one of the recent searches is tapped; see [RecentSearchesSection]. Reached from
+     * the medium/expanded drawer's own [DrawerPanel.Search] panel, or from [SearchDropdown] on
+     * compact windows.
+     */
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     /**
      * Where "now" comes from for the relative times this screen renders — the offline banner's
@@ -488,7 +494,7 @@ fun AvailabilityScreen(
     /**
      * Saved waypoints — independent of any track recording, per [Waypoint]'s own doc comment.
      * Rendered as pins on the map ([com.forager.app.ui.map.MapSlot]) and listed, with delete, in
-     * the search drawer's "Waypoints" section ([WaypointsSection]).
+     * the Tools drawer's "Waypoints" section ([WaypointsSection]).
      */
     waypoints: List<Waypoint> = emptyList(),
     /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
@@ -744,7 +750,7 @@ fun AvailabilityScreen(
     // Workstream L4c pre-work: corrects this comment's own claim, found stale by the L4 close-out
     // pulse (2026-08-25). This has exactly one call site — the `PermanentNavigationDrawer` medium+
     // windows get, below — not the compact `ModalNavigationDrawer`, which renders
-    // `CompactSearchDrawerContent` instead, a separate composable. [showCloseButton] is therefore
+    // `CompactToolsDrawerContent` instead, a separate composable. [showCloseButton] is therefore
     // always `false` in practice today; it is not dead code removed here only because that is a
     // separate cleanup this pulse's own dispatch did not ask for, not because it still does
     // anything.
@@ -1013,14 +1019,15 @@ fun AvailabilityScreen(
     // leaving only the map and its floating icon stack. See docs/plans/map-redesign.md decisions
     // #2, #4, #5.
     //
-    // No top app bar at all any more: the species/category search bar that used to live there
-    // moved into the drawer (see [CompactSearchDrawerContent]) per the project owner's own framing
-    // — "the whole side panel is the search feature" — and its own tune icon is redundant with the
-    // map icon stack's search icon, which opens the identical drawer. [ActiveSearchSummary] is what
-    // remains visible up top: a read-only "what am I currently searching" strip, deliberately
-    // non-interactive here (`onReopenTaxonSuggestions = {}`) since the field it used to reopen no
-    // longer lives where this strip is — its whole point now is answering that question *without*
-    // opening the drawer, not being a second way to open it.
+    // No top app bar at all any more: the species/category search bar that used to live there has
+    // moved twice since — first into the Tools drawer (per the project owner's own framing at the
+    // time, "the whole side panel is the search feature"), then out again into [SearchDropdown]
+    // alongside Recent Searches (dispatch C's own owner call, "move recent searches, and species
+    // search... into the new search drawer" — see [SearchDropdown]'s own doc comment for the
+    // resulting shape). [ActiveSearchSummary] is what remains visible up top: a read-only "what am
+    // I currently searching" strip whose own tap opens [SearchDropdown] (`onToggleSearch`) — not a
+    // second way to reopen the species suggestion popup, which is why `onReopenTaxonSuggestions` is
+    // a no-op here.
     val compactMainScaffold: @Composable () -> Unit = {
         // SearchDropdown, under ActiveSearchSummary — see that composable's own onToggleSearch doc
         // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
@@ -1328,7 +1335,7 @@ fun AvailabilityScreen(
             gesturesEnabled = false,
             drawerContent = {
                 ModalDrawerSheet {
-                    CompactSearchDrawerContent(
+                    CompactToolsDrawerContent(
                         uiState = uiState,
                         mapSlot = mapSlot,
                         distanceUnit = distanceUnit,
@@ -1972,14 +1979,14 @@ private fun PhotoGalleryHeader(onBack: () -> Unit) {
 }
 
 /**
- * Settings' body, reached by tapping the Settings entry at the bottom of [CompactSearchDrawerContent]
+ * Settings' body, reached by tapping the Settings entry at the bottom of [CompactToolsDrawerContent]
  * (the compact "Tools" drawer, map/navigation redesign dispatch B) — [SettingsContent] hosted as a
  * `showSettings`-gated state within that drawer instead of a drawer panel of its own, with the
  * Offline Maps submenu as local `showOfflineMaps` state instead of [DrawerPanel.OfflineMaps].
  * Reuses [SettingsContent]/[OfflineMapsPanel]/[OfflineMapsHeader]/[BuildIdentityFooter] unmodified —
  * only the navigation host around them changed, from a drawer panel switch to a nested-state one.
  * No header for the main Settings state, unlike the drawer panel's [SettingsHeader]: there is
- * nothing to go "back" to here via an in-content affordance — [CompactSearchDrawerContent]'s own
+ * nothing to go "back" to here via an in-content affordance — [CompactToolsDrawerContent]'s own
  * `BackHandler` unwinds `showSettings` back to the rest of the Tools drawer, the same
  * most-recently-composed-callback-wins pattern [JournalTab]'s nested states use.
  *
@@ -2754,11 +2761,15 @@ private fun MapModePicker(
 }
 
 /**
- * The compact "Tools" drawer's entire content — "the whole side panel is the search feature," per
- * the project owner's own original framing. Map/navigation redesign dispatch C moved species search
- * and Recent Searches out into [SearchDropdown], over the map (see that composable's own doc
- * comment) — this drawer's own remaining job is Trip Planner, Waypoints, Foraging areas, and
- * Settings, none of which are search itself. Three things live here now:
+ * The compact "Tools" drawer's entire content. Named for what it actually holds, not what it used
+ * to: the composable itself and this file's own doc comments called it the "search drawer" through
+ * two rounds of the map/navigation redesign — first because "the whole side panel is the search
+ * feature" (the project owner's own original framing, when species search and Recent Searches both
+ * lived here), then again once dispatch C moved both out into [SearchDropdown] over the map (see
+ * that composable's own doc comment). The owner's own later call, on seeing that move land: stop
+ * calling this the search drawer at all, "so it doesn't get lumped together in the future by some
+ * ambitious planner" — species search is gone from here for good, and the name should say so. Three
+ * things live here now, none of them search:
  *
  * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner / Waypoints only, the two
  *    sections [SearchDropdown] doesn't also cover.
@@ -2775,11 +2786,10 @@ private fun MapModePicker(
  *    uses for its own OfflineMaps/CrashLogs/Tracks submenus, not a new pattern invented for this.
  *
  * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
- * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again, the one
- * reversal of this composable's own prior "Search and only Search now" framing.
+ * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
  */
 @Composable
-private fun CompactSearchDrawerContent(
+private fun CompactToolsDrawerContent(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
     distanceUnit: DistanceUnit,
@@ -2887,7 +2897,7 @@ private fun CompactSearchDrawerContent(
  *
  * Shared by both window classes' drawers, unlike most of this file's compact-vs-medium/expanded
  * split: [AvailabilitySearchTopBar] hosts species/category search above these three sections for
- * medium/expanded, while [CompactSearchDrawerContent] hosts the identical
+ * medium/expanded, while [CompactToolsDrawerContent] hosts the identical
  * [SpeciesSearchControls]/foraging-areas pieces around this same composable for compact — see that
  * composable's own doc comment for why species search and foraging areas moved there instead.
  *
@@ -3246,7 +3256,7 @@ private fun AvailabilitySearchTopBar(
 /**
  * The species/category search controls themselves — the category chip row plus the species text
  * field and its suggestion dropdown — factored out of [AvailabilitySearchTopBar] so
- * [CompactSearchDrawerContent] can host the identical control inside the drawer instead of the app
+ * [CompactToolsDrawerContent] can host the identical control inside the drawer instead of the app
  * bar (per the project owner's own framing: "the whole side panel is the search feature"), rather
  * than a second copy of the [ExposedDropdownMenuBox]/chip-row logic. [AvailabilitySearchTopBar]'s
  * own external shape (the Surface, the tune icon, the two-row layout) is unchanged by this
@@ -4116,7 +4126,7 @@ private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.78f)
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
  * the map fills the entire content area, with the top compass/elevation strip and the right-edge
  * icon stack drawn over it. The foraging-areas toggle and summary panel — an earlier revision drew
- * them as a floating overlay here — now live in [CompactSearchDrawerContent] instead, per the
+ * them as a floating overlay here — now live in [CompactToolsDrawerContent] instead, per the
  * project owner's own later call: "move the foraging areas to the side search panel."
  *
  * Scoped to `WindowWidthClass.COMPACT` only; `MEDIUM`/`EXPANDED` keep using the unmodified [MapTab]
@@ -4573,7 +4583,7 @@ private fun CompactMapTab(
  * together rather than split across this bar and the compass strip.
  *
  * **No search row either, as of this dispatch.** The icon here used to open
- * [CompactSearchDrawerContent]; that drawer now opens from the bottom nav's own `CompactTab.TOOLS`
+ * [CompactToolsDrawerContent]; that drawer now opens from the bottom nav's own `CompactTab.TOOLS`
  * entry instead (see that entry's own doc comment) — one entry point, not two, now that Tools is a
  * real bottom-nav destination rather than a row buried in a map-verbs bar. Re-derived directly
  * against the tree rather than assumed: this bar was 6 rows before this change (fullscreen,
