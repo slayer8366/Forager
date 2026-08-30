@@ -3,6 +3,15 @@
 **Status:** open. Scope: the test harness disagreement only — the product path is confirmed
 working. Not blocking; the three affected tests are `@Ignore`d with this document as their record.
 
+**Closing this out is two changes, not one.** Un-`@Ignore`ing the three tests once they pass again
+is only half of it — `.github/workflows/ci.yml`'s "Summarize the test results" step also carries a
+named `SKIPPED_TESTS_ALLOWLIST` for exactly these three `(classname, name)` pairs (added
+2026-08-30, see that step's own comment). That allowlist checks by exact set membership in both
+directions: an entry with no matching actual skip fails the build just as an unlisted skip does.
+So the moment any of these three tests stops being skipped, its entry must be removed from
+`SKIPPED_TESTS_ALLOWLIST` in the same change — CI will fail and say so if it isn't. Closing this
+investigation fully means the allowlist is empty (or removed outright), not just shorter.
+
 ## The claim under investigation
 
 Three tests in `AvailabilityScreenMapIconStackTest.kt` — `tapping the control pill's

@@ -178,12 +178,16 @@ jobs:
           keys = ("tests", "failures", "errors", "skipped")
           totals = dict.fromkeys(keys, 0)
           rows = []
+          skipped_tests = set()
           for path in results:
               suite = ET.parse(path).getroot()
               counts = {key: int(suite.get(key, 0)) for key in keys}
               for key in keys:
                   totals[key] += counts[key]
               rows.append((suite.get("name", os.path.basename(path)), counts))
+              for testcase in suite.findall("testcase"):
+                  if testcase.find("skipped") is not None:
+                      skipped_tests.add((testcase.get("classname"), testcase.get("name")))
 
           lines = ["### Unit tests", "", "| suite | tests | failures | errors | skipped |",
                    "| --- | ---: | ---: | ---: | ---: |"]
@@ -210,11 +214,58 @@ jobs:
           # silently dropped them would otherwise still be green. No expected count is
           # hardcoded -- that would break every time a test is added -- so the per-suite table
           # above is what makes a drop visible to a human.
+          #
+          # SKIPPED_TESTS_ALLOWLIST: an exact-match set, not a count. A skip count drifts and
+          # hides which tests are actually skipped -- this checks identity instead, matching on
+          # (classname, name). Any skip not in this set fails the build, same as an unallowed skip
+          # always has. A listed entry that ISN'T actually skipped also fails the build: a stale
+          # allowlist entry is the same invisible non-data this whole gate exists to catch, so
+          # un-ignoring one of these three tests must remove its entry here in the same change, not
+          # leave it to rot. See docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md --
+          # closing that investigation includes removing this allowlist entirely, not just shrinking
+          # it. Do not add a fourth entry without the same kind of investigation trail that doc has.
+          SKIPPED_TESTS_ALLOWLIST = {
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping the control pill's return-to-vehicle button calls onToggleReturning",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch at each trailhead control's own screen coordinates reaches that control",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch at each trailhead control's own screen coordinates reaches that "
+                  "control while not returning",
+              ),
+          }
+
           problems = []
           if totals["tests"] == 0:
               problems.append("no tests ran")
-          if totals["skipped"]:
-              problems.append("{} test(s) were skipped".format(totals["skipped"]))
+          unallowed_skips = skipped_tests - SKIPPED_TESTS_ALLOWLIST
+          if unallowed_skips:
+              problems.append(
+                  "{} test(s) were skipped without an allowlist entry: {}".format(
+                      len(unallowed_skips),
+                      "; ".join(
+                          "{}.{}".format(classname, name)
+                          for classname, name in sorted(unallowed_skips)
+                      ),
+                  )
+              )
+          stale_allowlist_entries = SKIPPED_TESTS_ALLOWLIST - skipped_tests
+          if stale_allowlist_entries:
+              problems.append(
+                  "{} allowlist entry(ies) no longer match an actual skip -- remove them from "
+                  "SKIPPED_TESTS_ALLOWLIST: {}".format(
+                      len(stale_allowlist_entries),
+                      "; ".join(
+                          "{}.{}".format(classname, name)
+                          for classname, name in sorted(stale_allowlist_entries)
+                      ),
+                  )
+              )
           if totals["failures"] or totals["errors"]:
               problems.append(
                   "{} failure(s) and {} error(s)".format(totals["failures"], totals["errors"])
