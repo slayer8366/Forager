@@ -93,7 +93,6 @@ import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -800,17 +799,6 @@ class AvailabilityScreenMapIconStackTest {
         )
     }
 
-    // @Ignore, not deleted or rewritten to pass: see retryClick's own doc comment for the full
-    // investigation. This test is correct and passes reliably run alone (`./gradlew
-    // :app:testDebugUnitTest --tests "...MapIconStackTest.tapping the control pill's
-    // return-to-vehicle button calls onToggleReturning"`) — the production wiring it exercises
-    // (ControlPill's `onClick = onToggleReturning`) is verified correct by three independent
-    // methods (byte-identical to the last commit on this branch, a clean-HEAD worktree run, and
-    // swapping ControlPill's two rows to show the failure follows position, not identity). It only
-    // fails as part of this class's full suite, from a cross-test Robolectric/Compose interaction
-    // this investigation could not pin down. Ignored rather than left red so this file's own CI
-    // status stays a true signal; re-enable once that cross-test cause is found.
-    @Ignore("Passes alone; fails only combined with other tests in this class — see retryClick's own doc comment")
     @Test
     fun `tapping the control pill's return-to-vehicle button calls onToggleReturning`() {
         var toggleCalls = 0
@@ -866,13 +854,7 @@ class AvailabilityScreenMapIconStackTest {
      * hit-testing and z-order — exactly the mechanism that let those two earlier bugs ship
      * unnoticed.
      *
-     * `@Ignore`d for the same cross-test reason as `tapping the control pill's return-to-vehicle
-     * button calls onToggleReturning` above (see [retryClick]'s own doc comment) — passes reliably
-     * alone, fails only combined with other tests in this class. This is real lost coverage for the
-     * exact regression class this test exists to catch; the twin below (`... while not returning`)
-     * is `@Ignore`d for the identical reason.
      */
-    @Ignore("Passes alone; fails only combined with other tests in this class — see retryClick's own doc comment")
     @Test
     fun `a real touch at each trailhead control's own screen coordinates reaches that control`() {
         var recordCalls = 0
@@ -905,10 +887,7 @@ class AvailabilityScreenMapIconStackTest {
      * control here exactly as it does in the extended state above, not just when the arm happens to
      * be fully grown.
      *
-     * `@Ignore`d for the same cross-test reason as its twin above (see [retryClick]'s own doc
-     * comment) — passes reliably alone, fails only combined with other tests in this class.
      */
-    @Ignore("Passes alone; fails only combined with other tests in this class — see retryClick's own doc comment")
     @Test
     fun `a real touch at each trailhead control's own screen coordinates reaches that control while not returning`() {
         var recordCalls = 0
