@@ -1037,14 +1037,12 @@ internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
  * mark-on-mark contrast maths, which say nothing about how visible a hairline is at a glance).
  * More than double, not a subtle bump, for the same reason.
  *
- * Widened a second time, from 3.5 to 4.5, alongside [MapPalette.sightingDotStrokeSelected] moving
- * to a deeper, lower-contrast blue (Material Blue 500, 4.20:1 against `sightingDot` — see that
- * field's own doc comment): a deeper blue was requested specifically to "drive home" the
- * highlight, but a deeper blue has less contrast headroom against `sightingDot`'s dark brown fill
- * to spend, so the ring leans on width rather than colour alone even more than the first widening
- * already did.
+ * A second widening (to 4.5) was tried alongside [MapPalette.sightingDotStrokeSelected] moving to
+ * a deeper, lower-contrast blue (Material Blue 500, 4.195:1 against `sightingDot` — see that
+ * field's own doc comment) and reverted on request, to isolate how the colour change alone reads
+ * before compounding it with more width.
  */
-internal const val SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX = 4.5f
+internal const val SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX = 3.5f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 private const val AREA_MARKER_FONT_SIZE_PX = 14f
 private const val AREA_MARKER_RADIUS_PX = 16f
