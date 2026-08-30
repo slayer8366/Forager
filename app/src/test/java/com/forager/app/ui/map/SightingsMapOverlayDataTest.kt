@@ -6,10 +6,12 @@ import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.Waypoint
+import com.forager.app.ui.theme.MapPalette
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.maplibre.android.style.expressions.Expression
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 
@@ -156,6 +158,51 @@ class SightingsMapOverlayDataTest {
 
         assertEquals(1L, features[0].getNumberProperty("observationId").toLong())
         assertEquals(2L, features[1].getNumberProperty("observationId").toLong())
+    }
+
+    /**
+     * [sightingStrokeColorExpression] backs the sighting layer's data-driven `circle-stroke-color`
+     * — the blue ring around whichever dot [ObservationBubble] is currently open on (see that
+     * function's own doc comment). Unlike [CircleLayer]/[org.maplibre.android.maps.Style], neither
+     * [Expression] nor [org.maplibre.android.style.layers.PropertyValue] carries a native method
+     * (`javap` against the pinned `org.maplibre.gl:android-sdk:13.5.0` artifact confirms both are
+     * plain JVM classes), so — unlike everything else this file's own class doc comment says is
+     * unreachable off a device — the actual built [Expression] tree is constructible and comparable
+     * here, via [Expression.equals].
+     */
+    @Test
+    fun `sightingStrokeColorExpression is a flat unselected stroke when nothing is focused`() {
+        val expected = Expression.color(MapPalette.DAY.sightingDotStroke)
+        assertEquals(expected, sightingStrokeColorExpression(focusedObservationId = null, palette = MapPalette.DAY))
+    }
+
+    @Test
+    fun `sightingStrokeColorExpression matches only the focused observation's own id`() {
+        val expected = Expression.switchCase(
+            Expression.eq(Expression.get("observationId"), Expression.literal(2L)),
+            Expression.color(MapPalette.DAY.sightingDotStrokeSelected),
+            Expression.color(MapPalette.DAY.sightingDotStroke),
+        )
+        assertEquals(expected, sightingStrokeColorExpression(focusedObservationId = 2L, palette = MapPalette.DAY))
+    }
+
+    /**
+     * The same building blocks in the same shape, but a different id and a different palette's own
+     * colours — not just a re-run of the test above, to rule out both arguments being silently
+     * ignored (a stub that always returned the first test's expected [Expression] would still pass
+     * that one alone).
+     */
+    @Test
+    fun `sightingStrokeColorExpression carries the caller's own id and palette, not hardcoded ones`() {
+        val expected = Expression.switchCase(
+            Expression.eq(Expression.get("observationId"), Expression.literal(47348L)),
+            Expression.color(MapPalette.NIGHT.sightingDotStrokeSelected),
+            Expression.color(MapPalette.NIGHT.sightingDotStroke),
+        )
+        assertEquals(
+            expected,
+            sightingStrokeColorExpression(focusedObservationId = 47348L, palette = MapPalette.NIGHT),
+        )
     }
 
     /**

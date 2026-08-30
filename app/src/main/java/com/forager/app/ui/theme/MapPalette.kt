@@ -93,6 +93,17 @@ import androidx.compose.ui.graphics.toArgb
 data class MapPalette(
     val sightingDot: Int,
     val sightingDotStroke: Int,
+    /**
+     * [sightingDotStroke]'s selected state — the ring around whichever sighting dot currently has
+     * an [com.forager.app.ui.availability.ObservationBubble] open on it, so the bubble's own arrow
+     * has an unambiguous dot to point at even in a dense cluster. Same role as [sightingDotStroke]
+     * (a stroke drawn on top of [sightingDot], never against the tile), so it is held to the same
+     * mark-on-mark floor in `MapPaletteTest` rather than the day palette's own hue-separation floor
+     * — like [sightingDotStroke], it is deliberately excluded from that test's `markers()` set,
+     * which lists only the seven roles a user must tell apart from each other at a glance, not the
+     * strokes drawn on top of them.
+     */
+    val sightingDotStrokeSelected: Int,
     val connector: Int,
     val areaMarkerBackground: Int,
     val areaMarkerForeground: Int,
@@ -103,10 +114,20 @@ data class MapPalette(
 ) {
     companion object {
 
-        /** Unchanged from the pre-existing, hardware-tuned constants. */
+        /**
+         * Unchanged from the pre-existing, hardware-tuned constants, except [sightingDotStrokeSelected]
+         * (new). Material "Light Blue 400" (`#29B6F6`) — clearly blue against [sightingDot]'s dark
+         * brown fill (5.69:1, comfortably clear of the 4.5:1 mark-on-mark floor below), computed
+         * with the exact `relativeLuminance`/`contrastRatio` formulas `MapPaletteTest` itself uses
+         * before picking it, not eyeballed. Not derived from [plannedTrip] or [breadcrumb] (this
+         * app's two other blues): both measure well under 4.5:1 against [sightingDot] (2.47:1 and
+         * 3.29:1) since they were tuned for their own, different grounds/day-palette hue-separation
+         * job, not this mark-on-mark one.
+         */
         val DAY = MapPalette(
             sightingDot = 0xFF3B2E24.toInt(),
             sightingDotStroke = Color.White.toArgb(),
+            sightingDotStrokeSelected = 0xFF29B6F6.toInt(),
             connector = 0xFFC97B3D.toInt(),
             areaMarkerBackground = 0xFF2E5339.toInt(),
             areaMarkerForeground = Color.White.toArgb(),
@@ -270,6 +291,13 @@ data class MapPalette(
         val NIGHT = MapPalette(
             sightingDot = NIGHT_WARM,
             sightingDotStroke = NIGHT_INK,
+            // Same NIGHT_INK as sightingDotStroke, not a distinct night value: markers render from
+            // MapPalette.DAY unconditionally regardless of night mode (see this class's own "Markers
+            // stay day-only, always" doc comment), so this is never actually drawn today — set to
+            // keep MapPalette's own "every NIGHT field is NIGHT_WARM or NIGHT_INK" invariant intact
+            // for whoever revives night-mode marker differentiation later, per MapPaletteTest's own
+            // doc comment on that test.
+            sightingDotStrokeSelected = NIGHT_INK,
             connector = NIGHT_WARM,
             areaMarkerBackground = NIGHT_WARM,
             areaMarkerForeground = NIGHT_INK,
