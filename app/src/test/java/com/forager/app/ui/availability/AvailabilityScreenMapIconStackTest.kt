@@ -828,6 +828,38 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
+     * Same as above, `isReturning = false` — the circular-base addendum's own "resting state"
+     * (`DistanceArm`'s own doc comment: the arm's right end is a circle the same diameter as
+     * [ControlPill]'s own width, congruent with the pill's own bottom cap, present at every width
+     * the arm can reach including its minimum). Whether or not that circle stays mounted while not
+     * actively returning, [ControlPill] still composes after [DistanceArm] in [TrailheadControls]'
+     * own `Box` and wins any hit-test overlap at their shared junction (see that composable's own
+     * doc comment) — so a real touch at each control's own screen coordinates must reach that
+     * control here exactly as it does in the extended state above, not just when the arm happens to
+     * be fully grown.
+     */
+    @Test
+    fun `a real touch at each trailhead control's own screen coordinates reaches that control while not returning`() {
+        var recordCalls = 0
+        var returnCalls = 0
+        setScreen(
+            isRecording = true,
+            isReturning = false,
+            onToggleRecording = { recordCalls++ },
+            onToggleReturning = { returnCalls++ },
+        )
+        searchAReferenceRegion()
+
+        composeRule.onRoot().performTouchInput { click(centerOfTag("control-pill-record")) }
+        composeRule.waitForIdle()
+        composeRule.onRoot().performTouchInput { click(centerOfTag("control-pill-return-to-vehicle")) }
+        composeRule.waitForIdle()
+
+        assertEquals("a real touch on the record button must reach it", 1, recordCalls)
+        assertEquals("a real touch on the return-to-vehicle button must reach it", 1, returnCalls)
+    }
+
+    /**
      * The other half of item 5: a tap in the real empty space around [TrailheadControls] — the gap
      * between [MapIconBar]'s own bottom edge and [ControlPill]'s top edge — must still reach the
      * map underneath, not get silently swallowed by either surface's own bounding box. Reuses the
@@ -885,6 +917,47 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Tools").assertIsDisplayed()
+    }
+
+    /**
+     * The circular-base addendum's own containment claim, checked against real measured bounds
+     * rather than only the geometry worked out on paper in `DistanceArm`'s own doc comment: the
+     * arm's right edge must coincide with [ControlPill]'s own right edge (so the arm's circular
+     * base — diameter equal to the pill's own measured width — is centred on the pill's own
+     * vertical spine, not offset from it), and the arm's own vertical centre must coincide with the
+     * return-to-vehicle control's own vertical centre (not the pill's own bottom edge, and not the
+     * pill's own shape-cap centre either — see `TrailheadControls`' own doc comment for why those
+     * three are three different heights). Both within 1px, the rounding a real layout pass can
+     * introduce that paper geometry doesn't have to account for.
+     */
+    @Test
+    fun `the distance arm's own circular base is centred on the return-to-vehicle control`() {
+        setScreen(
+            isRecording = true,
+            isReturning = true,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 90.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
+        )
+        searchAReferenceRegion()
+
+        val armBounds = composeRule.onNodeWithTag("distance-arm").getUnclippedBoundsInRoot()
+        val pillBounds = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot()
+        val returnButtonBounds = composeRule.onNodeWithTag("control-pill-return-to-vehicle").getUnclippedBoundsInRoot()
+
+        val armRight = armBounds.right.value
+        val pillRight = pillBounds.right.value
+        assertTrue(
+            "the arm's own right edge ($armRight) should coincide with the pill's own right edge " +
+                "($pillRight) — that's what makes the two circles congruent",
+            kotlin.math.abs(armRight - pillRight) <= 1f,
+        )
+
+        val armCenterY = (armBounds.top.value + armBounds.bottom.value) / 2
+        val returnButtonCenterY = (returnButtonBounds.top.value + returnButtonBounds.bottom.value) / 2
+        assertTrue(
+            "the arm's own vertical centre ($armCenterY) should coincide with the return-to-vehicle " +
+                "control's own vertical centre ($returnButtonCenterY), not the pill's own bottom edge",
+            kotlin.math.abs(armCenterY - returnButtonCenterY) <= 1f,
+        )
     }
 
     /**
