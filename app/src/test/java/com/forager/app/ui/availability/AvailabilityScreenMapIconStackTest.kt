@@ -468,6 +468,65 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onAllNodesWithText("Chanterelle").assertCountEquals(0)
     }
 
+    /**
+     * The project owner's own explicit ask for the bubble's arrow: "as long as it's not spinning
+     * with the map and can read it legibly while rotating the map, and stays pointing directly on
+     * the observation dot." The dot's own screen position here (300f, 400f — not [Offset.Zero],
+     * unlike [SightingTappableStubMapSlot]) leaves real room in every direction for the bubble to
+     * move, so a bearing change actually has somewhere to reposition it to. At bearing 0°,
+     * [AnchoredAtScreenPoint]'s own base direction (315°, up-and-left of the dot — see that
+     * composable's own doc comment) puts the whole bubble above the dot; real touch/rendering, not
+     * a semantics-tree assumption, is what [AvailabilityScreenMapIconStackTest]'s own history (the
+     * "quick-fire icon" regression this file is named for) says to trust here.
+     *
+     * (300f, 400f) is in [MapSlot]'s own coordinate space — the map box's own top-left, not the
+     * screen root's — the same space [MapSlot.onSightingTap]'s own doc comment describes. Both
+     * assertions below add "map-slot"'s own root-relative top back in before comparing, so the
+     * dot's *root*-relative position is what the bubble's own root-relative bounds are actually
+     * checked against; the two would silently disagree the moment the map box itself sits below
+     * any other chrome, which it always does on this window class.
+     */
+    @Test
+    fun `at bearing zero the observation bubble sits above the tapped dot`() {
+        setScreen(mapSlot = bearingReportingStubMapSlot(bearingDeg = 0f))
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("sighting-dot").performClick()
+        composeRule.waitForIdle()
+
+        val bubbleBounds = composeRule.onNodeWithTag("observation-bubble").getUnclippedBoundsInRoot()
+        val mapSlotTop = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot().top
+        val dotY = mapSlotTop + with(composeRule.density) { 400f.toDp() }
+        assertTrue(
+            "At bearing 0 the bubble should sit above the dot it names (bottom ${bubbleBounds.bottom} vs dot y $dotY).",
+            bubbleBounds.bottom < dotY,
+        )
+    }
+
+    /**
+     * The other half of the same claim: rotating the map by 90° moves [AnchoredAtScreenPoint]'s own
+     * base direction from 315° (up-left) to 225° (down-left) — see that composable's own doc
+     * comment for the rotation formula — so the bubble should now sit *below* the dot instead of
+     * above it. Two independent [setContent] calls, not one test comparing before/after: Compose's
+     * test rule only allows setting content once per test.
+     */
+    @Test
+    fun `after a 90 degree map rotation the observation bubble sits below the tapped dot`() {
+        setScreen(mapSlot = bearingReportingStubMapSlot(bearingDeg = 90f))
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithTag("sighting-dot").performClick()
+        composeRule.waitForIdle()
+
+        val bubbleBounds = composeRule.onNodeWithTag("observation-bubble").getUnclippedBoundsInRoot()
+        val mapSlotTop = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot().top
+        val dotY = mapSlotTop + with(composeRule.density) { 400f.toDp() }
+        assertTrue(
+            "After a 90-degree rotation the bubble should sit below the dot it names (top ${bubbleBounds.top} vs dot y $dotY).",
+            bubbleBounds.top > dotY,
+        )
+    }
+
     @Test
     fun `the bottom nav's three destinations select the same ResultsTab the old tab row did`() {
         setScreen()
@@ -990,8 +1049,26 @@ private val TAPPED_SIGHTING = Sighting(
 
 /** Exposes [onSightingTap] as a clickable surface reporting [TAPPED_SIGHTING], for the observation bubble tests. */
 private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightingTap, _, modifier ->
-    Column(modifier.testTag("map-slot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) })) {
+    Column(modifier.testTag("map-slot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero, 0f) })) {
         Text("map")
+    }
+}
+
+/**
+ * Reports [TAPPED_SIGHTING] tapped at a fixed, non-zero screen position (300f, 400f — unlike
+ * [SightingTappableStubMapSlot]'s [Offset.Zero]) with a caller-chosen [bearingDeg], for the
+ * bubble-rotation tests. A real, non-corner position matters here specifically: the bubble needs
+ * genuine room on every side to actually move as the reported bearing changes, which
+ * [Offset.Zero] — already hard against the map's own top-left corner — would immediately clamp
+ * away.
+ */
+private fun bearingReportingStubMapSlot(bearingDeg: Float): MapSlot = { _, _, _, _, _, _, onSightingTap, _, modifier ->
+    Column(modifier.testTag("map-slot")) {
+        Text(
+            "dot",
+            modifier = Modifier.testTag("sighting-dot")
+                .clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset(300f, 400f), bearingDeg) }),
+        )
     }
 }
 
@@ -1016,7 +1093,7 @@ private val SightingTappableStubMapSlot: MapSlot = { _, _, _, _, _, _, onSightin
  */
 private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, onSightingTap, _, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) }))
+        Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero, 0f) }))
         Text(
             "elsewhere",
             modifier = Modifier
@@ -1040,12 +1117,12 @@ private val SightingAndPlainTapStubMapSlot: MapSlot = { _, _, _, _, _, onTap, on
  */
 private val PannableSightingStubMapSlot: MapSlot = { _, content, _, _, _, _, onSightingTap, _, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero) }))
+        Text("dot", modifier = Modifier.testTag("sighting-dot").clickable(onClick = { onSightingTap(TAPPED_SIGHTING, Offset.Zero, 0f) }))
         Text(
             "simulate-pan",
             modifier = Modifier.testTag("simulate-pan").clickable(onClick = {
                 if (content.focusedObservationId == TAPPED_SIGHTING.observationId) {
-                    onSightingTap(TAPPED_SIGHTING, Offset.Zero)
+                    onSightingTap(TAPPED_SIGHTING, Offset.Zero, 0f)
                 }
             }),
         )

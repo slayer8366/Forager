@@ -102,6 +102,7 @@ class MapPaletteTest {
         val fields = mapOf(
             "sightingDot" to MapPalette.NIGHT.sightingDot,
             "sightingDotStroke" to MapPalette.NIGHT.sightingDotStroke,
+            "sightingDotStrokeSelected" to MapPalette.NIGHT.sightingDotStrokeSelected,
             "connector" to MapPalette.NIGHT.connector,
             "areaMarkerBackground" to MapPalette.NIGHT.areaMarkerBackground,
             "areaMarkerForeground" to MapPalette.NIGHT.areaMarkerForeground,
@@ -159,6 +160,8 @@ class MapPaletteTest {
         for ((name, palette) in palettes) {
             val pairs = listOf(
                 "sightingDotStroke on sightingDot" to (palette.sightingDotStroke to palette.sightingDot),
+                "sightingDotStrokeSelected on sightingDot" to
+                    (palette.sightingDotStrokeSelected to palette.sightingDot),
                 "areaMarkerForeground on areaMarkerBackground" to
                     (palette.areaMarkerForeground to palette.areaMarkerBackground),
             )
@@ -207,6 +210,7 @@ class MapPaletteTest {
         val nightInkLuminance = relativeLuminance(MapPalette.NIGHT_INK)
         for ((label, day) in listOf(
             "sightingDotStroke" to MapPalette.DAY.sightingDotStroke,
+            "sightingDotStrokeSelected" to MapPalette.DAY.sightingDotStrokeSelected,
             "areaMarkerForeground" to MapPalette.DAY.areaMarkerForeground,
         )) {
             if (nightInkLuminance >= relativeLuminance(day)) {

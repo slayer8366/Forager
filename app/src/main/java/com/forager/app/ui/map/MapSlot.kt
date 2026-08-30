@@ -161,11 +161,13 @@ typealias MapSlot = @Composable (
      * such detail view (tests, previews).
      *
      * The [Offset] is that [Sighting]'s own current on-screen position (px, in this slot's own
-     * coordinate space) — re-fired on every camera move for as long as the same sighting stays
-     * tapped, not just once at tap time, so a caller's detail bubble can stay glued to its marker
-     * across a pan/zoom instead of reading as detached from whichever dot it was originally about.
+     * coordinate space); the [Float] is the camera's current bearing (degrees clockwise from
+     * north). Both re-fire on every camera move for as long as the same sighting stays tapped, not
+     * just once at tap time, so a caller's detail bubble can stay glued to its marker — in both
+     * position and orientation — across a pan/zoom/rotate instead of reading as detached from
+     * whichever dot it was originally about, or pointing the wrong way once the map has turned.
      */
-    onSightingTap: (Sighting, Offset) -> Unit,
+    onSightingTap: (Sighting, Offset, Float) -> Unit,
     /**
      * Fires with the geographic point under the screen's centre every time the camera finishes
      * moving (a pan, a fling settling, a programmatic jump) — the read side of [region]/

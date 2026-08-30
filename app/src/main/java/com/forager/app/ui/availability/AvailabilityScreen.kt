@@ -143,6 +143,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.Layout
@@ -150,6 +151,7 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -250,7 +252,11 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlinx.coroutines.delay
 
 private enum class ResultsTab(val label: String) {
@@ -3857,6 +3863,7 @@ private fun MapTab(
                 var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
                 var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
                 var tappedSightingScreenPosition by remember { mutableStateOf(Offset.Zero) }
+                var tappedSightingBearingDeg by remember { mutableStateOf(0f) }
                 val context = LocalContext.current
                 Column(modifier = modifier.fillMaxWidth()) {
                     // Areas are only handed to the map when the layer is switched on; the
@@ -3902,15 +3909,20 @@ private fun MapTab(
                             // see ObservationBubble's own doc comment for why this replaced a modal
                             // AlertDialog. Harmless to clear when nothing is showing.
                             { tappedSighting = null },
-                            { sighting, screenPosition ->
+                            { sighting, screenPosition, bearingDeg ->
                                 tappedSighting = sighting
                                 tappedSightingScreenPosition = screenPosition
+                                tappedSightingBearingDeg = bearingDeg
                             },
                             { location -> cameraCenter = location },
                             Modifier.fillMaxSize(),
                         )
                         tappedSighting?.let { sighting ->
-                            AnchoredAtScreenPoint(anchorPx = tappedSightingScreenPosition, modifier = Modifier.fillMaxSize()) {
+                            AnchoredAtScreenPoint(
+                                anchorPx = tappedSightingScreenPosition,
+                                bearingDeg = tappedSightingBearingDeg,
+                                modifier = Modifier.fillMaxSize(),
+                            ) { arrowAngleDeg ->
                                 ObservationBubble(
                                     sighting = sighting,
                                     onViewOnINaturalist = {
@@ -3918,6 +3930,7 @@ private fun MapTab(
                                         tappedSighting = null
                                     },
                                     onDismiss = { tappedSighting = null },
+                                    arrowAngleDeg = arrowAngleDeg,
                                 )
                             }
                         }
@@ -4188,6 +4201,7 @@ private fun CompactMapTab(
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
     var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
     var tappedSightingScreenPosition by remember { mutableStateOf(Offset.Zero) }
+    var tappedSightingBearingDeg by remember { mutableStateOf(0f) }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
@@ -4348,9 +4362,10 @@ private fun CompactMapTab(
                         if (isFullscreen) onToggleFullscreen()
                         tappedSighting = null
                     },
-                    { sighting, screenPosition ->
+                    { sighting, screenPosition, bearingDeg ->
                         tappedSighting = sighting
                         tappedSightingScreenPosition = screenPosition
+                        tappedSightingBearingDeg = bearingDeg
                     },
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
@@ -4372,9 +4387,10 @@ private fun CompactMapTab(
                     // layout height.
                     AnchoredAtScreenPoint(
                         anchorPx = tappedSightingScreenPosition,
+                        bearingDeg = tappedSightingBearingDeg,
                         minY = compassStripClearance,
                         modifier = Modifier.fillMaxSize(),
-                    ) {
+                    ) { arrowAngleDeg ->
                         ObservationBubble(
                             sighting = sighting,
                             onViewOnINaturalist = {
@@ -4382,6 +4398,7 @@ private fun CompactMapTab(
                                 tappedSighting = null
                             },
                             onDismiss = { tappedSighting = null },
+                            arrowAngleDeg = arrowAngleDeg,
                         )
                     }
                 }
@@ -5822,35 +5839,77 @@ internal fun launchINaturalistObservation(context: Context, observationId: Long)
 private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
 /**
- * Rightward half of the clearance from the dot's own center to the bubble's sharp corner — see
- * [AnchoredAtScreenPoint]'s own doc comment for the "5 o'clock" placement this is part of. Smaller
- * than [OBSERVATION_BUBBLE_ANCHOR_GAP_Y]: that hour sits mostly below the dot and only partway
- * across from it, not equally in both directions the way a plain diagonal offset would read.
+ * The direction [ObservationBubble] sits from the dot it names, measured clockwise from up
+ * (0°/up, 90°/right, 180°/down, 270°/left), in the *map's own north-up frame* — not screen space.
+ * [AnchoredAtScreenPoint] rotates this by the map's live bearing to get where the bubble actually
+ * lands on screen, which is the whole point of it being a map-relative constant rather than a
+ * screen-relative one: up-and-left of the dot at bearing 0° (the same corner this composable's
+ * predecessor hard-coded — see its own git history) stays up-and-left *of the dot*, not up-and-left
+ * *of the screen*, as the map turns underneath it.
  */
-private val OBSERVATION_BUBBLE_ANCHOR_GAP_X = Spacing.xs
-
-/** Downward half of the same clearance — see [OBSERVATION_BUBBLE_ANCHOR_GAP_X]'s own doc comment. */
-private val OBSERVATION_BUBBLE_ANCHOR_GAP_Y = Spacing.sm
+private const val OBSERVATION_BUBBLE_BASE_DIRECTION_DEG = 315f
 
 /**
- * Places [content] (exactly one child — [ObservationBubble] itself) so its own sharp corner
- * ([ObservationBubble]'s `bottomEnd`) sits just past [anchorPx] — the tapped sighting's live screen
- * position, in the same px coordinate space [MapSlot]'s own `onSightingTap` reports (see that
- * callback's doc comment) — at that marker's own 5-o'clock point (down and partway across from its
- * center, by [OBSERVATION_BUBBLE_ANCHOR_GAP_X]/[OBSERVATION_BUBBLE_ANCHOR_GAP_Y]) rather than
- * centering the whole bubble above it. The rest of the bubble then reads up and to the left from
- * that corner, so the one squared-off corner works as an arrow tip aimed back at the marker it
- * names, per the hardware report asking for exactly that ("have the sharp edge of the chat bubble
- * hover at the 5 o'clock position on the dot it represents, this will act like an arrow pointing at
- * it") — replacing an earlier revision that only centered the bubble above the dot with no part of
- * it actually pointing anywhere.
+ * How far the arrow's own tip extends past [ObservationBubble]'s own edge, toward the dot it
+ * names. Purely a visual "sticks out and reads as pointed" clearance — [rectEdgeIntersection]
+ * already guarantees the tip's *base* sits exactly on the bubble's boundary before this is added.
+ */
+private val OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH = Spacing.md
+
+/** Half the width of the arrow's own base, straddling the point [rectEdgeIntersection] returns. */
+private val OBSERVATION_BUBBLE_ARROW_BASE_HALF_WIDTH = Spacing.xs
+
+/**
+ * The point where a ray from a `[-halfWidth, halfWidth] x [-halfHeight, halfHeight]` rectangle's
+ * own center, at [angleDeg] (clockwise from up, screen convention: +x right, +y down), exits the
+ * rectangle's boundary — the standard "ray from an axis-aligned box's center" intersection, picking
+ * whichever of the box's four edges the ray reaches first. Pure geometry, shared by
+ * [AnchoredAtScreenPoint] (to place [ObservationBubble] so its own arrow tip lands exactly on the
+ * dot, whichever edge or corner region the current bearing puts the arrow on) and
+ * [ObservationBubble] itself (to draw that same arrow, from its own measured [size][androidx.compose.ui.geometry.Size] at
+ * draw time) — the one thing both need to agree on, computed once rather than twice.
+ */
+internal fun rectEdgeIntersection(halfWidth: Float, halfHeight: Float, angleDeg: Float): Offset {
+    val radians = Math.toRadians(angleDeg.toDouble())
+    val dx = sin(radians).toFloat()
+    val dy = -cos(radians).toFloat()
+    val tx = if (dx != 0f) halfWidth / abs(dx) else Float.POSITIVE_INFINITY
+    val ty = if (dy != 0f) halfHeight / abs(dy) else Float.POSITIVE_INFINITY
+    val t = min(tx, ty)
+    return Offset(dx * t, dy * t)
+}
+
+/**
+ * Places [content] — [ObservationBubble] itself, handed the exact angle (screen-space, clockwise
+ * from up) its own arrow should point back along — so that arrow's tip lands precisely on
+ * [anchorPx], the tapped sighting's live screen position in the same px coordinate space
+ * [MapSlot]'s own `onSightingTap` reports (see that callback's doc comment). Replaces an earlier
+ * revision that hard-coded a squared-off bubble corner as an implied arrow at a fixed "5 o'clock"
+ * offset from the dot — per the project owner's own follow-up call, that read ambiguously in a
+ * dense cluster and didn't survive map rotation, so this version draws a real, explicit arrow
+ * ([ObservationBubble]'s own [Canvas]) and keeps its tip glued to the dot's exact center rather
+ * than an offset point near it.
  *
- * A custom [Layout], not a plain [Box] + `Modifier.offset`: placing the corner precisely needs the
- * bubble's own measured size, which isn't known until after it's laid out — a fixed offset guessed
- * in advance would only land correctly for one particular bubble content length. Reports its own
- * occupied size as the full incoming [Constraints] (the whole map [Box]), with the child placed
- * freely inside at the computed point, clamped to stay on-screen — placing a child outside its
- * parent's own declared bounds would leave it undependably hit-testable.
+ * [bearingDeg] is what makes this "remain static on the map, but rotate with the map orientation"
+ * — the project owner's own framing. [OBSERVATION_BUBBLE_BASE_DIRECTION_DEG] fixes where the
+ * bubble sits *relative to the dot, in the map's own north-up frame*; rotating that by the map's
+ * live bearing below is what keeps the bubble's placement correct — up-and-left of the dot, not
+ * up-and-left of the screen — as the map turns, the same way a label pinned to the map surface
+ * itself would. [ObservationBubble]'s own text never rotates: only the angle passed to it and the
+ * bubble's own screen position change, so it stays legible through a rotate gesture rather than
+ * turning upside down at some bearings — the project owner's own explicit constraint ("as long as
+ * it's not spinning with the map and can read it legibly while rotating the map, and stays
+ * pointing directly on the observation dot").
+ *
+ * A custom [Layout], not a plain [Box] + `Modifier.offset`, for the same reason as before: placing
+ * the bubble so its arrow tip lands exactly on [anchorPx] needs the bubble's own measured size,
+ * which isn't known until after it's laid out. Reports its own occupied size as the full incoming
+ * [Constraints] (the whole map [Box]), with the child placed freely inside at the computed point,
+ * clamped to stay on-screen — placing a child outside its parent's own declared bounds would leave
+ * it undependably hit-testable. Clamping can still pull the bubble away from the angle-exact spot
+ * near a screen edge, same limitation the predecessor's own corner-anchoring had — the arrow drawn
+ * from wherever the bubble actually lands is still geometrically consistent with itself, just no
+ * longer touching the dot exactly in that corner case.
  *
  * [minY] raises the lowest the bubble's own top edge may land — [CompactMapTab]'s own call site
  * passes `compassStripClearance`, a real measurement of the compass strip's own type style, so a
@@ -5868,19 +5927,50 @@ private val OBSERVATION_BUBBLE_ANCHOR_GAP_Y = Spacing.sm
 @Composable
 private fun AnchoredAtScreenPoint(
     anchorPx: Offset,
+    bearingDeg: Float,
     minY: Dp = 0.dp,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    content: @Composable (arrowAngleDeg: Float) -> Unit,
 ) {
-    Layout(content = content, modifier = modifier) { measurables, constraints ->
-        val gapXPx = OBSERVATION_BUBBLE_ANCHOR_GAP_X.roundToPx()
-        val gapYPx = OBSERVATION_BUBBLE_ANCHOR_GAP_Y.roundToPx()
+    // The direction FROM the dot TO the bubble, in screen space: the map-relative base direction,
+    // rotated backward by the camera's own clockwise rotation — the map (and everything drawn
+    // relative to it) appears to turn counter-clockwise on screen as the camera turns clockwise, so
+    // subtracting bearingDeg is what keeps this pinned to the dot's own frame rather than the
+    // screen's.
+    val screenDirectionFromDotDeg = (OBSERVATION_BUBBLE_BASE_DIRECTION_DEG - bearingDeg).mod(360f)
+    // The arrow's own direction: from the bubble back toward the dot, the exact opposite of where
+    // the bubble sits relative to it. This is the one value ObservationBubble needs to draw an
+    // arrow consistent with wherever this Layout ends up placing it.
+    val arrowAngleDeg = (screenDirectionFromDotDeg + 180f).mod(360f)
+    Layout(content = { content(arrowAngleDeg) }, modifier = modifier) { measurables, constraints ->
         val minYPx = minY.roundToPx()
+        // ObservationBubble's own measured size already includes OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH
+        // of reserved margin on every side (its own Modifier.padding — see that composable's doc
+        // comment), so the *card's* own half-extents for rectEdgeIntersection are this placeable's,
+        // shrunk back down by that same margin — otherwise this would compute where the reserved
+        // margin's own outer edge sits, not the visible card's, and the tip would land short of
+        // anchorPx by one tail length.
         val placeable = measurables.first().measure(Constraints())
-        val x = (anchorPx.x + gapXPx - placeable.width)
+        val tailPx = OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH.toPx()
+        val cardHalfWidth = placeable.width / 2f - tailPx
+        val cardHalfHeight = placeable.height / 2f - tailPx
+        // Where the card's own boundary sits, and how far past it the arrow's tip extends toward
+        // the dot — see rectEdgeIntersection's own doc comment. The ideal (pre-clamp) placeable
+        // center is anchorPx walked backward along that same tip vector, so placing the placeable
+        // there makes the tip land exactly on anchorPx.
+        val edgePoint = rectEdgeIntersection(cardHalfWidth, cardHalfHeight, arrowAngleDeg)
+        val radians = Math.toRadians(arrowAngleDeg.toDouble())
+        val tipOffsetFromCenter = Offset(
+            edgePoint.x + sin(radians).toFloat() * tailPx,
+            edgePoint.y - cos(radians).toFloat() * tailPx,
+        )
+        val idealCenter = anchorPx - tipOffsetFromCenter
+        val halfWidth = placeable.width / 2f
+        val halfHeight = placeable.height / 2f
+        val x = (idealCenter.x - halfWidth)
             .roundToInt()
             .coerceIn(0, (constraints.maxWidth - placeable.width).coerceAtLeast(0))
-        val y = (anchorPx.y + gapYPx - placeable.height)
+        val y = (idealCenter.y - halfHeight)
             .roundToInt()
             .coerceIn(minYPx, (constraints.maxHeight - placeable.height).coerceAtLeast(minYPx))
         layout(constraints.maxWidth, constraints.maxHeight) {
@@ -5903,87 +5993,137 @@ private fun AnchoredAtScreenPoint(
  * every tap outside its own bounds fall straight through to the map beneath — dismissing itself is
  * the caller's job, wired to the map's plain [onTap] the same way `CompactMapTab`'s "tap to restore
  * chrome while fullscreen" already works, not something this composable can do on its own the way
- * [AlertDialog]'s `onDismissRequest` (a tap on the scrim, or system back) could. The asymmetric
- * bottom-end corner — squared off rather than rounded, unlike the other three — is what reads as a
- * speech/notification bubble rather than a plain card, without needing a hand-drawn tail shape; see
- * [AnchoredAtScreenPoint]'s own doc comment for why that corner specifically, and where it's placed.
+ * [AlertDialog]'s `onDismissRequest` (a tap on the scrim, or system back) could.
+ *
+ * [arrowAngleDeg] — [AnchoredAtScreenPoint]'s own computed direction back toward the dot this
+ * bubble names, screen-space, clockwise from up — drives a real, explicit triangular tail drawn by
+ * [Modifier.drawBehind] rather than the earlier revision's single squared-off corner (an implied
+ * arrow that only worked from one fixed relative position). Reserves
+ * [OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH] of otherwise-invisible margin on every side via
+ * [Modifier.padding] so the tail has room to protrude past the visible card's own rounded-rect
+ * silhouette regardless of which side [arrowAngleDeg] currently points it out of — the same margin
+ * [AnchoredAtScreenPoint] already accounts for when it places this composable, so the two agree on
+ * where the tail's tip actually lands without any state passed between them: both independently
+ * apply the identical [rectEdgeIntersection] formula to the same inputs. The card itself is a plain
+ * [RoundedCornerShape] again (all four corners), not one squared — the tail is what reads as a
+ * speech/notification bubble now, not an asymmetric corner.
  */
 @Composable
 private fun ObservationBubble(
     sighting: Sighting,
     onViewOnINaturalist: () -> Unit,
     onDismiss: () -> Unit,
+    arrowAngleDeg: Float,
     modifier: Modifier = Modifier,
 ) {
     // Same theme-aware, 80%-opacity fill as MapIconBar/MapModePicker/AddActionTile — one visual
     // language for every control floating over the map, per the project owner's own request to
-    // bring this bubble in line with the rest rather than Material's own surfaceContainerHigh.
+    // bring this bubble in line with the rest rather than Material's own surfaceContainerHigh. The
+    // arrow tail below is filled with this exact same colour so it reads as part of one continuous
+    // shape with the card, not a separate decoration.
     val isDarkTheme = LocalForagerDarkTheme.current
-    Surface(
+    val fillColor = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
+    Box(
         modifier = modifier
-            .widthIn(max = 280.dp)
-            .testTag("observation-bubble")
-            // Consumes its own taps via a plain pointerInput, not Modifier.clickable — this
-            // backdrop isn't itself a button (no ripple, no accessibility click action to fake),
-            // it only needs to swallow the gesture so it doesn't fall through to the map beneath.
-            // The same "a Surface wins hit-testing over whatever's beneath it in a Box" fact
-            // MapIconBar's own doc comment documents, relied on here rather than guarded against:
-            // a tap on the bubble should never also count as the map's own "tap elsewhere" dismiss
-            // gesture. The close icon and "View on iNaturalist" text below still get first crack at
-            // any tap that actually lands on them, same as any nested clickable inside one of these.
-            .pointerInput(Unit) { detectTapGestures {} },
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp),
-        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
-        contentColor = if (isDarkTheme) Color.White else Bark,
-        shadowElevation = 6.dp,
-        tonalElevation = 3.dp,
-    ) {
-        Row(
-            // fillMaxWidth() matters here, not just padding: a Row that wraps to its own content's
-            // size can't also give the Column below a meaningful weight(1f) — Compose measures a
-            // weighted child against "remaining space" that only exists once the Row's own width is
-            // bounded/definite. Without this, the Column collapsed to near zero and wrapped
-            // "Chanterelle" one character per line (caught by this bubble's own interaction tests,
-            // not visual review).
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = Spacing.md, top = Spacing.sm, end = Spacing.xs, bottom = Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    sighting.commonName ?: sighting.scientificName,
-                    style = MaterialTheme.typography.titleSmall,
+            // Drawn before padding is applied below, so this sees the full outer bounds (card plus
+            // the reserved tail margin on every side) rather than the shrunken interior padding
+            // leaves for the card — the same "background paints the full area, padding only moves
+            // content" ordering Modifier.background(...).padding(...) already relies on elsewhere.
+            .drawBehind {
+                val tailPx = OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH.toPx()
+                val baseHalfWidthPx = OBSERVATION_BUBBLE_ARROW_BASE_HALF_WIDTH.toPx()
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val cardHalfWidth = center.x - tailPx
+                val cardHalfHeight = center.y - tailPx
+                val edgePoint = rectEdgeIntersection(cardHalfWidth, cardHalfHeight, arrowAngleDeg)
+                val radians = Math.toRadians(arrowAngleDeg.toDouble())
+                val dirX = sin(radians).toFloat()
+                val dirY = -cos(radians).toFloat()
+                val baseCenter = center + edgePoint
+                val tip = Offset(baseCenter.x + dirX * tailPx, baseCenter.y + dirY * tailPx)
+                // Perpendicular to the tip direction, so the tail's base straddles baseCenter along
+                // whichever edge it actually sits on — correct for any angle without needing to
+                // know which of the card's four edges that is.
+                val base1 = Offset(baseCenter.x - dirY * baseHalfWidthPx, baseCenter.y + dirX * baseHalfWidthPx)
+                val base2 = Offset(baseCenter.x + dirY * baseHalfWidthPx, baseCenter.y - dirX * baseHalfWidthPx)
+                drawPath(
+                    Path().apply {
+                        moveTo(base1.x, base1.y)
+                        lineTo(tip.x, tip.y)
+                        lineTo(base2.x, base2.y)
+                        close()
+                    },
+                    color = fillColor,
                 )
-                if (sighting.commonName != null) {
-                    Text(sighting.scientificName, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
-                }
-                Row(
-                    // fillMaxWidth so SpaceBetween has real room to push the link to the far
-                    // right — same reasoning as the outer Row's own fillMaxWidth comment above.
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Text(
-                        "View on iNaturalist",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clickable(onClick = onViewOnINaturalist)
-                            .testTag("observation-bubble-view-on-inaturalist"),
-                    )
-                }
             }
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(24.dp).testTag("observation-bubble-close"),
+            .padding(OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH),
+    ) {
+        Surface(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .testTag("observation-bubble")
+                // Consumes its own taps via a plain pointerInput, not Modifier.clickable — this
+                // backdrop isn't itself a button (no ripple, no accessibility click action to fake),
+                // it only needs to swallow the gesture so it doesn't fall through to the map beneath.
+                // The same "a Surface wins hit-testing over whatever's beneath it in a Box" fact
+                // MapIconBar's own doc comment documents, relied on here rather than guarded against:
+                // a tap on the bubble should never also count as the map's own "tap elsewhere" dismiss
+                // gesture. The close icon and "View on iNaturalist" text below still get first crack at
+                // any tap that actually lands on them, same as any nested clickable inside one of these.
+                .pointerInput(Unit) { detectTapGestures {} },
+            shape = RoundedCornerShape(20.dp),
+            color = fillColor,
+            contentColor = if (isDarkTheme) Color.White else Bark,
+            shadowElevation = 6.dp,
+            tonalElevation = 3.dp,
+        ) {
+            Row(
+                // fillMaxWidth() matters here, not just padding: a Row that wraps to its own content's
+                // size can't also give the Column below a meaningful weight(1f) — Compose measures a
+                // weighted child against "remaining space" that only exists once the Row's own width is
+                // bounded/definite. Without this, the Column collapsed to near zero and wrapped
+                // "Chanterelle" one character per line (caught by this bubble's own interaction tests,
+                // not visual review).
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = Spacing.md, top = Spacing.sm, end = Spacing.xs, bottom = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                Icon(Icons.Filled.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        sighting.commonName ?: sighting.scientificName,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    if (sighting.commonName != null) {
+                        Text(sighting.scientificName, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
+                    }
+                    Row(
+                        // fillMaxWidth so SpaceBetween has real room to push the link to the far
+                        // right — same reasoning as the outer Row's own fillMaxWidth comment above.
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text(
+                            "View on iNaturalist",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable(onClick = onViewOnINaturalist)
+                                .testTag("observation-bubble-view-on-inaturalist"),
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp).testTag("observation-bubble-close"),
+                ) {
+                    Icon(Icons.Filled.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
+                }
             }
         }
     }
