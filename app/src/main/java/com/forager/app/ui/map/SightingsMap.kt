@@ -868,11 +868,33 @@ internal fun sightingStrokeColorExpression(focusedObservationId: Long?, palette:
         Expression.color(palette.sightingDotStroke)
     } else {
         Expression.switchCase(
-            Expression.eq(Expression.get("observationId"), Expression.literal(focusedObservationId)),
+            isFocusedObservationExpression(focusedObservationId),
             Expression.color(palette.sightingDotStrokeSelected),
             Expression.color(palette.sightingDotStroke),
         )
     }
+
+/**
+ * "Is this feature the one [focusedObservationId] names" — the one condition
+ * [sightingStrokeColorExpression] and [sightingStrokeWidthExpression] both branch on, factored out
+ * so there is exactly one place building it rather than two copies that could quietly drift apart.
+ *
+ * Both sides go through [Expression.toString] before comparing, not a bare
+ * [Expression.eq]-on-numbers: a real-device check found neither property actually changing when
+ * this compared [Expression.get]'s own numeric read against [Expression.literal] on the raw
+ * [Long] directly — plausible if the native GL expression engine's own JSON-number handling and a
+ * boxed `java.lang.Long` literal's serialization don't agree on representation the way two
+ * `Long`s compared in the JVM always would (this project's own `SightingsMapOverlayDataTest` can
+ * only check the built [Expression] *tree*, via [Expression.equals] — never how the native
+ * renderer actually evaluates it; see that test file's own class doc comment on this exact
+ * boundary). Coercing both operands to a string sidesteps the whole int/long/double question:
+ * `"42" == "42"` has no representation to disagree about.
+ */
+private fun isFocusedObservationExpression(focusedObservationId: Long): Expression =
+    Expression.eq(
+        Expression.toString(Expression.get("observationId")),
+        Expression.toString(Expression.literal(focusedObservationId)),
+    )
 
 /**
  * The sighting layer's `circle-stroke-width` — see [sightingStrokeColorExpression]'s own doc
@@ -886,7 +908,7 @@ internal fun sightingStrokeWidthExpression(focusedObservationId: Long?): Express
         Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX)
     } else {
         Expression.switchCase(
-            Expression.eq(Expression.get("observationId"), Expression.literal(focusedObservationId)),
+            isFocusedObservationExpression(focusedObservationId),
             Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
             Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
         )
