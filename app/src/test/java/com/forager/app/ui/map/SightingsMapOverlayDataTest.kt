@@ -179,7 +179,7 @@ class SightingsMapOverlayDataTest {
     @Test
     fun `sightingStrokeColorExpression matches only the focused observation's own id`() {
         val expected = Expression.switchCase(
-            Expression.eq(Expression.get("observationId"), Expression.literal(2L)),
+            Expression.eq(Expression.toString(Expression.get("observationId")), Expression.toString(Expression.literal(2L))),
             Expression.color(MapPalette.DAY.sightingDotStrokeSelected),
             Expression.color(MapPalette.DAY.sightingDotStroke),
         )
@@ -195,7 +195,7 @@ class SightingsMapOverlayDataTest {
     @Test
     fun `sightingStrokeColorExpression carries the caller's own id and palette, not hardcoded ones`() {
         val expected = Expression.switchCase(
-            Expression.eq(Expression.get("observationId"), Expression.literal(47348L)),
+            Expression.eq(Expression.toString(Expression.get("observationId")), Expression.toString(Expression.literal(47348L))),
             Expression.color(MapPalette.NIGHT.sightingDotStrokeSelected),
             Expression.color(MapPalette.NIGHT.sightingDotStroke),
         )
@@ -220,7 +220,7 @@ class SightingsMapOverlayDataTest {
     @Test
     fun `sightingStrokeWidthExpression widens only the focused observation's own dot`() {
         val expected = Expression.switchCase(
-            Expression.eq(Expression.get("observationId"), Expression.literal(2L)),
+            Expression.eq(Expression.toString(Expression.get("observationId")), Expression.toString(Expression.literal(2L))),
             Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
             Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
         )
