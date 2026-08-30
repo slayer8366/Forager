@@ -473,10 +473,12 @@ fun SightingsMap(
         // focusedObservationId at all, and whether the layer lookup actually found something to
         // call setProperties on. Remove once that's answered.
         if (focusedObservationId != null) {
+            // Kept intentionally short — the previous version's longer message got clipped
+            // mid-word by this device's own Toast styling before the two values that matter
+            // (layer found, style loaded) were ever visible.
             Toast.makeText(
                 context,
-                "DIAG focusedObservationId=$focusedObservationId layerFound=${layer != null} " +
-                    "styleFullyLoaded=${style.isFullyLoaded}",
+                "DIAG L=${layer != null} S=${style.isFullyLoaded}",
                 Toast.LENGTH_LONG,
             ).show()
         }
