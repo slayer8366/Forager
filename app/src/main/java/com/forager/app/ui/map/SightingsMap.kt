@@ -8,7 +8,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.widget.Toast
 import android.graphics.Path
 import android.graphics.RectF
 import android.view.Gravity
@@ -399,16 +398,11 @@ fun SightingsMap(
         }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap, night = nightMode))) { style ->
-            initializeOverlayLayers(
-                style,
-                density = context.resources.displayMetrics.density,
-                palette = mapPalette,
-                // currentFocusedObservationId, not the plain parameter: this callback runs
-                // asynchronously once setStyle finishes, by which point the composable may have
-                // recomposed with a different focusedObservationId already — same rememberUpdatedState
-                // indirection the click/camera-idle listeners below use, and for the same reason.
-                focusedObservationId = currentFocusedObservationId,
-            )
+            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
+            // The data+camera refresh effect below re-pushes every source right after this, keyed
+            // on loadedStyle among other things — including the sighting source, with "selected"
+            // baked in from whatever focusedObservationId is current at that point. Nothing here
+            // needs to seed it separately.
             appliedBasemap = basemap
             appliedPalette = mapPalette
             loadedStyle = style
@@ -425,10 +419,10 @@ fun SightingsMap(
     // after a basemap swap) — the same "rebuild content every update, regardless of why the update
     // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
     // because MapLibre's own API separates "style ready" from "camera/property changed".
-    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride, breadcrumbPoints, waypoints) {
+    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints, waypoints)
+        refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId)
 
         // Once the live-location "puck" is actively tracking (the default once permission is
         // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its
@@ -453,39 +447,6 @@ fun SightingsMap(
                 .build()
             lastAppliedCameraTarget = target
         }
-    }
-
-    // The selected-sighting ring. Deliberately its own effect, not folded into the data+camera
-    // refresh above or the basemap-swap effect at the top of this composable: both of those are
-    // expensive to re-run (the first pushes every source's full GeoJSON again, the second discards
-    // and rebuilds the entire style) and neither is keyed on focusedObservationId, so adding it as
-    // a key there would re-do all of that work on every dot tap/dismiss just to recolour one
-    // property on one existing layer. setProperties on the layer MapLibre already has is what
-    // GeoJsonSource.setGeoJson is to a source: an in-place update, not a rebuild.
-    LaunchedEffect(loadedStyle, focusedObservationId, mapPalette) {
-        val style = loadedStyle ?: return@LaunchedEffect
-        val layer = style.getLayerAs<CircleLayer>(SIGHTING_LAYER_ID)
-        // TEMPORARY DIAGNOSTIC — two independent fixes (a more saturated colour, then a doubled
-        // stroke width) both produced zero visible change on real hardware, which rules out
-        // "technically applied but too subtle to see" and points at something failing before the
-        // paint properties even reach the renderer. Rather than guess a fourth cause blind, this
-        // surfaces the two facts a screenshot can't: whether this effect is running with a real
-        // focusedObservationId at all, and whether the layer lookup actually found something to
-        // call setProperties on. Remove once that's answered.
-        if (focusedObservationId != null) {
-            // Kept intentionally short — the previous version's longer message got clipped
-            // mid-word by this device's own Toast styling before the two values that matter
-            // (layer found, style loaded) were ever visible.
-            Toast.makeText(
-                context,
-                "DIAG L=${layer != null} S=${style.isFullyLoaded}",
-                Toast.LENGTH_LONG,
-            ).show()
-        }
-        layer?.setProperties(
-            PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(focusedObservationId, mapPalette)),
-            PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression(focusedObservationId)),
-        )
     }
 
     // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
@@ -558,11 +519,13 @@ fun SightingsMap(
  * `SymbolLayer`/icon-bitmap version this replaced, for whoever revives night-mode marker
  * differentiation later.
  *
- * [focusedObservationId] seeds the sighting layer's initial `circle-stroke-color` — see
- * [sightingStrokeColorExpression]'s own doc comment for what it's for and why a second, lighter
- * effect keeps it live after this one-time creation.
+ * The sighting layer's `circle-stroke-color`/`circle-stroke-width` are fixed expressions keyed on
+ * each feature's own `"selected"` boolean property — see [sightingStrokeColorExpression]'s own doc
+ * comment for why that property, not a paint-property expression comparing `observationId`
+ * directly, is what actually selects the ring. Nothing here needs to know which sighting is
+ * currently focused: [refreshOverlayData] bakes `"selected"` into the pushed data itself.
  */
-private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette, focusedObservationId: Long?) {
+private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
     style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
 
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
@@ -584,16 +547,11 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.circleColor(palette.sightingDot),
             PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
             PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
-            // See sightingStrokeColorExpression's own doc comment. Set from the caller's current
-            // focusedObservationId at layer-creation time (not unconditionally null) so a basemap
-            // swap or night-mode toggle while a bubble is already open doesn't flash every dot back
-            // to the unselected stroke for one frame before the live-update effect below corrects
-            // it — this is the one place that effect's own re-application can't reach, since it
-            // runs after this fresh layer already exists, not before. Width gets the identical
-            // treatment, for the identical reason — see sightingStrokeWidthExpression's own doc
-            // comment for why it exists at all.
-            PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(focusedObservationId, palette)),
-            PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression(focusedObservationId)),
+            // See sightingStrokeColorExpression/sightingStrokeWidthExpression's own doc comments —
+            // both key off each feature's own "selected" property, so nothing here needs seeding
+            // with the current focusedObservationId the way an id-comparison expression would.
+            PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(palette)),
+            PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression()),
             PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
         ),
     )
@@ -685,9 +643,10 @@ private fun refreshOverlayData(
     plannedTrips: List<PlannedTrip>,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
+    focusedObservationId: Long?,
 ) {
     style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCenterFeatureCollection(region))
-    style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings))
+    style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings, focusedObservationId))
     style.getSourceAs<GeoJsonSource>(CONNECTOR_SOURCE_ID)?.setGeoJson(connectorFeatureCollection(region, areas))
     style.getSourceAs<GeoJsonSource>(AREA_MARKER_SOURCE_ID)?.setGeoJson(areaMarkersFeatureCollection(areas))
     style.getSourceAs<GeoJsonSource>(PLANNED_TRIP_SOURCE_ID)?.setGeoJson(plannedTripsFeatureCollection(plannedTrips))
@@ -843,7 +802,12 @@ internal fun searchCenterFeatureCollection(region: Region): FeatureCollection {
     return FeatureCollection.fromFeature(feature)
 }
 
-internal fun sightingsFeatureCollection(sightings: List<Sighting>): FeatureCollection {
+/**
+ * [focusedObservationId] bakes a `"selected"` boolean into whichever feature it names, `false` on
+ * every other — see [sightingStrokeColorExpression]'s own doc comment for why the paint layer
+ * reads this property instead of comparing `observationId` itself inside a GL expression.
+ */
+internal fun sightingsFeatureCollection(sightings: List<Sighting>, focusedObservationId: Long? = null): FeatureCollection {
     val features = sightings.map { sighting ->
         Feature.fromGeometry(Point.fromLngLat(sighting.lng, sighting.lat)).apply {
             addStringProperty("title", sighting.commonName ?: sighting.scientificName)
@@ -853,85 +817,66 @@ internal fun sightingsFeatureCollection(sightings: List<Sighting>): FeatureColle
             // actually read back, rather than kept "for a future click handler" the way title/snippet
             // were before this.
             addNumberProperty("observationId", sighting.observationId)
+            // Computed in Kotlin, once, per push — not read back by anything on this side, only by
+            // sightingStrokeColorExpression/sightingStrokeWidthExpression's own GL expressions.
+            addBooleanProperty("selected", sighting.observationId == focusedObservationId)
         }
     }
     return FeatureCollection.fromFeatures(features)
 }
 
 /**
- * The sighting layer's `circle-stroke-color`, data-driven on [focusedObservationId] rather than a
- * flat colour: every sighting dot strokes [MapPalette.sightingDotStroke] (white by day) except the
- * one, if any, [focusedObservationId] names, which strokes [MapPalette.sightingDotStrokeSelected]
- * (blue) instead — the ring [ObservationBubble]'s own arrow points at, so the highlighted dot and
- * the bubble naming it agree even in a dense cluster where the arrow's own tip alone could land
- * ambiguously close to a neighbour. `null` (nothing focused) draws every dot with the same,
- * unselected stroke — deliberately not a `switchCase` an unmatched sentinel ID could accidentally
- * satisfy.
+ * The sighting layer's `circle-stroke-color`: [MapPalette.sightingDotStroke] (white by day) for
+ * every dot, except [MapPalette.sightingDotStrokeSelected] (blue) for whichever one
+ * [sightingsFeatureCollection]'s own `"selected"` property currently marks `true` — the ring
+ * [ObservationBubble]'s own arrow points at, so the highlighted dot and the bubble naming it agree
+ * even in a dense cluster where the arrow's own tip alone could land ambiguously close to a
+ * neighbour.
  *
- * Colour alone was tried first and confirmed too subtle on real hardware: at
- * [SIGHTING_DOT_STROKE_WIDTH_PX]'s own 1.5px, even a saturated blue against the default white
- * reads as barely-there — a hairline is hard to read by hue at a glance regardless of what this
- * file's own mark-on-mark contrast maths say, which score a solid fill, not a 1.5px ring. See
- * [sightingStrokeWidthExpression], its paired fix: the selected dot's own stroke also widens, so
- * the highlight is legible by *shape* even before colour is read at all.
+ * A fixed expression, not parameterized on `focusedObservationId`: an id-comparison
+ * (`["==", ["get","observationId"], id]`, even coerced through `to-string` on both sides first)
+ * was tried and confirmed — twice, on real hardware, alongside a doubled stroke width that also
+ * showed no change — to never actually select anything once `setProperties` reaches the native
+ * renderer, for reasons this project's own off-device tests can't diagnose (`Expression.equals`
+ * only checks the built tree, never how MapLibre's GL engine evaluates a numeric or string `eq`).
+ * Baking `"selected"` into each feature's own data in Kotlin, and reading it here as a plain
+ * boolean condition (`["case", ["get","selected"], ...]`, no comparison at all), sidesteps the
+ * entire class of doubt: there is no representation for a boolean read back from GeoJSON to
+ * disagree with.
  *
- * A plain function, not inlined into [initializeOverlayLayers]/the live-update effect below: both
- * [Expression] and [org.maplibre.android.style.layers.PropertyValue] carry no native methods
- * (`javap` against the pinned `org.maplibre.gl:android-sdk:13.5.0` artifact confirms neither), so
- * unlike the `Style`/`CircleLayer`/`GeoJsonSource` boundary [sightingsFeatureCollection]'s own doc
- * comment describes, the expression this builds is itself constructible and comparable
+ * Colour alone was also tried first and separately confirmed too subtle even before the
+ * comparison bug was found: at [SIGHTING_DOT_STROKE_WIDTH_PX]'s own 1.5px, even a saturated blue
+ * against the default white reads as barely-there — a hairline is hard to read by hue at a glance
+ * regardless of what this file's own mark-on-mark contrast maths say, which score a solid fill,
+ * not a 1.5px ring. See [sightingStrokeWidthExpression], its paired fix: the selected dot's own
+ * stroke also widens, so the highlight is legible by *shape* even before colour is read at all.
+ *
+ * A plain function, not inlined into [initializeOverlayLayers]: both [Expression] and
+ * [org.maplibre.android.style.layers.PropertyValue] carry no native methods (`javap` against the
+ * pinned `org.maplibre.gl:android-sdk:13.5.0` artifact confirms neither), so unlike the
+ * `Style`/`CircleLayer`/`GeoJsonSource` boundary [sightingsFeatureCollection]'s own doc comment
+ * describes, the expression this builds is itself constructible and comparable
  * (`Expression.equals`) off a real device — `SightingsMapOverlayDataTest` exercises it directly.
  */
-internal fun sightingStrokeColorExpression(focusedObservationId: Long?, palette: MapPalette): Expression =
-    if (focusedObservationId == null) {
-        Expression.color(palette.sightingDotStroke)
-    } else {
-        Expression.switchCase(
-            isFocusedObservationExpression(focusedObservationId),
-            Expression.color(palette.sightingDotStrokeSelected),
-            Expression.color(palette.sightingDotStroke),
-        )
-    }
-
-/**
- * "Is this feature the one [focusedObservationId] names" — the one condition
- * [sightingStrokeColorExpression] and [sightingStrokeWidthExpression] both branch on, factored out
- * so there is exactly one place building it rather than two copies that could quietly drift apart.
- *
- * Both sides go through [Expression.toString] before comparing, not a bare
- * [Expression.eq]-on-numbers: a real-device check found neither property actually changing when
- * this compared [Expression.get]'s own numeric read against [Expression.literal] on the raw
- * [Long] directly — plausible if the native GL expression engine's own JSON-number handling and a
- * boxed `java.lang.Long` literal's serialization don't agree on representation the way two
- * `Long`s compared in the JVM always would (this project's own `SightingsMapOverlayDataTest` can
- * only check the built [Expression] *tree*, via [Expression.equals] — never how the native
- * renderer actually evaluates it; see that test file's own class doc comment on this exact
- * boundary). Coercing both operands to a string sidesteps the whole int/long/double question:
- * `"42" == "42"` has no representation to disagree about.
- */
-private fun isFocusedObservationExpression(focusedObservationId: Long): Expression =
-    Expression.eq(
-        Expression.toString(Expression.get("observationId")),
-        Expression.toString(Expression.literal(focusedObservationId)),
+internal fun sightingStrokeColorExpression(palette: MapPalette): Expression =
+    Expression.switchCase(
+        Expression.get("selected"),
+        Expression.color(palette.sightingDotStrokeSelected),
+        Expression.color(palette.sightingDotStroke),
     )
 
 /**
  * The sighting layer's `circle-stroke-width` — see [sightingStrokeColorExpression]'s own doc
- * comment for why the selected dot needs a wider ring, not just a differently-coloured one, to
- * actually read as highlighted. Same shape as that function (a `switchCase` on the one matching
- * `observationId`, `null` drawing every dot at the same flat width) so the two stay obviously
- * paired to a reader, and are applied together everywhere either one is.
+ * comment both for why the selected dot needs a wider ring, not just a differently-coloured one,
+ * and for why this reads the same `"selected"` boolean property rather than comparing
+ * `observationId` itself.
  */
-internal fun sightingStrokeWidthExpression(focusedObservationId: Long?): Expression =
-    if (focusedObservationId == null) {
-        Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX)
-    } else {
-        Expression.switchCase(
-            isFocusedObservationExpression(focusedObservationId),
-            Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
-            Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
-        )
-    }
+internal fun sightingStrokeWidthExpression(): Expression =
+    Expression.switchCase(
+        Expression.get("selected"),
+        Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
+        Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
+    )
 
 /** [ForagingArea.visitOrder] as the "label" property the area-marker SymbolLayer's `text-field` reads via `"{label}"`. */
 internal fun areaMarkersFeatureCollection(areas: List<ForagingArea>): FeatureCollection {

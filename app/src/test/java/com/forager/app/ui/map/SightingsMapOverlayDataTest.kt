@@ -161,6 +161,26 @@ class SightingsMapOverlayDataTest {
     }
 
     /**
+     * The property [sightingStrokeColorExpression]/[sightingStrokeWidthExpression] actually read to
+     * ring the selected dot — see those functions' own doc comments for why this is a plain boolean
+     * baked into the feature's own data rather than an id comparison evaluated inside a GL
+     * expression.
+     */
+    @Test
+    fun `no sighting feature is marked selected when nothing is focused`() {
+        val features = sightingsFeatureCollection(sightings).features()!!
+        assertEquals(false, features[0].getBooleanProperty("selected"))
+        assertEquals(false, features[1].getBooleanProperty("selected"))
+    }
+
+    @Test
+    fun `only the focused observation's own feature is marked selected`() {
+        val features = sightingsFeatureCollection(sightings, focusedObservationId = 2L).features()!!
+        assertEquals(false, features[0].getBooleanProperty("selected"))
+        assertEquals(true, features[1].getBooleanProperty("selected"))
+    }
+
+    /**
      * [sightingStrokeColorExpression] backs the sighting layer's data-driven `circle-stroke-color`
      * — the blue ring around whichever dot [ObservationBubble] is currently open on (see that
      * function's own doc comment). Unlike [CircleLayer]/[org.maplibre.android.maps.Style], neither
@@ -171,38 +191,28 @@ class SightingsMapOverlayDataTest {
      * here, via [Expression.equals].
      */
     @Test
-    fun `sightingStrokeColorExpression is a flat unselected stroke when nothing is focused`() {
-        val expected = Expression.color(MapPalette.DAY.sightingDotStroke)
-        assertEquals(expected, sightingStrokeColorExpression(focusedObservationId = null, palette = MapPalette.DAY))
-    }
-
-    @Test
-    fun `sightingStrokeColorExpression matches only the focused observation's own id`() {
+    fun `sightingStrokeColorExpression branches on the feature's own selected property`() {
         val expected = Expression.switchCase(
-            Expression.eq(Expression.toString(Expression.get("observationId")), Expression.toString(Expression.literal(2L))),
+            Expression.get("selected"),
             Expression.color(MapPalette.DAY.sightingDotStrokeSelected),
             Expression.color(MapPalette.DAY.sightingDotStroke),
         )
-        assertEquals(expected, sightingStrokeColorExpression(focusedObservationId = 2L, palette = MapPalette.DAY))
+        assertEquals(expected, sightingStrokeColorExpression(palette = MapPalette.DAY))
     }
 
     /**
-     * The same building blocks in the same shape, but a different id and a different palette's own
-     * colours — not just a re-run of the test above, to rule out both arguments being silently
-     * ignored (a stub that always returned the first test's expected [Expression] would still pass
-     * that one alone).
+     * A different palette's own colours — not just a re-run of the test above, to rule out the
+     * palette argument being silently ignored (a stub that always returned the first test's
+     * expected [Expression] would still pass that one alone).
      */
     @Test
-    fun `sightingStrokeColorExpression carries the caller's own id and palette, not hardcoded ones`() {
+    fun `sightingStrokeColorExpression carries the caller's own palette, not a hardcoded one`() {
         val expected = Expression.switchCase(
-            Expression.eq(Expression.toString(Expression.get("observationId")), Expression.toString(Expression.literal(47348L))),
+            Expression.get("selected"),
             Expression.color(MapPalette.NIGHT.sightingDotStrokeSelected),
             Expression.color(MapPalette.NIGHT.sightingDotStroke),
         )
-        assertEquals(
-            expected,
-            sightingStrokeColorExpression(focusedObservationId = 47348L, palette = MapPalette.NIGHT),
-        )
+        assertEquals(expected, sightingStrokeColorExpression(palette = MapPalette.NIGHT))
     }
 
     /**
@@ -212,19 +222,13 @@ class SightingsMapOverlayDataTest {
      * way [sightingStrokeColorExpression] is above.
      */
     @Test
-    fun `sightingStrokeWidthExpression is a flat unselected width when nothing is focused`() {
-        val expected = Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX)
-        assertEquals(expected, sightingStrokeWidthExpression(focusedObservationId = null))
-    }
-
-    @Test
-    fun `sightingStrokeWidthExpression widens only the focused observation's own dot`() {
+    fun `sightingStrokeWidthExpression branches on the feature's own selected property`() {
         val expected = Expression.switchCase(
-            Expression.eq(Expression.toString(Expression.get("observationId")), Expression.toString(Expression.literal(2L))),
+            Expression.get("selected"),
             Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
             Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
         )
-        assertEquals(expected, sightingStrokeWidthExpression(focusedObservationId = 2L))
+        assertEquals(expected, sightingStrokeWidthExpression())
     }
 
     /** The widened width is meaningfully wider, not a cosmetic rounding difference. */
