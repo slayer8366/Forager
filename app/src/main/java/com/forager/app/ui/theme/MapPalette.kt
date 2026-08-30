@@ -97,11 +97,14 @@ data class MapPalette(
      * [sightingDotStroke]'s selected state — the ring around whichever sighting dot currently has
      * an [com.forager.app.ui.availability.ObservationBubble] open on it, so the bubble's own arrow
      * has an unambiguous dot to point at even in a dense cluster. Same role as [sightingDotStroke]
-     * (a stroke drawn on top of [sightingDot], never against the tile), so it is held to the same
-     * mark-on-mark floor in `MapPaletteTest` rather than the day palette's own hue-separation floor
-     * — like [sightingDotStroke], it is deliberately excluded from that test's `markers()` set,
-     * which lists only the seven roles a user must tell apart from each other at a glance, not the
-     * strokes drawn on top of them.
+     * (a stroke drawn on top of [sightingDot], never against the tile) — like [sightingDotStroke],
+     * it is deliberately excluded from `MapPaletteTest`'s `markers()` set, which lists only the
+     * seven roles a user must tell apart from each other at a glance, not the strokes drawn on top
+     * of them. Unlike every other mark-on-mark pair, though, it is held to its own, lower pinned
+     * floor in that test rather than the shared 4.5:1 bar — see `MapPaletteTest`'s own comment on
+     * that carve-out, and this field's value-level doc comment below, for why: a genuinely "deep"
+     * blue against [sightingDot]'s dark brown fill cannot clear 4.5:1 at all, a structural ceiling,
+     * not a constant left untuned.
      */
     val sightingDotStrokeSelected: Int,
     val connector: Int,
@@ -116,26 +119,37 @@ data class MapPalette(
 
         /**
          * Unchanged from the pre-existing, hardware-tuned constants, except [sightingDotStrokeSelected]
-         * (new). Material "Blue 400" (`#42A5F5`) — clearly blue and reasonably saturated against
-         * [sightingDot]'s dark brown fill (4.95:1, clear of the 4.5:1 mark-on-mark floor below),
-         * computed with the exact `relativeLuminance`/`contrastRatio` formulas `MapPaletteTest`
-         * itself uses before picking it, not eyeballed. A first pick, Material "Light Blue 400"
-         * (`#29B6F6`, 5.69:1), read as too pale on real hardware — a first-hand report, not a
-         * contrast-math conclusion the ratchet above would have caught, since that number alone
-         * doesn't say how a *hairline* stroke reads at a glance (see
-         * [com.forager.app.ui.map.sightingStrokeWidthExpression]'s own doc comment for the other
-         * half of that same fix: the selected ring also widens, not just recolours). This value sits
-         * near the top of what still clears 4.5:1 against [sightingDot] at all — true "dark blue"
-         * shades (Blue 700/800/900, ~1.5–2.9:1) fail outright, a structural ceiling of comparing any
-         * blue against this dark a fill, not a constant left untuned. Not derived from [plannedTrip]
-         * or [breadcrumb] (this app's two other blues): both measure well under 4.5:1 against
-         * [sightingDot] (2.47:1 and 3.29:1) since they were tuned for their own, different
-         * grounds/day-palette hue-separation job, not this mark-on-mark one.
+         * (new, and revised once — see below).
+         *
+         * **First pick, Material "Blue 400" (`#42A5F5`, 4.95:1 against [sightingDot]):** clearly
+         * blue and clear of the general 4.5:1 mark-on-mark floor, computed with the exact
+         * `relativeLuminance`/`contrastRatio` formulas `MapPaletteTest` itself uses before picking
+         * it, not eyeballed. Confirmed working on real hardware — the ring did turn blue — but
+         * reported as reading closer to sky blue than the "deep blue" the highlight was meant to
+         * land as.
+         *
+         * **Revised to Material "Blue 500" (`#2196F3`, 4.195:1):** the next step down Material's own
+         * blue ramp, visibly deeper/more saturated. This is below the shared 4.5:1 mark-on-mark
+         * floor `MapPaletteTest` holds every other stroke-on-mark pair to — deliberately, not an
+         * oversight: true "dark blue" shades (Blue 700/800/900, ~1.5–2.9:1) fail outright against
+         * [sightingDot]'s dark brown fill, a structural ceiling on how dark any blue can go here at
+         * all (see this field's own doc comment above), so 4.5:1 and "reads as deep blue" cannot
+         * both hold for this particular pair. `MapPaletteTest` pins this one pair to its own,
+         * measured 4.195:1 floor instead of relaxing the shared bar for everyone — see that test's
+         * own comment on the carve-out. [com.forager.app.ui.map.SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX]
+         * widened further in the same change, on the same reasoning [sightingStrokeWidthExpression]'s
+         * own doc comment already gives: a hairline's legibility comes from more than a contrast
+         * ratio, and widening compensates for what dropping the ratio spends.
+         *
+         * Not derived from [plannedTrip] or [breadcrumb] (this app's two other blues): both measure
+         * well under even the revised 4.195:1 against [sightingDot] (2.47:1 and 3.29:1) since they
+         * were tuned for their own, different grounds/day-palette hue-separation job, not this
+         * mark-on-mark one.
          */
         val DAY = MapPalette(
             sightingDot = 0xFF3B2E24.toInt(),
             sightingDotStroke = Color.White.toArgb(),
-            sightingDotStrokeSelected = 0xFF42A5F5.toInt(),
+            sightingDotStrokeSelected = 0xFF2196F3.toInt(),
             connector = 0xFFC97B3D.toInt(),
             areaMarkerBackground = 0xFF2E5339.toInt(),
             areaMarkerForeground = Color.White.toArgb(),

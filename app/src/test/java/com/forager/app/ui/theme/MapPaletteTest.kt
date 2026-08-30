@@ -61,6 +61,18 @@ class MapPaletteTest {
     private val minimumMarkOnMarkContrast = 4.5
 
     /**
+     * [MapPalette.sightingDotStrokeSelected] on [MapPalette.sightingDot] is pinned to its own,
+     * lower floor instead of [minimumMarkOnMarkContrast] — the one deliberate exception among the
+     * mark-on-mark pairs, not an oversight. A "deep" blue was requested for that ring specifically;
+     * measured, no blue reads as genuinely deep and still clears 4.5:1 against `sightingDot`'s dark
+     * brown fill (true dark-blue shades measure ~1.5–2.9:1, a structural ceiling — see that field's
+     * own doc comment). This pins the chosen colour (Material Blue 500, `#2196F3`) at its own
+     * measured 4.195:1 rather than relaxing the shared bar for every other pair, so a future colour
+     * change to this one field can't silently drift further down without this test catching it.
+     */
+    private val minimumSightingDotStrokeSelectedContrast = 4.195
+
+    /**
      * Two marks closer than this in Oklab are treated as too similar. Set from the day palette's
      * own tightest pair (connector/waypoint, 0.106), which is the palette that has been on real
      * hardware — so the bar is "no worse than what has actually been used outdoors" rather than a
@@ -159,16 +171,25 @@ class MapPaletteTest {
         val palettes = listOf("DAY" to MapPalette.DAY, "NIGHT" to MapPalette.NIGHT)
         for ((name, palette) in palettes) {
             val pairs = listOf(
-                "sightingDotStroke on sightingDot" to (palette.sightingDotStroke to palette.sightingDot),
-                "sightingDotStrokeSelected on sightingDot" to
-                    (palette.sightingDotStrokeSelected to palette.sightingDot),
-                "areaMarkerForeground on areaMarkerBackground" to
-                    (palette.areaMarkerForeground to palette.areaMarkerBackground),
+                Triple("sightingDotStroke on sightingDot", palette.sightingDotStroke to palette.sightingDot, minimumMarkOnMarkContrast),
+                // See minimumSightingDotStrokeSelectedContrast's own doc comment for why this one
+                // pair is pinned to its own, lower floor instead of the shared bar every other pair
+                // here is held to.
+                Triple(
+                    "sightingDotStrokeSelected on sightingDot",
+                    palette.sightingDotStrokeSelected to palette.sightingDot,
+                    minimumSightingDotStrokeSelectedContrast,
+                ),
+                Triple(
+                    "areaMarkerForeground on areaMarkerBackground",
+                    palette.areaMarkerForeground to palette.areaMarkerBackground,
+                    minimumMarkOnMarkContrast,
+                ),
             )
-            for ((label, pair) in pairs) {
+            for ((label, pair, floor) in pairs) {
                 val ratio = contrastRatio(pair.first, pair.second)
-                if (ratio < minimumMarkOnMarkContrast) {
-                    failures += "%s: %s is %.2f:1, below %.1f:1".format(name, label, ratio, minimumMarkOnMarkContrast)
+                if (ratio < floor) {
+                    failures += "%s: %s is %.2f:1, below %.2f:1".format(name, label, ratio, floor)
                 }
             }
         }
