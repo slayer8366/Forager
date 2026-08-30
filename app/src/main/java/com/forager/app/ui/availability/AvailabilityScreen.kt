@@ -4959,6 +4959,18 @@ private fun ControlPill(
 private const val DISTANCE_ARM_WIDEST_TEXT = "99.9 km"
 
 /**
+ * [DistanceArm]'s own settled opacity, once its enter transition finishes growing out from
+ * [ControlPill] — requested directly: the whole arm (fill, border, shadow, and readout text
+ * together, via a single [androidx.compose.ui.draw.alpha] on the outer [Surface]) fades in from
+ * fully invisible rather than popping in at full strength, and settles at 80%, not 100%, once
+ * the width animation completes; deactivating reverses both in lockstep. Coincidentally the same
+ * number as [MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]'s own baked-in fill
+ * alpha, but a separate, independent property applied to the *entire* Surface — those colors'
+ * translucency only ever affected the fill, never the border, shadow, or text this also dims.
+ */
+private const val DISTANCE_ARM_RESTING_ALPHA = 0.8f
+
+/**
  * The horizontal arm that extends left from [ControlPill] while return-to-vehicle is active,
  * holding the distance-only readout — see [ControlPill]'s own return row for the full
  * bearing/distance/elevation sentence this supplements (that row's `contentDescription` carries
@@ -5011,6 +5023,11 @@ private const val DISTANCE_ARM_WIDEST_TEXT = "99.9 km"
  * footprint, always fully covered by [ControlPill], nothing drawn there — with the readout text
  * confined to (and centred within) the region to its left, so the text itself is never drawn under
  * the curve.
+ *
+ * **Fades in and out alongside the width change**, [fadeIn]/[fadeOut] bundled into the same
+ * enter/exit as [expandHorizontally]/[shrinkHorizontally] so both finish together — not a pop-in
+ * at full strength, and not fully opaque even once settled: see [DISTANCE_ARM_RESTING_ALPHA]'s own
+ * doc comment for the 80% ceiling and why it applies to the whole [Surface], not just its fill.
  */
 @Composable
 private fun DistanceArm(
@@ -5031,16 +5048,18 @@ private fun DistanceArm(
     val readoutWidthDp = with(density) { widestNumberWidthPx.toDp() } + Spacing.md
     AnimatedVisibility(
         visible = visible,
-        enter = expandHorizontally(
-            animationSpec = MotionTokens.navigationMotionSpec(),
-            expandFrom = Alignment.End,
-            initialWidth = { circleDiameterPx },
-        ),
-        exit = shrinkHorizontally(
-            animationSpec = MotionTokens.navigationMotionSpec(),
-            shrinkTowards = Alignment.End,
-            targetWidth = { circleDiameterPx },
-        ),
+        enter = fadeIn(animationSpec = MotionTokens.navigationMotionSpec()) +
+            expandHorizontally(
+                animationSpec = MotionTokens.navigationMotionSpec(),
+                expandFrom = Alignment.End,
+                initialWidth = { circleDiameterPx },
+            ),
+        exit = fadeOut(animationSpec = MotionTokens.navigationMotionSpec()) +
+            shrinkHorizontally(
+                animationSpec = MotionTokens.navigationMotionSpec(),
+                shrinkTowards = Alignment.End,
+                targetWidth = { circleDiameterPx },
+            ),
         modifier = modifier,
     ) {
         Surface(
@@ -5056,6 +5075,13 @@ private fun DistanceArm(
             border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
             modifier = Modifier
                 .height(circleDiameterDp)
+                // fadeIn/fadeOut above animate 0→1→0 in lockstep with the width transition (part of
+                // the same AnimatedVisibility Transition, so both finish together); this fixed
+                // multiplier caps the settled/fully-grown end of that ramp at
+                // DISTANCE_ARM_RESTING_ALPHA instead of fully opaque — see that constant's own doc
+                // comment for why, and for why it's a coincidence, not a reuse, that the number
+                // matches MapIconStackButtonColorDark/Light's own fill alpha.
+                .alpha(DISTANCE_ARM_RESTING_ALPHA)
                 .testTag("distance-arm"),
         ) {
             // Outer box reserves the full readout-plus-circle width, readout content start-aligned
