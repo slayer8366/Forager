@@ -12,6 +12,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
@@ -225,8 +226,12 @@ class AvailabilityScreenConditionsMonthTest {
         openSearchDropdownToManualCoordinates()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        // performScrollTo(): radius and month, promoted to SearchDropdown's own top level ahead of
+        // this section (map/navigation redesign dispatch D), push "Search this location" below the
+        // dropdown's own bounded, scrolled viewport — without this the tap lands on the node's own
+        // (correct but currently off-screen) bounds, which reaches nothing actually rendered there.
         // Closes the dropdown itself, which is why nothing closes it here.
-        composeRule.onNodeWithText("Search this location").performClick()
+        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.ClusterForagingAreasUseCase
@@ -186,10 +187,12 @@ class AvailabilityScreenTripPlanningFlowTest {
      * Opens [AdvancedSearchDropdown] via the search summary bar and expands its "Enter coordinates
      * manually" section — map/navigation redesign dispatch C, item 1 moved location/radius/month
      * out of the Tools drawer entirely, to float over the map from where quick species search used
-     * to sit. No `performScrollTo()` calls needed: every action below is a semantic
-     * `performClick`/`performTextReplacement`, which acts on the node regardless of whether it is
-     * currently scrolled into view — [SearchDropdown] does carry a `verticalScroll` (see its own
-     * doc comment), but that only matters for an `assertIsDisplayed()`, and this helper makes none.
+     * to sit. Most of these were true `performScrollTo()`-free semantic actions before dispatch D
+     * promoted radius and month to this dropdown's own top level — that addition pushed "Search
+     * this location" below [SearchDropdown]'s own bounded, scrolled viewport on real device
+     * configurations, so a `performClick()` against that node's own (correct but now off-screen)
+     * bounds reaches nothing actually rendered there; `performScrollTo()` first is what makes that
+     * one call reach the real, live button again.
      */
     private fun searchAReferenceRegion() {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
@@ -197,7 +200,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         composeRule.onNodeWithText("Enter coordinates manually").performClick()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performClick()
+        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
