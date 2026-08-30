@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.widget.Toast
 import android.graphics.Path
 import android.graphics.RectF
 import android.view.Gravity
@@ -463,7 +464,23 @@ fun SightingsMap(
     // GeoJsonSource.setGeoJson is to a source: an in-place update, not a rebuild.
     LaunchedEffect(loadedStyle, focusedObservationId, mapPalette) {
         val style = loadedStyle ?: return@LaunchedEffect
-        style.getLayerAs<CircleLayer>(SIGHTING_LAYER_ID)?.setProperties(
+        val layer = style.getLayerAs<CircleLayer>(SIGHTING_LAYER_ID)
+        // TEMPORARY DIAGNOSTIC — two independent fixes (a more saturated colour, then a doubled
+        // stroke width) both produced zero visible change on real hardware, which rules out
+        // "technically applied but too subtle to see" and points at something failing before the
+        // paint properties even reach the renderer. Rather than guess a fourth cause blind, this
+        // surfaces the two facts a screenshot can't: whether this effect is running with a real
+        // focusedObservationId at all, and whether the layer lookup actually found something to
+        // call setProperties on. Remove once that's answered.
+        if (focusedObservationId != null) {
+            Toast.makeText(
+                context,
+                "DIAG focusedObservationId=$focusedObservationId layerFound=${layer != null} " +
+                    "styleFullyLoaded=${style.isFullyLoaded}",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+        layer?.setProperties(
             PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(focusedObservationId, mapPalette)),
             PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression(focusedObservationId)),
         )
