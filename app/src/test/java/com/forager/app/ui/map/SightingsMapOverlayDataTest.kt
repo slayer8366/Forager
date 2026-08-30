@@ -161,10 +161,9 @@ class SightingsMapOverlayDataTest {
     }
 
     /**
-     * The property [sightingStrokeColorExpression]/[sightingStrokeWidthExpression] actually read to
-     * ring the selected dot — see those functions' own doc comments for why this is a plain boolean
-     * baked into the feature's own data rather than an id comparison evaluated inside a GL
-     * expression.
+     * The property [sightingStrokeColorExpression] actually reads to ring the selected dot — see
+     * that function's own doc comment for why this is a plain boolean baked into the feature's own
+     * data rather than an id comparison evaluated inside a GL expression.
      */
     @Test
     fun `no sighting feature is marked selected when nothing is focused`() {
@@ -213,33 +212,6 @@ class SightingsMapOverlayDataTest {
             Expression.color(MapPalette.NIGHT.sightingDotStroke),
         )
         assertEquals(expected, sightingStrokeColorExpression(palette = MapPalette.NIGHT))
-    }
-
-    /**
-     * [sightingStrokeWidthExpression]'s own doc comment: colour alone was confirmed too subtle on
-     * real hardware at [SIGHTING_DOT_STROKE_WIDTH_PX]'s hairline width, so the selected dot's own
-     * stroke also widens — this is that fix's own paired `Expression`, built and asserted the same
-     * way [sightingStrokeColorExpression] is above.
-     */
-    @Test
-    fun `sightingStrokeWidthExpression branches on the feature's own selected property`() {
-        val expected = Expression.switchCase(
-            Expression.get("selected"),
-            Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
-            Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
-        )
-        assertEquals(expected, sightingStrokeWidthExpression())
-    }
-
-    /** The widened width is meaningfully wider, not a cosmetic rounding difference. */
-    @Test
-    fun `the selected stroke width is more than double the unselected one`() {
-        assertTrue(
-            "SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX ($SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX) should be " +
-                "more than double SIGHTING_DOT_STROKE_WIDTH_PX ($SIGHTING_DOT_STROKE_WIDTH_PX) for the " +
-                "highlight to actually read as widened at a glance.",
-            SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX > SIGHTING_DOT_STROKE_WIDTH_PX * 2,
-        )
     }
 
     /**

@@ -136,10 +136,10 @@ data class MapPalette(
          * all (see this field's own doc comment above), so 4.5:1 and "reads as deep blue" cannot
          * both hold for this particular pair. `MapPaletteTest` pins this one pair to its own,
          * measured 4.195:1 floor instead of relaxing the shared bar for everyone — see that test's
-         * own comment on the carve-out. [com.forager.app.ui.map.SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX]
-         * widened further in the same change, on the same reasoning [sightingStrokeWidthExpression]'s
-         * own doc comment already gives: a hairline's legibility comes from more than a contrast
-         * ratio, and widening compensates for what dropping the ratio spends.
+         * own comment on the carve-out. A paired stroke-width increase was tried alongside this
+         * colour change, to spend width where the deeper colour has less contrast headroom to give,
+         * and reverted on request — see [com.forager.app.ui.map.SIGHTING_DOT_STROKE_WIDTH_PX]'s own
+         * doc comment for that history: the highlight is colour alone now.
          *
          * Not derived from [plannedTrip] or [breadcrumb] (this app's two other blues): both measure
          * well under even the revised 4.195:1 against [sightingDot] (2.47:1 and 3.29:1) since they
