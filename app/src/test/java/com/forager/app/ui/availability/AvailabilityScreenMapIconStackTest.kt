@@ -1049,6 +1049,55 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
+     * The project owner's own direct ask, map/navigation redesign dispatch D: "have the search
+     * window extend just below the compass strip to avoid overlaying it so people can still track
+     * it if needed." [setScreen]'s own default `compactTab` is [CompactTab.MAP], where the strip
+     * exists at all — real measured bounds, not a hardcoded offset, so a Material change to either
+     * surface can't quietly reintroduce the overlap this guards against.
+     */
+    @Test
+    fun `the search dropdown starts below the compass strip, not over it`() {
+        setScreen()
+
+        val compassStripBottom = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot().bottom
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        val searchDropdownTop = composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).getUnclippedBoundsInRoot().top
+
+        assertTrue(
+            "expected the search dropdown (top=$searchDropdownTop) to start at or below the " +
+                "compass strip's own bottom edge ($compassStripBottom), not paint over it",
+            searchDropdownTop >= compassStripBottom,
+        )
+    }
+
+    /**
+     * The compass-strip clearance above is Map-tab-only — no strip exists on List, so the dropdown
+     * keeps its pre-dispatch-D behaviour of starting flush against [SearchEntryBar]'s own bottom
+     * edge there, guarding the `compactTab == CompactTab.MAP` conditional itself, not just its
+     * Map-tab branch.
+     */
+    @Test
+    fun `the search dropdown starts flush at the top on the List tab, where there is no compass strip to avoid`() {
+        setScreen()
+        composeRule.onNodeWithText("List").performClick()
+
+        val searchEntryBarBottom = composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).getUnclippedBoundsInRoot().bottom
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        val searchDropdownTop = composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).getUnclippedBoundsInRoot().top
+
+        // A small tolerance, not exact equality: focusing SearchEntryBar's own species field (what
+        // opens the dropdown) nudges that bar's measured height by a few dp independent of anything
+        // this test cares about. What matters is that no full compass-strip-sized gap opened up —
+        // see the Map-tab test above for that real assertion.
+        assertTrue(
+            "expected the search dropdown (top=$searchDropdownTop) to start close to " +
+                "SearchEntryBar's own bottom edge ($searchEntryBarBottom) on the List tab, with no " +
+                "compass-strip clearance applied",
+            (searchDropdownTop - searchEntryBarBottom).value < 16f,
+        )
+    }
+
+    /**
      * The dismiss-elsewhere half of the same redesign — see [SearchEntryBar]'s own call site,
      * `SEARCH_DROPDOWN_SCRIM_TAG`'s doc comment, for why this scrim exists at all: [SearchDropdown]
      * only covers its own (bounded, scrolled) content height, not the whole remaining screen below
