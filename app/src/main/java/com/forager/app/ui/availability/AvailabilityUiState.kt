@@ -23,7 +23,10 @@ import java.time.LocalDate
 data class AvailabilityUiState(
     val region: Region? = null,
     val selectedMonth: Int = LocalDate.now().monthValue,
-    val radiusKm: Int = 15,
+    // 8, not a rounder-looking 5: formatDistanceKm's mi label rounds to the nearest whole mile
+    // (DistanceUnit.kt), and 8km * MILES_PER_KM = 4.97, the km value that actually displays as
+    // "5 mi" -- the unit the default is chosen against, since MILES is this app's own default unit.
+    val radiusKm: Int = 8,
     val manualLatText: String = "",
     val manualLngText: String = "",
     val forecast: AvailabilityForecast? = null,
