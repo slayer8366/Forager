@@ -465,6 +465,7 @@ fun SightingsMap(
         val style = loadedStyle ?: return@LaunchedEffect
         style.getLayerAs<CircleLayer>(SIGHTING_LAYER_ID)?.setProperties(
             PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(focusedObservationId, mapPalette)),
+            PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression(focusedObservationId)),
         )
     }
 
@@ -569,9 +570,11 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             // swap or night-mode toggle while a bubble is already open doesn't flash every dot back
             // to the unselected stroke for one frame before the live-update effect below corrects
             // it — this is the one place that effect's own re-application can't reach, since it
-            // runs after this fresh layer already exists, not before.
+            // runs after this fresh layer already exists, not before. Width gets the identical
+            // treatment, for the identical reason — see sightingStrokeWidthExpression's own doc
+            // comment for why it exists at all.
             PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(focusedObservationId, palette)),
-            PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
+            PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression(focusedObservationId)),
             PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
         ),
     )
@@ -846,6 +849,13 @@ internal fun sightingsFeatureCollection(sightings: List<Sighting>): FeatureColle
  * unselected stroke — deliberately not a `switchCase` an unmatched sentinel ID could accidentally
  * satisfy.
  *
+ * Colour alone was tried first and confirmed too subtle on real hardware: at
+ * [SIGHTING_DOT_STROKE_WIDTH_PX]'s own 1.5px, even a saturated blue against the default white
+ * reads as barely-there — a hairline is hard to read by hue at a glance regardless of what this
+ * file's own mark-on-mark contrast maths say, which score a solid fill, not a 1.5px ring. See
+ * [sightingStrokeWidthExpression], its paired fix: the selected dot's own stroke also widens, so
+ * the highlight is legible by *shape* even before colour is read at all.
+ *
  * A plain function, not inlined into [initializeOverlayLayers]/the live-update effect below: both
  * [Expression] and [org.maplibre.android.style.layers.PropertyValue] carry no native methods
  * (`javap` against the pinned `org.maplibre.gl:android-sdk:13.5.0` artifact confirms neither), so
@@ -861,6 +871,24 @@ internal fun sightingStrokeColorExpression(focusedObservationId: Long?, palette:
             Expression.eq(Expression.get("observationId"), Expression.literal(focusedObservationId)),
             Expression.color(palette.sightingDotStrokeSelected),
             Expression.color(palette.sightingDotStroke),
+        )
+    }
+
+/**
+ * The sighting layer's `circle-stroke-width` — see [sightingStrokeColorExpression]'s own doc
+ * comment for why the selected dot needs a wider ring, not just a differently-coloured one, to
+ * actually read as highlighted. Same shape as that function (a `switchCase` on the one matching
+ * `observationId`, `null` drawing every dot at the same flat width) so the two stay obviously
+ * paired to a reader, and are applied together everywhere either one is.
+ */
+internal fun sightingStrokeWidthExpression(focusedObservationId: Long?): Expression =
+    if (focusedObservationId == null) {
+        Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX)
+    } else {
+        Expression.switchCase(
+            Expression.eq(Expression.get("observationId"), Expression.literal(focusedObservationId)),
+            Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
+            Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
         )
     }
 
@@ -1013,7 +1041,17 @@ private const val SIGHTING_DOT_RADIUS_PX = 9f
 // class doc comment, "The overlay colours", for the hardware finding this fixes. A light, near-
 // opaque stroke (not translucent like the fill) so the boundary itself stays crisp regardless of
 // how many dots overlap or what opacity the fill composites to underneath.
-private const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
+internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
+
+/**
+ * The selected dot's own stroke width — see [sightingStrokeWidthExpression]'s own doc comment for
+ * why a data-driven width, not just a data-driven colour, is what actually makes the highlight
+ * legible: at [SIGHTING_DOT_STROKE_WIDTH_PX]'s own 1.5px, a colour swap alone is barely
+ * perceptible on real hardware (confirmed against a real device, not just this file's own
+ * mark-on-mark contrast maths, which say nothing about how visible a hairline is at a glance).
+ * More than double, not a subtle bump, for the same reason.
+ */
+internal const val SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX = 3.5f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 private const val AREA_MARKER_FONT_SIZE_PX = 14f
 private const val AREA_MARKER_RADIUS_PX = 16f

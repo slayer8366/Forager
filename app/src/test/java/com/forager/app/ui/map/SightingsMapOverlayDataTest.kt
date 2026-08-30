@@ -206,6 +206,39 @@ class SightingsMapOverlayDataTest {
     }
 
     /**
+     * [sightingStrokeWidthExpression]'s own doc comment: colour alone was confirmed too subtle on
+     * real hardware at [SIGHTING_DOT_STROKE_WIDTH_PX]'s hairline width, so the selected dot's own
+     * stroke also widens — this is that fix's own paired `Expression`, built and asserted the same
+     * way [sightingStrokeColorExpression] is above.
+     */
+    @Test
+    fun `sightingStrokeWidthExpression is a flat unselected width when nothing is focused`() {
+        val expected = Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX)
+        assertEquals(expected, sightingStrokeWidthExpression(focusedObservationId = null))
+    }
+
+    @Test
+    fun `sightingStrokeWidthExpression widens only the focused observation's own dot`() {
+        val expected = Expression.switchCase(
+            Expression.eq(Expression.get("observationId"), Expression.literal(2L)),
+            Expression.literal(SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX),
+            Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
+        )
+        assertEquals(expected, sightingStrokeWidthExpression(focusedObservationId = 2L))
+    }
+
+    /** The widened width is meaningfully wider, not a cosmetic rounding difference. */
+    @Test
+    fun `the selected stroke width is more than double the unselected one`() {
+        assertTrue(
+            "SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX ($SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX) should be " +
+                "more than double SIGHTING_DOT_STROKE_WIDTH_PX ($SIGHTING_DOT_STROKE_WIDTH_PX) for the " +
+                "highlight to actually read as widened at a glance.",
+            SIGHTING_DOT_STROKE_WIDTH_SELECTED_PX > SIGHTING_DOT_STROKE_WIDTH_PX * 2,
+        )
+    }
+
+    /**
      * The fact that actually matters for the numbered markers rendering the right number: the
      * `"label"` property is what the `SymbolLayer`'s `text-field` token `"{label}"` substitutes —
      * see `areaMarkersFeatureCollection`'s own doc comment.

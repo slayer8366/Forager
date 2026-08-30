@@ -116,18 +116,26 @@ data class MapPalette(
 
         /**
          * Unchanged from the pre-existing, hardware-tuned constants, except [sightingDotStrokeSelected]
-         * (new). Material "Light Blue 400" (`#29B6F6`) — clearly blue against [sightingDot]'s dark
-         * brown fill (5.69:1, comfortably clear of the 4.5:1 mark-on-mark floor below), computed
-         * with the exact `relativeLuminance`/`contrastRatio` formulas `MapPaletteTest` itself uses
-         * before picking it, not eyeballed. Not derived from [plannedTrip] or [breadcrumb] (this
-         * app's two other blues): both measure well under 4.5:1 against [sightingDot] (2.47:1 and
-         * 3.29:1) since they were tuned for their own, different grounds/day-palette hue-separation
-         * job, not this mark-on-mark one.
+         * (new). Material "Blue 400" (`#42A5F5`) — clearly blue and reasonably saturated against
+         * [sightingDot]'s dark brown fill (4.95:1, clear of the 4.5:1 mark-on-mark floor below),
+         * computed with the exact `relativeLuminance`/`contrastRatio` formulas `MapPaletteTest`
+         * itself uses before picking it, not eyeballed. A first pick, Material "Light Blue 400"
+         * (`#29B6F6`, 5.69:1), read as too pale on real hardware — a first-hand report, not a
+         * contrast-math conclusion the ratchet above would have caught, since that number alone
+         * doesn't say how a *hairline* stroke reads at a glance (see
+         * [com.forager.app.ui.map.sightingStrokeWidthExpression]'s own doc comment for the other
+         * half of that same fix: the selected ring also widens, not just recolours). This value sits
+         * near the top of what still clears 4.5:1 against [sightingDot] at all — true "dark blue"
+         * shades (Blue 700/800/900, ~1.5–2.9:1) fail outright, a structural ceiling of comparing any
+         * blue against this dark a fill, not a constant left untuned. Not derived from [plannedTrip]
+         * or [breadcrumb] (this app's two other blues): both measure well under 4.5:1 against
+         * [sightingDot] (2.47:1 and 3.29:1) since they were tuned for their own, different
+         * grounds/day-palette hue-separation job, not this mark-on-mark one.
          */
         val DAY = MapPalette(
             sightingDot = 0xFF3B2E24.toInt(),
             sightingDotStroke = Color.White.toArgb(),
-            sightingDotStrokeSelected = 0xFF29B6F6.toInt(),
+            sightingDotStrokeSelected = 0xFF42A5F5.toInt(),
             connector = 0xFFC97B3D.toInt(),
             areaMarkerBackground = 0xFF2E5339.toInt(),
             areaMarkerForeground = Color.White.toArgb(),
