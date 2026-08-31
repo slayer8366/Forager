@@ -1346,10 +1346,15 @@ fun AvailabilityScreen(
                             exit = shrinkVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeOut(animationSpec = MotionTokens.panelMotionSpec()),
                             // Starts below the compass strip rather than painting over it — Map tab
                             // only, since the strip only exists inside CompactMapTab; every other
-                            // tab keeps the panel flush against the top like before.
+                            // tab keeps the panel flush against the top like before. No extra gap
+                            // beyond the strip's own measured height: the owner's own direct call
+                            // ("bar, strip, drawer... each meeting the next without a break") — an
+                            // earlier version added Spacing.sm here on top of compassStripClearance,
+                            // which read as a seam between the strip and this panel rather than one
+                            // continuous piece of chrome.
                             modifier = Modifier
                                 .align(Alignment.TopStart)
-                                .padding(top = if (compactTab == CompactTab.MAP) compassStripClearance + Spacing.sm else 0.dp),
+                                .padding(top = if (compactTab == CompactTab.MAP) compassStripClearance else 0.dp),
                         ) {
                             SearchDropdown(
                                 uiState = uiState,
