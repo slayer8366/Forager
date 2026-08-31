@@ -1298,8 +1298,12 @@ fun AvailabilityScreen(
                             // own doc comment below) rather than sitting above it in document
                             // flow, so the strip/bubble/filter-chip positioning CompactMapTab
                             // derives from compassStripClearance needs to start below the bar, not
-                            // at this Box's own true top edge.
-                            topInset = searchBarHeight,
+                            // at this Box's own true top edge. 0.dp while fullscreen: searchBarSlot
+                            // itself goes empty then (this call site's own comment below), so
+                            // there is no bar to clear any more — a fixed searchBarHeight here
+                            // regardless of isMapFullscreen left a bar-shaped gap above the strip
+                            // with nothing in it once the bar disappeared.
+                            topInset = if (isMapFullscreen) 0.dp else searchBarHeight,
                             // Passed as a slot, not composed at this call site directly, so it
                             // renders inside CompactMapTab's own Box — see that parameter's own
                             // doc comment for why this specific nesting is load-bearing, not

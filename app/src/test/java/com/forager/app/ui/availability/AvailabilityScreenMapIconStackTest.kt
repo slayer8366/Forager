@@ -407,6 +407,19 @@ class AvailabilityScreenMapIconStackTest {
         assertEquals("the map slot must not be torn down and recomposed from scratch on a chrome toggle", 0, CountingStubMapSlotState.compositionCount)
         composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
         composeRule.onAllNodesWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertCountEquals(0)
+        // Regression coverage for a real bug this exact toggle produced once: CompactMapTab's own
+        // topInset (the clearance the compass strip/bubble/filter-chip need below SearchEntryBar's
+        // overlay on the Map tab) was passed as a flat searchBarHeight with no isMapFullscreen
+        // check, so while fullscreen -- where searchBarSlot itself correctly goes empty, per this
+        // test's own "top strip" assertions above -- the strip still got pushed down by a bar-
+        // shaped gap with nothing in it, confirmed on a real device by a screenshot showing the
+        // strip stranded well below the status bar instead of flush against it.
+        assertEquals(
+            "the compass strip must sit flush against the screen's own top edge while fullscreen, " +
+                "not leave a gap where the (now-hidden) search bar used to be",
+            composeRule.onRoot().getUnclippedBoundsInRoot().top,
+            composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot().top,
+        )
 
         composeRule.onNodeWithContentDescription("Exit fullscreen").performClick()
         composeRule.waitForIdle()
