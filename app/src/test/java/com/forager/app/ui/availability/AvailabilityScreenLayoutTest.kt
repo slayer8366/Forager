@@ -6,10 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -495,33 +497,33 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 5 — every advanced-search dropdown control can actually be reached.**
+     * **Test 5 — "Enter coordinates manually" is the one control still actually gated behind
+     * Advanced search.**
      *
      * Map/navigation redesign dispatch C, item 1 moved this content out of the drawer entirely,
-     * into [SearchDropdown]'s own "Advanced search" section — a follow-up owner call (dispatch D)
-     * then promoted radius and month back out to this surface's own top level, alongside species
-     * search, leaving only location (set on map/use current location/manual coordinates) actually
-     * nested. "Search this location" specifically is behind both that section's own expand tap and
-     * its "Enter coordinates manually" sub-section. `performScrollTo()` before each assertion, same
-     * as the drawer sheet this replaces: fully expanding both nested sections at once genuinely
-     * doesn't fit `w360dp-h640dp-xhdpi`'s own [SearchDropdown] share of the screen (measured — the
-     * earlier "no scroll modifier" version of this dropdown went from failing on "Search this
-     * location" to failing on "Month" the moment [SearchDropdown]'s `Column` gained a
-     * `verticalScroll`, proving the content really does extend past the fold rather than being
-     * genuinely absent), so [SearchDropdown] carries the same `weight(1f)`-bounded scroll
-     * [SearchControls] does — see that composable's own doc comment for why this is safe over the
-     * map despite Understory rule 2.
+     * into [SearchDropdown]'s own "Advanced search" section. Dispatch D then promoted radius and
+     * month out to this surface's own top level; the map/navigation search-UI redo dispatch promoted
+     * "Set on map" and "Use current location" out too, into their own top-level Location row —
+     * leaving manual coordinates (lat/lng fields + "Search this location") as the only thing left
+     * actually nested inside Advanced search. `performScrollTo()` before each assertion, same as
+     * the drawer sheet this replaces: fully expanding Advanced search genuinely doesn't fit
+     * `w360dp-h640dp-xhdpi`'s own [SearchDropdown] share of the screen (measured — the earlier
+     * "no scroll modifier" version of this dropdown went from failing on "Search this location" to
+     * failing on "Month" the moment [SearchDropdown]'s `Column` gained a `verticalScroll`, proving
+     * the content really does extend past the fold rather than being genuinely absent), so
+     * [SearchDropdown] carries the same `weight(1f)`-bounded scroll [SearchControls] does — see that
+     * composable's own doc comment for why this is safe over the map despite Understory rule 2.
      *
      * `performScrollTo()` before the *tap on* "Enter coordinates manually" too, not just before
-     * the assertions below — confirmed only at 2x font scale (`AvailabilityScreenLayoutAtLarge
+     * the assertion below — confirmed only at 2x font scale (`AvailabilityScreenLayoutAtLarge
      * FontScaleTest`): a semantic [performClick] normally reaches its node regardless of scroll
      * position, but that header's own [CollapsibleSection] never toggled to expanded there without
      * scrolling to it first (its own leading icon stayed "Expand", not "Collapse" — confirmed via a
-     * semantics-tree dump, not assumed), the promoted radius/month content above it having pushed
-     * it far enough down the scrolled column to expose the gap.
+     * semantics-tree dump, not assumed), the promoted content above it having pushed it far enough
+     * down the scrolled column to expose the gap.
      */
     @Test
-    fun `every advanced-search dropdown location control is reachable`() {
+    fun `Search this location is reachable inside Advanced search`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
@@ -530,24 +532,20 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithText("Enter coordinates manually").performScrollTo().performClick()
         composeRule.waitForIdle()
 
-        listOf(
-            "Set on map",
-            "Use current location",
-            "Search this location",
-        ).forEach { label ->
-            composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
-        }
+        composeRule.onNodeWithText("Search this location").performScrollTo().assertIsDisplayed()
     }
 
     /**
-     * Radius and month specifically, promoted to [SearchDropdown]'s own top level (dispatch D) —
-     * unlike the location controls above, these must be reachable *without* expanding "Advanced
-     * search" at all, which is the whole point of promoting them; asserting them in the same test as
-     * the still-nested location controls (which does expand that section) wouldn't actually prove
-     * that.
+     * Radius, month, and — as of the map/navigation search-UI redo dispatch — the Location row
+     * ("Set on map"/"Use current location") all now live at [SearchDropdown]'s own top level.
+     * Unlike manual coordinates (the test above), these must be reachable *without* expanding
+     * "Advanced search" at all, which is the whole point of promoting them; asserting them in the
+     * same test as the still-nested "Search this location" (which does expand that section)
+     * wouldn't actually prove that. "Set on map"/"Use current location" are asserted absent from
+     * a *second* expand of Advanced search too — moved, not duplicated.
      */
     @Test
-    fun `search radius and month are reachable without expanding advanced search`() {
+    fun `search radius, month, and the location row are reachable without expanding advanced search`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
@@ -556,13 +554,19 @@ abstract class AvailabilityScreenLayoutTest {
         // the slider's own current value, a separate field from the region that actually got
         // searched (SEARCHED_STATE leaves it at AvailabilityUiState's own default, 8).
         listOf(
+            "Set on map",
+            "Use current location",
             "Search radius: 8 km",
             "Month",
         ).forEach { label ->
             composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
         }
         composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
-        composeRule.onNodeWithText("Set on map").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Advanced search").performClick()
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithText("Set on map").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Use current location").assertCountEquals(1)
     }
 
     /**
