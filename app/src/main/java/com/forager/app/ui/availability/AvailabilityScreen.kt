@@ -106,6 +106,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.RadioButton
@@ -122,6 +123,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
@@ -1347,6 +1349,7 @@ fun AvailabilityScreen(
                             SearchDropdown(
                                 uiState = uiState,
                                 distanceUnit = distanceUnit,
+                                onCategorySelected = onCategorySelected,
                                 onRecentSearchSelected = { summary ->
                                     showSearchDropdown = false
                                     onRecentSearchSelected(summary)
@@ -1653,6 +1656,33 @@ private fun SearchEntryBar(
     onFieldFocused: () -> Unit,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
+    val contentColor = if (isDarkTheme) Color.White else Bark
+    // Same "Mg" / labelMedium measurement compactMainScaffold's own compassStripClearance uses
+    // for the compass strip's own real text-row height (CompassElevationStripContent wraps
+    // content with no extra vertical padding of its own) — the owner's own direct ask is this
+    // field's box exactly twice that, not a guess at a fixed dp value that would drift the
+    // moment either row's typography or density changes.
+    val fieldHeightTextMeasurer = rememberTextMeasurer()
+    val fieldHeightLabelStyle = MaterialTheme.typography.labelMedium
+    val fieldHeightDensity = LocalDensity.current
+    val fieldHeight = remember(fieldHeightLabelStyle, fieldHeightDensity) {
+        with(fieldHeightDensity) {
+            fieldHeightTextMeasurer.measure("Mg", fieldHeightLabelStyle).size.height.toDp() * 2
+        }
+    }
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = Color.Transparent,
+        unfocusedBorderColor = Color.Transparent,
+        disabledBorderColor = Color.Transparent,
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
+        disabledContainerColor = Color.Transparent,
+        focusedTextColor = contentColor,
+        unfocusedTextColor = contentColor,
+        focusedPlaceholderColor = contentColor,
+        unfocusedPlaceholderColor = contentColor,
+        cursorColor = contentColor,
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1664,7 +1694,8 @@ private fun SearchEntryBar(
             Icon(
                 Icons.Filled.Search,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp).padding(start = Spacing.lg),
+                tint = contentColor,
+                modifier = Modifier.padding(start = Spacing.lg).size(18.dp),
             )
             Box(modifier = Modifier.weight(1f)) {
                 SpeciesSearchControls(
@@ -1675,9 +1706,12 @@ private fun SearchEntryBar(
                     onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                     onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                     chipRowModifier = Modifier.padding(horizontal = Spacing.sm),
-                    queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG),
+                    queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(fieldHeight),
                     onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
                     restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
+                    chipRowVisible = false,
+                    showLocationTrailingIcon = false,
+                    fieldColors = fieldColors,
                 )
             }
         }
@@ -1752,10 +1786,38 @@ private fun SearchEntryBar(
  * [RegionControls]/[MonthSelector] (the content this dropdown's own radius/month controls are
  * drawn from) before this dispatch, confirmed by reading both, so there is nothing to remove.
  */
+/**
+ * The category chip row, promoted here as item 1 of "Drawer contents, in order" (map/navigation
+ * search-UI redo dispatch) — [SearchEntryBar] itself never shows chips, in any state, matching
+ * the reference bar's single-line-summary look exactly.
+ */
+@Composable
+private fun CategoryChipRow(selected: TaxonFilter, onCategorySelected: (TaxonFilter) -> Unit) {
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
+            FilterChip(
+                selected = selected == category,
+                onClick = { onCategorySelected(category) },
+                label = {
+                    Text(
+                        category.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+            )
+        }
+    }
+}
+
 @Composable
 private fun SearchDropdown(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
+    onCategorySelected: (TaxonFilter) -> Unit,
     onUseCurrentLocation: () -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
@@ -1800,6 +1862,8 @@ private fun SearchDropdown(
                     .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
+                CategoryChipRow(selected = uiState.taxonFilter, onCategorySelected = onCategorySelected)
+
                 // Location row — map/navigation search-UI redo dispatch: "Set on map" and "Use
                 // current location" promoted out of "Advanced search" up to the drawer's own top
                 // level, same reasoning radius/month already got (a control reached for on nearly
@@ -3422,43 +3486,44 @@ private fun SpeciesSearchControls(
     queryFieldModifier: Modifier = Modifier,
     onQueryFieldFocusChanged: (Boolean) -> Unit = {},
     /**
-     * Placeholder text shown while the field is empty **and not focused** — map/navigation
-     * search-UI redo dispatch: the always-present bar reads as the current filter summary
-     * ("Fungi · August · 9 mi") at rest, not a generic hint, so a glance at the collapsed bar
-     * still tells you what's currently searched. Defaults to the same generic hint the field
-     * shows while focused-and-empty, for the two call sites ([AvailabilitySearchTopBar],
-     * [CompactToolsDrawerContent]) that have no such summary to show — only [SearchEntryBar]
-     * passes a real one.
+     * Placeholder text shown while the field is empty, focused or not — map/navigation search-UI
+     * redo dispatch, the owner's own direct call: the bar reads as the current filter summary
+     * ("Fungi · August · 9 mi") always, not a generic hint that blanks out what's currently
+     * searched the moment someone taps in to search. The generic hint this used to swap to on
+     * focus (and the two other call sites, [AvailabilitySearchTopBar] and
+     * [CompactToolsDrawerContent], used to default to outright) is gone from the app entirely, by
+     * direct owner instruction — those two call sites now default to a blank placeholder instead
+     * of reintroducing it.
      */
-    restingPlaceholder: String = "Or search a species",
+    restingPlaceholder: String = "",
+    chipRowVisible: Boolean = true,
+    showLocationTrailingIcon: Boolean = true,
+    fieldColors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(
-            modifier = if (chipRowScrollable) chipRowModifier.horizontalScroll(rememberScrollState()) else chipRowModifier,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
-                FilterChip(
-                    selected = uiState.taxonFilter == category,
-                    onClick = { onCategorySelected(category) },
-                    label = {
-                        Text(
-                            category.label,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    modifier = if (chipRowScrollable) Modifier else Modifier.weight(1f, fill = false),
-                )
+        if (chipRowVisible) {
+            Row(
+                modifier = if (chipRowScrollable) chipRowModifier.horizontalScroll(rememberScrollState()) else chipRowModifier,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
+                    FilterChip(
+                        selected = uiState.taxonFilter == category,
+                        onClick = { onCategorySelected(category) },
+                        label = {
+                            Text(
+                                category.label,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        modifier = if (chipRowScrollable) Modifier else Modifier.weight(1f, fill = false),
+                    )
+                }
             }
         }
 
         val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty()
-        // Local, not hoisted: purely which of two always-computable placeholder strings to show
-        // while the field is empty, nothing a future session needs to remember — same reasoning
-        // CompassElevationStripContent's own showDecimalDegrees already applies to a similar
-        // display-only toggle.
-        var isQueryFieldFocused by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(
             expanded = suggestionsOpen,
             onExpandedChange = {},
@@ -3468,8 +3533,11 @@ private fun SpeciesSearchControls(
                 value = uiState.taxonSearchQuery,
                 onValueChange = onTaxonSearchQueryChanged,
                 placeholder = {
+                    // The filter summary ("Fungi · August · 9 mi"), not a generic hint, whether
+                    // focused or not — the owner's own direct call: focusing the field to search
+                    // shouldn't blank out what's currently searched, only typing should.
                     Text(
-                        if (isQueryFieldFocused) "Or search a species" else restingPlaceholder,
+                        restingPlaceholder,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -3479,19 +3547,25 @@ private fun SpeciesSearchControls(
                     .fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
                     .onFocusChanged {
-                        isQueryFieldFocused = it.isFocused
                         onQueryFieldFocusChanged(it.isFocused)
                     },
-                trailingIcon = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (uiState.isSearchingTaxa) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                        }
-                        IconButton(onClick = onUseCurrentLocation) {
-                            Icon(Icons.Filled.MyLocation, contentDescription = "Use current location")
+                trailingIcon = if (uiState.isSearchingTaxa || showLocationTrailingIcon) {
+                    {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (uiState.isSearchingTaxa) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            }
+                            if (showLocationTrailingIcon) {
+                                IconButton(onClick = onUseCurrentLocation) {
+                                    Icon(Icons.Filled.MyLocation, contentDescription = "Use current location")
+                                }
+                            }
                         }
                     }
+                } else {
+                    null
                 },
+                colors = fieldColors,
             )
             // A no-op onDismissRequest here before this fix meant the standard "tap outside
             // the popup" dismissal ExposedDropdownMenu already implements never actually
