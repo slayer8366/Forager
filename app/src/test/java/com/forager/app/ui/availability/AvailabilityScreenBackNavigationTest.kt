@@ -223,11 +223,12 @@ class AvailabilityScreenBackNavigationTest {
      * Opens [AdvancedSearchDropdown] via the search summary bar and expands its "Enter coordinates
      * manually" section — map/navigation redesign dispatch C, item 1 moved advanced search out of
      * the Tools drawer entirely, to float over the map from where quick species search used to sit.
-     * No `performScrollTo()` calls needed: [SearchDropdown] does carry a `verticalScroll` now (see
-     * its own doc comment), but every action below is a semantic `performClick`/
-     * `performTextReplacement`, which act on the node regardless of whether it is currently
-     * scrolled into view — only an `assertIsDisplayed()` would need scrolling first, and this
-     * helper makes none.
+     * Most of these were true `performScrollTo()`-free semantic actions before dispatch D promoted
+     * radius and month to this dropdown's own top level — that addition pushed "Search this
+     * location" below [SearchDropdown]'s own bounded, scrolled viewport on real device
+     * configurations, so a `performClick()` against that node's own (correct but now off-screen)
+     * bounds reaches nothing actually rendered there; `performScrollTo()` first is what makes that
+     * one call reach the real, live button again.
      */
     private fun searchAReferenceRegion() {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
@@ -235,7 +236,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Enter coordinates manually").performClick()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performClick()
+        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
@@ -264,7 +265,7 @@ class AvailabilityScreenBackNavigationTest {
     @Test
     fun `back closes the advanced search dropdown instead of warning to exit`() {
         setScreen()
-        composeRule.onNodeWithText("Fungi · August · no location set", substring = true).performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
 
         pressBack()
@@ -289,7 +290,7 @@ class AvailabilityScreenBackNavigationTest {
 
     /**
      * Was driven through "Settings" before map/navigation redesign dispatch B collapsed it into a
-     * nested state inside the "Tools" drawer (see [CompactSearchDrawerContent]'s `showSettings`) —
+     * nested state inside the "Tools" drawer (see [CompactToolsDrawerContent]'s `showSettings`) —
      * Settings is no longer its own `compactTab`, so it can't stand in for "another tab" here.
      * "List" is a real, still-standalone `compactTab` this handler chain treats identically.
      */

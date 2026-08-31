@@ -56,6 +56,7 @@ import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
@@ -177,7 +178,7 @@ fun SightingsMap(
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onTap: () -> Unit = {},
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
-    onSightingTap: (Sighting, Offset) -> Unit = { _, _ -> },
+    onSightingTap: (Sighting, Offset, Float) -> Unit = { _, _, _ -> },
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onCameraIdle: (LatLng) -> Unit = {},
     /**
@@ -305,7 +306,7 @@ fun SightingsMap(
                     ?.toLong()
                     ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
                 if (tappedSighting != null) {
-                    currentOnSightingTap(tappedSighting, Offset(screenPoint.x, screenPoint.y))
+                    currentOnSightingTap(tappedSighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
                 } else {
                     currentOnTap()
                 }
@@ -332,20 +333,25 @@ fun SightingsMap(
                     currentOnCameraIdle(LatLng(target.latitude, target.longitude))
                 }
                 // Keeps a shown observation bubble glued to its own marker's real screen position
-                // across a pan/zoom — a hardware report asked for exactly this ("have it stay there
-                // when we move the map, so we know which one it belongs to"), and re-projecting
+                // across a pan/zoom/rotate — a hardware report asked for exactly this ("have it stay
+                // there when we move the map, so we know which one it belongs to"), and re-projecting
                 // whichever sighting currentFocusedObservationId currently names on every idle (the
                 // same projection call the click listener above uses once, at tap time) is what
                 // answers it without this composable needing to reimplement MapLibre's own
                 // screen<->geo math. Resolved fresh against currentSightings/currentFocusedObservationId
                 // rather than a sighting captured at tap time, so a dismissal that's since cleared
                 // the caller's own focused id (see MapOverlayContent.focusedObservationId's doc
-                // comment) is reflected here too instead of silently re-reviving a closed bubble.
+                // comment) is reflected here too instead of silently re-reviving a closed bubble. The
+                // bearing carried alongside — also re-read fresh here, not just at tap time — is what
+                // lets the caller keep the bubble's own placement direction correct (screen position
+                // and orientation both live, not just position) after a rotate gesture; see
+                // AnchoredAtScreenPoint's own doc comment in AvailabilityScreen.kt for what it does
+                // with this value.
                 currentFocusedObservationId
                     ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
                     ?.let { sighting ->
                         val screenPoint = map.projection.toScreenLocation(MapLibreLatLng(sighting.lat, sighting.lng))
-                        currentOnSightingTap(sighting, Offset(screenPoint.x, screenPoint.y))
+                        currentOnSightingTap(sighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
                     }
             }
             // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
@@ -393,6 +399,10 @@ fun SightingsMap(
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap, night = nightMode))) { style ->
             initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
+            // The data+camera refresh effect below re-pushes every source right after this, keyed
+            // on loadedStyle among other things — including the sighting source, with "selected"
+            // baked in from whatever focusedObservationId is current at that point. Nothing here
+            // needs to seed it separately.
             appliedBasemap = basemap
             appliedPalette = mapPalette
             loadedStyle = style
@@ -409,10 +419,10 @@ fun SightingsMap(
     // after a basemap swap) — the same "rebuild content every update, regardless of why the update
     // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
     // because MapLibre's own API separates "style ready" from "camera/property changed".
-    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride, breadcrumbPoints, waypoints) {
+    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints, waypoints)
+        refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId)
 
         // Once the live-location "puck" is actively tracking (the default once permission is
         // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its
@@ -508,6 +518,12 @@ fun SightingsMap(
  * "Markers stay day-only, always." `docs/plans/contrast_assertions.md` archives the night-specific
  * `SymbolLayer`/icon-bitmap version this replaced, for whoever revives night-mode marker
  * differentiation later.
+ *
+ * The sighting layer's `circle-stroke-color`/`circle-stroke-width` are fixed expressions keyed on
+ * each feature's own `"selected"` boolean property — see [sightingStrokeColorExpression]'s own doc
+ * comment for why that property, not a paint-property expression comparing `observationId`
+ * directly, is what actually selects the ring. Nothing here needs to know which sighting is
+ * currently focused: [refreshOverlayData] bakes `"selected"` into the pushed data itself.
  */
 private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
     style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
@@ -531,7 +547,13 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.circleColor(palette.sightingDot),
             PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
             PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
-            PropertyFactory.circleStrokeColor(palette.sightingDotStroke),
+            // See sightingStrokeColorExpression's own doc comment — it keys off each feature's own
+            // "selected" property, so nothing here needs seeding with the current
+            // focusedObservationId the way an id-comparison expression would. Stroke width stays a
+            // flat SIGHTING_DOT_STROKE_WIDTH_PX for every dot, selected or not — a prior widened
+            // selected-width was tried and reverted on request, to keep the highlight to colour
+            // alone (see SIGHTING_DOT_STROKE_WIDTH_PX's own doc comment for that history).
+            PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(palette)),
             PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
             PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
         ),
@@ -624,9 +646,10 @@ private fun refreshOverlayData(
     plannedTrips: List<PlannedTrip>,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
+    focusedObservationId: Long?,
 ) {
     style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCenterFeatureCollection(region))
-    style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings))
+    style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings, focusedObservationId))
     style.getSourceAs<GeoJsonSource>(CONNECTOR_SOURCE_ID)?.setGeoJson(connectorFeatureCollection(region, areas))
     style.getSourceAs<GeoJsonSource>(AREA_MARKER_SOURCE_ID)?.setGeoJson(areaMarkersFeatureCollection(areas))
     style.getSourceAs<GeoJsonSource>(PLANNED_TRIP_SOURCE_ID)?.setGeoJson(plannedTripsFeatureCollection(plannedTrips))
@@ -782,7 +805,12 @@ internal fun searchCenterFeatureCollection(region: Region): FeatureCollection {
     return FeatureCollection.fromFeature(feature)
 }
 
-internal fun sightingsFeatureCollection(sightings: List<Sighting>): FeatureCollection {
+/**
+ * [focusedObservationId] bakes a `"selected"` boolean into whichever feature it names, `false` on
+ * every other — see [sightingStrokeColorExpression]'s own doc comment for why the paint layer
+ * reads this property instead of comparing `observationId` itself inside a GL expression.
+ */
+internal fun sightingsFeatureCollection(sightings: List<Sighting>, focusedObservationId: Long? = null): FeatureCollection {
     val features = sightings.map { sighting ->
         Feature.fromGeometry(Point.fromLngLat(sighting.lng, sighting.lat)).apply {
             addStringProperty("title", sighting.commonName ?: sighting.scientificName)
@@ -792,10 +820,52 @@ internal fun sightingsFeatureCollection(sightings: List<Sighting>): FeatureColle
             // actually read back, rather than kept "for a future click handler" the way title/snippet
             // were before this.
             addNumberProperty("observationId", sighting.observationId)
+            // Computed in Kotlin, once, per push — not read back by anything on this side, only by
+            // sightingStrokeColorExpression's own GL expression.
+            addBooleanProperty("selected", sighting.observationId == focusedObservationId)
         }
     }
     return FeatureCollection.fromFeatures(features)
 }
+
+/**
+ * The sighting layer's `circle-stroke-color`: [MapPalette.sightingDotStroke] (white by day) for
+ * every dot, except [MapPalette.sightingDotStrokeSelected] (blue) for whichever one
+ * [sightingsFeatureCollection]'s own `"selected"` property currently marks `true` — the ring
+ * [ObservationBubble]'s own arrow points at, so the highlighted dot and the bubble naming it agree
+ * even in a dense cluster where the arrow's own tip alone could land ambiguously close to a
+ * neighbour.
+ *
+ * A fixed expression, not parameterized on `focusedObservationId`: an id-comparison
+ * (`["==", ["get","observationId"], id]`, even coerced through `to-string` on both sides first)
+ * was tried and confirmed — twice, on real hardware, alongside a doubled stroke width that also
+ * showed no change — to never actually select anything once `setProperties` reaches the native
+ * renderer, for reasons this project's own off-device tests can't diagnose (`Expression.equals`
+ * only checks the built tree, never how MapLibre's GL engine evaluates a numeric or string `eq`).
+ * Baking `"selected"` into each feature's own data in Kotlin, and reading it here as a plain
+ * boolean condition (`["case", ["get","selected"], ...]`, no comparison at all), sidesteps the
+ * entire class of doubt: there is no representation for a boolean read back from GeoJSON to
+ * disagree with.
+ *
+ * A widened selected-stroke width (first 3.5px, then 4.5px, alongside a deeper blue) was tried as
+ * a second signal on top of colour, on the reasoning that a hairline is hard to read by hue alone
+ * at a glance — and reverted on request, twice, to keep the highlight to colour alone: see
+ * [SIGHTING_DOT_STROKE_WIDTH_PX]'s own doc comment for that history. `circle-stroke-width` is a
+ * flat constant for every dot now, selected or not; only this colour expression is data-driven.
+ *
+ * A plain function, not inlined into [initializeOverlayLayers]: both [Expression] and
+ * [org.maplibre.android.style.layers.PropertyValue] carry no native methods (`javap` against the
+ * pinned `org.maplibre.gl:android-sdk:13.5.0` artifact confirms neither), so unlike the
+ * `Style`/`CircleLayer`/`GeoJsonSource` boundary [sightingsFeatureCollection]'s own doc comment
+ * describes, the expression this builds is itself constructible and comparable
+ * (`Expression.equals`) off a real device — `SightingsMapOverlayDataTest` exercises it directly.
+ */
+internal fun sightingStrokeColorExpression(palette: MapPalette): Expression =
+    Expression.switchCase(
+        Expression.get("selected"),
+        Expression.color(palette.sightingDotStrokeSelected),
+        Expression.color(palette.sightingDotStroke),
+    )
 
 /** [ForagingArea.visitOrder] as the "label" property the area-marker SymbolLayer's `text-field` reads via `"{label}"`. */
 internal fun areaMarkersFeatureCollection(areas: List<ForagingArea>): FeatureCollection {
@@ -946,7 +1016,12 @@ private const val SIGHTING_DOT_RADIUS_PX = 9f
 // class doc comment, "The overlay colours", for the hardware finding this fixes. A light, near-
 // opaque stroke (not translucent like the fill) so the boundary itself stays crisp regardless of
 // how many dots overlap or what opacity the fill composites to underneath.
-private const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
+//
+// The selected dot's ring used to widen this on top of recolouring — first to 3.5px, then to
+// 4.5px alongside MapPalette.sightingDotStrokeSelected moving to a deeper blue — and both were
+// reverted on request: the highlight is colour alone now, [sightingStrokeColorExpression] against
+// this one flat width for every dot, selected or not.
+internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 private const val AREA_MARKER_FONT_SIZE_PX = 14f
 private const val AREA_MARKER_RADIUS_PX = 16f

@@ -178,12 +178,16 @@ jobs:
           keys = ("tests", "failures", "errors", "skipped")
           totals = dict.fromkeys(keys, 0)
           rows = []
+          skipped_tests = set()
           for path in results:
               suite = ET.parse(path).getroot()
               counts = {key: int(suite.get(key, 0)) for key in keys}
               for key in keys:
                   totals[key] += counts[key]
               rows.append((suite.get("name", os.path.basename(path)), counts))
+              for testcase in suite.findall("testcase"):
+                  if testcase.find("skipped") is not None:
+                      skipped_tests.add((testcase.get("classname"), testcase.get("name")))
 
           lines = ["### Unit tests", "", "| suite | tests | failures | errors | skipped |",
                    "| --- | ---: | ---: | ---: | ---: |"]
@@ -210,11 +214,159 @@ jobs:
           # silently dropped them would otherwise still be green. No expected count is
           # hardcoded -- that would break every time a test is added -- so the per-suite table
           # above is what makes a drop visible to a human.
+          #
+          # SKIPPED_TESTS_ALLOWLIST: an exact-match set, not a count. A skip count drifts and
+          # hides which tests are actually skipped -- this checks identity instead, matching on
+          # (classname, name). Any skip not in this set fails the build, same as an unallowed skip
+          # always has. A listed entry that ISN'T actually skipped also fails the build: a stale
+          # allowlist entry is the same invisible non-data this whole gate exists to catch, so
+          # un-ignoring one of these tests must remove its entry here in the same change, not leave
+          # it to rot. Three separate investigations feed this set, each with its own audit doc; do
+          # not add another entry without the same kind of investigation trail those three have.
+          #
+          # See docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md -- closing that
+          # investigation includes removing its three entries entirely, not just shrinking them.
+          SKIPPED_TESTS_ALLOWLIST = {
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping the control pill's return-to-vehicle button calls onToggleReturning",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch at each trailhead control's own screen coordinates reaches that control",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch at each trailhead control's own screen coordinates reaches that "
+                  "control while not returning",
+              ),
+              # See docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md -- closing that
+              # investigation includes removing these thirteen entries entirely, not just shrinking
+              # them.
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch beside the distance arm still reaches the map",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "the add button opens the same plan-or-log chooser the long-press gesture used "
+                  "to, then the centre-pin picker, seeded at the region center",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping an observation dot shows its species name and observed date",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch on the advanced search dropdown's Set on map button reaches it and "
+                  "opens the centre-pin picker over the real map",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping outside the search dropdown closes it",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping the bubble's close icon dismisses it without navigating anywhere",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "the locate-me icon calls onLocateMe, not onUseCurrentLocation",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "fullscreen hides the top strip and bottom nav but keeps the map mounted",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "View on iNaturalist launches the observation's web page and dismisses the bubble",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping the coordinates segment reveals labeled decimal degrees, and tapping "
+                  "again returns to MGRS",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch in the gap above the control pill still reaches the map",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping the map while fullscreen restores chrome",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest",
+                  "tapping a recent search reports that entry and closes the dropdown",
+              ),
+              # See docs/audits/2026-08-31-search-bar-overlay-stub-pan-not-registering.md -- closing
+              # that investigation includes removing these eight entries entirely, not just
+              # shrinking them. Note: "choosing Log a find..." also has its own separate,
+              # confirmed-real bug on a real device (see that doc's own "Log a find is not the same
+              # case" section) -- this allowlist entry covers only its harness-side symptom here,
+              # not that bug.
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest",
+                  "choosing Log a find calls onStartLogEntry with the picked location instead of "
+                  "planning a trip",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest",
+                  "choosing Plan a trip, panning to a location, and confirming saves a planned trip "
+                  "at that location",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest",
+                  "choosing Drop a waypoint, panning to a location, and confirming a name drops a "
+                  "waypoint at that location",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "dismissing the bubble via its close icon does not let a later pan bring it back",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "after a 90 degree map rotation the observation bubble sits below the tapped dot",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping elsewhere on the map dismisses the observation bubble",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a pan while the bubble is still showing keeps it glued to its marker",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "at bearing zero the observation bubble sits above the tapped dot",
+              ),
+          }
+
           problems = []
           if totals["tests"] == 0:
               problems.append("no tests ran")
-          if totals["skipped"]:
-              problems.append("{} test(s) were skipped".format(totals["skipped"]))
+          unallowed_skips = skipped_tests - SKIPPED_TESTS_ALLOWLIST
+          if unallowed_skips:
+              problems.append(
+                  "{} test(s) were skipped without an allowlist entry: {}".format(
+                      len(unallowed_skips),
+                      "; ".join(
+                          "{}.{}".format(classname, name)
+                          for classname, name in sorted(unallowed_skips)
+                      ),
+                  )
+              )
+          stale_allowlist_entries = SKIPPED_TESTS_ALLOWLIST - skipped_tests
+          if stale_allowlist_entries:
+              problems.append(
+                  "{} allowlist entry(ies) no longer match an actual skip -- remove them from "
+                  "SKIPPED_TESTS_ALLOWLIST: {}".format(
+                      len(stale_allowlist_entries),
+                      "; ".join(
+                          "{}.{}".format(classname, name)
+                          for classname, name in sorted(stale_allowlist_entries)
+                      ),
+                  )
+              )
           if totals["failures"] or totals["errors"]:
               problems.append(
                   "{} failure(s) and {} error(s)".format(totals["failures"], totals["errors"])

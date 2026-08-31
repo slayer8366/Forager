@@ -82,7 +82,7 @@ class AvailabilityScreenCompactWidthDrawerTest {
 
     /**
      * "Settings" itself no longer works as this pin: it's the drawer's own sticky entry row now
-     * (map/navigation redesign dispatch B's `CompactSearchDrawerContent.showSettings`), so it
+     * (map/navigation redesign dispatch B's `CompactToolsDrawerContent.showSettings`), so it
      * renders exactly whenever the rest of the drawer's content does, telling this test nothing
      * about open vs. closed on its own. "Recent searches" doesn't work either any more — dispatch C
      * moved it into `SearchDropdown`, over the map, not behind this drawer at all. "Trip Planner"

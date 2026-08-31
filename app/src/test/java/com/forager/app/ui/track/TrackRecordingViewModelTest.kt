@@ -261,6 +261,23 @@ class TrackRecordingViewModelTest {
         vm.stopRecording()
     }
 
+    /**
+     * These two tests are the coarse regression guard for the return-to-vehicle control while
+     * `AvailabilityScreenMapIconStackTest`'s own three Compose-semantics-layer tests for the same
+     * control sit `@Ignore`d (see that file's own `retryClick` comment and
+     * `docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md`). They were not added for
+     * this — both already existed and already covered the precondition
+     * (`startReturn is a no-op with nothing recording`, i.e. gating equivalent to the UI's
+     * `enabled = isRecording`) and the toggle-back path
+     * (`startReturn marks returning..., stopReturn clears it...`) — but they're the tests that fill
+     * the gap while the ignored ones are down, so noting it here rather than leaving that implicit.
+     *
+     * **What this does not cover:** Compose's click-to-callback wiring — whether
+     * `MapBarIconButton`'s `.clickable(...)` on the return-to-vehicle row actually reaches
+     * `onToggleReturning` when tapped. These call `startReturn()`/`stopReturn()` directly, bypassing
+     * the Compose semantics layer entirely. That's exactly the gap the three ignored tests exist to
+     * close once the harness issue is root-caused.
+     */
     @Test
     fun `startReturn is a no-op with nothing recording`() = runTest(dispatcher) {
         val vm = viewModel()

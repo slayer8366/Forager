@@ -72,7 +72,12 @@ import org.junit.Test
  * rather than by calling `refresh` with hand-made arguments (CLAUDE.md: exercise behaviour through
  * its real entry point).
  */
-private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+// 8, not 15: searchTestRegion() below never sets a radius explicitly, so it searches at
+// AvailabilityUiState's own default radiusKm (8, changed from 15 by the map/navigation redesign's
+// own default-radius dispatch) — this fixture has to match that default, not an arbitrary value,
+// since every test that runs searchTestRegion() and then asserts against REGION.radiusKm needs the
+// two to agree.
+private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 8)
 
 private val COUNTS = listOf(
     SpeciesObservationCount(

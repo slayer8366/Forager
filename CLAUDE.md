@@ -57,6 +57,13 @@ here.
   an inner method with made-up arguments.
 - A check that passes identically before and after a code change is
   suspect — flag it as possibly not covering what it claims to.
+- Silencing a test is never in scope for a dispatch that didn't ask for it.
+  A test unrelated to the dispatched task that starts failing mid-task gets
+  reported, not touched — no `@Ignore`, no widening the CI skip allowlist,
+  no disabling, skipping, or weakening an assertion to reach green, even
+  when the failure is diagnosed as harness-only and backed by an audit doc.
+  Diagnosing the cause is the job; deciding to reduce coverage belongs to
+  the owner.
 
 ## Building
 

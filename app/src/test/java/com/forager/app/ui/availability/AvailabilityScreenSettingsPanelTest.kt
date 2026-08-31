@@ -203,7 +203,7 @@ class AvailabilityScreenSettingsPanelTest {
     /**
      * Settings moved one level deeper (map/navigation redesign dispatch B): no longer its own
      * bottom-nav tab, it's a sticky entry at the bottom of the "Tools" drawer's content (see
-     * [CompactSearchDrawerContent]'s `showSettings` state and [SettingsEntryRow]). No
+     * [CompactToolsDrawerContent]'s `showSettings` state and [SettingsEntryRow]). No
      * `performScrollTo()` needed: [SettingsEntryRow] sits outside [SearchControls]'s own internal
      * `verticalScroll` region, as a fixed sibling below it in the drawer's outer `Column` — that
      * outer Column has no scroll of its own, and `SearchControls`'s `Modifier.weight(1f)` sizes it
