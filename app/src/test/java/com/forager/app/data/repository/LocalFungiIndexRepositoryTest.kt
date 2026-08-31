@@ -75,7 +75,10 @@ class LocalFungiIndexRepositoryTest {
         assertTrue(results.isNotEmpty())
         assertEquals(49158L, results.first().taxonId)
         assertEquals("Hericium erinaceus", results.first().scientificName)
-        assertEquals("lion's mane mushroom", results.first().commonName)
+        // Either is correct: "lion's-mane mushroom" and "lion's mane mushroom" normalize to the
+        // identical string, so which one the query returns first is a genuine, unbroken tie —
+        // not something the ranking contract (tier, then observation count) promises an answer to.
+        assertTrue(results.first().commonName in setOf("lion's-mane mushroom", "lion's mane mushroom"))
     }
 
     @Test
