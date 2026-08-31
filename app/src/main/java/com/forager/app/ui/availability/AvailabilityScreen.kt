@@ -98,6 +98,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -1670,6 +1671,15 @@ private fun SearchEntryBar(
             fieldHeightTextMeasurer.measure("Mg", fieldHeightLabelStyle).size.height.toDp() * 2
         }
     }
+    // Scaled to fit inside fieldHeight, not left at OutlinedTextField's own default (bodyLarge,
+    // sized for a full ~56dp Material field) — that default's line box is taller than this box
+    // and got clipped away to nothing rather than merely cramped. lineHeight at 80% of the box
+    // leaves real margin either side of the glyphs; fontSize is labelMedium's own default ratio
+    // to its lineHeight (12sp/16sp = 0.75) applied to that lineHeight, not an arbitrary guess.
+    val fieldTextStyle = remember(fieldHeight, fieldHeightDensity) {
+        val lineHeightSp = with(fieldHeightDensity) { (fieldHeight * 0.8f).toSp() }
+        fieldHeightLabelStyle.copy(fontSize = lineHeightSp * 0.75f, lineHeight = lineHeightSp)
+    }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = Color.Transparent,
         unfocusedBorderColor = Color.Transparent,
@@ -1712,6 +1722,7 @@ private fun SearchEntryBar(
                     chipRowVisible = false,
                     showLocationTrailingIcon = false,
                     fieldColors = fieldColors,
+                    textStyle = fieldTextStyle,
                 )
             }
         }
@@ -3499,6 +3510,16 @@ private fun SpeciesSearchControls(
     chipRowVisible: Boolean = true,
     showLocationTrailingIcon: Boolean = true,
     fieldColors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
+    /**
+     * Text style for the entered/placeholder text — map/navigation search-UI redo dispatch:
+     * [SearchEntryBar] pins its field to a short, fixed height (twice the compass strip's own
+     * measured row height), and the default [OutlinedTextField] text style (`bodyLarge`, sized for
+     * a full ~56dp Material field) doesn't fit inside it — the text was clipped away entirely, not
+     * merely cramped. The owner's own direct call: scale the text down to fit the box, rather than
+     * the box up to fit default-sized text. The other two call sites keep Material's own default
+     * ([LocalTextStyle.current]), unchanged.
+     */
+    textStyle: androidx.compose.ui.text.TextStyle = LocalTextStyle.current,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (chipRowVisible) {
@@ -3540,8 +3561,10 @@ private fun SpeciesSearchControls(
                         restingPlaceholder,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        style = textStyle,
                     )
                 },
+                textStyle = textStyle,
                 singleLine = true,
                 modifier = queryFieldModifier
                     .fillMaxWidth()
