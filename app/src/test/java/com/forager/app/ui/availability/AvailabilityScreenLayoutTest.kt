@@ -595,7 +595,11 @@ abstract class AvailabilityScreenLayoutTest {
      * and finally — map/navigation redesign dispatch C's own follow-up owner call — into
      * [SearchDropdown], over the map, alongside Recent Searches and Advanced Search rather than
      * split across two surfaces. It's the first thing in the dropdown, above its own "Recent
-     * searches"/"Advanced search" sections, so it needs no section-expanding to reach.
+     * searches"/"Advanced search" sections, so it needs no section-expanding to reach. The species
+     * field itself is [SearchEntryBar]'s own — [ACTIVE_SEARCH_SUMMARY_TAG] is that real field, not
+     * a duplicate inside the drawer (removed per the map/navigation search-UI redo dispatch) — and
+     * has no generic hint text to match on any more (removed from the app entirely, same dispatch):
+     * it shows the active filter summary instead, focused or not.
      */
     @Test
     fun `the species search bar is reachable inside the search dropdown`() {
@@ -607,10 +611,10 @@ abstract class AvailabilityScreenLayoutTest {
             "Fungi",
             "Plants",
             "Lichens (approx.)",
-            "Or search a species",
         ).forEach { label ->
             composeRule.onNodeWithText(label).assertIsDisplayed()
         }
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
     }
 
     /**
@@ -681,21 +685,23 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * The "use current location" shortcut on the species search field — moved, along with the rest
-     * of species search, from the Tools drawer into [SearchDropdown] (dispatch C's own follow-up
-     * owner call). It has to call the same [AvailabilityScreen.onUseCurrentLocation] callback
-     * [RegionControls]' own button calls (inside that same dropdown's nested "Advanced search"
-     * section) — not a second location-fetch path — which this proves by wiring a recorder into
-     * that single callback and tapping the species field's icon rather than that section's own
-     * button.
+     * "Use current location" in the drawer's promoted Location row — map/navigation search-UI
+     * redo dispatch. This used to be a shortcut icon on the species search field itself (see this
+     * test's prior version); that icon is gone now ([SearchEntryBar] passes
+     * `showLocationTrailingIcon = false` to match the reference bar exactly, which shows nothing
+     * but the magnifying glass and the text), and "Use current location" is a first-class,
+     * promoted action in the drawer instead. Still has to call the same
+     * [AvailabilityScreen.onUseCurrentLocation] callback [RegionControls]' own button calls
+     * (inside that same dropdown's nested "Advanced search" section) — not a second location-fetch
+     * path — which this proves by wiring a recorder into that single callback.
      */
     @Test
-    fun `the species search field's location icon calls onUseCurrentLocation`() {
+    fun `the drawer's Use current location button calls onUseCurrentLocation`() {
         var callCount = 0
         setScreen(SEARCHED_STATE, onUseCurrentLocation = { callCount++ })
 
         openSearchDropdown()
-        composeRule.onNodeWithContentDescription("Use current location").performClick()
+        composeRule.onNodeWithText("Use current location").performClick()
 
         assertTrue("onUseCurrentLocation should have been called exactly once", callCount == 1)
     }
