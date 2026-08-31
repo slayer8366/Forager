@@ -406,7 +406,6 @@ fun AvailabilityScreen(
     onMapTabSelected: () -> Unit,
     onSeasonalTabSelected: () -> Unit,
     onToggleForagingAreas: (Boolean) -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -962,7 +961,6 @@ fun AvailabilityScreen(
                         drawerPanel = DrawerPanel.Search
                     },
                     onUseCurrentLocation = onUseCurrentLocation,
-                    onCategorySelected = onCategorySelected,
                     onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                     onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                     onDismissTaxonSuggestions = onDismissTaxonSuggestions,
@@ -1215,7 +1213,6 @@ fun AvailabilityScreen(
                             showSearchDropdown = false
                             onUseCurrentLocation()
                         },
-                        onCategorySelected = onCategorySelected,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = { result ->
                             onTaxonSearchResultSelected(result)
@@ -1323,7 +1320,6 @@ fun AvailabilityScreen(
                                                 showSearchDropdown = false
                                                 onUseCurrentLocation()
                                             },
-                                            onCategorySelected = onCategorySelected,
                                             onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                                             onTaxonSearchResultSelected = { result ->
                                                 onTaxonSearchResultSelected(result)
@@ -1440,7 +1436,6 @@ fun AvailabilityScreen(
                             SearchDropdown(
                                 uiState = uiState,
                                 distanceUnit = distanceUnit,
-                                onCategorySelected = onCategorySelected,
                                 onRecentSearchSelected = { summary ->
                                     showSearchDropdown = false
                                     onRecentSearchSelected(summary)
@@ -1740,7 +1735,6 @@ private fun SearchEntryBar(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     onUseCurrentLocation: () -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -1813,15 +1807,12 @@ private fun SearchEntryBar(
                     SpeciesSearchControls(
                         uiState = uiState,
                         onUseCurrentLocation = onUseCurrentLocation,
-                        onCategorySelected = onCategorySelected,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                        chipRowModifier = Modifier.padding(horizontal = Spacing.sm),
                         queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(fieldHeight),
                         onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
                         restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
-                        chipRowVisible = false,
                         showLocationTrailingIcon = false,
                         fieldColors = fieldColors,
                         contentPadding = fieldContentPadding,
@@ -1900,38 +1891,10 @@ private fun SearchEntryBar(
  * [RegionControls]/[MonthSelector] (the content this dropdown's own radius/month controls are
  * drawn from) before this dispatch, confirmed by reading both, so there is nothing to remove.
  */
-/**
- * The category chip row, promoted here as item 1 of "Drawer contents, in order" (map/navigation
- * search-UI redo dispatch) — [SearchEntryBar] itself never shows chips, in any state, matching
- * the reference bar's single-line-summary look exactly.
- */
-@Composable
-private fun CategoryChipRow(selected: TaxonFilter, onCategorySelected: (TaxonFilter) -> Unit) {
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
-            FilterChip(
-                selected = selected == category,
-                onClick = { onCategorySelected(category) },
-                label = {
-                    Text(
-                        category.label,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
-        }
-    }
-}
-
 @Composable
 private fun SearchDropdown(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onUseCurrentLocation: () -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
@@ -1976,8 +1939,6 @@ private fun SearchDropdown(
                     .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                CategoryChipRow(selected = uiState.taxonFilter, onCategorySelected = onCategorySelected)
-
                 // Location row — map/navigation search-UI redo dispatch: "Set on map" and "Use
                 // current location" promoted out of "Advanced search" up to the drawer's own top
                 // level, same reasoning radius/month already got (a control reached for on nearly
@@ -2069,7 +2030,13 @@ private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: Dist
     // slider doesn't re-run the search, so reporting it here would describe a search that hasn't
     // happened. Before any search there is no region, and this says so rather than implying one.
     val where = uiState.region?.let { formatDistanceKm(it.radiusKm, distanceUnit) } ?: "no location set"
-    return "${uiState.taxonFilter.label} · $month · $where"
+    // Fungi is the only category now (owner decision) — leading with its name on every search
+    // would be a label with nothing left to distinguish it from. A specific searched species is
+    // still worth naming up front; nothing selected leads with the month instead of a blank
+    // segment (a blank search still means "all fungi in this area and month" — see
+    // AvailabilityUiState.taxonFilter's default).
+    val species = (uiState.taxonFilter as? TaxonFilter.SpecificTaxon)?.label
+    return listOfNotNull(species, month, where).joinToString(" · ")
 }
 
 /**
@@ -3514,7 +3481,6 @@ private fun AvailabilitySearchTopBar(
     uiState: AvailabilityUiState,
     onOpenDrawer: () -> Unit,
     onUseCurrentLocation: () -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -3539,11 +3505,9 @@ private fun AvailabilitySearchTopBar(
                     SpeciesSearchControls(
                         uiState = uiState,
                         onUseCurrentLocation = onUseCurrentLocation,
-                        onCategorySelected = onCategorySelected,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                        chipRowModifier = Modifier,
                     )
                 }
             }
@@ -3552,31 +3516,17 @@ private fun AvailabilitySearchTopBar(
 }
 
 /**
- * The species/category search controls themselves — the category chip row plus the species text
- * field and its suggestion dropdown — factored out of [AvailabilitySearchTopBar] so
- * [CompactToolsDrawerContent] can host the identical control inside the drawer instead of the app
- * bar (per the project owner's own framing: "the whole side panel is the search feature"), rather
- * than a second copy of the [ExposedDropdownMenuBox]/chip-row logic. [AvailabilitySearchTopBar]'s
- * own external shape (the Surface, the tune icon, the two-row layout) is unchanged by this
- * extraction — only where the chips+field piece itself is called from moved.
+ * The species search controls themselves — the species text field and its suggestion dropdown —
+ * factored out of [AvailabilitySearchTopBar] so [CompactToolsDrawerContent] can host the identical
+ * control inside the drawer instead of the app bar (per the project owner's own framing: "the
+ * whole side panel is the search feature"), rather than a second copy of the
+ * [ExposedDropdownMenuBox] logic. [AvailabilitySearchTopBar]'s own external shape (the Surface,
+ * the tune icon, the two-row layout) is unchanged by this extraction — only where the field piece
+ * itself is called from moved.
  *
- * The oddly-placed [chipRowModifier] parameter is the one real difference between the two call
- * sites: the app bar puts the chip row in a shared `Row` alongside the tune icon
- * (`Modifier.weight(1f)` applied by the caller around this whole composable there), while the
- * drawer has no icon to share a row with, so its chip row can simply fill the width itself.
- *
- * [chipRowScrollable] defaults `true`, preserving the original behaviour for both call sites above
- * — real chrome (the app bar) or a modal drawer with its own scrim, neither actually "over the map"
- * in the sense Understory's four rules police. Map/navigation redesign dispatch C's own
- * [SearchDropdown] used to be a third call site that genuinely was a floating, scrim-less overlay
- * over the map, so it passed `false`: `horizontalScroll` "installs a live pointer handler even with
- * nothing to scroll" (Understory rule 3, quoting `docs/plans/understory-design-system.md`) — this
- * repo has shipped exactly that regression once already, over this exact chip row's own ancestor
- * before it moved into a drawer. `false` swaps the scrolling row for [Modifier.weight] `fill = false`
- * chips instead, per that rule's own prescribed fix. **[SearchDropdown] no longer calls this
- * composable at all** (dispatch D moved the species field out of it and into [SearchEntryBar] —
- * see that composable's own doc comment); [SearchEntryBar] is the third live call site now, and it
- * is real chrome like the app bar, not a floating map overlay, so it takes the default `true`.
+ * The category chip row this composable used to render alongside the field is gone (owner
+ * decision): the app is fungi-only now, so there is nothing left to choose between. See
+ * [AvailabilityUiState.taxonFilter]'s default and [activeSearchSummary].
  *
  * [queryFieldModifier]/[onQueryFieldFocusChanged]: both default to no-ops, exercised only by
  * [SearchEntryBar] — the compact top bar now hosts this composable's own species field directly
@@ -3591,26 +3541,22 @@ private fun AvailabilitySearchTopBar(
 private fun SpeciesSearchControls(
     uiState: AvailabilityUiState,
     onUseCurrentLocation: () -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
-    chipRowModifier: Modifier = Modifier,
-    chipRowScrollable: Boolean = true,
     queryFieldModifier: Modifier = Modifier,
     onQueryFieldFocusChanged: (Boolean) -> Unit = {},
     /**
      * Placeholder text shown while the field is empty, focused or not — map/navigation search-UI
      * redo dispatch, the owner's own direct call: the bar reads as the current filter summary
-     * ("Fungi · August · 9 mi") always, not a generic hint that blanks out what's currently
-     * searched the moment someone taps in to search. The generic hint this used to swap to on
-     * focus (and the two other call sites, [AvailabilitySearchTopBar] and
+     * ("August · 9 mi", or a searched species' name ahead of it) always, not a generic hint that
+     * blanks out what's currently searched the moment someone taps in to search. The generic hint
+     * this used to swap to on focus (and the two other call sites, [AvailabilitySearchTopBar] and
      * [CompactToolsDrawerContent], used to default to outright) is gone from the app entirely, by
      * direct owner instruction — those two call sites now default to a blank placeholder instead
      * of reintroducing it.
      */
     restingPlaceholder: String = "",
-    chipRowVisible: Boolean = true,
     showLocationTrailingIcon: Boolean = true,
     fieldColors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
     /**
@@ -3638,28 +3584,6 @@ private fun SpeciesSearchControls(
     contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPadding(),
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        if (chipRowVisible) {
-            Row(
-                modifier = if (chipRowScrollable) chipRowModifier.horizontalScroll(rememberScrollState()) else chipRowModifier,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
-                    FilterChip(
-                        selected = uiState.taxonFilter == category,
-                        onClick = { onCategorySelected(category) },
-                        label = {
-                            Text(
-                                category.label,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        modifier = if (chipRowScrollable) Modifier else Modifier.weight(1f, fill = false),
-                    )
-                }
-            }
-        }
-
         val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty() || uiState.taxonSearchHasNoResults
         val queryFieldInteractionSource = remember { MutableInteractionSource() }
         ExposedDropdownMenuBox(

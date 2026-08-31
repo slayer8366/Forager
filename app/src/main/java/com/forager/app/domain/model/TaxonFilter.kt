@@ -68,7 +68,5 @@ sealed interface TaxonFilter {
          * claiming exact coverage the API doesn't provide.
          */
         val LICHENS = SpecificTaxon(taxonId = LECANOROMYCETES_TAXON_ID, label = "Lichens (approx.)")
-
-        val DEFAULT_CATEGORIES = listOf(FUNGI, PLANTS, LICHENS)
     }
 }

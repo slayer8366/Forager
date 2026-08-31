@@ -280,7 +280,11 @@ class AvailabilityViewModelSeasonalPatternTest {
         advanceUntilIdle()
         assertEquals(1, weatherProvider.callCount)
 
-        vm.onCategorySelected(TaxonFilter.PLANTS)
+        // A different filter — picking a searched species is the real entry point now that the
+        // category chips are gone; any filter different from the default Fungi one does the job.
+        vm.onTaxonSearchResultSelected(
+            TaxonSearchResult(taxonId = 999_002L, scientificName = "Some Other Species", commonName = null, rank = null, iconicTaxonName = "Fungi", photoUrl = null),
+        )
         advanceUntilIdle()
 
         // The stale distribution from the previous filter must not linger on screen mid-refetch.
@@ -303,15 +307,17 @@ class AvailabilityViewModelSeasonalPatternTest {
         vm.onSeasonalTabSelected()
         advanceUntilIdle()
 
-        // Lichens is a SpecificTaxon: scopes to one taxon. No new picker UI — the existing
-        // category chip is what drives this, the same as the List and Map tabs.
-        vm.onCategorySelected(TaxonFilter.LICHENS)
+        // A searched species is a SpecificTaxon: scopes to one taxon — the search dropdown is
+        // what drives this now that the category chips are gone, the same as the List and Map
+        // tabs.
+        val searchedTaxon = TaxonSearchResult(taxonId = 54743L, scientificName = "Some Searched Species", commonName = null, rank = null, iconicTaxonName = "Fungi", photoUrl = null)
+        vm.onTaxonSearchResultSelected(searchedTaxon)
         advanceUntilIdle()
         vm.onSeasonalTabSelected()
         advanceUntilIdle()
 
         assertTrue(repository.filtersSeen.any { it is TaxonFilter.IconicCategory && it == TaxonFilter.FUNGI })
-        assertTrue(repository.filtersSeen.any { it is TaxonFilter.SpecificTaxon && it == TaxonFilter.LICHENS })
+        assertTrue(repository.filtersSeen.any { it is TaxonFilter.SpecificTaxon && it == searchedTaxon.toFilter() })
     }
 
     @Test

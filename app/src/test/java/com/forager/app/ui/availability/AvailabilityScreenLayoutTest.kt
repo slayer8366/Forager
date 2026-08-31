@@ -241,7 +241,6 @@ abstract class AvailabilityScreenLayoutTest {
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
                 onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -613,6 +612,10 @@ abstract class AvailabilityScreenLayoutTest {
      * a duplicate inside the drawer (removed per the map/navigation search-UI redo dispatch) — and
      * has no generic hint text to match on any more (removed from the app entirely, same dispatch):
      * it shows the active filter summary instead, focused or not.
+     *
+     * The category chip row this test used to also assert on ("Fungi"/"Plants"/"Lichens (approx.)"
+     * all displayed) is gone — owner decision: the app is fungi-only now, with nothing left to
+     * choose between, so there is no chip row left to assert on.
      */
     @Test
     fun `the species search bar is reachable inside the search dropdown`() {
@@ -620,13 +623,6 @@ abstract class AvailabilityScreenLayoutTest {
 
         openSearchDropdown()
 
-        listOf(
-            "Fungi",
-            "Plants",
-            "Lichens (approx.)",
-        ).forEach { label ->
-            composeRule.onNodeWithText(label).assertIsDisplayed()
-        }
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
     }
 

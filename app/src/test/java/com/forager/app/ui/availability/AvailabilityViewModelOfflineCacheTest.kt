@@ -332,7 +332,12 @@ class AvailabilityViewModelOfflineCacheTest {
         // Two different searches, so the picked one is distinguishable from the current state.
         vm.searchTestRegion()
         advanceUntilIdle()
-        vm.onCategorySelected(TaxonFilter.PLANTS)
+        // A second, distinguishable search — picking a searched species is the real entry point
+        // now that the category chips (this test's own onCategorySelected call, before they were
+        // removed) are gone; any filter different from the default Fungi one does the job.
+        vm.onTaxonSearchResultSelected(
+            TaxonSearchResult(taxonId = 999_001L, scientificName = "Some Other Species", commonName = null, rank = null, iconicTaxonName = "Fungi", photoUrl = null),
+        )
         vm.onMonthSelected(11)
         advanceUntilIdle()
 

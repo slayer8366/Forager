@@ -162,7 +162,6 @@ class AvailabilityScreenTripPlanningFlowTest {
                 onMapTabSelected = viewModel::onMapTabSelected,
                 onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
                 onToggleForagingAreas = viewModel::onToggleForagingAreas,
-                onCategorySelected = viewModel::onCategorySelected,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                 onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
                 onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,

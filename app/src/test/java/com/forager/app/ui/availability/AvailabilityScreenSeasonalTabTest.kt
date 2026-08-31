@@ -66,7 +66,6 @@ class AvailabilityScreenSeasonalTabTest {
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
                 onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},

@@ -129,19 +129,6 @@ class AvailabilityViewModel(
         _uiState.value.region?.let { refresh(it, month, _uiState.value.taxonFilter) }
     }
 
-    fun onCategorySelected(category: TaxonFilter) {
-        _uiState.update {
-            it.copy(
-                taxonFilter = category,
-                foragingSelection = ForagingSelection.forChip(category),
-                taxonSearchQuery = "",
-                taxonSearchResults = emptyList(),
-                taxonSearchHasNoResults = false,
-            )
-        }
-        _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, category) }
-    }
-
     fun onTaxonSearchQueryChanged(query: String) {
         _uiState.update { it.copy(taxonSearchQuery = query, taxonSearchHasNoResults = false) }
         taxonSearchJob?.cancel()

@@ -76,7 +76,6 @@ class AvailabilityScreenListTabViewOnMapTest {
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
                 onToggleForagingAreas = onToggleForagingAreas,
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},

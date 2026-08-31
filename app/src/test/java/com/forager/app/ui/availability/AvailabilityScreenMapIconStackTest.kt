@@ -190,7 +190,6 @@ class AvailabilityScreenMapIconStackTest {
                 onMapTabSelected = viewModel::onMapTabSelected,
                 onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
                 onToggleForagingAreas = viewModel::onToggleForagingAreas,
-                onCategorySelected = viewModel::onCategorySelected,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                 onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
                 onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
@@ -1200,26 +1199,6 @@ class AvailabilityScreenMapIconStackTest {
         // is open" — "Recent searches" doesn't work for this any more: it moved into the same
         // SearchDropdown this test just opened, so it would be legitimately on screen there too.
         composeRule.onNodeWithText("Trip Planner").assertIsNotDisplayed()
-    }
-
-    /**
-     * Category selection through the real [AvailabilityViewModel]. Species/category search moved
-     * out of the Tools drawer a second time — first into the top bar's own quick-search panel,
-     * then (map/navigation redesign dispatch C, item 1) into this dropdown's [SpeciesSearchControls]
-     * alongside recent searches, leaving the Tools drawer with no search surface of its own any
-     * more. Synchronous, no debounce, no Popup dropdown, so this stays free of the timing fragility
-     * a debounced-search-to-dropdown test would need — [SearchTaxaUseCase]'s own debounce/dropdown
-     * mechanics are shared, pre-existing logic with no dedicated test anywhere in this codebase yet,
-     * compact or otherwise; not a gap this task introduced.
-     */
-    @Test
-    fun `picking a category chip in the search dropdown applies the filter through the real ViewModel`() {
-        setScreen()
-
-        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Plants").performClick()
-
-        assertEquals(TaxonFilter.PLANTS, viewModel.uiState.value.taxonFilter)
     }
 
     /**

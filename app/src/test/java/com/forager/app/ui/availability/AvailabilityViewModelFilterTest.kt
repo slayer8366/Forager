@@ -270,8 +270,9 @@ class AvailabilityViewModelFilterTest {
     fun `the Fungi ranked list contains no lichens`() = runTest(dispatcher) {
         val vm = viewModel()
 
+        // Fungi is the default (and, since the category chips were removed, the only) filter —
+        // nothing needs to select it.
         vm.searchReferenceRegion()
-        vm.onCategorySelected(TaxonFilter.FUNGI)
         advanceUntilIdle()
 
         val names = vm.uiState.value.forecast!!.entries.map { it.species.scientificName }
@@ -291,7 +292,6 @@ class AvailabilityViewModelFilterTest {
         val vm = viewModel()
 
         vm.searchReferenceRegion()
-        vm.onCategorySelected(TaxonFilter.FUNGI)
         advanceUntilIdle()
 
         val top = vm.uiState.value.forecast!!.entries.first()
@@ -301,27 +301,12 @@ class AvailabilityViewModelFilterTest {
         assertEquals("Cyathus striatus", vm.uiState.value.forecast!!.entries[1].species.scientificName)
     }
 
-    /** Nothing became unreachable: the Lichens chip still returns the lichens Fungi dropped. */
-    @Test
-    fun `the Lichens chip still returns lichens`() = runTest(dispatcher) {
-        val vm = viewModel()
-
-        vm.searchReferenceRegion()
-        vm.onCategorySelected(TaxonFilter.LICHENS)
-        advanceUntilIdle()
-
-        val names = vm.uiState.value.forecast!!.entries.map { it.species.scientificName }
-        assertEquals(listOf("Xanthoria parietina", "Phlyctis argena", "Parmelia sulcata"), names)
-        assertEquals(TaxonFilter.LICHENS, vm.uiState.value.forecast!!.filter)
-    }
-
     /** The map is a separate endpoint and a separate call site, so it gets its own cover. */
     @Test
     fun `the Fungi map sightings contain no lichens`() = runTest(dispatcher) {
         val vm = viewModel()
 
         vm.searchReferenceRegion()
-        vm.onCategorySelected(TaxonFilter.FUNGI)
         advanceUntilIdle()
         vm.onMapTabSelected()
         advanceUntilIdle()
@@ -332,29 +317,5 @@ class AvailabilityViewModelFilterTest {
             listOf("Ganoderma applanatum", "Cyathus striatus", "Pleurotus pulmonarius"),
             sightings.map { it.scientificName }.distinct(),
         )
-    }
-
-    /**
-     * Switching to Lichens and back must not leave the first result set behind — the map
-     * caches per region+month+filter, so a stale cache would show lichens under Fungi.
-     */
-    @Test
-    fun `switching Lichens then back to Fungi refetches without lichens`() = runTest(dispatcher) {
-        val vm = viewModel()
-
-        vm.searchReferenceRegion()
-        vm.onCategorySelected(TaxonFilter.LICHENS)
-        advanceUntilIdle()
-        vm.onMapTabSelected()
-        advanceUntilIdle()
-        assertTrue(vm.uiState.value.sightings.any { it.scientificName == "Xanthoria parietina" })
-
-        vm.onCategorySelected(TaxonFilter.FUNGI)
-        advanceUntilIdle()
-        vm.onMapTabSelected()
-        advanceUntilIdle()
-
-        assertFalse(vm.uiState.value.sightings.any { it.scientificName == "Xanthoria parietina" })
-        assertEquals(TaxonFilter.FUNGI, vm.uiState.value.taxonFilter)
     }
 }
