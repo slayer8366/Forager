@@ -235,6 +235,52 @@ dependencies {
 }
 
 /**
+ * Regenerates `app/src/main/assets/databases/fungi_index.db` from
+ * `data/species-index/fungi-us-species-index.json` via
+ * `com.forager.app.tools.GenerateFungiIndexDbAsset` — see that class's own doc comment for why
+ * this has to run a real (Robolectric-backed) Room database rather than writing SQLite by hand.
+ *
+ * A dedicated task rather than folding the generator into the ordinary `test` task: it does real
+ * file-system work (rewrites a committed asset) and re-processes all 11k+ taxa every run, neither
+ * of which belongs in the fast, side-effect-free suite `./gradlew test` is expected to be. The
+ * `exclude` below is what keeps `testDebugUnitTest` from picking it up on its own — Gradle's `Test`
+ * task discovers every `@Test`-annotated class in scope by default, not just ones named `*Test`.
+ *
+ * Run with `./gradlew generateFungiIndexDbAsset` after the index JSON changes, then commit the
+ * regenerated `.db` asset.
+ */
+/**
+ * Wires `-Pforager.generateFungiIndexDbAsset=true` through to
+ * `com.forager.app.tools.GenerateFungiIndexDbAsset`'s `Assume.assumeTrue` guard (see that class's
+ * doc comment) as a JVM system property, so the generator is reachable without a second, separate
+ * `Test` task. A second task was tried first and dropped: copying `testDebugUnitTest`'s classpath
+ * eagerly (`tasks.named<Test>(...).get()`) at the top level fails, because AGP registers that task
+ * lazily and it does not exist yet at that point in script evaluation — `tasks.named { }`'s lazy
+ * configuration form used below has no such ordering requirement.
+ *
+ * Without the flag, `./gradlew test`/`testDebugUnitTest` still reaches this class like any other
+ * `@Test`, but `Assume.assumeTrue(false)` reports it skipped rather than running it — it does real
+ * file-system work (rewrites a committed asset) that has no place in the ordinary, side-effect-free
+ * suite. Run it deliberately, after the index JSON changes, via
+ * `./gradlew testDebugUnitTest --tests "com.forager.app.tools.GenerateFungiIndexDbAsset" -Pforager.generateFungiIndexDbAsset=true`
+ * (wrapped by `scripts/generate_fungi_index_db.sh`), then commit the regenerated `.db` asset.
+ *
+ * `tasks.withType<Test>().configureEach { }`, not `tasks.named<Test>("testDebugUnitTest") { }`:
+ * AGP does not register that task until some point after this script's top-level body finishes
+ * evaluating (a `tasks.named("testDebugUnitTest")` lookup this early throws `UnknownTaskException`,
+ * confirmed against this project's AGP version), while `withType(...).configureEach` attaches its
+ * action to every `Test` task as it is registered, whenever that happens.
+ */
+tasks.withType<Test>().configureEach {
+    if (name == "testDebugUnitTest") {
+        systemProperty(
+            "forager.generateFungiIndexDbAsset",
+            (project.findProperty("forager.generateFungiIndexDbAsset") ?: "false").toString(),
+        )
+    }
+}
+
+/**
  * Fails the build if a test-only dependency ends up in the shipped APK.
  *
  * The test dependencies above are the first in this project that could plausibly leak — Compose

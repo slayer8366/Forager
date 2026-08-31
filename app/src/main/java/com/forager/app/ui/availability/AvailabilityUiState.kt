@@ -58,6 +58,17 @@ data class AvailabilityUiState(
     val isSearchingTaxa: Boolean = false,
     val taxonSearchErrorMessage: String? = null,
     /**
+     * True only right after a completed search answered zero matches for the query still in
+     * [taxonSearchQuery] — distinct from [taxonSearchResults] simply being empty, which is also
+     * true before any search has run and right after [AvailabilityViewModel.onDismissTaxonSuggestions]
+     * clears it. Reset to false by every one of those (a query edit, a dismiss, a pick), so it
+     * can drive the search dropdown's "no matches" row without that row reappearing on its own
+     * right after being dismissed. The local fungi index (unlike the old unfiltered remote
+     * autocomplete this replaced) legitimately answers nothing for some queries, so this is a
+     * real state to render, not an edge case to leave silent.
+     */
+    val taxonSearchHasNoResults: Boolean = false,
+    /**
      * The query text behind [taxonSearchResults] at the moment a result was last picked — kept
      * around after [taxonSearchQuery] itself is cleared back to blank on selection, so tapping the
      * summary strip can restore and re-search it without the user retyping. See

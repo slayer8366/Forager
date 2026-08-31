@@ -27,10 +27,6 @@ private class FakeMushroomRepository(
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> {
         throw NotImplementedError("not exercised by PredictAvailabilityUseCaseTest")
     }
-
-    override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
-        throw NotImplementedError("not exercised by PredictAvailabilityUseCaseTest")
-    }
 }
 
 private fun species(id: Long, name: String, count: Int) = SpeciesObservationCount(

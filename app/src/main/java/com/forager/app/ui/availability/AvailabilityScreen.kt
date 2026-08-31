@@ -3660,7 +3660,7 @@ private fun SpeciesSearchControls(
             }
         }
 
-        val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty()
+        val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty() || uiState.taxonSearchHasNoResults
         val queryFieldInteractionSource = remember { MutableInteractionSource() }
         ExposedDropdownMenuBox(
             expanded = suggestionsOpen,
@@ -3729,11 +3729,19 @@ private fun SpeciesSearchControls(
             // clear the query back below MIN_QUERY_LENGTH. Wiring the real dismiss action in
             // is the fix, not new behavior invented on top of the component.
             ExposedDropdownMenu(expanded = suggestionsOpen, onDismissRequest = onDismissTaxonSuggestions) {
-                uiState.taxonSearchResults.forEach { result ->
+                if (uiState.taxonSearchResults.isEmpty() && uiState.taxonSearchHasNoResults) {
                     DropdownMenuItem(
-                        text = { TaxonSuggestionContent(result) },
-                        onClick = { onTaxonSearchResultSelected(result) },
+                        text = { Text("No matches for “${uiState.taxonSearchQuery.trim()}”") },
+                        onClick = {},
+                        enabled = false,
                     )
+                } else {
+                    uiState.taxonSearchResults.forEach { result ->
+                        DropdownMenuItem(
+                            text = { TaxonSuggestionContent(result) },
+                            onClick = { onTaxonSearchResultSelected(result) },
+                        )
+                    }
                 }
             }
         }

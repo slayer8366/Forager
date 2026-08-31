@@ -1,9 +1,5 @@
 package com.forager.app.domain
 
-import com.forager.app.domain.model.Region
-import com.forager.app.domain.model.SightingsPage
-import com.forager.app.domain.model.SpeciesObservationCount
-import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -12,15 +8,9 @@ import org.junit.Test
 
 private class FakeTaxaRepository(
     private val result: Result<List<TaxonSearchResult>> = Result.success(emptyList()),
-) : MushroomRepository {
+) : TaxonSearchRepository {
     var lastQuery: String? = null
     var callCount = 0
-
-    override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
-        Result.success(emptyList<SpeciesObservationCount>())
-
-    override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =
-        Result.success(SightingsPage(sightings = emptyList(), totalResults = 0))
 
     override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
         lastQuery = query

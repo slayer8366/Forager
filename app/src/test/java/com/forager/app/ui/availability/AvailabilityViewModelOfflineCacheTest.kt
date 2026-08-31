@@ -30,6 +30,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -96,7 +97,7 @@ private val COUNTS = listOf(
  * query it was asked — which is how "tapping a recent search re-runs *that* search" is checked
  * against what was actually requested rather than only against what state says.
  */
-private class SwitchableMushroomRepository : MushroomRepository {
+private class SwitchableMushroomRepository : MushroomRepository, TaxonSearchRepository {
     var failure: Throwable? = null
     val speciesCountQueries = mutableListOf<Triple<Region, Int, TaxonFilter>>()
 

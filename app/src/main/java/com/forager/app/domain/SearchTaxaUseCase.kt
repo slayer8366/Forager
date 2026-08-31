@@ -8,7 +8,7 @@ import com.forager.app.domain.model.TaxonSearchResult
  * Pure and Android-framework-free so it's unit-testable headless.
  */
 class SearchTaxaUseCase(
-    private val repository: MushroomRepository,
+    private val repository: TaxonSearchRepository,
 ) {
     suspend operator fun invoke(query: String): Result<List<TaxonSearchResult>> {
         val trimmed = query.trim()

@@ -51,6 +51,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -408,7 +409,7 @@ private object WaypointFlowNoOpLocationTracker : LocationTracker {
     override val fixes: Flow<LocationFix> = emptyFlow()
 }
 
-private object WaypointFlowEmptyRepository : MushroomRepository {
+private object WaypointFlowEmptyRepository : MushroomRepository, TaxonSearchRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =

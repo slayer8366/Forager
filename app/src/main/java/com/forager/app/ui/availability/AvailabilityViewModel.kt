@@ -136,13 +136,14 @@ class AvailabilityViewModel(
                 foragingSelection = ForagingSelection.forChip(category),
                 taxonSearchQuery = "",
                 taxonSearchResults = emptyList(),
+                taxonSearchHasNoResults = false,
             )
         }
         _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, category) }
     }
 
     fun onTaxonSearchQueryChanged(query: String) {
-        _uiState.update { it.copy(taxonSearchQuery = query) }
+        _uiState.update { it.copy(taxonSearchQuery = query, taxonSearchHasNoResults = false) }
         taxonSearchJob?.cancel()
 
         if (query.trim().length < SearchTaxaUseCase.MIN_QUERY_LENGTH) {
@@ -154,13 +155,22 @@ class AvailabilityViewModel(
             delay(SEARCH_DEBOUNCE_MS)
             _uiState.update { it.copy(isSearchingTaxa = true, taxonSearchErrorMessage = null) }
             searchTaxa(query).fold(
-                onSuccess = { results -> _uiState.update { it.copy(isSearchingTaxa = false, taxonSearchResults = results) } },
+                onSuccess = { results ->
+                    _uiState.update {
+                        it.copy(
+                            isSearchingTaxa = false,
+                            taxonSearchResults = results,
+                            taxonSearchHasNoResults = results.isEmpty(),
+                        )
+                    }
+                },
                 onFailure = { error ->
                     errorLog.w(TAG, "Species search failed.", error)
                     _uiState.update {
                         it.copy(
                             isSearchingTaxa = false,
                             taxonSearchResults = emptyList(),
+                            taxonSearchHasNoResults = false,
                             taxonSearchErrorMessage = "Species search failed.",
                         )
                     }
@@ -179,7 +189,7 @@ class AvailabilityViewModel(
      */
     fun onDismissTaxonSuggestions() {
         taxonSearchJob?.cancel()
-        _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false) }
+        _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false, taxonSearchHasNoResults = false) }
     }
 
     fun onTaxonSearchResultSelected(result: TaxonSearchResult) {
@@ -194,6 +204,7 @@ class AvailabilityViewModel(
                 lastTaxonSearchQuery = it.taxonSearchQuery,
                 taxonSearchQuery = "",
                 taxonSearchResults = emptyList(),
+                taxonSearchHasNoResults = false,
             )
         }
         _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, filter) }

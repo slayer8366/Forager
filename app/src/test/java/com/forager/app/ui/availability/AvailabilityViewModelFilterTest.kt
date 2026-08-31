@@ -5,7 +5,6 @@ import com.forager.app.data.remote.dto.ObservationDto
 import com.forager.app.data.remote.dto.ObservationsResponseDto
 import com.forager.app.data.remote.dto.SpeciesCountDto
 import com.forager.app.data.remote.dto.SpeciesCountsResponseDto
-import com.forager.app.data.remote.dto.TaxaAutocompleteResponseDto
 import com.forager.app.data.remote.dto.TaxonDto
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.domain.ClusterForagingAreasUseCase
@@ -36,6 +35,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -45,6 +45,7 @@ import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
+import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
@@ -144,8 +145,10 @@ private class LichenAwareApi : INaturalistApi {
             },
         )
     }
+}
 
-    override suspend fun searchTaxa(query: String, perPage: Int) = TaxaAutocompleteResponseDto()
+private object StubTaxonSearchRepository : TaxonSearchRepository {
+    override suspend fun searchTaxa(query: String) = Result.success(emptyList<TaxonSearchResult>())
 }
 
 private class FixedLocationProvider : LocationProvider {
@@ -236,7 +239,7 @@ class AvailabilityViewModelFilterTest {
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(repository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(repository),
-            searchTaxa = SearchTaxaUseCase(repository),
+            searchTaxa = SearchTaxaUseCase(StubTaxonSearchRepository),
             getConditions = GetConditionsUseCase(StubWeatherProvider()),
             clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(StubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),

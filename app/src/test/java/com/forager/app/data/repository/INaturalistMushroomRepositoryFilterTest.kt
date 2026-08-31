@@ -3,7 +3,6 @@ package com.forager.app.data.repository
 import com.forager.app.data.remote.INaturalistApi
 import com.forager.app.data.remote.dto.ObservationsResponseDto
 import com.forager.app.data.remote.dto.SpeciesCountsResponseDto
-import com.forager.app.data.remote.dto.TaxaAutocompleteResponseDto
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
 import kotlinx.coroutines.test.runTest
@@ -57,8 +56,6 @@ private class RecordingApi : INaturalistApi {
         record(iconicTaxa, taxonId, withoutTaxonId)
         return ObservationsResponseDto()
     }
-
-    override suspend fun searchTaxa(query: String, perPage: Int) = TaxaAutocompleteResponseDto()
 
     private fun record(iconicTaxa: String?, taxonId: Long?, withoutTaxonId: Long?) {
         lastIconicTaxa = iconicTaxa

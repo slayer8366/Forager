@@ -56,9 +56,6 @@ private class ScriptedMushroomRepository(
 
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> =
         Result.failure(UnsupportedOperationException("sightings are not part of the cached search"))
-
-    override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> =
-        Result.failure(UnsupportedOperationException("taxon search is not part of the cached search"))
 }
 
 /**

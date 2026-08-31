@@ -3,14 +3,12 @@ package com.forager.app.data.repository
 import com.forager.app.data.remote.INaturalistApi
 import com.forager.app.data.remote.dto.ObservationDto
 import com.forager.app.data.remote.dto.SpeciesCountDto
-import com.forager.app.data.remote.dto.TaxonDto
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
-import com.forager.app.domain.model.TaxonSearchResult
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
@@ -53,11 +51,6 @@ class INaturalistMushroomRepository(
         }
     }
 
-    override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
-        return runCatchingCancellable { api.searchTaxa(query) }
-            .map { response -> response.results.map(::toDomain) }
-    }
-
     private fun toDomain(dto: SpeciesCountDto): SpeciesObservationCount {
         val taxon = dto.taxon
         return SpeciesObservationCount(
@@ -87,14 +80,6 @@ class INaturalistMushroomRepository(
         )
     }
 
-    private fun toDomain(dto: TaxonDto): TaxonSearchResult = TaxonSearchResult(
-        taxonId = dto.id,
-        scientificName = dto.name,
-        commonName = dto.preferredCommonName,
-        rank = dto.rank,
-        iconicTaxonName = dto.iconicTaxonName,
-        photoUrl = dto.defaultPhoto?.squareUrl,
-    )
 }
 
 /** Parses iNaturalist's "lat,lng" location string. Null on missing or malformed input. */

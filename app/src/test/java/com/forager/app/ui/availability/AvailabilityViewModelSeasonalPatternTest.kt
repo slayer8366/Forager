@@ -29,6 +29,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -79,7 +80,7 @@ class AvailabilityViewModelSeasonalPatternTest {
     fun tearDown() = Dispatchers.resetMain()
 
     /** Records the filter every getSightings call carried, and returns a fixed dated sighting so a fetch actually happens. */
-    private class RecordingRepository : MushroomRepository {
+    private class RecordingRepository : MushroomRepository, TaxonSearchRepository {
         val filtersSeen = mutableListOf<TaxonFilter>()
         var callCount = 0
 
@@ -178,10 +179,10 @@ class AvailabilityViewModelSeasonalPatternTest {
         override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
     }
 
-    private fun viewModel(
-        repository: MushroomRepository,
+    private fun <R> viewModel(
+        repository: R,
         historicalWeatherProvider: HistoricalWeatherProvider,
-    ): AvailabilityViewModel {
+    ): AvailabilityViewModel where R : MushroomRepository, R : TaxonSearchRepository {
         val searchCache = InMemorySearchCacheRepository()
         return AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,

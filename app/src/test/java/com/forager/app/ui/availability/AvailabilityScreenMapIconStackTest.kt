@@ -68,6 +68,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -149,7 +150,7 @@ class AvailabilityScreenMapIconStackTest {
         isReturning: Boolean = false,
         isOffTrack: Boolean = false,
         onToggleReturning: () -> Unit = {},
-        mushroomRepository: MushroomRepository = IconStackEmptyRepository,
+        mushroomRepository: TaxonSearchRepository = IconStackEmptyRepository,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -1416,7 +1417,7 @@ private object IconStackNoOpLocationTracker : LocationTracker {
 
 private class IconStackFakeLocationTracker(override val fixes: MutableSharedFlow<LocationFix>) : LocationTracker
 
-private object IconStackEmptyRepository : MushroomRepository {
+private object IconStackEmptyRepository : MushroomRepository, TaxonSearchRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =

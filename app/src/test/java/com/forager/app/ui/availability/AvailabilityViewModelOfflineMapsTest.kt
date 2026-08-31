@@ -29,6 +29,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -99,7 +100,7 @@ private object OfflineMapsUnusedLocationProvider : LocationProvider {
         error("getCurrentLocation() is not part of this test's path and must not be called")
 }
 
-private object OfflineMapsEmptyRepository : MushroomRepository {
+private object OfflineMapsEmptyRepository : MushroomRepository, TaxonSearchRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =

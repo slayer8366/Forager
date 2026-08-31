@@ -23,7 +23,6 @@ class GetSeasonalPatternUseCaseTest {
         override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
             Result.success(emptyList<SpeciesObservationCount>())
         override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) = page
-        override suspend fun searchTaxa(query: String) = Result.success(emptyList<TaxonSearchResult>())
     }
 
     private class FakeHistoricalWeatherProvider(
