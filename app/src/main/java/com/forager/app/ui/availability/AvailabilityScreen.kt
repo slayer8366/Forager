@@ -6442,6 +6442,15 @@ private fun AnchoredAtScreenPoint(
  * [RoundedCornerShape] again (all four corners), not one squared — the tail is what reads as a
  * speech/notification bubble now, not an asymmetric corner.
  */
+/**
+ * [Sighting.positionalAccuracyMeters] as a note the bubble can show verbatim.
+ *
+ * Never omitted for a null accuracy — a missing figure is not the same as a good one, and
+ * silence would read as "precise" to a user who has no way to tell the difference.
+ */
+private fun accuracyLabel(accuracyMeters: Int?): String =
+    if (accuracyMeters != null) "±$accuracyMeters m accuracy" else "Accuracy not reported"
+
 @Composable
 private fun ObservationBubble(
     sighting: Sighting,
@@ -6551,6 +6560,12 @@ private fun ObservationBubble(
                                 .testTag("observation-bubble-view-on-inaturalist"),
                         )
                     }
+                    Text(
+                        accuracyLabel(sighting.positionalAccuracyMeters),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalContentColor.current.copy(alpha = 0.7f),
+                        modifier = Modifier.testTag("observation-bubble-accuracy"),
+                    )
                 }
                 IconButton(
                     onClick = onDismiss,

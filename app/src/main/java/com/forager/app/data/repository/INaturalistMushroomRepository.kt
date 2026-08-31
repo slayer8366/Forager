@@ -64,8 +64,25 @@ class INaturalistMushroomRepository(
         )
     }
 
-    /** Null when iNaturalist has no plottable position for this observation, rather than a fabricated one. */
+    /**
+     * Null when iNaturalist has no plottable, non-obscured position for this observation, rather
+     * than a fabricated or randomized one.
+     *
+     * Two independent reasons to drop an observation here:
+     * - `location` missing/malformed — iNaturalist withheld the coordinates entirely (fully
+     *   `private` geoprivacy).
+     * - [ObservationDto.obscured] — iNaturalist *did* return a `location`, but it's a coordinate
+     *   randomized to a coarse cell tens of kilometres across, not the true point (`obscured`
+     *   geoprivacy, set by the observer or forced by the taxon). Checked directly rather than by
+     *   inspecting [ObservationDto.geoprivacy]/[ObservationDto.taxonGeoprivacy] ourselves — see
+     *   [ObservationDto.obscured]'s own doc comment for why `obscured` is the one field that
+     *   already combines both correctly.
+     *
+     * Exclusion, not fallback: an obscured observation's [ObservationDto.location] is never used
+     * for anything, even as a rough estimate.
+     */
     private fun toDomain(dto: ObservationDto): Sighting? {
+        if (dto.obscured) return null
         val (lat, lng) = parseLocation(dto.location) ?: return null
         val taxon = dto.taxon
         return Sighting(
@@ -77,6 +94,7 @@ class INaturalistMushroomRepository(
             lng = lng,
             observedOn = parseObservedOn(dto.observedOn),
             photoUrl = dto.photos.firstOrNull()?.url,
+            positionalAccuracyMeters = dto.publicPositionalAccuracy,
         )
     }
 

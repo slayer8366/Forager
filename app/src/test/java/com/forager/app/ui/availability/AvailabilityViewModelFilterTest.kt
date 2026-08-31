@@ -141,6 +141,11 @@ private class LichenAwareApi : INaturalistApi {
                     taxon = TaxonDto(id = taxon.id, name = taxon.name, preferredCommonName = taxon.common),
                     location = "45.${300 + index},-122.634",
                     observedOn = "2025-08-14",
+                    // Fixture represents ordinary, non-obscured sightings -- unrelated to what this
+                    // test file covers (category filtering). ObservationDto.obscured defaults to
+                    // true (fail-safe for a real, unexpectedly-shaped API response), which would
+                    // otherwise drop every one of these synthesized observations.
+                    obscured = false,
                 )
             },
         )
