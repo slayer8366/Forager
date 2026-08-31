@@ -1,83 +1,156 @@
-# Ascomycete inclusion list and reasoning
+# Ascomycete inclusion boundary and the four excluded classes
 
-The index's taxonomic scope (per the dispatch): all of Basidiomycota except
-rusts and smuts, plus the Ascomycota that produce visible fruiting bodies.
-"Fruits visibly" is a spectrum, not a boundary — this is the line actually
-drawn, at genus rank, and why.
+The index's taxonomic scope: all of Basidiomycota except four classes that
+produce no foraged fruiting body, plus the Ascomycota that produce visible
+fruiting bodies — now drawn structurally (an order, plus named genera
+outside it) rather than as a hand-picked genus list.
 
-## Included
+This is the second revision of this boundary. The first revision (below,
+"Revision history") named five genera by hand and flagged two Basidiomycota
+classes for owner review instead of excluding them unilaterally. The owner
+has since decided all three open questions; this file records what changed
+and why, and which parts are owner judgment rather than a fact derivable
+from the data.
 
-| Genus (iNat taxon ID) | Common examples |
-| --- | --- |
-| *Morchella* (56830) | Morels |
-| *Tuber* (120278) | Truffles |
-| *Sarcoscypha* (49136) | Scarlet cup fungi |
-| *Xylaria* (55268) | Dead man's fingers, candlesnuff fungus |
-| *Cordyceps* (58707) | Cordyceps (incl. *C. militaris*) |
+## Basidiomycota: four excluded classes
 
-These are exactly the five genera named in the dispatch. Included as whole
-genera (`taxon_id=<genus>` covers all descendant species) rather than
-hand-picking species within each — a genus named as "producing visible
-fruiting bodies" applies to the genus's growth form, not to some species
-within it and not others, and picking species-by-species inside an
-already-named genus would be re-litigating a boundary the dispatch already
-drew.
+All owner decisions, applying the same reasoning each time: a taxonomic
+class that is entirely (or overwhelmingly) plant pathogens or parasites,
+visible as lesions/galls/spore masses on a host rather than as a mushroom a
+forager would pick.
 
-No other Ascomycota genera were added. Obvious candidates exist just outside
-this list — *Otidea* (rabbit-ears), *Peziza* (cup fungi outside
-Sarcoscypha), *Helvella* (elfin saddles), *Gyromitra* (false morels, also
-dangerously toxic and frequently confused with true morels) — all fit
-"produces a visible, foraged-relevant fruiting body" by the same reasoning
-used to include the five above. They were left out because the dispatch
-named five specific genera, not a criterion to apply broadly myself; adding
-more is a scope call for the owner, not something to infer silently. Flagged
-here as candidates for a future expansion, not added.
+| Class (iNat taxon ID) | US taxa excluded | Reasoning |
+| --- | ---: | --- |
+| Pucciniomycetes — rusts (69967) | (folded into the Basidiomycota pull's exclusion, not separately countable from this revision) | Plant pathogens, no foraged fruiting body. Named explicitly in the original dispatch. |
+| Ustilaginomycetes — smuts (83712) | (same) | Same reasoning. Named explicitly in the original dispatch. |
+| Exobasidiomycetes (130023) | 54 | Plant-gall pathogens (e.g. azalea/blueberry leaf galls). Flagged by the prior revision as a boundary case fitting the same reasoning as rusts/smuts but not named in that dispatch; **this revision's owner decision cuts it.** |
+| Microbotryomycetes (152042) | 15 | Anther-smut-type parasites, small counts (max 11 observations in the prior pull). Same reasoning; **also an owner decision in this revision.** |
 
-## Excluded
+Exobasidiomycetes + Microbotryomycetes = 69 taxa cut in this revision,
+identified against the live API and stripped from the existing cached
+Basidiomycota pull (`data/species-index/_raw/merged_counts.json`) rather
+than re-querying all of Basidiomycota — the exclusion query
+(`taxon_id=130023,152042`) returned exactly 69 matches against the cache,
+which is the number expected if every one of those taxa had, as the prior
+revision's report said, been present and merely un-flagged.
 
-- **Rusts (Pucciniomycetes, class 69967)** and **smuts (Ustilaginomycetes,
-  class 83712)** — named explicitly in the dispatch. Both are Basidiomycota;
-  neither produces a foraged fruiting body (rusts and smuts are plant
-  pathogens — visible as lesions, galls, or powdery spore masses on a host
-  plant, not as a mushroom). Excluded via `without_taxon_id` on the
-  Basidiomycota pull, which iNaturalist applies as "this taxon and its
-  descendants" — confirmed against the live API (10557 leaf taxa returned
-  with both classes excluded, vs. their being present in an unfiltered
-  count).
-- **Lichens (Lecanoromycetes and other lichenized Ascomycota)** — not
-  explicitly named in the dispatch, but never entered the index in the first
-  place: the Ascomycete pull only queried the five named genera above, not
-  all of Ascomycota, so lichens were never candidates for inclusion. Worth
-  noting explicitly because this codebase has already hit this exact
-  boundary once before: `scripts/verify-lichen-exclusion.sh` exists to
-  confirm the *live app's* existing Fungi search filter excludes
-  Lecanoromycetes (class 54743) via `without_taxon_id`, for the same
-  reason — lichens are technically fungi but not a foraged fruiting body,
-  and three of the top five results for an unfiltered search were lichens.
-  Same underlying rule, independently applied here by construction rather
-  than by an explicit exclude.
+**Not flagged for a third revision:** Tremellomycetes and Dacrymycetes
+(jelly fungi with a real, visible, foraged fruiting body — *Tremella
+mesenterica* "witch's butter", *Dacrymyces chrysospermus*) remain included,
+unchanged from the prior revision's reasoning.
 
-## A boundary case the dispatch didn't name, flagged for review
+## Ascomycota: structural boundary, not a hand-picked list
 
-Checked the classes that sit *inside* Basidiomycota alongside the excluded
-rusts and smuts, to see if the same "produces no foraged fruiting body"
-reasoning applies anywhere else the dispatch didn't call out. Two are worth
-the owner's attention:
+**Old boundary (first revision):** five named genera — *Morchella*, *Tuber*,
+*Sarcoscypha*, *Xylaria*, *Cordyceps*. Explicitly flagged at the time as a
+maintenance liability: every future gap needed a code change, and gaps were
+invisible until someone happened to search for one. *Gyromitra* — the false
+morel, the most important lookalike for the genus this index already
+covered best — was exactly such a gap.
 
-- **Exobasidiomycetes (class 130023)** — 54 species-level taxa in the
-  current US research-grade data, top species (*Exobasidium symploci*) at
-  1,087 observations. These are plant-gall pathogens (e.g. azalea/blueberry
-  leaf galls) — visually distinctive and commonly photographed on
-  iNaturalist, but not a fruiting body a forager picks, the same shape of
-  exclusion reasoning as rusts and smuts. **Currently included** in the
-  index (not named in the dispatch's exclude list, so left in rather than
-  cut on my own judgment) but a strong candidate for the same treatment.
-- **Microbotryomycetes (class 152042)** — 15 taxa, small counts (max 11
-  observations), mostly anther-smut-type parasites. Same category, much
-  smaller in scale. Also currently included.
+**New boundary (this revision, owner decision):**
 
-Not flagged: Tremellomycetes (70 taxa, top species *Tremella mesenterica*
-"witch's butter" at 9,862 observations) and Dacrymycetes (78 taxa, top
-species *Dacrymyces chrysospermus* at 8,729 observations) — these are jelly
-fungi that do produce a real, visible, foraged fruiting body, so their
-inclusion is correct as-is, not a boundary question.
+- **All of Pezizales** (order, iNat taxon ID **48717**) as an ancestor
+  filter — one boundary instead of five names.
+- **Plus, named individually** (confirmed outside Pezizales — see
+  "Taxonomy verified" below): *Xylaria* (55268), *Cordyceps* (58707), and
+  ***Hypomyces*** (48246, new).
+
+*Hypomyces* was a genuine gap nobody had flagged: *Hypomyces lactifluorum*,
+the lobster mushroom, is heavily foraged and was entirely absent from the
+first-revision index. It is now present at 10,795 US research-grade
+observations (taxon 48215) — a bigger number than *Hericium erinaceus*
+(10,028), which says something about how much a five-genus hand list can
+miss even for a well-known edible.
+
+### Taxonomy verified against the live API, not assumed
+
+The dispatch that ordered this widening called out Pezizales membership as
+"planner assertion, not confirmed fact." Verified directly via
+`api.inaturalist.org/v1/taxa` (checking `ancestor_ids` against Pezizales'
+own ID, 48717, fetched the same way):
+
+| Genus | iNat ID | Pezizales ancestor? |
+| --- | ---: | :---: |
+| Morchella | 56830 | yes |
+| Tuber | 120278 | yes |
+| Sarcoscypha | 49136 | yes |
+| Gyromitra | 85118 | yes |
+| Helvella | 49206 | yes |
+| Verpa | 118001 | yes |
+| Peziza | 57372 | yes |
+| Disciotis | 126912 | yes |
+| Xylaria | 55268 | **no** |
+| Cordyceps | 58707 | **no** |
+| Hypomyces | 48246 | **no** |
+
+All eight Pezizales genera the dispatch expected to be subsumed are
+confirmed subsumed; all three genera it expected to sit outside Pezizales
+are confirmed outside it. (One taxonomic wrinkle found in passing: iNat
+carries a second, unrelated *Verpa* — taxon 1072230, a mollusc genus,
+homonym only. The fungal *Verpa*, 118001, is the one inside Pezizales.)
+
+### Scope growth from the order boundary
+
+Pezizales alone (independent of Xylaria/Cordyceps/Hypomyces) contributes
+**611** US research-grade taxa. Broken down by genus among the 769 total
+`ascomycota-included` taxa post-widening:
+
+| Genus | Taxa | | Genus | Taxa |
+| --- | ---: | --- | --- | ---: |
+| Hypomyces | 81 | | Xylaria | 55 |
+| Peziza | 64 | | Helvella | 49 |
+| Morchella | 35 | | Tuber | 29 |
+| Cordyceps | 14 | | Sarcoscypha | 9 |
+| Verpa | 5 | | Gyromitra | 4 |
+| Disciotis | 2 | | | |
+
+The remaining **422 taxa (55% of the ascomycete-included set) come from 126
+other Pezizales genera not individually named anywhere** — mostly small cup
+fungi no forager searches for (*Scutellinia* 69, *Tarzetta* 20, *Ascobolus*
+17, *Saccobolus* 11, *Otidea* 10, *Discina* 10, *Pseudoplectania* 10,
+*Plectania* 9, *Balsamia* 9, and ~117 more genera at ≤9 taxa each). This is
+exactly the Pyronemataceae-style scope growth the dispatch asked to watch
+for.
+
+**Flagged, not resolved here:** 611 taxa from one order is not the "drags
+in thousands" scenario the dispatch treated as disqualifying, and every
+named genus the dispatch cared about (*Gyromitra*, *Helvella*, *Verpa*, the
+morel/truffle/cup-fungi core) is exactly what the order boundary was meant
+to pick up — so the order boundary did what it was supposed to do. But
+whether ~126 small non-foraged genera worth ~55% of the widened set is an
+acceptable cost of "one boundary instead of five names" is a scope
+judgment, not a fact this report can settle, and it's the owner's per the
+dispatch's own framing ("naming genera individually is worse structurally
+but may be right if the order drags in thousands"). Recorded here as
+evidence for that call, not as a decision.
+
+### No lichenized taxa entered the index
+
+Checked directly: none of the 769 `ascomycota-included` taxa (scientific
+name or any common name) contain the string "lichen". This is also
+structurally guaranteed, not just an absence-of-evidence check: Pezizales
+sits under class Pezizomycetes, and lichenization in Ascomycota is
+concentrated in unrelated classes (principally Lecanoromycetes, taxon
+54743 — the same class `scripts/verify-lichen-exclusion.sh` confirms the
+live app's Fungi filter excludes). Since the pull uses Pezizales as an
+ancestor filter (`taxon_id=48717`, "this taxon and its descendants"), a
+Lecanoromycetes taxon cannot appear in the results regardless of common
+name — its ancestry doesn't include Pezizales. Xylaria, Cordyceps, and
+Hypomyces are non-lichenized genera by the same class-level separation.
+
+## Revision history
+
+**First revision** (prior dispatch): five named Ascomycete genera
+(*Morchella*, *Tuber*, *Sarcoscypha*, *Xylaria*, *Cordyceps*), Basidiomycota
+minus rusts and smuts. Flagged Exobasidiomycetes and Microbotryomycetes for
+owner review rather than deciding unilaterally; flagged the five-genus list
+itself as a maintenance liability with *Gyromitra*/*Helvella*/*Peziza*/*Otidea*
+named as obvious candidates left out only because the dispatch named five
+specific genera, not a criterion to apply broadly.
+
+**This revision**: applies the owner's decisions on all three — cut
+Exobasidiomycetes and Microbotryomycetes, no observation-count threshold
+(see `observation-count-distribution.md`'s header note), and replace the
+five-genus list with the Pezizales-plus-three-genera structural boundary
+above.

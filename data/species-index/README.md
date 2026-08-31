@@ -10,15 +10,17 @@ the app yet.
 ## Files
 
 - **`fungi-us-species-index.json`** — the index. One JSON object per taxon,
-  10,700 records as of the last generation, sorted by observation count
+  11,257 records as of the last generation, sorted by observation count
   descending.
-- **`observation-count-distribution.md`** — the full count distribution,
-  generated before any threshold was applied. The owner picks the cutoff;
-  this file is the evidence to pick it from.
-- **`ascomycete-inclusion.md`** — exactly which Ascomycota genera are
-  included beyond Basidiomycota, and why; also flags a boundary case
-  (Exobasidiomycetes) the dispatch didn't name but arguably fits the same
-  exclusion rule as rusts and smuts.
+- **`observation-count-distribution.md`** — the full count distribution.
+  No threshold is applied anywhere in the pipeline or the output (an owner
+  decision, not a default) — this file is a ranking reference, not a
+  cutoff-picking aid.
+- **`ascomycete-inclusion.md`** — the taxonomic boundary beyond
+  Basidiomycota (Pezizales as an ancestor filter, plus *Xylaria*,
+  *Cordyceps*, *Hypomyces* named individually) and the four Basidiomycota
+  classes excluded (rusts, smuts, Exobasidiomycetes, Microbotryomycetes),
+  with the reasoning and which parts are owner judgment vs. verified fact.
 - **`_raw/`** — cached API responses (`merged_counts.json`,
   `names_by_id.json`) so the report/index can be regenerated without
   re-querying iNaturalist. Not meant to be read directly.
@@ -54,11 +56,15 @@ already supplies the location/time-scoped fields live by taxon ID.
 
 ## Taxonomic scope
 
-Basidiomycota (all of it) minus rusts (Pucciniomycetes) and smuts
-(Ustilaginomycetes), plus five named Ascomycete genera that produce visible
-fruiting bodies: *Morchella*, *Tuber*, *Sarcoscypha*, *Xylaria*,
-*Cordyceps*. Full reasoning and a flagged boundary case in
-`ascomycete-inclusion.md`.
+Basidiomycota minus four classes that produce no foraged fruiting body
+(rusts/Pucciniomycetes, smuts/Ustilaginomycetes, Exobasidiomycetes,
+Microbotryomycetes), plus the Ascomycota that do: all of Pezizales (order)
+as an ancestor filter, plus *Xylaria*, *Cordyceps*, and *Hypomyces* named
+individually since they sit outside Pezizales. Full reasoning, taxonomy
+verification, and scope-growth accounting in `ascomycete-inclusion.md`.
+
+No observation-count threshold is applied — retained purely as a ranking
+signal. See `observation-count-distribution.md`.
 
 Scope: United States, research-grade observations only (iNat place ID `1`).
 

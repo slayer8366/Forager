@@ -46,13 +46,27 @@ BASIDIOMYCOTA_ID = 47169
 EXCLUDE_CLASS_IDS = {
     69967: "Pucciniomycetes (rusts)",
     83712: "Ustilaginomycetes (smuts)",
+    130023: "Exobasidiomycetes (plant-gall pathogens)",
+    152042: "Microbotryomycetes (anther-smut-type parasites)",
 }
+# Classes excluded in this revision that were previously included in the
+# cached Basidiomycota pull (data/species-index/_raw/merged_counts.json).
+# Used to strip them from that cache instead of re-querying all of
+# Basidiomycota -- see pull_data().
+NEWLY_EXCLUDED_CLASS_IDS = {
+    130023: "Exobasidiomycetes (plant-gall pathogens)",
+    152042: "Microbotryomycetes (anther-smut-type parasites)",
+}
+
+# Ascomycete inclusion: all of Pezizales (order; subsumes Morchella, Tuber,
+# Sarcoscypha, and picks up Gyromitra, Helvella, Verpa, Peziza, Disciotis
+# under one boundary) plus a few genera confirmed to sit outside Pezizales
+# that still produce a foraged fruiting body.
+PEZIZALES_ID = 48717  # order; membership verified live, see ascomycete-inclusion.md
 ASCOMYCETE_GENUS_IDS = {
-    56830: "Morchella (morels)",
-    120278: "Tuber (truffles)",
-    49136: "Sarcoscypha (cup fungi)",
     55268: "Xylaria",
     58707: "Cordyceps",
+    48246: "Hypomyces",
 }
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -136,12 +150,33 @@ def fetch_all_names(taxon_ids, chunk_size=200):
     return names_by_id
 
 
-def pull_data():
-    print("=== Pull A: Basidiomycota minus rusts/smuts ===", file=sys.stderr)
-    pull_a = fetch_species_counts([BASIDIOMYCOTA_ID], EXCLUDE_CLASS_IDS.keys(), "basidiomycota")
+def load_cached_pull():
+    cached_merged = json.loads((RAW_DIR / "merged_counts.json").read_text())
+    cached_merged = {int(k): v for k, v in cached_merged.items()}
+    cached_names = json.loads((RAW_DIR / "names_by_id.json").read_text())
+    cached_names = {int(k): v for k, v in cached_names.items()}
+    return cached_merged, cached_names
 
-    print("=== Pull B: Ascomycete inclusion genera ===", file=sys.stderr)
-    pull_b = fetch_species_counts(ASCOMYCETE_GENUS_IDS.keys(), None, "ascomycota-included")
+
+def pull_data():
+    print("=== Reusing cached Basidiomycota pull (skipping full re-query) ===", file=sys.stderr)
+    cached_merged, cached_names = load_cached_pull()
+    pull_a = {tid: rec for tid, rec in cached_merged.items() if rec.get("source_group") == "basidiomycota"}
+    print(f"  {len(pull_a)} taxa in cache", file=sys.stderr)
+
+    print("=== Pull C: newly-excluded classes (identify taxa to strip) ===", file=sys.stderr)
+    newly_excluded = fetch_species_counts(NEWLY_EXCLUDED_CLASS_IDS.keys(), None, "newly-excluded-classes")
+    before = len(pull_a)
+    pull_a = {tid: rec for tid, rec in pull_a.items() if tid not in newly_excluded}
+    stripped = before - len(pull_a)
+    assert stripped == len(newly_excluded), (
+        f"Expected to strip {len(newly_excluded)} taxa (all previously present in the "
+        f"Basidiomycota cache), stripped {stripped} -- cache may be stale"
+    )
+    print(f"  stripped {stripped} taxa ({', '.join(NEWLY_EXCLUDED_CLASS_IDS.values())})", file=sys.stderr)
+
+    print("=== Pull B: Ascomycete inclusion (Pezizales + named genera) ===", file=sys.stderr)
+    pull_b = fetch_species_counts([PEZIZALES_ID, *ASCOMYCETE_GENUS_IDS.keys()], None, "ascomycota-included")
 
     overlap = set(pull_a) & set(pull_b)
     assert not overlap, f"Unexpected overlap between pulls: {overlap}"
@@ -154,8 +189,10 @@ def pull_data():
 
     print(f"=== Merged: {len(merged)} distinct taxa ===", file=sys.stderr)
 
-    print("=== Fetching full common-names lists ===", file=sys.stderr)
-    names_by_id = fetch_all_names(merged.keys())
+    new_ids = [tid for tid in merged if tid not in cached_names]
+    print(f"=== Fetching common-names lists for {len(new_ids)} new taxa ({len(merged) - len(new_ids)} reused from cache) ===", file=sys.stderr)
+    names_by_id = {tid: cached_names[tid] for tid in merged if tid in cached_names}
+    names_by_id.update(fetch_all_names(new_ids))
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     (RAW_DIR / "merged_counts.json").write_text(json.dumps(merged))
