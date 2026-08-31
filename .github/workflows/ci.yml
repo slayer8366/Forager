@@ -221,8 +221,8 @@ jobs:
           # always has. A listed entry that ISN'T actually skipped also fails the build: a stale
           # allowlist entry is the same invisible non-data this whole gate exists to catch, so
           # un-ignoring one of these tests must remove its entry here in the same change, not leave
-          # it to rot. Two separate investigations feed this set, each with its own audit doc; do
-          # not add another entry without the same kind of investigation trail those two have.
+          # it to rot. Three separate investigations feed this set, each with its own audit doc; do
+          # not add another entry without the same kind of investigation trail those three have.
           #
           # See docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md -- closing that
           # investigation includes removing its three entries entirely, not just shrinking them.
@@ -297,6 +297,47 @@ jobs:
               (
                   "com.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest",
                   "tapping a recent search reports that entry and closes the dropdown",
+              ),
+              # See docs/audits/2026-08-31-search-bar-overlay-stub-pan-not-registering.md -- closing
+              # that investigation includes removing these eight entries entirely, not just
+              # shrinking them. Note: "choosing Log a find..." also has its own separate,
+              # confirmed-real bug on a real device (see that doc's own "Log a find is not the same
+              # case" section) -- this allowlist entry covers only its harness-side symptom here,
+              # not that bug.
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest",
+                  "choosing Log a find calls onStartLogEntry with the picked location instead of "
+                  "planning a trip",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest",
+                  "choosing Plan a trip, panning to a location, and confirming saves a planned trip "
+                  "at that location",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest",
+                  "choosing Drop a waypoint, panning to a location, and confirming a name drops a "
+                  "waypoint at that location",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "dismissing the bubble via its close icon does not let a later pan bring it back",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "after a 90 degree map rotation the observation bubble sits below the tapped dot",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping elsewhere on the map dismisses the observation bubble",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a pan while the bubble is still showing keeps it glued to its marker",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "at bearing zero the observation bubble sits above the tapped dot",
               ),
           }
 
