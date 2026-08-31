@@ -23,6 +23,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -155,6 +157,7 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -168,6 +171,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -1671,15 +1675,12 @@ private fun SearchEntryBar(
             fieldHeightTextMeasurer.measure("Mg", fieldHeightLabelStyle).size.height.toDp() * 2
         }
     }
-    // Scaled to fit inside fieldHeight, not left at OutlinedTextField's own default (bodyLarge,
-    // sized for a full ~56dp Material field) — that default's line box is taller than this box
-    // and got clipped away to nothing rather than merely cramped. lineHeight at 80% of the box
-    // leaves real margin either side of the glyphs; fontSize is labelMedium's own default ratio
-    // to its lineHeight (12sp/16sp = 0.75) applied to that lineHeight, not an arbitrary guess.
-    val fieldTextStyle = remember(fieldHeight, fieldHeightDensity) {
-        val lineHeightSp = with(fieldHeightDensity) { (fieldHeight * 0.8f).toSp() }
-        fieldHeightLabelStyle.copy(fontSize = lineHeightSp * 0.75f, lineHeight = lineHeightSp)
-    }
+    // Text stays at Material's own default style (LocalTextStyle.current, not overridden) — the
+    // owner's own direct call, after an earlier attempt that shrank the font instead read as
+    // "the way it was before" broken: this box is short because OutlinedTextField reserves its
+    // own fixed vertical padding around the text line regardless of style, not because the text
+    // itself needs to be smaller. contentPadding below is the actual fix.
+    val fieldContentPadding = OutlinedTextFieldDefaults.contentPadding(top = 2.dp, bottom = 2.dp)
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = Color.Transparent,
         unfocusedBorderColor = Color.Transparent,
@@ -1722,7 +1723,7 @@ private fun SearchEntryBar(
                     chipRowVisible = false,
                     showLocationTrailingIcon = false,
                     fieldColors = fieldColors,
-                    textStyle = fieldTextStyle,
+                    contentPadding = fieldContentPadding,
                 )
             }
         }
@@ -3520,6 +3521,19 @@ private fun SpeciesSearchControls(
      * ([LocalTextStyle.current]), unchanged.
      */
     textStyle: androidx.compose.ui.text.TextStyle = LocalTextStyle.current,
+    /**
+     * Vertical (and horizontal) padding inside the field's own box — map/navigation search-UI
+     * redo dispatch: shrinking [textStyle] alone wasn't enough to fit [SearchEntryBar]'s pinned
+     * field height; [OutlinedTextField] reserves its own fixed padding around the text line
+     * regardless of that style, so even a correctly-sized line was still being clipped by the box
+     * itself. This is the owner's own direct follow-up call — reduce the padding, not the text
+     * further. Implemented via the low-level [BasicTextField] + [OutlinedTextFieldDefaults.DecorationBox]
+     * pair (the only Material3 path that exposes content padding at all) for every call site, but
+     * defaulted to [OutlinedTextFieldDefaults.contentPadding] — Material's own stock value — so
+     * the two call sites that don't override it render identically to before this parameter
+     * existed.
+     */
+    contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPadding(),
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (chipRowVisible) {
@@ -3545,51 +3559,68 @@ private fun SpeciesSearchControls(
         }
 
         val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty()
+        val queryFieldInteractionSource = remember { MutableInteractionSource() }
         ExposedDropdownMenuBox(
             expanded = suggestionsOpen,
             onExpandedChange = {},
             modifier = Modifier.padding(horizontal = Spacing.sm),
         ) {
-            OutlinedTextField(
+            // BasicTextField + OutlinedTextFieldDefaults.DecorationBox, not the plain
+            // OutlinedTextField composable — see [contentPadding]'s own doc comment for why: it's
+            // the only Material3 path that exposes the field's internal padding at all.
+            BasicTextField(
                 value = uiState.taxonSearchQuery,
                 onValueChange = onTaxonSearchQueryChanged,
-                placeholder = {
-                    // The filter summary ("Fungi · August · 9 mi"), not a generic hint, whether
-                    // focused or not — the owner's own direct call: focusing the field to search
-                    // shouldn't blank out what's currently searched, only typing should.
-                    Text(
-                        restingPlaceholder,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = textStyle,
-                    )
-                },
-                textStyle = textStyle,
+                textStyle = textStyle.copy(color = fieldColors.focusedTextColor),
                 singleLine = true,
+                cursorBrush = SolidColor(fieldColors.cursorColor(isError = false)),
+                interactionSource = queryFieldInteractionSource,
                 modifier = queryFieldModifier
                     .fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
                     .onFocusChanged {
                         onQueryFieldFocusChanged(it.isFocused)
                     },
-                trailingIcon = if (uiState.isSearchingTaxa || showLocationTrailingIcon) {
-                    {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (uiState.isSearchingTaxa) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                            }
-                            if (showLocationTrailingIcon) {
-                                IconButton(onClick = onUseCurrentLocation) {
-                                    Icon(Icons.Filled.MyLocation, contentDescription = "Use current location")
+            ) { innerTextField ->
+                OutlinedTextFieldDefaults.DecorationBox(
+                    value = uiState.taxonSearchQuery,
+                    innerTextField = innerTextField,
+                    enabled = true,
+                    singleLine = true,
+                    visualTransformation = VisualTransformation.None,
+                    interactionSource = queryFieldInteractionSource,
+                    placeholder = {
+                        // The filter summary ("Fungi · August · 9 mi"), not a generic hint,
+                        // whether focused or not — the owner's own direct call: focusing the
+                        // field to search shouldn't blank out what's currently searched, only
+                        // typing should.
+                        Text(
+                            restingPlaceholder,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = textStyle,
+                        )
+                    },
+                    trailingIcon = if (uiState.isSearchingTaxa || showLocationTrailingIcon) {
+                        {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (uiState.isSearchingTaxa) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                }
+                                if (showLocationTrailingIcon) {
+                                    IconButton(onClick = onUseCurrentLocation) {
+                                        Icon(Icons.Filled.MyLocation, contentDescription = "Use current location")
+                                    }
                                 }
                             }
                         }
-                    }
-                } else {
-                    null
-                },
-                colors = fieldColors,
-            )
+                    } else {
+                        null
+                    },
+                    colors = fieldColors,
+                    contentPadding = contentPadding,
+                )
+            }
             // A no-op onDismissRequest here before this fix meant the standard "tap outside
             // the popup" dismissal ExposedDropdownMenu already implements never actually
             // closed anything — the only way to get rid of the list was to pick a result or
