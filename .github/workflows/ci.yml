@@ -220,10 +220,12 @@ jobs:
           # (classname, name). Any skip not in this set fails the build, same as an unallowed skip
           # always has. A listed entry that ISN'T actually skipped also fails the build: a stale
           # allowlist entry is the same invisible non-data this whole gate exists to catch, so
-          # un-ignoring one of these three tests must remove its entry here in the same change, not
-          # leave it to rot. See docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md --
-          # closing that investigation includes removing this allowlist entirely, not just shrinking
-          # it. Do not add a fourth entry without the same kind of investigation trail that doc has.
+          # un-ignoring one of these tests must remove its entry here in the same change, not leave
+          # it to rot. Two separate investigations feed this set, each with its own audit doc; do
+          # not add another entry without the same kind of investigation trail those two have.
+          #
+          # See docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md -- closing that
+          # investigation includes removing its three entries entirely, not just shrinking them.
           SKIPPED_TESTS_ALLOWLIST = {
               (
                   "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
@@ -237,6 +239,64 @@ jobs:
                   "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "a real touch at each trailhead control's own screen coordinates reaches that "
                   "control while not returning",
+              ),
+              # See docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md -- closing that
+              # investigation includes removing these thirteen entries entirely, not just shrinking
+              # them.
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch beside the distance arm still reaches the map",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "the add button opens the same plan-or-log chooser the long-press gesture used "
+                  "to, then the centre-pin picker, seeded at the region center",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping an observation dot shows its species name and observed date",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch on the advanced search dropdown's Set on map button reaches it and "
+                  "opens the centre-pin picker over the real map",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping outside the search dropdown closes it",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping the bubble's close icon dismisses it without navigating anywhere",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "the locate-me icon calls onLocateMe, not onUseCurrentLocation",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "fullscreen hides the top strip and bottom nav but keeps the map mounted",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "View on iNaturalist launches the observation's web page and dismisses the bubble",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping the coordinates segment reveals labeled decimal degrees, and tapping "
+                  "again returns to MGRS",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch in the gap above the control pill still reaches the map",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "tapping the map while fullscreen restores chrome",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest",
+                  "tapping a recent search reports that entry and closes the dropdown",
               ),
           }
 
