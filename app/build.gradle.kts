@@ -235,21 +235,6 @@ dependencies {
 }
 
 /**
- * Regenerates `app/src/main/assets/databases/fungi_index.db` from
- * `data/species-index/fungi-us-species-index.json` via
- * `com.forager.app.tools.GenerateFungiIndexDbAsset` — see that class's own doc comment for why
- * this has to run a real (Robolectric-backed) Room database rather than writing SQLite by hand.
- *
- * A dedicated task rather than folding the generator into the ordinary `test` task: it does real
- * file-system work (rewrites a committed asset) and re-processes all 11k+ taxa every run, neither
- * of which belongs in the fast, side-effect-free suite `./gradlew test` is expected to be. The
- * `exclude` below is what keeps `testDebugUnitTest` from picking it up on its own — Gradle's `Test`
- * task discovers every `@Test`-annotated class in scope by default, not just ones named `*Test`.
- *
- * Run with `./gradlew generateFungiIndexDbAsset` after the index JSON changes, then commit the
- * regenerated `.db` asset.
- */
-/**
  * Wires `-Pforager.generateFungiIndexDbAsset=true` through to
  * `com.forager.app.tools.GenerateFungiIndexDbAsset`'s `Assume.assumeTrue` guard (see that class's
  * doc comment) as a JVM system property, so the generator is reachable without a second, separate
