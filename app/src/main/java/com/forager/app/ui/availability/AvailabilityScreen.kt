@@ -87,6 +87,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -1063,6 +1064,20 @@ fun AvailabilityScreen(
                 searchDropdownCompassStripTextMeasurer.measure("Mg", searchDropdownCompassStripLabelStyle).size.height.toDp()
             }
         }
+        // SearchEntryBar's own real rendered height, on the Map tab where it now composes as an
+        // overlay above the map (this scaffold's own CompactMapTab call site below) rather than
+        // in normal document flow — CompactMapTab needs it as a top inset so the compass strip,
+        // the observation bubble's own minY, and the taxon-filter chip's top padding all shift
+        // down to sit below the bar instead of underneath it. Derived the same one-time-
+        // measurement way as compassStripClearance itself (fieldHeight there is exactly
+        // compassStripClearance * 2 — see SearchEntryBar's own fieldHeight doc comment) plus the
+        // bar's own fixed vertical padding and divider, matching its real Column structure
+        // exactly. A plain derived Dp, not a live re-measurement: CompactMapTab's own
+        // compassStripClearance doc comment documents a confirmed, bisected regression from
+        // reading a real onGloballyPositioned height back through state for this exact class of
+        // positioning — this stays a one-time text-measurement-derived constant instead, the
+        // proven-safe shape that doc comment prescribes.
+        val searchBarHeight = compassStripClearance * 2 + Spacing.xs * 3 + DividerDefaults.Thickness
         // "Set on map" (SearchDropdown's own Advanced Search section, dispatch C item 2) hands off to the exact same
         // pan-to-centre-pin-plus-confirm flow every other pin placement in this app uses
         // (CentrePinLocationPickerOverlay) rather than a second picker — see CompactMapTab's own
@@ -1185,7 +1200,14 @@ fun AvailabilityScreen(
                     // out under the status or navigation bar.
                     .padding(padding),
             ) {
-                if (!isMapFullscreen) {
+                // Map tab only: SearchEntryBar moves into CompactMapTab's own searchBarSlot
+                // instead (that call site's own doc comment), composed as a real overlay inside
+                // the SAME Box that hosts the map, so its 80% fill reveals map imagery through it
+                // the same as the compass strip and the two map-chrome pills — the owner's own
+                // direct call, scoped to the Map tab specifically so the other three tabs
+                // (List/Seasonal/Journal, none of which have anything worth showing through a
+                // translucent bar) keep this bar as ordinary opaque-backed chrome, unchanged.
+                if (!isMapFullscreen && compactTab != CompactTab.MAP) {
                     SearchEntryBar(
                         uiState = uiState,
                         distanceUnit = distanceUnit,
@@ -1272,6 +1294,44 @@ fun AvailabilityScreen(
                                 pickingSearchLocationOnMap = false
                             },
                             onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                            // SearchEntryBar now overlays this tab directly (see searchBarSlot's
+                            // own doc comment below) rather than sitting above it in document
+                            // flow, so the strip/bubble/filter-chip positioning CompactMapTab
+                            // derives from compassStripClearance needs to start below the bar, not
+                            // at this Box's own true top edge.
+                            topInset = searchBarHeight,
+                            // Passed as a slot, not composed at this call site directly, so it
+                            // renders inside CompactMapTab's own Box — see that parameter's own
+                            // doc comment for why this specific nesting is load-bearing, not
+                            // cosmetic. Empty while fullscreen: matches the bar's own old
+                            // `!isMapFullscreen` gate from when it lived in this scaffold's outer
+                            // Column, now reproduced here since the slot is CompactMapTab's to
+                            // show or not.
+                            searchBarSlot = if (isMapFullscreen) {
+                                {}
+                            } else {
+                                {
+                                    Column {
+                                        SearchEntryBar(
+                                            uiState = uiState,
+                                            distanceUnit = distanceUnit,
+                                            onUseCurrentLocation = {
+                                                showSearchDropdown = false
+                                                onUseCurrentLocation()
+                                            },
+                                            onCategorySelected = onCategorySelected,
+                                            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                                            onTaxonSearchResultSelected = { result ->
+                                                onTaxonSearchResultSelected(result)
+                                                showSearchDropdown = false
+                                            },
+                                            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                                            onFieldFocused = { showSearchDropdown = true },
+                                        )
+                                        SearchNotice(uiState)
+                                    }
+                                }
+                            },
                             modifier = Modifier.fillMaxSize(),
                         )
                         CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
@@ -1329,6 +1389,20 @@ fun AvailabilityScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    // Map tab only: excludes SearchEntryBar's own band from the
+                                    // scrim's bounds entirely, top edge down. That bar now composes
+                                    // inside CompactMapTab's own searchBarSlot (that call site's own
+                                    // doc comment — needed for its 80% fill to actually blend with
+                                    // the map, an interop-nesting requirement, not a cosmetic one),
+                                    // which puts it earlier in this Box's composition order than
+                                    // this scrim — composition-order-is-hit-test-order would
+                                    // otherwise mean the scrim wins every tap on the bar while the
+                                    // dropdown is open, breaking "type in the bar while the dropdown
+                                    // is still showing." Excluding the region outright, rather than
+                                    // reordering composition, keeps the scrim's own intercept of the
+                                    // map underneath it intact (composed before CompactMapTab would
+                                    // let the map's own pan gesture win those same taps instead).
+                                    .padding(top = if (compactTab == CompactTab.MAP) searchBarHeight else 0.dp)
                                     .testTag(SEARCH_DROPDOWN_SCRIM_TAG)
                                     .pointerInput(Unit) {
                                         detectTapGestures { showSearchDropdown = false }
@@ -1351,10 +1425,13 @@ fun AvailabilityScreen(
                             // ("bar, strip, drawer... each meeting the next without a break") — an
                             // earlier version added Spacing.sm here on top of compassStripClearance,
                             // which read as a seam between the strip and this panel rather than one
-                            // continuous piece of chrome.
+                            // continuous piece of chrome. searchBarHeight added on top of that, Map
+                            // tab only: SearchEntryBar now overlays the map above the strip on this
+                            // tab (see this scaffold's own searchBarHeight doc comment), so the
+                            // drawer needs to start below both, not just the strip.
                             modifier = Modifier
                                 .align(Alignment.TopStart)
-                                .padding(top = if (compactTab == CompactTab.MAP) compassStripClearance else 0.dp),
+                                .padding(top = if (compactTab == CompactTab.MAP) searchBarHeight + compassStripClearance else 0.dp),
                         ) {
                             SearchDropdown(
                                 uiState = uiState,
@@ -1699,41 +1776,57 @@ private fun SearchEntryBar(
         unfocusedPlaceholderColor = contentColor,
         cursorColor = contentColor,
     )
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
-            .padding(vertical = Spacing.xs)
-            .testTag(SEARCH_ENTRY_BAR_TAG),
+    // Surface, not a plain Column + background: on the Map tab this now composes as a real
+    // overlay above the map (compactMainScaffold's own call site), so — unlike
+    // CompassElevationStripContent, which deliberately stays a plain Box so blank areas let
+    // map touches through — this bar needs to consume every tap across its own bounds the way
+    // it always implicitly did back when it sat in normal document flow with nothing underneath
+    // it to fall through to. A plain Box + background wouldn't: the padding around the icon, the
+    // spacer, and the divider have no interactive child of their own to consume a tap there, so
+    // it would reach the map beneath. Surface intercepts its full bounds by default — the same
+    // established shape MapIconBar's own Surface already relies on for the same reason (see this
+    // file's own CLAUDE.md-documented precedent) — so this reuses that rather than hand-rolling a
+    // pointerInput consumer. tonalElevation/shadowElevation pinned to 0.dp: this bar's own color
+    // is exact (contentColor and MapIconStackButtonColorDark/Light are both already the intended
+    // finished tone), not something Material's elevation-tint system should be allowed to touch.
+    Surface(
+        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        contentColor = contentColor,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        shape = RectangleShape,
+        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Filled.Search,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.padding(start = Spacing.lg).size(18.dp),
-            )
-            Box(modifier = Modifier.weight(1f)) {
-                SpeciesSearchControls(
-                    uiState = uiState,
-                    onUseCurrentLocation = onUseCurrentLocation,
-                    onCategorySelected = onCategorySelected,
-                    onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                    onTaxonSearchResultSelected = onTaxonSearchResultSelected,
-                    onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                    chipRowModifier = Modifier.padding(horizontal = Spacing.sm),
-                    queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(fieldHeight),
-                    onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
-                    restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
-                    chipRowVisible = false,
-                    showLocationTrailingIcon = false,
-                    fieldColors = fieldColors,
-                    contentPadding = fieldContentPadding,
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.padding(start = Spacing.lg).size(18.dp),
                 )
+                Box(modifier = Modifier.weight(1f)) {
+                    SpeciesSearchControls(
+                        uiState = uiState,
+                        onUseCurrentLocation = onUseCurrentLocation,
+                        onCategorySelected = onCategorySelected,
+                        onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                        onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+                        onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                        chipRowModifier = Modifier.padding(horizontal = Spacing.sm),
+                        queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(fieldHeight),
+                        onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
+                        restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
+                        chipRowVisible = false,
+                        showLocationTrailingIcon = false,
+                        fieldColors = fieldColors,
+                        contentPadding = fieldContentPadding,
+                    )
+                }
             }
+            Spacer(Modifier.height(Spacing.xs))
+            HorizontalDivider(color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
         }
-        Spacer(Modifier.height(Spacing.xs))
-        HorizontalDivider(color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
     }
 }
 
@@ -4474,6 +4567,35 @@ private fun CompactMapTab(
     pickingSearchLocation: Boolean = false,
     onSearchLocationPicked: (LatLng) -> Unit = {},
     onCancelSearchLocationPick: () -> Unit = {},
+    /**
+     * Extra top clearance beyond the compass strip's own row, for chrome this tab doesn't know
+     * about that now floats above it — SearchEntryBar, on the compact scaffold's own Map tab (see
+     * that call site's own doc comment). Defaults to 0.dp rather than being required: this
+     * composable has exactly one call site today, but the strip/bubble/filter-chip positioning
+     * below already treats "how much is above me" as a real, named input
+     * ([compassStripClearance]) rather than assuming 0 — this parameter extends that same
+     * assumption to cover chrome composed outside this function entirely, instead of baking a
+     * second, undocumented assumption in above it.
+     */
+    topInset: Dp = 0.dp,
+    /**
+     * SearchEntryBar (plus its SearchNotice), composed as a slot inside this composable's own
+     * Box rather than passed up and rendered at the call site — a deliberate, load-bearing
+     * placement, not a style choice: this bar's own 80%-alpha fill needs to blend against real
+     * map imagery to read as translucent chrome the way the compass strip and the two
+     * TrailheadControls pills already do, and both of those live in this exact Box, as direct
+     * siblings of [mapSlot]'s own [AndroidView][androidx.compose.ui.viewinterop.AndroidView]
+     * content. Composing the bar even one level further out (a sibling of this whole composable's
+     * own call, in [compactMainScaffold]'s outer `Box` instead) was tried first and shipped
+     * fully opaque on a real device despite an identical `Surface`/color/alpha to the strip and
+     * pills, and despite its own geometry measuring correctly positioned above the map — Compose's
+     * alpha-blending coordination with an embedded native `View` (this map is `AndroidView`-hosted)
+     * appears to be scoped to the immediate composition that hosts it, not just correct z-order
+     * anywhere in the tree above it. Defaults to an empty slot: this composable has exactly one
+     * call site today (compactMainScaffold's own Map tab branch), which supplies the bar; nothing
+     * else needs to know this parameter exists.
+     */
+    searchBarSlot: @Composable () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
@@ -4652,6 +4774,10 @@ private fun CompactMapTab(
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
                 )
+                // Composed right after mapSlot — see searchBarSlot's own doc comment for why this
+                // exact nesting (a direct sibling of the map's own AndroidView content, inside
+                // this Box) is what makes its translucency actually work.
+                searchBarSlot()
                 tappedSighting?.let { sighting ->
                     // minY = compassStripClearance, a real measurement of the strip's own type
                     // style — not a hardcoded touch-target constant and not 0 — the strip is
@@ -4670,7 +4796,7 @@ private fun CompactMapTab(
                     AnchoredAtScreenPoint(
                         anchorPx = tappedSightingScreenPosition,
                         bearingDeg = tappedSightingBearingDeg,
-                        minY = compassStripClearance,
+                        minY = topInset + compassStripClearance,
                         modifier = Modifier.fillMaxSize(),
                     ) { arrowAngleDeg ->
                         ObservationBubble(
@@ -4735,13 +4861,16 @@ private fun CompactMapTab(
                     compassProvider = compassProvider,
                     elevationMeters = uiState.liveAltitudeMeters,
                     location = uiState.liveLocation,
-                    // Full width, flush against the top of the map — "just below" ActiveSearchSummary
-                    // (the sibling Column entry directly above this Box) rather than a narrow
-                    // floating pill with margins on both sides, per the project owner's own redesign
-                    // call.
+                    // Full width, "just below" SearchEntryBar rather than a narrow floating pill
+                    // with margins on both sides, per the project owner's own redesign call — topInset
+                    // is how that clearance reaches here now that the bar composes as a real overlay
+                    // in the same Box as this tab's own content (compactMainScaffold's own call
+                    // site) instead of a sibling Column entry above it; 0.dp (this parameter's own
+                    // default) reproduces the old flush-against-the-map-top behavior exactly.
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(top = topInset),
                 )
                 // Always composed, regardless of isRecording — record start/stop must stay reachable
                 // before the first recording starts, the same as it was as an always-enabled
@@ -4760,17 +4889,19 @@ private fun CompactMapTab(
                     modifier = Modifier.align(Alignment.TopEnd),
                 )
 
-                // Below the compass strip (compassStripClearance as top padding), same reasoning as
-                // AnchoredAtScreenPoint's own minY — the strip's Surface intercepts touches across
-                // its full width, so a chip placed underneath it would have its own "Show all
-                // species" tap silently swallowed the same way a bubble anchored there would.
+                // Below the compass strip (topInset + compassStripClearance as top padding), same
+                // reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts
+                // touches across its full width, so a chip placed underneath it would have its own
+                // "Show all species" tap silently swallowed the same way a bubble anchored there
+                // would. topInset itself (see this composable's own doc comment) clears whatever
+                // chrome floats above the strip too — SearchEntryBar, on the Map tab.
                 mapTaxonFilterLabel?.let { label ->
                     TaxonMapFilterChip(
                         label = label,
                         onClear = onClearTaxonFilter,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = compassStripClearance + Spacing.sm),
+                            .padding(top = topInset + compassStripClearance + Spacing.sm),
                     )
                 }
 

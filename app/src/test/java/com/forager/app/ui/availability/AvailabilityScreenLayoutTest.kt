@@ -335,27 +335,40 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 2 — the map does not start above the top app bar.**
+     * **Test 2 — the map fills the full available height on the Map tab, not squeezed by the bar.**
      *
-     * After the map-first fix the tiles were overlapping the (then top) tab row. The clip that
-     * fixed that is osmdroid's business, but the slot's own geometry is this screen's, and if the
-     * slot itself starts above the app bar then no clip can save it. The map redesign removed the
-     * compact top tab row entirely (see [ForagerBottomNav], now at the *bottom* of the screen), so
-     * the app bar is the sibling this regression test now guards against.
+     * Originally guarded against the map rendering above the (then top) tab row — a genuinely
+     * broken clip/ordering bug. That row is long gone (see [ForagerBottomNav], now at the
+     * *bottom* of the screen), and the sibling this test tracked next, [SEARCH_ENTRY_BAR_TAG]
+     * ("the top strip"), stopped being the right invariant too: the search-bar opacity/gap
+     * dispatch made [SearchEntryBar] compose as a real overlay above the map on this tab (its own
+     * 80% fill revealing real map imagery through it, like the compass strip and the two
+     * TrailheadControls pills already do), not a sibling that reserves space above it. So "the
+     * map slot starts below the bar's own bottom edge" is now the wrong thing to assert — the map
+     * is *supposed* to extend underneath it. What this test still needs to catch: the map slot
+     * silently losing height to some sibling claiming space above it the old way, which is why it
+     * now asserts flush-with-root instead of flush-with-the-bar.
      */
     @Test
-    fun `the map slot starts at or below the bottom of the top strip`() {
+    fun `the map slot starts at the top of the screen, not squeezed below the search bar`() {
         setScreen(SEARCHED_STATE)
 
         val mapTop = mapSlotBounds().top
+        val rootTop = rootBounds().top
         val topBottom = topStripBottom()
 
-        println("MEASURED mapTop=$mapTop topStripBottom=$topBottom")
+        println("MEASURED mapTop=$mapTop rootTop=$rootTop topStripBottom=$topBottom")
 
         assertTrue(
-            "The map slot must begin at or below the top strip's bottom edge, but its top is " +
-                "$mapTop and the strip ends at $topBottom — the map's box overlaps it.",
-            mapTop >= topBottom,
+            "The map slot should start flush with the screen's own top edge ($rootTop) now that " +
+                "SearchEntryBar composes as a real overlay above it on the Map tab (opacity/gap " +
+                "dispatch, the owner's own direct call) rather than a sibling that reserves space " +
+                "above it, but its top is $mapTop. The bar's own bottom edge ($topBottom) is no " +
+                "longer the right invariant here: this test used to guard against the map " +
+                "rendering above the (opaque) top app bar, a genuinely broken clip/ordering bug — " +
+                "an intentional, translucent overlap so the bar's 80% fill reveals real map " +
+                "imagery through it is not that bug.",
+            mapTop == rootTop,
         )
     }
 
