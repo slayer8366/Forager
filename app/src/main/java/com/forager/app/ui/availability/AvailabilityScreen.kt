@@ -1181,6 +1181,7 @@ fun AvailabilityScreen(
                 if (!isMapFullscreen) {
                     SearchEntryBar(
                         uiState = uiState,
+                        distanceUnit = distanceUnit,
                         onUseCurrentLocation = {
                             showSearchDropdown = false
                             onUseCurrentLocation()
@@ -1643,6 +1644,7 @@ private fun ActiveSearchSummary(
 @Composable
 private fun SearchEntryBar(
     uiState: AvailabilityUiState,
+    distanceUnit: DistanceUnit,
     onUseCurrentLocation: () -> Unit,
     onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
@@ -1675,6 +1677,7 @@ private fun SearchEntryBar(
                     chipRowModifier = Modifier.padding(horizontal = Spacing.sm),
                     queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG),
                     onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
+                    restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
                 )
             }
         }
@@ -1776,22 +1779,48 @@ private fun SearchDropdown(
                 )
                 .testTag(SEARCH_DROPDOWN_TAG),
         ) {
+            val scrollState = rememberScrollState()
+            // Map/navigation search-UI redo dispatch: "scrolling the drawer dismisses the
+            // keyboard" — the path to reach Month (and everything below it) without the keyboard,
+            // raised by the search bar's own field focus, eating the space this content needs to
+            // scroll into view. clearFocus() rather than a manual IME-hide call: the field is what
+            // holds focus and raised the keyboard in the first place, so releasing it is what
+            // actually lowers the keyboard, the same cause-and-effect Android already wires up.
+            val focusManager = LocalFocusManager.current
+            LaunchedEffect(scrollState.isScrollInProgress) {
+                if (scrollState.isScrollInProgress) focusManager.clearFocus()
+            }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     // Rule 2 above: bounded by the weight(1f) Box this surface is composed into,
                     // not a no-op — see this composable's own doc comment for why a scroll is safe
                     // here despite Understory rule 2 banning it for content over the visible map.
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                // Radius and month promoted out of "Advanced search" to this top level — a normal-
-                // search field a user reaches for on nearly every search doesn't belong a tap deeper
-                // than species/category, the same "normal search, not advanced" reasoning
-                // SpeciesSearchControls above already gets. Only location (set on map/use current/
-                // manual coordinates) stays under Advanced search below — see that section's own doc
-                // comment for why location specifically stays gated.
+                // Location row — map/navigation search-UI redo dispatch: "Set on map" and "Use
+                // current location" promoted out of "Advanced search" up to the drawer's own top
+                // level, same reasoning radius/month already got (a control reached for on nearly
+                // every search doesn't belong a tap deeper). Removed from Advanced search entirely,
+                // not duplicated — Advanced search now holds only "Enter coordinates manually", the
+                // one location path most searches don't need to override. These are actions, not
+                // selections: OutlinedButton/Button, not FilterChip, so they never read as members
+                // of the category-chip row (now in SearchEntryBar, above this drawer entirely).
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    OutlinedButton(onClick = onSetOnMap, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(Spacing.sm))
+                        Text("Set on map")
+                    }
+                    Button(onClick = onUseCurrentLocation, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(Spacing.sm))
+                        Text("Use current location")
+                    }
+                }
+
                 HorizontalDivider()
                 Text(
                     "Search radius: ${formatDistanceKm(uiState.radiusKm, distanceUnit)}",
@@ -1817,19 +1846,6 @@ private fun SearchDropdown(
 
                 HorizontalDivider()
                 CollapsibleSection(title = "Advanced search") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        OutlinedButton(onClick = onSetOnMap, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Filled.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.size(Spacing.sm))
-                            Text("Set on map")
-                        }
-                        Button(onClick = onUseCurrentLocation, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Filled.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.size(Spacing.sm))
-                            Text("Use current location")
-                        }
-                    }
-
                     CollapsibleSection(title = "Enter coordinates manually") {
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             OutlinedTextField(
@@ -3405,6 +3421,16 @@ private fun SpeciesSearchControls(
     chipRowScrollable: Boolean = true,
     queryFieldModifier: Modifier = Modifier,
     onQueryFieldFocusChanged: (Boolean) -> Unit = {},
+    /**
+     * Placeholder text shown while the field is empty **and not focused** — map/navigation
+     * search-UI redo dispatch: the always-present bar reads as the current filter summary
+     * ("Fungi · August · 9 mi") at rest, not a generic hint, so a glance at the collapsed bar
+     * still tells you what's currently searched. Defaults to the same generic hint the field
+     * shows while focused-and-empty, for the two call sites ([AvailabilitySearchTopBar],
+     * [CompactToolsDrawerContent]) that have no such summary to show — only [SearchEntryBar]
+     * passes a real one.
+     */
+    restingPlaceholder: String = "Or search a species",
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Row(
@@ -3428,6 +3454,11 @@ private fun SpeciesSearchControls(
         }
 
         val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty()
+        // Local, not hoisted: purely which of two always-computable placeholder strings to show
+        // while the field is empty, nothing a future session needs to remember — same reasoning
+        // CompassElevationStripContent's own showDecimalDegrees already applies to a similar
+        // display-only toggle.
+        var isQueryFieldFocused by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(
             expanded = suggestionsOpen,
             onExpandedChange = {},
@@ -3437,13 +3468,20 @@ private fun SpeciesSearchControls(
                 value = uiState.taxonSearchQuery,
                 onValueChange = onTaxonSearchQueryChanged,
                 placeholder = {
-                    Text("Or search a species", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        if (isQueryFieldFocused) "Or search a species" else restingPlaceholder,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
                 singleLine = true,
                 modifier = queryFieldModifier
                     .fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
-                    .onFocusChanged { onQueryFieldFocusChanged(it.isFocused) },
+                    .onFocusChanged {
+                        isQueryFieldFocused = it.isFocused
+                        onQueryFieldFocusChanged(it.isFocused)
+                    },
                 trailingIcon = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (uiState.isSearchingTaxa) {
@@ -4240,11 +4278,11 @@ private fun mapIconBarAddAccent(isDarkTheme: Boolean) =
 private fun mapIconBarRecordAccent(isDarkTheme: Boolean) =
     if (isDarkTheme) MapIconBarAccent.RECORD_DARK else MapIconBarAccent.RECORD_LIGHT
 
-/** Translucent background for [CompassElevationStripContent] — dark-theme value unaffected by the icon bar's own opacity history above; this strip sits over the map the same way, but was not reported as illegible in the same hardware pass, so it is deliberately left as-is rather than changed on the strength of a fix aimed at a different element. */
-private val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.78f)
+/** Translucent background for [CompassElevationStripContent] and [SearchDropdown]'s own panel — dark-theme value. Was 0.78, one alpha step off the app's settled 80% map-chrome opacity ([MapIconStackButtonColorDark]'s own value); the map/navigation search-UI redo dispatch names 80% as the one value all map chrome shares, so this now matches rather than carrying its own near-miss. */
+private val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.8f)
 
 /** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
-private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.78f)
+private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.8f)
 
 /**
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
