@@ -340,6 +340,9 @@ class AvailabilityScreenWaypointFlowTest {
         composeRule.onNodeWithContentDescription("Remove waypoint Reachable Waypoint")
             .performScrollTo()
             .performClick()
+        // Journal Stage 2b, 4b: this section gained a confirm dialog (it had none before) so a
+        // deletion warning has somewhere to show — see WaypointsSection's own doc comment.
+        composeRule.onNodeWithText("Delete").performClick()
         composeRule.waitForIdle()
 
         assertEquals(listOf("reachable-waypoint"), deletedWaypointIds)

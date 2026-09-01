@@ -155,8 +155,25 @@ class JournalTabTest {
                 },
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
                 onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
-                // Journal restructure Stage 1's Records tab — this file tests Cartography's own
-                // navigation state, so these are inert fixtures, not exercised by any test below.
+                // Journal Stage 2b: Cartography's own new-entity navigation — this file tests the
+                // relocated Finds section's navigation state instead (see setScreen's own
+                // Records/Finds tap below), so these are inert fixtures, not exercised by any test.
+                cartographyUiState = CartographyUiState(),
+                onOpenCartographyEntry = {},
+                onStartCartographyEntry = {},
+                onCloseCartographyEntry = {},
+                onCartographyTextChanged = {},
+                onCartographyTagsChanged = {},
+                onToggleKeptFind = {},
+                onToggleKeptTrack = {},
+                onToggleKeptWaypoint = {},
+                onToggleKeptOfflineRegion = {},
+                onToggleKeptPhoto = {},
+                onFinishCartographyEntry = {},
+                onDeleteCartographyEntry = {},
+                // Journal restructure Stage 1's Records tab — this file tests the relocated Finds
+                // section's navigation state, so these (besides waypoints/tracks below, unused by
+                // Finds) are inert fixtures, not exercised by any test.
                 availabilityUiState = com.forager.app.ui.availability.AvailabilityUiState(),
                 distanceUnit = com.forager.app.domain.model.DistanceUnit.MILES,
                 currentTime = com.forager.app.domain.CurrentTimeProvider { 0L },
@@ -174,6 +191,11 @@ class JournalTabTest {
                 onDeleteWaypoint = {},
             )
         }
+        // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu —
+        // every test below exercises find-editing navigation, so land there once, here, rather than
+        // repeating this tap in each test.
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Finds").performClick()
     }
 
     @Test

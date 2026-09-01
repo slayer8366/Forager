@@ -330,6 +330,9 @@ class AvailabilityScreenBackNavigationTest {
     fun `back backs out of a Journal entry before switching away from the Journal tab`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
+        // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu.
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Finds").performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
