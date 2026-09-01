@@ -1,7 +1,7 @@
 package com.forager.app.ui.log
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
@@ -90,7 +90,7 @@ internal fun RecordsTab(
     onDeleteOfflineRegion: (Long) -> Unit,
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
-    findsContent: @Composable () -> Unit,
+    findsContent: @Composable ColumnScope.() -> Unit,
     onFindsTabLeft: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -158,7 +158,11 @@ internal fun RecordsTab(
 
             RecordsSubTab.RECORDED_TRACKS -> TrackExportList(tracks = tracks, modifier = Modifier.weight(1f))
 
-            RecordsSubTab.FINDS -> Box(modifier = Modifier.weight(1f)) { findsContent() }
+            // Column, not Box: the relocated find-editing composables (CentrePinLocationPicker,
+            // LogEntryDetailScreen, etc.) each pass themselves Modifier.weight(1f), which only
+            // resolves inside a ColumnScope — see this file's own doc comment on why they were left
+            // exactly as-is rather than unified.
+            RecordsSubTab.FINDS -> Column(modifier = Modifier.weight(1f).fillMaxSize()) { findsContent() }
         }
     }
 }

@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -29,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
@@ -41,6 +43,7 @@ import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.CentrePinLocationPicker
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.theme.Spacing
+import java.time.LocalDate
 
 /**
  * The mushroom log's drawer destination — one of the ModalNavigationDrawer's panels in
@@ -49,20 +52,22 @@ import com.forager.app.ui.theme.Spacing
  *
  * **Two tabs (journal restructure Stage 1), same shell as [JournalTab]'s compact equivalent** —
  * see that composable's own doc comment for the owner's "logbook vs. journal" framing this
- * mirrors. This window class had no Records surface of any kind before Stage 1 (unlike compact,
- * where Waypoints/Offline Maps/Recorded Tracks were at least reachable, just scattered across the
- * Tools drawer and Settings) — `SearchControls`' own Waypoints section and `DrawerPanel`'s
- * `OfflineMaps`/`Tracks` panels were siblings of [Log], not inside it, so giving this panel a
- * Records tab is this window class's first time surfacing them from here at all. [selectedTopTab]
- * is local `remember` state, not a nav destination — this codebase has no navigation library.
+ * mirrors, and for Stage 2b's restructure (Cartography's new [CartographyScreen], Finds relocated
+ * into [RecordsTab]) this panel gained identically. This window class had no Records surface of
+ * any kind before Stage 1 (unlike compact, where Waypoints/Offline Maps/Recorded Tracks were at
+ * least reachable, just scattered across the Tools drawer and Settings) — `SearchControls`' own
+ * Waypoints section and `DrawerPanel`'s `OfflineMaps`/`Tracks` panels were siblings of [Log], not
+ * inside it, so giving this panel a Records tab is this window class's first time surfacing them
+ * from here at all. [selectedTopTab] is local `remember` state, not a nav destination — this
+ * codebase has no navigation library.
  *
- * **Cartography, Stage 1: unchanged content, new wrapper only.** Everything this composable
- * rendered before Stage 1 — [LogEntryListScreen] by default, [LogEntryDetailScreen] once an entry
- * is open, [CentrePinLocationPicker]/[PullPhotoPickerScreen] while placing a location or pulling a
- * photo for it — is exactly what the Cartography tab shows now. Restructuring Cartography's own
- * internals is Stage 2, not built here.
+ * **Finds relocated into Records, working exactly as they did in Cartography before this
+ * dispatch** — [pickingLocationForEditingEntry]/[pullingPhotoForEditingEntry] are unchanged from
+ * Stage 1, just rendered into [RecordsTab]'s `findsContent` slot instead of directly into a
+ * "Cartography" tab. This panel never had a report step (see the "no separate report step" note
+ * below), so its relocated Finds section has no `mode` the way [JournalTab]'s does.
  *
- * [uiState].editingEntry is Cartography's own list/detail navigation state — see
+ * [uiState].editingEntry is the relocated Finds section's own list/detail navigation state — see
  * [MushroomLogUiState]'s doc comment.
  *
  * [mapSlot]/[region]/[basemap] serve two things now: [LogEntryDetailScreen]'s "Add Location"
@@ -74,9 +79,10 @@ import com.forager.app.ui.theme.Spacing
  * via the map's "Log a find" option, so the picker below only ever edits an existing entry's
  * location, never places one for a not-yet-created entry the way it once did.
  *
- * **Switching away from Cartography mid-edit is an incidental exit** — see [JournalTab]'s own doc
- * comment for the same guard, mirrored here: [onLeaveEditingIncidentally] fires before the tab
- * switch takes effect whenever [MushroomLogUiState.editingEntry] is non-null.
+ * **Leaving Records mid-find-edit is an incidental exit** — see [JournalTab]'s own doc comment for
+ * the identical inverted-from-Stage-1 guard, mirrored here: [onLeaveEditingIncidentally] fires
+ * whenever the top-level tab switches away from Records, or [RecordsTab]'s own sub-tab switches
+ * away from Finds, while [MushroomLogUiState.editingEntry] is non-null.
  */
 @Composable
 internal fun LogPanel(
@@ -108,6 +114,26 @@ internal fun LogPanel(
     onBackToSearch: () -> Unit,
     /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — see [MushroomLogViewModel.onSaveErrorDismissed]. */
     onSaveErrorDismissed: () -> Unit,
+    /** Threaded straight through into [CartographyScreen]'s own Album tab — this window class's first time showing it directly (it previously only reached the standalone photo library via `DrawerPanel.PhotoGallery`, a sibling panel, not this one). */
+    galleryPhotos: List<GalleryPhoto> = emptyList(),
+    isLoadingGalleryPhotos: Boolean = false,
+    onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
+    galleryLoadErrorMessage: String? = null,
+    galleryPhotoEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    /** See [CartographyScreen]'s own doc comment for all of the following — Journal Stage 2b's new entity. */
+    cartographyUiState: CartographyUiState,
+    onOpenCartographyEntry: (String) -> Unit,
+    onStartCartographyEntry: (LocalDate) -> Unit,
+    onCloseCartographyEntry: () -> Unit,
+    onCartographyTextChanged: (String) -> Unit,
+    onCartographyTagsChanged: (List<String>) -> Unit,
+    onToggleKeptFind: (String) -> Unit,
+    onToggleKeptTrack: (String) -> Unit,
+    onToggleKeptWaypoint: (String) -> Unit,
+    onToggleKeptOfflineRegion: (Long) -> Unit,
+    onToggleKeptPhoto: (String) -> Unit,
+    onFinishCartographyEntry: () -> Unit,
+    onDeleteCartographyEntry: (String) -> Unit,
     /** See [RecordsTab]'s own doc comment for all of the following — Stage 1's Records tab. */
     availabilityUiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
@@ -151,6 +177,13 @@ internal fun LogPanel(
 
     var selectedTopTab by remember { mutableStateOf(JournalTopTab.CARTOGRAPHY) }
 
+    // See this composable's own doc comment on "leaving Records mid-find-edit" for why this now
+    // guards leaving Records (inverted from Stage 1, which guarded leaving Cartography — finds
+    // lived there then).
+    fun leaveFindEditingIfNeeded() {
+        if (editing != null) onLeaveEditingIncidentally()
+    }
+
     // This panel had no BackHandler before pickers existed — nothing here previously needed to
     // intercept system back, since the drawer's own chrome handled it. Workstream L4b adds the
     // editing != null branch: back out of an open entry (with no picker open) is "leaving without
@@ -166,84 +199,114 @@ internal fun LogPanel(
         }
     }
 
+    // Journal Stage 2b, relocated verbatim from this panel's own former Cartography branch — see
+    // this composable's own doc comment.
+    val findsSection: @Composable ColumnScope.() -> Unit = {
+        if (editing != null && pickingLocationForEditingEntry) {
+            CentrePinLocationPicker(
+                mapSlot = mapSlot,
+                region = region,
+                basemap = basemap,
+                night = night,
+                onConfirm = { location ->
+                    pickingLocationForEditingEntry = false
+                    onEntryChanged(editing.copy(foundAt = location))
+                },
+                onCancel = { pickingLocationForEditingEntry = false },
+                modifier = Modifier.weight(1f),
+            )
+        } else if (editing != null && pullingPhotoForEditingEntry) {
+            PullPhotoPickerScreen(
+                photos = uiState.galleryPhotos,
+                onPhotoSelected = { photo ->
+                    pullingPhotoForEditingEntry = false
+                    onPullPhoto(photo)
+                },
+                modifier = Modifier.weight(1f),
+            )
+        } else if (editing != null) {
+            LogEntryDetailScreen(
+                entry = editing,
+                cameraCaptureFiles = cameraCaptureFiles,
+                onEntryChanged = onEntryChanged,
+                onAddPhoto = onAddPhoto,
+                onRemovePhoto = onRemovePhoto,
+                onPullPhoto = { pullingPhotoForEditingEntry = true },
+                onAddLocation = { pickingLocationForEditingEntry = true },
+                onSave = onSaveEntry,
+                onCancel = onCancelEditing,
+                onDeleteEntry = { onDeleteEntry(editing.id) },
+                onBack = onLeaveEditingIncidentally,
+                modifier = Modifier.weight(1f),
+            )
+        } else {
+            Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                LogEntryListScreen(
+                    entries = uiState.entries,
+                    draftEntries = uiState.draftEntries,
+                    isLoading = uiState.isLoadingEntries,
+                    // This panel has no separate report step (see its own doc comment) —
+                    // opening an entry goes straight to LogEntryDetailScreen above, so it must
+                    // already be a draft by the time that happens. onOpenEntryForEditing is a
+                    // no-op-shaped success for a row already a draft and creates the draft row
+                    // for a committed one — correct for either case on its own, so
+                    // LogEntryListScreen's onOpenDraftEntry can default to this same callback
+                    // (its own default) rather than needing an override here.
+                    onOpenEntry = onOpenEntryForEditing,
+                    modifier = Modifier.weight(1f),
+                    loadErrorMessage = uiState.loadErrorMessage,
+                )
+            }
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         LogHeader(onBack = onBackToSearch)
 
         SecondaryTabRow(selectedTabIndex = selectedTopTab.ordinal) {
             Tab(
                 selected = selectedTopTab == JournalTopTab.CARTOGRAPHY,
-                onClick = { selectedTopTab = JournalTopTab.CARTOGRAPHY },
+                onClick = {
+                    // Leaving Records mid-find-edit for Cartography is an incidental exit — see
+                    // this composable's own doc comment.
+                    leaveFindEditingIfNeeded()
+                    selectedTopTab = JournalTopTab.CARTOGRAPHY
+                },
                 text = { Text("Cartography") },
             )
             Tab(
                 selected = selectedTopTab == JournalTopTab.RECORDS,
-                onClick = {
-                    // Leaving Cartography mid-edit for Records is an incidental exit — see this
-                    // composable's own doc comment.
-                    if (editing != null) onLeaveEditingIncidentally()
-                    selectedTopTab = JournalTopTab.RECORDS
-                },
+                onClick = { selectedTopTab = JournalTopTab.RECORDS },
                 text = { Text("Records") },
             )
         }
 
         when (selectedTopTab) {
-            JournalTopTab.CARTOGRAPHY -> if (editing != null && pickingLocationForEditingEntry) {
-                CentrePinLocationPicker(
-                    mapSlot = mapSlot,
-                    region = region,
-                    basemap = basemap,
-                    night = night,
-                    onConfirm = { location ->
-                        pickingLocationForEditingEntry = false
-                        onEntryChanged(editing.copy(foundAt = location))
-                    },
-                    onCancel = { pickingLocationForEditingEntry = false },
-                    modifier = Modifier.weight(1f),
-                )
-            } else if (editing != null && pullingPhotoForEditingEntry) {
-                PullPhotoPickerScreen(
-                    photos = uiState.galleryPhotos,
-                    onPhotoSelected = { photo ->
-                        pullingPhotoForEditingEntry = false
-                        onPullPhoto(photo)
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-            } else if (editing != null) {
-                LogEntryDetailScreen(
-                    entry = editing,
-                    cameraCaptureFiles = cameraCaptureFiles,
-                    onEntryChanged = onEntryChanged,
-                    onAddPhoto = onAddPhoto,
-                    onRemovePhoto = onRemovePhoto,
-                    onPullPhoto = { pullingPhotoForEditingEntry = true },
-                    onAddLocation = { pickingLocationForEditingEntry = true },
-                    onSave = onSaveEntry,
-                    onCancel = onCancelEditing,
-                    onDeleteEntry = { onDeleteEntry(editing.id) },
-                    onBack = onLeaveEditingIncidentally,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    LogEntryListScreen(
-                        entries = uiState.entries,
-                        draftEntries = uiState.draftEntries,
-                        isLoading = uiState.isLoadingEntries,
-                        // This panel has no separate report step (see its own doc comment) —
-                        // opening an entry goes straight to LogEntryDetailScreen above, so it must
-                        // already be a draft by the time that happens. onOpenEntryForEditing is a
-                        // no-op-shaped success for a row already a draft and creates the draft row
-                        // for a committed one — correct for either case on its own, so
-                        // LogEntryListScreen's onOpenDraftEntry can default to this same callback
-                        // (its own default) rather than needing an override here.
-                        onOpenEntry = onOpenEntryForEditing,
-                        modifier = Modifier.weight(1f),
-                        loadErrorMessage = uiState.loadErrorMessage,
-                    )
-                }
-            }
+            JournalTopTab.CARTOGRAPHY -> CartographyScreen(
+                uiState = cartographyUiState,
+                galleryPhotos = galleryPhotos,
+                isLoadingGalleryPhotos = isLoadingGalleryPhotos,
+                galleryLoadErrorMessage = galleryLoadErrorMessage,
+                galleryPhotoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
+                onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                distanceUnit = distanceUnit,
+                onOpenEntry = onOpenCartographyEntry,
+                onStartEntry = onStartCartographyEntry,
+                onCloseEntry = onCloseCartographyEntry,
+                onTextChanged = onCartographyTextChanged,
+                onTagsChanged = onCartographyTagsChanged,
+                onToggleKeptFind = onToggleKeptFind,
+                onToggleKeptTrack = onToggleKeptTrack,
+                onToggleKeptWaypoint = onToggleKeptWaypoint,
+                onToggleKeptOfflineRegion = onToggleKeptOfflineRegion,
+                onToggleKeptPhoto = onToggleKeptPhoto,
+                onFinishEntry = onFinishCartographyEntry,
+                onDeleteEntry = onDeleteCartographyEntry,
+                // Expanded gets more grid columns, per owner decision #3 ("more of the same thing
+                // at once") — see CartographyScreen's own doc comment.
+                columns = EXPANDED_CARTOGRAPHY_COLUMNS,
+                modifier = Modifier.weight(1f),
+            )
 
             JournalTopTab.RECORDS -> RecordsTab(
                 modifier = Modifier.weight(1f),
@@ -267,6 +330,8 @@ internal fun LogPanel(
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
                 tracks = tracks,
                 onTracksOpened = onTracksOpened,
+                findsContent = findsSection,
+                onFindsTabLeft = ::leaveFindEditingIfNeeded,
             )
         }
     }
@@ -288,3 +353,6 @@ private fun LogHeader(onBack: () -> Unit) {
         Text("Mushroom Log", style = MaterialTheme.typography.titleMedium)
     }
 }
+
+/** 3, not [CartographyEntryListScreen]'s own compact default of 2 — the medium/expanded drawer panel is wider, so "more of the same thing at once" (owner decision #3) means one more grid column, not a different arrangement. */
+private const val EXPANDED_CARTOGRAPHY_COLUMNS = 3

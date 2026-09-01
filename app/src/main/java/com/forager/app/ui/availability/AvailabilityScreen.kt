@@ -229,6 +229,7 @@ import com.forager.app.ui.adaptive.WindowWidthClass
 import com.forager.app.ui.adaptive.currentWindowWidthClass
 import com.forager.app.ui.crash.CrashLogPanel
 import com.forager.app.ui.crash.CrashLogsEntryRow
+import com.forager.app.ui.log.CartographyUiState
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
@@ -470,6 +471,20 @@ fun AvailabilityScreen(
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
     /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
     onSaveLogErrorDismissed: () -> Unit = {},
+    /** Journal Stage 2b's new authored entity — see [com.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
+    cartographyUiState: CartographyUiState = CartographyUiState(),
+    onOpenCartographyEntry: (String) -> Unit = {},
+    onStartCartographyEntry: (LocalDate) -> Unit = {},
+    onCloseCartographyEntry: () -> Unit = {},
+    onCartographyTextChanged: (String) -> Unit = {},
+    onCartographyTagsChanged: (List<String>) -> Unit = {},
+    onToggleKeptFind: (String) -> Unit = {},
+    onToggleKeptTrack: (String) -> Unit = {},
+    onToggleKeptWaypoint: (String) -> Unit = {},
+    onToggleKeptOfflineRegion: (Long) -> Unit = {},
+    onToggleKeptPhoto: (String) -> Unit = {},
+    onFinishCartographyEntry: () -> Unit = {},
+    onDeleteCartographyEntry: (String) -> Unit = {},
     /**
      * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
      * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
@@ -848,6 +863,24 @@ fun AvailabilityScreen(
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
                     onSaveErrorDismissed = onSaveLogErrorDismissed,
+                    galleryPhotos = logUiState.galleryPhotos,
+                    isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
+                    onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                    galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                    galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+                    cartographyUiState = cartographyUiState,
+                    onOpenCartographyEntry = onOpenCartographyEntry,
+                    onStartCartographyEntry = onStartCartographyEntry,
+                    onCloseCartographyEntry = onCloseCartographyEntry,
+                    onCartographyTextChanged = onCartographyTextChanged,
+                    onCartographyTagsChanged = onCartographyTagsChanged,
+                    onToggleKeptFind = onToggleKeptFind,
+                    onToggleKeptTrack = onToggleKeptTrack,
+                    onToggleKeptWaypoint = onToggleKeptWaypoint,
+                    onToggleKeptOfflineRegion = onToggleKeptOfflineRegion,
+                    onToggleKeptPhoto = onToggleKeptPhoto,
+                    onFinishCartographyEntry = onFinishCartographyEntry,
+                    onDeleteCartographyEntry = onDeleteCartographyEntry,
                     // Journal restructure Stage 1: the Records tab's three submenus — see
                     // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
                     // reads its offline-map-specific fields off; distanceUnit/currentTime are the
@@ -1312,6 +1345,22 @@ fun AvailabilityScreen(
                             isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
                             onDeleteGalleryPhoto = onDeleteGalleryPhoto,
                             galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                            galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+                            // Journal Stage 2b: Cartography's own Entries/Drafts/Album — see
+                            // CartographyScreen's own doc comment.
+                            cartographyUiState = cartographyUiState,
+                            onOpenCartographyEntry = onOpenCartographyEntry,
+                            onStartCartographyEntry = onStartCartographyEntry,
+                            onCloseCartographyEntry = onCloseCartographyEntry,
+                            onCartographyTextChanged = onCartographyTextChanged,
+                            onCartographyTagsChanged = onCartographyTagsChanged,
+                            onToggleKeptFind = onToggleKeptFind,
+                            onToggleKeptTrack = onToggleKeptTrack,
+                            onToggleKeptWaypoint = onToggleKeptWaypoint,
+                            onToggleKeptOfflineRegion = onToggleKeptOfflineRegion,
+                            onToggleKeptPhoto = onToggleKeptPhoto,
+                            onFinishCartographyEntry = onFinishCartographyEntry,
+                            onDeleteCartographyEntry = onDeleteCartographyEntry,
                             // Journal restructure Stage 1: the Records tab's three submenus — see
                             // RecordsTab's own doc comment.
                             availabilityUiState = uiState,

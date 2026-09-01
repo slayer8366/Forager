@@ -253,6 +253,7 @@ class MainActivity : ComponentActivity() {
             ForagerTheme(darkTheme = effectiveDarkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
+                val cartographyUiState by cartographyViewModel.uiState.collectAsState()
 
                 // Starts/stops the actual foreground service as a side effect of
                 // TrackRecordingViewModel's own state, mirroring the locateMeStatus LaunchedEffect
@@ -364,6 +365,19 @@ class MainActivity : ComponentActivity() {
                     onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
                     onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
                     onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
+                    cartographyUiState = cartographyUiState,
+                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                    onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                    onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                    onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                    onToggleKeptFind = cartographyViewModel::onToggleKeptFind,
+                    onToggleKeptTrack = cartographyViewModel::onToggleKeptTrack,
+                    onToggleKeptWaypoint = cartographyViewModel::onToggleKeptWaypoint,
+                    onToggleKeptOfflineRegion = cartographyViewModel::onToggleKeptOfflineRegion,
+                    onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                    onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
                         if (trackUiState.isRecording) {
