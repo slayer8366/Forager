@@ -589,17 +589,21 @@ val MIGRATION_9_10: Migration = object : Migration(9, 10) {
 }
 
 /**
- * Journal Stage 2b: adds `cartography_entries` and its four kept-item ref tables
+ * Journal Stage 2b: adds `cartography_entries` and its five kept-item ref tables
  * ([CartographyEntryEntity], [CartographyEntryTrackRefEntity], [CartographyEntryWaypointRefEntity],
- * [CartographyEntryOfflineRegionRefEntity], [CartographyEntryFindRefEntity]) — a brand-new entity
- * family, not a change to any existing table, per `amendment-2b-entry-definition.md`: a Cartography
- * entry is authored, not derived, and [com.forager.app.domain.model.MushroomLogEntry] stays untouched.
+ * [CartographyEntryOfflineRegionRefEntity], [CartographyEntryFindRefEntity],
+ * [CartographyEntryPhotoRefEntity]) — a brand-new entity family, not a change to any existing table,
+ * per `amendment-2b-entry-definition.md`: a Cartography entry is authored, not derived, and
+ * [com.forager.app.domain.model.MushroomLogEntry] stays untouched. The photo-ref table was added after
+ * the rest, per `amendment-2b-optional-writing.md`'s "photo attachment is load-bearing" — amended in
+ * place rather than as a second migration, since nothing built on this one had shipped yet (same
+ * precedent [MIGRATION_8_9]'s own doc comment sets for amending an unreleased migration directly).
  *
  * A real, hand-written migration, not `fallbackToDestructiveMigration()` (release path) — a written
  * entry is exactly as irreplaceable as a log entry or a recorded track, the same reasoning
  * [MIGRATION_3_4]/[MIGRATION_4_5] give.
  *
- * **Pure `CREATE TABLE`, no rebuild** — every one of these five tables is new, so there is nothing to
+ * **Pure `CREATE TABLE`, no rebuild** — every one of these six tables is new, so there is nothing to
  * copy forward and none of the rebuild machinery [MIGRATION_6_7]/[MIGRATION_7_8]/[MIGRATION_8_9]
  * needed applies here — the same shape [MIGRATION_5_6]'s `offline_regions` table used. **Zero
  * `@ForeignKey` anywhere**, per this database's standing rule (see [MushroomLogEntryEntity.offlineRegionId]'s
@@ -686,6 +690,20 @@ val MIGRATION_10_11: Migration = object : Migration(10, 11) {
         db.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_cartography_entry_find_refs_findId` " +
                 "ON `cartography_entry_find_refs` (`findId`)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_photo_refs` (
+            `entryId` TEXT NOT NULL,
+            `photoId` TEXT NOT NULL,
+            `attachedAtEpochMillis` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `photoId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_photo_refs_photoId` " +
+                "ON `cartography_entry_photo_refs` (`photoId`)",
         )
     }
 }

@@ -5,12 +5,14 @@ import com.forager.app.data.local.CartographyEntryEntity
 import com.forager.app.data.local.CartographyEntryEntity.Companion.TAG_DELIMITER
 import com.forager.app.data.local.CartographyEntryFindRefEntity
 import com.forager.app.data.local.CartographyEntryOfflineRegionRefEntity
+import com.forager.app.data.local.CartographyEntryPhotoRefEntity
 import com.forager.app.data.local.CartographyEntryTrackRefEntity
 import com.forager.app.data.local.CartographyEntryWaypointRefEntity
 import com.forager.app.domain.CartographyEntryRepository
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.KeptFindRef
 import com.forager.app.domain.model.KeptOfflineRegionRef
+import com.forager.app.domain.model.KeptPhotoRef
 import com.forager.app.domain.model.KeptTrackRef
 import com.forager.app.domain.model.KeptWaypointRef
 import java.time.LocalDate
@@ -39,6 +41,7 @@ class RoomCartographyEntryRepository(
             waypointRefs = entry.keptWaypoints.map { it.toEntity(entry.id) },
             offlineRegionRefs = entry.keptOfflineRegions.map { it.toEntity(entry.id) },
             findRefs = entry.keptFinds.map { it.toEntity(entry.id) },
+            photoRefs = entry.keptPhotos.map { it.toEntity(entry.id) },
         )
     }
 
@@ -58,6 +61,10 @@ class RoomCartographyEntryRepository(
         dao.countEntriesReferencingOfflineRegion(offlineRegionId)
     }
 
+    override suspend fun countEntriesReferencingPhoto(photoId: String): Result<Int> = runCatchingCancellable {
+        dao.countEntriesReferencingPhoto(photoId)
+    }
+
     private suspend fun CartographyEntryEntity.toDomain(): CartographyEntry = CartographyEntry(
         id = id,
         date = LocalDate.parse(date),
@@ -69,6 +76,7 @@ class RoomCartographyEntryRepository(
         keptTracks = dao.getTrackRefs(id).map { it.toDomain() },
         keptWaypoints = dao.getWaypointRefs(id).map { it.toDomain() },
         keptOfflineRegions = dao.getOfflineRegionRefs(id).map { it.toDomain() },
+        keptPhotos = dao.getPhotoRefs(id).map { it.toDomain() },
     )
 }
 
@@ -143,4 +151,15 @@ private fun CartographyEntryFindRefEntity.toDomain() = KeptFindRef(
     foundOn = LocalDate.parse(foundOn),
     ownIdentification = ownIdentification,
     hasPhotos = hasPhotos,
+)
+
+private fun KeptPhotoRef.toEntity(entryId: String) = CartographyEntryPhotoRefEntity(
+    entryId = entryId,
+    photoId = photoId,
+    attachedAtEpochMillis = attachedAtEpochMillis,
+)
+
+private fun CartographyEntryPhotoRefEntity.toDomain() = KeptPhotoRef(
+    photoId = photoId,
+    attachedAtEpochMillis = attachedAtEpochMillis,
 )

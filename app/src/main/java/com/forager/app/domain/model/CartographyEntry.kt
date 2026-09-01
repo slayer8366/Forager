@@ -46,6 +46,14 @@ data class CartographyEntry(
     val keptTracks: List<KeptTrackRef>,
     val keptWaypoints: List<KeptWaypointRef>,
     val keptOfflineRegions: List<KeptOfflineRegionRef>,
+    /**
+     * Standalone [GalleryPhoto]s manually attached to this entry — `amendment-2b-optional-writing.md`:
+     * "attachment remains a user action, never automatic," the same rule [MushroomLogEntry]'s own
+     * photo attachment already follows. Not a bare id list, on reconsideration — see
+     * [com.forager.app.data.local.CartographyEntryPhotoRefEntity]'s own doc comment for why a photo
+     * still needs *something* snapshotted even though it is neither text nor a map drawing.
+     */
+    val keptPhotos: List<KeptPhotoRef> = emptyList(),
 ) {
     companion object {
         /** A freshly-started, unwritten entry for [date] — every kept-item list empty, [isDraft] always `true`. Mirrors [MushroomLogEntry.draft]'s own shape: persisted immediately by its use case, not held only in memory. */
@@ -60,6 +68,7 @@ data class CartographyEntry(
             keptTracks = emptyList(),
             keptWaypoints = emptyList(),
             keptOfflineRegions = emptyList(),
+            keptPhotos = emptyList(),
         )
     }
 }
@@ -96,4 +105,10 @@ data class KeptOfflineRegionRef(
     val lat: Double,
     val lng: Double,
     val radiusKm: Int,
+)
+
+/** A kept photo's own minimal snapshot — [attachedAtEpochMillis] is when the user attached it, not [LogPhoto.createdAtEpochMillis]. See [com.forager.app.data.local.CartographyEntryPhotoRefEntity]'s own doc comment for why this exists at all. */
+data class KeptPhotoRef(
+    val photoId: String,
+    val attachedAtEpochMillis: Long,
 )

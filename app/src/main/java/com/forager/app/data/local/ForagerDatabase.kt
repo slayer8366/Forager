@@ -131,6 +131,7 @@ import com.forager.app.BuildConfig
         CartographyEntryWaypointRefEntity::class,
         CartographyEntryOfflineRegionRefEntity::class,
         CartographyEntryFindRefEntity::class,
+        CartographyEntryPhotoRefEntity::class,
     ],
     version = 11,
     exportSchema = true,

@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
                     container.getGalleryPhotosUseCase,
                     container.pullPhotoIntoEntryUseCase,
                     container.deleteGalleryPhotoUseCase,
+                    getPhotoEntryReferenceCount = { id -> container.getEntryReferenceCountUseCase.forPhoto(id).getOrDefault(0) },
                 )
             }
         }

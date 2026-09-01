@@ -154,6 +154,8 @@ class MushroomLogViewModel(
     private val getGalleryPhotos: GetGalleryPhotosUseCase,
     private val pullPhotoIntoEntry: PullPhotoIntoEntryUseCase,
     private val deleteGalleryPhoto: DeleteGalleryPhotoUseCase,
+    /** How many Cartography entries currently keep a photo attached — Journal Stage 2b's 4b deletion warning, extended to photos. Plain suspend function rather than the whole Cartography repository — see `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why. */
+    private val getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -219,6 +221,10 @@ class MushroomLogViewModel(
             getGalleryPhotos().fold(
                 onSuccess = { photos ->
                     _uiState.update { it.copy(galleryPhotos = photos, isLoadingGalleryPhotos = false) }
+                    // One query per photo — see TrackRecordingViewModel.loadWaypoints' identical
+                    // choice for why this scale doesn't need a batched read.
+                    val counts = photos.associate { it.photo.id to getPhotoEntryReferenceCount(it.photo.id) }
+                    _uiState.update { it.copy(cartographyEntryPhotoReferenceCounts = counts) }
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't load the photo gallery.", error)

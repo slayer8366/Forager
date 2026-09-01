@@ -31,4 +31,7 @@ interface CartographyEntryRepository {
 
     /** How many entries currently keep a reference to offline region [offlineRegionId] — the count behind Records' 4b deletion warning. */
     suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Result<Int>
+
+    /** How many entries currently keep [photoId] attached — [PhotoGalleryScreen]'s own deletion warning, per the owner's own 4b extension (a photo can carry a wordless entry, so its deletion deserves the same warning tracks/waypoints/regions get). */
+    suspend fun countEntriesReferencingPhoto(photoId: String): Result<Int>
 }

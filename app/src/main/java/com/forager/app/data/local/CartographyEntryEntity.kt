@@ -111,3 +111,35 @@ data class CartographyEntryFindRefEntity(
     val ownIdentification: String?,
     val hasPhotos: Boolean,
 )
+
+/**
+ * One manually-attached standalone photo — `amendment-2b-optional-writing.md`: "standalone photos,
+ * attached manually, are what make a wordless entry possible... treat photo attachment as
+ * load-bearing for the entry surface."
+ *
+ * **Not a pure reference, on reconsideration.** A photo is neither text nor something drawn on a
+ * map, so the snapshot rule's own two cases don't name it directly — but a wordless entry can
+ * consist mostly of attached photos, so a bare `(entryId, photoId)` row would let deleting a
+ * [com.forager.app.domain.model.GalleryPhoto] silently gut such an entry with no explanation, exactly
+ * the failure the snapshot rule exists to prevent. [attachedAtEpochMillis] — when the user attached
+ * it, not [com.forager.app.domain.model.LogPhoto.createdAtEpochMillis], which can be `null` for a
+ * migrated photo — is the minimum that lets the entry say "a photo was attached here on this date, no
+ * longer available" rather than a dangling id that resolves to nothing. Same composite-key shape as
+ * [com.forager.app.data.local.LogEntryPhotoCrossRef] (`log_entry_photos`), the existing many-to-many
+ * entry-photo precedent this mirrors, just for [CartographyEntryEntity] instead of
+ * [MushroomLogEntryEntity] and with this one snapshot column that precedent doesn't carry.
+ *
+ * Also behind 4b's deletion warning now, alongside track/waypoint/offline-region — see
+ * [com.forager.app.domain.CartographyEntryRepository.countEntriesReferencingPhoto] and
+ * [com.forager.app.ui.log.PhotoGalleryScreen]'s own confirm dialog.
+ */
+@Entity(
+    tableName = "cartography_entry_photo_refs",
+    primaryKeys = ["entryId", "photoId"],
+    indices = [Index(value = ["photoId"])],
+)
+data class CartographyEntryPhotoRefEntity(
+    val entryId: String,
+    val photoId: String,
+    val attachedAtEpochMillis: Long,
+)

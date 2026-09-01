@@ -36,6 +36,9 @@ abstract class CartographyEntryDao {
     @Query("SELECT * FROM cartography_entry_find_refs WHERE entryId = :entryId")
     abstract suspend fun getFindRefs(entryId: String): List<CartographyEntryFindRefEntity>
 
+    @Query("SELECT * FROM cartography_entry_photo_refs WHERE entryId = :entryId")
+    abstract suspend fun getPhotoRefs(entryId: String): List<CartographyEntryPhotoRefEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun upsertEntry(entity: CartographyEntryEntity)
 
@@ -51,6 +54,9 @@ abstract class CartographyEntryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertFindRefs(refs: List<CartographyEntryFindRefEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun insertPhotoRefs(refs: List<CartographyEntryPhotoRefEntity>)
+
     @Query("DELETE FROM cartography_entry_track_refs WHERE entryId = :entryId")
     abstract suspend fun deleteTrackRefsForEntry(entryId: String)
 
@@ -62,6 +68,9 @@ abstract class CartographyEntryDao {
 
     @Query("DELETE FROM cartography_entry_find_refs WHERE entryId = :entryId")
     abstract suspend fun deleteFindRefsForEntry(entryId: String)
+
+    @Query("DELETE FROM cartography_entry_photo_refs WHERE entryId = :entryId")
+    abstract suspend fun deletePhotoRefsForEntry(entryId: String)
 
     @Query("DELETE FROM cartography_entries WHERE id = :id")
     abstract suspend fun deleteEntryById(id: String)
@@ -79,25 +88,29 @@ abstract class CartographyEntryDao {
         waypointRefs: List<CartographyEntryWaypointRefEntity>,
         offlineRegionRefs: List<CartographyEntryOfflineRegionRefEntity>,
         findRefs: List<CartographyEntryFindRefEntity>,
+        photoRefs: List<CartographyEntryPhotoRefEntity>,
     ) {
         upsertEntry(entity)
         deleteTrackRefsForEntry(entity.id)
         deleteWaypointRefsForEntry(entity.id)
         deleteOfflineRegionRefsForEntry(entity.id)
         deleteFindRefsForEntry(entity.id)
+        deletePhotoRefsForEntry(entity.id)
         insertTrackRefs(trackRefs)
         insertWaypointRefs(waypointRefs)
         insertOfflineRegionRefs(offlineRegionRefs)
         insertFindRefs(findRefs)
+        insertPhotoRefs(photoRefs)
     }
 
-    /** Removes an entry's own row and all four of its kept-item ref tables' rows for it. */
+    /** Removes an entry's own row and all five of its kept-item ref tables' rows for it. */
     @Transaction
     open suspend fun deleteEntryAndRefs(id: String) {
         deleteTrackRefsForEntry(id)
         deleteWaypointRefsForEntry(id)
         deleteOfflineRegionRefsForEntry(id)
         deleteFindRefsForEntry(id)
+        deletePhotoRefsForEntry(id)
         deleteEntryById(id)
     }
 
@@ -109,4 +122,7 @@ abstract class CartographyEntryDao {
 
     @Query("SELECT COUNT(*) FROM cartography_entry_offline_region_refs WHERE offlineRegionId = :offlineRegionId")
     abstract suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM cartography_entry_photo_refs WHERE photoId = :photoId")
+    abstract suspend fun countEntriesReferencingPhoto(photoId: String): Int
 }

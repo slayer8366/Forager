@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 11,
-    "identityHash": "229f6d7cfca2aa323aaf775fa2b25b05",
+    "identityHash": "b3b1391394d25547a75948469e766157",
     "entities": [
       {
         "tableName": "planned_trips",
@@ -1048,11 +1048,53 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_cartography_entry_find_refs_findId` ON `${TABLE_NAME}` (`findId`)"
           }
         ]
+      },
+      {
+        "tableName": "cartography_entry_photo_refs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `photoId` TEXT NOT NULL, `attachedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`entryId`, `photoId`))",
+        "fields": [
+          {
+            "fieldPath": "entryId",
+            "columnName": "entryId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photoId",
+            "columnName": "photoId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attachedAtEpochMillis",
+            "columnName": "attachedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "entryId",
+            "photoId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_cartography_entry_photo_refs_photoId",
+            "unique": false,
+            "columnNames": [
+              "photoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_cartography_entry_photo_refs_photoId` ON `${TABLE_NAME}` (`photoId`)"
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '229f6d7cfca2aa323aaf775fa2b25b05')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b3b1391394d25547a75948469e766157')"
     ]
   }
 }

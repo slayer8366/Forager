@@ -48,4 +48,6 @@ data class MushroomLogUiState(
     val galleryPhotos: List<GalleryPhoto> = emptyList(),
     val isLoadingGalleryPhotos: Boolean = false,
     val galleryLoadErrorMessage: String? = null,
+    /** How many Cartography entries currently keep each photo (by id) attached — Journal Stage 2b's 4b deletion warning, extended to photos per the owner's own reasoning (a wordless entry can consist mostly of attached photos). Loaded alongside [galleryPhotos]. */
+    val cartographyEntryPhotoReferenceCounts: Map<String, Int> = emptyMap(),
 )

@@ -65,6 +65,8 @@ internal fun PhotoGalleryScreen(
     modifier: Modifier = Modifier,
     /** Set when the last load failed — see [LogGalleryScreen]'s identical parameter for why this never hides [photos] already showing, only shown when there is nothing to show because the read failed. */
     loadErrorMessage: String? = null,
+    /** How many Cartography entries currently keep each photo (by id) attached — Journal Stage 2b's 4b deletion warning, extended to photos. Shown in [GalleryPhotoTile]'s own confirm dialog alongside the existing find-reference count. */
+    cartographyEntryReferenceCounts: Map<String, Int> = emptyMap(),
 ) {
     if (isLoading && photos.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -98,14 +100,23 @@ internal fun PhotoGalleryScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             items(photos, key = { it.photo.id }) { galleryPhoto ->
-                GalleryPhotoTile(galleryPhoto, onDelete = { onDeletePhoto(galleryPhoto) })
+                GalleryPhotoTile(
+                    galleryPhoto,
+                    onDelete = { onDeletePhoto(galleryPhoto) },
+                    cartographyEntryCount = cartographyEntryReferenceCounts[galleryPhoto.photo.id] ?: 0,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+private fun GalleryPhotoTile(
+    galleryPhoto: GalleryPhoto,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    cartographyEntryCount: Int = 0,
+) {
     var confirmingDelete by remember(galleryPhoto.photo.id) { mutableStateOf(false) }
 
     Card(
@@ -140,16 +151,27 @@ private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, onDelete: () -> Unit, m
             title = { Text("Delete this photo?") },
             text = {
                 Text(
-                    // No entries-count line for an unreferenced photo (owner decision, 2026-08-22:
-                    // "if nothing references it, no warning is needed") — there is nothing for the
-                    // count to warn about at zero. Still a confirmation either way: deletion is
-                    // irreversible regardless of how many entries are affected.
-                    if (referencedCount > 0) {
-                        "This photo is used in $referencedCount ${if (referencedCount == 1) "entry" else "entries"}. " +
-                            "Deleting it will remove it from ${if (referencedCount == 1) "that entry" else "all of them"} too."
-                    } else {
-                        "This photo isn't used in any entry."
-                    },
+                    // No count line at all for a photo referenced by neither a find nor a
+                    // Cartography entry (owner decision, 2026-08-22: "if nothing references it, no
+                    // warning is needed") — there is nothing to warn about at zero either way.
+                    buildList {
+                        if (referencedCount > 0) {
+                            add(
+                                "This photo is used in $referencedCount ${if (referencedCount == 1) "entry" else "entries"}. " +
+                                    "Deleting it will remove it from ${if (referencedCount == 1) "that entry" else "all of them"} too.",
+                            )
+                        }
+                        if (cartographyEntryCount > 0) {
+                            // Journal Stage 2b, 4b extended to photos: a wordless entry can consist
+                            // mostly of attached photos, so this deserves the same warning
+                            // track/waypoint/offline-region deletion gets. No permanence claim — see
+                            // OfflineRegionsSection's identical dialog for why.
+                            add(
+                                "This photo appears in $cartographyEntryCount ${if (cartographyEntryCount == 1) "journal entry" else "journal entries"}.",
+                            )
+                        }
+                        if (isEmpty()) add("This photo isn't used in any entry.")
+                    }.joinToString(" "),
                 )
             },
             confirmButton = {

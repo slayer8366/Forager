@@ -16,6 +16,7 @@ import com.forager.app.domain.SaveCartographyEntryUseCase
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.KeptFindRef
 import com.forager.app.domain.model.KeptOfflineRegionRef
+import com.forager.app.domain.model.KeptPhotoRef
 import com.forager.app.domain.model.KeptTrackRef
 import com.forager.app.domain.model.KeptWaypointRef
 import com.forager.app.domain.model.MushroomLogEntry
@@ -64,6 +65,8 @@ class CartographyViewModel(
     private val getDerivedTrip: GetDerivedTripUseCase,
     private val getTripReportOfflineRegions: GetTripReportOfflineRegionsUseCase,
     private val computeTrackStatistics: ComputeTrackStatisticsUseCase,
+    /** Injected so a test can fix when a photo attachment is stamped — same reasoning as every other `now`/`currentTime` provider in this codebase. */
+    private val now: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CartographyUiState())
@@ -191,6 +194,18 @@ class CartographyViewModel(
         }
         val candidate = state.candidatesForEditingEntry?.waypoints?.firstOrNull { it.id == waypointId } ?: return
         persist(entry.copy(keptWaypoints = entry.keptWaypoints + candidate.toKeptRef()))
+    }
+
+    /** Attaches or detaches [photoId] (from the standalone photo library) — see [CartographyEntry.keptPhotos]'s own doc comment. No candidate lookup needed either direction: unlike the other three toggles, a photo id alone is enough to attach it, stamped with [now]. */
+    fun onToggleKeptPhoto(photoId: String) {
+        val entry = _uiState.value.editingEntry ?: return
+        persist(
+            if (entry.keptPhotos.any { it.photoId == photoId }) {
+                entry.copy(keptPhotos = entry.keptPhotos.filterNot { it.photoId == photoId })
+            } else {
+                entry.copy(keptPhotos = entry.keptPhotos + KeptPhotoRef(photoId = photoId, attachedAtEpochMillis = now()))
+            },
+        )
     }
 
     fun onToggleKeptOfflineRegion(offlineRegionId: Long) {
