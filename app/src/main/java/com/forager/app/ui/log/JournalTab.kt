@@ -256,7 +256,7 @@ internal fun JournalTab(
                 modifier = Modifier.weight(1f),
             )
 
-            else -> LogGalleryScreen(
+            else -> FindsGalleryScreen(
                 entries = uiState.entries,
                 draftEntries = uiState.draftEntries,
                 isLoading = uiState.isLoadingEntries,
@@ -278,16 +278,6 @@ internal fun JournalTab(
                 },
                 modifier = Modifier.weight(1f),
                 loadErrorMessage = uiState.loadErrorMessage,
-                // LogGalleryScreen's own embedded Album tab, unmodified — "relocate the existing
-                // gallery, working as it does today" (amendment-2b-finds-and-trash.md). A second,
-                // independent path to the same GalleryPhoto data CartographyScreen's own Album
-                // submenu also shows: both amendments are explicit and neither one's instruction
-                // cancels the other, so this is deliberate duplication, not an oversight — flagged
-                // in this dispatch's own closing disclosure.
-                photos = galleryPhotos,
-                isLoadingPhotos = isLoadingGalleryPhotos,
-                onDeletePhoto = onDeleteGalleryPhoto,
-                photosLoadErrorMessage = galleryLoadErrorMessage,
             )
         }
     }

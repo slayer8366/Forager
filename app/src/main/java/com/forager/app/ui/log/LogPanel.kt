@@ -74,8 +74,8 @@ import java.time.LocalDate
  * picker (Workstream L4, `docs/plans/pr26-rework.md`) as before, and the Records tab's own Offline
  * Maps region picker (Stage 1) — [JournalTab]'s own identical dual use, mirrored here since both
  * composables render the same [LogEntryDetailScreen]/[RecordsTab]. This window class has no
- * entry-creation entry point of its own (`LogEntryListScreen`, this panel's list state, has no "+"
- * tile — see that composable's own doc comment); an entry only ever arrives here already created,
+ * entry-creation entry point of its own ([FindsGalleryScreen], this panel's list state, gets no
+ * `onAddEntry` here — see that composable's own doc comment); an entry only ever arrives here already created,
  * via the map's "Log a find" option, so the picker below only ever edits an existing entry's
  * location, never places one for a not-yet-created entry the way it once did.
  *
@@ -241,7 +241,7 @@ internal fun LogPanel(
             )
         } else {
             Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                LogEntryListScreen(
+                FindsGalleryScreen(
                     entries = uiState.entries,
                     draftEntries = uiState.draftEntries,
                     isLoading = uiState.isLoadingEntries,
@@ -250,11 +250,15 @@ internal fun LogPanel(
                     // already be a draft by the time that happens. onOpenEntryForEditing is a
                     // no-op-shaped success for a row already a draft and creates the draft row
                     // for a committed one — correct for either case on its own, so
-                    // LogEntryListScreen's onOpenDraftEntry can default to this same callback
+                    // FindsGalleryScreen's onOpenDraftEntry can default to this same callback
                     // (its own default) rather than needing an override here.
                     onOpenEntry = onOpenEntryForEditing,
                     modifier = Modifier.weight(1f),
                     loadErrorMessage = uiState.loadErrorMessage,
+                    // No onAddEntry here, matching this panel's former list shape: the expanded
+                    // window starts a new find via the map's "Log a find" flow, not a tile inside
+                    // this list — see FindsGalleryScreen's own doc comment on its onAddEntry param.
+                    columns = EXPANDED_GRID_COLUMNS,
                 )
             }
         }
@@ -304,7 +308,7 @@ internal fun LogPanel(
                 onDeleteEntry = onDeleteCartographyEntry,
                 // Expanded gets more grid columns, per owner decision #3 ("more of the same thing
                 // at once") — see CartographyScreen's own doc comment.
-                columns = EXPANDED_CARTOGRAPHY_COLUMNS,
+                columns = EXPANDED_GRID_COLUMNS,
                 modifier = Modifier.weight(1f),
             )
 
@@ -355,4 +359,4 @@ private fun LogHeader(onBack: () -> Unit) {
 }
 
 /** 3, not [CartographyEntryListScreen]'s own compact default of 2 — the medium/expanded drawer panel is wider, so "more of the same thing at once" (owner decision #3) means one more grid column, not a different arrangement. */
-private const val EXPANDED_CARTOGRAPHY_COLUMNS = 3
+private const val EXPANDED_GRID_COLUMNS = 3

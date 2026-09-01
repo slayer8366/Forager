@@ -36,21 +36,21 @@ import com.forager.app.ui.track.TrackExportList
  * Cartography** — override text: "the override is for the move, not for Records generally." None
  * of the four screens' own content changed — only where they're reached from.
  *
- * **[findsContent] is a slot, not inlined logic.** Compact and expanded kept their own,
- * genuinely different find-browsing/editing shapes (a report-then-edit two-step via
- * [LogGalleryScreen] for compact, straight-to-edit via [LogEntryListScreen] for expanded) — see
- * `amendment-2b-finds-and-trash.md`'s own two-things-that-will-bite note and the override's exact
- * limits; unifying those two shapes was section 1's original ask before the amendment narrowed it
- * to "relocate ... working as it does today." [JournalTab]/[LogPanel] each still own their find-
- * editing state (mode, pickers) exactly as before, just render it into this tab's fourth slot now
- * instead of directly into a "Cartography" tab. [onFindsTabLeft] fires whenever [selectedTab]
- * changes away from [RecordsSubTab.FINDS] to a sibling sub-tab — the same "leaving mid-edit is an
- * incidental exit" signal [JournalTab]'s own top-level tab switch already sent before finds moved
- * here; now that finds live *inside* Records, switching among Records' own sub-tabs can interrupt
- * an edit too, a scenario that didn't exist before this move.
+ * **[findsContent] is a slot, not inlined logic.** Compact and expanded each render this same
+ * fourth slot as a report-then-edit two-step ([JournalTab]) or straight-to-edit ([LogPanel]) when
+ * an entry is open — that per-window difference is real and stays — but when nothing is open, both
+ * now host the identical [FindsGalleryScreen] (Stage 2b follow-up dispatch, point 1, "restore the
+ * unify" — see that composable's own doc comment for why the two window classes had briefly
+ * diverged onto genuinely different browsing screens, and why this reunifies them). [JournalTab]/
+ * [LogPanel] each still own their find-editing state (mode, pickers) exactly as before, just render
+ * it into this tab's fourth slot now instead of directly into a "Cartography" tab. [onFindsTabLeft]
+ * fires whenever [selectedTab] changes away from [RecordsSubTab.FINDS] to a sibling sub-tab — the
+ * same "leaving mid-edit is an incidental exit" signal [JournalTab]'s own top-level tab switch
+ * already sent before finds moved here; now that finds live *inside* Records, switching among
+ * Records' own sub-tabs can interrupt an edit too, a scenario that didn't exist before this move.
  *
- * Follows this app's one existing nested-tab precedent, [LogGalleryScreen]'s
- * `SecondaryTabRow`/`LogGalleryTab` — this codebase has no navigation library (no `NavHost`, no
+ * Follows this app's one existing nested-tab precedent, [FindsGalleryScreen]'s
+ * `SecondaryTabRow`/`FindsGalleryTab` — this codebase has no navigation library (no `NavHost`, no
  * `NavController`), so, like every other "route" in this app, [RecordsSubTab] is a private enum
  * plus local `remember` state, not a real navigation destination.
  *
