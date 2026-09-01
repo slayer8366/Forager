@@ -587,3 +587,105 @@ val MIGRATION_9_10: Migration = object : Migration(9, 10) {
         )
     }
 }
+
+/**
+ * Journal Stage 2b: adds `cartography_entries` and its four kept-item ref tables
+ * ([CartographyEntryEntity], [CartographyEntryTrackRefEntity], [CartographyEntryWaypointRefEntity],
+ * [CartographyEntryOfflineRegionRefEntity], [CartographyEntryFindRefEntity]) — a brand-new entity
+ * family, not a change to any existing table, per `amendment-2b-entry-definition.md`: a Cartography
+ * entry is authored, not derived, and [com.forager.app.domain.model.MushroomLogEntry] stays untouched.
+ *
+ * A real, hand-written migration, not `fallbackToDestructiveMigration()` (release path) — a written
+ * entry is exactly as irreplaceable as a log entry or a recorded track, the same reasoning
+ * [MIGRATION_3_4]/[MIGRATION_4_5] give.
+ *
+ * **Pure `CREATE TABLE`, no rebuild** — every one of these five tables is new, so there is nothing to
+ * copy forward and none of the rebuild machinery [MIGRATION_6_7]/[MIGRATION_7_8]/[MIGRATION_8_9]
+ * needed applies here — the same shape [MIGRATION_5_6]'s `offline_regions` table used. **Zero
+ * `@ForeignKey` anywhere**, per this database's standing rule (see [MushroomLogEntryEntity.offlineRegionId]'s
+ * own doc comment) — every kept-item ref column is a plain, unconstrained, indexed id.
+ */
+val MIGRATION_10_11: Migration = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entries` (
+            `id` TEXT NOT NULL,
+            `date` TEXT NOT NULL,
+            `text` TEXT NOT NULL,
+            `tags` TEXT NOT NULL,
+            `isDraft` INTEGER NOT NULL,
+            `updatedAtEpochMillis` INTEGER NOT NULL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_date` ON `cartography_entries` (`date`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_isDraft` ON `cartography_entries` (`isDraft`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_track_refs` (
+            `entryId` TEXT NOT NULL,
+            `trackId` TEXT NOT NULL,
+            `name` TEXT,
+            `distanceMeters` REAL NOT NULL,
+            `durationMillis` INTEGER NOT NULL,
+            `pointCount` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `trackId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_track_refs_trackId` " +
+                "ON `cartography_entry_track_refs` (`trackId`)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_waypoint_refs` (
+            `entryId` TEXT NOT NULL,
+            `waypointId` TEXT NOT NULL,
+            `name` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            PRIMARY KEY(`entryId`, `waypointId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_waypoint_refs_waypointId` " +
+                "ON `cartography_entry_waypoint_refs` (`waypointId`)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_offline_region_refs` (
+            `entryId` TEXT NOT NULL,
+            `offlineRegionId` INTEGER NOT NULL,
+            `name` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `radiusKm` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `offlineRegionId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_offline_region_refs_offlineRegionId` " +
+                "ON `cartography_entry_offline_region_refs` (`offlineRegionId`)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_find_refs` (
+            `entryId` TEXT NOT NULL,
+            `findId` TEXT NOT NULL,
+            `foundOn` TEXT NOT NULL,
+            `ownIdentification` TEXT,
+            `hasPhotos` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `findId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_find_refs_findId` " +
+                "ON `cartography_entry_find_refs` (`findId`)",
+        )
+    }
+}
