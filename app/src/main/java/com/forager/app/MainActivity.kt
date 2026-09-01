@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity() {
                     container.distanceUnitPreferenceRepository,
                     container.appThemePreferenceRepository,
                     container.getTodaysForecastUseCase,
+                    getOfflineRegionReferenceCount = { id -> container.getEntryReferenceCountUseCase.forOfflineRegion(id).getOrDefault(0) },
                 )
             }
         }
@@ -133,6 +134,7 @@ class MainActivity : ComponentActivity() {
                     container.locationTracker,
                     container.getTracksUseCase,
                     androidErrorLog,
+                    getWaypointReferenceCount = { id -> container.getEntryReferenceCountUseCase.forWaypoint(id).getOrDefault(0) },
                 )
             }
         }
@@ -391,6 +393,7 @@ class MainActivity : ComponentActivity() {
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     waypoints = trackUiState.waypoints,
                     waypointsErrorMessage = trackUiState.waypointsErrorMessage,
+                    waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
                     onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
                     returnToStart = trackUiState.returnToStart,

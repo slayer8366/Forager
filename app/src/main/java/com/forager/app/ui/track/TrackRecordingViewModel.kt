@@ -89,6 +89,15 @@ class TrackRecordingViewModel(
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
     /** Injected so a test can fix the off-track alert cooldown's clock — see [returnToStart]'s own doc comment. */
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
+    /**
+     * How many Cartography entries currently keep a reference to a waypoint — Journal Stage 2b's
+     * 4b deletion warning. A plain suspend function rather than threading the whole
+     * `CartographyEntryRepository`/`GetEntryReferenceCountUseCase` in: this ViewModel needs exactly
+     * one query from that surface, and a function type keeps this constructor (and every existing
+     * test's fixture) from having to stand up a Cartography repository just to construct it. Defaults
+     * to always reporting zero, matching every other optional dependency here.
+     */
+    private val getWaypointReferenceCount: suspend (String) -> Int = { 0 },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -225,7 +234,15 @@ class TrackRecordingViewModel(
     fun loadWaypoints() {
         viewModelScope.launch {
             getWaypoints()
-                .onSuccess { waypoints -> _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null) } }
+                .onSuccess { waypoints ->
+                    _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null) }
+                    // A handful of rows at most (see this list's own empty-state copy) — one query
+                    // per waypoint is simpler than a batched read this table has no precedent for,
+                    // and cheap at this scale. See TrackRecordingUiState.waypointEntryReferenceCounts'
+                    // own doc comment for what this feeds.
+                    val counts = waypoints.associate { it.id to getWaypointReferenceCount(it.id) }
+                    _uiState.update { it.copy(waypointEntryReferenceCounts = counts) }
+                }
                 .onFailure { error ->
                     errorLog.w(TAG, "Couldn't load waypoints.", error)
                     _uiState.update { it.copy(waypointsErrorMessage = "Couldn't load waypoints.") }

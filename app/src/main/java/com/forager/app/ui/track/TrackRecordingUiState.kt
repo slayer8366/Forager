@@ -28,6 +28,8 @@ data class TrackRecordingUiState(
     val breadcrumbPoints: List<TrackPoint> = emptyList(),
     val waypoints: List<Waypoint> = emptyList(),
     val waypointsErrorMessage: String? = null,
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [waypoints]; a waypoint missing from this map has never been counted, treated as zero the same as an explicit zero. */
+    val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /**
      * Whether the walker has said they're now heading back, distinct from [isRecording] — outbound
      * travel is never "off track" (you're the one making the track), so

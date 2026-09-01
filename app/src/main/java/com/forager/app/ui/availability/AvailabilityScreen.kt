@@ -504,6 +504,8 @@ fun AvailabilityScreen(
     waypoints: List<Waypoint> = emptyList(),
     /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
     waypointsErrorMessage: String? = null,
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in [WaypointsSection]'s own confirm dialog. */
+    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** Called with the placed location and the confirmed name when "Drop a waypoint" is chosen from [ThreeWayActionDialog] — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
@@ -865,6 +867,7 @@ fun AvailabilityScreen(
                     waypoints = waypoints,
                     waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
+                    waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                 )
             }
 
@@ -1326,6 +1329,7 @@ fun AvailabilityScreen(
                             waypoints = waypoints,
                             waypointsErrorMessage = waypointsErrorMessage,
                             onDeleteWaypoint = onDeleteWaypoint,
+                            waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                             modifier = Modifier.fillMaxSize(),
                         )
                         // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
@@ -2534,6 +2538,7 @@ internal fun OfflineMapsPanel(
             distanceUnit = distanceUnit,
             nowEpochMillis = now,
             onDeleteOfflineRegion = onDeleteOfflineRegion,
+            entryReferenceCounts = uiState.offlineRegionEntryReferenceCounts,
         )
     }
 }
@@ -2623,6 +2628,8 @@ private fun OfflineRegionsSection(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     onDeleteOfflineRegion: (Long) -> Unit,
+    /** How many Cartography entries currently keep a reference to each region (by id) — Journal Stage 2b's 4b deletion warning, shown in the confirm dialog below. */
+    entryReferenceCounts: Map<Long, Int> = emptyMap(),
 ) {
     var pendingDeleteRegion by remember { mutableStateOf<OfflineRegionSummary?>(null) }
 
@@ -2665,10 +2672,22 @@ private fun OfflineRegionsSection(
     }
 
     pendingDeleteRegion?.let { region ->
+        val referencingEntryCount = entryReferenceCounts[region.id] ?: 0
         AlertDialog(
             onDismissRequest = { pendingDeleteRegion = null },
             title = { Text("Delete \"${region.name}\"?") },
-            text = { Text("This deletes the downloaded map tiles for this region. You can re-download it later.") },
+            text = {
+                Text(
+                    // No permanence claim (a future trash lands this becoming false) — states the
+                    // consequence, not that it's irreversible. See amendment-2b-finds-and-trash.md.
+                    if (referencingEntryCount > 0) {
+                        "This region appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}. " +
+                            "This deletes the downloaded map tiles for this region. You can re-download it later."
+                    } else {
+                        "This deletes the downloaded map tiles for this region. You can re-download it later."
+                    },
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -5845,7 +5864,15 @@ internal fun WaypointsSection(
     errorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in the confirm dialog below. */
+    entryReferenceCounts: Map<String, Int> = emptyMap(),
 ) {
+    // Journal Stage 2b, 4b: this section had no delete confirmation at all before — every other
+    // per-row delete in this drawer (OfflineRegionsSection, PlannedTripsList) already confirms
+    // first, and a deletion warning needs somewhere to show itself. Same pendingDelete-then-dialog
+    // shape as OfflineRegionsSection.
+    var pendingDeleteWaypoint by remember { mutableStateOf<Waypoint?>(null) }
+
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -5863,9 +5890,36 @@ internal fun WaypointsSection(
             )
 
             else -> waypoints.forEach { waypoint ->
-                WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
+                WaypointRow(waypoint = waypoint, onDelete = { pendingDeleteWaypoint = waypoint })
             }
         }
+    }
+
+    pendingDeleteWaypoint?.let { waypoint ->
+        val referencingEntryCount = entryReferenceCounts[waypoint.id] ?: 0
+        AlertDialog(
+            onDismissRequest = { pendingDeleteWaypoint = null },
+            title = { Text("Delete \"${waypoint.name}\"?") },
+            text = {
+                Text(
+                    // No permanence claim — see OfflineRegionsSection's identical dialog for why.
+                    if (referencingEntryCount > 0) {
+                        "This waypoint appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}."
+                    } else {
+                        "Delete this waypoint?"
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteWaypoint(waypoint.id)
+                        pendingDeleteWaypoint = null
+                    },
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDeleteWaypoint = null }) { Text("Cancel") } },
+        )
     }
 }
 

@@ -124,6 +124,7 @@ internal fun LogPanel(
     waypoints: List<Waypoint>,
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
+    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     modifier: Modifier = Modifier,
 ) {
     // Same one-shot-per-transition Toast shape as CompactMapTab's startRecordingErrorMessage
@@ -249,6 +250,7 @@ internal fun LogPanel(
                 waypoints = waypoints,
                 waypointsErrorMessage = waypointsErrorMessage,
                 onDeleteWaypoint = onDeleteWaypoint,
+                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                 availabilityUiState = availabilityUiState,
                 distanceUnit = distanceUnit,
                 currentTime = currentTime,

@@ -143,6 +143,7 @@ internal fun JournalTab(
     waypoints: List<Waypoint>,
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
+    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -297,6 +298,7 @@ internal fun JournalTab(
                 waypoints = waypoints,
                 waypointsErrorMessage = waypointsErrorMessage,
                 onDeleteWaypoint = onDeleteWaypoint,
+                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                 availabilityUiState = availabilityUiState,
                 distanceUnit = distanceUnit,
                 currentTime = currentTime,

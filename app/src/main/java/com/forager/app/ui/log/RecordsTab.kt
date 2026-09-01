@@ -55,6 +55,7 @@ internal fun RecordsTab(
     waypoints: List<Waypoint>,
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
+    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     availabilityUiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     currentTime: CurrentTimeProvider,
@@ -104,6 +105,7 @@ internal fun RecordsTab(
                 waypoints = waypoints,
                 errorMessage = waypointsErrorMessage,
                 onDeleteWaypoint = onDeleteWaypoint,
+                entryReferenceCounts = waypointEntryReferenceCounts,
                 modifier = Modifier.weight(1f),
             )
 
