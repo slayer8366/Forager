@@ -114,13 +114,16 @@ abstract class CartographyEntryDao {
         deleteEntryById(id)
     }
 
-    @Query("SELECT COUNT(*) FROM cartography_entry_track_refs WHERE trackId = :trackId")
+    // kept = 1 only: a withheld decision means the user explicitly excluded this track from the
+    // entry, so it does not "appear in" it for 4b's own warning purposes — see the follow-up
+    // dispatch's point 2 and CartographyEntryTrackRefEntity's own doc comment on row-presence vs. kept.
+    @Query("SELECT COUNT(*) FROM cartography_entry_track_refs WHERE trackId = :trackId AND kept = 1")
     abstract suspend fun countEntriesReferencingTrack(trackId: String): Int
 
-    @Query("SELECT COUNT(*) FROM cartography_entry_waypoint_refs WHERE waypointId = :waypointId")
+    @Query("SELECT COUNT(*) FROM cartography_entry_waypoint_refs WHERE waypointId = :waypointId AND kept = 1")
     abstract suspend fun countEntriesReferencingWaypoint(waypointId: String): Int
 
-    @Query("SELECT COUNT(*) FROM cartography_entry_offline_region_refs WHERE offlineRegionId = :offlineRegionId")
+    @Query("SELECT COUNT(*) FROM cartography_entry_offline_region_refs WHERE offlineRegionId = :offlineRegionId AND kept = 1")
     abstract suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Int
 
     @Query("SELECT COUNT(*) FROM cartography_entry_photo_refs WHERE photoId = :photoId")

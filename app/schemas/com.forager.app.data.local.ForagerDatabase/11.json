@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 11,
-    "identityHash": "b3b1391394d25547a75948469e766157",
+    "identityHash": "2d27feb8276a749b5d98b0bf49389a0a",
     "entities": [
       {
         "tableName": "planned_trips",
@@ -825,7 +825,7 @@
       },
       {
         "tableName": "cartography_entry_track_refs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `trackId` TEXT NOT NULL, `name` TEXT, `distanceMeters` REAL NOT NULL, `durationMillis` INTEGER NOT NULL, `pointCount` INTEGER NOT NULL, PRIMARY KEY(`entryId`, `trackId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `trackId` TEXT NOT NULL, `name` TEXT, `distanceMeters` REAL NOT NULL, `durationMillis` INTEGER NOT NULL, `pointCount` INTEGER NOT NULL, `kept` INTEGER NOT NULL, PRIMARY KEY(`entryId`, `trackId`))",
         "fields": [
           {
             "fieldPath": "entryId",
@@ -861,6 +861,12 @@
             "columnName": "pointCount",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "kept",
+            "columnName": "kept",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -884,7 +890,7 @@
       },
       {
         "tableName": "cartography_entry_waypoint_refs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `waypointId` TEXT NOT NULL, `name` TEXT NOT NULL, `lat` REAL NOT NULL, `lng` REAL NOT NULL, PRIMARY KEY(`entryId`, `waypointId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `waypointId` TEXT NOT NULL, `name` TEXT NOT NULL, `lat` REAL NOT NULL, `lng` REAL NOT NULL, `kept` INTEGER NOT NULL, PRIMARY KEY(`entryId`, `waypointId`))",
         "fields": [
           {
             "fieldPath": "entryId",
@@ -915,6 +921,12 @@
             "columnName": "lng",
             "affinity": "REAL",
             "notNull": true
+          },
+          {
+            "fieldPath": "kept",
+            "columnName": "kept",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -938,7 +950,7 @@
       },
       {
         "tableName": "cartography_entry_offline_region_refs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `offlineRegionId` INTEGER NOT NULL, `name` TEXT NOT NULL, `lat` REAL NOT NULL, `lng` REAL NOT NULL, `radiusKm` INTEGER NOT NULL, PRIMARY KEY(`entryId`, `offlineRegionId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `offlineRegionId` INTEGER NOT NULL, `name` TEXT NOT NULL, `lat` REAL NOT NULL, `lng` REAL NOT NULL, `radiusKm` INTEGER NOT NULL, `kept` INTEGER NOT NULL, PRIMARY KEY(`entryId`, `offlineRegionId`))",
         "fields": [
           {
             "fieldPath": "entryId",
@@ -975,6 +987,12 @@
             "columnName": "radiusKm",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "kept",
+            "columnName": "kept",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -998,7 +1016,7 @@
       },
       {
         "tableName": "cartography_entry_find_refs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `findId` TEXT NOT NULL, `foundOn` TEXT NOT NULL, `ownIdentification` TEXT, `hasPhotos` INTEGER NOT NULL, PRIMARY KEY(`entryId`, `findId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `findId` TEXT NOT NULL, `foundOn` TEXT NOT NULL, `ownIdentification` TEXT, `hasPhotos` INTEGER NOT NULL, `kept` INTEGER NOT NULL, PRIMARY KEY(`entryId`, `findId`))",
         "fields": [
           {
             "fieldPath": "entryId",
@@ -1026,6 +1044,12 @@
           {
             "fieldPath": "hasPhotos",
             "columnName": "hasPhotos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kept",
+            "columnName": "kept",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -1094,7 +1118,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b3b1391394d25547a75948469e766157')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2d27feb8276a749b5d98b0bf49389a0a')"
     ]
   }
 }

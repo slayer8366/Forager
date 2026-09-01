@@ -120,7 +120,10 @@ private fun AddCartographyEntryTile(onClick: () -> Unit, modifier: Modifier = Mo
 
 @Composable
 private fun CartographyEntryTile(entry: CartographyEntry, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val keptCount = entry.keptFinds.size + entry.keptTracks.size + entry.keptWaypoints.size + entry.keptOfflineRegions.size
+    val keptCount = entry.findDecisions.count { it.kept } +
+        entry.trackDecisions.count { it.kept } +
+        entry.waypointDecisions.count { it.kept } +
+        entry.offlineRegionDecisions.count { it.kept }
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth().aspectRatio(ENTRY_TILE_ASPECT_RATIO),

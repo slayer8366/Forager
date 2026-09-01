@@ -589,15 +589,22 @@ val MIGRATION_9_10: Migration = object : Migration(9, 10) {
 }
 
 /**
- * Journal Stage 2b: adds `cartography_entries` and its five kept-item ref tables
- * ([CartographyEntryEntity], [CartographyEntryTrackRefEntity], [CartographyEntryWaypointRefEntity],
+ * Journal Stage 2b: adds `cartography_entries` and its five ref tables ([CartographyEntryEntity],
+ * [CartographyEntryTrackRefEntity], [CartographyEntryWaypointRefEntity],
  * [CartographyEntryOfflineRegionRefEntity], [CartographyEntryFindRefEntity],
  * [CartographyEntryPhotoRefEntity]) — a brand-new entity family, not a change to any existing table,
  * per `amendment-2b-entry-definition.md`: a Cartography entry is authored, not derived, and
- * [com.forager.app.domain.model.MushroomLogEntry] stays untouched. The photo-ref table was added after
- * the rest, per `amendment-2b-optional-writing.md`'s "photo attachment is load-bearing" — amended in
- * place rather than as a second migration, since nothing built on this one had shipped yet (same
- * precedent [MIGRATION_8_9]'s own doc comment sets for amending an unreleased migration directly).
+ * [com.forager.app.domain.model.MushroomLogEntry] stays untouched.
+ *
+ * Amended twice after the initial six-table shape, both times in place rather than as a second
+ * migration, since nothing built on this one had shipped yet either time (same precedent
+ * [MIGRATION_8_9]'s own doc comment sets for amending an unreleased migration directly):
+ * - The photo-ref table, per `amendment-2b-optional-writing.md`'s "photo attachment is load-bearing."
+ * - `kept: Boolean` on the four trip-report-derived ref tables (track/waypoint/offline-region/find —
+ *   not photo, which has no candidate pool to be undecided about), per the Stage 2b follow-up
+ *   dispatch's point 2: withholding needed to become a persisted, revisitable decision, not an
+ *   in-memory-only default that a reopen couldn't tell apart from "never considered." Row presence
+ *   still means "decided one way or the other"; [kept] carries which way.
  *
  * A real, hand-written migration, not `fallbackToDestructiveMigration()` (release path) — a written
  * entry is exactly as irreplaceable as a log entry or a recorded track, the same reasoning
@@ -635,6 +642,7 @@ val MIGRATION_10_11: Migration = object : Migration(10, 11) {
             `distanceMeters` REAL NOT NULL,
             `durationMillis` INTEGER NOT NULL,
             `pointCount` INTEGER NOT NULL,
+            `kept` INTEGER NOT NULL,
             PRIMARY KEY(`entryId`, `trackId`))
             """.trimIndent(),
         )
@@ -651,6 +659,7 @@ val MIGRATION_10_11: Migration = object : Migration(10, 11) {
             `name` TEXT NOT NULL,
             `lat` REAL NOT NULL,
             `lng` REAL NOT NULL,
+            `kept` INTEGER NOT NULL,
             PRIMARY KEY(`entryId`, `waypointId`))
             """.trimIndent(),
         )
@@ -668,6 +677,7 @@ val MIGRATION_10_11: Migration = object : Migration(10, 11) {
             `lat` REAL NOT NULL,
             `lng` REAL NOT NULL,
             `radiusKm` INTEGER NOT NULL,
+            `kept` INTEGER NOT NULL,
             PRIMARY KEY(`entryId`, `offlineRegionId`))
             """.trimIndent(),
         )
@@ -684,6 +694,7 @@ val MIGRATION_10_11: Migration = object : Migration(10, 11) {
             `foundOn` TEXT NOT NULL,
             `ownIdentification` TEXT,
             `hasPhotos` INTEGER NOT NULL,
+            `kept` INTEGER NOT NULL,
             PRIMARY KEY(`entryId`, `findId`))
             """.trimIndent(),
         )

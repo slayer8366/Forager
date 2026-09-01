@@ -50,9 +50,12 @@ import org.robolectric.annotation.Config
  * re-implement the same mistake those queries might have.
  *
  * Covers: every trip-report candidate starts kept (owner decision — "withholding is a first-class
- * operation, not a filter"); [CartographyViewModel.onToggleKeptTrack] withholds then restores;
+ * operation, not a filter"); [CartographyViewModel.onSetTrackDecision] withholds then restores;
  * finishing and deleting an entry never gates on [com.forager.app.domain.model.CartographyEntry.text]
- * or any kept-item count (`amendment-2b-optional-writing.md`).
+ * or any kept-item count (`amendment-2b-optional-writing.md`); reopening an entry (Stage 2b follow-up
+ * dispatch, point 2) reloads a fresh trip report, preserves existing decisions unchanged, and offers a
+ * newly-appeared candidate as undecided rather than silently including or excluding it — both
+ * directions (re-keep a withheld item, withhold a kept one) available on that same reopen.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -131,13 +134,13 @@ class CartographyViewModelTest {
         advanceUntilIdle()
 
         val entry = viewModel.uiState.value.editingEntry
-        assertEquals(listOf("find-1"), entry?.keptFinds?.map { it.findId })
-        assertEquals(listOf("waypoint-1"), entry?.keptWaypoints?.map { it.waypointId })
-        assertEquals(listOf("track-1"), entry?.keptTracks?.map { it.trackId })
+        assertEquals(listOf("find-1"), entry?.findDecisions?.map { it.findId })
+        assertEquals(listOf("waypoint-1"), entry?.waypointDecisions?.map { it.waypointId })
+        assertEquals(listOf("track-1"), entry?.trackDecisions?.map { it.trackId })
     }
 
     @Test
-    fun `withholding a kept track removes it, and toggling again restores it`() = runTest(dispatcher) {
+    fun `withholding a kept track keeps its decision row but flips it, and deciding again restores it`() = runTest(dispatcher) {
         val trackRepository = RoomTrackRepository(database.trackDao())
         val track = Track(id = "track-1", name = "Ridge Loop", startedAtEpochMillis = dayStartMillis(), endedAtEpochMillis = dayStartMillis() + 60_000L, points = emptyList())
         trackRepository.create(track).getOrThrow()
@@ -145,15 +148,73 @@ class CartographyViewModelTest {
 
         viewModel.onStartEntry(DAY)
         advanceUntilIdle()
-        assertEquals(listOf("track-1"), viewModel.uiState.value.editingEntry?.keptTracks?.map { it.trackId })
+        assertEquals(true, viewModel.uiState.value.editingEntry?.trackDecisions?.first { it.trackId == "track-1" }?.kept)
 
-        viewModel.onToggleKeptTrack("track-1")
+        viewModel.onSetTrackDecision("track-1", kept = false)
         advanceUntilIdle()
-        assertTrue("withholding is a deliberate act, not a filter default", viewModel.uiState.value.editingEntry?.keptTracks.orEmpty().isEmpty())
+        assertEquals(
+            "withholding is a deliberate, persisted decision, not a removal back to undecided",
+            false,
+            viewModel.uiState.value.editingEntry?.trackDecisions?.first { it.trackId == "track-1" }?.kept,
+        )
 
-        viewModel.onToggleKeptTrack("track-1")
+        viewModel.onSetTrackDecision("track-1", kept = true)
         advanceUntilIdle()
-        assertEquals(listOf("track-1"), viewModel.uiState.value.editingEntry?.keptTracks?.map { it.trackId })
+        assertEquals(true, viewModel.uiState.value.editingEntry?.trackDecisions?.first { it.trackId == "track-1" }?.kept)
+    }
+
+    @Test
+    fun `reopening an entry preserves its decisions and offers a newly-appeared candidate as undecided`() = runTest(dispatcher) {
+        val trackRepository = RoomTrackRepository(database.trackDao())
+        val track1 = Track(id = "track-1", name = "Ridge Loop", startedAtEpochMillis = dayStartMillis(), endedAtEpochMillis = dayStartMillis() + 60_000L, points = emptyList())
+        trackRepository.create(track1).getOrThrow()
+        trackRepository.end(track1.id, dayStartMillis() + 60_000L).getOrThrow()
+
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val entryId = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onSetTrackDecision("track-1", kept = false)
+        advanceUntilIdle()
+
+        viewModel.onCloseEntry()
+
+        // A second track for the same day, created only after the entry already existed.
+        val track2 = Track(id = "track-2", name = "New Spur", startedAtEpochMillis = dayStartMillis() + 120_000L, endedAtEpochMillis = dayStartMillis() + 180_000L, points = emptyList())
+        trackRepository.create(track2).getOrThrow()
+        trackRepository.end(track2.id, dayStartMillis() + 180_000L).getOrThrow()
+
+        // onOpenEntry looks the entry up in uiState's own entries/draftEntries lists, so refresh
+        // those from the database first — the same thing a real navigate-away-and-back would do.
+        viewModel.loadEntries()
+        advanceUntilIdle()
+
+        viewModel.onOpenEntry(entryId)
+        advanceUntilIdle()
+
+        val reopened = viewModel.uiState.value.editingEntry!!
+        assertEquals(
+            "a withheld decision must survive reopening unchanged, never silently reverted",
+            false,
+            reopened.trackDecisions.first { it.trackId == "track-1" }.kept,
+        )
+        assertTrue(
+            "track-2 has no decision on this entry yet, so it must not be silently included",
+            reopened.trackDecisions.none { it.trackId == "track-2" },
+        )
+        assertTrue(
+            "track-2 must still be offered, as a live candidate, to decide on",
+            viewModel.uiState.value.candidatesForEditingEntry?.tracks.orEmpty().any { it.id == "track-2" },
+        )
+
+        // Both directions available on the same reopen: re-keep what was withheld, withhold what's new.
+        viewModel.onSetTrackDecision("track-1", kept = true)
+        viewModel.onSetTrackDecision("track-2", kept = false)
+        advanceUntilIdle()
+
+        val redecided = viewModel.uiState.value.editingEntry!!
+        assertEquals(true, redecided.trackDecisions.first { it.trackId == "track-1" }.kept)
+        assertEquals(false, redecided.trackDecisions.first { it.trackId == "track-2" }.kept)
     }
 
     /** `amendment-2b-optional-writing.md`: selection alone is a complete act of authorship — finishing a wordless entry must succeed, not be blocked or read as incomplete. */
@@ -174,7 +235,7 @@ class CartographyViewModelTest {
         val committed = viewModel.uiState.value.editingEntry!!
         assertFalse(committed.isDraft)
         assertEquals("", committed.text)
-        assertEquals(listOf("waypoint-1"), committed.keptWaypoints.map { it.waypointId })
+        assertEquals(listOf("waypoint-1"), committed.waypointDecisions.map { it.waypointId })
         assertEquals(listOf(committed), viewModel.uiState.value.entries)
         assertTrue(viewModel.uiState.value.draftEntries.isEmpty())
     }

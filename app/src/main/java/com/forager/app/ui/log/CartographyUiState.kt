@@ -16,12 +16,12 @@ import com.forager.app.domain.model.DerivedTrip
  * [editingEntry] doubles as navigation state, the same convention [MushroomLogUiState.editingEntry]
  * uses: non-null means "showing this entry's edit screen," null means "showing a list."
  *
- * [candidatesForEditingEntry]/[candidateOfflineRegionsForEditingEntry] are populated **only** for a
- * freshly-started entry, from its day's compiled trip report — the withhold/keep curation surface,
- * "the trip report... is the surface where the user picks what to keep." Reopening an
- * already-created entry later (from the Entries or Drafts list) leaves these `null`: curation is a
- * creation-time act, not something re-offered on every open — see [CartographyViewModel.onOpenEntry]'s
- * own doc comment for the reasoning and its disclosed limitation.
+ * [candidatesForEditingEntry]/[candidateOfflineRegionsForEditingEntry] are the entry's day's freshly
+ * compiled trip report — reloaded on *every* open, creation or reopen alike (Stage 2b follow-up
+ * dispatch, point 2), not just at creation. [CartographyEntryEditScreen] merges these live candidates
+ * against [CartographyEntry]'s own persisted decisions to render the three states a candidate can be
+ * in: kept, withheld, or not yet decided (a candidate present here with no matching decision on the
+ * entry). `null` only transiently, while [isLoadingCandidates].
  */
 data class CartographyUiState(
     val entries: List<CartographyEntry> = emptyList(),

@@ -10,11 +10,11 @@ import com.forager.app.data.local.CartographyEntryTrackRefEntity
 import com.forager.app.data.local.CartographyEntryWaypointRefEntity
 import com.forager.app.domain.CartographyEntryRepository
 import com.forager.app.domain.model.CartographyEntry
-import com.forager.app.domain.model.KeptFindRef
-import com.forager.app.domain.model.KeptOfflineRegionRef
-import com.forager.app.domain.model.KeptPhotoRef
-import com.forager.app.domain.model.KeptTrackRef
-import com.forager.app.domain.model.KeptWaypointRef
+import com.forager.app.domain.model.FindDecision
+import com.forager.app.domain.model.OfflineRegionDecision
+import com.forager.app.domain.model.PhotoAttachment
+import com.forager.app.domain.model.TrackDecision
+import com.forager.app.domain.model.WaypointDecision
 import java.time.LocalDate
 
 /** Room-backed [CartographyEntryRepository]; the only place the entity family and [CartographyEntry] meet. */
@@ -37,11 +37,11 @@ class RoomCartographyEntryRepository(
     override suspend fun save(entry: CartographyEntry): Result<Unit> = runCatchingCancellable {
         dao.upsertEntryWithRefs(
             entity = entry.toEntity(),
-            trackRefs = entry.keptTracks.map { it.toEntity(entry.id) },
-            waypointRefs = entry.keptWaypoints.map { it.toEntity(entry.id) },
-            offlineRegionRefs = entry.keptOfflineRegions.map { it.toEntity(entry.id) },
-            findRefs = entry.keptFinds.map { it.toEntity(entry.id) },
-            photoRefs = entry.keptPhotos.map { it.toEntity(entry.id) },
+            trackRefs = entry.trackDecisions.map { it.toEntity(entry.id) },
+            waypointRefs = entry.waypointDecisions.map { it.toEntity(entry.id) },
+            offlineRegionRefs = entry.offlineRegionDecisions.map { it.toEntity(entry.id) },
+            findRefs = entry.findDecisions.map { it.toEntity(entry.id) },
+            photoRefs = entry.photos.map { it.toEntity(entry.id) },
         )
     }
 
@@ -72,11 +72,11 @@ class RoomCartographyEntryRepository(
         tags = if (tags.isEmpty()) emptyList() else tags.split(TAG_DELIMITER),
         isDraft = isDraft,
         updatedAtEpochMillis = updatedAtEpochMillis,
-        keptFinds = dao.getFindRefs(id).map { it.toDomain() },
-        keptTracks = dao.getTrackRefs(id).map { it.toDomain() },
-        keptWaypoints = dao.getWaypointRefs(id).map { it.toDomain() },
-        keptOfflineRegions = dao.getOfflineRegionRefs(id).map { it.toDomain() },
-        keptPhotos = dao.getPhotoRefs(id).map { it.toDomain() },
+        findDecisions = dao.getFindRefs(id).map { it.toDomain() },
+        trackDecisions = dao.getTrackRefs(id).map { it.toDomain() },
+        waypointDecisions = dao.getWaypointRefs(id).map { it.toDomain() },
+        offlineRegionDecisions = dao.getOfflineRegionRefs(id).map { it.toDomain() },
+        photos = dao.getPhotoRefs(id).map { it.toDomain() },
     )
 }
 
@@ -89,77 +89,85 @@ private fun CartographyEntry.toEntity(): CartographyEntryEntity = CartographyEnt
     updatedAtEpochMillis = updatedAtEpochMillis,
 )
 
-private fun KeptTrackRef.toEntity(entryId: String) = CartographyEntryTrackRefEntity(
+private fun TrackDecision.toEntity(entryId: String) = CartographyEntryTrackRefEntity(
     entryId = entryId,
     trackId = trackId,
     name = name,
     distanceMeters = distanceMeters,
     durationMillis = durationMillis,
     pointCount = pointCount,
+    kept = kept,
 )
 
-private fun CartographyEntryTrackRefEntity.toDomain() = KeptTrackRef(
+private fun CartographyEntryTrackRefEntity.toDomain() = TrackDecision(
     trackId = trackId,
     name = name,
     distanceMeters = distanceMeters,
     durationMillis = durationMillis,
     pointCount = pointCount,
+    kept = kept,
 )
 
-private fun KeptWaypointRef.toEntity(entryId: String) = CartographyEntryWaypointRefEntity(
+private fun WaypointDecision.toEntity(entryId: String) = CartographyEntryWaypointRefEntity(
     entryId = entryId,
     waypointId = waypointId,
     name = name,
     lat = lat,
     lng = lng,
+    kept = kept,
 )
 
-private fun CartographyEntryWaypointRefEntity.toDomain() = KeptWaypointRef(
+private fun CartographyEntryWaypointRefEntity.toDomain() = WaypointDecision(
     waypointId = waypointId,
     name = name,
     lat = lat,
     lng = lng,
+    kept = kept,
 )
 
-private fun KeptOfflineRegionRef.toEntity(entryId: String) = CartographyEntryOfflineRegionRefEntity(
+private fun OfflineRegionDecision.toEntity(entryId: String) = CartographyEntryOfflineRegionRefEntity(
     entryId = entryId,
     offlineRegionId = offlineRegionId,
     name = name,
     lat = lat,
     lng = lng,
     radiusKm = radiusKm,
+    kept = kept,
 )
 
-private fun CartographyEntryOfflineRegionRefEntity.toDomain() = KeptOfflineRegionRef(
+private fun CartographyEntryOfflineRegionRefEntity.toDomain() = OfflineRegionDecision(
     offlineRegionId = offlineRegionId,
     name = name,
     lat = lat,
     lng = lng,
     radiusKm = radiusKm,
+    kept = kept,
 )
 
-private fun KeptFindRef.toEntity(entryId: String) = CartographyEntryFindRefEntity(
+private fun FindDecision.toEntity(entryId: String) = CartographyEntryFindRefEntity(
     entryId = entryId,
     findId = findId,
     foundOn = foundOn.toString(),
     ownIdentification = ownIdentification,
     hasPhotos = hasPhotos,
+    kept = kept,
 )
 
-private fun CartographyEntryFindRefEntity.toDomain() = KeptFindRef(
+private fun CartographyEntryFindRefEntity.toDomain() = FindDecision(
     findId = findId,
     foundOn = LocalDate.parse(foundOn),
     ownIdentification = ownIdentification,
     hasPhotos = hasPhotos,
+    kept = kept,
 )
 
-private fun KeptPhotoRef.toEntity(entryId: String) = CartographyEntryPhotoRefEntity(
+private fun PhotoAttachment.toEntity(entryId: String) = CartographyEntryPhotoRefEntity(
     entryId = entryId,
     photoId = photoId,
     attachedAtEpochMillis = attachedAtEpochMillis,
 )
 
-private fun CartographyEntryPhotoRefEntity.toDomain() = KeptPhotoRef(
+private fun CartographyEntryPhotoRefEntity.toDomain() = PhotoAttachment(
     photoId = photoId,
     attachedAtEpochMillis = attachedAtEpochMillis,
 )

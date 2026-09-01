@@ -36,13 +36,21 @@ data class CartographyEntryEntity(
 }
 
 /**
- * One kept track's snapshot — the "anything the entry displays as text is snapshotted" rule made
- * concrete for [com.forager.app.domain.model.Track]. Composite primary key on `(entryId, trackId)`:
- * an entry keeps a given track at most once, and `entryId` being the key's leading column already
- * gives "every ref row for this entry" a usable index without a separate `@Index` — see
- * [com.forager.app.data.local.LogEntryPhotoCrossRef]'s identical `(entryId, photoId)` precedent. The
- * separate `@Index` on [trackId] is what Records' 4b deletion warning queries against ("does any
- * entry keep this track") — the reverse direction the composite key alone doesn't serve.
+ * One track **decision** (kept or withheld) and its snapshot — the "anything the entry displays as
+ * text is snapshotted" rule made concrete for [com.forager.app.domain.model.Track]. Composite primary
+ * key on `(entryId, trackId)`: an entry decides on a given track at most once, and `entryId` being the
+ * key's leading column already gives "every ref row for this entry" a usable index without a separate
+ * `@Index` — see [com.forager.app.data.local.LogEntryPhotoCrossRef]'s identical `(entryId, photoId)`
+ * precedent. The separate `@Index` on [trackId] is what Records' 4b deletion warning queries against
+ * ("does any entry *keep* this track") — the reverse direction the composite key alone doesn't serve.
+ *
+ * **Row presence, not [kept], is what distinguishes "decided" from "not yet decided."** A row here
+ * means the user has made a call on this track for this entry, one way or the other; no row for a
+ * given `(entryId, trackId)` means the candidate is new since the last decision was made (or the entry
+ * was created) and is offered, not shown as included — dispatch follow-up point 2. Withheld rows carry
+ * the exact same snapshot columns kept rows do: an entry must never silently change what it shows on
+ * reopen, and a withheld candidate later removed from Records still needs its own name/distance/etc.
+ * to render as "withheld" rather than a dangling id.
  *
  * **Zero `@ForeignKey`, by explicit standing rule** — see [MushroomLogEntryEntity.offlineRegionId]'s
  * own doc comment for the rationale this follows: nothing here may change as a side effect of
@@ -60,9 +68,10 @@ data class CartographyEntryTrackRefEntity(
     val distanceMeters: Double,
     val durationMillis: Long,
     val pointCount: Int,
+    val kept: Boolean,
 )
 
-/** One kept waypoint's snapshot — see [CartographyEntryTrackRefEntity]'s doc comment for the shape and reasoning this mirrors. */
+/** One waypoint decision and its snapshot — see [CartographyEntryTrackRefEntity]'s doc comment for the shape and reasoning this mirrors. */
 @Entity(
     tableName = "cartography_entry_waypoint_refs",
     primaryKeys = ["entryId", "waypointId"],
@@ -74,9 +83,10 @@ data class CartographyEntryWaypointRefEntity(
     val name: String,
     val lat: Double,
     val lng: Double,
+    val kept: Boolean,
 )
 
-/** One kept offline region's snapshot — see [CartographyEntryTrackRefEntity]'s doc comment for the shape and reasoning this mirrors. */
+/** One offline-region decision and its snapshot — see [CartographyEntryTrackRefEntity]'s doc comment for the shape and reasoning this mirrors. */
 @Entity(
     tableName = "cartography_entry_offline_region_refs",
     primaryKeys = ["entryId", "offlineRegionId"],
@@ -89,15 +99,16 @@ data class CartographyEntryOfflineRegionRefEntity(
     val lat: Double,
     val lng: Double,
     val radiusKm: Int,
+    val kept: Boolean,
 )
 
 /**
- * One kept find's snapshot — see [CartographyEntryTrackRefEntity]'s doc comment for the shape and
- * reasoning this mirrors. Unlike the other three ref types, 4b's deletion warning (dispatch section
- * 4b, unchanged by either amendment) names only track/waypoint/offline-region, so no warning is wired
- * to find deletion in `RecordsTab`'s Finds submenu — the [findId] index still exists here for the same
- * "does any entry keep this find" query, kept for symmetry and available to a future dispatch that
- * extends 4b to finds, but nothing in 2b calls it yet. See the disclosure report for this gap.
+ * One find decision and its snapshot — see [CartographyEntryTrackRefEntity]'s doc comment for the
+ * shape and reasoning this mirrors. Unlike the other three ref types, 4b's deletion warning (dispatch
+ * section 4b, unchanged by either amendment) names only track/waypoint/offline-region, so no warning
+ * is wired to find deletion in `RecordsTab`'s Finds submenu — the [findId] index still exists here for
+ * the same "does any entry keep this find" query, kept for symmetry and available to a future dispatch
+ * that extends 4b to finds, but nothing in 2b calls it yet. See the disclosure report for this gap.
  */
 @Entity(
     tableName = "cartography_entry_find_refs",
@@ -110,6 +121,7 @@ data class CartographyEntryFindRefEntity(
     val foundOn: String,
     val ownIdentification: String?,
     val hasPhotos: Boolean,
+    val kept: Boolean,
 )
 
 /**

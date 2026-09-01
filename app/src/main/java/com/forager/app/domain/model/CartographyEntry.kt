@@ -29,11 +29,23 @@ import java.time.LocalDate
  * delimited column rather than a normalized table, per the dispatch's explicit "no tag table with its
  * own lifecycle."
  *
- * The four kept-item lists are the snapshot rule made concrete — "anything the entry displays as text
- * is snapshotted; anything it draws on a map is a reference." Each ref type carries its own display
- * text plus the id [MushroomLogEntry]/[Track]/[Waypoint]/[com.forager.app.domain.OfflineRegionMetadata]
+ * ## Three states per trip-report candidate — Stage 2b follow-up dispatch, point 2
+ *
+ * The four `*Decision` lists are the snapshot rule made concrete — "anything the entry displays as
+ * text is snapshotted; anything it draws on a map is a reference." Each decision carries its own
+ * display text plus the id [MushroomLogEntry]/[Track]/[Waypoint]/[com.forager.app.domain.OfflineRegionMetadata]
  * would need for Stage 2c's map recall — never the full record, which the entry does not display and
  * does not own.
+ *
+ * **A decision list holds every candidate the user has ruled on, kept or withheld — not just kept
+ * ones.** [TrackDecision.kept] (and its find/waypoint/offline-region siblings) is what distinguishes
+ * the two; presence in the list at all is what distinguishes "decided" from the third state, "not yet
+ * decided," which this entity does not store — a trip-report candidate absent from every decision list
+ * is undecided by definition, offered fresh on the next open rather than persisted as a row with
+ * nothing to say. Withholding is a first-class, revisitable operation: reopening an entry a month later
+ * must show exactly what was decided then, plus an offer on anything new, never silently un-deciding
+ * anything — see [com.forager.app.data.local.CartographyEntryTrackRefEntity]'s own doc comment for the
+ * storage side of this rule.
  */
 data class CartographyEntry(
     val id: String,
@@ -42,21 +54,26 @@ data class CartographyEntry(
     val tags: List<String>,
     val isDraft: Boolean,
     val updatedAtEpochMillis: Long,
-    val keptFinds: List<KeptFindRef>,
-    val keptTracks: List<KeptTrackRef>,
-    val keptWaypoints: List<KeptWaypointRef>,
-    val keptOfflineRegions: List<KeptOfflineRegionRef>,
+    val findDecisions: List<FindDecision>,
+    val trackDecisions: List<TrackDecision>,
+    val waypointDecisions: List<WaypointDecision>,
+    val offlineRegionDecisions: List<OfflineRegionDecision>,
     /**
      * Standalone [GalleryPhoto]s manually attached to this entry — `amendment-2b-optional-writing.md`:
      * "attachment remains a user action, never automatic," the same rule [MushroomLogEntry]'s own
      * photo attachment already follows. Not a bare id list, on reconsideration — see
      * [com.forager.app.data.local.CartographyEntryPhotoRefEntity]'s own doc comment for why a photo
      * still needs *something* snapshotted even though it is neither text nor a map drawing.
+     *
+     * **No three-state model here, unlike the four decision lists above.** A photo has no candidate
+     * pool to be "not yet decided" about — nothing ever auto-suggests one the way a trip report
+     * auto-surfaces finds/tracks/waypoints/regions; attaching one is always an explicit, one-shot user
+     * action with no opposite ("withhold") to record. Attached or not attached is the whole state.
      */
-    val keptPhotos: List<KeptPhotoRef> = emptyList(),
+    val photos: List<PhotoAttachment> = emptyList(),
 ) {
     companion object {
-        /** A freshly-started, unwritten entry for [date] — every kept-item list empty, [isDraft] always `true`. Mirrors [MushroomLogEntry.draft]'s own shape: persisted immediately by its use case, not held only in memory. */
+        /** A freshly-started, undecided entry for [date] — every decision list empty, [isDraft] always `true`. Mirrors [MushroomLogEntry.draft]'s own shape: persisted immediately by its use case, not held only in memory. */
         fun draft(id: String, date: LocalDate, updatedAtEpochMillis: Long): CartographyEntry = CartographyEntry(
             id = id,
             date = date,
@@ -64,51 +81,55 @@ data class CartographyEntry(
             tags = emptyList(),
             isDraft = true,
             updatedAtEpochMillis = updatedAtEpochMillis,
-            keptFinds = emptyList(),
-            keptTracks = emptyList(),
-            keptWaypoints = emptyList(),
-            keptOfflineRegions = emptyList(),
-            keptPhotos = emptyList(),
+            findDecisions = emptyList(),
+            trackDecisions = emptyList(),
+            waypointDecisions = emptyList(),
+            offlineRegionDecisions = emptyList(),
+            photos = emptyList(),
         )
     }
 }
 
-/** A kept find's own display text — [MushroomLogEntry] stays the source of truth; this is enough for the entry to read sensibly if that find is later deleted from Records. */
-data class KeptFindRef(
+/** A decision (kept or withheld) about one find, plus its own display text — [MushroomLogEntry] stays the source of truth; this is enough for the entry to read sensibly if that find is later deleted from Records. */
+data class FindDecision(
     val findId: String,
     val foundOn: LocalDate,
     val ownIdentification: String?,
     val hasPhotos: Boolean,
+    val kept: Boolean,
 )
 
-/** A kept track's own display text — see [TrackStatistics] for where [distanceMeters]/[durationMillis]/[pointCount] are computed from at snapshot time. */
-data class KeptTrackRef(
+/** A decision about one track, plus its own display text — see [TrackStatistics] for where [distanceMeters]/[durationMillis]/[pointCount] are computed from at snapshot time. */
+data class TrackDecision(
     val trackId: String,
     val name: String?,
     val distanceMeters: Double,
     val durationMillis: Long,
     val pointCount: Int,
+    val kept: Boolean,
 )
 
-/** A kept waypoint's own display text. */
-data class KeptWaypointRef(
+/** A decision about one waypoint, plus its own display text. */
+data class WaypointDecision(
     val waypointId: String,
     val name: String,
     val lat: Double,
     val lng: Double,
+    val kept: Boolean,
 )
 
-/** A kept offline region's own display text — [radiusKm] is the region's search-radius parameter, not a live tile count (see [com.forager.app.domain.OfflineRegionMetadata], which this is snapshotted from). */
-data class KeptOfflineRegionRef(
+/** A decision about one offline region, plus its own display text — [radiusKm] is the region's search-radius parameter, not a live tile count (see [com.forager.app.domain.OfflineRegionMetadata], which this is snapshotted from). */
+data class OfflineRegionDecision(
     val offlineRegionId: Long,
     val name: String,
     val lat: Double,
     val lng: Double,
     val radiusKm: Int,
+    val kept: Boolean,
 )
 
-/** A kept photo's own minimal snapshot — [attachedAtEpochMillis] is when the user attached it, not [LogPhoto.createdAtEpochMillis]. See [com.forager.app.data.local.CartographyEntryPhotoRefEntity]'s own doc comment for why this exists at all. */
-data class KeptPhotoRef(
+/** One manually-attached photo's own minimal snapshot — [attachedAtEpochMillis] is when the user attached it, not [LogPhoto.createdAtEpochMillis]. See [com.forager.app.data.local.CartographyEntryPhotoRefEntity]'s own doc comment for why this exists at all. */
+data class PhotoAttachment(
     val photoId: String,
     val attachedAtEpochMillis: Long,
 )

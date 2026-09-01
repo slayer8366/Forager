@@ -8,11 +8,11 @@ import androidx.test.core.app.ApplicationProvider
 import com.forager.app.data.repository.RoomCartographyEntryRepository
 import com.forager.app.data.repository.RoomMushroomLogRepository
 import com.forager.app.domain.model.CartographyEntry
-import com.forager.app.domain.model.KeptFindRef
-import com.forager.app.domain.model.KeptOfflineRegionRef
-import com.forager.app.domain.model.KeptPhotoRef
-import com.forager.app.domain.model.KeptTrackRef
-import com.forager.app.domain.model.KeptWaypointRef
+import com.forager.app.domain.model.FindDecision
+import com.forager.app.domain.model.OfflineRegionDecision
+import com.forager.app.domain.model.PhotoAttachment
+import com.forager.app.domain.model.TrackDecision
+import com.forager.app.domain.model.WaypointDecision
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MushroomLogEntry
 import java.io.File
@@ -100,17 +100,25 @@ class CartographyEntryMigrationTest {
                 tags = listOf("chanterelle", "ridge trail"),
                 isDraft = false,
                 updatedAtEpochMillis = 5_000L,
-                keptFinds = listOf(KeptFindRef(findId = legacyEntry.id, foundOn = legacyEntry.foundOn, ownIdentification = null, hasPhotos = false)),
-                keptTracks = listOf(KeptTrackRef(trackId = "track-1", name = "Ridge Loop", distanceMeters = 3200.0, durationMillis = 5_400_000L, pointCount = 240)),
-                keptWaypoints = listOf(KeptWaypointRef(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -122.6)),
-                keptOfflineRegions = listOf(KeptOfflineRegionRef(offlineRegionId = 1L, name = "Ridge Region", lat = 45.4, lng = -122.6, radiusKm = 10)),
-                keptPhotos = listOf(KeptPhotoRef(photoId = "photo-1", attachedAtEpochMillis = 6_000L)),
+                findDecisions = listOf(FindDecision(findId = legacyEntry.id, foundOn = legacyEntry.foundOn, ownIdentification = null, hasPhotos = false, kept = true)),
+                trackDecisions = listOf(
+                    TrackDecision(trackId = "track-1", name = "Ridge Loop", distanceMeters = 3200.0, durationMillis = 5_400_000L, pointCount = 240, kept = true),
+                    TrackDecision(trackId = "track-2", name = "Withheld Loop", distanceMeters = 800.0, durationMillis = 900_000L, pointCount = 60, kept = false),
+                ),
+                waypointDecisions = listOf(WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -122.6, kept = true)),
+                offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.4, lng = -122.6, radiusKm = 10, kept = true)),
+                photos = listOf(PhotoAttachment(photoId = "photo-1", attachedAtEpochMillis = 6_000L)),
             )
             repository.save(entry).getOrThrow()
 
             assertEquals(entry, repository.getById(entry.id).getOrThrow())
             assertEquals(listOf(entry), repository.getAll().getOrThrow())
             assertEquals(1, repository.countEntriesReferencingTrack("track-1").getOrThrow())
+            assertEquals(
+                "a withheld track decision must not count toward the 4b deletion warning",
+                0,
+                repository.countEntriesReferencingTrack("track-2").getOrThrow(),
+            )
             assertEquals(1, repository.countEntriesReferencingWaypoint("waypoint-1").getOrThrow())
             assertEquals(1, repository.countEntriesReferencingOfflineRegion(1L).getOrThrow())
             assertEquals(1, repository.countEntriesReferencingPhoto("photo-1").getOrThrow())
