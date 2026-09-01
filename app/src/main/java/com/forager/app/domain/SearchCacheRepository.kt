@@ -8,7 +8,7 @@ import com.forager.app.domain.model.TaxonFilter
  * Local storage for previously-fetched ranked species lists, so a search that has been run before
  * still has an answer with no network.
  *
- * **Only the ranked list is cached.** Not sightings, not foraging areas, and explicitly not
+ * **Only the ranked list is cached.** Not sightings, and explicitly not
  * Conditions or Trip Windows: those two are "as of today" readings (see
  * [GetConditionsUseCase]'s and
  * [com.forager.app.data.repository.OpenMeteoWeatherProvider]'s doc comments), and replaying a

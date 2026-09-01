@@ -7,8 +7,7 @@ package com.forager.app.domain
  * weather and observation frequency — that is a separate, planned piece of work — so these are
  * rules of thumb chosen to bound a search, not fitted parameters. They exist as named constants
  * with stated reasoning for the same reason
- * [ClusterForagingAreasUseCase.NEIGHBORHOOD_RADIUS_METERS] and
- * [com.forager.app.data.repository.OpenMeteoWeatherProvider.SIGNIFICANT_RAIN_MM] do (CLAUDE.md:
+ * [com.forager.app.data.repository.OpenMeteoWeatherProvider.SIGNIFICANT_RAIN_MM] does (CLAUDE.md:
  * record why a non-obvious decision was made).
  *
  * They are deliberately *not* combined into a score. A window is reported with the measurements

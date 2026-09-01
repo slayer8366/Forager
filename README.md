@@ -20,7 +20,7 @@ more certainty than the data supports. See `AvailabilityForecast` and
    the app bar; on a compact (phone-width) window there is no app bar or tune
    icon — the drawer is reached from the map's own floating **Search** icon
    instead (or an **Open Search** button before a first search has run — see
-   item 6 below). You pick a region there — either "use current location"
+   item 5 below). You pick a region there — either "use current location"
    (device GPS/network location, with a radius slider) or manually entered
    latitude/longitude — and a month. The drawer keeps the map, which is the
    primary content, at full height; a one-line strip above it
@@ -65,26 +65,6 @@ more certainty than the data supports. See `AvailabilityForecast` and
    conservation-sensitive taxa) are left off the map rather than guessed at.
    Sightings are fetched lazily, only when the Map tab is opened, so
    browsing the ranked list alone doesn't cost the extra API call.
-6. **Foraging areas**, on by default, groups those dots into the spots that
-   have produced *repeatedly*, and the drawer's toggle switches the layer
-   back off to read the raw observations. It is the default view because
-   where observations bunch together across many years is the strongest
-   signal in the dataset, and drawing every one as an identical dot throws
-   it away. Grouping is
-   [DBSCAN](https://en.wikipedia.org/wiki/DBSCAN) in pure Kotlin
-   (`domain/Dbscan`), run over the sightings the Map tab already fetched —
-   it makes no extra API call. DBSCAN rather than k-means because it takes
-   a distance radius instead of a preset cluster count, and because it
-   labels isolated points as noise: one observation 8 km from anything else
-   is not a foraging spot and isn't promoted into one. Distances are true
-   great-circle metres (`domain/GeoDistance`), never Euclidean arithmetic
-   over raw lat/lng degrees, which would distort clusters east–west as
-   latitude rises. Each area reports its observation count, distinct
-   species count, and most recent observation year. The two thresholds —
-   how close counts as "the same spot" and how many finds make a pattern —
-   are labelled adjustable assumptions in
-   `ClusterForagingAreasUseCase`, not data-derived facts.
-
    **On a compact (phone-width) window, the Maps tab is full-bleed**, with a
    bottom nav — **List / Maps / Seasonal / Journal / Album / Settings**, six
    destinations, replacing the old top tab row — and a right-edge floating
@@ -117,15 +97,15 @@ more certainty than the data supports. See `AvailabilityForecast` and
 
    **The compact search drawer is the whole search feature, not just region
    and month.** The species/category chips and taxon search field that used
-   to sit in the app bar, the foraging-areas toggle and summary that used to
-   float over the map, and Recent Searches, Advanced Search and Trip Planner
-   all live in this one drawer, reached only from the Maps tab (see above).
+   to sit in the app bar, and Recent Searches, Advanced Search and Trip
+   Planner, all live in this one drawer, reached only from the Maps tab (see
+   above).
    The "Fungi · August · 15 km" strip above the map stays visible on every
    compact tab as a read-only summary of the current search, so checking
    what's currently searched doesn't require opening the drawer — it just
    can't *change* anything from there any more. **Settings and the mushroom
    log are their own bottom-nav tabs** (`Journal`, `Settings`) rather than
-   drawer entries — see this item's Settings paragraph below and item 10 for
+   drawer entries — see this item's Settings paragraph below and item 9 for
    what changed. **Medium/expanded windows (tablets, landscape, foldables)
    are unaffected** by any of this — they keep the permanent drawer +
    side-by-side List/Map layout described below, with Settings/Offline
@@ -224,29 +204,7 @@ more certainty than the data supports. See `AvailabilityForecast` and
    specific piece: it has not been deployed or exercised against a real
    Cloudflare account from this project's development environment.
 
-   **The numbering is a visiting order, not a walking route.** Areas are
-   numbered by greedy nearest-neighbour from the search centre — head for
-   the nearest area you haven't done yet — and the connectors between them
-   are straight lines between area centres and nothing more. This project
-   has no trail data, no terrain, no land-ownership data and no path
-   graph, only scattered coordinates over raster tiles, so a walking path
-   is a capability it does not have; a line implying one could route you
-   across a river, a motorway, a cliff, or private land. That line was
-   originally kept *dashed* specifically to signal "not a real route";
-   as of 2026-08-26 it renders solid instead (the dash moved to the live
-   breadcrumb trail, so a trail of GPS points can look like a trail of
-   breadcrumbs — `MapPalette.NIGHT`'s and `BREADCRUMB_DASH_PATTERN`'s own
-   doc comments in `SightingsMap.kt` have the full reasoning), and a
-   thinner line weight plus the standing on-screen disclaimer below take
-   over the "not a route" signal the dash used to carry alone. Per
-   `CLAUDE.md` an unsupported capability is reported as unsupported rather
-   than given a plausible-looking value, so the app ships the order and
-   says plainly, on screen, that it is not a route. The ordering is also
-   not optimal or shortest — greedy
-   nearest-neighbour is neither, and it isn't described as either. If no
-   group of observations meets the density threshold, the app says so
-   explicitly instead of relaxing the threshold until something appears.
-7. When the selected month is the current month, a **Current Conditions**
+6. When the selected month is the current month, a **Current Conditions**
    card at the top of the **List** tab shows recent observed rainfall for
    the region (total precipitation and days since the last significant
    rain), pulled from
@@ -260,7 +218,7 @@ more certainty than the data supports. See `AvailabilityForecast` and
    unproven correction logic). The card is hidden entirely when browsing a
    different month, since today's rain says nothing about typical
    conditions in some other month.
-8. A **Seasonal** tab tests the rain-to-fruiting-lag rule of thumb quoted in
+7. A **Seasonal** tab tests the rain-to-fruiting-lag rule of thumb quoted in
    `FruitingPatternAssumptions.FRUITING_LAG_DAYS` (7–21 days after a soaking
    rain) against real data, instead of leaving it as unmeasured field lore.
    `GetSeasonalPatternUseCase` fetches the region's dated sightings
@@ -277,7 +235,7 @@ more certainty than the data supports. See `AvailabilityForecast` and
    that detection) and buckets the lag into 0–6, 7–21 (`FRUITING_LAG_DAYS`
    itself, highlighted), 22–35, 36+, or "no preceding event." The result is
    drawn as a hand-rolled Compose `Canvas` bar chart — no charting
-   dependency, the same choice already made for `Dbscan`/`GeoDistance`/
+   dependency, the same choice already made for `GeoDistance`/
    `MgrsConverter` — with the exact counts also printed as text, since
    Robolectric cannot render `Canvas` content and the honesty this feature
    depends on cannot live in unmeasurable pixels alone.
@@ -318,7 +276,7 @@ more certainty than the data supports. See `AvailabilityForecast` and
    feature can all say "based on N of iNaturalist's own M" instead of a
    guess.
 
-9. **Searches you have already run work without a connection.** Every ranked
+8. **Searches you have already run work without a connection.** Every ranked
    list that comes back is written to a local Room table, and if a later
    search for the same region, month and category can't reach iNaturalist,
    the saved copy is shown instead — under an "Offline — showing results
@@ -339,7 +297,7 @@ more certainty than the data supports. See `AvailabilityForecast` and
    a search 400m away is a different search and is not answered with this
    one's results. See `domain/SearchCacheRepository` and
    `domain/GetAvailabilityUseCase`.
-10. **A mushroom log lets you record a field find as a structured
+9. **A mushroom log lets you record a field find as a structured
     observation — Phase 1 (local only) of this feature; see below for what's
     deferred.** On medium/expanded windows it's still reached from the
     drawer's **Mushroom Log** entry (a sticky row above Settings), and a new
@@ -470,14 +428,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
   the real hand-written migration those two tables shipped with.
 - `domain/` — pure Kotlin: `Region`, `LatLng`, `SpeciesObservationCount`,
   `Sighting`, `SightingsPage`, `TaxonFilter`, `TaxonSearchResult`,
-  `AvailabilityForecast`, `ConditionsSummary`, `ForagingArea`/`ForagingAreas`,
+  `AvailabilityForecast`, `ConditionsSummary`,
   `FruitingLagDistribution`, `GeoDistance` (including its point-radius
   `boundingBox` helper, used by the offline-map region picker),
-  `GeoBoundingBox`, `Dbscan`, `PredictAvailabilityUseCase`,
+  `GeoBoundingBox`, `PredictAvailabilityUseCase`,
   `GetAvailabilityUseCase` (the live-then-cached-fallback decision,
   returning an `AvailabilitySearchResult.Live`/`.Cached` or the original
   failure unchanged), `GetSightingsUseCase`, `GetRecentSearchesUseCase`,
-  `SearchTaxaUseCase`, `GetConditionsUseCase`, `ClusterForagingAreasUseCase`,
+  `SearchTaxaUseCase`, `GetConditionsUseCase`,
   `ComputeFruitingLagDistributionUseCase`, `GetSeasonalPatternUseCase`,
   `OfflineMapRepository`/`OfflineMapInfo` (always resolves to USGS Topo — no
   style parameter), and the
@@ -562,10 +520,9 @@ more certainty than the data supports. See `AvailabilityForecast` and
   button instead of the icon stack, since the stack (and its Search icon)
   has nothing to attach to yet. `CompactSearchDrawerContent` is the compact
   drawer's entire content — species/category search, Recent Searches,
-  Advanced Search, Trip Planner and the foraging-areas toggle all together,
+  Advanced Search and Trip Planner all together,
   reached only from `CompactMapTab`'s Search icon (there is no app bar or
-  tune icon on compact) — replacing the old `ForagingAreasOverlay`, which no
-  longer exists. `CompactSettingsTab` is what the `Settings` bottom-nav tab
+  tune icon on compact). `CompactSettingsTab` is what the `Settings` bottom-nav tab
   shows (`SettingsContent` plus `OfflineMapsPanel`, the same composables the
   medium/expanded drawer's `DrawerPanel.Settings`/`DrawerPanel.OfflineMaps`
   use, just hosted outside the drawer); `DistanceUnit`
@@ -581,17 +538,13 @@ more certainty than the data supports. See `AvailabilityForecast` and
   renderer); `SightingsMap`, a real MapLibre `MapView` wrapped for Compose
   (replacing an earlier osmdroid-based implementation — see "The
   topographic basemap, specifically" below for that migration), including
-  the sighting dots and numbered foraging-area markers as MapLibre GeoJSON
-  sources/style layers rather than osmdroid `Overlay`s. The order connector
-  now renders solid and the live breadcrumb trail dashed (a short dot-like
-  `lineDasharray`, not the connector's original pixel-preserving one — see
-  `BREADCRUMB_DASH_PATTERN`'s doc comment); night mode also differentiates
-  markers by icon shape rather than hue now, one shared warm colour and one
-  shared ink colour standing in for the nine independently-tuned ones day
-  mode still uses — see `MapPalette.NIGHT`'s doc comment, "Fifth pass."
-  `ForagingAreaLabels`, which holds the
-  single wording of the "not a walking route" disclaimer so the on-map
-  info window and the on-screen caption can't drift apart; `Basemap`, the
+  the sighting dots as MapLibre GeoJSON sources/style layers rather than
+  osmdroid `Overlay`s. The live breadcrumb trail renders dashed (a short
+  dot-like `lineDasharray` — see `BREADCRUMB_DASH_PATTERN`'s doc comment);
+  night mode also differentiates markers by icon shape rather than hue now,
+  one shared warm colour and one shared ink colour standing in for the
+  independently-tuned ones day mode still uses — see `MapPalette.NIGHT`'s
+  doc comment, "Fifth pass." `Basemap`, the
   same own-the-vendor-boundary idea one level down — the basemap catalogue
   is pure Kotlin (labels, coverage limits, zoom ceilings, attribution, no
   MapLibre and no Compose), and `BasemapStyles.styleJsonFor` is the only
@@ -1148,7 +1101,7 @@ device: the metric/imperial Settings toggle's actual on-screen labels
 (`formatDistanceKm`'s output is unit-tested and exercised through
 `AvailabilityScreen`'s Robolectric suite as text, but not seen rendered),
 and whether losing the always-available search affordance outside the Maps
-tab (see "How it works" item 6 above) is a real friction point in practice
+tab (see "How it works" item 5 above) is a real friction point in practice
 rather than a reasoned tradeoff.
 
 ### Phase 4 — back-button navigation, specifically

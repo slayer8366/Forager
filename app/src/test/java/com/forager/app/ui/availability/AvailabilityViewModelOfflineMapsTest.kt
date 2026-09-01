@@ -1,6 +1,5 @@
 package com.forager.app.ui.availability
 
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
@@ -215,7 +214,6 @@ class AvailabilityViewModelOfflineMapsTest {
         getSightings = GetSightingsUseCase(OfflineMapsEmptyRepository),
         searchTaxa = SearchTaxaUseCase(OfflineMapsEmptyRepository),
         getConditions = GetConditionsUseCase(OfflineMapsStubWeatherProvider),
-        clusterForagingAreas = ClusterForagingAreasUseCase(),
         getTripWindows = GetTripWindowsUseCase(OfflineMapsStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
         getPlannedTrips = GetPlannedTripsUseCase(OfflineMapsStubPlannedTripRepository),
         savePlannedTrip = SavePlannedTripUseCase(OfflineMapsStubPlannedTripRepository),

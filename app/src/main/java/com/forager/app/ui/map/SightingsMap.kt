@@ -38,7 +38,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -71,16 +70,9 @@ import org.maplibre.geojson.Point
 /**
  * Shows the searched region as a map with a marker per real observation ([sightings]).
  *
- * When [areas] is non-empty, numbered foraging-area markers and a visiting-order connector are
- * drawn over the individual pins (the pins stay: they're the evidence the areas were derived
- * from). Pass an empty list to show pins alone. The connector line is solid; a dashed line is now
- * the live [breadcrumbPoints] trail instead — see [BREADCRUMB_DASH_PATTERN]'s doc comment for why
- * the two swapped, and what still keeps the connector from reading as a real walkable route.
- *
- * [plannedTrips] draws a third, distinct marker per planned trip — a diamond, to read as
- * different from both the translucent sighting dots (density of what's been observed) and the
- * numbered foraging-area labels (where to go based on that history): a planned trip is neither of
- * those, it's a place the user chose for themselves.
+ * [plannedTrips] draws a second, distinct marker per planned trip — a diamond, to read as
+ * different from the translucent sighting dots (density of what's been observed): a planned trip
+ * is a place the user chose for themselves, not derived from observation history.
  *
  * [onLongPress] fires with the geographic point under a long-press, when a caller actually listens
  * for it — the intended consumer would turn it into a planned trip (via a date picker it owns; this
@@ -100,9 +92,9 @@ import org.maplibre.geojson.Point
  *
  * ## Migration note (osmdroid -> MapLibre, `docs/plans/maplibre-migration.md` §2b)
  *
- * This composable is a full rewrite, not a port. Per the plan: "the dot markers, numbered area
- * markers, and dashed connectors ... all become style layers rather than osmdroid `Overlay`s." Every
- * one of them is now a `GeoJsonSource` + a `CircleLayer`/`LineLayer`/`SymbolLayer` in
+ * This composable is a full rewrite, not a port. Per the plan: "the dot markers ... all become
+ * style layers rather than osmdroid `Overlay`s." Every one of them is now a `GeoJsonSource` + a
+ * `CircleLayer`/`LineLayer`/`SymbolLayer` in
  * [initializeOverlayLayers], with actual data pushed by [refreshOverlayData] — see that function's
  * doc comment for why the two are split. [Basemap]/[styleJsonFor] are the only pieces reused as-is;
  * everything else, including [zoomForRadiusKm]'s numbers and the colour constants, is carried over
@@ -119,11 +111,6 @@ import org.maplibre.geojson.Point
  *   emulation of one. `SightingsMapOverlayDataTest` asserts the built `LineLayer` actually carries a
  *   non-empty `line-dasharray` after every one of `basemap`'s possible values, the direct MapLibre
  *   analogue of what `SightingsMapBasemapSwapTest` asserted for osmdroid's `PathEffect`.
- * - *The numbered area-marker text renders at all.* This was hit as a real, silent failure once
- *   already in this migration (`MapLibreBasemapPreviewActivity`'s history, "Fix missing area-marker
- *   labels: style JSON had no glyphs URL" — hardware-confirmed) before that scaffolding was deleted
- *   in this same change. [styleJsonFor] carries the fix (a `glyphs` URL on every style) forward, and
- *   `SightingsMapOverlayTest` asserts the built style actually has one.
  * - *Content does not paint outside this composable's slot.* The `Modifier.clipToBounds()` below is
  *   kept, but the specific mechanism the old doc comment described — osmdroid's `TilesOverlay` and
  *   `PolyOverlayWithIW` drawing raw Canvas bitmaps/paths past the view's rectangle because
@@ -155,21 +142,16 @@ import org.maplibre.geojson.Point
  * gave for free had no style-layer equivalent — until [onSightingTap], added for a real observation
  * marker's info card, which does query the tapped point back (`MapLibreMap.queryRenderedFeatures`
  * against [SIGHTING_LAYER_ID] in the click listener below) and calls out with the matching
- * [Sighting]. Every other marker type — search centre, foraging areas, planned trips, waypoints —
- * still has no click handler; their [Feature]s built by [searchCenterFeatureCollection]/
- * [areaMarkersFeatureCollection]/[connectorFeatureCollection]/[plannedTripsFeatureCollection] still
- * carry title/snippet as GeoJSON properties only, ready for the same treatment when one of those
- * needs it too. The one piece of that text carrying an actual safety property —
- * [VISITING_ORDER_DISCLAIMER] — does not depend on any popup at all: `AvailabilityScreen` already
- * renders it as a standing caption under the map (verified: `grep -n VISITING_ORDER_DISCLAIMER`
- * finds that call site independent of this file), so the disclaimer stays user-visible regardless.
+ * [Sighting]. Every other marker type — search centre, planned trips, waypoints — still has no
+ * click handler; their [Feature]s built by [searchCenterFeatureCollection]/
+ * [plannedTripsFeatureCollection] still carry title/snippet as GeoJSON properties only, ready for
+ * the same treatment when one of those needs it too.
  */
 @Composable
 fun SightingsMap(
     region: Region,
     sightings: List<Sighting>,
     modifier: Modifier = Modifier,
-    areas: List<ForagingArea> = emptyList(),
     plannedTrips: List<PlannedTrip> = emptyList(),
     basemap: Basemap = Basemap.DEFAULT,
     /** See [com.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
@@ -419,15 +401,15 @@ fun SightingsMap(
     // after a basemap swap) — the same "rebuild content every update, regardless of why the update
     // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
     // because MapLibre's own API separates "style ready" from "camera/property changed".
-    LaunchedEffect(loadedStyle, region, sightings, areas, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId) {
+    LaunchedEffect(loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(style, region, sightings, areas, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId)
+        refreshOverlayData(style, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId)
 
         // Once the live-location "puck" is actively tracking (the default once permission is
         // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its
         // own internal update loop, independent of recomposition. Jumping the camera to the search
-        // region here too — on every sightings/area/breadcrumb update this effect already keys on,
+        // region here too — on every sightings/breadcrumb update this effect already keys on,
         // which includes roughly every 15s while a track is recording — would fight it, snapping the
         // view back to the search center out from under a walker watching their live position. Once
         // a pan/zoom/the CameraMode.NONE break in activateLiveLocationIfPermitted's own doc comment
@@ -510,9 +492,7 @@ fun SightingsMap(
  * previous style's sources and layers wholesale: a basemap swap needs both — the shape rebuilt here,
  * the content pushed there — while a plain data change (a new search, a new planned trip) only ever
  * needs the second. Layer add order is the draw order (later added draws on top), kept the same as
- * the deleted osmdroid version's overlay list order: search centre, sightings, connector, area
- * markers (circle then its label), planned trips last so a diamond never sits under a numbered area
- * marker.
+ * the deleted osmdroid version's overlay list order: search centre, sightings, planned trips last.
  *
  * Every marker is a plain [CircleLayer] now, day or night — see [MapPalette]'s own doc comment,
  * "Markers stay day-only, always." `docs/plans/contrast_assertions.md` archives the night-specific
@@ -559,21 +539,8 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
         ),
     )
 
-    // Line style (dashed vs. solid), not colour, carries the connector/breadcrumb distinction.
-    // Breadcrumb is dashed (a short dash with round caps reads as a trail of dots — "breadcrumbs"
-    // should look like breadcrumbs); connector is solid. See BREADCRUMB_DASH_PATTERN's own doc
-    // comment for why the connector reading solid no longer implies a real walkable route, the
-    // property the previous dashed choice protected.
-    style.addSource(GeoJsonSource(CONNECTOR_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        LineLayer(CONNECTOR_LAYER_ID, CONNECTOR_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.connector),
-            PropertyFactory.lineWidth(CONNECTOR_STROKE_WIDTH_PX),
-        ),
-    )
-
-    // Added after the connector so an active recording's trail draws on top of it if the two ever
-    // geographically overlap.
+    // Breadcrumb is dashed (a short dash with round caps reads as a trail of dots —
+    // "breadcrumbs" should look like breadcrumbs). See BREADCRUMB_DASH_PATTERN's own doc comment.
     style.addSource(GeoJsonSource(BREADCRUMB_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         LineLayer(BREADCRUMB_LAYER_ID, BREADCRUMB_SOURCE_ID).withProperties(
@@ -582,30 +549,6 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
             PropertyFactory.lineDasharray(BREADCRUMB_DASH_PATTERN),
-        ),
-    )
-
-    style.addSource(GeoJsonSource(AREA_MARKER_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        CircleLayer(AREA_MARKER_CIRCLE_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
-            PropertyFactory.circleColor(palette.areaMarkerBackground),
-            PropertyFactory.circleRadius(AREA_MARKER_RADIUS_PX),
-        ),
-    )
-    style.addLayer(
-        SymbolLayer(AREA_MARKER_LABEL_LAYER_ID, AREA_MARKER_SOURCE_ID).withProperties(
-            // "{label}" is MapLibre's own token-substitution syntax inside a literal text-field
-            // string, pulling the "label" GeoJSON property each area-marker Feature carries (see
-            // areaMarkersFeatureCollection) — hardware-confirmed working in
-            // MapLibreBasemapPreviewActivity's history before that scaffolding was deleted here.
-            PropertyFactory.textField("{label}"),
-            // Must name a font actually present in styleJsonFor's glyphs set, or text-field renders
-            // nothing — see BasemapStyles.kt's doc comment for why this exact font.
-            PropertyFactory.textFont(AREA_MARKER_FONT_STACK),
-            PropertyFactory.textColor(palette.areaMarkerForeground),
-            PropertyFactory.textSize(AREA_MARKER_FONT_SIZE_PX),
-            PropertyFactory.textAllowOverlap(true),
-            PropertyFactory.textIgnorePlacement(true),
         ),
     )
 
@@ -618,8 +561,8 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
         ),
     )
 
-    // Last, so a waypoint marker never sits under a planned-trip diamond or an area label if two
-    // ever land on the same point.
+    // Last, so a waypoint marker never sits under a planned-trip diamond if the two ever land on
+    // the same point.
     style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density, palette.waypoint))
     style.addSource(GeoJsonSource(WAYPOINT_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
@@ -642,7 +585,6 @@ private fun refreshOverlayData(
     style: Style,
     region: Region,
     sightings: List<Sighting>,
-    areas: List<ForagingArea>,
     plannedTrips: List<PlannedTrip>,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
@@ -650,8 +592,6 @@ private fun refreshOverlayData(
 ) {
     style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCenterFeatureCollection(region))
     style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings, focusedObservationId))
-    style.getSourceAs<GeoJsonSource>(CONNECTOR_SOURCE_ID)?.setGeoJson(connectorFeatureCollection(region, areas))
-    style.getSourceAs<GeoJsonSource>(AREA_MARKER_SOURCE_ID)?.setGeoJson(areaMarkersFeatureCollection(areas))
     style.getSourceAs<GeoJsonSource>(PLANNED_TRIP_SOURCE_ID)?.setGeoJson(plannedTripsFeatureCollection(plannedTrips))
     style.getSourceAs<GeoJsonSource>(BREADCRUMB_SOURCE_ID)?.setGeoJson(breadcrumbFeatureCollection(breadcrumbPoints))
     style.getSourceAs<GeoJsonSource>(WAYPOINT_SOURCE_ID)?.setGeoJson(waypointsFeatureCollection(waypoints))
@@ -867,40 +807,10 @@ internal fun sightingStrokeColorExpression(palette: MapPalette): Expression =
         Expression.color(palette.sightingDotStroke),
     )
 
-/** [ForagingArea.visitOrder] as the "label" property the area-marker SymbolLayer's `text-field` reads via `"{label}"`. */
-internal fun areaMarkersFeatureCollection(areas: List<ForagingArea>): FeatureCollection {
-    val features = areas.map { area ->
-        Feature.fromGeometry(Point.fromLngLat(area.center.lng, area.center.lat)).apply {
-            addStringProperty("label", area.visitOrder.toString())
-            addStringProperty("title", "Area ${area.visitOrder}")
-            addStringProperty("snippet", foragingAreaSummary(area))
-        }
-    }
-    return FeatureCollection.fromFeatures(features)
-}
-
-/**
- * The visiting-order connector, as a single [LineString] feature through the search centre and
- * every area centre in visiting order — an empty [FeatureCollection] when [areas] is empty, since
- * a `LineString` needs at least two points and "no areas" is a real, common state (a fresh search
- * with no clusters yet). Rendered solid, not dashed — see [BREADCRUMB_DASH_PATTERN]'s doc comment
- * for why, and what still keeps this line from reading as a real walkable route now that dashing
- * doesn't.
- */
-internal fun connectorFeatureCollection(region: Region, areas: List<ForagingArea>): FeatureCollection {
-    if (areas.isEmpty()) return emptyFeatureCollection()
-    val orderedPoints = listOf(Point.fromLngLat(region.lng, region.lat)) +
-        areas.map { Point.fromLngLat(it.center.lng, it.center.lat) }
-    val feature = Feature.fromGeometry(LineString.fromLngLats(orderedPoints))
-    feature.addStringProperty("title", "Visiting order")
-    feature.addStringProperty("snippet", VISITING_ORDER_DISCLAIMER)
-    return FeatureCollection.fromFeature(feature)
-}
-
 /**
  * The active track's recorded points as a single [LineString] feature, oldest first — an empty
  * [FeatureCollection] when [points] has fewer than two points (nothing recorded yet, or only the
- * first fix so far), same "a line needs two ends" reasoning as [connectorFeatureCollection].
+ * first fix so far): a `LineString` needs at least two points.
  */
 internal fun breadcrumbFeatureCollection(points: List<LatLng>): FeatureCollection {
     if (points.size < 2) return emptyFeatureCollection()
@@ -931,10 +841,10 @@ internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureColle
 
 /**
  * A solid diamond bitmap for the planned-trip [SymbolLayer]'s `icon-image`, distinct in shape and
- * colour from both the translucent sighting-dot circles and the numbered area-marker circles, so
- * "planned" reads as its own kind of pin rather than a variant of either — same intent as the
- * deleted osmdroid `plannedTripIcon`, redrawn because MapLibre's `SymbolLayer` needs a named image
- * registered on the [Style] (`Style.addImage`) rather than a per-`Marker` `Drawable`.
+ * colour from the translucent sighting-dot circles, so "planned" reads as its own kind of pin
+ * rather than a variant of one — same intent as the deleted osmdroid `plannedTripIcon`, redrawn
+ * because MapLibre's `SymbolLayer` needs a named image registered on the [Style]
+ * (`Style.addImage`) rather than a per-`Marker` `Drawable`.
  */
 private fun plannedTripDiamondBitmap(density: Float, markerColor: Int): Bitmap {
     val sizePx = (PLANNED_TRIP_MARKER_SIZE_DP * density).toInt().coerceAtLeast(1)
@@ -991,11 +901,6 @@ private const val SEARCH_CENTER_SOURCE_ID = "search-center"
 private const val SEARCH_CENTER_LAYER_ID = "search-center-layer"
 private const val SIGHTING_SOURCE_ID = "sightings"
 private const val SIGHTING_LAYER_ID = "sightings-layer"
-private const val CONNECTOR_SOURCE_ID = "visiting-order-connector"
-private const val CONNECTOR_LAYER_ID = "visiting-order-connector-layer"
-private const val AREA_MARKER_SOURCE_ID = "area-markers"
-private const val AREA_MARKER_CIRCLE_LAYER_ID = "area-markers-circle-layer"
-private const val AREA_MARKER_LABEL_LAYER_ID = "area-markers-label-layer"
 private const val PLANNED_TRIP_SOURCE_ID = "planned-trips"
 private const val PLANNED_TRIP_LAYER_ID = "planned-trips-layer"
 private const val PLANNED_TRIP_ICON_ID = "planned-trip-diamond"
@@ -1023,20 +928,12 @@ private const val SIGHTING_DOT_RADIUS_PX = 9f
 // this one flat width for every dot, selected or not.
 internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
-private const val AREA_MARKER_FONT_SIZE_PX = 14f
-private const val AREA_MARKER_RADIUS_PX = 16f
-
-// Connector now thinner than breadcrumb (was the other way around) -- a lighter line weight
-// reinforces "suggested order, not a real path" now that dash pattern alone no longer carries
-// that signal. See BREADCRUMB_DASH_PATTERN's own doc comment.
-private const val CONNECTOR_STROKE_WIDTH_PX = 4f
 
 private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 
 private const val SEARCH_CENTER_RADIUS_PX = 8f
 private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
 
-// Breadcrumb thicker than connector now (was the other way around) -- see CONNECTOR_STROKE_WIDTH_PX.
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
 private const val WAYPOINT_MARKER_WIDTH_DP = 22f
@@ -1045,31 +942,16 @@ private const val WAYPOINT_MARKER_HEIGHT_DP = 28f
 /**
  * A short dash with round line caps ([Property.LINE_CAP_ROUND], already set on the breadcrumb
  * layer) renders as a trail of small dots — "breadcrumbs" should look like breadcrumbs, the
- * project owner's own reasoning for moving the dash here from the connector. Not the connector's
- * former 18:14 ratio, carried over unchanged: that ratio reads as a conventional dashed *line*
- * (long dash, short gap), the right look for "this is a diagram annotation, not a path," but the
- * wrong look for a trail of dots. `4:10` (a short mark, a gap two and a half times longer) is
- * tuned for the dot read instead, in the same line-width-relative units
- * [PropertyFactory.lineDasharray] always took (see [BREADCRUMB_STROKE_WIDTH_PX]).
- *
- * **The connector was dashed for a safety reason, not a style one — "solid" would misleadingly
- * read as a real walkable path** (`README.md`'s "not a walking route" section; this project has no
- * trail-graph data, so a solid line could route someone across a river, a cliff, or private land).
- * Moving the dash to breadcrumb and making the connector solid was a deliberate choice made and
- * confirmed knowing this, not an oversight — two things now carry that signal in its place instead
- * of dashing: [CONNECTOR_STROKE_WIDTH_PX] is deliberately thinner than [BREADCRUMB_STROKE_WIDTH_PX]
- * (a lighter line reads as an annotation, not a route), and [VISITING_ORDER_DISCLAIMER] (surfaced
- * both as a standing on-screen caption and this feature's info-window snippet) states the "not a
- * route" property in words, not just line style. Revisit if a future hardware pass finds the
- * thinner-solid line alone is not read as clearly non-routable as the dash was.
+ * project owner's own reasoning. `4:10` (a short mark, a gap two and a half times longer) is
+ * tuned for that dot read, in the same line-width-relative units [PropertyFactory.lineDasharray]
+ * always took (see [BREADCRUMB_STROKE_WIDTH_PX]).
  *
  * `internal`: this is the actual array [PropertyFactory.lineDasharray] receives in production, not
  * a copy. `SightingsMapOverlayDataTest` asserts it is non-empty — the closest a headless JVM test
  * can get to "the breadcrumb trail is still dashed" (see [searchCenterFeatureCollection]'s doc
  * comment for why nothing here can construct the real, native-backed [LineLayer] that actually
- * renders it). Whether MapLibre draws it as visibly dot-like on a real basemap, and whether the
- * connector's now-solid, now-thinner line still reads clearly as "not a route," are both
- * hardware-only questions, not yet re-confirmed.
+ * renders it). Whether MapLibre draws it as visibly dot-like on a real basemap is a hardware-only
+ * question, not yet re-confirmed.
  */
 internal val BREADCRUMB_DASH_PATTERN = arrayOf(0.4f, 1.0f)
 

@@ -1,6 +1,5 @@
 package com.forager.app.ui.map
 
-import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -34,20 +33,18 @@ import org.maplibre.geojson.Point
  *
  * What *is* real, production code and free of any native dependency is everything upstream of that
  * boundary: `searchCenterFeatureCollection`/`sightingsFeatureCollection`/
- * `areaMarkersFeatureCollection`/`connectorFeatureCollection`/`plannedTripsFeatureCollection`
- * (`SightingsMap.kt`, widened from `private` to `internal` for exactly this test) build
- * [org.maplibre.geojson.FeatureCollection]s — a separate, pure-Java artifact (also checked with
- * `javap`: no native methods anywhere in it) — and `zoomForRadiusKm` is plain arithmetic. This test
- * exercises those functions directly, the same split [MapLibreOfflineMapRepository]'s own doc comment
- * already draws for `OfflineRegion` (test the pure byte format; the native store itself is untestable
- * off a device).
+ * `plannedTripsFeatureCollection` (`SightingsMap.kt`, widened from `private` to `internal` for
+ * exactly this test) build [org.maplibre.geojson.FeatureCollection]s — a separate, pure-Java
+ * artifact (also checked with `javap`: no native methods anywhere in it) — and `zoomForRadiusKm`
+ * is plain arithmetic. This test exercises those functions directly, the same split
+ * [MapLibreOfflineMapRepository]'s own doc comment already draws for `OfflineRegion` (test the
+ * pure byte format; the native store itself is untestable off a device).
  *
  * ## What this does not, and cannot, establish
  *
- * That a basemap swap leaves these sources' *rendered* content undisturbed, and that the connector
- * actually reads as dashed against a real basemap, are both native-rendering facts and stay
- * hardware-only — same gap this migration's own doc comments (`SightingsMap`'s class doc, "What is
- * explicitly re-confirmed") already flag. What this test does establish: [SightingsMap]'s
+ * That a basemap swap leaves these sources' *rendered* content undisturbed is a native-rendering
+ * fact and stays hardware-only — same gap this migration's own doc comments (`SightingsMap`'s
+ * class doc, "What is explicitly re-confirmed") already flag. What this test does establish: [SightingsMap]'s
  * `refreshOverlayData` calls these exact functions on every relevant prop change including a basemap
  * swap (see that function's own body), and never on `basemap` itself — the GeoJSON produced does not
  * take a [Basemap] parameter at all, so there is no code path here for a basemap swap to disturb it
@@ -78,25 +75,6 @@ class SightingsMapOverlayDataTest {
             lng = -122.65,
             observedOn = null,
             photoUrl = null,
-        ),
-    )
-
-    private val areas = listOf(
-        ForagingArea(
-            visitOrder = 1,
-            center = LatLng(45.33, -122.64),
-            sightings = sightings,
-            distinctSpeciesCount = 2,
-            mostRecentYear = 2024,
-            undatedObservationCount = 0,
-        ),
-        ForagingArea(
-            visitOrder = 2,
-            center = LatLng(45.34, -122.65),
-            sightings = sightings.take(1),
-            distinctSpeciesCount = 1,
-            mostRecentYear = 2023,
-            undatedObservationCount = 1,
         ),
     )
 
@@ -214,61 +192,6 @@ class SightingsMapOverlayDataTest {
         assertEquals(expected, sightingStrokeColorExpression(palette = MapPalette.NIGHT))
     }
 
-    /**
-     * The fact that actually matters for the numbered markers rendering the right number: the
-     * `"label"` property is what the `SymbolLayer`'s `text-field` token `"{label}"` substitutes —
-     * see `areaMarkersFeatureCollection`'s own doc comment.
-     */
-    @Test
-    fun `each area marker's label property is its own visiting order`() {
-        val features = areaMarkersFeatureCollection(areas).features()!!
-
-        assertEquals("1", features[0].getStringProperty("label"))
-        assertEquals("Area 1", features[0].getStringProperty("title"))
-        assertEquals("2", features[1].getStringProperty("label"))
-        assertEquals("Area 2", features[1].getStringProperty("title"))
-    }
-
-    @Test
-    fun `each area marker's snippet is the real foragingAreaSummary, not a duplicate of its wording`() {
-        val features = areaMarkersFeatureCollection(areas).features()!!
-        assertEquals(foragingAreaSummary(areas[0]), features[0].getStringProperty("snippet"))
-        assertEquals(foragingAreaSummary(areas[1]), features[1].getStringProperty("snippet"))
-    }
-
-    @Test
-    fun `no areas produces no connector feature`() {
-        assertTrue(
-            "A LineString needs at least two points; an empty area list must not produce a degenerate one.",
-            connectorFeatureCollection(region, emptyList()).features()!!.isEmpty(),
-        )
-    }
-
-    @Test
-    fun `the connector runs from the search centre through every area centre in visiting order`() {
-        val feature = connectorFeatureCollection(region, areas).features()!!.single()
-        val line = feature.geometry() as LineString
-
-        val expectedPoints = listOf(
-            Point.fromLngLat(region.lng, region.lat),
-            Point.fromLngLat(areas[0].center.lng, areas[0].center.lat),
-            Point.fromLngLat(areas[1].center.lng, areas[1].center.lat),
-        )
-        assertEquals(expectedPoints, line.coordinates())
-    }
-
-    /**
-     * The one piece of this map carrying an actual safety property. Asserted against the real,
-     * single-sourced [VISITING_ORDER_DISCLAIMER] constant — not a copy of its wording — so this test
-     * would fail if `connectorFeatureCollection` ever forked its own text instead of reading from
-     * [ForagingAreaLabels].
-     */
-    @Test
-    fun `the connector's snippet is the real visiting-order disclaimer`() {
-        val feature = connectorFeatureCollection(region, areas).features()!!.single()
-        assertEquals(VISITING_ORDER_DISCLAIMER, feature.getStringProperty("snippet"))
-    }
-
     @Test
     fun `each planned trip becomes a point feature carrying its own date`() {
         val feature = plannedTripsFeatureCollection(plannedTrips).features()!!.single()
@@ -308,9 +231,7 @@ class SightingsMapOverlayDataTest {
 
     /**
      * The closest a headless test can get to "the breadcrumb trail is still dashed" — see
-     * [BREADCRUMB_DASH_PATTERN]'s own doc comment for exactly what this does and does not prove,
-     * and for why the dash moved here from the connector (now solid, deliberately — see that same
-     * doc comment for what still keeps it from reading as a real walkable route).
+     * [BREADCRUMB_DASH_PATTERN]'s own doc comment for exactly what this does and does not prove.
      */
     @Test
     fun `the breadcrumb dash pattern is non-empty, so it renders as dots and not a solid trail`() {

@@ -22,7 +22,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
@@ -136,7 +135,6 @@ class AvailabilityScreenBackNavigationTest {
             getSightings = GetSightingsUseCase(BackNavEmptyRepository),
             searchTaxa = SearchTaxaUseCase(BackNavEmptyRepository),
             getConditions = GetConditionsUseCase(BackNavStubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(BackNavStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
@@ -165,7 +163,6 @@ class AvailabilityScreenBackNavigationTest {
                 onMonthSelected = viewModel::onMonthSelected,
                 onMapTabSelected = viewModel::onMapTabSelected,
                 onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onToggleForagingAreas = viewModel::onToggleForagingAreas,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                 onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
                 onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,

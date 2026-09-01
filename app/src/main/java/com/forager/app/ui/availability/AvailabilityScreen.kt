@@ -187,7 +187,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.forager.app.BuildConfig
 import com.forager.app.crash.CrashFileStore
 import com.forager.app.domain.CachedSearchSummary
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.ForagingSelection
@@ -205,8 +204,6 @@ import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.formatDistanceKm
-import com.forager.app.domain.model.ForagingArea
-import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.GalleryPhoto
@@ -245,8 +242,6 @@ import com.forager.app.ui.map.MapMode
 import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
-import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
-import com.forager.app.ui.map.foragingAreaSummary
 import com.forager.app.ui.motion.MotionTokens
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
@@ -295,7 +290,7 @@ private enum class ResultsTab(val label: String) {
  * search icon used to open (that icon is gone — see `MapIconBar`'s own doc comment — this tab is
  * its replacement entry point, not a new destination alongside it). "Tools" is deliberately a
  * catch-all for things used but not wanted in the immediate way — per-trip and rare items that are
- * not destinations in their own right (trip planner, waypoints, foraging areas, and now Settings
+ * not destinations in their own right (trip planner, waypoints, and now Settings
  * too — see that composable's own doc comment). Search itself — basic species/category search,
  * Recent Searches, and Advanced Search — is **not** part of that list any more: it moved out into
  * [SearchDropdown], reached from [ActiveSearchSummary] up top rather than from this drawer, exactly
@@ -405,7 +400,6 @@ fun AvailabilityScreen(
     onMonthSelected: (Int) -> Unit,
     onMapTabSelected: () -> Unit,
     onSeasonalTabSelected: () -> Unit,
-    onToggleForagingAreas: (Boolean) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -574,36 +568,18 @@ fun AvailabilityScreen(
     // sighting view.
     var mapTaxonFilter by remember { mutableStateOf<Long?>(null) }
 
-    // Whether the foraging-areas layer was showing right before a "View on Map" filter was first
-    // applied — read back on clear so the layer returns to whatever the user actually had, not
-    // unconditionally forced back on. Only snapshotted/toggled off when mapTaxonFilter is still
-    // null in onViewSpeciesOnMap below: without that guard, tapping "View on Map" for a second
-    // species while already filtered would re-read uiState.showForagingAreas after this same
-    // effect already turned it off, silently forgetting the user's real original preference.
-    var wasShowingForagingAreasBeforeMapFilter by remember { mutableStateOf(false) }
-
     // Sets the filter and jumps to whichever map surface the current window class actually shows —
     // both selectedTab and compactTab are updated unconditionally rather than branching on
     // windowWidthClass here, since only the one the active layout reads has any effect; see
     // CompactTab's own doc comment for why the two are kept as separate state instead of one.
-    // Also hides the foraging-areas layer while the filtered view is up — a single species'
-    // sightings grouped into "areas" reads as a misleading claim about that species' own foraging
-    // pattern, not the general-purpose grouping the layer is for — restored on
-    // onClearMapTaxonFilter below.
     val onViewSpeciesOnMap: (Long) -> Unit = { taxonId ->
-        if (mapTaxonFilter == null) {
-            wasShowingForagingAreasBeforeMapFilter = uiState.showForagingAreas
-            if (uiState.showForagingAreas) onToggleForagingAreas(false)
-        }
         mapTaxonFilter = taxonId
         compactTab = CompactTab.MAP
         selectedTab = ResultsTab.MAP
     }
 
-    /** Clears the filter and restores the foraging-areas layer to whatever it was before — see [wasShowingForagingAreasBeforeMapFilter]'s own doc comment. */
     val onClearMapTaxonFilter: () -> Unit = {
         mapTaxonFilter = null
-        if (wasShowingForagingAreasBeforeMapFilter) onToggleForagingAreas(true)
     }
 
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
@@ -1012,7 +988,6 @@ fun AvailabilityScreen(
                         onMapModeSelected = { mapMode = it },
                         onPlaceTripPin = onPlaceTripPin,
                         onLogFindHere = onLogFindHere,
-                        onToggleForagingAreas = onToggleForagingAreas,
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
                         onDropWaypoint = onDropWaypoint,
@@ -1488,7 +1463,6 @@ fun AvailabilityScreen(
                         waypointsErrorMessage = waypointsErrorMessage,
                         onDeleteWaypoint = onDeleteWaypoint,
                         currentTime = currentTime,
-                        onToggleForagingAreas = onToggleForagingAreas,
                         isNightMode = isNightMode,
                         onNightModeMapsChanged = onNightModeMapsChanged,
                         themeMode = uiState.themeMode,
@@ -1608,7 +1582,6 @@ private fun CombinedResultsPane(
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
-    onToggleForagingAreas: (Boolean) -> Unit,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
@@ -1635,7 +1608,6 @@ private fun CombinedResultsPane(
             onMapModeSelected = onMapModeSelected,
             onPlaceTripPin = onPlaceTripPin,
             onLogFindHere = onLogFindHere,
-            onToggleForagingAreas = onToggleForagingAreas,
             breadcrumbPoints = breadcrumbPoints,
             waypoints = waypoints,
             onDropWaypoint = onDropWaypoint,
@@ -3033,22 +3005,16 @@ private fun MapModePicker(
  * lived here), then again once dispatch C moved both out into [SearchDropdown] over the map (see
  * that composable's own doc comment). The owner's own later call, on seeing that move land: stop
  * calling this the search drawer at all, "so it doesn't get lumped together in the future by some
- * ambitious planner" — species search is gone from here for good, and the name should say so. Three
+ * ambitious planner" — species search is gone from here for good, and the name should say so. Two
  * things live here now, none of them search:
  *
  * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner / Waypoints only, the two
  *    sections [SearchDropdown] doesn't also cover.
- * 2. **Foraging areas** ([ForagingAreasToggle]/[ForagingAreasPanel]) — used to float as an overlay
- *    on the map itself ([CompactMapTab]'s own doc comment has that history), then moved here per
- *    the project owner's later call: "move the foraging areas to the side search panel." Fixed at
- *    the bottom, not scrolling with [SearchControls]: [ForagingAreasPanel]'s own
- *    [FORAGING_AREAS_PANEL_MAX_HEIGHT] cap already bounds it to a footnote-sized block, the same
- *    fixed-height treatment [MapTab] gave it before this redesign, just relocated.
- * 3. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
+ * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
- *    tab before that dispatch) lives here instead, reached one tap deeper via the entry row fixed
- *    below Foraging areas — the same "drill in, own back step" shape [CompactSettingsTab] already
- *    uses for its own OfflineMaps/CrashLogs/Tracks submenus, not a new pattern invented for this.
+ *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
+ *    the same "drill in, own back step" shape [CompactSettingsTab] already uses for its own
+ *    OfflineMaps/CrashLogs/Tracks submenus, not a new pattern invented for this.
  *
  * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
  * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
@@ -3065,7 +3031,6 @@ private fun CompactToolsDrawerContent(
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     currentTime: CurrentTimeProvider,
-    onToggleForagingAreas: (Boolean) -> Unit,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
@@ -3134,20 +3099,6 @@ private fun CompactToolsDrawerContent(
             includeAdvancedSearch = false,
             includeRecentSearches = false,
         )
-        HorizontalDivider()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        ) {
-            ForagingAreasToggle(checked = uiState.showForagingAreas, onCheckedChange = onToggleForagingAreas)
-            if (uiState.showForagingAreas) {
-                Box(modifier = Modifier.height(FORAGING_AREAS_PANEL_MAX_HEIGHT)) {
-                    ForagingAreasPanel(foragingAreas = uiState.foragingAreas)
-                }
-            }
-        }
         SettingsEntryRow(onClick = { showSettings = true })
     }
 }
@@ -3163,8 +3114,8 @@ private fun CompactToolsDrawerContent(
  * Shared by both window classes' drawers, unlike most of this file's compact-vs-medium/expanded
  * split: [AvailabilitySearchTopBar] hosts species/category search above these three sections for
  * medium/expanded, while [CompactToolsDrawerContent] hosts the identical
- * [SpeciesSearchControls]/foraging-areas pieces around this same composable for compact — see that
- * composable's own doc comment for why species search and foraging areas moved there instead.
+ * [SpeciesSearchControls] around this same composable for compact — see that
+ * composable's own doc comment for why species search moved there instead.
  *
  * The scroll modifier on the outer [Column] is not optional. This is the same tall stack of
  * controls that starved the map when it lived in the main column; a drawer sheet is a
@@ -3763,10 +3714,9 @@ private fun ListTab(
  * and never presented as a success; a cached ranking rendered identically to a live one is exactly
  * that failure, and the user would have no way to tell that iNaturalist was never reached.
  *
- * Tertiary rather than the error palette, for the same reason the visiting-order disclaimer is
- * (see [ForagingAreasPanel]): nothing failed in a way that cost the user their answer — the answer
- * is right there, it is simply older than it looks. Reusing the error color would make a real
- * failure read as no more urgent than this.
+ * Tertiary rather than the error palette: nothing failed in a way that cost the user their answer
+ * — the answer is right there, it is simply older than it looks. Reusing the error color would
+ * make a real failure read as no more urgent than this.
  *
  * [cachedAtEpochMillis] is non-null in every state the ViewModel produces (both fields are written
  * from one `Cached` result), but a null is rendered as an explicit "when isn't known" rather than
@@ -4038,9 +3988,8 @@ private fun SeasonalSampleSizeSummary(distribution: FruitingLagDistribution) {
 
 /**
  * A hand-rolled Compose `Canvas` bar chart — no charting dependency, consistent with
- * [com.forager.app.domain.Dbscan]/[com.forager.app.domain.GeoDistance]/
- * [com.forager.app.domain.MgrsConverter] being hand-built rather than pulled from a library for a
- * single use.
+ * [com.forager.app.domain.GeoDistance]/[com.forager.app.domain.MgrsConverter] being hand-built
+ * rather than pulled from a library for a single use.
  *
  * The bucket whose [FruitingLagBucket.isFruitingLagRule] is true — the range this whole feature
  * exists to test — is drawn in the theme's primary color; every other bucket, including "no
@@ -4133,7 +4082,6 @@ private fun MapTab(
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
-    onToggleForagingAreas: (Boolean) -> Unit,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
@@ -4177,13 +4125,6 @@ private fun MapTab(
                 var tappedSightingBearingDeg by remember { mutableStateOf(0f) }
                 val context = LocalContext.current
                 Column(modifier = modifier.fillMaxWidth()) {
-                    // Areas are only handed to the map when the layer is switched on; the
-                    // clustering itself was already computed when the sightings loaded.
-                    val visibleAreas = if (uiState.showForagingAreas) {
-                        (uiState.foragingAreas as? ForagingAreas.Found)?.areas.orEmpty()
-                    } else {
-                        emptyList()
-                    }
                     // "View on Map" from a List-tab row: limits the map to one species' sightings
                     // rather than every mapped one. Filtered against uiState.sightings itself
                     // (what the map actually draws), not against uiState.forecast's own
@@ -4207,7 +4148,6 @@ private fun MapTab(
                             region,
                             MapOverlayContent(
                                 sightings = filteredSightings,
-                                areas = visibleAreas,
                                 plannedTrips = uiState.plannedTrips,
                                 breadcrumbPoints = breadcrumbPoints,
                                 waypoints = waypoints,
@@ -4291,34 +4231,6 @@ private fun MapTab(
                                 onCancel = { pendingAction = null },
                                 modifier = Modifier.fillMaxSize(),
                             )
-                        }
-                    }
-                    // Always visible below the map, not gated on showForagingAreas itself — the
-                    // switch is how the layer gets turned back on, so it has to be reachable while
-                    // off. It moved here from the drawer's "Advanced search" section: whether to
-                    // show the layer is a decision made while looking at the map, not a setting to
-                    // dig into a drawer for.
-                    ForagingAreasToggle(
-                        checked = uiState.showForagingAreas,
-                        onCheckedChange = onToggleForagingAreas,
-                        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                    )
-                    // A fixed-height Box, always present, rather than conditionally including
-                    // ForagingAreasPanel only when the layer is on: the panel used to appear and
-                    // disappear from this Column outright, which changed how much of the fixed
-                    // parent height was left over for the weighted mapSlot above — the map visibly
-                    // grew and shrank as the switch was toggled. Reserving the same
-                    // [FORAGING_AREAS_PANEL_MAX_HEIGHT] here regardless of the switch's state means
-                    // the sibling stack above the map never changes height, so the map doesn't
-                    // either — only what's drawn inside this fixed box changes.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(FORAGING_AREAS_PANEL_MAX_HEIGHT)
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                    ) {
-                        if (uiState.showForagingAreas) {
-                            ForagingAreasPanel(foragingAreas = uiState.foragingAreas)
                         }
                     }
                 }
@@ -4449,9 +4361,7 @@ private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.8f)
 /**
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
  * the map fills the entire content area, with the top compass/elevation strip and the right-edge
- * icon stack drawn over it. The foraging-areas toggle and summary panel — an earlier revision drew
- * them as a floating overlay here — now live in [CompactToolsDrawerContent] instead, per the
- * project owner's own later call: "move the foraging areas to the side search panel."
+ * icon stack drawn over it.
  *
  * Scoped to `WindowWidthClass.COMPACT` only; `MEDIUM`/`EXPANDED` keep using the unmodified [MapTab]
  * inside [CombinedResultsPane] — see the plan doc's "Scope decision" section for why this is a
@@ -4629,15 +4539,9 @@ private fun CompactMapTab(
                 if (uiState.region != null && status is LocateMeStatus.Located) focusOverride = status.location
             }
 
-            // Sightings/areas/planned trips are only real once a search has actually run — before
-            // that, displayRegion is a viewport with nothing plotted on it yet, not a stand-in
-            // search.
+            // Sightings/planned trips are only real once a search has actually run — before that,
+            // displayRegion is a viewport with nothing plotted on it yet, not a stand-in search.
             val hasSearched = uiState.region != null
-            val visibleAreas = if (hasSearched && uiState.showForagingAreas) {
-                (uiState.foragingAreas as? ForagingAreas.Found)?.areas.orEmpty()
-            } else {
-                emptyList()
-            }
             // "View on Map" from a List-tab row — see MapTab's own doc comment on the identical
             // filteredSightings/mapTaxonFilterLabel pair for why this filters uiState.sightings
             // itself rather than trusting uiState.forecast's own observationCount.
@@ -4683,7 +4587,6 @@ private fun CompactMapTab(
                     displayRegion,
                     MapOverlayContent(
                         sightings = filteredSightings,
-                        areas = visibleAreas,
                         plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList(),
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
@@ -6627,132 +6530,6 @@ private fun MapMessage(
             .fillMaxWidth()
             .padding(Spacing.lg),
     )
-}
-
-@Composable
-private fun ForagingAreasToggle(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text("Foraging areas", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Group the pins into spots that have produced repeatedly. Switch off to read the " +
-                    "individual observations instead.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-/**
- * The detail below the map when the layer is on: the numbered areas and their stats, or an
- * explicit reason no area was found.
- *
- * Every branch says something. A silent blank panel would look identical to a still-loading one,
- * and "no repeat-producing areas here" is a real answer worth reading (CLAUDE.md: partial or
- * empty results are reported as such).
- */
-@Composable
-private fun ForagingAreasPanel(foragingAreas: ForagingAreas?, modifier: Modifier = Modifier) {
-    when (foragingAreas) {
-        null -> Text(
-            "Foraging areas are grouped from the mapped sightings, which haven't loaded yet.",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = modifier,
-        )
-
-        is ForagingAreas.None -> Text(
-            noAreasMessage(foragingAreas),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = modifier,
-        )
-
-        is ForagingAreas.Found -> Column(
-            // fillMaxHeight, not heightIn(max = ...): the caller ([MapTab]) now wraps this whole
-            // composable in a Box already fixed at FORAGING_AREAS_PANEL_MAX_HEIGHT regardless of
-            // whether the layer is on, specifically so the map above never resizes when the
-            // switch is toggled — filling that fixed height here (and scrolling within it) is
-            // what makes the disclaimer/count caption and the area list behave as a footnote
-            // rather than a wrap-content sibling that could still grow the space it's given.
-            modifier = modifier
-                .fillMaxHeight()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            // Tertiary rather than error: this is a caution about what the ordering isn't, not a
-            // failure. Reusing the error color here would make a real failure (a failed sightings
-            // fetch, a couldn't-load message) read as no more urgent than a standing disclaimer.
-            Text(
-                VISITING_ORDER_DISCLAIMER,
-                style = MaterialTheme.typography.bodySmall,
-                fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-            if (foragingAreas.ungroupedObservationCount > 0) {
-                Text(
-                    "${foragingAreas.ungroupedObservationCount} scattered observations belong to no area.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            // Tapping a numbered marker on the map shows the same summary for that one area, so
-            // this list staying a footnote here costs nothing.
-            foragingAreas.areas.forEach { area -> ForagingAreaRow(area) }
-        }
-    }
-}
-
-/**
- * The footnote-not-competitor cap for [ForagingAreasPanel]. Bounds the disclaimer/count caption
- * together with the area list below it, so the panel as a whole stays small enough that the
- * mapSlot it shares a weighted region with keeps the larger share — see
- * [AvailabilityScreenLayoutTest]'s `MIN_MAP_SHARE_OF_SCREEN` for the map's own floor.
- */
-private val FORAGING_AREAS_PANEL_MAX_HEIGHT = 60.dp
-
-@Composable
-private fun ForagingAreaRow(area: ForagingArea) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text("${area.visitOrder}", style = MaterialTheme.typography.titleMedium)
-            Text(foragingAreaSummary(area), style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-/**
- * Why nothing was found, stated specifically. The clustering thresholds are never relaxed to
- * manufacture an area, so the honest answer here is sometimes "there isn't one".
- */
-private fun noAreasMessage(none: ForagingAreas.None): String {
-    val minPoints = ClusterForagingAreasUseCase.MIN_OBSERVATIONS_PER_AREA
-    val radiusMeters = ClusterForagingAreasUseCase.NEIGHBORHOOD_RADIUS_METERS.toInt()
-    return when (none.reason) {
-        ForagingAreas.Reason.NO_OBSERVATIONS ->
-            "No mapped observations in this radius, so there's nothing to group into areas. " +
-                "Try a wider radius, a different month, or another category."
-
-        ForagingAreas.Reason.TOO_FEW_OBSERVATIONS ->
-            "Only ${none.observationsConsidered} mapped observation(s) in this radius — fewer than " +
-                "the $minPoints it takes to call anywhere a repeat-producing area."
-
-        ForagingAreas.Reason.NO_GROUP_MET_THRESHOLD ->
-            "No repeat-producing areas found in this radius. All ${none.observationsConsidered} " +
-                "mapped observations are scattered: none form a group of $minPoints or more within " +
-                "${radiusMeters}m of each other. The threshold isn't loosened to find something."
-    }
 }
 
 /**

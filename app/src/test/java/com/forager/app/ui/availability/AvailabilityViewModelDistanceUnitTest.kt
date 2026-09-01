@@ -1,7 +1,6 @@
 package com.forager.app.ui.availability
 
 import com.forager.app.domain.AppThemePreferenceRepository
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
@@ -90,7 +89,6 @@ class AvailabilityViewModelDistanceUnitTest {
             getSightings = GetSightingsUseCase(DistanceUnitEmptyRepository),
             searchTaxa = SearchTaxaUseCase(DistanceUnitEmptyRepository),
             getConditions = GetConditionsUseCase(DistanceUnitStubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(DistanceUnitStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),

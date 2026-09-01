@@ -3,7 +3,6 @@ package com.forager.app.ui.map
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import com.forager.app.domain.model.ForagingArea
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -50,13 +49,10 @@ data class MapRenderMode(
 
 data class MapOverlayContent(
     val sightings: List<Sighting> = emptyList(),
-    val areas: List<ForagingArea> = emptyList(),
     val plannedTrips: List<PlannedTrip> = emptyList(),
     /**
      * The active track's recorded points, oldest first, drawn as a growing trail — empty whenever
-     * nothing is being recorded. See [SightingsMap]'s own doc comment for how this differs from
-     * the dashed visiting-order connector: a breadcrumb trail is where the device actually walked,
-     * not a suggested order between areas.
+     * nothing is being recorded: a breadcrumb trail is where the device actually walked.
      */
     val breadcrumbPoints: List<LatLng> = emptyList(),
     /** Saved waypoints, drawn as markers — independent of any track, per [Waypoint]'s own doc comment. */
@@ -196,7 +192,6 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
     SightingsMap(
         region = region,
         sightings = content.sightings,
-        areas = content.areas,
         plannedTrips = content.plannedTrips,
         basemap = renderMode.basemap,
         nightMode = renderMode.night,

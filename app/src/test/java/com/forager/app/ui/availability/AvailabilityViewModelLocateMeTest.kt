@@ -1,6 +1,5 @@
 package com.forager.app.ui.availability
 
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -89,7 +88,6 @@ class AvailabilityViewModelLocateMeTest {
             getSightings = GetSightingsUseCase(LocateMeEmptyRepository),
             searchTaxa = SearchTaxaUseCase(LocateMeEmptyRepository),
             getConditions = GetConditionsUseCase(LocateMeStubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(LocateMeStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),

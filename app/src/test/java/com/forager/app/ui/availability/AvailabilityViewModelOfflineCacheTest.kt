@@ -1,6 +1,5 @@
 package com.forager.app.ui.availability
 
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -193,7 +192,6 @@ class AvailabilityViewModelOfflineCacheTest {
         getSightings = GetSightingsUseCase(remote),
         searchTaxa = SearchTaxaUseCase(remote),
         getConditions = GetConditionsUseCase(OfflineCacheStubWeatherProvider),
-        clusterForagingAreas = ClusterForagingAreasUseCase(),
         getTripWindows = GetTripWindowsUseCase(OfflineCacheStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
         getPlannedTrips = GetPlannedTripsUseCase(OfflineCacheStubPlannedTripRepository),
         savePlannedTrip = SavePlannedTripUseCase(OfflineCacheStubPlannedTripRepository),

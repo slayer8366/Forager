@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -136,7 +135,6 @@ class AvailabilityScreenConditionsMonthTest {
             getSightings = GetSightingsUseCase(FakeRepository),
             searchTaxa = SearchTaxaUseCase(FakeRepository),
             getConditions = GetConditionsUseCase(weatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(tripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(FakePlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(FakePlannedTripRepository),
@@ -165,7 +163,6 @@ class AvailabilityScreenConditionsMonthTest {
                 onMonthSelected = viewModel::onMonthSelected,
                 onMapTabSelected = viewModel::onMapTabSelected,
                 onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onToggleForagingAreas = viewModel::onToggleForagingAreas,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                 onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
                 onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,

@@ -21,7 +21,6 @@ import com.forager.app.data.repository.RoomTrackRepository
 import com.forager.app.data.repository.RoomWaypointRepository
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.AppThemePreferenceRepository
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeReturnToStartUseCase
@@ -132,9 +131,6 @@ class AppContainer(context: Context) {
         historicalWeatherProvider,
         ComputeFruitingLagDistributionUseCase(),
     )
-
-    // No repository dependency: clustering is a pure transform of sightings already fetched.
-    val clusterForagingAreasUseCase = ClusterForagingAreasUseCase()
 
     private val database = ForagerDatabase.create(context)
     val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripDao())

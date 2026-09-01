@@ -38,7 +38,6 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
@@ -161,7 +160,6 @@ class AvailabilityScreenMapIconStackTest {
             getSightings = GetSightingsUseCase(IconStackEmptyRepository),
             searchTaxa = SearchTaxaUseCase(mushroomRepository),
             getConditions = GetConditionsUseCase(IconStackStubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(IconStackStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
@@ -189,7 +187,6 @@ class AvailabilityScreenMapIconStackTest {
                 onMonthSelected = viewModel::onMonthSelected,
                 onMapTabSelected = viewModel::onMapTabSelected,
                 onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onToggleForagingAreas = viewModel::onToggleForagingAreas,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                 onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
                 onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
@@ -1244,22 +1241,6 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Cancel").assertIsDisplayed()
     }
 
-    @Test
-    fun `the foraging areas toggle lives in the Tools drawer, not floating over the map`() {
-        setScreen()
-        searchAReferenceRegion()
-
-        // searchAReferenceRegion leaves the drawer closed (a real search closes it) — foraging
-        // areas must not be reachable without opening it, the opposite of the earlier revision
-        // where it floated as an overlay on the map itself. The drawer sheet stays composed
-        // off-screen while closed, so its toggle row is still in the tree — assertIsNotDisplayed,
-        // not assertDoesNotExist, is what actually distinguishes "closed" from "open" here.
-        composeRule.onNodeWithText("Foraging areas").assertIsNotDisplayed()
-
-        composeRule.onNodeWithText("Tools").performClick()
-
-        composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
-    }
 }
 
 /**

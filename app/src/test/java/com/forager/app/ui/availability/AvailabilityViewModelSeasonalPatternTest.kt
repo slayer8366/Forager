@@ -1,6 +1,5 @@
 package com.forager.app.ui.availability
 
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -192,7 +191,6 @@ class AvailabilityViewModelSeasonalPatternTest {
             getSightings = GetSightingsUseCase(repository),
             searchTaxa = SearchTaxaUseCase(repository),
             getConditions = GetConditionsUseCase(StubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(StubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(StubPlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(StubPlannedTripRepository),

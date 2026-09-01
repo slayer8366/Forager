@@ -103,9 +103,8 @@ class ComputeTrackStatisticsUseCase {
 /**
  * 4 m, the midpoint of the 3-5 m range typical for filtering consumer GPS altitude noise (which
  * itself runs roughly ±10-15 m per reading) without also filtering out a real, if gentle, sustained
- * climb. An adjustable assumption in the same spirit as [ClusterForagingAreasUseCase]'s clustering
- * thresholds — not a data-derived constant, since this project has no field data yet on real
- * device altitude-noise characteristics to derive one from.
+ * climb. An adjustable assumption, not a data-derived constant, since this project has no field
+ * data yet on real device altitude-noise characteristics to derive one from.
  */
 object ElevationHysteresis {
     const val THRESHOLD_METERS = 4.0

@@ -85,7 +85,6 @@ class AvailabilityScreenOfflineCacheTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},

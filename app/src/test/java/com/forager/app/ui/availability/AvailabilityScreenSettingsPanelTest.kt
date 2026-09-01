@@ -32,7 +32,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.AppThemeMode
-import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -106,7 +105,7 @@ class AvailabilityScreenSettingsPanelTest {
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
-        if (content.sightings.isEmpty() && content.areas.isEmpty() && content.plannedTrips.isEmpty()) {
+        if (content.sightings.isEmpty() && content.plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = renderMode.basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
                 Button(onClick = { onCameraIdle(PICKED_LOCATION) }) { Text("Simulate pan to test location") }
@@ -130,7 +129,6 @@ class AvailabilityScreenSettingsPanelTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -173,7 +171,6 @@ class AvailabilityScreenSettingsPanelTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -595,7 +592,6 @@ class AvailabilityScreenSettingsPanelTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -649,6 +645,4 @@ private fun sighting(index: Int) = Sighting(
 private val SEARCHED_STATE = AvailabilityUiState(
     region = REGION,
     sightings = List(4) { sighting(it) },
-    foragingAreas = ForagingAreas.None(ForagingAreas.Reason.TOO_FEW_OBSERVATIONS, observationsConsidered = 4),
-    showForagingAreas = false,
 )

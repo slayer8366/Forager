@@ -82,10 +82,10 @@ yet, since that distinction matters and the README doesn't always make it explic
 
 - **Species availability search & ranking** — iNaturalist `species_counts` query, normalized
   relative-likelihood ranking (`PredictAvailabilityUseCase`), List tab.
-- **Map tab** — per-observation dots, DBSCAN-based "foraging areas" clustering
-  (`domain/Dbscan.kt`, `ClusterForagingAreasUseCase`), a greedy nearest-neighbour visiting order
-  explicitly labelled on-screen as not a route (no trail/terrain/ownership data exists in this
-  codebase to compute a real one).
+- **Map tab** — per-observation dots plotted as MapLibre GeoJSON sources/style layers. (A
+  DBSCAN-based "foraging areas" clustering layer shipped earlier in this project's history and was
+  removed: it landed cluster centroids at unsafe locations — rivers, highways, schools, private
+  property — with no trail/terrain/ownership data in this codebase to avoid that.)
 - **Three basemaps** with per-basemap zoom ceilings enforced explicitly (`SightingsMap`'s
   `setMaxZoomPreference` calls), not trusted from a tile source's own claimed range — this is a
   repeat of a real bug the project already had once with `osmdroid`.

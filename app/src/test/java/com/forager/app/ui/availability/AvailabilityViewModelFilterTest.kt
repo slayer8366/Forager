@@ -7,7 +7,6 @@ import com.forager.app.data.remote.dto.SpeciesCountDto
 import com.forager.app.data.remote.dto.SpeciesCountsResponseDto
 import com.forager.app.data.remote.dto.TaxonDto
 import com.forager.app.data.repository.INaturalistMushroomRepository
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -246,7 +245,6 @@ class AvailabilityViewModelFilterTest {
             getSightings = GetSightingsUseCase(repository),
             searchTaxa = SearchTaxaUseCase(StubTaxonSearchRepository),
             getConditions = GetConditionsUseCase(StubWeatherProvider()),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(StubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(StubPlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(StubPlannedTripRepository),
