@@ -554,6 +554,13 @@ private class InMemoryTrackRepository : TrackRepository {
 
     override suspend fun getAll(): Result<List<Track>> = Result.success(tracks.values.toList())
     override suspend fun getById(id: String): Result<Track?> = Result.success(tracks[id])
+    override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
+        Result.success(
+            tracks.values.filter { track ->
+                track.startedAtEpochMillis < dayEndExclusiveEpochMillis &&
+                    (track.endedAtEpochMillis == null || track.endedAtEpochMillis >= dayStartInclusiveEpochMillis)
+            },
+        )
 
     override suspend fun create(track: Track): Result<Unit> {
         tracks[track.id] = track
@@ -582,6 +589,8 @@ private class InMemoryTrackRepository : TrackRepository {
 private class FailingTrackRepository : TrackRepository {
     override suspend fun getAll(): Result<List<Track>> = Result.success(emptyList())
     override suspend fun getById(id: String): Result<Track?> = Result.success(null)
+    override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
+        Result.success(emptyList())
     override suspend fun create(track: Track): Result<Unit> = Result.failure(RuntimeException("boom"))
     override suspend fun appendPoints(trackId: String, points: List<TrackPoint>): Result<Unit> = Result.success(Unit)
     override suspend fun end(trackId: String, endedAtEpochMillis: Long): Result<Unit> = Result.success(Unit)
@@ -592,6 +601,10 @@ private class FakeWaypointRepository : com.forager.app.domain.WaypointRepository
     private val waypoints = mutableMapOf<String, Waypoint>()
 
     override suspend fun getAll(): Result<List<Waypoint>> = Result.success(waypoints.values.toList())
+    override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Waypoint>> =
+        Result.success(
+            waypoints.values.filter { it.createdAtEpochMillis in dayStartInclusiveEpochMillis until dayEndExclusiveEpochMillis },
+        )
     override suspend fun save(waypoint: Waypoint): Result<Unit> {
         waypoints[waypoint.id] = waypoint
         return Result.success(Unit)

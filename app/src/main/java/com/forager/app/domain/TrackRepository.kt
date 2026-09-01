@@ -18,6 +18,15 @@ interface TrackRepository {
 
     suspend fun getById(id: String): Result<Track?>
 
+    /**
+     * Every track overlapping one local day — Journal Stage 2a's derived-trip read. Half-open range
+     * `[dayStartInclusiveEpochMillis, dayEndExclusiveEpochMillis)` — see
+     * [com.forager.app.domain.LocalDayRange]'s own doc comment for why, and
+     * `com.forager.app.data.local.TrackDao.getTracksForDay`'s own doc comment for the
+     * midnight-crossing overlap test this is built on.
+     */
+    suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>>
+
     /** Creates a new track with no points yet and no end time. */
     suspend fun create(track: Track): Result<Unit>
 

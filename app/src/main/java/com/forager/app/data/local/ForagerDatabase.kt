@@ -77,6 +77,18 @@ import com.forager.app.BuildConfig
  * previously-committed entry, never a draft under the pre-L4b model, so this migration marks every
  * one of them `isDraft = 0`/`draftOfEntryId = NULL` explicitly.
  *
+ * [version] 10 adds indexes on [MushroomLogEntryEntity.foundOn], [TrackEntity.startedAtEpochMillis]/
+ * [TrackEntity.endedAtEpochMillis], [WaypointEntity.createdAtEpochMillis], and
+ * [OfflineRegionEntity.createdAtEpochMillis] via a real [MIGRATION_9_10] — Journal Stage 2a dispatch,
+ * owner decision #2: "indexed queries, not in-memory filtering" for the derived-trip day-scoped
+ * reads this bump exists to support. A real migration, not `fallbackToDestructiveMigration()`,
+ * despite that same dispatch explicitly permitting a destructive one ("there are no users and no
+ * existing installs... a destructive migration is acceptable") — adding an index is `CREATE INDEX IF
+ * NOT EXISTS`, strictly simpler and strictly safer than reasoning about what a destructive fallback
+ * would need to preserve, and it keeps this database's own established pattern (every bump since
+ * version 4 ships a real migration) unbroken rather than carving out an exception for the one bump
+ * where an exception happened to be offered.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -108,7 +120,7 @@ import com.forager.app.BuildConfig
         WaypointEntity::class,
         OfflineRegionEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -135,7 +147,10 @@ abstract class ForagerDatabase : RoomDatabase() {
                 context.applicationContext,
                 ForagerDatabase::class.java,
                 "forager.db",
-            ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+            ).addMigrations(
+                MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+                MIGRATION_9_10,
+            )
             // Debug-only — see this class's own doc comment ("Destructive fallback, debug-only") for
             // why release must never wipe a database instead of crashing on a missing migration.
             if (isDebug) {

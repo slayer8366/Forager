@@ -11,6 +11,13 @@ interface WaypointRepository {
     /** Every waypoint currently stored, in no particular order — ordering is a use-case concern. */
     suspend fun getAll(): Result<List<Waypoint>>
 
+    /**
+     * Every waypoint dropped on one local day — Journal Stage 2a's derived-trip read. Half-open
+     * range `[dayStartInclusiveEpochMillis, dayEndExclusiveEpochMillis)` — see
+     * [com.forager.app.domain.LocalDayRange]'s own doc comment for why.
+     */
+    suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Waypoint>>
+
     /** Inserts [waypoint], or replaces the stored one with the same id if one already exists. */
     suspend fun save(waypoint: Waypoint): Result<Unit>
 
