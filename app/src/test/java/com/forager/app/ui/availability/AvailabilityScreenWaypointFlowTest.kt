@@ -214,6 +214,16 @@ class AvailabilityScreenWaypointFlowTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Journal restructure Stage 1: Waypoints moved from the Tools drawer's own section into the
+     * Journal's Records tab (default sub-tab, so no further tap is needed once Records is open).
+     */
+    private fun openWaypointsTab() {
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.waitForIdle()
+    }
+
     /** Opens the chooser, picks "Drop a waypoint", pans the stub map to [WAYPOINT_TEST_LOCATION], and confirms the centre-pin picker with OK. */
     private fun openChooserPanAndConfirm() {
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
@@ -301,8 +311,7 @@ class AvailabilityScreenWaypointFlowTest {
     fun `the drawer's Waypoints section shows a no-waypoints message when empty`() {
         setScreen()
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Waypoints").performClick()
+        openWaypointsTab()
 
         composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
             .assertIsDisplayed()
@@ -321,8 +330,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint))
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Waypoints").performClick()
+        openWaypointsTab()
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("45.4000, -122.7000").performScrollTo().assertIsDisplayed()
@@ -355,8 +363,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint), waypointsErrorMessage = "Couldn't load waypoints.")
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Waypoints").performClick()
+        openWaypointsTab()
 
         composeRule.onNodeWithText("Couldn't load waypoints.").assertIsDisplayed()
         composeRule.onNodeWithText("Hidden Waypoint").assertDoesNotExist()
@@ -377,8 +384,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint))
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Waypoints").performClick()
+        openWaypointsTab()
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Couldn't load waypoints.").assertDoesNotExist()

@@ -2,7 +2,6 @@ package com.forager.app.ui.track
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.forager.app.domain.model.Track
@@ -40,59 +36,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The Settings tab's "get a track out of the app" surface — mirrors
+ * The Journal Records tab's "get a track out of the app" surface — mirrors
  * [com.forager.app.ui.crash.CrashLogPanel]'s list-then-share shape exactly, the closest existing
  * precedent in this app for "list files this app owns, tap one to hand it to another app."
  *
  * Field-test dispatch item 1: `GpxCodec` was fully implemented and tested but called from nowhere.
  * There is no dedicated track list/detail screen anywhere yet, and the dispatch is explicit not to
- * design one for this — Settings' existing crash-log pattern is the most convenient real surface
- * that already does "list this app's own records, tap to share one."
+ * design one for this — the crash-log pattern is the most convenient real surface that already
+ * does "list this app's own records, tap to share one."
+ *
+ * `internal`, no header: Journal restructure Stage 1 moved this into `RecordsTab` (`ui/log/`) as a
+ * flat sub-tab, not a drill-in submenu — see that composable's own doc comment. A header with its
+ * own back arrow made sense inside Settings' drill-in shape; a `SecondaryTabRow` sub-tab is left by
+ * tapping another tab, not by a back affordance embedded in the content.
  */
 @Composable
-internal fun TrackExportPanel(tracks: List<Track>, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        TrackExportHeader(onBack = onBack)
-        TrackExportList(tracks = tracks, modifier = Modifier.weight(1f))
-    }
-}
-
-/** Settings' own row into this panel — mirrors `CrashLogsEntryRow`'s shape exactly. */
-@Composable
-internal fun TrackExportEntryRow(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = Spacing.sm),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Recorded Tracks", style = MaterialTheme.typography.titleMedium)
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-    }
-}
-
-/** Mirrors `CrashLogHeader`'s shape exactly — see that composable's own call site for why. */
-@Composable
-private fun TrackExportHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Settings")
-        Text("Recorded Tracks", style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-@Composable
-private fun TrackExportList(tracks: List<Track>, modifier: Modifier = Modifier) {
+internal fun TrackExportList(tracks: List<Track>, modifier: Modifier = Modifier) {
     if (tracks.isEmpty()) {
         Text(
             "No recorded tracks yet.",

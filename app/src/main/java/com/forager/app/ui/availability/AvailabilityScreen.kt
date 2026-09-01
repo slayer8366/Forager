@@ -229,8 +229,6 @@ import com.forager.app.ui.adaptive.WindowWidthClass
 import com.forager.app.ui.adaptive.currentWindowWidthClass
 import com.forager.app.ui.crash.CrashLogPanel
 import com.forager.app.ui.crash.CrashLogsEntryRow
-import com.forager.app.ui.track.TrackExportEntryRow
-import com.forager.app.ui.track.TrackExportPanel
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
@@ -321,10 +319,13 @@ private fun CompactTab.icon(): ImageVector = when (this) {
 /**
  * The medium/expanded window's drawer panels — see [AvailabilityScreen]'s doc comment on
  * `drawerPanel` for how they're switched between. [Settings] and [Log] are both reached from
- * sticky entries at the bottom of [Search] (see [SettingsEntryRow]/`MushroomLogEntryRow`);
- * [OfflineMaps] is reached from a row inside [Settings], one level deeper — its own back arrow
- * returns to [Settings], not all the way to [Search]. Closing the drawer entirely resets all the
- * way back to [Search] regardless of which panel was showing.
+ * sticky entries at the bottom of [Search] (see [SettingsEntryRow]/`MushroomLogEntryRow`).
+ * Closing the drawer entirely resets all the way back to [Search] regardless of which panel was
+ * showing.
+ *
+ * **No longer holds [OfflineMaps] or `Tracks`.** Journal restructure Stage 1 moved both into the
+ * Journal's own Records tab ([RecordsTab] in `ui/log/`) — [Settings] now goes straight to
+ * [CrashLogs] as its only remaining submenu.
  *
  * [Log] additionally opens directly — bypassing [Search] — from the map's "Log a find" option
  * (chosen from [ThreeWayActionDialog], then placed via [com.forager.app.ui.map.CentrePinLocationPicker]);
@@ -344,11 +345,7 @@ private fun CompactTab.icon(): ImageVector = when (this) {
 private enum class DrawerPanel {
     Search,
     Settings,
-    OfflineMaps,
     CrashLogs,
-    // Field-test dispatch item 1: the Settings "Recorded Tracks" export panel — see TrackExportPanel's
-    // own doc comment for why it lives here rather than a dedicated new screen.
-    Tracks,
     Log,
     // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
     // top-level destination — see PhotoGalleryScreen's own doc comment. No longer a
@@ -780,9 +777,6 @@ fun AvailabilityScreen(
                     onRadiusChanged = onRadiusChanged,
                     onMonthSelected = onMonthSelected,
                     onDeletePlannedTrip = onDeletePlannedTrip,
-                    waypoints = waypoints,
-                    waypointsErrorMessage = waypointsErrorMessage,
-                    onDeleteWaypoint = onDeleteWaypoint,
                     onRecentSearchSelected = { summary ->
                         // Closed for the same reason searching from this drawer closes it:
                         // the tap starts a search, and the results are behind the sheet.
@@ -812,57 +806,16 @@ fun AvailabilityScreen(
                     onThemeModeChanged = onThemeModeChanged,
                     nightModeMaps = uiState.nightModeMaps,
                     onNightModeMapsChanged = onNightModeMapsChanged,
-                    onOpenOfflineMaps = {
-                        drawerPanel = DrawerPanel.OfflineMaps
-                        onOfflineMapsOpened()
-                    },
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
-                    onOpenTracks = {
-                        drawerPanel = DrawerPanel.Tracks
-                        onTracksOpened()
-                    },
                 )
                 BuildIdentityFooter()
             }
 
-            DrawerPanel.OfflineMaps -> {
-                // Back returns to Settings, one level up — not all the way to Search. See
-                // DrawerPanel's own doc comment.
-                OfflineMapsHeader(onBack = { drawerPanel = DrawerPanel.Settings })
-                OfflineMapsPanel(
-                    modifier = Modifier.weight(1f),
-                    uiState = uiState,
-                    distanceUnit = distanceUnit,
-                    currentTime = currentTime,
-                    mapSlot = mapSlot,
-                    isNightMode = isNightMode,
-                    onRegionPicked = { location ->
-                        onOfflineMapLatChanged(location.lat.toString())
-                        onOfflineMapLngChanged(location.lng.toString())
-                    },
-                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                    onOfflineMapNameChanged = onOfflineMapNameChanged,
-                    onDownloadOfflineMaps = onDownloadOfflineMaps,
-                    onDeleteOfflineRegion = onDeleteOfflineRegion,
-                )
-            }
-
             DrawerPanel.CrashLogs -> {
-                // Back returns to Settings, one level up — not all the way to Search. Same
-                // reasoning as DrawerPanel.OfflineMaps above.
+                // Back returns to Settings, one level up — not all the way to Search.
                 CrashLogPanel(
                     modifier = Modifier.weight(1f),
                     files = crashFileStore.list(),
-                    onBack = { drawerPanel = DrawerPanel.Settings },
-                )
-            }
-
-            DrawerPanel.Tracks -> {
-                // Back returns to Settings, one level up — same reasoning as DrawerPanel.OfflineMaps/
-                // CrashLogs above.
-                TrackExportPanel(
-                    modifier = Modifier.weight(1f),
-                    tracks = tracks,
                     onBack = { drawerPanel = DrawerPanel.Settings },
                 )
             }
@@ -893,6 +846,25 @@ fun AvailabilityScreen(
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
                     onSaveErrorDismissed = onSaveLogErrorDismissed,
+                    // Journal restructure Stage 1: the Records tab's three submenus — see
+                    // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
+                    // reads its offline-map-specific fields off; distanceUnit/currentTime are the
+                    // same values SearchControls/CompactSettingsTab already used for it.
+                    availabilityUiState = uiState,
+                    distanceUnit = distanceUnit,
+                    currentTime = currentTime,
+                    onOfflineMapLatChanged = onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = onOfflineMapNameChanged,
+                    onOfflineMapsOpened = onOfflineMapsOpened,
+                    onDownloadOfflineMaps = onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = onDeleteOfflineRegion,
+                    tracks = tracks,
+                    onTracksOpened = onTracksOpened,
+                    waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
+                    onDeleteWaypoint = onDeleteWaypoint,
                 )
             }
 
@@ -1337,6 +1309,23 @@ fun AvailabilityScreen(
                             isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
                             onDeleteGalleryPhoto = onDeleteGalleryPhoto,
                             galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                            // Journal restructure Stage 1: the Records tab's three submenus — see
+                            // RecordsTab's own doc comment.
+                            availabilityUiState = uiState,
+                            distanceUnit = distanceUnit,
+                            currentTime = currentTime,
+                            onOfflineMapLatChanged = onOfflineMapLatChanged,
+                            onOfflineMapLngChanged = onOfflineMapLngChanged,
+                            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                            onOfflineMapNameChanged = onOfflineMapNameChanged,
+                            onOfflineMapsOpened = onOfflineMapsOpened,
+                            onDownloadOfflineMaps = onDownloadOfflineMaps,
+                            onDeleteOfflineRegion = onDeleteOfflineRegion,
+                            tracks = tracks,
+                            onTracksOpened = onTracksOpened,
+                            waypoints = waypoints,
+                            waypointsErrorMessage = waypointsErrorMessage,
+                            onDeleteWaypoint = onDeleteWaypoint,
                             modifier = Modifier.fillMaxSize(),
                         )
                         // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
@@ -1454,29 +1443,16 @@ fun AvailabilityScreen(
                 ModalDrawerSheet {
                     CompactToolsDrawerContent(
                         uiState = uiState,
-                        mapSlot = mapSlot,
                         distanceUnit = distanceUnit,
                         onDistanceUnitSelected = onDistanceUnitSelected,
                         onClose = { isDrawerOpen = false },
                         onDeletePlannedTrip = onDeletePlannedTrip,
-                        waypoints = waypoints,
-                        waypointsErrorMessage = waypointsErrorMessage,
-                        onDeleteWaypoint = onDeleteWaypoint,
                         currentTime = currentTime,
                         isNightMode = isNightMode,
                         onNightModeMapsChanged = onNightModeMapsChanged,
                         themeMode = uiState.themeMode,
                         onThemeModeChanged = onThemeModeChanged,
-                        onOfflineMapLatChanged = onOfflineMapLatChanged,
-                        onOfflineMapLngChanged = onOfflineMapLngChanged,
-                        onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                        onOfflineMapNameChanged = onOfflineMapNameChanged,
-                        onOfflineMapsOpened = onOfflineMapsOpened,
-                        onDownloadOfflineMaps = onDownloadOfflineMaps,
-                        onDeleteOfflineRegion = onDeleteOfflineRegion,
                         crashFileStore = crashFileStore,
-                        tracks = tracks,
-                        onTracksOpened = onTracksOpened,
                     )
                 }
             },
@@ -2218,94 +2194,49 @@ private fun PhotoGalleryHeader(onBack: () -> Unit) {
 /**
  * Settings' body, reached by tapping the Settings entry at the bottom of [CompactToolsDrawerContent]
  * (the compact "Tools" drawer, map/navigation redesign dispatch B) — [SettingsContent] hosted as a
- * `showSettings`-gated state within that drawer instead of a drawer panel of its own, with the
- * Offline Maps submenu as local `showOfflineMaps` state instead of [DrawerPanel.OfflineMaps].
- * Reuses [SettingsContent]/[OfflineMapsPanel]/[OfflineMapsHeader]/[BuildIdentityFooter] unmodified —
- * only the navigation host around them changed, from a drawer panel switch to a nested-state one.
- * No header for the main Settings state, unlike the drawer panel's [SettingsHeader]: there is
- * nothing to go "back" to here via an in-content affordance — [CompactToolsDrawerContent]'s own
- * `BackHandler` unwinds `showSettings` back to the rest of the Tools drawer, the same
- * most-recently-composed-callback-wins pattern [JournalTab]'s nested states use.
+ * `showSettings`-gated state within that drawer instead of a drawer panel of its own. Reuses
+ * [SettingsContent]/[BuildIdentityFooter] unmodified — only the navigation host around them changed,
+ * from a drawer panel switch to a nested-state one. No header for the main Settings state, unlike
+ * the drawer panel's [SettingsHeader]: there is nothing to go "back" to here via an in-content
+ * affordance — [CompactToolsDrawerContent]'s own `BackHandler` unwinds `showSettings` back to the
+ * rest of the Tools drawer, the same most-recently-composed-callback-wins pattern [JournalTab]'s
+ * nested states use.
  *
  * **Was** [CompactTab.SETTINGS]'s body — a standalone sixth bottom-nav destination — before dispatch
  * B collapsed the bottom nav to five destinations and folded Settings one level deeper, behind Tools.
+ *
+ * Journal restructure Stage 1 moved Offline Maps and Recorded Tracks out of Settings entirely, into
+ * the Journal's Records tab — see [com.forager.app.ui.log.RecordsTab]. This tab's own `showOfflineMaps`/
+ * `showTracks` submenu state is gone with them; only [showCrashLogs] remains.
  */
 @Composable
 private fun CompactSettingsTab(
-    uiState: AvailabilityUiState,
-    mapSlot: MapSlot,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
-    currentTime: CurrentTimeProvider,
-    /** Night mode for the offline-download region picker this tab hosts, and Settings' own checkbox value. */
+    /** Night mode for the map, and Settings' own checkbox value. */
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onOfflineMapNameChanged: (String) -> Unit,
-    onOfflineMapsOpened: () -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineRegion: (Long) -> Unit,
     crashFileStore: CrashFileStore,
-    tracks: List<Track>,
-    onTracksOpened: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showOfflineMaps by remember { mutableStateOf(false) }
     var showCrashLogs by remember { mutableStateOf(false) }
-    var showTracks by remember { mutableStateOf(false) }
 
     // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
     // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
-    BackHandler(enabled = showOfflineMaps) {
-        showOfflineMaps = false
-    }
     BackHandler(enabled = showCrashLogs) {
         showCrashLogs = false
-    }
-    BackHandler(enabled = showTracks) {
-        showTracks = false
     }
 
     Column(modifier = modifier.fillMaxSize()) {
         when {
-            showOfflineMaps -> {
-                OfflineMapsHeader(onBack = { showOfflineMaps = false })
-                OfflineMapsPanel(
-                    modifier = Modifier.weight(1f),
-                    uiState = uiState,
-                    distanceUnit = distanceUnit,
-                    currentTime = currentTime,
-                    mapSlot = mapSlot,
-                    isNightMode = isNightMode,
-                    onRegionPicked = { location ->
-                        onOfflineMapLatChanged(location.lat.toString())
-                        onOfflineMapLngChanged(location.lng.toString())
-                    },
-                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                    onOfflineMapNameChanged = onOfflineMapNameChanged,
-                    onDownloadOfflineMaps = onDownloadOfflineMaps,
-                    onDeleteOfflineRegion = onDeleteOfflineRegion,
-                )
-            }
-
             showCrashLogs -> {
                 CrashLogPanel(
                     modifier = Modifier.weight(1f),
                     files = crashFileStore.list(),
                     onBack = { showCrashLogs = false },
-                )
-            }
-
-            showTracks -> {
-                TrackExportPanel(
-                    modifier = Modifier.weight(1f),
-                    tracks = tracks,
-                    onBack = { showTracks = false },
                 )
             }
 
@@ -2318,15 +2249,7 @@ private fun CompactSettingsTab(
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
-                    onOpenOfflineMaps = {
-                        showOfflineMaps = true
-                        onOfflineMapsOpened()
-                    },
                     onOpenCrashLogs = { showCrashLogs = true },
-                    onOpenTracks = {
-                        showTracks = true
-                        onTracksOpened()
-                    },
                 )
                 BuildIdentityFooter()
             }
@@ -2335,8 +2258,7 @@ private fun CompactSettingsTab(
 }
 
 /**
- * The Settings panel's body: [DistanceUnitSection] plus a row into the "Offline Maps" submenu,
- * built as a real menu with headroom for more sections later per this task's own framing.
+ * The Settings panel's body: [DistanceUnitSection], theme, night maps, and Crash Logs.
  *
  * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
  * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
@@ -2344,11 +2266,9 @@ private fun CompactSettingsTab(
  * option reachable only from the map's own [MapModePicker]. See [MapMode]'s own doc comment for the
  * full account of what this removed and why.
  *
- * Offline Maps is a full submenu of its own ([DrawerPanel.OfflineMaps] for medium/expanded,
- * `showOfflineMaps` local state for compact's [CompactSettingsTab]) rather than a section inline
- * here, because it now holds an interactive map (see [OfflineMapsPanel]) that needs real screen
- * space to be usable — a map squeezed into one scrolling section among several would be too small
- * to pan and position the centre pin accurately.
+ * **No longer has Offline Maps or Recorded Tracks entries.** Journal restructure Stage 1 moved
+ * both into the Journal's own Records tab ([RecordsTab] in `ui/log/`) — see that composable's own
+ * doc comment. `CrashLogs` stays here since it isn't a Records concept.
  *
  * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
  * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
@@ -2362,9 +2282,7 @@ private fun SettingsContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    onOpenOfflineMaps: () -> Unit,
     onOpenCrashLogs: () -> Unit,
-    onOpenTracks: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -2376,12 +2294,6 @@ private fun SettingsContent(
         HorizontalDivider()
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
-        HorizontalDivider()
-        OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
-        HorizontalDivider()
-        // Field-test dispatch item 1 — see TrackExportPanel's own doc comment for why this reuses
-        // the crash-log row's exact shape rather than a new screen.
-        TrackExportEntryRow(onClick = onOpenTracks)
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
     }
@@ -2466,54 +2378,6 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
 }
 
 /**
- * The Settings panel's row into the [DrawerPanel.OfflineMaps] submenu. A plain row rather than a
- * sticky one like [SettingsEntryRow]: this lives inside Settings' own scrolling content, it isn't a
- * second drawer-wide sticky slot.
- *
- * Unconditionally reachable regardless of [MapMode] — offline downloads always target this
- * repository's one fixed source regardless of which mode is selected for live browsing, so
- * there is nothing to gate this row on; see `com.forager.app.domain.OfflineMapRepository`'s doc
- * comment for why that coupling was removed.
- */
-@Composable
-private fun OfflineMapsEntryRow(onClick: () -> Unit) {
-    // heightIn(min = 48.dp), not just the vertical padding [MushroomLogEntryRow]/[SettingsEntryRow]
-    // use: those rows' padding(vertical = Spacing.md) around a 24dp icon already clears 48dp, but
-    // this row's original padding(vertical = Spacing.sm) only reached ~40dp — under M3's 48x48dp
-    // minimum touch target, a real miss found by auditing this file's tap targets against that
-    // rule, not a hypothetical one.
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = Spacing.sm),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Offline Maps", style = MaterialTheme.typography.titleMedium)
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-    }
-}
-
-/** Mirrors [SettingsHeader]'s style; its back arrow returns to Settings, one level up, not to Search. */
-@Composable
-private fun OfflineMapsHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Settings")
-        Text("Offline Maps", style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-/**
  * The "Offline Maps" submenu: an interactive topo map to pick a download region via the
  * centre-pin picker, the region's radius, current status, and the Download/Delete actions.
  *
@@ -2547,7 +2411,7 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
  * own comment for why `weight(1f)` stopped working once this whole panel became one scrolling unit.
  */
 @Composable
-private fun OfflineMapsPanel(
+internal fun OfflineMapsPanel(
     modifier: Modifier = Modifier,
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
@@ -3008,13 +2872,13 @@ private fun MapModePicker(
  * ambitious planner" — species search is gone from here for good, and the name should say so. Two
  * things live here now, none of them search:
  *
- * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner / Waypoints only, the two
- *    sections [SearchDropdown] doesn't also cover.
+ * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner only. Waypoints moved
+ *    out (Journal restructure Stage 1) into the Journal's own Records tab.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
  *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
  *    the same "drill in, own back step" shape [CompactSettingsTab] already uses for its own
- *    OfflineMaps/CrashLogs/Tracks submenus, not a new pattern invented for this.
+ *    CrashLogs submenu.
  *
  * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
  * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
@@ -3022,36 +2886,23 @@ private fun MapModePicker(
 @Composable
 private fun CompactToolsDrawerContent(
     uiState: AvailabilityUiState,
-    mapSlot: MapSlot,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onClose: () -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
-    waypoints: List<Waypoint>,
-    waypointsErrorMessage: String?,
-    onDeleteWaypoint: (String) -> Unit,
     currentTime: CurrentTimeProvider,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onOfflineMapNameChanged: (String) -> Unit,
-    onOfflineMapsOpened: () -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineRegion: (Long) -> Unit,
     crashFileStore: CrashFileStore,
-    tracks: List<Track>,
-    onTracksOpened: () -> Unit,
 ) {
-    // Own drill-in step, same shape as CompactSettingsTab's own OfflineMaps/CrashLogs/Tracks
-    // submenus — see this composable's own doc comment, item 4. Composed inside this drawer sheet
-    // (which the ModalNavigationDrawer keeps mounted even while visually closed, same as
-    // CollapsibleSection's own expand state), so its own BackHandler below takes priority over the
-    // top-level isDrawerOpen one — the same "most-recently-composed enabled callback wins"
-    // precedence AvailabilityScreen's own top-level BackHandler chain already documents.
+    // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
+    // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
+    // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
+    // own expand state), so its own BackHandler below takes priority over the top-level
+    // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
+    // AvailabilityScreen's own top-level BackHandler chain already documents.
     var showSettings by remember { mutableStateOf(false) }
     BackHandler(enabled = showSettings) {
         showSettings = false
@@ -3059,25 +2910,13 @@ private fun CompactToolsDrawerContent(
 
     if (showSettings) {
         CompactSettingsTab(
-            uiState = uiState,
-            mapSlot = mapSlot,
             distanceUnit = distanceUnit,
             onDistanceUnitSelected = onDistanceUnitSelected,
-            currentTime = currentTime,
             isNightMode = isNightMode,
             onNightModeMapsChanged = onNightModeMapsChanged,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
-            onOfflineMapLatChanged = onOfflineMapLatChanged,
-            onOfflineMapLngChanged = onOfflineMapLngChanged,
-            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-            onOfflineMapNameChanged = onOfflineMapNameChanged,
-            onOfflineMapsOpened = onOfflineMapsOpened,
-            onDownloadOfflineMaps = onDownloadOfflineMaps,
-            onDeleteOfflineRegion = onDeleteOfflineRegion,
             crashFileStore = crashFileStore,
-            tracks = tracks,
-            onTracksOpened = onTracksOpened,
             modifier = Modifier.fillMaxSize(),
         )
         return
@@ -3090,9 +2929,6 @@ private fun CompactToolsDrawerContent(
             uiState = uiState,
             distanceUnit = distanceUnit,
             onDeletePlannedTrip = onDeletePlannedTrip,
-            waypoints = waypoints,
-            waypointsErrorMessage = waypointsErrorMessage,
-            onDeleteWaypoint = onDeleteWaypoint,
             currentTime = currentTime,
             // See SearchControls' own doc comment on these params: species search, Recent
             // searches, and Advanced search all now live in SearchDropdown, over the map, not here.
@@ -3148,9 +2984,6 @@ private fun SearchControls(
     onRadiusChanged: (Int) -> Unit = {},
     onMonthSelected: (Int) -> Unit = {},
     onDeletePlannedTrip: (String) -> Unit,
-    waypoints: List<Waypoint>,
-    waypointsErrorMessage: String?,
-    onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit = {},
     currentTime: CurrentTimeProvider,
     includeAdvancedSearch: Boolean = true,
@@ -3205,14 +3038,6 @@ private fun SearchControls(
         if (includeRecentSearches || includeAdvancedSearch) HorizontalDivider()
         CollapsibleSection(title = "Trip Planner") {
             TripPlannerSection(uiState = uiState, onDeletePlannedTrip = onDeletePlannedTrip)
-        }
-        HorizontalDivider()
-        CollapsibleSection(title = "Waypoints") {
-            WaypointsSection(
-                waypoints = waypoints,
-                errorMessage = waypointsErrorMessage,
-                onDeleteWaypoint = onDeleteWaypoint,
-            )
         }
     }
 }
@@ -6008,10 +5833,23 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
  * [AvailabilityUiState.tripWindowsErrorMessage] — a failed load/add/remove is belief-changing (the
  * list on screen may not be what's actually saved), so it replaces the list rather than sitting
  * beside it.
+ *
+ * Scrolls itself ([Modifier.verticalScroll]) rather than depending on a scrollable caller — same
+ * reasoning as [OfflineMapsPanel]'s own outer `Column`. Journal restructure Stage 1 moved this out
+ * of the Tools drawer's `SearchControls`, which supplied that scroll, into [com.forager.app.ui.log.RecordsTab]'s
+ * flat `Column(fillMaxSize())`, which does not — this is now `WaypointsSection`'s only caller.
  */
 @Composable
-private fun WaypointsSection(waypoints: List<Waypoint>, errorMessage: String?, onDeleteWaypoint: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+internal fun WaypointsSection(
+    waypoints: List<Waypoint>,
+    errorMessage: String?,
+    onDeleteWaypoint: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
         when {
             errorMessage != null -> Text(
                 errorMessage,

@@ -2,6 +2,11 @@ package com.forager.app.ui.log
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -10,24 +15,49 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.forager.app.domain.CurrentTimeProvider
+import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.Region
+import com.forager.app.domain.model.Track
+import com.forager.app.domain.model.Waypoint
 import com.forager.app.photo.CameraCaptureFiles
+import com.forager.app.ui.availability.AvailabilityUiState
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.CentrePinLocationPicker
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 
 /**
- * The compact bottom nav's Journal destination: [LogGalleryScreen] by default, an entry's own
+ * The compact bottom nav's Journal destination — two tabs (journal restructure Stage 1): the
+ * project owner's own framing, "**Records is a logbook** — raw, complete, machine-generated data.
+ * **Cartography is a journal** — what the user chose to write down and keep." [selectedTopTab]
+ * picks between them with the same [SecondaryTabRow] pattern [LogGalleryScreen]'s own
+ * `LogGalleryTab` already established — this codebase has no navigation library, so, like every
+ * other "route" here, this is a private enum plus local `remember` state, not a real destination.
+ *
+ * **Cartography, Stage 1: unchanged content, new wrapper only.** Everything this composable
+ * rendered before this tab existed — [LogGalleryScreen] by default, an entry's own
  * [LogEntryReportScreen] once one is opened from the gallery, [LogEntryDetailScreen] once "Edit
  * entry" is chosen from the report (or immediately, for a brand-new entry — see [mode]'s doc
- * comment), and — the one state none of those needs — [CentrePinLocationPicker] while placing a
- * location for the entry currently open in [LogEntryDetailScreen].
+ * comment), and [CentrePinLocationPicker]/[PullPhotoPickerScreen] while placing a location or
+ * pulling a photo for the entry currently open in [LogEntryDetailScreen]) — is exactly what the
+ * Cartography tab shows now. Restructuring Cartography's own internals (Entries/Drafts submenus,
+ * trip containers) is Stage 2, explicitly not built here.
+ *
+ * **Records, new in Stage 1:** [RecordsTab] — Waypoints, Offline Maps, Recorded Tracks, relocated
+ * from Settings/the Tools drawer unmodified. See that composable's own doc comment.
+ *
+ * **Switching away from Cartography mid-edit is an incidental exit**, the same as switching bottom
+ * nav tabs away from Journal entirely, backgrounding, or the entry form's own back arrow (see
+ * [MushroomLogViewModel.onLeaveEditingIncidentally]'s doc comment on the three exits this is now a
+ * fourth of) — [onLeaveEditingIncidentally] fires before the tab switch takes effect whenever
+ * [editing] is non-null and [mode] is [JournalEntryMode.EDIT], the same guard the bottom nav's own
+ * tab-switch handler already uses in `AvailabilityScreen.kt`.
  *
  * Workstream L4 (`docs/plans/pr26-rework.md`): the gallery's "+" tile now goes straight to the edit
  * form with no location placed at all — [MushroomLogEntry.foundAt]'s own doc comment covers why
@@ -38,12 +68,12 @@ import java.time.LocalDate
  * the gallery's "+".
  *
  * This exists alongside [LogPanel] rather than replacing it: [LogPanel] is still what the
- * medium/expanded window's drawer shows (`DrawerPanel.Log` in `AvailabilityScreen.kt`, untouched by
- * the map redesign — see `docs/plans/map-redesign.md`'s "Scope decision" section for why that
- * window class stays on its existing navigation shape). This is the compact-only equivalent, reached
- * from the bottom nav instead of the drawer, so it owns no "back to search" affordance — there is no
- * drawer to return to, only another bottom nav tab to tap. [LogPanel] gained the identical
- * Add-Location picker state as part of this same workstream, since it shares [LogEntryDetailScreen].
+ * medium/expanded window's drawer shows (`DrawerPanel.Log` in `AvailabilityScreen.kt`), and gained
+ * the identical two-tab restructure as part of this same Stage 1 dispatch — see that composable's
+ * own doc comment for why it needed the same change to avoid becoming a half-done implementation.
+ * This is the compact-only equivalent, reached from the bottom nav instead of the drawer, so it
+ * owns no "back to search" affordance — there is no drawer to return to, only another bottom nav
+ * tab to tap.
  *
  * Workstream G3: [LogEntryDetailScreen]'s "From Album" button opens [PullPhotoPickerScreen] the
  * same way "Add Location" opens [CentrePinLocationPicker] — a full-screen state swap owned by this
@@ -65,7 +95,7 @@ internal fun JournalTab(
     mapSlot: MapSlot,
     pickerRegion: Region,
     basemap: Basemap,
-    /** Night mode for the location picker this hosts — see [CentrePinLocationPicker]. */
+    /** Night mode for the location picker this hosts, and the Records tab's Offline Maps picker — see [CentrePinLocationPicker]. */
     night: Boolean = false,
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
@@ -97,6 +127,22 @@ internal fun JournalTab(
     isLoadingGalleryPhotos: Boolean = false,
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
     galleryLoadErrorMessage: String? = null,
+    /** See [RecordsTab]'s own doc comment for all of the following — Stage 1's Records tab. */
+    availabilityUiState: AvailabilityUiState,
+    distanceUnit: DistanceUnit,
+    currentTime: CurrentTimeProvider,
+    onOfflineMapLatChanged: (String) -> Unit,
+    onOfflineMapLngChanged: (String) -> Unit,
+    onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
+    onOfflineMapsOpened: () -> Unit,
+    onDownloadOfflineMaps: () -> Unit,
+    onDeleteOfflineRegion: (Long) -> Unit,
+    tracks: List<Track>,
+    onTracksOpened: () -> Unit,
+    waypoints: List<Waypoint>,
+    waypointsErrorMessage: String?,
+    onDeleteWaypoint: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -125,6 +171,8 @@ internal fun JournalTab(
     // (Workstream G3) instead of "Add Location".
     var pullingPhotoForEditingEntry by remember { mutableStateOf(false) }
 
+    var selectedTopTab by remember { mutableStateOf(JournalTopTab.CARTOGRAPHY) }
+
     // System back unwinds one of this tab's own nested states before AvailabilityScreen's
     // top-level "switch away from a non-Maps tab" handler ever sees it — Compose's
     // OnBackPressedDispatcher tries the most-recently-composed enabled callback first, so this one
@@ -146,84 +194,138 @@ internal fun JournalTab(
         }
     }
 
-    when {
-        editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
-            mapSlot = mapSlot,
-            region = pickerRegion,
-            basemap = basemap,
-        night = night,
-            onConfirm = { location ->
-                pickingLocationForEditingEntry = false
-                onEntryChanged(editing.copy(foundAt = location))
-            },
-            onCancel = { pickingLocationForEditingEntry = false },
-            modifier = modifier,
-        )
+    Column(modifier = modifier.fillMaxSize()) {
+        SecondaryTabRow(selectedTabIndex = selectedTopTab.ordinal) {
+            Tab(
+                selected = selectedTopTab == JournalTopTab.CARTOGRAPHY,
+                onClick = { selectedTopTab = JournalTopTab.CARTOGRAPHY },
+                text = { Text("Cartography") },
+            )
+            Tab(
+                selected = selectedTopTab == JournalTopTab.RECORDS,
+                onClick = {
+                    // Leaving Cartography mid-edit for Records is an incidental exit — see this
+                    // composable's own doc comment.
+                    if (editing != null && mode == JournalEntryMode.EDIT) onLeaveEditingIncidentally()
+                    selectedTopTab = JournalTopTab.RECORDS
+                },
+                text = { Text("Records") },
+            )
+        }
 
-        editing != null && mode == JournalEntryMode.EDIT && pullingPhotoForEditingEntry -> PullPhotoPickerScreen(
-            photos = uiState.galleryPhotos,
-            onPhotoSelected = { photo ->
-                pullingPhotoForEditingEntry = false
-                onPullPhoto(photo)
-            },
-            modifier = modifier,
-        )
+        when (selectedTopTab) {
+            JournalTopTab.CARTOGRAPHY -> when {
+                editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
+                    mapSlot = mapSlot,
+                    region = pickerRegion,
+                    basemap = basemap,
+                    night = night,
+                    onConfirm = { location ->
+                        pickingLocationForEditingEntry = false
+                        onEntryChanged(editing.copy(foundAt = location))
+                    },
+                    onCancel = { pickingLocationForEditingEntry = false },
+                    modifier = Modifier.weight(1f),
+                )
 
-        editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(
-            entry = editing,
-            cameraCaptureFiles = cameraCaptureFiles,
-            onEntryChanged = onEntryChanged,
-            onAddPhoto = onAddPhoto,
-            onRemovePhoto = onRemovePhoto,
-            onPullPhoto = { pullingPhotoForEditingEntry = true },
-            onAddLocation = { pickingLocationForEditingEntry = true },
-            onSave = { onSaveEntry(); mode = JournalEntryMode.REPORT },
-            onCancel = onCancelEditing,
-            onDeleteEntry = { onDeleteEntry(editing.id) },
-            onBack = onLeaveEditingIncidentally,
-            modifier = modifier,
-        )
+                editing != null && mode == JournalEntryMode.EDIT && pullingPhotoForEditingEntry -> PullPhotoPickerScreen(
+                    photos = uiState.galleryPhotos,
+                    onPhotoSelected = { photo ->
+                        pullingPhotoForEditingEntry = false
+                        onPullPhoto(photo)
+                    },
+                    modifier = Modifier.weight(1f),
+                )
 
-        editing != null -> LogEntryReportScreen(
-            entry = editing,
-            onEdit = {
-                onStartEditingEntry()
-                mode = JournalEntryMode.EDIT
-            },
-            onDeleteEntry = { onDeleteEntry(editing.id) },
-            onBack = onCloseEntry,
-            modifier = modifier,
-        )
+                editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(
+                    entry = editing,
+                    cameraCaptureFiles = cameraCaptureFiles,
+                    onEntryChanged = onEntryChanged,
+                    onAddPhoto = onAddPhoto,
+                    onRemovePhoto = onRemovePhoto,
+                    onPullPhoto = { pullingPhotoForEditingEntry = true },
+                    onAddLocation = { pickingLocationForEditingEntry = true },
+                    onSave = { onSaveEntry(); mode = JournalEntryMode.REPORT },
+                    onCancel = onCancelEditing,
+                    onDeleteEntry = { onDeleteEntry(editing.id) },
+                    onBack = onLeaveEditingIncidentally,
+                    modifier = Modifier.weight(1f),
+                )
 
-        else -> LogGalleryScreen(
-            entries = uiState.entries,
-            draftEntries = uiState.draftEntries,
-            isLoading = uiState.isLoadingEntries,
-            onOpenEntry = { id ->
-                mode = JournalEntryMode.REPORT
-                onOpenEntry(id)
-            },
-            onOpenDraftEntry = { id ->
-                // Workstream L4b-R: reinstates straight into EDIT, not REPORT — a draft (live,
-                // incidentally-exited, or crash-orphaned; see MushroomLogUiState.draftEntries) is
-                // inherently something to finish, not something to view a report of yet. No
-                // onStartEditingEntry() call needed: it's already a draft, so that would be a no-op.
-                mode = JournalEntryMode.EDIT
-                onOpenEntry(id)
-            },
-            onAddEntry = {
-                mode = JournalEntryMode.EDIT
-                onStartEntry(null, LocalDate.now())
-            },
-            modifier = modifier,
-            loadErrorMessage = uiState.loadErrorMessage,
-            photos = galleryPhotos,
-            isLoadingPhotos = isLoadingGalleryPhotos,
-            onDeletePhoto = onDeleteGalleryPhoto,
-            photosLoadErrorMessage = galleryLoadErrorMessage,
-        )
+                editing != null -> LogEntryReportScreen(
+                    entry = editing,
+                    onEdit = {
+                        onStartEditingEntry()
+                        mode = JournalEntryMode.EDIT
+                    },
+                    onDeleteEntry = { onDeleteEntry(editing.id) },
+                    onBack = onCloseEntry,
+                    modifier = Modifier.weight(1f),
+                )
+
+                else -> LogGalleryScreen(
+                    entries = uiState.entries,
+                    draftEntries = uiState.draftEntries,
+                    isLoading = uiState.isLoadingEntries,
+                    onOpenEntry = { id ->
+                        mode = JournalEntryMode.REPORT
+                        onOpenEntry(id)
+                    },
+                    onOpenDraftEntry = { id ->
+                        // Workstream L4b-R: reinstates straight into EDIT, not REPORT — a draft (live,
+                        // incidentally-exited, or crash-orphaned; see MushroomLogUiState.draftEntries) is
+                        // inherently something to finish, not something to view a report of yet. No
+                        // onStartEditingEntry() call needed: it's already a draft, so that would be a no-op.
+                        mode = JournalEntryMode.EDIT
+                        onOpenEntry(id)
+                    },
+                    onAddEntry = {
+                        mode = JournalEntryMode.EDIT
+                        onStartEntry(null, LocalDate.now())
+                    },
+                    modifier = Modifier.weight(1f),
+                    loadErrorMessage = uiState.loadErrorMessage,
+                    photos = galleryPhotos,
+                    isLoadingPhotos = isLoadingGalleryPhotos,
+                    onDeletePhoto = onDeleteGalleryPhoto,
+                    photosLoadErrorMessage = galleryLoadErrorMessage,
+                )
+            }
+
+            JournalTopTab.RECORDS -> RecordsTab(
+                modifier = Modifier.weight(1f),
+                waypoints = waypoints,
+                waypointsErrorMessage = waypointsErrorMessage,
+                onDeleteWaypoint = onDeleteWaypoint,
+                availabilityUiState = availabilityUiState,
+                distanceUnit = distanceUnit,
+                currentTime = currentTime,
+                mapSlot = mapSlot,
+                night = night,
+                onOfflineMapRegionPicked = { location ->
+                    onOfflineMapLatChanged(location.lat.toString())
+                    onOfflineMapLngChanged(location.lng.toString())
+                },
+                onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                onOfflineMapNameChanged = onOfflineMapNameChanged,
+                onOfflineMapsOpened = onOfflineMapsOpened,
+                onDownloadOfflineMaps = onDownloadOfflineMaps,
+                onDeleteOfflineRegion = onDeleteOfflineRegion,
+                tracks = tracks,
+                onTracksOpened = onTracksOpened,
+            )
+        }
     }
 }
+
+/**
+ * Which of the Journal's two tabs is selected — Cartography (the existing journal content,
+ * unchanged in Stage 1) or Records (new). Shared between [JournalTab] (compact) and [LogPanel]
+ * (medium/expanded), which both use this same two-tab shell — `internal`, not `private`, for
+ * exactly that reuse; declared once here rather than in each file, since Kotlin does not allow two
+ * files in the same package to each declare a file-private top-level type of the same name.
+ */
+internal enum class JournalTopTab { CARTOGRAPHY, RECORDS }
 
 /**
  * Which screen [JournalTab] shows for [MushroomLogUiState.editingEntry] — "editing" is the accurate
