@@ -38,6 +38,7 @@ import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.service.TrackRecordingService
 import com.forager.app.ui.availability.AvailabilityScreen
 import com.forager.app.ui.availability.AvailabilityViewModel
+import com.forager.app.ui.log.CartographyViewModel
 import com.forager.app.ui.log.MushroomLogViewModel
 import com.forager.app.ui.theme.ForagerTheme
 import com.forager.app.ui.track.TrackRecordingViewModel
@@ -95,6 +96,24 @@ class MainActivity : ComponentActivity() {
                     container.getGalleryPhotosUseCase,
                     container.pullPhotoIntoEntryUseCase,
                     container.deleteGalleryPhotoUseCase,
+                )
+            }
+        }
+    }
+
+    private val cartographyViewModel: CartographyViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                CartographyViewModel(
+                    container.getCartographyEntriesUseCase,
+                    container.getCartographyDraftEntriesUseCase,
+                    container.createCartographyEntryUseCase,
+                    container.saveCartographyEntryUseCase,
+                    container.commitCartographyEntryUseCase,
+                    container.deleteCartographyEntryUseCase,
+                    container.getDerivedTripUseCase,
+                    container.getTripReportOfflineRegionsUseCase,
+                    container.computeTrackStatisticsUseCase,
                 )
             }
         }

@@ -59,6 +59,7 @@ import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTracksUseCase
 import com.forager.app.domain.GetTodaysForecastUseCase
+import com.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.HistoricalWeatherProvider
@@ -158,6 +159,7 @@ class AppContainer(context: Context) {
     val getRecentSearchesUseCase = GetRecentSearchesUseCase(searchCacheRepository)
 
     val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
+    val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
     val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
     val distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository = DataStoreDistanceUnitPreferenceRepository(context)
     val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context)

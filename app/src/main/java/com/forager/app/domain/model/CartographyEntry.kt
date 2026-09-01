@@ -6,9 +6,14 @@ import java.time.LocalDate
  * The user's own account of one day — Journal Stage 2b, `amendment-2b-entry-definition.md`. **A new
  * entity, not [MushroomLogEntry].** A find is one mushroom's structured field record; a Cartography
  * entry is authored on top of a compiled [DerivedTrip] — what the user chose to keep from that day's
- * finds/tracks/waypoints/offline regions, plus their own writing. Nothing here is derived: unlike
- * [DerivedTrip], which is re-computed on every read and stores nothing, this is the durable, authored
- * result — "compiled input, authored output," in the amendment's own words.
+ * finds/tracks/waypoints/offline regions, plus — optionally — what they wrote. Nothing here is
+ * derived: unlike [DerivedTrip], which is re-computed on every read and stores nothing, this is the
+ * durable, authored result — "compiled input, authored output," in the amendment's own words.
+ *
+ * **[text] is optional, never gated on** — `amendment-2b-optional-writing.md`: selection alone (which
+ * finds, tracks, waypoints, and regions to keep) is a complete act of authorship. An entry with kept
+ * items and no writing at all is finished, not incomplete; [isDraft] reflects only whether the user
+ * has committed it, never whether [text] is blank.
  *
  * [isDraft] — "a draft is an unfinished entry" — is this entity's own draft concept, deliberately the
  * same English word as [MushroomLogEntry.isDraft]/[MushroomLogEntry.draftOfEntryId] and deliberately
