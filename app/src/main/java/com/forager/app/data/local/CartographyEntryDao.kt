@@ -114,18 +114,53 @@ abstract class CartographyEntryDao {
         deleteEntryById(id)
     }
 
-    // kept = 1 only: a withheld decision means the user explicitly excluded this track from the
-    // entry, so it does not "appear in" it for 4b's own warning purposes — see the follow-up
-    // dispatch's point 2 and CartographyEntryTrackRefEntity's own doc comment on row-presence vs. kept.
-    @Query("SELECT COUNT(*) FROM cartography_entry_track_refs WHERE trackId = :trackId AND kept = 1")
+    // kept = 1: a withheld decision means the user explicitly excluded this track from the entry,
+    // so it does not "appear in" it for 4b's own warning purposes — see the follow-up dispatch's
+    // point 2 and CartographyEntryTrackRefEntity's own doc comment on row-presence vs. kept.
+    // isDraft = 0 (joined against cartography_entries, not a stored column on this table): an
+    // unfinished, uncommitted draft's decisions are not yet a real reference either — see the
+    // draft-lifecycle dispatch's own decision 3. A draft can (and, before that dispatch's fix,
+    // routinely did) accumulate as an invisible orphan; counting its refs would warn the user away
+    // from deleting something loudest exactly when orphans have piled up, which is the failure this
+    // condition exists to prevent. The warning still never blocks deletion — it only informs.
+    @Query(
+        """
+        SELECT COUNT(*) FROM cartography_entry_track_refs
+        INNER JOIN cartography_entries ON cartography_entries.id = cartography_entry_track_refs.entryId
+        WHERE cartography_entry_track_refs.trackId = :trackId
+            AND cartography_entry_track_refs.kept = 1
+            AND cartography_entries.isDraft = 0
+        """,
+    )
     abstract suspend fun countEntriesReferencingTrack(trackId: String): Int
 
-    @Query("SELECT COUNT(*) FROM cartography_entry_waypoint_refs WHERE waypointId = :waypointId AND kept = 1")
+    @Query(
+        """
+        SELECT COUNT(*) FROM cartography_entry_waypoint_refs
+        INNER JOIN cartography_entries ON cartography_entries.id = cartography_entry_waypoint_refs.entryId
+        WHERE cartography_entry_waypoint_refs.waypointId = :waypointId
+            AND cartography_entry_waypoint_refs.kept = 1
+            AND cartography_entries.isDraft = 0
+        """,
+    )
     abstract suspend fun countEntriesReferencingWaypoint(waypointId: String): Int
 
-    @Query("SELECT COUNT(*) FROM cartography_entry_offline_region_refs WHERE offlineRegionId = :offlineRegionId AND kept = 1")
+    @Query(
+        """
+        SELECT COUNT(*) FROM cartography_entry_offline_region_refs
+        INNER JOIN cartography_entries ON cartography_entries.id = cartography_entry_offline_region_refs.entryId
+        WHERE cartography_entry_offline_region_refs.offlineRegionId = :offlineRegionId
+            AND cartography_entry_offline_region_refs.kept = 1
+            AND cartography_entries.isDraft = 0
+        """,
+    )
     abstract suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Int
 
+    // Not scoped to isDraft = 0 — the draft-lifecycle dispatch's amendment named only
+    // countEntriesReferencingTrack/Waypoint/OfflineRegion for that fix, not this one, even though
+    // photo refs have the identical gap (an abandoned draft's attached photo counts here too, since
+    // photo refs have no `kept` column to already filter on). Left as-is and flagged in that
+    // dispatch's own disclosure report rather than silently extended or silently left inconsistent.
     @Query("SELECT COUNT(*) FROM cartography_entry_photo_refs WHERE photoId = :photoId")
     abstract suspend fun countEntriesReferencingPhoto(photoId: String): Int
 }

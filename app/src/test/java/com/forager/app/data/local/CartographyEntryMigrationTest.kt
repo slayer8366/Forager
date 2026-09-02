@@ -131,6 +131,51 @@ class CartographyEntryMigrationTest {
         }
     }
 
+    /**
+     * Draft-lifecycle dispatch, decision 3: an in-progress, uncommitted draft's kept decisions must
+     * not count toward 4b's "this appears in N journal entries" deletion warning — only a committed
+     * entry's do. Before this fix, `countEntriesReferencing*` filtered on `kept = 1` alone, blind to
+     * `isDraft`; since [com.forager.app.data.repository.RoomCartographyEntryRepository.save] writes
+     * ref rows on every edit — draft or committed alike — an abandoned draft's references were
+     * indistinguishable from a real, finished entry's. Uses a plain in-memory database (not the
+     * migrated file above): this test is about current-schema query behavior, not the 10→11
+     * migration.
+     */
+    @Test
+    fun `a draft's kept decisions do not count toward the 4b deletion warning, only a committed entry's do`() = runTest {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val database = Room.inMemoryDatabaseBuilder(context, ForagerDatabase::class.java).build()
+        try {
+            val repository = RoomCartographyEntryRepository(database.cartographyEntryDao())
+
+            val draft = CartographyEntry(
+                id = "draft-entry",
+                date = LocalDate.of(2026, 8, 1),
+                text = "",
+                tags = emptyList(),
+                isDraft = true,
+                updatedAtEpochMillis = 1_000L,
+                findDecisions = emptyList(),
+                trackDecisions = listOf(TrackDecision(trackId = "track-1", name = "Ridge Loop", distanceMeters = 3200.0, durationMillis = 5_400_000L, pointCount = 240, kept = true)),
+                waypointDecisions = listOf(WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -122.6, kept = true)),
+                offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.4, lng = -122.6, radiusKm = 10, kept = true)),
+            )
+            repository.save(draft).getOrThrow()
+
+            assertEquals("a draft's kept track must not count", 0, repository.countEntriesReferencingTrack("track-1").getOrThrow())
+            assertEquals("a draft's kept waypoint must not count", 0, repository.countEntriesReferencingWaypoint("waypoint-1").getOrThrow())
+            assertEquals("a draft's kept offline region must not count", 0, repository.countEntriesReferencingOfflineRegion(1L).getOrThrow())
+
+            repository.save(draft.copy(isDraft = false)).getOrThrow()
+
+            assertEquals("the same track counts once its entry is committed", 1, repository.countEntriesReferencingTrack("track-1").getOrThrow())
+            assertEquals("the same waypoint counts once its entry is committed", 1, repository.countEntriesReferencingWaypoint("waypoint-1").getOrThrow())
+            assertEquals("the same offline region counts once its entry is committed", 1, repository.countEntriesReferencingOfflineRegion(1L).getOrThrow())
+        } finally {
+            database.close()
+        }
+    }
+
     private companion object {
         const val TEST_DB_NAME = "cartography-entry-migration-test.db"
     }

@@ -66,6 +66,17 @@ class CartographyViewModelTest {
     private lateinit var database: ForagerDatabase
     private lateinit var viewModel: CartographyViewModel
 
+    /**
+     * Draft-lifecycle dispatch's own required fixture fix. A literal constant here
+     * (`idGenerator = { "entry-1" }`) is what let the real defect — [CartographyViewModel.onStartEntry]
+     * minting an unrelated new id on every call, with nothing to dedupe or resume — ship through 837
+     * green tests: even a test calling `onStartEntry` twice would have had both calls collapse onto
+     * the same row via Room's `REPLACE`, silently exercising a scenario the production `idGenerator`
+     * (a real `UUID.randomUUID()`) can never produce. Distinct per call is all that's needed here — see
+     * [CreateCartographyEntryUseCase]'s own doc comment for why a test fixes `idGenerator` at all.
+     */
+    private var nextEntryId = 0
+
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -91,7 +102,7 @@ class CartographyViewModelTest {
         viewModel = CartographyViewModel(
             getEntries = GetCartographyEntriesUseCase(cartographyEntryRepository),
             getDraftEntries = GetCartographyDraftEntriesUseCase(cartographyEntryRepository),
-            createEntry = CreateCartographyEntryUseCase(cartographyEntryRepository, now = { FIXED_NOW }, idGenerator = { "entry-1" }),
+            createEntry = CreateCartographyEntryUseCase(cartographyEntryRepository, now = { FIXED_NOW }, idGenerator = { "entry-${nextEntryId++}" }),
             saveEntry = SaveCartographyEntryUseCase(cartographyEntryRepository),
             commitEntry = CommitCartographyEntryUseCase(cartographyEntryRepository, now = { FIXED_NOW }),
             deleteEntry = DeleteCartographyEntryUseCase(cartographyEntryRepository),
@@ -238,6 +249,114 @@ class CartographyViewModelTest {
         assertEquals(listOf("waypoint-1"), committed.waypointDecisions.map { it.waypointId })
         assertEquals(listOf(committed), viewModel.uiState.value.entries)
         assertTrue(viewModel.uiState.value.draftEntries.isEmpty())
+    }
+
+    // --- Draft-lifecycle dispatch regression tests -------------------------------------------------
+    // The bug: onStartEntry mints an unrelated new id on every call (the production idGenerator is a
+    // real UUID.randomUUID(), never reused), and onCloseEntry used to just null out editingEntry with
+    // no trace of the draft it had just saved to disk — so backing out made the draft invisible, the
+    // only visible affordance was "+" again, and repeated back-out-then-restart minted an
+    // ever-growing pile of orphaned drafts that all surfaced at once the next time loadEntries()
+    // happened to run (e.g. after a later commit) — reading as "commit duplicated the entry."
+
+    @Test
+    fun `closing an unfinished entry surfaces it as a resumable draft, and reopening then closing again does not duplicate it`() = runTest(dispatcher) {
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val draftId = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onCloseEntry()
+
+        assertEquals(
+            "the abandoned draft must be visible in the Drafts list immediately, not only after some later loadEntries() call",
+            listOf(draftId),
+            viewModel.uiState.value.draftEntries.map { it.id },
+        )
+        assertEquals("closing must not leave a stale editingEntry", null, viewModel.uiState.value.editingEntry)
+
+        // Resume it — the same row, via the same list the user would tap in the real UI.
+        viewModel.onOpenEntry(draftId)
+        advanceUntilIdle()
+        assertEquals(draftId, viewModel.uiState.value.editingEntry?.id)
+
+        viewModel.onCloseEntry()
+
+        assertEquals(
+            "resuming the same draft and closing it again must not duplicate it in the Drafts list",
+            listOf(draftId),
+            viewModel.uiState.value.draftEntries.map { it.id },
+        )
+    }
+
+    /**
+     * Amendment decision 2: no by-date uniqueness constraint — a morning outing and an evening outing
+     * are a real case. The fix for symptom 1 is making the first draft *visible*, not *forbidding* a
+     * second one; a user who taps "+" again while it's plainly visible is making an informed choice.
+     */
+    @Test
+    fun `starting a second entry for the same date is allowed and produces two independent visible drafts`() = runTest(dispatcher) {
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val firstId = viewModel.uiState.value.editingEntry!!.id
+        viewModel.onCloseEntry()
+
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val secondId = viewModel.uiState.value.editingEntry!!.id
+        viewModel.onCloseEntry()
+
+        assertTrue("the second entry must be a genuinely different row", firstId != secondId)
+        assertEquals(
+            setOf(firstId, secondId),
+            viewModel.uiState.value.draftEntries.map { it.id }.toSet(),
+        )
+    }
+
+    @Test
+    fun `committing a draft flips the same row with no orphan left behind`() = runTest(dispatcher) {
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val draftId = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onFinishEntry()
+        advanceUntilIdle()
+
+        assertEquals(listOf(draftId), viewModel.uiState.value.entries.map { it.id })
+        assertTrue(
+            "no orphan draft should remain once the entry it came from is committed",
+            viewModel.uiState.value.draftEntries.isEmpty(),
+        )
+    }
+
+    /**
+     * Symptom 3, re-examined per the amendment: it was inferred, not confirmed, as a consequence of
+     * symptom 1 (a second entry for the same day independently re-deriving the same day's records as
+     * kept, reading as "auto-fill"). With symptoms 1/2 fixed, a genuinely new entry's own *authored*
+     * state — [CartographyEntry.text]/[CartographyEntry.tags], never carried over by anything in this
+     * ViewModel — starts empty regardless. `editingEntry` deliberately still points at the just-
+     * committed entry until [onCloseEntry] — see that function's own doc comment and the amendment's
+     * "stay on the entry you just finished may be intended" note — so this starts a new entry only
+     * after closing, the same as a real back-out-then-add would.
+     */
+    @Test
+    fun `starting a new entry after commit begins empty, not carrying over the committed entry's text or tags`() = runTest(dispatcher) {
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        viewModel.onTextChanged("Great chanterelle patch off the ridge trail.")
+        viewModel.onTagsChanged(listOf("chanterelle", "ridge trail"))
+        advanceUntilIdle()
+
+        viewModel.onFinishEntry()
+        advanceUntilIdle()
+        assertEquals("Great chanterelle patch off the ridge trail.", viewModel.uiState.value.editingEntry?.text)
+
+        viewModel.onCloseEntry()
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+
+        val nextDraft = viewModel.uiState.value.editingEntry!!
+        assertEquals("", nextDraft.text)
+        assertEquals(emptyList<String>(), nextDraft.tags)
     }
 
     @Test

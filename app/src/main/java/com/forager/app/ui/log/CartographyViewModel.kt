@@ -153,8 +153,33 @@ class CartographyViewModel(
         }
     }
 
+    /**
+     * Closes the currently-open entry — draft-lifecycle dispatch fix. An open **draft** is merged
+     * back into [CartographyUiState.draftEntries] locally before clearing, the same "surface the
+     * abandoned draft immediately, don't wait for the next incidental [loadEntries] call" shape
+     * [MushroomLogViewModel.onLeaveEditingIncidentally] already establishes for finds. Before this
+     * fix, closing did nothing but null out [CartographyUiState.editingEntry] — the draft this
+     * ViewModel had *just* saved to disk stayed invisible in the Drafts list until some unrelated
+     * action happened to call [loadEntries] (e.g. [onFinishEntry]'s own success path), so the only
+     * affordance the user could see was "+" again, minting an unrelated second draft rather than
+     * resuming the first. A **committed** entry needs no such merge: [onOpenEntry] only ever finds
+     * one already present in [CartographyUiState.entries]/[CartographyUiState.draftEntries], so
+     * closing it changes nothing those lists don't already reflect.
+     */
     fun onCloseEntry() {
-        _uiState.update { it.copy(editingEntry = null, candidatesForEditingEntry = null, candidateOfflineRegionsForEditingEntry = emptyList()) }
+        val current = _uiState.value.editingEntry
+        _uiState.update { state ->
+            state.copy(
+                draftEntries = when {
+                    current == null || !current.isDraft -> state.draftEntries
+                    state.draftEntries.any { it.id == current.id } -> state.draftEntries.map { if (it.id == current.id) current else it }
+                    else -> state.draftEntries + current
+                },
+                editingEntry = null,
+                candidatesForEditingEntry = null,
+                candidateOfflineRegionsForEditingEntry = emptyList(),
+            )
+        }
     }
 
     fun onTextChanged(text: String) {
