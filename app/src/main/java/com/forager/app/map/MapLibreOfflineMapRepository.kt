@@ -13,7 +13,6 @@ import com.forager.app.domain.model.Region
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.maplibre.android.MapLibre
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.offline.OfflineManager
 import org.maplibre.android.offline.OfflineRegion
@@ -208,17 +207,17 @@ class MapLibreOfflineMapRepository(
         }
     }
 
-    // MapLibre.getInstance() must run before any other MapLibre API call touches the native
-    // library — centralized here so every entry point (download/deleteRegion/listRegions, all of
-    // which call this) gets it, rather than each call site needing to remember to.
+    // initializeMapLibre() must run before any other MapLibre API call touches the native library —
+    // centralized here so every entry point (download/deleteRegion/listRegions, all of which call
+    // this) gets it, rather than each call site needing to remember to. See MapLibreStorage.kt's own
+    // doc comment for why this is initializeMapLibre() and not a bare MapLibre.getInstance() call.
     //
     // setOfflineMapboxTileCountLimit is likewise applied on every call rather than once at startup:
     // it's a cheap, idempotent native call with no callback and no getter (verified via javap — see
     // this class's doc comment), so there is no state to avoid re-setting, and this guarantees the
     // deliberate budget is in force before any offline operation regardless of call order.
     private fun offlineManager(): OfflineManager {
-        ensureMapLibreStorageOutsideCache(appContext)
-        MapLibre.getInstance(appContext)
+        initializeMapLibre(appContext)
         val manager = OfflineManager.getInstance(appContext)
         manager.setOfflineMapboxTileCountLimit(OfflineMapRepository.TILE_COUNT_LIMIT)
         return manager

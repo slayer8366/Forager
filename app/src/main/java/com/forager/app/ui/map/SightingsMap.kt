@@ -44,8 +44,8 @@ import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.Waypoint
+import com.forager.app.map.initializeMapLibre
 import com.forager.app.ui.motion.MotionTokens
-import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
@@ -208,10 +208,13 @@ fun SightingsMap(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
-        // Required once, before any MapLibre API touches the native library — the same
-        // initialization com.forager.app.map.MapLibreOfflineMapRepository centralizes for its own
-        // entry points, needed here too since this is a second, independent consumer of the SDK.
-        MapLibre.getInstance(context)
+        // Required once, before any MapLibre API touches the native library, and must also carry
+        // the storage-path redirect — this used to call MapLibre.getInstance(context) directly,
+        // missing that half; see MapLibreStorage.kt's own doc comment on initializeMapLibre for why
+        // that was a real gap, not just tidiness (this is a second, independent consumer of the SDK
+        // alongside com.forager.app.map.MapLibreOfflineMapRepository, and only one of the two used
+        // to establish the redirect first).
+        initializeMapLibre(context)
         MapView(context).apply { onCreate(null) }
     }
 
