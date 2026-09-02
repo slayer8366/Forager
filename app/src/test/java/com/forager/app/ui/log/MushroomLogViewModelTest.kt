@@ -1,5 +1,6 @@
 package com.forager.app.ui.log
 
+import com.forager.app.domain.AddPhotoToGalleryUseCase
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.CommitDraftEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
@@ -74,6 +75,7 @@ class MushroomLogViewModelTest {
         commitDraftEntry = CommitDraftEntryUseCase(repository),
         deleteEntry = DeleteMushroomLogEntryUseCase(repository),
         addPhoto = AddPhotoToLogEntryUseCase(photoStore, repository),
+        addPhotoToGallery = AddPhotoToGalleryUseCase(photoStore, repository),
         removePhoto = RemovePhotoFromLogEntryUseCase(repository),
         getGalleryPhotos = GetGalleryPhotosUseCase(repository),
         pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(repository),
@@ -246,6 +248,29 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(newPhoto), vm.uiState.value.galleryPhotos.map { it.photo })
+    }
+
+    /**
+     * Standalone-photos dispatch: [MushroomLogViewModel.onAddGalleryPhoto] is [PhotoGalleryScreen]'s
+     * own Camera/Gallery entry point — no open entry needed at all (unlike [onAddPhoto] above, which
+     * requires a draft session), and the resulting photo has no owning find.
+     */
+    @Test
+    fun `onAddGalleryPhoto adds a standalone photo to the gallery with no open entry and no reference`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "standalone", relativePath = "photos/standalone.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+
+        vm.onAddGalleryPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        val galleryPhoto = vm.uiState.value.galleryPhotos.single()
+        assertEquals(newPhoto, galleryPhoto.photo)
+        assertTrue("a photo acquired from the Album page has no owning find", galleryPhoto.referencingEntryIds.isEmpty())
+        assertNull(vm.uiState.value.editingEntry)
     }
 
     /**

@@ -359,6 +359,29 @@ class CartographyViewModelTest {
         assertEquals(emptyList<String>(), nextDraft.tags)
     }
 
+    /**
+     * Standalone-photos dispatch's own required verification, Cartography side: a photo with no
+     * owning find — acquired via [com.forager.app.domain.AddPhotoToGalleryUseCase], never attached
+     * to any [MushroomLogEntry] — attaches to a Cartography entry exactly like any other photo.
+     * [CartographyViewModel.onToggleKeptPhoto] never checks [MushroomLogRepository] at all (see its
+     * own doc comment: "a photo id alone is enough to attach it"), so this is really proving that
+     * gap is intentional and harmless, against a photo id seeded through the real repository rather
+     * than an arbitrary string.
+     */
+    @Test
+    fun `a standalone photo with no owning find can be pulled into a Cartography entry`() = runTest(dispatcher) {
+        val standalone = com.forager.app.domain.model.LogPhoto(id = "standalone", relativePath = "photos/standalone.jpg", createdAtEpochMillis = 1_000L)
+        RoomMushroomLogRepository(database.mushroomLogDao()).addPhotoToGallery(standalone).getOrThrow()
+
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+
+        viewModel.onToggleKeptPhoto(standalone.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(standalone.id), viewModel.uiState.value.editingEntry?.photos?.map { it.photoId })
+    }
+
     @Test
     fun `deleting an entry removes it from both entries and drafts`() = runTest(dispatcher) {
         viewModel.onStartEntry(DAY)

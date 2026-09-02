@@ -118,6 +118,8 @@ internal fun LogPanel(
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     isLoadingGalleryPhotos: Boolean = false,
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
+    /** Standalone-photos dispatch: Camera/Gallery acquisition on [CartographyScreen]'s own Album tab. */
+    onAddGalleryPhoto: (PhotoSource) -> Unit = {},
     galleryLoadErrorMessage: String? = null,
     galleryPhotoEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** See [CartographyScreen]'s own doc comment for all of the following — Journal Stage 2b's new entity. */
@@ -293,6 +295,8 @@ internal fun LogPanel(
                 galleryLoadErrorMessage = galleryLoadErrorMessage,
                 galleryPhotoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
                 onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                cameraCaptureFiles = cameraCaptureFiles,
+                onAddGalleryPhoto = onAddGalleryPhoto,
                 distanceUnit = distanceUnit,
                 onOpenEntry = onOpenCartographyEntry,
                 onStartEntry = onStartCartographyEntry,

@@ -1,9 +1,5 @@
 package com.forager.app.ui.log
 
-import android.Manifest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,10 +28,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,7 +39,6 @@ import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
 import com.forager.app.photo.CameraCaptureFiles
-import com.forager.app.photo.ContentUriPhotoSource
 import com.forager.app.ui.availability.CollapsibleSection
 import com.forager.app.ui.theme.Spacing
 
@@ -226,38 +217,10 @@ private fun PhotosSection(
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: () -> Unit,
 ) {
-    var pendingCapture by remember { mutableStateOf<CameraCaptureFiles.Capture?>(null) }
-
-    val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        val capture = pendingCapture
-        pendingCapture = null
-        if (success && capture != null) {
-            onPhotoSourceSelected(ContentUriPhotoSource(capture.uri))
-        } else {
-            capture?.let(cameraCaptureFiles::deleteCapture)
-        }
-    }
-    val requestCameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            val capture = cameraCaptureFiles.newCapture()
-            pendingCapture = capture
-            takePicture.launch(capture.uri)
-        }
-    }
-    // PickMultipleVisualMedia, not PickVisualMedia: the single-select contract only ever returns
-    // one Uri, which was the entire bug report this fixes — the system picker itself allows
-    // multi-select, but the launcher discarded every selection past the first. onPhotoSourceSelected
-    // still takes one PhotoSource at a time; MushroomLogViewModel.onAddPhoto's own doc comment
-    // already documents that back-to-back calls apply in issued order under its mutex, which is
-    // exactly what a multi-photo pick needs, so no ViewModel or use-case change is needed here.
-    // maxItems = MAX_PHOTOS_PER_PICK: an explicit cap per the project owner's own request, rather
-    // than the system default (device- and OS-version-dependent, and on some pickers effectively
-    // unbounded) — see that constant's own doc comment.
-    val pickPhotos = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS_PER_PICK),
-    ) { uris ->
-        uris.forEach { uri -> onPhotoSourceSelected(ContentUriPhotoSource(uri)) }
-    }
+    // The Camera-permission-then-capture and system-Gallery-picker launchers — shared with
+    // PhotoGalleryScreen's own Camera/Gallery buttons (standalone-photos dispatch) via this one
+    // function, rather than a second hand-copy of the ActivityResultContracts/permission wiring.
+    val photoAcquisition = rememberPhotoAcquisitionLaunchers(cameraCaptureFiles, onPhotoSourceSelected)
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Photos", style = MaterialTheme.typography.titleSmall)
@@ -267,12 +230,8 @@ private fun PhotosSection(
         // Row doesn't shrink or wrap overflowing children; they simply run past the screen edge,
         // invisible rather than clipped. Wrapping to a second line keeps every button reachable.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(onClick = { requestCameraPermission.launch(Manifest.permission.CAMERA) }) { Text("Camera") }
-            Button(
-                onClick = {
-                    pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                },
-            ) { Text("Gallery") }
+            Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
+            Button(onClick = photoAcquisition.launchGallery) { Text("Gallery") }
             // Workstream G3: "Gallery" above already means the system photo picker (a new file);
             // this references an existing photo this app already has, so it needs its own word.
             // "Album" is taken too — see CompactTab's own doc comment — by the bottom nav tab
@@ -295,9 +254,6 @@ private fun PhotosSection(
         }
     }
 }
-
-/** How many photos a single "Gallery" pick can select at once — the project owner's own cap, not a platform default. */
-private const val MAX_PHOTOS_PER_PICK = 10
 
 private const val PHOTO_THUMBNAIL_SIZE_DP = 88
 private const val REMOVE_GLYPH_SCRIM_SIZE_DP = 28

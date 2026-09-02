@@ -41,7 +41,7 @@ internal fun PullPhotoPickerScreen(
 ) {
     if (photos.isEmpty()) {
         Text(
-            "No photos in the gallery yet. Add one with Camera or Gallery first.",
+            "No photos in the gallery yet. Open the Album page and use Camera or Gallery to add one first.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = modifier.fillMaxWidth().padding(Spacing.lg),
         )

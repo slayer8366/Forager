@@ -21,6 +21,7 @@ import com.forager.app.data.repository.RoomPlannedTripRepository
 import com.forager.app.data.repository.RoomSearchCacheRepository
 import com.forager.app.data.repository.RoomTrackRepository
 import com.forager.app.data.repository.RoomWaypointRepository
+import com.forager.app.domain.AddPhotoToGalleryUseCase
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.CompassProvider
@@ -176,6 +177,7 @@ class AppContainer(context: Context) {
     val commitDraftEntryUseCase = CommitDraftEntryUseCase(mushroomLogRepository)
     val deleteMushroomLogEntryUseCase = DeleteMushroomLogEntryUseCase(mushroomLogRepository)
     val addPhotoToLogEntryUseCase = AddPhotoToLogEntryUseCase(photoStore, mushroomLogRepository)
+    val addPhotoToGalleryUseCase = AddPhotoToGalleryUseCase(photoStore, mushroomLogRepository)
     val removePhotoFromLogEntryUseCase = RemovePhotoFromLogEntryUseCase(mushroomLogRepository)
     val getGalleryPhotosUseCase = GetGalleryPhotosUseCase(mushroomLogRepository)
     val pullPhotoIntoEntryUseCase = PullPhotoIntoEntryUseCase(mushroomLogRepository)

@@ -469,6 +469,8 @@ fun AvailabilityScreen(
     onPullLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
+    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — [PhotoGalleryScreen]'s own buttons, both Album surfaces (Cartography's tab and [DrawerPanel.PhotoGallery]). */
+    onAddGalleryPhoto: (PhotoSource) -> Unit = {},
     /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
     onSaveLogErrorDismissed: () -> Unit = {},
     /** Journal Stage 2b's new authored entity — see [com.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
@@ -866,6 +868,7 @@ fun AvailabilityScreen(
                     galleryPhotos = logUiState.galleryPhotos,
                     isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
                     onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                    onAddGalleryPhoto = onAddGalleryPhoto,
                     galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
                     galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
                     cartographyUiState = cartographyUiState,
@@ -913,6 +916,8 @@ fun AvailabilityScreen(
                     photos = logUiState.galleryPhotos,
                     isLoading = logUiState.isLoadingGalleryPhotos,
                     onDeletePhoto = onDeleteGalleryPhoto,
+                    cameraCaptureFiles = cameraCaptureFiles,
+                    onAddGalleryPhoto = onAddGalleryPhoto,
                     loadErrorMessage = logUiState.galleryLoadErrorMessage,
                 )
             }
@@ -1344,6 +1349,7 @@ fun AvailabilityScreen(
                             galleryPhotos = logUiState.galleryPhotos,
                             isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
                             onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                            onAddGalleryPhoto = onAddGalleryPhoto,
                             galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
                             galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
                             // Journal Stage 2b: Cartography's own Entries/Drafts/Album — see

@@ -3,6 +3,7 @@ package com.forager.app.ui.log
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forager.app.domain.AddPhotoToGalleryUseCase
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.CommitDraftEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
@@ -150,6 +151,8 @@ class MushroomLogViewModel(
     private val commitDraftEntry: CommitDraftEntryUseCase,
     private val deleteEntry: DeleteMushroomLogEntryUseCase,
     private val addPhoto: AddPhotoToLogEntryUseCase,
+    /** Standalone-photos dispatch: acquisition with no owning find — [PhotoGalleryScreen]'s own Camera/Gallery buttons. See [onAddGalleryPhoto]. */
+    private val addPhotoToGallery: AddPhotoToGalleryUseCase,
     private val removePhoto: RemovePhotoFromLogEntryUseCase,
     private val getGalleryPhotos: GetGalleryPhotosUseCase,
     private val pullPhotoIntoEntry: PullPhotoIntoEntryUseCase,
@@ -524,6 +527,28 @@ class MushroomLogViewModel(
                     },
                 )
             }
+        }
+    }
+
+    /**
+     * Standalone-photos dispatch: acquires [source] via [PhotoGalleryScreen]'s own Camera/Gallery
+     * buttons — persisted and added to the gallery only, never attached to anything (see
+     * [AddPhotoToGalleryUseCase]'s own doc comment for why this stops one step short of
+     * [onAddPhoto]). No [editingEntryMutex] needed: unlike [onAddPhoto], this never reads or writes
+     * [MushroomLogUiState.editingEntry] at all.
+     */
+    fun onAddGalleryPhoto(source: PhotoSource) {
+        viewModelScope.launch {
+            addPhotoToGallery(source).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(saveErrorMessage = null) }
+                    loadGalleryPhotos()
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't add a photo to the gallery.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't add that photo.") }
+                },
+            )
         }
     }
 

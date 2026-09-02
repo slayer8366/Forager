@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
+import com.forager.app.domain.model.PhotoSource
+import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
@@ -47,6 +49,8 @@ internal fun CartographyScreen(
     galleryLoadErrorMessage: String?,
     galleryPhotoEntryReferenceCounts: Map<String, Int>,
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit,
+    cameraCaptureFiles: CameraCaptureFiles,
+    onAddGalleryPhoto: (PhotoSource) -> Unit,
     distanceUnit: DistanceUnit,
     onOpenEntry: (String) -> Unit,
     onStartEntry: (LocalDate) -> Unit,
@@ -140,6 +144,8 @@ internal fun CartographyScreen(
                 photos = galleryPhotos,
                 isLoading = isLoadingGalleryPhotos,
                 onDeletePhoto = onDeleteGalleryPhoto,
+                cameraCaptureFiles = cameraCaptureFiles,
+                onAddGalleryPhoto = onAddGalleryPhoto,
                 loadErrorMessage = galleryLoadErrorMessage,
                 cartographyEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
                 modifier = Modifier.weight(1f),
