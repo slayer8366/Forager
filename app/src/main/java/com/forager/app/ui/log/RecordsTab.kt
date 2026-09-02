@@ -92,9 +92,26 @@ internal fun RecordsTab(
     onTracksOpened: () -> Unit,
     findsContent: @Composable ColumnScope.() -> Unit,
     onFindsTabLeft: () -> Unit = {},
+    /**
+     * A one-shot external request to switch to a specific sub-tab — Stage 2d's routing fix for the
+     * map "+" icon bar's "Log a find" flow, which used to leave this tab's own [selectedTab]
+     * (defaults to [RecordsSubTab.WAYPOINTS]) untouched even after [JournalTab]/[LogPanel] switched
+     * to Records, landing on Waypoints instead of Finds. `null` (the default) means nothing pending;
+     * every other caller of this composable passes nothing, so its own behavior is unchanged.
+     */
+    pendingSubTab: RecordsSubTab? = null,
+    /** Fires once [pendingSubTab] has been applied — the caller clears its own copy so the same request doesn't reapply after the user has since navigated elsewhere. */
+    onPendingSubTabConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableStateOf(RecordsSubTab.WAYPOINTS) }
+
+    LaunchedEffect(pendingSubTab) {
+        if (pendingSubTab != null) {
+            selectedTab = pendingSubTab
+            onPendingSubTabConsumed()
+        }
+    }
 
     LaunchedEffect(selectedTab) {
         when (selectedTab) {
@@ -167,5 +184,9 @@ internal fun RecordsTab(
     }
 }
 
-/** Which of [RecordsTab]'s four sub-tabs is selected — ordinal order matches display order. */
-private enum class RecordsSubTab { WAYPOINTS, OFFLINE_MAPS, RECORDED_TRACKS, FINDS }
+/**
+ * Which of [RecordsTab]'s four sub-tabs is selected — ordinal order matches display order.
+ * `internal`, not `private`, as of Stage 2d: [JournalTab]/[LogPanel] hold a pending value of this
+ * type to request [FINDS] externally — see [RecordsTab]'s own `pendingSubTab` doc comment.
+ */
+internal enum class RecordsSubTab { WAYPOINTS, OFFLINE_MAPS, RECORDED_TRACKS, FINDS }

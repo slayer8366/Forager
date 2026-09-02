@@ -45,6 +45,22 @@ data class MapRenderMode(
      * see `MapPalette` for why that was tried, measured and abandoned.
      */
     val night: Boolean = false,
+    /**
+     * Whether this map instance may seize the camera for live GPS tracking — Journal Stage 2d.
+     * `true` (every existing caller's unchanged behavior) lets [SightingsMap] activate MapLibre's
+     * own "blue dot" location puck and follow it the moment location permission is granted, exactly
+     * as it always has. `false` is for a map instance about a **historical** place — Stage 2d's
+     * Cartography entry map — where [region]/[com.forager.app.ui.map.MapSlot]'s own `focusOverride`
+     * framing an entry's kept data must not be immediately overridden by a jump to the device's
+     * *current* location, which [SightingsMap]'s [org.maplibre.android.location.modes.CameraMode.TRACKING]
+     * would otherwise force on first activation (a real behavior confirmed by reading
+     * `activateLiveLocationIfPermitted`, not assumed). Bundled here, alongside [basemap]/[night],
+     * rather than added as a new top-level [com.forager.app.ui.map.MapSlot] parameter: that
+     * function-type typealias is one parameter short of a real, previously-hit Compose compiler
+     * crash at 10 declared parameters (see [MapOverlayContent]'s own doc comment) — [MapRenderMode]
+     * exists exactly to absorb an addition like this one without touching that count.
+     */
+    val trackLiveLocation: Boolean = true,
 )
 
 data class MapOverlayContent(
@@ -96,6 +112,44 @@ data class MapOverlayContent(
      * and the camera-idle listener has nothing left to re-fire for.
      */
     val focusedObservationId: Long? = null,
+    /**
+     * Journal Stage 2d: a Cartography entry's kept tracks, one inner list per track, each oldest
+     * point first — a genuine `MultiLineString`, not [breadcrumbPoints] concatenated. A single
+     * `List<LatLng>` (what [breadcrumbPoints] already is) can only ever draw as one connected
+     * `LineString` (see [breadcrumbFeatureCollection]); two kept tracks drawn that way would show a
+     * spurious straight-line jump between the end of one and the start of the other. This is a
+     * genuinely separate field, not a reshaping of [breadcrumbPoints], so every existing caller
+     * (both `AvailabilityScreen.kt` call sites) is unaffected by construction — neither sets it, and
+     * its default is empty. A kept track that no longer resolves (deleted from Records) is simply
+     * absent from this list by the time it reaches here — see [com.forager.app.domain.GetCartographyEntryMapDataUseCase]'s
+     * own doc comment for where that resolution happens; this composable never knows a track was
+     * ever kept, only what actually resolved.
+     */
+    val keptTrackPolylines: List<List<LatLng>> = emptyList(),
+    /**
+     * Journal Stage 2d: a Cartography entry's kept finds with a resolved coordinate — drawn as
+     * discrete pins, the same [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer] template
+     * [Waypoint] markers already use. A find with no coordinate (the ordinary case — see
+     * [com.forager.app.domain.model.MushroomLogEntry.foundAt]'s own doc comment) is simply absent
+     * from this list, never a placeholder point.
+     */
+    val findMarkers: List<LatLng> = emptyList(),
+    /**
+     * Journal Stage 2d: a Cartography entry's kept photos with a resolved coordinate (both
+     * [com.forager.app.domain.model.LogPhoto.latitude]/`.longitude` non-null, and the gallery row
+     * still present) — most existing photos will have neither, which is normal, not an error; see
+     * [com.forager.app.domain.model.LogPhoto]'s own doc comment on the two ways a photo gains a
+     * coordinate. Also a discrete-pin [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer].
+     */
+    val photoMarkers: List<LatLng> = emptyList(),
+    /**
+     * Journal Stage 2d: a Cartography entry's kept offline regions, drawn as a translucent coverage
+     * circle each — their snapshot already carries lat/lng/radius (see [Region]'s own shape), so
+     * unlike tracks/finds/photos this needs no live fetch to resolve at all. Whether this is more
+     * useful than cluttered is an open visual question the dispatch that added this explicitly left
+     * to be reported on after building it, not decided in advance.
+     */
+    val offlineRegionCircles: List<Region> = emptyList(),
 )
 
 /**
@@ -205,6 +259,11 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         resumeTrackingRequestId = content.resumeTrackingRequestId,
         resetOrientationRequestId = content.resetOrientationRequestId,
         focusedObservationId = content.focusedObservationId,
+        trackLiveLocation = renderMode.trackLiveLocation,
+        keptTrackPolylines = content.keptTrackPolylines,
+        findMarkers = content.findMarkers,
+        photoMarkers = content.photoMarkers,
+        offlineRegionCircles = content.offlineRegionCircles,
         modifier = modifier,
     )
 }

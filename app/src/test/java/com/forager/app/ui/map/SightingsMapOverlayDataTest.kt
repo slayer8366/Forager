@@ -1,5 +1,6 @@
 package com.forager.app.ui.map
 
+import com.forager.app.domain.GeoDistance
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -304,5 +305,76 @@ class SightingsMapOverlayDataTest {
     @Test
     fun `no waypoints produces no marker features`() {
         assertTrue(waypointsFeatureCollection(emptyList()).features()!!.isEmpty())
+    }
+
+    // Journal Stage 2d: the Cartography entry map's own feature builders — pure GeoJSON, same
+    // reasoning as the rest of this file for why these are testable off a device at all.
+
+    private val trackOne = listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51), LatLng(45.22, -122.52))
+    private val trackTwo = listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01))
+
+    @Test
+    fun `two kept tracks become two separate LineStrings, not one joined trail`() {
+        val features = keptTracksFeatureCollection(listOf(trackOne, trackTwo)).features()!!
+        assertEquals(2, features.size)
+
+        val firstLine = features[0].geometry() as LineString
+        assertEquals(trackOne.map { Point.fromLngLat(it.lng, it.lat) }, firstLine.coordinates())
+
+        val secondLine = features[1].geometry() as LineString
+        assertEquals(trackTwo.map { Point.fromLngLat(it.lng, it.lat) }, secondLine.coordinates())
+    }
+
+    @Test
+    fun `a track with fewer than two points produces no LineString`() {
+        val features = keptTracksFeatureCollection(listOf(trackOne, listOf(LatLng(45.0, -122.0)), emptyList())).features()!!
+        assertEquals(
+            "Only trackOne has two or more points -- the single-point and empty tracks must be silently dropped, not error.",
+            1,
+            features.size,
+        )
+    }
+
+    @Test
+    fun `no kept tracks produces no LineString features`() {
+        assertTrue(keptTracksFeatureCollection(emptyList()).features()!!.isEmpty())
+    }
+
+    @Test
+    fun `pointsFeatureCollection places one point feature per marker at its own coordinates`() {
+        val markers = listOf(LatLng(45.5, -122.5), LatLng(45.6, -122.6))
+        val features = pointsFeatureCollection(markers).features()!!
+        assertEquals(2, features.size)
+
+        val points = features.map { it.geometry() as Point }
+        assertEquals(markers[0].lng, points[0].longitude(), 0.0)
+        assertEquals(markers[0].lat, points[0].latitude(), 0.0)
+        assertEquals(markers[1].lng, points[1].longitude(), 0.0)
+        assertEquals(markers[1].lat, points[1].latitude(), 0.0)
+    }
+
+    @Test
+    fun `no markers produces no point features`() {
+        assertTrue(pointsFeatureCollection(emptyList()).features()!!.isEmpty())
+    }
+
+    @Test
+    fun `each offline region becomes a closed polygon ring centred on its own coordinates`() {
+        val region = Region(lat = 45.5, lng = -122.5, radiusKm = 5)
+        val feature = offlineRegionCirclesFeatureCollection(listOf(region)).features()!!.single()
+        val polygon = feature.geometry() as org.maplibre.geojson.Polygon
+        val ring = polygon.coordinates().single()
+
+        assertEquals(
+            "GeoDistance.circlePolygonPoints already closes its own ring (first == last); the polygon built from it must not duplicate or drop that closure.",
+            GeoDistance.circlePolygonPoints(LatLng(region.lat, region.lng), region.radiusKm).map { Point.fromLngLat(it.lng, it.lat) },
+            ring,
+        )
+        assertEquals("A closed linear ring's first and last points must be identical.", ring.first(), ring.last())
+    }
+
+    @Test
+    fun `no offline regions produces no circle features`() {
+        assertTrue(offlineRegionCirclesFeatureCollection(emptyList()).features()!!.isEmpty())
     }
 }

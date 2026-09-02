@@ -132,6 +132,15 @@ class LogPanelTest {
                 onToggleKeptPhoto = {},
                 onFinishCartographyEntry = {},
                 onDeleteCartographyEntry = {},
+                getCartographyEntryMapData = { _, _ ->
+                    com.forager.app.domain.CartographyEntryMapData(
+                        trackPolylines = emptyList(),
+                        findMarkers = emptyList(),
+                        waypointMarkers = emptyList(),
+                        photoMarkers = emptyList(),
+                        offlineRegionCircles = emptyList(),
+                    )
+                },
                 // Journal restructure Stage 1's Records tab — this file tests the relocated Finds
                 // section's saveErrorMessage Toast, so these are inert fixtures, not exercised below.
                 availabilityUiState = com.forager.app.ui.availability.AvailabilityUiState(),

@@ -28,7 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.CurrentTimeProvider
+import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LogPhoto
@@ -83,6 +85,13 @@ import java.time.LocalDate
  * the identical inverted-from-Stage-1 guard, mirrored here: [onLeaveEditingIncidentally] fires
  * whenever the top-level tab switches away from Records, or [RecordsTab]'s own sub-tab switches
  * away from Finds, while [MushroomLogUiState.editingEntry] is non-null.
+ *
+ * [pendingDestination]/[onPendingDestinationConsumed] mirror [JournalTab]'s own identical parameters
+ * — see that composable's doc comment, "The map '+' routing bug," for the full Stage 2d trace.
+ * Simpler here than there: this panel has no `mode` (see "no separate report step" above) — the
+ * expanded window's own copy of the map "+" routing fix only ever needs to set [selectedTopTab] and
+ * stage [RecordsSubTab.FINDS] into this panel's own `recordsPendingSubTab` latch, never a report/edit
+ * mode, since opening an entry here always means editing it already.
  */
 @Composable
 internal fun LogPanel(
@@ -136,6 +145,8 @@ internal fun LogPanel(
     onToggleKeptPhoto: (String) -> Unit,
     onFinishCartographyEntry: () -> Unit,
     onDeleteCartographyEntry: (String) -> Unit,
+    /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
+    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     /** See [RecordsTab]'s own doc comment for all of the following — Stage 1's Records tab. */
     availabilityUiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
@@ -153,6 +164,10 @@ internal fun LogPanel(
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    /** See this composable's own doc comment — Stage 2d. `null` (the default) is a no-op, so every other caller of this panel is unaffected. */
+    pendingDestination: PendingJournalDestination? = null,
+    /** Fires once [pendingDestination] has been applied, so `AvailabilityScreen` clears its own copy and is ready for the next request. */
+    onPendingDestinationConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Same one-shot-per-transition Toast shape as CompactMapTab's startRecordingErrorMessage
@@ -178,6 +193,23 @@ internal fun LogPanel(
     val editing = uiState.editingEntry
 
     var selectedTopTab by remember { mutableStateOf(JournalTopTab.CARTOGRAPHY) }
+
+    // The local latch this composable's own doc comment describes — staged here rather than
+    // forwarding pendingDestination straight to RecordsTab, since RecordsTab only exists in the
+    // composition once selectedTopTab has already become RECORDS. See JournalTab's identical latch
+    // for the fuller reasoning.
+    var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
+
+    LaunchedEffect(pendingDestination) {
+        when (pendingDestination) {
+            PendingJournalDestination.EDIT_NEW_FIND -> {
+                selectedTopTab = JournalTopTab.RECORDS
+                recordsPendingSubTab = RecordsSubTab.FINDS
+                onPendingDestinationConsumed()
+            }
+            null -> Unit
+        }
+    }
 
     // See this composable's own doc comment on "leaving Records mid-find-edit" for why this now
     // guards leaving Records (inverted from Stage 1, which guarded leaving Cartography — finds
@@ -298,6 +330,10 @@ internal fun LogPanel(
                 cameraCaptureFiles = cameraCaptureFiles,
                 onAddGalleryPhoto = onAddGalleryPhoto,
                 distanceUnit = distanceUnit,
+                mapSlot = mapSlot,
+                basemap = basemap,
+                night = night,
+                getMapData = getCartographyEntryMapData,
                 onOpenEntry = onOpenCartographyEntry,
                 onStartEntry = onStartCartographyEntry,
                 onCloseEntry = onCloseCartographyEntry,
@@ -340,6 +376,8 @@ internal fun LogPanel(
                 onTracksOpened = onTracksOpened,
                 findsContent = findsSection,
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
+                pendingSubTab = recordsPendingSubTab,
+                onPendingSubTabConsumed = { recordsPendingSubTab = null },
             )
         }
     }

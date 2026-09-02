@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
+import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.photo.CameraCaptureFiles
@@ -57,6 +58,14 @@ class CartographyScreenTest {
         .copy(isDraft = false)
     private val draftEntry = CartographyEntry.draft(id = "draft-1", date = LocalDate.of(2026, 8, 2), updatedAtEpochMillis = 2_000L)
 
+    private val emptyCartographyMapData = CartographyEntryMapData(
+        trackPolylines = emptyList(),
+        findMarkers = emptyList(),
+        waypointMarkers = emptyList(),
+        photoMarkers = emptyList(),
+        offlineRegionCircles = emptyList(),
+    )
+
     private fun setScreen(initial: CartographyUiState) {
         composeRule.setContent {
             var uiState by remember { mutableStateOf(initial) }
@@ -70,6 +79,10 @@ class CartographyScreenTest {
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
                 onAddGalleryPhoto = {},
                 distanceUnit = DistanceUnit.MILES,
+                mapSlot = { _, _, _, _, _, _, _, _, _ -> },
+                basemap = com.forager.app.ui.map.Basemap.DEFAULT,
+                night = false,
+                getMapData = { _, _ -> emptyCartographyMapData },
                 onOpenEntry = { id ->
                     uiState = uiState.copy(editingEntry = uiState.entries.firstOrNull { it.id == id } ?: uiState.draftEntries.firstOrNull { it.id == id })
                 },

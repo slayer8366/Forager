@@ -16,7 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.CurrentTimeProvider
+import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
@@ -76,6 +78,36 @@ import java.time.LocalDate
  * none. Both end on the entry page — that is what 'same flow' meant."), so [onStartEntry]'s
  * `location` parameter is nullable to serve both callers, not because this tab itself ever passes a
  * non-null one.
+ *
+ * ## The map "+" routing bug, and why the fix is two local one-shot latches, not a shared navigation type (Stage 2d)
+ *
+ * `onLogFindHere` used to switch only `AvailabilityScreen`'s own `compactTab`, leaving this tab's
+ * own [selectedTopTab] (defaults to [JournalTopTab.CARTOGRAPHY]) and [RecordsTab]'s own
+ * `selectedTab` (defaults to `RecordsSubTab.WAYPOINTS`) untouched — landing the user on Cartography
+ * instead of the find form a device report found. The picked location was never lost (it lands
+ * correctly in [MushroomLogUiState.editingEntry] via [onStartEntry] either way); the bug is purely
+ * that nothing steered the three-plus layers of local `remember` navigation state this app's
+ * no-navigation-library convention has accumulated (this tab's own [selectedTopTab] and [mode],
+ * [RecordsTab]'s own `selectedTab`, `LogPanel`'s parallel copies) past the first.
+ *
+ * [pendingDestination] is the external half of the fix: a single-purpose, one-shot request
+ * [AvailabilityScreen] sets and this tab consumes, in the same request-token shape
+ * [com.forager.app.ui.map.MapOverlayContent.resumeTrackingRequestId] already establishes elsewhere
+ * in this app (a value the requester sets and the consumer clears, not a shared destination type
+ * layered on top of the three enums already here). Consuming it sets [selectedTopTab]/[mode]
+ * directly, and stages [RecordsSubTab.FINDS] into `recordsPendingSubTab` — a second, *local* latch,
+ * not [pendingDestination] forwarded as-is, because [RecordsTab] only mounts once [selectedTopTab]
+ * has already flipped to [JournalTopTab.RECORDS] on this same recomposition; clearing
+ * [pendingDestination] immediately (so [AvailabilityScreen] is ready for the next request) would
+ * otherwise race [RecordsTab] ever seeing a non-null value.
+ *
+ * **Deliberately not generalized into a shared navigation abstraction.** This is now the fourth
+ * instance of "a local enum plus `remember` state stands in for a route" in this codebase
+ * ([JournalTopTab], [JournalEntryMode], `RecordsSubTab`, and now [PendingJournalDestination] making
+ * a fifth if the picker's own local state is counted separately) — real, visible debt, logged here
+ * rather than fixed, since Stage 2c's own [CartographyEntryMode] split this same dispatch touches
+ * has not yet been verified on a device, and this dispatch is already the widest since Stage 2b.
+ * Consolidating the pattern is a legitimate future dispatch, not a quiet side effect of this one.
  */
 @Composable
 internal fun JournalTab(
@@ -129,6 +161,8 @@ internal fun JournalTab(
     onToggleKeptPhoto: (String) -> Unit,
     onFinishCartographyEntry: () -> Unit,
     onDeleteCartographyEntry: (String) -> Unit,
+    /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
+    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     /** See [RecordsTab]'s own doc comment for all of the following — Stage 1's Records tab. */
     availabilityUiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
@@ -146,6 +180,10 @@ internal fun JournalTab(
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    /** See this composable's own doc comment, "The map '+' routing bug" — Stage 2d. `null` (the default) is a no-op, so every other caller of this tab is unaffected. */
+    pendingDestination: PendingJournalDestination? = null,
+    /** Fires once [pendingDestination] has been applied, so [AvailabilityScreen] clears its own copy and is ready for the next request. */
+    onPendingDestinationConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -175,6 +213,23 @@ internal fun JournalTab(
     var pullingPhotoForEditingEntry by remember { mutableStateOf(false) }
 
     var selectedTopTab by remember { mutableStateOf(JournalTopTab.CARTOGRAPHY) }
+
+    // The second, local latch this composable's own "map '+' routing bug" doc comment describes —
+    // staged here rather than forwarding pendingDestination straight to RecordsTab, since RecordsTab
+    // only exists in the composition once selectedTopTab has already become RECORDS.
+    var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
+
+    LaunchedEffect(pendingDestination) {
+        when (pendingDestination) {
+            PendingJournalDestination.EDIT_NEW_FIND -> {
+                selectedTopTab = JournalTopTab.RECORDS
+                mode = JournalEntryMode.EDIT
+                recordsPendingSubTab = RecordsSubTab.FINDS
+                onPendingDestinationConsumed()
+            }
+            null -> Unit
+        }
+    }
 
     // See this composable's own doc comment on "leaving Records mid-find-edit" for why this now
     // guards leaving Records (inverted from Stage 1, which guarded leaving Cartography — finds lived
@@ -314,6 +369,10 @@ internal fun JournalTab(
                 cameraCaptureFiles = cameraCaptureFiles,
                 onAddGalleryPhoto = onAddGalleryPhoto,
                 distanceUnit = distanceUnit,
+                mapSlot = mapSlot,
+                basemap = basemap,
+                night = night,
+                getMapData = getCartographyEntryMapData,
                 onOpenEntry = onOpenCartographyEntry,
                 onStartEntry = onStartCartographyEntry,
                 onCloseEntry = onCloseCartographyEntry,
@@ -353,6 +412,8 @@ internal fun JournalTab(
                 onTracksOpened = onTracksOpened,
                 findsContent = findsSection,
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
+                pendingSubTab = recordsPendingSubTab,
+                onPendingSubTabConsumed = { recordsPendingSubTab = null },
             )
         }
     }
@@ -378,3 +439,17 @@ internal enum class JournalTopTab { CARTOGRAPHY, RECORDS }
  * that case where "does it have data" would not).
  */
 private enum class JournalEntryMode { REPORT, EDIT }
+
+/**
+ * A one-shot request to open a specific place inside the Journal destination, made from outside it
+ * — Stage 2d's routing fix for the map "+" icon bar's "Log a find" flow. See [JournalTab]'s own doc
+ * comment, "The map '+' routing bug," for the full trace and for why this is one small enum (not a
+ * boolean, so a future caller wanting a different destination adds a case here rather than a second
+ * flag) rather than a shared navigation abstraction. `internal`, not `private`: both [JournalTab]
+ * and [LogPanel] consume it, and `AvailabilityScreen.kt` owns the single instance both `onLogFindHere`
+ * closures set.
+ */
+internal enum class PendingJournalDestination {
+    /** Land in Records → Finds, editing the entry [MushroomLogViewModel.onStartNewEntry] just created. */
+    EDIT_NEW_FIND,
+}

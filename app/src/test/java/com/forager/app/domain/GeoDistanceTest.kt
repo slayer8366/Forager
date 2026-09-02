@@ -195,4 +195,94 @@ class GeoDistanceTest {
         assertEquals(270.0, bearing, 0.5)
         assertTrue(bearing in 0.0..360.0)
     }
+
+    @Test
+    fun `circlePolygonPoints closes its own ring, first and last point identical`() {
+        val ring = GeoDistance.circlePolygonPoints(LatLng(45.326, -122.634), radiusKm = 5)
+
+        assertEquals(ring.first(), ring.last())
+    }
+
+    @Test
+    fun `circlePolygonPoints returns pointCount plus one points, plus the closing point`() {
+        val ring = GeoDistance.circlePolygonPoints(LatLng(45.326, -122.634), radiusKm = 5, pointCount = 12)
+
+        assertEquals(13, ring.size)
+    }
+
+    /** Every ring point should sit the requested radius from the centre, the same round-trip GeoDistanceTest already uses for boundingBox's own edges. */
+    @Test
+    fun `every circlePolygonPoints ring point sits the requested radius from the centre`() {
+        val center = LatLng(45.326, -122.634)
+        val radiusKm = 10
+        val ring = GeoDistance.circlePolygonPoints(center, radiusKm)
+
+        ring.dropLast(1).forEach { point ->
+            assertEquals(radiusKm * 1_000.0, GeoDistance.metersBetween(center, point), 1.0)
+        }
+    }
+
+    @Test
+    fun `a zero radius collapses circlePolygonPoints onto the centre`() {
+        val center = LatLng(45.326, -122.634)
+        val ring = GeoDistance.circlePolygonPoints(center, radiusKm = 0)
+
+        ring.forEach { point ->
+            assertEquals(center.lat, point.lat, 1e-9)
+            assertEquals(center.lng, point.lng, 1e-9)
+        }
+    }
+
+    @Test
+    fun `a negative radius is rejected in circlePolygonPoints`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            GeoDistance.circlePolygonPoints(LatLng(45.0, 0.0), radiusKm = -1)
+        }
+    }
+
+    @Test
+    fun `fewer than three points is rejected in circlePolygonPoints`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            GeoDistance.circlePolygonPoints(LatLng(45.0, 0.0), radiusKm = 5, pointCount = 2)
+        }
+    }
+
+    @Test
+    fun `boundingRegion of no points is null, not a fabricated default location`() {
+        assertEquals(null, GeoDistance.boundingRegion(emptyList()))
+    }
+
+    @Test
+    fun `boundingRegion of a single point centres on it with the minimum radius`() {
+        val point = LatLng(45.326, -122.634)
+        val region = GeoDistance.boundingRegion(listOf(point))!!
+
+        assertEquals(point.lat, region.lat, 1e-9)
+        assertEquals(point.lng, region.lng, 1e-9)
+        assertEquals(com.forager.app.domain.model.Region.MIN_RADIUS_KM, region.radiusKm)
+    }
+
+    @Test
+    fun `boundingRegion centres on the bounding box midpoint, not the average of every point`() {
+        // Two points close together and one far away: the midpoint of the box differs from the
+        // mean of all three points, so this proves which one boundingRegion actually uses.
+        val points = listOf(LatLng(0.0, 0.0), LatLng(0.1, 0.1), LatLng(10.0, 10.0))
+        val region = GeoDistance.boundingRegion(points)!!
+
+        assertEquals(5.0, region.lat, 1e-9)
+        assertEquals(5.0, region.lng, 1e-9)
+    }
+
+    @Test
+    fun `boundingRegion radius reaches the farthest point and is clamped into Region's own range`() {
+        val center = LatLng(0.0, 0.0)
+        val far = LatLng(0.0, 0.05) // ~5.6 km east; the computed radius (from the box midpoint) stays well under Region.MAX_RADIUS_KM
+        val region = GeoDistance.boundingRegion(listOf(center, far))!!
+
+        val distanceToFar = GeoDistance.metersBetween(LatLng(region.lat, region.lng), far)
+        assertTrue(
+            "the farthest point must fall within the computed radius",
+            distanceToFar <= region.radiusKm * 1_000.0 + 1.0,
+        )
+    }
 }

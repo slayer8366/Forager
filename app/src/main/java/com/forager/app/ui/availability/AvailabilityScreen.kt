@@ -187,6 +187,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.forager.app.BuildConfig
 import com.forager.app.crash.CrashFileStore
 import com.forager.app.domain.CachedSearchSummary
+import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.ForagingSelection
@@ -200,6 +201,7 @@ import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.AvailabilityEntry
+import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
@@ -233,6 +235,7 @@ import com.forager.app.ui.log.CartographyUiState
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
+import com.forager.app.ui.log.PendingJournalDestination
 import com.forager.app.ui.log.PhotoGalleryScreen
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.CentrePinLocationPicker
@@ -488,6 +491,15 @@ fun AvailabilityScreen(
     onFinishCartographyEntry: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit = {},
     /**
+     * [com.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
+     * composable's doc comment. Defaulted to always report nothing resolved, same reasoning as
+     * [logUiState]: the many existing tests of this screen that never open a Cartography entry
+     * don't need to pass a real resolver just to compile.
+     */
+    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = { _, _ ->
+        CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+    },
+    /**
      * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
      * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
      * Activity (see `MainActivity`'s `pendingLocationAction`) rather than requesting it here.
@@ -654,6 +666,13 @@ fun AvailabilityScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     var isDrawerOpen by remember { mutableStateOf(false) }
+
+    // Stage 2d's routing fix: a one-shot request into whichever of LogPanel/JournalTab is about to
+    // show, set by both onLogFindHere closures below alongside their existing drawerPanel/compactTab
+    // switch — see JournalTab's own doc comment, "The map '+' routing bug," for why this exists and
+    // why it stays a single-purpose token rather than a shared navigation type. One instance covers
+    // both window classes: only whichever of LogPanel/JournalTab is actually composed reads it.
+    var pendingJournalDestination by remember { mutableStateOf<PendingJournalDestination?>(null) }
     LaunchedEffect(isDrawerOpen) {
         if (isDrawerOpen) {
             drawerState.open()
@@ -884,6 +903,7 @@ fun AvailabilityScreen(
                     onToggleKeptPhoto = onToggleKeptPhoto,
                     onFinishCartographyEntry = onFinishCartographyEntry,
                     onDeleteCartographyEntry = onDeleteCartographyEntry,
+                    getCartographyEntryMapData = getCartographyEntryMapData,
                     // Journal restructure Stage 1: the Records tab's three submenus — see
                     // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
                     // reads its offline-map-specific fields off; distanceUnit/currentTime are the
@@ -904,6 +924,8 @@ fun AvailabilityScreen(
                     waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
                     waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                    pendingDestination = pendingJournalDestination,
+                    onPendingDestinationConsumed = { pendingJournalDestination = null },
                 )
             }
 
@@ -979,6 +1001,9 @@ fun AvailabilityScreen(
                 val onLogFindHere: (LatLng) -> Unit = { location ->
                     drawerPanel = DrawerPanel.Log
                     isDrawerOpen = true
+                    // Stage 2d: lands LogPanel on Records -> Finds for the entry onStartLogEntry is
+                    // about to create — see JournalTab's own doc comment, "The map '+' routing bug."
+                    pendingJournalDestination = PendingJournalDestination.EDIT_NEW_FIND
                     onStartLogEntry(location, LocalDate.now())
                 }
 
@@ -1218,6 +1243,11 @@ fun AvailabilityScreen(
                 // exact call. No drawer to open any more; Journal is a bottom-nav destination now.
                 val onLogFindHere: (LatLng) -> Unit = { location ->
                     compactTab = CompactTab.JOURNAL
+                    // Stage 2d: lands JournalTab on Records -> Finds, editing, for the entry
+                    // onStartLogEntry is about to create — see JournalTab's own doc comment, "The
+                    // map '+' routing bug." Before this fix, compactTab alone left JournalTab's own
+                    // selectedTopTab at its CARTOGRAPHY default, landing on Cartography instead.
+                    pendingJournalDestination = PendingJournalDestination.EDIT_NEW_FIND
                     onStartLogEntry(location, LocalDate.now())
                 }
 
@@ -1367,6 +1397,7 @@ fun AvailabilityScreen(
                             onToggleKeptPhoto = onToggleKeptPhoto,
                             onFinishCartographyEntry = onFinishCartographyEntry,
                             onDeleteCartographyEntry = onDeleteCartographyEntry,
+                            getCartographyEntryMapData = getCartographyEntryMapData,
                             // Journal restructure Stage 1: the Records tab's three submenus — see
                             // RecordsTab's own doc comment.
                             availabilityUiState = uiState,
@@ -1385,6 +1416,8 @@ fun AvailabilityScreen(
                             waypointsErrorMessage = waypointsErrorMessage,
                             onDeleteWaypoint = onDeleteWaypoint,
                             waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                            pendingDestination = pendingJournalDestination,
+                            onPendingDestinationConsumed = { pendingJournalDestination = null },
                             modifier = Modifier.fillMaxSize(),
                         )
                         // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,

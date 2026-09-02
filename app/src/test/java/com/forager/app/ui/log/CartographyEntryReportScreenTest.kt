@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
+import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.FindDecision
@@ -19,6 +20,8 @@ import com.forager.app.domain.model.OfflineRegionDecision
 import com.forager.app.domain.model.PhotoAttachment
 import com.forager.app.domain.model.TrackDecision
 import com.forager.app.domain.model.WaypointDecision
+import com.forager.app.ui.map.Basemap
+import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -73,7 +76,7 @@ class CartographyEntryReportScreenTest {
         )
 
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = entry, galleryPhotos = galleryPhotos, distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = {}, onBack = {})
+            CartographyEntryReportScreen(entry = entry, galleryPhotos = galleryPhotos, distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
         composeRule.onNodeWithText("2026-08-01").assertIsDisplayed()
@@ -89,18 +92,49 @@ class CartographyEntryReportScreenTest {
 
     @Test
     fun `text and tags are omitted when blank or empty`() {
+        // Not baseEntry as-is: a fully empty entry hits the Stage 2d empty-entry message instead of
+        // this screen's ordinary body, which is a separate case covered below — one kept waypoint
+        // keeps this test in the ordinary body while text/tags stay blank/empty.
+        val entry = baseEntry.copy(waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -122.6, kept = true)))
+
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = {}, onBack = {})
+            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
         composeRule.onNodeWithText("Tags:", substring = true).assertDoesNotExist()
+    }
+
+    /** Stage 2d: nothing kept, no text, no tags — the same dead end [LogEntryReportScreen] hits, with a message written for what a Cartography entry actually holds. */
+    @Test
+    fun `an entirely empty entry shows the empty-entry message, exactly as worded`() {
+        composeRule.setContent {
+            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = {})
+        }
+
+        composeRule.onNodeWithText(
+            "This entry has nothing kept yet. An entry can hold the finds, tracks, waypoints, offline " +
+                "regions, and photos you choose to keep from a day's records, plus anything you write. " +
+                "Tap the three-dot menu, then Edit, to add something.",
+        ).assertIsDisplayed()
+    }
+
+    /** Standing rule, restated for this exact case: a wordless entry with only kept photos is complete and must never show the empty-entry message. */
+    @Test
+    fun `a wordless entry with only kept photos shows no empty-entry message`() {
+        val entry = baseEntry.copy(photos = listOf(PhotoAttachment(photoId = "p1", attachedAtEpochMillis = 1_000L)))
+
+        composeRule.setContent {
+            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = {})
+        }
+
+        composeRule.onNodeWithText("This entry has nothing kept yet.", substring = true).assertDoesNotExist()
     }
 
     @Test
     fun `text and tags render when present`() {
         val withWriting = baseEntry.copy(text = "A quiet ridge walk.", tags = listOf("chanterelle", "ridge"))
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = withWriting, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = {}, onBack = {})
+            CartographyEntryReportScreen(entry = withWriting, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
         composeRule.onNodeWithText("A quiet ridge walk.").assertIsDisplayed()
@@ -126,7 +160,7 @@ class CartographyEntryReportScreenTest {
         )
 
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = {}, onBack = {})
+            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
         composeRule.onNodeWithText("Finds").assertIsDisplayed()
@@ -158,7 +192,7 @@ class CartographyEntryReportScreenTest {
         )
 
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = {}, onBack = {})
+            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
         composeRule.onNodeWithText("Gone Now Loop").assertIsDisplayed()
@@ -170,7 +204,7 @@ class CartographyEntryReportScreenTest {
         val entry = baseEntry.copy(photos = listOf(PhotoAttachment(photoId = "missing", attachedAtEpochMillis = 1_700_000_000_000L)))
 
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = {}, onBack = {})
+            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
         composeRule.onNodeWithText("Photo unavailable", substring = true).assertIsDisplayed()
@@ -180,7 +214,7 @@ class CartographyEntryReportScreenTest {
     fun `the overflow menu's Edit entry option calls onEdit`() {
         var editCalls = 0
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = { editCalls++ }, onDeleteEntry = {}, onBack = {})
+            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={ editCalls++ }, onDeleteEntry = {}, onBack = {})
         }
 
         composeRule.onNodeWithContentDescription("Entry options").performClick()
@@ -194,7 +228,7 @@ class CartographyEntryReportScreenTest {
     fun `the overflow menu's Delete entry option confirms before calling onDeleteEntry`() {
         var deleteCalls = 0
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = { deleteCalls++ }, onBack = {})
+            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = { deleteCalls++ }, onBack = {})
         }
 
         composeRule.onNodeWithContentDescription("Entry options").performClick()
@@ -212,7 +246,7 @@ class CartographyEntryReportScreenTest {
     fun `cancelling the delete confirmation never calls onDeleteEntry`() {
         var deleteCalls = 0
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = { deleteCalls++ }, onBack = {})
+            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = { deleteCalls++ }, onBack = {})
         }
 
         composeRule.onNodeWithContentDescription("Entry options").performClick()
@@ -227,7 +261,7 @@ class CartographyEntryReportScreenTest {
     fun `the back arrow calls onBack`() {
         var backCalls = 0
         composeRule.setContent {
-            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, onEdit = {}, onDeleteEntry = {}, onBack = { backCalls++ })
+            CartographyEntryReportScreen(entry = baseEntry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, basemap = Basemap.DEFAULT, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, onEdit ={}, onDeleteEntry = {}, onBack = { backCalls++ })
         }
 
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
@@ -235,3 +269,13 @@ class CartographyEntryReportScreenTest {
         assertEquals(1, backCalls)
     }
 }
+
+private val NoOpMapSlot: MapSlot = { _, _, _, _, _, _, _, _, _ -> }
+
+private val EmptyCartographyEntryMapData = CartographyEntryMapData(
+    trackPolylines = emptyList(),
+    findMarkers = emptyList(),
+    waypointMarkers = emptyList(),
+    photoMarkers = emptyList(),
+    offlineRegionCircles = emptyList(),
+)

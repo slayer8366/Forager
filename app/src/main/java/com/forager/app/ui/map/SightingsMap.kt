@@ -38,6 +38,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.forager.app.domain.GeoDistance
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -57,6 +58,7 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
@@ -66,6 +68,7 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
+import org.maplibre.geojson.Polygon
 
 /**
  * Shows the searched region as a map with a marker per real observation ([sightings]).
@@ -185,6 +188,16 @@ fun SightingsMap(
     resetOrientationRequestId: Int = 0,
     /** See [com.forager.app.ui.map.MapOverlayContent.focusedObservationId]'s own doc comment. */
     focusedObservationId: Long? = null,
+    /** See [com.forager.app.ui.map.MapRenderMode.trackLiveLocation]'s own doc comment. */
+    trackLiveLocation: Boolean = true,
+    /** See [com.forager.app.ui.map.MapOverlayContent.keptTrackPolylines]'s own doc comment. */
+    keptTrackPolylines: List<List<LatLng>> = emptyList(),
+    /** See [com.forager.app.ui.map.MapOverlayContent.findMarkers]'s own doc comment. */
+    findMarkers: List<LatLng> = emptyList(),
+    /** See [com.forager.app.ui.map.MapOverlayContent.photoMarkers]'s own doc comment. */
+    photoMarkers: List<LatLng> = emptyList(),
+    /** See [com.forager.app.ui.map.MapOverlayContent.offlineRegionCircles]'s own doc comment. */
+    offlineRegionCircles: List<Region> = emptyList(),
 ) {
     val context = LocalContext.current
 
@@ -391,8 +404,10 @@ fun SightingsMap(
             // setStyle discards the previous style's LocationComponent state the same way it does
             // this composable's own layers (see initializeOverlayLayers' own doc comment on why
             // that function re-runs here) — so the live-location "puck" needs the same
-            // re-activate-on-every-new-style treatment.
-            activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = previousCameraMode)
+            // re-activate-on-every-new-style treatment. Guarded by trackLiveLocation — see that
+            // parameter's own doc comment for why a historical-place map instance must never seize
+            // the camera for the device's current location at all.
+            if (trackLiveLocation) activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = previousCameraMode)
         }
     }
 
@@ -401,10 +416,16 @@ fun SightingsMap(
     // after a basemap swap) — the same "rebuild content every update, regardless of why the update
     // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
     // because MapLibre's own API separates "style ready" from "camera/property changed".
-    LaunchedEffect(loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId) {
+    LaunchedEffect(
+        loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
+        keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles,
+    ) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(style, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId)
+        refreshOverlayData(
+            style, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId,
+            keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles,
+        )
 
         // Once the live-location "puck" is actively tracking (the default once permission is
         // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its
@@ -438,6 +459,7 @@ fun SightingsMap(
     // doc comment on resumeTrackingRequestId covers why a second tap is what completes activation
     // in that case, not an automatic one.
     LaunchedEffect(resumeTrackingRequestId) {
+        if (!trackLiveLocation) return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
         val style = loadedStyle ?: return@LaunchedEffect
         if (map.locationComponent.isLocationComponentActivated) {
@@ -508,6 +530,22 @@ fun SightingsMap(
 private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
     style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
 
+    // Added first, so its fill sits under every point marker and line — a coverage circle covering
+    // a marker would make the marker unreadable, never the other way around. Journal Stage 2d.
+    style.addSource(GeoJsonSource(OFFLINE_REGION_CIRCLE_SOURCE_ID, emptyFeatureCollection()))
+    style.addLayer(
+        FillLayer(OFFLINE_REGION_CIRCLE_LAYER_ID, OFFLINE_REGION_CIRCLE_SOURCE_ID).withProperties(
+            PropertyFactory.fillColor(palette.areaMarkerBackground),
+            PropertyFactory.fillOpacity(OFFLINE_REGION_CIRCLE_OPACITY),
+        ),
+    )
+    style.addLayer(
+        LineLayer(OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID, OFFLINE_REGION_CIRCLE_SOURCE_ID).withProperties(
+            PropertyFactory.lineColor(palette.areaMarkerBackground),
+            PropertyFactory.lineWidth(OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX),
+        ),
+    )
+
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         CircleLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
@@ -552,6 +590,21 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
         ),
     )
 
+    // Kept tracks (Journal Stage 2d): a solid line, distinct from the live breadcrumb's dash — see
+    // keptTracksFeatureCollection's own doc comment for why this is a genuine MultiLineString, not
+    // breadcrumbPoints reshaped. connector was designed for, and is otherwise unused since, the
+    // deleted foraging-areas feature — revived here rather than adding a new, contrast-unverified
+    // colour to MapPalette.
+    style.addSource(GeoJsonSource(KEPT_TRACKS_SOURCE_ID, emptyFeatureCollection()))
+    style.addLayer(
+        LineLayer(KEPT_TRACKS_LAYER_ID, KEPT_TRACKS_SOURCE_ID).withProperties(
+            PropertyFactory.lineColor(palette.connector),
+            PropertyFactory.lineWidth(KEPT_TRACK_STROKE_WIDTH_PX),
+            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+        ),
+    )
+
     style.addSource(GeoJsonSource(PLANNED_TRIP_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         SymbolLayer(PLANNED_TRIP_LAYER_ID, PLANNED_TRIP_SOURCE_ID).withProperties(
@@ -574,6 +627,31 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM),
         ),
     )
+
+    // Find and photo markers (Journal Stage 2d) — the waypoint pin's own template, reused with a
+    // different colour/shape per the dispatch's own guidance ("this is the reusable template for
+    // find and photo markers — discrete markers, not density dots"). Added last, after waypoints,
+    // for the same "never sit under a sibling point marker" reasoning the waypoint layer's own
+    // comment already gives.
+    style.addImage(FIND_ICON_ID, waypointPinBitmap(density, palette.areaMarkerBackground))
+    style.addSource(GeoJsonSource(FIND_SOURCE_ID, emptyFeatureCollection()))
+    style.addLayer(
+        SymbolLayer(FIND_LAYER_ID, FIND_SOURCE_ID).withProperties(
+            PropertyFactory.iconImage(FIND_ICON_ID),
+            PropertyFactory.iconAllowOverlap(true),
+            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM),
+        ),
+    )
+
+    style.addImage(PHOTO_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
+    style.addSource(GeoJsonSource(PHOTO_SOURCE_ID, emptyFeatureCollection()))
+    style.addLayer(
+        SymbolLayer(PHOTO_LAYER_ID, PHOTO_SOURCE_ID).withProperties(
+            PropertyFactory.iconImage(PHOTO_ICON_ID),
+            PropertyFactory.iconAllowOverlap(true),
+            PropertyFactory.iconAnchor("center"),
+        ),
+    )
 }
 
 /**
@@ -589,12 +667,20 @@ private fun refreshOverlayData(
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     focusedObservationId: Long?,
+    keptTrackPolylines: List<List<LatLng>>,
+    findMarkers: List<LatLng>,
+    photoMarkers: List<LatLng>,
+    offlineRegionCircles: List<Region>,
 ) {
     style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCenterFeatureCollection(region))
     style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings, focusedObservationId))
     style.getSourceAs<GeoJsonSource>(PLANNED_TRIP_SOURCE_ID)?.setGeoJson(plannedTripsFeatureCollection(plannedTrips))
     style.getSourceAs<GeoJsonSource>(BREADCRUMB_SOURCE_ID)?.setGeoJson(breadcrumbFeatureCollection(breadcrumbPoints))
     style.getSourceAs<GeoJsonSource>(WAYPOINT_SOURCE_ID)?.setGeoJson(waypointsFeatureCollection(waypoints))
+    style.getSourceAs<GeoJsonSource>(KEPT_TRACKS_SOURCE_ID)?.setGeoJson(keptTracksFeatureCollection(keptTrackPolylines))
+    style.getSourceAs<GeoJsonSource>(FIND_SOURCE_ID)?.setGeoJson(pointsFeatureCollection(findMarkers))
+    style.getSourceAs<GeoJsonSource>(PHOTO_SOURCE_ID)?.setGeoJson(pointsFeatureCollection(photoMarkers))
+    style.getSourceAs<GeoJsonSource>(OFFLINE_REGION_CIRCLE_SOURCE_ID)?.setGeoJson(offlineRegionCirclesFeatureCollection(offlineRegionCircles))
 }
 
 /**
@@ -840,6 +926,39 @@ internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureColle
 }
 
 /**
+ * A Cartography entry's kept tracks as one [LineString] feature per inner list — a genuine
+ * `MultiLineString`, not [breadcrumbFeatureCollection]'s single connected line. Journal Stage 2d. An
+ * inner list with fewer than two points contributes no feature at all (same "a LineString needs at
+ * least two points" reasoning [breadcrumbFeatureCollection] already has) rather than a degenerate
+ * one-point line; this is also what makes a kept track that resolved to zero/one usable point (data
+ * already thin before this reaches here) draw nothing instead of erroring.
+ */
+internal fun keptTracksFeatureCollection(polylines: List<List<LatLng>>): FeatureCollection {
+    val features = polylines
+        .filter { it.size >= 2 }
+        .map { points -> Feature.fromGeometry(LineString.fromLngLats(points.map { Point.fromLngLat(it.lng, it.lat) })) }
+    return FeatureCollection.fromFeatures(features)
+}
+
+/** Plain point markers with no per-feature properties — Journal Stage 2d's find/photo pins, neither of which has a tap handler (or any other reason to carry one) yet. */
+internal fun pointsFeatureCollection(points: List<LatLng>): FeatureCollection =
+    FeatureCollection.fromFeatures(points.map { Feature.fromGeometry(Point.fromLngLat(it.lng, it.lat)) })
+
+/**
+ * A Cartography entry's kept offline regions as filled polygon features — Journal Stage 2d. Each
+ * [Region] needs no fetch to resolve (its own snapshot already carries lat/lng/radius); the polygon
+ * ring itself comes from [GeoDistance.circlePolygonPoints], the true-circle approximation built for
+ * exactly this drawn-shape use (as opposed to [GeoDistance.boundingBox]'s tile-download rectangle).
+ */
+internal fun offlineRegionCirclesFeatureCollection(regions: List<Region>): FeatureCollection {
+    val features = regions.map { region ->
+        val ring = GeoDistance.circlePolygonPoints(LatLng(region.lat, region.lng), region.radiusKm)
+        Feature.fromGeometry(Polygon.fromLngLats(listOf(ring.map { Point.fromLngLat(it.lng, it.lat) })))
+    }
+    return FeatureCollection.fromFeatures(features)
+}
+
+/**
  * A solid diamond bitmap for the planned-trip [SymbolLayer]'s `icon-image`, distinct in shape and
  * colour from the translucent sighting-dot circles, so "planned" reads as its own kind of pin
  * rather than a variant of one — same intent as the deleted osmdroid `plannedTripIcon`, redrawn
@@ -910,6 +1029,19 @@ private const val WAYPOINT_SOURCE_ID = "waypoints"
 private const val WAYPOINT_LAYER_ID = "waypoints-layer"
 private const val WAYPOINT_ICON_ID = "waypoint-pin"
 
+// Journal Stage 2d.
+private const val KEPT_TRACKS_SOURCE_ID = "kept-tracks"
+private const val KEPT_TRACKS_LAYER_ID = "kept-tracks-layer"
+private const val FIND_SOURCE_ID = "find-markers"
+private const val FIND_LAYER_ID = "find-markers-layer"
+private const val FIND_ICON_ID = "find-pin"
+private const val PHOTO_SOURCE_ID = "photo-markers"
+private const val PHOTO_LAYER_ID = "photo-markers-layer"
+private const val PHOTO_ICON_ID = "photo-diamond"
+private const val OFFLINE_REGION_CIRCLE_SOURCE_ID = "offline-region-circles"
+private const val OFFLINE_REGION_CIRCLE_LAYER_ID = "offline-region-circles-layer"
+private const val OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID = "offline-region-circles-outline-layer"
+
 // The overlay's colours now come from ui/theme/MapPalette.kt, derived from the active
 // ColorScheme and passed in -- see that type's doc comment for the derivation rule, and for
 // the recorded objection about deriving map colours from a theme the basemap does not follow.
@@ -938,6 +1070,11 @@ private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
 private const val WAYPOINT_MARKER_WIDTH_DP = 22f
 private const val WAYPOINT_MARKER_HEIGHT_DP = 28f
+
+// Journal Stage 2d.
+private const val KEPT_TRACK_STROKE_WIDTH_PX = 6f
+private const val OFFLINE_REGION_CIRCLE_OPACITY = 0.2f
+private const val OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX = 1.5f
 
 /**
  * A short dash with round line caps ([Property.LINE_CAP_ROUND], already set on the breadcrumb

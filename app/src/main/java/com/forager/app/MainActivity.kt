@@ -382,6 +382,7 @@ class MainActivity : ComponentActivity() {
                     onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
                     onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                    getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
                         if (trackUiState.isRecording) {
