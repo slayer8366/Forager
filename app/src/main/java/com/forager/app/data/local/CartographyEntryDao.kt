@@ -156,11 +156,17 @@ abstract class CartographyEntryDao {
     )
     abstract suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Int
 
-    // Not scoped to isDraft = 0 — the draft-lifecycle dispatch's amendment named only
-    // countEntriesReferencingTrack/Waypoint/OfflineRegion for that fix, not this one, even though
-    // photo refs have the identical gap (an abandoned draft's attached photo counts here too, since
-    // photo refs have no `kept` column to already filter on). Left as-is and flagged in that
-    // dispatch's own disclosure report rather than silently extended or silently left inconsistent.
-    @Query("SELECT COUNT(*) FROM cartography_entry_photo_refs WHERE photoId = :photoId")
+    // isDraft = 0 (joined against cartography_entries): same draft-lifecycle-dispatch reasoning as
+    // the three queries above — an abandoned, uncommitted draft's attached photo is not yet a real
+    // reference either. No `kept = 1` here: photo refs have no kept concept (see
+    // CartographyEntryPhotoRefEntity's own doc comment), attached is the whole state.
+    @Query(
+        """
+        SELECT COUNT(*) FROM cartography_entry_photo_refs
+        INNER JOIN cartography_entries ON cartography_entries.id = cartography_entry_photo_refs.entryId
+        WHERE cartography_entry_photo_refs.photoId = :photoId
+            AND cartography_entries.isDraft = 0
+        """,
+    )
     abstract suspend fun countEntriesReferencingPhoto(photoId: String): Int
 }
