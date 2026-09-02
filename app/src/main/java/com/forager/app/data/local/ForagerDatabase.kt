@@ -96,6 +96,11 @@ import com.forager.app.BuildConfig
  * new authored entity distinct from [MushroomLogEntryEntity]. A written entry is irreplaceable field
  * data, the same reasoning behind every hand-written migration above.
  *
+ * [version] 12 adds nullable `latitude`/`longitude` to `log_photos` via a real [MIGRATION_11_12] —
+ * the photo-geodata dispatch: camera-capture GPS and import EXIF, never interchangeable, never
+ * required. See [LogPhotoEntity]'s own doc comment for the columns and [MIGRATION_11_12]'s own for
+ * why this rebuilds the table rather than `ALTER TABLE ... ADD COLUMN`.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -133,7 +138,7 @@ import com.forager.app.BuildConfig
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -164,7 +169,7 @@ abstract class ForagerDatabase : RoomDatabase() {
                 "forager.db",
             ).addMigrations(
                 MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                MIGRATION_9_10, MIGRATION_10_11,
+                MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
             )
             // Debug-only — see this class's own doc comment ("Destructive fallback, debug-only") for
             // why release must never wipe a database instead of crashing on a missing migration.

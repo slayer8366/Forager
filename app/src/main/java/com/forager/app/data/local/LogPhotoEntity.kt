@@ -10,6 +10,11 @@ import androidx.room.PrimaryKey
  * for how an entry references one). Before `MIGRATION_7_8` this table carried a required `entryId`
  * column instead; see that migration's own doc comment for why a photo now exists independent of
  * any entry.
+ *
+ * [latitude]/[longitude] — photo-geodata dispatch, `MIGRATION_11_12` — see
+ * [com.forager.app.domain.model.LogPhoto]'s own doc comment for the full reasoning. `null` for
+ * every row this app has ever written before this migration, and for the ordinary case of a photo
+ * with no location going forward — never backfilled, never guessed.
  */
 @Entity(tableName = "log_photos")
 data class LogPhotoEntity(
@@ -18,6 +23,8 @@ data class LogPhotoEntity(
     val relativePath: String,
     /** `null` only for a row migrated from before this column existed — see [com.forager.app.domain.model.LogPhoto.createdAtEpochMillis]. */
     val createdAtEpochMillis: Long?,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 /**

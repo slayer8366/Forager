@@ -366,6 +366,26 @@ class RoomMushroomLogRepositoryTest {
 
         assertTrue(result.isSuccess)
     }
+
+    /** Photo-geodata dispatch: the fire-and-forget follow-up write, against the real Room table rather than a fake. */
+    @Test
+    fun `updatePhotoLocation patches latitude and longitude onto an already-persisted photo`() = runTest {
+        val photo = com.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
+        repository.addPhotoToGallery(photo).getOrThrow()
+
+        repository.updatePhotoLocation(photo.id, latitude = 45.5, longitude = -122.6).getOrThrow()
+
+        val reloaded = repository.getAllPhotos().getOrThrow().single { it.photo.id == photo.id }.photo
+        assertEquals(45.5, reloaded.latitude!!, 0.0)
+        assertEquals(-122.6, reloaded.longitude!!, 0.0)
+    }
+
+    @Test
+    fun `updatePhotoLocation on an unknown photo id is a no-op, not a failure`() = runTest {
+        val result = repository.updatePhotoLocation("never-existed", latitude = 45.5, longitude = -122.6)
+
+        assertTrue(result.isSuccess)
+    }
 }
 
 private fun fullyPopulatedEntry(): MushroomLogEntry = MushroomLogEntry(

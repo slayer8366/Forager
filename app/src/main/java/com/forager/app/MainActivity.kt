@@ -98,6 +98,8 @@ class MainActivity : ComponentActivity() {
                     container.getGalleryPhotosUseCase,
                     container.pullPhotoIntoEntryUseCase,
                     container.deleteGalleryPhotoUseCase,
+                    container.locationProvider,
+                    container.updatePhotoLocationUseCase,
                     getPhotoEntryReferenceCount = { id -> container.getEntryReferenceCountUseCase.forPhoto(id).getOrDefault(0) },
                 )
             }

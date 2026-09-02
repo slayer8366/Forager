@@ -205,6 +205,7 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.nga.mgrs)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.exifinterface)
 
     debugImplementation(libs.androidx.ui.tooling)
 

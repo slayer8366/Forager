@@ -12,15 +12,19 @@ import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.GetDraftEntriesUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.forager.app.domain.LocationProvider
+import com.forager.app.domain.LocationResult
 import com.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.forager.app.domain.StartEditingLogEntryUseCase
+import com.forager.app.domain.UpdatePhotoLocationUseCase
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
+import com.forager.app.photo.CameraCapturePhotoSource
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -141,6 +145,23 @@ import kotlinx.coroutines.sync.withLock
  * write landing afterward — precisely the "nobody notices when it's applied properly; when it
  * isn't, confidence is lost" class of bug this workstream was scoped to close everywhere, not just
  * at the one pairing a pulse happened to find. Do not restore this exemption as a simplification.
+ *
+ * ## Camera-capture location: a fire-and-forget follow-up write (photo-geodata dispatch)
+ *
+ * [locationProvider] is only ever read from [patchCameraCaptureLocation], never awaited by
+ * [onAddPhoto]/[onAddGalleryPhoto] themselves. This was a genuine, reported tension in the
+ * dispatch's own two instructions — "read GPS at capture" and "never block/delay capture" — that
+ * directly reusing [LocationProvider.getCurrentLocation] cannot satisfy simultaneously, since that
+ * call already blocks every one of its existing callers up to its own 20-second internal timeout.
+ * The owner's decision (the photo-geodata amendment): persist the photo immediately, exactly as
+ * before this dispatch, then fire a *separate*, unawaited `viewModelScope.launch` that requests a
+ * fix and — only if one resolves — patches it onto the already-persisted row via
+ * [updatePhotoLocation]. The photo appears in the gallery/entry instantly either way; a coordinate,
+ * if one comes back, arrives a moment later as a quiet update, never as something the user waits on
+ * or that blocks the capture UI. Only a [com.forager.app.photo.CameraCapturePhotoSource]-originated
+ * photo ever triggers this — see [LogPhoto]'s own doc comment for why a gallery import's location
+ * comes from EXIF instead, read synchronously as part of [com.forager.app.photo.FilePhotoStore.persist]
+ * and never through this path.
  */
 class MushroomLogViewModel(
     private val getEntries: GetMushroomLogEntriesUseCase,
@@ -157,6 +178,9 @@ class MushroomLogViewModel(
     private val getGalleryPhotos: GetGalleryPhotosUseCase,
     private val pullPhotoIntoEntry: PullPhotoIntoEntryUseCase,
     private val deleteGalleryPhoto: DeleteGalleryPhotoUseCase,
+    /** Photo-geodata dispatch: the fire-and-forget GPS fix for a freshly captured camera photo — see this class's own doc comment, "Camera-capture location." */
+    private val locationProvider: LocationProvider,
+    private val updatePhotoLocation: UpdatePhotoLocationUseCase,
     /** How many Cartography entries currently keep a photo attached — Journal Stage 2b's 4b deletion warning, extended to photos. Plain suspend function rather than the whole Cartography repository — see `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why. */
     private val getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
 ) : ViewModel() {
@@ -518,6 +542,12 @@ class MushroomLogViewModel(
                         // the ViewModel is recreated. Detach has no equivalent need: it never removes a
                         // gallery row, only a reference nothing in this screen currently displays.
                         loadGalleryPhotos()
+                        // Photo-geodata dispatch: see this class's own "Camera-capture location" doc
+                        // comment. The newly persisted photo is always the last element of updated's
+                        // photos list — AddPhotoToLogEntryUseCase's own entry.copy(photos = entry.photos + photo).
+                        if (source is CameraCapturePhotoSource) {
+                            patchCameraCaptureLocation(updated.photos.last().id)
+                        }
                     },
                     onFailure = { error ->
                         Log.w(TAG, "Couldn't attach a photo to entry '${entry.id}'.", error)
@@ -540,13 +570,44 @@ class MushroomLogViewModel(
     fun onAddGalleryPhoto(source: PhotoSource) {
         viewModelScope.launch {
             addPhotoToGallery(source).fold(
-                onSuccess = {
+                onSuccess = { photo ->
                     _uiState.update { it.copy(saveErrorMessage = null) }
                     loadGalleryPhotos()
+                    // Photo-geodata dispatch: see this class's own "Camera-capture location" doc comment.
+                    if (source is CameraCapturePhotoSource) {
+                        patchCameraCaptureLocation(photo.id)
+                    }
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't add a photo to the gallery.", error)
                     _uiState.update { it.copy(saveErrorMessage = "Couldn't add that photo.") }
+                },
+            )
+        }
+    }
+
+    /**
+     * Fire-and-forget: requests a live GPS fix and, only if one resolves, patches it onto the
+     * already-persisted gallery photo [photoId] — see this class's own "Camera-capture location"
+     * doc comment for the full reasoning. Launched from [onAddPhoto]/[onAddGalleryPhoto] without
+     * being awaited, so this never delays the capture flow those functions already completed by the
+     * time this runs. [LocationResult.PermissionDenied]/[LocationResult.LocationUnavailable] are
+     * both silently accepted, same as [LogPhoto.latitude]/[LogPhoto.longitude] being `null` is the
+     * ordinary case, not an error — nothing here surfaces a user-facing failure for "no fix came
+     * back." Refreshes both galleries/entries on a successful patch, mirroring
+     * [onDeleteGalleryPhoto]'s own dual-refresh, so a photo already visible on screen picks up its
+     * new coordinate without the user needing to leave and return.
+     */
+    private fun patchCameraCaptureLocation(photoId: String) {
+        viewModelScope.launch {
+            val location = locationProvider.getCurrentLocation() as? LocationResult.Success ?: return@launch
+            updatePhotoLocation(photoId, location.lat, location.lng).fold(
+                onSuccess = {
+                    loadGalleryPhotos()
+                    loadEntries()
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't patch a location fix onto photo '$photoId'.", error)
                 },
             )
         }

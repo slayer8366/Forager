@@ -718,3 +718,51 @@ val MIGRATION_10_11: Migration = object : Migration(10, 11) {
         )
     }
 }
+
+/**
+ * Adds nullable `latitude`/`longitude` to `log_photos` — the photo-geodata dispatch, and its own
+ * amendment's decision 3: camera captures and gallery imports read a coordinate from two different,
+ * non-interchangeable sources (device GPS at the shutter vs. EXIF on import, never one substituting
+ * for the other), never written into the image file itself — see [LogPhotoEntity]'s own doc comment
+ * for the full reasoning. Every existing row gets `NULL` for both, explicitly, not left to an
+ * implicit default: no location is knowable for a photo this app persisted before this migration
+ * existed, the same "honest unknown, never fabricated" reasoning [MIGRATION_7_8] already applied to
+ * `createdAtEpochMillis`.
+ *
+ * **A full rebuild (`log_photos_new`, explicit column list, drop, rename), not
+ * `ALTER TABLE ... ADD COLUMN`** — the same choice [MIGRATION_8_9] made for
+ * [com.forager.app.data.local.MushroomLogEntryEntity], and for the same reason: `LogPhotoEntity` is
+ * declared directly (not copied) by several `LegacyForagerDatabaseVn` migration-test fixtures at
+ * versions well before this one, so those fixtures' generated `CREATE TABLE` already carries
+ * `latitude`/`longitude` the moment [LogPhotoEntity] itself gains them — an `ALTER TABLE ... ADD COLUMN`
+ * here would fail outright against a column those fixtures already have. The rebuild's own explicit
+ * `INSERT ... SELECT` column list never names either new column on the source side, so it's silently
+ * ignored there regardless of what a given fixture's own copy of the table already has — the same
+ * "explicit list, ignores extras" property [MIGRATION_8_9]'s own doc comment describes. Verified by
+ * running every `LegacyForagerDatabaseVn` migration test with this migration appended to its chain,
+ * not assumed from the reasoning above (`docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`
+ * names this exact failure mode).
+ */
+val MIGRATION_11_12: Migration = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `log_photos_new` (
+            `id` TEXT NOT NULL,
+            `relativePath` TEXT NOT NULL,
+            `createdAtEpochMillis` INTEGER,
+            `latitude` REAL,
+            `longitude` REAL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `log_photos_new` (`id`, `relativePath`, `createdAtEpochMillis`, `latitude`, `longitude`)
+            SELECT `id`, `relativePath`, `createdAtEpochMillis`, NULL, NULL FROM `log_photos`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `log_photos`")
+        db.execSQL("ALTER TABLE `log_photos_new` RENAME TO `log_photos`")
+    }
+}

@@ -476,8 +476,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
   read live via `OfflineRegion.getStatus`) doesn't carry.
 - `photo/` — parallel to `location/`/`map/`: the one place that touches
   `ActivityResultContracts`/`Uri`/`FileProvider` directly, behind the
-  `PhotoStore` interface. `ContentUriPhotoSource` is the real,
-  `Uri`-carrying `PhotoSource`; `FilePhotoStore` copies bytes from it into
+  `PhotoStore` interface. `CameraCapturePhotoSource`/`GalleryImportPhotoSource`
+  are the real, `Uri`-carrying `PhotoSource` implementations — split in two
+  (photo-geodata dispatch) so `FilePhotoStore` can tell a live camera capture
+  from an existing file on the device: a capture's location comes from a live
+  GPS fix (a fire-and-forget follow-up write from `MushroomLogViewModel`,
+  never blocking capture), an import's from its own EXIF tags, read via a
+  separate `MediaStore.setRequireOriginal` stream distinct from the one used
+  for the byte copy. `FilePhotoStore` copies bytes into
   `context.filesDir/photos/`; `CameraCaptureFiles` issues the
   `FileProvider` URI a camera capture writes into (`filesDir/captures/`, a
   scratch handoff area distinct from the persisted photos).

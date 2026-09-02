@@ -135,4 +135,7 @@ private class FakeMushroomLogRepository(
 
     override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> =
         Result.failure(UnsupportedOperationException("deletePhotoFromGallery is not exercised by either use case under test here"))
+
+    override suspend fun updatePhotoLocation(photoId: String, latitude: Double, longitude: Double): Result<Unit> =
+        Result.failure(UnsupportedOperationException("updatePhotoLocation is not exercised by either use case under test here"))
 }

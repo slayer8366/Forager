@@ -88,6 +88,7 @@ import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.TrackRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
+import com.forager.app.domain.UpdatePhotoLocationUseCase
 import com.forager.app.domain.WaypointRepository
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.location.AndroidLocationProvider
@@ -182,6 +183,7 @@ class AppContainer(context: Context) {
     val getGalleryPhotosUseCase = GetGalleryPhotosUseCase(mushroomLogRepository)
     val pullPhotoIntoEntryUseCase = PullPhotoIntoEntryUseCase(mushroomLogRepository)
     val deleteGalleryPhotoUseCase = DeleteGalleryPhotoUseCase(mushroomLogRepository, photoStore)
+    val updatePhotoLocationUseCase = UpdatePhotoLocationUseCase(mushroomLogRepository)
 
     // Journal Stage 2b: the Cartography entry — a new entity, distinct from MushroomLogEntry, see
     // CartographyEntry's own doc comment.
