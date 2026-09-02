@@ -38,8 +38,25 @@ import java.time.LocalDate
  * resolved.
  *
  * [uiState].editingEntry doubles as this screen's own navigation state, the same convention
- * [MushroomLogUiState.editingEntry] uses: non-null means "showing [CartographyEntryEditScreen]",
- * null means "showing the submenu tabs."
+ * [MushroomLogUiState.editingEntry] uses: non-null means "showing an entry" (which of
+ * [CartographyEntryReportScreen]/[CartographyEntryEditScreen] depends on [mode], below), null means
+ * "showing the submenu tabs."
+ *
+ * ## Tap opens the view, not the editor (Journal Stage 2c)
+ *
+ * [mode] is a local `remember`-scoped [CartographyEntryMode], the same convention
+ * [JournalTab]'s own `JournalEntryMode` already establishes for the identical problem on
+ * [com.forager.app.domain.model.MushroomLogEntry]'s report/edit split — not part of
+ * [CartographyUiState], since which of the two screens the *user* sees for [uiState].editingEntry
+ * depends on how they got there, not on anything inferable from the entry's own content (mirroring
+ * [JournalEntryMode]'s own doc comment on that exact point). Every call site that can set
+ * [CartographyUiState.editingEntry] non-null sets [mode] explicitly in the same action: the Entries
+ * tab's own [onOpenEntry] sets [CartographyEntryMode.VIEW] (there is something to recount, and no
+ * reason to assume an edit is wanted); the Drafts tab's, and starting a brand-new entry, set
+ * [CartographyEntryMode.EDIT] (a draft is unfinished work — sending the user to a read-only view of
+ * it would be wrong); [CartographyEntryReportScreen]'s own "Edit entry" menu item sets
+ * [CartographyEntryMode.EDIT] too. No branch here reads [com.forager.app.domain.model.CartographyEntry.isDraft]
+ * at all — [mode] alone decides, the same shape [JournalTab]'s own `when` uses.
  */
 @Composable
 internal fun CartographyScreen(
@@ -68,27 +85,41 @@ internal fun CartographyScreen(
     /** Grid column count for the Entries/Drafts lists — 2 for compact, more for expanded/tablet. */
     columns: Int = 2,
 ) {
+    var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
+
     val editingEntry = uiState.editingEntry
     if (editingEntry != null) {
-        CartographyEntryEditScreen(
-            entry = editingEntry,
-            candidates = uiState.candidatesForEditingEntry,
-            candidateOfflineRegions = uiState.candidateOfflineRegionsForEditingEntry,
-            isLoadingCandidates = uiState.isLoadingCandidates,
-            galleryPhotos = galleryPhotos,
-            distanceUnit = distanceUnit,
-            onTextChanged = onTextChanged,
-            onTagsChanged = onTagsChanged,
-            onSetFindDecision = onSetFindDecision,
-            onSetTrackDecision = onSetTrackDecision,
-            onSetWaypointDecision = onSetWaypointDecision,
-            onSetOfflineRegionDecision = onSetOfflineRegionDecision,
-            onToggleKeptPhoto = onToggleKeptPhoto,
-            onFinish = onFinishEntry,
-            onDeleteEntry = { onDeleteEntry(editingEntry.id) },
-            onBack = onCloseEntry,
-            modifier = modifier.fillMaxSize(),
-        )
+        if (mode == CartographyEntryMode.EDIT) {
+            CartographyEntryEditScreen(
+                entry = editingEntry,
+                candidates = uiState.candidatesForEditingEntry,
+                candidateOfflineRegions = uiState.candidateOfflineRegionsForEditingEntry,
+                isLoadingCandidates = uiState.isLoadingCandidates,
+                galleryPhotos = galleryPhotos,
+                distanceUnit = distanceUnit,
+                onTextChanged = onTextChanged,
+                onTagsChanged = onTagsChanged,
+                onSetFindDecision = onSetFindDecision,
+                onSetTrackDecision = onSetTrackDecision,
+                onSetWaypointDecision = onSetWaypointDecision,
+                onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+                onToggleKeptPhoto = onToggleKeptPhoto,
+                onFinish = onFinishEntry,
+                onDeleteEntry = { onDeleteEntry(editingEntry.id) },
+                onBack = onCloseEntry,
+                modifier = modifier.fillMaxSize(),
+            )
+        } else {
+            CartographyEntryReportScreen(
+                entry = editingEntry,
+                galleryPhotos = galleryPhotos,
+                distanceUnit = distanceUnit,
+                onEdit = { mode = CartographyEntryMode.EDIT },
+                onDeleteEntry = { onDeleteEntry(editingEntry.id) },
+                onBack = onCloseEntry,
+                modifier = modifier.fillMaxSize(),
+            )
+        }
         return
     }
 
@@ -125,8 +156,8 @@ internal fun CartographyScreen(
             CartographyTab.ENTRIES -> CartographyEntryListScreen(
                 entries = uiState.entries,
                 isLoading = uiState.isLoadingEntries,
-                onOpenEntry = onOpenEntry,
-                onAddEntry = { onStartEntry(LocalDate.now()) },
+                onOpenEntry = { id -> mode = CartographyEntryMode.VIEW; onOpenEntry(id) },
+                onAddEntry = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) },
                 loadErrorMessage = uiState.loadErrorMessage,
                 columns = columns,
                 modifier = Modifier.weight(1f),
@@ -135,7 +166,7 @@ internal fun CartographyScreen(
             CartographyTab.DRAFTS -> CartographyEntryListScreen(
                 entries = uiState.draftEntries,
                 isLoading = uiState.isLoadingEntries,
-                onOpenEntry = onOpenEntry,
+                onOpenEntry = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
                 columns = columns,
                 modifier = Modifier.weight(1f),
             )
@@ -156,3 +187,6 @@ internal fun CartographyScreen(
 
 /** Which of Cartography's three submenus is selected — ordinal order matches display order. */
 private enum class CartographyTab { ENTRIES, DRAFTS, ALBUM }
+
+/** Which screen [CartographyScreen] shows for [CartographyUiState.editingEntry] — Journal Stage 2c. See this file's own doc comment, "Tap opens the view, not the editor," for the full reasoning. */
+internal enum class CartographyEntryMode { VIEW, EDIT }

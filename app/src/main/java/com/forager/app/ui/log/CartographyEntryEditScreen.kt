@@ -49,6 +49,7 @@ import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DerivedTrip
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
+import com.forager.app.domain.model.PhotoAttachment
 import com.forager.app.domain.model.formatDistanceKm
 import com.forager.app.ui.theme.Spacing
 import java.time.Instant
@@ -213,25 +214,12 @@ private fun KeptPhotosSection(
         Text("Photos", style = MaterialTheme.typography.titleSmall)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             entry.photos.forEach { attachment ->
-                val photo = photosById[attachment.photoId]
                 Box {
-                    if (photo != null) {
-                        DecodedPhoto(relativePath = photo.photo.relativePath, modifier = Modifier.size(KEPT_PHOTO_SIZE_DP.dp))
-                    } else {
-                        // The GalleryPhoto row is gone — see CartographyEntryPhotoRefEntity's own doc
-                        // comment for why this stays visible with its attach date rather than
-                        // silently vanishing.
-                        Box(
-                            modifier = Modifier.size(KEPT_PHOTO_SIZE_DP.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "Photo unavailable\n(attached ${attachDateLabel(attachment.attachedAtEpochMillis)})",
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                    }
+                    KeptPhotoOrUnavailable(
+                        attachment = attachment,
+                        photo = photosById[attachment.photoId],
+                        modifier = Modifier.size(KEPT_PHOTO_SIZE_DP.dp),
+                    )
                     IconButton(
                         onClick = { onToggleKeptPhoto(attachment.photoId) },
                         modifier = Modifier.align(Alignment.TopEnd).size(24.dp),
@@ -243,6 +231,30 @@ private fun KeptPhotosSection(
             IconButton(onClick = onAddFromAlbum) {
                 Icon(Icons.Filled.Add, contentDescription = "Add a photo from the Album")
             }
+        }
+    }
+}
+
+/**
+ * One kept photo attachment, resolved against the live gallery — [photo] is the [GalleryPhoto] row
+ * backing [attachment] if it still exists, `null` if the gallery row is gone (see
+ * [com.forager.app.data.local.CartographyEntryPhotoRefEntity]'s own doc comment for why this stays
+ * visible with its attach date rather than silently vanishing). Stage 2c: shared between
+ * [KeptPhotosSection] (which adds its own remove-button overlay) and [CartographyEntryReportScreen]'s
+ * read-only photo grid (no overlay) — extracted so the "Photo unavailable" fallback exists in exactly
+ * one place, not rebuilt a second time for the view screen.
+ */
+@Composable
+internal fun KeptPhotoOrUnavailable(attachment: PhotoAttachment, photo: GalleryPhoto?, modifier: Modifier = Modifier) {
+    if (photo != null) {
+        DecodedPhoto(relativePath = photo.photo.relativePath, modifier = modifier)
+    } else {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            Text(
+                "Photo unavailable\n(attached ${attachDateLabel(attachment.attachedAtEpochMillis)})",
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -415,7 +427,8 @@ private fun DecisionRow(row: DecisionRowState, onSetKept: (Boolean) -> Unit) {
     }
 }
 
-private fun trackSubtitle(distanceMeters: Double, durationMillis: Long, distanceUnit: DistanceUnit): String {
+/** Stage 2c: `internal`, not `private` — [CartographyEntryReportScreen] reuses this exact formatting for its own kept-track lines. */
+internal fun trackSubtitle(distanceMeters: Double, durationMillis: Long, distanceUnit: DistanceUnit): String {
     val km = (distanceMeters / 1000.0).roundToInt()
     val distanceLabel = formatDistanceKm(km, distanceUnit)
     val totalMinutes = durationMillis / 60_000
@@ -428,4 +441,5 @@ private fun trackSubtitle(distanceMeters: Double, durationMillis: Long, distance
 private fun attachDateLabel(epochMillis: Long): String =
     Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
-private const val KEPT_PHOTO_SIZE_DP = 88
+/** Stage 2c: `internal`, not `private` — [CartographyEntryReportScreen] reuses the same size for its own read-only photo grid. */
+internal const val KEPT_PHOTO_SIZE_DP = 88
