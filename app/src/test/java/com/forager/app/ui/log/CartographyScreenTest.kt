@@ -10,8 +10,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.model.CartographyEntry
@@ -91,8 +93,28 @@ class CartographyScreenTest {
                     val started = CartographyEntry.draft(id = "new-entry", date = date, updatedAtEpochMillis = 0L)
                     uiState = uiState.copy(editingEntry = started, draftEntries = uiState.draftEntries + started)
                 },
-                onCloseEntry = { uiState = uiState.copy(editingEntry = null) },
-                onTextChanged = { text -> uiState.editingEntry?.let { current -> uiState = uiState.copy(editingEntry = current.copy(text = text)) } },
+                onCloseEntry = {
+                    uiState.editingEntry?.let { current ->
+                        uiState = uiState.copy(
+                            entries = if (!current.isDraft && uiState.entries.any { it.id == current.id }) {
+                                uiState.entries.map { if (it.id == current.id) current else it }
+                            } else {
+                                uiState.entries
+                            },
+                        )
+                    }
+                    uiState = uiState.copy(editingEntry = null, hasUnsavedChanges = false)
+                },
+                // Mirrors CartographyViewModel.persist's own draft/committed split: a draft still
+                // autosaves (no dirty flag), a committed entry only marks hasUnsavedChanges —
+                // this fixture stands in for the ViewModel, so it needs the same split to exercise
+                // the Save/Discard/Cancel prompt this file's own new tests drive.
+                onTextChanged = { text ->
+                    uiState.editingEntry?.let { current ->
+                        val edited = current.copy(text = text)
+                        uiState = uiState.copy(editingEntry = edited, hasUnsavedChanges = uiState.hasUnsavedChanges || !edited.isDraft)
+                    }
+                },
                 onTagsChanged = { tags -> uiState.editingEntry?.let { current -> uiState = uiState.copy(editingEntry = current.copy(tags = tags)) } },
                 onSetFindDecision = { _, _ -> },
                 onSetTrackDecision = { _, _ -> },
@@ -109,6 +131,23 @@ class CartographyScreenTest {
                         )
                     }
                 },
+                onSaveEntry = {
+                    uiState.editingEntry?.let { current ->
+                        uiState = uiState.copy(
+                            entries = if (uiState.entries.any { it.id == current.id }) {
+                                uiState.entries.map { if (it.id == current.id) current else it }
+                            } else {
+                                uiState.entries + current
+                            },
+                            hasUnsavedChanges = false,
+                        )
+                    }
+                },
+                // Real reload-from-database behaviour on Discard is CartographyViewModelTest's own
+                // job (see its "discarding... reloads it from the database" test); this fixture only
+                // needs to close the editor, since what this file's own tests verify is the dialog's
+                // navigation, not storage content.
+                onDiscardEntryChanges = { uiState = uiState.copy(editingEntry = null, hasUnsavedChanges = false) },
                 onDeleteEntry = { id ->
                     uiState = uiState.copy(
                         entries = uiState.entries.filterNot { it.id == id },
@@ -171,5 +210,96 @@ class CartographyScreenTest {
 
         composeRule.onNodeWithText("Entries").assertIsDisplayed()
         composeRule.onNodeWithText("2026-08-01").assertIsDisplayed()
+    }
+
+    // --- Device-check patch, Item 1: Save/Discard/Cancel for a committed entry ---------------------
+
+    private fun openCommittedEntryEditor() {
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+    }
+
+    @Test
+    fun `a committed entry shows its own Save action, not Finish entry`() {
+        setScreen(CartographyUiState(entries = listOf(committedEntry)))
+        openCommittedEntryEditor()
+
+        composeRule.onNodeWithText("Save").assertIsDisplayed()
+        composeRule.onNodeWithText("Finish entry").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping the screen's own Save persists a committed entry's edit without leaving`() {
+        setScreen(CartographyUiState(entries = listOf(committedEntry)))
+        openCommittedEntryEditor()
+
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Chanterelles under the big fir.")
+        composeRule.onNodeWithText("Save").performClick()
+
+        // Still on the editor (Save never leaves) — and no leave-prompt was needed to get here.
+        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+    }
+
+    @Test
+    fun `leaving a committed entry with unsaved changes asks Save, Discard, or Cancel`() {
+        setScreen(CartographyUiState(entries = listOf(committedEntry)))
+        openCommittedEntryEditor()
+
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Unsaved.")
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Cancel in the leave prompt dismisses it and keeps editing`() {
+        setScreen(CartographyUiState(entries = listOf(committedEntry)))
+        openCommittedEntryEditor()
+
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Unsaved.")
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithTag(LEAVE_PROMPT_CANCEL_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Discard in the leave prompt leaves without persisting the edit`() {
+        setScreen(CartographyUiState(entries = listOf(committedEntry)))
+        openCommittedEntryEditor()
+
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Unsaved.")
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithTag(LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Save in the leave prompt persists the edit and leaves`() {
+        setScreen(CartographyUiState(entries = listOf(committedEntry)))
+        openCommittedEntryEditor()
+
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Unsaved.")
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithTag(LEAVE_PROMPT_SAVE_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+    }
+
+    /** Drafts still autosave silently and back still never prompts — unchanged, deliberately, from before this dispatch. */
+    @Test
+    fun `backing out of a draft with text typed still does not prompt`() {
+        setScreen(CartographyUiState())
+        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft text.")
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
     }
 }

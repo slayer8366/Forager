@@ -118,6 +118,8 @@ internal fun LogPanel(
     onSaveEntry: () -> Unit,
     onCancelEditing: () -> Unit,
     onLeaveEditingIncidentally: () -> Unit,
+    /** Reports whether a camera/gallery round-trip is in flight for the open find — device-check patch, Items 2/3. See [LogEntryDetailScreen]'s own doc comment on [onPhotoAcquisitionInFlightChanged]. */
+    onPhotoAcquisitionInFlightChanged: (Boolean) -> Unit = {},
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: (LogPhoto) -> Unit,
@@ -146,6 +148,10 @@ internal fun LogPanel(
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
     onFinishCartographyEntry: () -> Unit,
+    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment. */
+    onSaveCartographyEntry: () -> Unit = {},
+    /** The leave-prompt's Discard option — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment. */
+    onDiscardCartographyEntryChanges: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
@@ -275,6 +281,7 @@ internal fun LogPanel(
                 onCancel = onCancelEditing,
                 onDeleteEntry = { onDeleteEntry(editing.id) },
                 onBack = onLeaveEditingIncidentally,
+                onPhotoAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
                 modifier = Modifier.weight(1f),
             )
         } else {
@@ -350,6 +357,8 @@ internal fun LogPanel(
                 onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                 onToggleKeptPhoto = onToggleKeptPhoto,
                 onFinishEntry = onFinishCartographyEntry,
+                onSaveEntry = onSaveCartographyEntry,
+                onDiscardEntryChanges = onDiscardCartographyEntryChanges,
                 onDeleteEntry = onDeleteCartographyEntry,
                 // Expanded gets more grid columns, per owner decision #3 ("more of the same thing
                 // at once") — see CartographyScreen's own doc comment.

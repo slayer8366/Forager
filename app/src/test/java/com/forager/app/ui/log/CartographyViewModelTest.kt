@@ -15,6 +15,7 @@ import com.forager.app.domain.CreateCartographyEntryUseCase
 import com.forager.app.domain.DeleteCartographyEntryUseCase
 import com.forager.app.domain.GetCartographyDraftEntriesUseCase
 import com.forager.app.domain.GetCartographyEntriesUseCase
+import com.forager.app.domain.GetCartographyEntryUseCase
 import com.forager.app.domain.GetDerivedTripUseCase
 import com.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.forager.app.domain.OfflineMapRepository
@@ -104,6 +105,7 @@ class CartographyViewModelTest {
             getDraftEntries = GetCartographyDraftEntriesUseCase(cartographyEntryRepository),
             createEntry = CreateCartographyEntryUseCase(cartographyEntryRepository, now = { FIXED_NOW }, idGenerator = { "entry-${nextEntryId++}" }),
             saveEntry = SaveCartographyEntryUseCase(cartographyEntryRepository),
+            getEntry = GetCartographyEntryUseCase(cartographyEntryRepository),
             commitEntry = CommitCartographyEntryUseCase(cartographyEntryRepository, now = { FIXED_NOW }),
             deleteEntry = DeleteCartographyEntryUseCase(cartographyEntryRepository),
             getDerivedTrip = GetDerivedTripUseCase(
@@ -195,11 +197,13 @@ class CartographyViewModelTest {
         trackRepository.create(track2).getOrThrow()
         trackRepository.end(track2.id, dayStartMillis() + 180_000L).getOrThrow()
 
-        // onOpenEntry looks the entry up in uiState's own entries/draftEntries lists, so refresh
-        // those from the database first — the same thing a real navigate-away-and-back would do.
-        viewModel.loadEntries()
-        advanceUntilIdle()
-
+        // Deliberately no viewModel.loadEntries() call here (device-check patch, Item 1): a real
+        // re-edit within the same session never calls it either, and it used to be here specifically
+        // because onOpenEntry looks the entry up in uiState's own in-memory draftEntries — a manual
+        // refresh from the database was the one thing masking that onCloseEntry (above) needs to have
+        // actually merged the closed draft into draftEntries itself for this reopen to see it
+        // correctly, which it does. Leaving this call out is what makes this test actually exercise
+        // that path instead of routing around it.
         viewModel.onOpenEntry(entryId)
         advanceUntilIdle()
 
@@ -393,6 +397,120 @@ class CartographyViewModelTest {
 
         assertTrue(viewModel.uiState.value.entries.none { it.id == draftId })
         assertTrue(viewModel.uiState.value.draftEntries.none { it.id == draftId })
+    }
+
+    // --- Device-check patch, Item 1: Save/Discard/Cancel for a committed entry ---------------------
+    // A committed entry's edits used to autosave immediately, the same as a draft's — durably saved
+    // to disk, but never merged back into uiState.entries, so the Entries list (and any reopen within
+    // the same session) kept showing the pre-edit row: real data loss, disguised as list staleness.
+    // The owner's new policy makes a committed entry's changes explicit (dirty flag, Save/Discard/
+    // Cancel) rather than autosaved — these three tests cover that policy at the ViewModel level; the
+    // Save/Discard/Cancel dialog itself is covered by CartographyScreenTest.
+
+    @Test
+    fun `editing a committed entry does not autosave, only onSaveEntry persists it and immediately refreshes the Entries list`() = runTest(dispatcher) {
+        val repository = RoomCartographyEntryRepository(database.cartographyEntryDao())
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val entryId = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onFinishEntry()
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.editingEntry!!.isDraft)
+
+        viewModel.onTextChanged("Edited after commit.")
+        advanceUntilIdle()
+
+        assertTrue(
+            "a committed entry's edits must mark hasUnsavedChanges, not autosave immediately",
+            viewModel.uiState.value.hasUnsavedChanges,
+        )
+        assertEquals(
+            "the database must still hold the pre-edit text until Save is tapped",
+            "",
+            repository.getById(entryId).getOrThrow()?.text,
+        )
+        assertEquals(
+            "the in-memory Entries list must not yet reflect the unsaved edit either",
+            "",
+            viewModel.uiState.value.entries.first { it.id == entryId }.text,
+        )
+
+        viewModel.onSaveEntry()
+        advanceUntilIdle()
+
+        assertFalse("Save must clear the dirty flag", viewModel.uiState.value.hasUnsavedChanges)
+        assertEquals(
+            "Save must persist the edit to the database",
+            "Edited after commit.",
+            repository.getById(entryId).getOrThrow()?.text,
+        )
+        assertEquals(
+            "Save must also refresh the Entries list immediately, not wait for a later loadEntries()",
+            "Edited after commit.",
+            viewModel.uiState.value.entries.first { it.id == entryId }.text,
+        )
+        assertEquals(
+            "Save must not close the editor — the user is still on the entry",
+            entryId,
+            viewModel.uiState.value.editingEntry?.id,
+        )
+    }
+
+    @Test
+    fun `discarding a committed entry's changes reloads it from the database, not an in-memory revert`() = runTest(dispatcher) {
+        val repository = RoomCartographyEntryRepository(database.cartographyEntryDao())
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val entryId = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onFinishEntry()
+        advanceUntilIdle()
+
+        viewModel.onTextChanged("This should never be saved.")
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.hasUnsavedChanges)
+
+        viewModel.onDiscardEntryChanges()
+        advanceUntilIdle()
+
+        assertEquals("Discard must close the editor", null, viewModel.uiState.value.editingEntry)
+        assertFalse(viewModel.uiState.value.hasUnsavedChanges)
+        assertEquals(
+            "the discarded edit must never reach the database",
+            "",
+            repository.getById(entryId).getOrThrow()?.text,
+        )
+        assertEquals(
+            "the Entries list must reflect the reloaded (pre-edit) row, not the discarded in-memory one",
+            "",
+            viewModel.uiState.value.entries.first { it.id == entryId }.text,
+        )
+    }
+
+    @Test
+    fun `editing a draft still autosaves immediately and never sets hasUnsavedChanges`() = runTest(dispatcher) {
+        val repository = RoomCartographyEntryRepository(database.cartographyEntryDao())
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val draftId = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onTextChanged("Draft text.")
+        advanceUntilIdle()
+
+        assertFalse(
+            "a draft's own edits are never gated behind Save — unchanged from before this dispatch",
+            viewModel.uiState.value.hasUnsavedChanges,
+        )
+        assertEquals("Draft text.", repository.getById(draftId).getOrThrow()?.text)
+
+        viewModel.onCloseEntry()
+
+        assertEquals(
+            "backing out of a draft still does not prompt — it persists and appears in Drafts, unchanged",
+            listOf(draftId),
+            viewModel.uiState.value.draftEntries.map { it.id },
+        )
     }
 
     private fun dayStartMillis(): Long = DAY.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()

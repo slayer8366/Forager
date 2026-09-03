@@ -50,6 +50,7 @@ import com.forager.app.domain.GetCartographyDraftEntriesUseCase
 import com.forager.app.domain.GetCartographyEntriesUseCase
 import com.forager.app.domain.GetCartographyEntryMapDataUseCase
 import com.forager.app.domain.GetCartographyEntryOfflineRegionUseCase
+import com.forager.app.domain.GetCartographyEntryUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetDerivedTripUseCase
 import com.forager.app.domain.GetDraftEntriesUseCase
@@ -194,6 +195,7 @@ class AppContainer(context: Context) {
     val getCartographyDraftEntriesUseCase = GetCartographyDraftEntriesUseCase(cartographyEntryRepository)
     val createCartographyEntryUseCase = CreateCartographyEntryUseCase(cartographyEntryRepository)
     val saveCartographyEntryUseCase = SaveCartographyEntryUseCase(cartographyEntryRepository)
+    val getCartographyEntryUseCase = GetCartographyEntryUseCase(cartographyEntryRepository)
     val commitCartographyEntryUseCase = CommitCartographyEntryUseCase(cartographyEntryRepository)
     val deleteCartographyEntryUseCase = DeleteCartographyEntryUseCase(cartographyEntryRepository)
     val getEntryReferenceCountUseCase = GetEntryReferenceCountUseCase(cartographyEntryRepository)

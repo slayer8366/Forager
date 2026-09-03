@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -70,6 +71,23 @@ import kotlin.math.roundToInt
  * optional component. The writing field's own placeholder says "optional" rather than prompting
  * completion, and [onFinish] (shown only while [CartographyEntry.isDraft]) never gates on [entry.text]
  * or any decided-item count.
+ *
+ * ## Save/Discard/Cancel for a committed entry (device-check patch, Item 1)
+ *
+ * A **draft** still autosaves silently on every change — [onFinish] ("Finish entry") is its only
+ * button, and [onBack] still just closes the form with no prompt, unchanged from before this
+ * dispatch. A **committed** entry ([CartographyEntry.isDraft] `false`) is different: changes are
+ * explicit now, tracked by [hasUnsavedChanges]. This screen shows a Save button for one (mirroring
+ * where "Finish entry" sits for a draft — the two are mutually exclusive since a single entry is
+ * never both), calling [onSave], which persists in place without leaving. Tapping back
+ * ([onBack]'s icon) while [hasUnsavedChanges] instead asks — Save / Discard / Cancel — rather than
+ * silently discarding the way a draft's own close does; Cancel dismisses the prompt and stays right
+ * here, Save calls [onSave] then leaves, Discard calls [onDiscardChanges] (which reloads the entry
+ * from the database and leaves in one step — see that callback's own doc comment for why it's not
+ * an in-memory revert). Backgrounding a committed entry with unsaved changes is deliberately **not**
+ * handled here: there is no window to show this prompt in at that moment, so `AvailabilityScreen`
+ * saves silently on its own lifecycle hook instead — see that file's own doc comment on why that's
+ * not a reason to discard on, say, a phone call.
  */
 @Composable
 internal fun CartographyEntryEditScreen(
@@ -79,6 +97,8 @@ internal fun CartographyEntryEditScreen(
     isLoadingCandidates: Boolean,
     galleryPhotos: List<GalleryPhoto>,
     distanceUnit: DistanceUnit,
+    /** Only meaningful while `!entry.isDraft` — see this composable's own doc comment on the Save/Discard/Cancel policy. */
+    hasUnsavedChanges: Boolean,
     onTextChanged: (String) -> Unit,
     onTagsChanged: (List<String>) -> Unit,
     onSetFindDecision: (String, Boolean) -> Unit,
@@ -87,6 +107,10 @@ internal fun CartographyEntryEditScreen(
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
     onFinish: () -> Unit,
+    /** Explicit Save for a committed entry — saves in place, never leaves. A no-op call for a draft (never shown one). */
+    onSave: () -> Unit,
+    /** The leave-prompt's Discard option — reloads the entry from the database and leaves. See this composable's own doc comment. */
+    onDiscardChanges: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -103,7 +127,15 @@ internal fun CartographyEntryEditScreen(
 
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
+    var confirmingLeave by remember(entry.id) { mutableStateOf(false) }
     var tagsText by remember(entry.id) { mutableStateOf(entry.tags.joinToString(", ")) }
+
+    // Only a committed entry with unsaved changes needs to ask — a draft's own back still closes
+    // straight through, and a clean committed entry has nothing to lose either. See this
+    // composable's own doc comment on the Save/Discard/Cancel policy.
+    fun requestBack() {
+        if (!entry.isDraft && hasUnsavedChanges) confirmingLeave = true else onBack()
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -112,7 +144,7 @@ internal fun CartographyEntryEditScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                IconButton(onClick = onBack) {
+                IconButton(onClick = ::requestBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Cartography")
                 }
                 Text(entry.date.toString(), style = MaterialTheme.typography.titleMedium)
@@ -183,6 +215,8 @@ internal fun CartographyEntryEditScreen(
 
             if (entry.isDraft) {
                 Button(onClick = onFinish, modifier = Modifier.fillMaxWidth()) { Text("Finish entry") }
+            } else {
+                Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) { Text("Save") }
             }
 
             Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
@@ -200,7 +234,38 @@ internal fun CartographyEntryEditScreen(
             dismissButton = { TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") } },
         )
     }
+
+    if (confirmingLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmingLeave = false },
+            title = { Text("Save your changes?") },
+            text = { Text("This entry has unsaved changes. Save them, discard them, or keep editing.") },
+            confirmButton = {
+                TextButton(
+                    onClick = { confirmingLeave = false; onSave(); onBack() },
+                    modifier = Modifier.testTag(LEAVE_PROMPT_SAVE_TEST_TAG),
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = { confirmingLeave = false; onDiscardChanges() },
+                        modifier = Modifier.testTag(LEAVE_PROMPT_DISCARD_TEST_TAG),
+                    ) { Text("Discard") }
+                    TextButton(
+                        onClick = { confirmingLeave = false },
+                        modifier = Modifier.testTag(LEAVE_PROMPT_CANCEL_TEST_TAG),
+                    ) { Text("Cancel") }
+                }
+            },
+        )
+    }
 }
+
+/** [confirmingLeave]'s own three buttons — tagged since the screen's own persistent "Save" button (shown for any committed entry) otherwise collides with this dialog's identically-labelled one for `onNodeWithText` in tests. */
+internal const val LEAVE_PROMPT_SAVE_TEST_TAG = "cartography_leave_prompt_save"
+internal const val LEAVE_PROMPT_DISCARD_TEST_TAG = "cartography_leave_prompt_discard"
+internal const val LEAVE_PROMPT_CANCEL_TEST_TAG = "cartography_leave_prompt_cancel"
 
 @Composable
 private fun KeptPhotosSection(

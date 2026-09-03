@@ -91,6 +91,10 @@ internal fun CartographyScreen(
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
     onFinishEntry: () -> Unit,
+    /** Explicit Save for a committed entry — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment on the Save/Discard/Cancel policy. */
+    onSaveEntry: () -> Unit,
+    /** The leave-prompt's Discard option. See [CartographyEntryEditScreen]'s own doc comment. */
+    onDiscardEntryChanges: () -> Unit,
     onDeleteEntry: (String) -> Unit,
     modifier: Modifier = Modifier,
     /** Grid column count for the Entries/Drafts lists — 2 for compact, more for expanded/tablet. */
@@ -108,6 +112,7 @@ internal fun CartographyScreen(
                 isLoadingCandidates = uiState.isLoadingCandidates,
                 galleryPhotos = galleryPhotos,
                 distanceUnit = distanceUnit,
+                hasUnsavedChanges = uiState.hasUnsavedChanges,
                 onTextChanged = onTextChanged,
                 onTagsChanged = onTagsChanged,
                 onSetFindDecision = onSetFindDecision,
@@ -116,6 +121,8 @@ internal fun CartographyScreen(
                 onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                 onToggleKeptPhoto = onToggleKeptPhoto,
                 onFinish = onFinishEntry,
+                onSave = onSaveEntry,
+                onDiscardChanges = onDiscardEntryChanges,
                 onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                 onBack = onCloseEntry,
                 modifier = modifier.fillMaxSize(),

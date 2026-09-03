@@ -489,6 +489,10 @@ fun AvailabilityScreen(
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit = { _, _ -> },
     onToggleKeptPhoto: (String) -> Unit = {},
     onFinishCartographyEntry: () -> Unit = {},
+    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. Also what this screen's own ON_STOP hook (below) calls to save silently on backgrounding. */
+    onSaveCartographyEntry: () -> Unit = {},
+    /** The leave-prompt's Discard option — device-check patch, Item 1. */
+    onDiscardCartographyEntryChanges: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit = {},
     /**
      * [com.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
@@ -594,6 +598,13 @@ fun AvailabilityScreen(
     // onSeasonalTabSelected's LaunchedEffect keeps firing correctly and a later resize to a wider
     // window lands on the same List/Maps/Seasonal tab compact was just showing.
     var compactTab by remember { mutableStateOf(CompactTab.MAP) }
+
+    // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
+    // flight, reported up from whichever of JournalTab/LogPanel is composed via
+    // onPhotoAcquisitionInFlightChanged (see LogEntryDetailScreen's own doc comment on that
+    // parameter). Read by this screen's own ON_STOP hook below, to suppress the "user backgrounded
+    // the app" incidental-exit heuristic while the backgrounding is this app's own doing.
+    var logPhotoAcquisitionInFlight by remember { mutableStateOf(false) }
 
     // "View on Map" on a List-tab species row: which taxon (if any) the map tabs should limit
     // their sightings to. Lives here, alongside selectedTab/compactTab, because both the List and
@@ -885,6 +896,7 @@ fun AvailabilityScreen(
                     // window-class-specific copy. The PermanentNavigationDrawer's own drawer sheet
                     // (below) hosts the Snackbar this shows.
                     onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
+                    onPhotoAcquisitionInFlightChanged = { inFlight -> logPhotoAcquisitionInFlight = inFlight },
                     onAddPhoto = onAddLogPhoto,
                     onRemovePhoto = onRemoveLogPhoto,
                     onPullPhoto = onPullLogPhoto,
@@ -909,6 +921,8 @@ fun AvailabilityScreen(
                     onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                     onToggleKeptPhoto = onToggleKeptPhoto,
                     onFinishCartographyEntry = onFinishCartographyEntry,
+                    onSaveCartographyEntry = onSaveCartographyEntry,
+                    onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
                     onDeleteCartographyEntry = onDeleteCartographyEntry,
                     getCartographyEntryMapData = getCartographyEntryMapData,
                     getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
@@ -1146,10 +1160,32 @@ fun AvailabilityScreen(
         val lifecycleOwner = LocalLifecycleOwner.current
         val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveLogEntryEditingIncidentally)
         val latestIsJournalEditing by rememberUpdatedState(compactTab == CompactTab.JOURNAL && logUiState.editingEntry != null)
+        // Device-check patch, Items 2/3: suppresses this same incidental-exit call while the open
+        // find's own camera/gallery round-trip is this app's own doing, not the user backgrounding
+        // it — see PhotoAcquisitionLaunchers.isAcquisitionInFlight's own doc comment for the full
+        // trace of why conflating the two was silently closing the find (and losing the photo with
+        // it) on every camera capture.
+        val latestPhotoAcquisitionInFlight by rememberUpdatedState(logPhotoAcquisitionInFlight)
+        // Device-check patch, Items 1/2/3: a committed Cartography entry's unsaved changes get the
+        // same silent-save-on-backgrounding treatment a find's draft already gets above — "you can't
+        // show a dialog at ON_STOP, and the alternative is losing work" (owner decision). Not gated
+        // on compactTab/drawerPanel the way latestIsJournalEditing is: CartographyScreen is shared,
+        // unmodified, between JournalTab (compact) and LogPanel (expanded), and cartographyUiState is
+        // the one ViewModel's state regardless of which window class is currently composed, so
+        // checking it alone is sufficient — there is nothing analogous to "the Journal tab isn't even
+        // the visible one" to guard against here. `editingEntry?.isDraft == false` (not `!!`) reads
+        // as "there is an editingEntry, and it isn't a draft" in one null-safe expression; a draft
+        // never sets hasUnsavedChanges in the first place (see CartographyViewModel.persist's own
+        // doc comment), so this only ever fires for a committed entry.
+        val latestIsCartographyEntryDirty by rememberUpdatedState(
+            cartographyUiState.hasUnsavedChanges && cartographyUiState.editingEntry?.isDraft == false,
+        )
+        val latestOnSaveCartographyEntry by rememberUpdatedState(onSaveCartographyEntry)
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP && latestIsJournalEditing) {
-                    latestOnLeaveEditingIncidentally()
+                if (event == Lifecycle.Event.ON_STOP) {
+                    if (latestIsJournalEditing && !latestPhotoAcquisitionInFlight) latestOnLeaveEditingIncidentally()
+                    if (latestIsCartographyEntryDirty) latestOnSaveCartographyEntry()
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
@@ -1376,6 +1412,7 @@ fun AvailabilityScreen(
                             onSaveEntry = onSaveLogEntry,
                             onCancelEditing = onCancelLogEntryEditing,
                             onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
+                            onPhotoAcquisitionInFlightChanged = { inFlight -> logPhotoAcquisitionInFlight = inFlight },
                             onAddPhoto = onAddLogPhoto,
                             onRemovePhoto = onRemoveLogPhoto,
                             onPullPhoto = onPullLogPhoto,
@@ -1404,6 +1441,8 @@ fun AvailabilityScreen(
                             onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                             onToggleKeptPhoto = onToggleKeptPhoto,
                             onFinishCartographyEntry = onFinishCartographyEntry,
+                            onSaveCartographyEntry = onSaveCartographyEntry,
+                            onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
                             onDeleteCartographyEntry = onDeleteCartographyEntry,
                             getCartographyEntryMapData = getCartographyEntryMapData,
                             getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,

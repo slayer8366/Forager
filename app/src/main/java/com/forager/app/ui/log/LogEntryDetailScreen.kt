@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -97,6 +98,15 @@ internal fun LogEntryDetailScreen(
     onCancel: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
+    /**
+     * Reports [PhotoAcquisitionLaunchers.isAcquisitionInFlight] up whenever it changes — device-check
+     * patch, Items 2/3 — so a caller several layers up (`AvailabilityScreen`'s own ON_STOP hook) can
+     * suppress "the user backgrounded the app" while this screen's own [PhotosSection] is mid camera
+     * or gallery round-trip, not something the user chose to leave for. Defaulted, same reasoning as
+     * every other optional callback here: existing callers/tests that don't care about this signal
+     * don't need to pass one just to compile.
+     */
+    onPhotoAcquisitionInFlightChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -176,6 +186,7 @@ internal fun LogEntryDetailScreen(
                 onPhotoSourceSelected = onAddPhoto,
                 onRemovePhoto = onRemovePhoto,
                 onPullPhoto = onPullPhoto,
+                onAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
             )
 
             HorizontalDivider()
@@ -216,11 +227,15 @@ private fun PhotosSection(
     onPhotoSourceSelected: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: () -> Unit,
+    onAcquisitionInFlightChanged: (Boolean) -> Unit,
 ) {
     // The Camera-permission-then-capture and system-Gallery-picker launchers — shared with
     // PhotoGalleryScreen's own Camera/Gallery buttons (standalone-photos dispatch) via this one
     // function, rather than a second hand-copy of the ActivityResultContracts/permission wiring.
     val photoAcquisition = rememberPhotoAcquisitionLaunchers(cameraCaptureFiles, onPhotoSourceSelected)
+    LaunchedEffect(photoAcquisition.isAcquisitionInFlight) {
+        onAcquisitionInFlightChanged(photoAcquisition.isAcquisitionInFlight)
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Photos", style = MaterialTheme.typography.titleSmall)

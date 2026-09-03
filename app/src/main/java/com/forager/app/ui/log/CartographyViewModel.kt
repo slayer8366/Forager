@@ -9,6 +9,7 @@ import com.forager.app.domain.CreateCartographyEntryUseCase
 import com.forager.app.domain.DeleteCartographyEntryUseCase
 import com.forager.app.domain.GetCartographyDraftEntriesUseCase
 import com.forager.app.domain.GetCartographyEntriesUseCase
+import com.forager.app.domain.GetCartographyEntryUseCase
 import com.forager.app.domain.GetDerivedTripUseCase
 import com.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.forager.app.domain.OfflineRegionSummary
@@ -60,6 +61,7 @@ class CartographyViewModel(
     private val getDraftEntries: GetCartographyDraftEntriesUseCase,
     private val createEntry: CreateCartographyEntryUseCase,
     private val saveEntry: SaveCartographyEntryUseCase,
+    private val getEntry: GetCartographyEntryUseCase,
     private val commitEntry: CommitCartographyEntryUseCase,
     private val deleteEntry: DeleteCartographyEntryUseCase,
     private val getDerivedTrip: GetDerivedTripUseCase,
@@ -120,6 +122,7 @@ class CartographyViewModel(
                             candidateOfflineRegionsForEditingEntry = trip.offlineRegions,
                             isLoadingCandidates = false,
                             saveErrorMessage = null,
+                            hasUnsavedChanges = false,
                         )
                     }
                 },
@@ -140,7 +143,7 @@ class CartographyViewModel(
     fun onOpenEntry(id: String) {
         val state = _uiState.value
         val entry = state.entries.firstOrNull { it.id == id } ?: state.draftEntries.firstOrNull { it.id == id } ?: return
-        _uiState.update { it.copy(editingEntry = entry) }
+        _uiState.update { it.copy(editingEntry = entry, hasUnsavedChanges = false) }
         viewModelScope.launch {
             val trip = loadTripReport(entry.date) ?: return@launch
             _uiState.update {
@@ -162,14 +165,29 @@ class CartographyViewModel(
      * ViewModel had *just* saved to disk stayed invisible in the Drafts list until some unrelated
      * action happened to call [loadEntries] (e.g. [onFinishEntry]'s own success path), so the only
      * affordance the user could see was "+" again, minting an unrelated second draft rather than
-     * resuming the first. A **committed** entry needs no such merge: [onOpenEntry] only ever finds
-     * one already present in [CartographyUiState.entries]/[CartographyUiState.draftEntries], so
-     * closing it changes nothing those lists don't already reflect.
+     * resuming the first.
+     *
+     * **A committed entry needs the identical merge (device-check patch, Item 1 fix).** This used to
+     * read "closing it changes nothing [CartographyUiState.entries] doesn't already reflect," on the
+     * premise that [onOpenEntry] only ever finds one already present there — true, but that premise
+     * cut both ways: it meant a committed entry's edits, though durably saved to disk by [persist],
+     * never made it back into [CartographyUiState.entries] either, so the Entries list (and any
+     * reopen within the same session) kept showing the pre-edit row. Merged here only when the entry
+     * is not dirty by the time this runs — [onSaveEntry] and [onDiscardEntryChanges] each already
+     * settle [CartographyUiState.entries] themselves before this is reached via the leave-prompt's
+     * Save/Discard path, so this branch only ever re-merges already-clean data there; it's the
+     * ordinary "closed without any unsaved change" path (nothing to prompt about) that actually needs
+     * it.
      */
     fun onCloseEntry() {
         val current = _uiState.value.editingEntry
         _uiState.update { state ->
             state.copy(
+                entries = when {
+                    current == null || current.isDraft -> state.entries
+                    state.entries.any { it.id == current.id } -> state.entries.map { if (it.id == current.id) current else it }
+                    else -> state.entries + current
+                },
                 draftEntries = when {
                     current == null || !current.isDraft -> state.draftEntries
                     state.draftEntries.any { it.id == current.id } -> state.draftEntries.map { if (it.id == current.id) current else it }
@@ -178,6 +196,7 @@ class CartographyViewModel(
                 editingEntry = null,
                 candidatesForEditingEntry = null,
                 candidateOfflineRegionsForEditingEntry = emptyList(),
+                hasUnsavedChanges = false,
             )
         }
     }
@@ -253,12 +272,84 @@ class CartographyViewModel(
         viewModelScope.launch {
             commitEntry(entry).fold(
                 onSuccess = { committed ->
-                    _uiState.update { it.copy(editingEntry = committed, saveErrorMessage = null) }
+                    _uiState.update { it.copy(editingEntry = committed, saveErrorMessage = null, hasUnsavedChanges = false) }
                     loadEntries()
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't finish entry '${entry.id}'.", error)
                     _uiState.update { it.copy(saveErrorMessage = "Couldn't finish that entry.") }
+                },
+            )
+        }
+    }
+
+    /**
+     * Explicit Save for a **committed** entry's edits (device-check patch, Item 1). Saves in place —
+     * unlike [onCloseEntry], this never nulls out [CartographyUiState.editingEntry], the same
+     * "Finish entry" stays on the just-committed entry's own edit screen precedent [onFinishEntry]
+     * already sets. Also settles [CartographyUiState.entries] immediately (upsert by id) rather than
+     * waiting for the next [loadEntries] — the same reasoning [onCloseEntry]'s own doc comment gives
+     * for why that list needs to track a committed entry's edits at all. A no-op if nothing is open or
+     * it's a draft: drafts never accumulate [CartographyUiState.hasUnsavedChanges] in the first place,
+     * since [persist] autosaves them unconditionally, unchanged from before this dispatch.
+     */
+    fun onSaveEntry() {
+        val entry = _uiState.value.editingEntry?.takeUnless { it.isDraft } ?: return
+        viewModelScope.launch {
+            saveEntry(entry).fold(
+                onSuccess = {
+                    _uiState.update { state ->
+                        state.copy(
+                            entries = if (state.entries.any { it.id == entry.id }) {
+                                state.entries.map { if (it.id == entry.id) entry else it }
+                            } else {
+                                state.entries + entry
+                            },
+                            hasUnsavedChanges = false,
+                            saveErrorMessage = null,
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't save entry '${entry.id}'.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
+                },
+            )
+        }
+    }
+
+    /**
+     * Discards the currently-open **committed** entry's in-progress edits, by reloading it straight
+     * from the database — never an in-memory revert (owner decision, device-check patch): a revert
+     * built from whatever this ViewModel remembers as "the last-saved shape" can drift from what's
+     * actually stored, and the one thing that can't drift is the store itself. Closes the entry too,
+     * the same as [onCloseEntry] — this is the leave-prompt's Discard option, not a "keep editing but
+     * reset the fields" action, so it settles [CartographyUiState.entries] from the *reloaded* row
+     * directly rather than routing through [onCloseEntry] (which would otherwise merge the very edits
+     * being discarded). A no-op if nothing is open, it's a draft, or the entry is no longer stored.
+     */
+    fun onDiscardEntryChanges() {
+        val id = _uiState.value.editingEntry?.takeUnless { it.isDraft }?.id ?: return
+        viewModelScope.launch {
+            getEntry(id).fold(
+                onSuccess = { stored ->
+                    _uiState.update { state ->
+                        state.copy(
+                            entries = if (stored != null && state.entries.any { it.id == id }) {
+                                state.entries.map { if (it.id == id) stored else it }
+                            } else {
+                                state.entries
+                            },
+                            editingEntry = null,
+                            candidatesForEditingEntry = null,
+                            candidateOfflineRegionsForEditingEntry = emptyList(),
+                            hasUnsavedChanges = false,
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't reload entry '$id' to discard changes.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't discard those changes.") }
                 },
             )
         }
@@ -289,17 +380,30 @@ class CartographyViewModel(
         _uiState.update { it.copy(saveErrorMessage = null) }
     }
 
-    /** Reflects [entry] immediately (so typing/deciding never feels laggy) and autosaves it — the same immediate-local-write-then-persist shape [MushroomLogViewModel.onEntryEdited] uses. */
+    /**
+     * Reflects [entry] immediately (so typing/deciding never feels laggy). **Drafts** then autosave
+     * unconditionally, unchanged from before this dispatch — a draft is in-progress by definition,
+     * and silent autosave onto its own row is deliberate, correct behaviour (device-check patch,
+     * Item 1: "drafts autosave silently... must not change"). **Committed** entries do not: the
+     * owner's new policy makes their changes explicit, so this only marks
+     * [CartographyUiState.hasUnsavedChanges] and leaves the actual write to [onSaveEntry] — the
+     * screen's own Save action, the leave-prompt's Save option, or the backgrounding hook in
+     * `AvailabilityScreen`, never a keystroke.
+     */
     private fun persist(entry: CartographyEntry) {
-        _uiState.update { it.copy(editingEntry = entry) }
-        viewModelScope.launch {
-            saveEntry(entry).fold(
-                onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
-                onFailure = { error ->
-                    Log.w(TAG, "Couldn't save entry '${entry.id}'.", error)
-                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
-                },
-            )
+        if (entry.isDraft) {
+            _uiState.update { it.copy(editingEntry = entry) }
+            viewModelScope.launch {
+                saveEntry(entry).fold(
+                    onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
+                    onFailure = { error ->
+                        Log.w(TAG, "Couldn't save entry '${entry.id}'.", error)
+                        _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
+                    },
+                )
+            }
+        } else {
+            _uiState.update { it.copy(editingEntry = entry, hasUnsavedChanges = true) }
         }
     }
 

@@ -34,4 +34,13 @@ data class CartographyUiState(
     val isLoadingCandidates: Boolean = false,
     val candidatesErrorMessage: String? = null,
     val saveErrorMessage: String? = null,
+    /**
+     * A dirty flag, not a diff against a snapshot (device-check patch, Item 1): any mutation of a
+     * **committed** [editingEntry] sets it, [CartographyViewModel.onSaveEntry] clears it. Only
+     * meaningful while [editingEntry] is committed — a draft autosaves on every keystroke, unchanged
+     * from before this dispatch, so this never becomes true for one. A dirty flag rather than a real
+     * diff: a diff would need its own snapshot of every decision list and photo ref, which is more
+     * machinery than the honesty gains for a flag whose only job is "does leaving need to ask."
+     */
+    val hasUnsavedChanges: Boolean = false,
 )

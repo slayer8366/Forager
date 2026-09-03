@@ -134,6 +134,8 @@ internal fun JournalTab(
      * so the same Snackbar covers every exit path from one place rather than three.
      */
     onLeaveEditingIncidentally: () -> Unit,
+    /** Reports whether a camera/gallery round-trip is in flight for the open find — device-check patch, Items 2/3. See [LogEntryDetailScreen]'s own doc comment on [onPhotoAcquisitionInFlightChanged]. */
+    onPhotoAcquisitionInFlightChanged: (Boolean) -> Unit = {},
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: (LogPhoto) -> Unit,
@@ -161,6 +163,10 @@ internal fun JournalTab(
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
     onFinishCartographyEntry: () -> Unit,
+    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment. */
+    onSaveCartographyEntry: () -> Unit = {},
+    /** The leave-prompt's Discard option — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment. */
+    onDiscardCartographyEntryChanges: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
@@ -302,6 +308,7 @@ internal fun JournalTab(
                 onCancel = onCancelEditing,
                 onDeleteEntry = { onDeleteEntry(editing.id) },
                 onBack = onLeaveEditingIncidentally,
+                onPhotoAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
                 modifier = Modifier.weight(1f),
             )
 
@@ -388,6 +395,8 @@ internal fun JournalTab(
                 onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                 onToggleKeptPhoto = onToggleKeptPhoto,
                 onFinishEntry = onFinishCartographyEntry,
+                onSaveEntry = onSaveCartographyEntry,
+                onDiscardEntryChanges = onDiscardCartographyEntryChanges,
                 onDeleteEntry = onDeleteCartographyEntry,
                 modifier = Modifier.weight(1f),
             )
