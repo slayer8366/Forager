@@ -67,6 +67,8 @@ import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
+import com.forager.app.domain.model.CartographyEntry
+import com.forager.app.ui.log.CartographyUiState
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
@@ -125,7 +127,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.waitForIdle()
     }
 
-    private fun setScreen(logUiState: MushroomLogUiState = MushroomLogUiState()) {
+    private fun setScreen(logUiState: MushroomLogUiState = MushroomLogUiState(), cartographyUiState: CartographyUiState = CartographyUiState()) {
         val plannedTripRepository = BackNavInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
             locationProvider = BackNavUnusedLocationProvider,
@@ -153,6 +155,11 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
             var logState by remember { mutableStateOf(logUiState) }
+            // Back-nav-and-save-flow dispatch: plain local state standing in for
+            // CartographyViewModel, mirroring logState's own fixture shape immediately above and
+            // CartographyScreenTest's identical fixture — see that file's own setScreen for the
+            // fuller reasoning on why a fixture, not a fake/mock, is right for this.
+            var cartographyState by remember { mutableStateOf(cartographyUiState) }
             AvailabilityScreen(
                 uiState = uiState,
                 onUseCurrentLocation = viewModel::useCurrentLocation,
@@ -209,6 +216,64 @@ class AvailabilityScreenBackNavigationTest {
                             editingEntry = null,
                         )
                     }
+                },
+                cartographyUiState = cartographyState,
+                onOpenCartographyEntry = { id ->
+                    cartographyState = cartographyState.copy(
+                        editingEntry = cartographyState.entries.firstOrNull { it.id == id } ?: cartographyState.draftEntries.firstOrNull { it.id == id },
+                    )
+                },
+                onStartCartographyEntry = { date ->
+                    val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
+                    cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
+                },
+                onCloseCartographyEntry = {
+                    cartographyState.editingEntry?.let { current ->
+                        cartographyState = cartographyState.copy(
+                            entries = if (!current.isDraft && cartographyState.entries.any { it.id == current.id }) {
+                                cartographyState.entries.map { if (it.id == current.id) current else it }
+                            } else {
+                                cartographyState.entries
+                            },
+                        )
+                    }
+                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                },
+                onCartographyTextChanged = { text ->
+                    cartographyState.editingEntry?.let { current ->
+                        val edited = current.copy(text = text)
+                        cartographyState = cartographyState.copy(editingEntry = edited, hasUnsavedChanges = cartographyState.hasUnsavedChanges || !edited.isDraft)
+                    }
+                },
+                onFinishCartographyEntry = {
+                    cartographyState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        cartographyState = cartographyState.copy(
+                            entries = cartographyState.entries + committed,
+                            draftEntries = cartographyState.draftEntries.filterNot { it.id == committed.id },
+                            editingEntry = committed,
+                        )
+                    }
+                },
+                onSaveCartographyEntry = {
+                    cartographyState.editingEntry?.let { current ->
+                        cartographyState = cartographyState.copy(
+                            entries = if (cartographyState.entries.any { it.id == current.id }) {
+                                cartographyState.entries.map { if (it.id == current.id) current else it }
+                            } else {
+                                cartographyState.entries + current
+                            },
+                            hasUnsavedChanges = false,
+                        )
+                    }
+                },
+                onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
+                onDeleteCartographyEntry = { id ->
+                    cartographyState = cartographyState.copy(
+                        entries = cartographyState.entries.filterNot { it.id == id },
+                        draftEntries = cartographyState.draftEntries.filterNot { it.id == id },
+                        editingEntry = null,
+                    )
                 },
                 compassProvider = BackNavFakeCompassProvider,
                 mapSlot = BackNavStubMapSlot,
@@ -342,6 +407,165 @@ class AvailabilityScreenBackNavigationTest {
         // fully unmounted, not merely hidden), and still on the Journal tab — not bounced to Maps.
         composeRule.onNodeWithText("Photos").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+    }
+
+    // --- Back-nav-and-save-flow dispatch, Items 1-3: Cartography's own back-navigation gap -------
+    // Before this dispatch, none of CartographyScreen/JournalTab's selectedTopTab/RecordsTab's
+    // selectedTab had any BackHandler reaching them at all — back on any of them, draft or
+    // committed, fell straight through to AvailabilityScreen's own go-home handler in one step,
+    // exiting the Journal entirely. These are the real onBackPressedDispatcher tests that gap
+    // needed and never had — see this file's own class doc comment on why only the real dispatcher
+    // can settle a BackHandler-priority question.
+
+    private val committedCartographyEntry = CartographyEntry.draft(id = "committed-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
+        .copy(isDraft = false)
+
+    /** The entry-level layer: a draft opens straight into the editor, and back on it must step back to the Drafts list — never exit the Journal, and never prompt (drafts autosave silently, unchanged by this dispatch). */
+    @Test
+    fun `back on an open Cartography draft steps back to the drafts list, not out of the Journal, and the draft persists`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+
+        pressBack()
+
+        // Still inside the Journal (not bounced to Maps), and the draft is visible, not lost.
+        composeRule.onNodeWithText("Your own account (optional)").assertDoesNotExist()
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
+        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+    }
+
+    /**
+     * The Records sub-tab layer: back from a non-default sub-tab steps to Waypoints, the fixed
+     * default — not out to Cartography in the same press. Recorded Tracks, not Offline Maps: that
+     * sub-tab's own `onOfflineMapsOpened` calls the real `AvailabilityViewModel`, which reaches a
+     * real `LocationProvider` this fixture deliberately stubs to error (see
+     * [BackNavUnusedLocationProvider]) — unrelated to what this test is proving, so it picks the
+     * sub-tab that doesn't touch it.
+     */
+    @Test
+    fun `back on a non-default Records sub-tab steps to Waypoints before leaving Records`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
+
+        pressBack()
+
+        // Still on Records, now showing Waypoints' own content — not bounced out to Cartography or Maps.
+        composeRule.onNodeWithText("No recorded tracks yet.").assertDoesNotExist()
+        composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.").assertIsDisplayed()
+    }
+
+    /** The top-tab layer: back from Records' own default sub-tab (nothing left within Records to unwind) steps to Cartography — still inside the Journal, not out to Maps. */
+    @Test
+    fun `back on Records' default sub-tab steps to Cartography before leaving the Journal`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Waypoints").assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
+    }
+
+    /**
+     * The caution from this dispatch: adding steps must never cost the go-home fallback itself —
+     * back from Cartography's own top level (nothing open, nothing left within the Journal to
+     * unwind) must still reach it, exactly as it did before this dispatch.
+     */
+    @Test
+    fun `back on Cartography's own top level still falls through to the go-home handler`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
+    }
+
+    /** Item 2: the prompt only fires once system back actually reaches CartographyEntryEditScreen's own decision — and only for a *dirty* committed entry, never a clean one. */
+    @Test
+    fun `back on a clean committed Cartography entry closes without any prompt`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+    }
+
+    /** Item 2: a dirty committed entry's system back shows Save/Discard/Cancel — the exact prompt the on-screen arrow already showed, now reachable by the nav-bar button too. Cancel keeps editing with the change intact. */
+    @Test
+    fun `back on a dirty committed Cartography entry shows the leave prompt, and Cancel keeps editing`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Unsaved via system back.")
+        composeRule.waitForIdle()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Save your changes?").assertIsDisplayed()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.LEAVE_PROMPT_CANCEL_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Unsaved via system back.").assertIsDisplayed()
+    }
+
+    /** Item 2/3: Discard via system back's own prompt reloads from the database and leaves — no second dialog, no lingering edit. */
+    @Test
+    fun `Discard from the system-back leave prompt discards the edit and leaves`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Should not be saved.")
+        composeRule.waitForIdle()
+        pressBack()
+        composeRule.onNodeWithText("Save your changes?").assertIsDisplayed()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+    }
+
+    /** Item 2/3: Save via system back's own prompt saves and leaves in one step — no second dialog. */
+    @Test
+    fun `Save from the system-back leave prompt saves the edit and leaves, with no second dialog`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Saved via system back.")
+        composeRule.waitForIdle()
+        pressBack()
+        composeRule.onNodeWithText("Save your changes?").assertIsDisplayed()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.LEAVE_PROMPT_SAVE_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithText("Saved via system back.").assertIsDisplayed()
     }
 
     /**

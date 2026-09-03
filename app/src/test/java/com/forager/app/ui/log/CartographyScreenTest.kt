@@ -229,17 +229,20 @@ class CartographyScreenTest {
         composeRule.onNodeWithText("Finish entry").assertDoesNotExist()
     }
 
+    /** Back-nav-and-save-flow dispatch, Item 3: Save confirms, then exits — the standard shape, not stay-on-screen. */
     @Test
-    fun `tapping the screen's own Save persists a committed entry's edit without leaving`() {
+    fun `tapping the screen's own Save persists a committed entry's edit and exits to the entries list`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
         openCommittedEntryEditor()
 
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Chanterelles under the big fir.")
         composeRule.onNodeWithText("Save").performClick()
 
-        // Still on the editor (Save never leaves) — and no leave-prompt was needed to get here.
-        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+        // No leave-prompt was needed to get here, and the edit landed in the Entries list.
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithText("Chanterelles under the big fir.").assertIsDisplayed()
     }
 
     @Test

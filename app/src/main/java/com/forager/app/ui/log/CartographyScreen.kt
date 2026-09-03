@@ -1,5 +1,6 @@
 package com.forager.app.ui.log
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -102,7 +103,44 @@ internal fun CartographyScreen(
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
 
+    // Back-nav-and-save-flow dispatch, Item 1: system back on an open entry used to reach no
+    // BackHandler at all — AvailabilityScreen's own comment on its outer four assumed "a Journal
+    // entry... unwinds itself first via its own local BackHandler," but no such handler existed
+    // here, so back fell straight through to that outer go-home one regardless of depth, on a
+    // draft exactly as much as a committed entry. One definition here, not duplicated into
+    // JournalTab/LogPanel: both simply host this composable, so this covers both window classes
+    // for free — see this file's own class doc comment on why [JournalTab]/[LogPanel] share this
+    // one implementation.
+    //
+    // requestLeaveEntry() is the single decision both the arrow (CartographyEntryEditScreen's own
+    // onBack, wired below) and system back (the BackHandler right after it) drive — hoisted here,
+    // not left local to CartographyEntryEditScreen, specifically so both triggers show the exact
+    // same Save/Discard/Cancel prompt rather than the arrow consulting it and system back routing
+    // around it (Item 2's whole bug). A report-mode entry is never dirty (only EDIT mutates), so
+    // this same check naturally always falls to onCloseEntry() for CartographyEntryReportScreen's
+    // own back arrow too, with no separate branch needed.
+    var confirmingLeaveEntry by remember { mutableStateOf(false) }
+
     val editingEntry = uiState.editingEntry
+
+    fun requestLeaveEntry() {
+        if (mode == CartographyEntryMode.EDIT && editingEntry != null && !editingEntry.isDraft && uiState.hasUnsavedChanges) {
+            confirmingLeaveEntry = true
+        } else {
+            onCloseEntry()
+        }
+    }
+
+    // Enabled only while an entry is open — disabled the instant editingEntry is null, so back at
+    // this screen's own top level (the Entries/Drafts/Album tabs) falls straight through to
+    // whatever's next (JournalTab/LogPanel's own selectedTopTab step, then AvailabilityScreen's
+    // go-home). That fallthrough is the fix's whole point: this adds a step before go-home, it
+    // never replaces it — a Journal back could never exit at all would be worse than the bug this
+    // dispatch reports.
+    BackHandler(enabled = editingEntry != null) {
+        requestLeaveEntry()
+    }
+
     if (editingEntry != null) {
         if (mode == CartographyEntryMode.EDIT) {
             CartographyEntryEditScreen(
@@ -113,6 +151,9 @@ internal fun CartographyScreen(
                 galleryPhotos = galleryPhotos,
                 distanceUnit = distanceUnit,
                 hasUnsavedChanges = uiState.hasUnsavedChanges,
+                showLeavePrompt = confirmingLeaveEntry,
+                onRequestBack = ::requestLeaveEntry,
+                onDismissLeavePrompt = { confirmingLeaveEntry = false },
                 onTextChanged = onTextChanged,
                 onTagsChanged = onTagsChanged,
                 onSetFindDecision = onSetFindDecision,

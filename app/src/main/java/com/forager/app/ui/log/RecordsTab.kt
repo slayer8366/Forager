@@ -1,5 +1,6 @@
 package com.forager.app.ui.log
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -93,6 +94,18 @@ internal fun RecordsTab(
     findsContent: @Composable ColumnScope.() -> Unit,
     onFindsTabLeft: () -> Unit = {},
     /**
+     * Whether [JournalTab]/[LogPanel]'s own find-editing `BackHandler` is currently live —
+     * back-nav-and-save-flow dispatch, Item 1. Gates this tab's own sub-tab-stepping `BackHandler`
+     * (below) out of the way while it is: that handler is registered at a *shallower* structural
+     * point (the caller's own composable, this tab's parent) than this one even though it covers a
+     * conceptually *deeper* state (editing a specific find, inside the Finds sub-tab, inside
+     * Records), so this can't rely on Compose's usual "more nested wins" ordering the way the
+     * Records→Cartography step safely does — see this tab's own new `BackHandler` for the full
+     * reasoning, and `AvailabilityScreen`'s outer four for the same caution stated there first.
+     * Defaults to `false` so every other caller of this composable is unaffected.
+     */
+    findsEditingInProgress: Boolean = false,
+    /**
      * A one-shot external request to switch to a specific sub-tab — Stage 2d's routing fix for the
      * map "+" icon bar's "Log a find" flow, which used to leave this tab's own [selectedTab]
      * (defaults to [RecordsSubTab.WAYPOINTS]) untouched even after [JournalTab]/[LogPanel] switched
@@ -124,6 +137,16 @@ internal fun RecordsTab(
     fun selectTab(tab: RecordsSubTab) {
         if (selectedTab == RecordsSubTab.FINDS && tab != RecordsSubTab.FINDS) onFindsTabLeft()
         selectedTab = tab
+    }
+
+    // Back-nav-and-save-flow dispatch, Item 1: step back to Waypoints — the fixed default, not
+    // whichever sub-tab was last selected. A fixed target keeps back deterministic regardless of
+    // navigation history (the same press always does the same thing); tracking "last selected" as
+    // a second piece of state to reason about was considered and rejected for exactly that reason.
+    // Disabled while findsEditingInProgress — see that parameter's own doc comment for why this
+    // can't just rely on Compose's usual nested-handler-wins ordering here.
+    BackHandler(enabled = selectedTab != RecordsSubTab.WAYPOINTS && !findsEditingInProgress) {
+        selectTab(RecordsSubTab.WAYPOINTS)
     }
 
     Column(modifier = modifier.fillMaxSize()) {

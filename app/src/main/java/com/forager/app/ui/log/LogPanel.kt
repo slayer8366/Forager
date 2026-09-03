@@ -235,12 +235,24 @@ internal fun LogPanel(
     // backgrounding — never Cancel, which only the form's explicit button triggers. This closes a
     // gap the L4b scoping pulse found: this panel previously had no way to close an open entry via
     // back at all, falling through to whatever AvailabilityScreen's top-level handling did instead.
-    BackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
+    //
+    // Extracted to a val (back-nav-and-save-flow dispatch, Item 1) — see JournalTab's identical
+    // extraction for why: reused both to gate the new Records→Cartography step below and to tell
+    // RecordsTab's own new sub-tab-stepping BackHandler to stay out of the way while this one is
+    // live.
+    val findsSectionHasBackStack = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry
+    BackHandler(enabled = findsSectionHasBackStack) {
         when {
             pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
             pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
             editing != null -> onLeaveEditingIncidentally()
         }
+    }
+
+    // Back-nav-and-save-flow dispatch, Item 1: Records → Cartography, the same single unconditional
+    // step JournalTab's own identical handler adds — see that composable's own doc comment.
+    BackHandler(enabled = selectedTopTab == JournalTopTab.RECORDS && !findsSectionHasBackStack) {
+        selectedTopTab = JournalTopTab.CARTOGRAPHY
     }
 
     // Journal Stage 2b, relocated verbatim from this panel's own former Cartography branch — see
@@ -390,6 +402,7 @@ internal fun LogPanel(
                 onTracksOpened = onTracksOpened,
                 findsContent = findsSection,
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
+                findsEditingInProgress = findsSectionHasBackStack,
                 pendingSubTab = recordsPendingSubTab,
                 onPendingSubTabConsumed = { recordsPendingSubTab = null },
             )

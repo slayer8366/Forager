@@ -259,13 +259,31 @@ internal fun JournalTab(
     // LogEntryDetailScreen, tab switch, and backgrounding (see MushroomLogViewModel's own doc
     // comment on the three exits) — never Cancel, which only the form's own explicit button
     // triggers.
-    BackHandler(enabled = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry) {
+    //
+    // Extracted to a val (back-nav-and-save-flow dispatch, Item 1) — findsSectionHasBackStack is
+    // reused below both to gate the new Records→Cartography step and to tell RecordsTab's own new
+    // sub-tab-stepping BackHandler to stay out of the way while this one is live. This one's
+    // condition is unchanged from before that dispatch.
+    val findsSectionHasBackStack = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry
+    BackHandler(enabled = findsSectionHasBackStack) {
         when {
             pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
             pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
             editing != null && mode == JournalEntryMode.EDIT -> onLeaveEditingIncidentally()
             editing != null -> onCloseEntry()
         }
+    }
+
+    // Back-nav-and-save-flow dispatch, Item 1: Records → Cartography is the next layer out once
+    // Finds has nothing left to unwind — Cartography is the left tab and the entry point, so this
+    // is the only top-tab direction that needs a step; back from Cartography's own top level
+    // (nothing open there either) falls straight through to AvailabilityScreen's go-home handler,
+    // unchanged. Explicitly excludes findsSectionHasBackStack rather than trusting declaration
+    // order against the handler above, which lives at the same structural level (a sibling
+    // BackHandler here, not nested inside it) — see AvailabilityScreen's own outer BackHandlers for
+    // why this codebase never trusts declaration order for that.
+    BackHandler(enabled = selectedTopTab == JournalTopTab.RECORDS && !findsSectionHasBackStack) {
+        selectedTopTab = JournalTopTab.CARTOGRAPHY
     }
 
     // Journal Stage 2b, relocated verbatim from this tab's own former Cartography branch — see this
@@ -425,6 +443,7 @@ internal fun JournalTab(
                 onTracksOpened = onTracksOpened,
                 findsContent = findsSection,
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
+                findsEditingInProgress = findsSectionHasBackStack,
                 pendingSubTab = recordsPendingSubTab,
                 onPendingSubTabConsumed = { recordsPendingSubTab = null },
             )
