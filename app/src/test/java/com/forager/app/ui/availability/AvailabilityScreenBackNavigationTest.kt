@@ -663,6 +663,19 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Pending, not yet approved.").assertIsDisplayed()
     }
 
+    /**
+     * **Known failing, left red on purpose — not a flake, not silenced.** The final assertion below
+     * used to read `onNodeWithText("Committed on return.").assertIsDisplayed()` with nothing checking
+     * that the preceding tap on the tile actually opened it — that text is also the tile's own
+     * accessibility text (`CartographyEntryTile` renders `entry.text` as its preview line), so the
+     * assertion passed whether or not the tap landed on anything. It didn't: confirmed via
+     * `composeRule.onRoot().printToLog()` that the same open search dropdown and scrim described on
+     * `Save as draft on the return prompt...`'s own doc comment are present here too, after "Back to
+     * Cartography," and the tap on "2026-08-01" lands on that scrim instead of the tile. Strengthened
+     * to assert `"Entry options"` (only present on the opened report screen, never on the tile) is
+     * displayed, which now correctly fails until the underlying focus question — see that other
+     * test's doc comment — is resolved by an on-device check.
+     */
     @Test
     fun `Commit on the return prompt persists the pending edit and stays on the entry`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
@@ -682,10 +695,35 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithText("Entries").assertIsDisplayed()
         composeRule.onNodeWithText("2026-08-01").performClick()
+        // Proves the tap actually opened the entry — see this test's own doc comment.
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
         composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
     }
 
-    /** The owner's own correction to the reported plan: demoting closes the screen rather than staying open in draft mode, so the change is visible, not discovered later. */
+    /**
+     * The owner's own correction to the reported plan: demoting closes the screen rather than
+     * staying open in draft mode, so the change is visible, not discovered later.
+     *
+     * **Known failing, left red on purpose — not a flake, not silenced.** Closing the edit screen
+     * here removes a composable holding text-field focus; after that, [ACTIVE_SEARCH_SUMMARY_TAG]
+     * (the top-level search field) shows `Focused = true` and its "Advanced search" dropdown opens,
+     * scrim included, over the whole screen — confirmed via `composeRule.onRoot().printToLog()`,
+     * not guessed. The scrim eats the next tap (switching to the Drafts tab), so the tab never
+     * switches and the demoted entry's tile is never found. The *same* focus hand-off and open
+     * dropdown are present after the "Commit on the return prompt..." test's own "Back to
+     * Cartography" click too — that one only read green because its final assertion had a blind
+     * spot of its own (see that test's own fix, same investigation).
+     *
+     * What's still unresolved is *why* the field regains focus — specifically, whether this is a
+     * `backgroundThenResume()` (`ActivityScenario.moveToState`) artifact of how Robolectric restores
+     * window focus, or a real gap reachable by backgrounding an entry mid-edit on an actual device.
+     * The two fixes are different (a test-helper fix vs. an app-level `focusManager.clearFocus()` on
+     * the exit path), and picking one without knowing which would either mask a real bug behind a
+     * patched helper, or add app code for a bug that only exists in the test harness. This needs a
+     * ten-second on-device check (background mid-edit, resume, see whether the dropdown pops open)
+     * to settle — not available in this environment (no `/dev/kvm`, no emulator, confirmed). Left
+     * failing, not `@Ignore`d and not weakened, until that check answers it.
+     */
     @Test
     fun `Save as draft on the return prompt closes the screen and moves the entry to Drafts with the edit in place`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
