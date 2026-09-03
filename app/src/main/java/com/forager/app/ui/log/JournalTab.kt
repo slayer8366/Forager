@@ -167,6 +167,8 @@ internal fun JournalTab(
     onSaveCartographyEntry: () -> Unit = {},
     /** The leave-prompt's Discard option — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment. */
     onDiscardCartographyEntryChanges: () -> Unit = {},
+    /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See [CartographyScreen]'s own lifecycle-observer doc comment. */
+    onSaveCartographyEntryAsDraft: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
@@ -415,6 +417,7 @@ internal fun JournalTab(
                 onFinishEntry = onFinishCartographyEntry,
                 onSaveEntry = onSaveCartographyEntry,
                 onDiscardEntryChanges = onDiscardCartographyEntryChanges,
+                onSaveEntryAsDraft = onSaveCartographyEntryAsDraft,
                 onDeleteEntry = onDeleteCartographyEntry,
                 modifier = Modifier.weight(1f),
             )

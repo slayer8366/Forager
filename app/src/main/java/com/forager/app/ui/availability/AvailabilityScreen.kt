@@ -489,10 +489,12 @@ fun AvailabilityScreen(
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit = { _, _ -> },
     onToggleKeptPhoto: (String) -> Unit = {},
     onFinishCartographyEntry: () -> Unit = {},
-    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. Also what this screen's own ON_STOP hook (below) calls to save silently on backgrounding. */
+    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. Threaded straight through to CartographyScreen, whose own lifecycle observer also uses it for the backgrounding-return prompt's Commit option (pending-edit-and-fixes dispatch, Item 1). */
     onSaveCartographyEntry: () -> Unit = {},
     /** The leave-prompt's Discard option — device-check patch, Item 1. */
     onDiscardCartographyEntryChanges: () -> Unit = {},
+    /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See CartographyScreen's own lifecycle-observer doc comment. */
+    onSaveCartographyEntryAsDraft: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit = {},
     /**
      * [com.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
@@ -923,6 +925,7 @@ fun AvailabilityScreen(
                     onFinishCartographyEntry = onFinishCartographyEntry,
                     onSaveCartographyEntry = onSaveCartographyEntry,
                     onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
+                    onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
                     onDeleteCartographyEntry = onDeleteCartographyEntry,
                     getCartographyEntryMapData = getCartographyEntryMapData,
                     getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
@@ -1166,26 +1169,18 @@ fun AvailabilityScreen(
         // trace of why conflating the two was silently closing the find (and losing the photo with
         // it) on every camera capture.
         val latestPhotoAcquisitionInFlight by rememberUpdatedState(logPhotoAcquisitionInFlight)
-        // Device-check patch, Items 1/2/3: a committed Cartography entry's unsaved changes get the
-        // same silent-save-on-backgrounding treatment a find's draft already gets above — "you can't
-        // show a dialog at ON_STOP, and the alternative is losing work" (owner decision). Not gated
-        // on compactTab/drawerPanel the way latestIsJournalEditing is: CartographyScreen is shared,
-        // unmodified, between JournalTab (compact) and LogPanel (expanded), and cartographyUiState is
-        // the one ViewModel's state regardless of which window class is currently composed, so
-        // checking it alone is sufficient — there is nothing analogous to "the Journal tab isn't even
-        // the visible one" to guard against here. `editingEntry?.isDraft == false` (not `!!`) reads
-        // as "there is an editingEntry, and it isn't a draft" in one null-safe expression; a draft
-        // never sets hasUnsavedChanges in the first place (see CartographyViewModel.persist's own
-        // doc comment), so this only ever fires for a committed entry.
-        val latestIsCartographyEntryDirty by rememberUpdatedState(
-            cartographyUiState.hasUnsavedChanges && cartographyUiState.editingEntry?.isDraft == false,
-        )
-        val latestOnSaveCartographyEntry by rememberUpdatedState(onSaveCartographyEntry)
+        // Pending-edit-and-fixes dispatch, Item 1: this observer no longer touches Cartography at
+        // all — it used to call onSaveCartographyEntry here on a dirty committed entry, silently
+        // committing an edit the user never approved just because the app backgrounded. Backgrounding
+        // is not consent to save (owner decision): CartographyScreen now owns its own lifecycle
+        // observer for exactly this, holding the pending edit in ViewModel memory on ON_STOP (no
+        // call at all) and prompting Continue editing/Commit/Save as draft on ON_RESUME instead — see
+        // that composable's own doc comment for the full reasoning, including why it's self-contained
+        // there rather than threaded through here.
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_STOP) {
                     if (latestIsJournalEditing && !latestPhotoAcquisitionInFlight) latestOnLeaveEditingIncidentally()
-                    if (latestIsCartographyEntryDirty) latestOnSaveCartographyEntry()
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
@@ -1443,6 +1438,7 @@ fun AvailabilityScreen(
                             onFinishCartographyEntry = onFinishCartographyEntry,
                             onSaveCartographyEntry = onSaveCartographyEntry,
                             onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
+                            onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
                             onDeleteCartographyEntry = onDeleteCartographyEntry,
                             getCartographyEntryMapData = getCartographyEntryMapData,
                             getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,

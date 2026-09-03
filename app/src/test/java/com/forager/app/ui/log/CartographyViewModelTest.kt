@@ -513,6 +513,57 @@ class CartographyViewModelTest {
         )
     }
 
+    // --- Pending-edit-and-fixes dispatch, Item 1: "Save as draft" demotes and closes -----------------
+
+    @Test
+    fun `onSaveEntryAsDraft demotes a committed entry's pending edit onto the same row, moves it to Drafts, and closes the editor`() = runTest(dispatcher) {
+        val repository = RoomCartographyEntryRepository(database.cartographyEntryDao())
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val entryId = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onFinishEntry()
+        advanceUntilIdle()
+
+        viewModel.onTextChanged("Pending edit, backgrounded.")
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.hasUnsavedChanges)
+
+        viewModel.onSaveEntryAsDraft()
+        advanceUntilIdle()
+
+        assertEquals(
+            "demoting closes the editor — the owner's own correction: a consequential change like this must be visible, not left open silently rendering in a different mode",
+            null,
+            viewModel.uiState.value.editingEntry,
+        )
+        assertFalse(viewModel.uiState.value.hasUnsavedChanges)
+        assertTrue(
+            "the entry must leave the Entries list",
+            viewModel.uiState.value.entries.none { it.id == entryId },
+        )
+        assertEquals(
+            "and appear under Drafts, same row (same id), with the edit in place",
+            listOf(entryId to "Pending edit, backgrounded."),
+            viewModel.uiState.value.draftEntries.map { it.id to it.text },
+        )
+        val stored = repository.getById(entryId).getOrThrow()!!
+        assertTrue("the database itself must reflect the demotion", stored.isDraft)
+        assertEquals("Pending edit, backgrounded.", stored.text)
+    }
+
+    @Test
+    fun `onSaveEntryAsDraft is a no-op for a draft`() = runTest(dispatcher) {
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val draftId = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onSaveEntryAsDraft()
+        advanceUntilIdle()
+
+        assertEquals("a draft has nothing to demote — the editor must stay open", draftId, viewModel.uiState.value.editingEntry?.id)
+    }
+
     private fun dayStartMillis(): Long = DAY.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     private companion object {

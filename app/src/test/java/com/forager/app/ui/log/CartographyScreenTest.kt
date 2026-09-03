@@ -148,6 +148,20 @@ class CartographyScreenTest {
                 // needs to close the editor, since what this file's own tests verify is the dialog's
                 // navigation, not storage content.
                 onDiscardEntryChanges = { uiState = uiState.copy(editingEntry = null, hasUnsavedChanges = false) },
+                // Real demote-and-persist behaviour is CartographyViewModelTest's own job (see its
+                // "onSaveEntryAsDraft" tests); this fixture only needs to move the row and close, the
+                // same "navigation, not storage content" scope onDiscardEntryChanges' own comment
+                // above states.
+                onSaveEntryAsDraft = {
+                    uiState.editingEntry?.let { current ->
+                        val demoted = current.copy(isDraft = true)
+                        uiState = uiState.copy(
+                            entries = uiState.entries.filterNot { it.id == demoted.id },
+                            draftEntries = uiState.draftEntries + demoted,
+                        )
+                    }
+                    uiState = uiState.copy(editingEntry = null, hasUnsavedChanges = false)
+                },
                 onDeleteEntry = { id ->
                     uiState = uiState.copy(
                         entries = uiState.entries.filterNot { it.id == id },
@@ -229,20 +243,41 @@ class CartographyScreenTest {
         composeRule.onNodeWithText("Finish entry").assertDoesNotExist()
     }
 
-    /** Back-nav-and-save-flow dispatch, Item 3: Save confirms, then exits — the standard shape, not stay-on-screen. */
+    /**
+     * Back-nav-and-save-flow dispatch, Item 3: Save confirms, then exits — the standard shape, not
+     * stay-on-screen. Pending-edit-and-fixes dispatch, Item 3: the button itself now only opens a
+     * confirmation; this test drives through it.
+     */
     @Test
-    fun `tapping the screen's own Save persists a committed entry's edit and exits to the entries list`() {
+    fun `tapping the screen's own Save asks to confirm, then persists a committed entry's edit and exits`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
         openCommittedEntryEditor()
 
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Chanterelles under the big fir.")
         composeRule.onNodeWithText("Save").performClick()
 
+        composeRule.onNodeWithText("Save this entry?").assertIsDisplayed()
+        composeRule.onNodeWithTag(SAVE_CONFIRM_TEST_TAG).performClick()
+
         // No leave-prompt was needed to get here, and the edit landed in the Entries list.
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
         composeRule.onNodeWithText("Entries").assertIsDisplayed()
         composeRule.onNodeWithText("2026-08-01").performClick()
         composeRule.onNodeWithText("Chanterelles under the big fir.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Cancel in the Save confirmation dismisses it and keeps editing without persisting`() {
+        setScreen(CartographyUiState(entries = listOf(committedEntry)))
+        openCommittedEntryEditor()
+
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Not yet saved.")
+        composeRule.onNodeWithText("Save").performClick()
+        composeRule.onNodeWithText("Save this entry?").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        composeRule.onNodeWithText("Save this entry?").assertDoesNotExist()
+        composeRule.onNodeWithText("Not yet saved.").assertIsDisplayed()
     }
 
     @Test

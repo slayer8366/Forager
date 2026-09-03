@@ -319,6 +319,48 @@ class CartographyViewModel(
     }
 
     /**
+     * Demotes the currently-open **committed** entry back to a draft, with the pending edit in place
+     * — the backgrounding-return prompt's "Save as draft" option (pending-edit-and-fixes dispatch,
+     * Item 1). Same row, same id: `entry.copy(isDraft = true)`, saved, moved from
+     * [CartographyUiState.entries] to [CartographyUiState.draftEntries] locally so the Entries/Drafts
+     * lists reflect it without waiting for [loadEntries]. **Closes the entry** rather than staying
+     * open in draft mode (owner correction) — demoting a committed entry is a consequential act, and
+     * leaving the screen open with its character silently changed underneath the user (still showing
+     * as if editing a committed entry one moment, a draft the next, with nothing said) would hide
+     * that; closing and letting them see it land under Drafts makes it visible. A no-op if nothing is
+     * open or it's already a draft.
+     */
+    fun onSaveEntryAsDraft() {
+        val entry = _uiState.value.editingEntry?.takeUnless { it.isDraft } ?: return
+        val demoted = entry.copy(isDraft = true)
+        viewModelScope.launch {
+            saveEntry(demoted).fold(
+                onSuccess = {
+                    _uiState.update { state ->
+                        state.copy(
+                            entries = state.entries.filterNot { it.id == demoted.id },
+                            draftEntries = if (state.draftEntries.any { it.id == demoted.id }) {
+                                state.draftEntries.map { if (it.id == demoted.id) demoted else it }
+                            } else {
+                                state.draftEntries + demoted
+                            },
+                            editingEntry = null,
+                            candidatesForEditingEntry = null,
+                            candidateOfflineRegionsForEditingEntry = emptyList(),
+                            hasUnsavedChanges = false,
+                            saveErrorMessage = null,
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't save entry '${entry.id}' as a draft.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save that as a draft.") }
+                },
+            )
+        }
+    }
+
+    /**
      * Discards the currently-open **committed** entry's in-progress edits, by reloading it straight
      * from the database — never an in-memory revert (owner decision, device-check patch): a revert
      * built from whatever this ViewModel remembers as "the last-saved shape" can drift from what's

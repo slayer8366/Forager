@@ -98,9 +98,18 @@ import kotlin.math.roundToInt
  * dialog never fired regardless of [hasUnsavedChanges]. [CartographyScreen] now owns the same
  * decision (its own `requestLeaveEntry()`) so its `BackHandler` and this screen's own arrow drive
  * the identical prompt through the identical path — see that composable's own doc comment. [onBack]
- * itself stays the raw, unconditional close: the persistent Save button below and the leave
- * prompt's own Save option both call `onSave()` then `onBack()` directly, since a just-saved entry
- * has nothing left to ask about.
+ * itself stays the raw, unconditional close: both the leave prompt's own Save option and the
+ * persistent Save button's own confirmation (below) call `onSave()` then `onBack()` directly, since
+ * a just-saved entry has nothing left to ask about.
+ *
+ * ## Three prompts, three separate triggers (pending-edit-and-fixes dispatch, Items 1/3)
+ *
+ * `confirmingSave` (Item 3): the persistent Save button no longer saves directly — it opens this
+ * local confirmation first, since "save confirms, then exits" (the prior dispatch's own change)
+ * otherwise had no confirmation at all. [showLeavePrompt] and [showReturnPrompt] are each already
+ * their own confirmation for their own trigger, so neither routes through `confirmingSave` — all
+ * three are mutually exclusive, reached only by their own specific path (the arrow/system back, a
+ * tap on Save, or resuming from the background), never stacked.
  */
 @Composable
 internal fun CartographyEntryEditScreen(
@@ -130,6 +139,20 @@ internal fun CartographyEntryEditScreen(
     onSave: () -> Unit,
     /** The leave-prompt's Discard option — reloads the entry from the database and leaves in one step. See this composable's own doc comment. */
     onDiscardChanges: () -> Unit,
+    /**
+     * The backgrounding-return prompt — pending-edit-and-fixes dispatch, Item 1. Hoisted from
+     * [CartographyScreen]'s own lifecycle observer, the same shape [showLeavePrompt] already
+     * established: shown once, after the app backgrounded with this entry dirty and has now
+     * resumed, never on an ordinary in-app visit. [onContinueEditing] just dismisses (the pending
+     * edit is already sitting right here, untouched); [onCommit] persists it in place, same as
+     * [onSave]; [onSaveAsDraft] demotes the entry back to a draft, with the edit in place, and
+     * closes this screen — see [CartographyViewModel.onSaveEntryAsDraft]'s own doc comment for why
+     * demoting closes rather than staying open in draft mode.
+     */
+    showReturnPrompt: Boolean,
+    onContinueEditing: () -> Unit,
+    onCommit: () -> Unit,
+    onSaveAsDraft: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -146,6 +169,7 @@ internal fun CartographyEntryEditScreen(
 
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
+    var confirmingSave by remember(entry.id) { mutableStateOf(false) }
     var tagsText by remember(entry.id) { mutableStateOf(entry.tags.joinToString(", ")) }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -230,9 +254,13 @@ internal fun CartographyEntryEditScreen(
                 // Back-nav-and-save-flow dispatch, Item 3: save confirms, then exits to the
                 // previous screen — the standard shape, not stay-on-screen. Composed here rather
                 // than folded into onSave itself so onSave alone (also used by the leave prompt's
-                // own Save option below) stays "just persist," with each call site deciding
-                // separately whether leaving afterward makes sense.
-                Button(onClick = { onSave(); onBack() }, modifier = Modifier.fillMaxWidth()) { Text("Save") }
+                // own Save option below, and the return prompt's Commit option) stays "just
+                // persist," with each call site deciding separately whether leaving afterward
+                // makes sense. Pending-edit-and-fixes dispatch, Item 3: this button itself no
+                // longer saves directly — it opens confirmingSave below, since neither the leave
+                // prompt nor the return prompt route through it (each is already its own
+                // confirmation, and must keep showing exactly one dialog).
+                Button(onClick = { confirmingSave = true }, modifier = Modifier.fillMaxWidth()) { Text("Save") }
             }
 
             Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
@@ -276,12 +304,63 @@ internal fun CartographyEntryEditScreen(
             },
         )
     }
+
+    // Pending-edit-and-fixes dispatch, Item 3: the persistent Save button's own confirmation —
+    // separate from showLeavePrompt above (reached only via the back arrow/system back) and from
+    // showReturnPrompt below (reached only after backgrounding), so a tap on this button can never
+    // show a second dialog on top of either of those; each of the three is its own, mutually
+    // exclusive trigger.
+    if (confirmingSave) {
+        AlertDialog(
+            onDismissRequest = { confirmingSave = false },
+            title = { Text("Save this entry?") },
+            text = { Text("This saves your changes to the entry.") },
+            confirmButton = {
+                TextButton(
+                    onClick = { confirmingSave = false; onSave(); onBack() },
+                    modifier = Modifier.testTag(SAVE_CONFIRM_TEST_TAG),
+                ) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { confirmingSave = false }) { Text("Cancel") } },
+        )
+    }
+
+    // Pending-edit-and-fixes dispatch, Item 1: shown once, right after the app resumes from having
+    // backgrounded this entry while dirty — see CartographyScreen's own lifecycle-observer doc
+    // comment for when this actually fires. No Discard option here, deliberately: the two
+    // resolutions on offer are Commit (keep it, as a committed entry) or Save as draft (keep it,
+    // demoted) — discarding a pending edit the user hasn't even seen a chance to review yet isn't
+    // one of the choices this prompt exists to offer.
+    if (showReturnPrompt) {
+        AlertDialog(
+            onDismissRequest = onContinueEditing,
+            title = { Text("Welcome back") },
+            text = { Text("This entry had an edit still pending when the app went to the background. Continue editing, commit it, or save it as a draft.") },
+            confirmButton = {
+                TextButton(onClick = onCommit, modifier = Modifier.testTag(RETURN_PROMPT_COMMIT_TEST_TAG)) { Text("Commit") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = onSaveAsDraft, modifier = Modifier.testTag(RETURN_PROMPT_SAVE_AS_DRAFT_TEST_TAG)) { Text("Save as draft") }
+                    TextButton(onClick = onContinueEditing, modifier = Modifier.testTag(RETURN_PROMPT_CONTINUE_EDITING_TEST_TAG)) { Text("Continue editing") }
+                }
+            },
+        )
+    }
 }
 
 /** [showLeavePrompt]'s own three buttons — tagged since the screen's own persistent "Save" button (shown for any committed entry) otherwise collides with this dialog's identically-labelled one for `onNodeWithText` in tests. */
 internal const val LEAVE_PROMPT_SAVE_TEST_TAG = "cartography_leave_prompt_save"
 internal const val LEAVE_PROMPT_DISCARD_TEST_TAG = "cartography_leave_prompt_discard"
 internal const val LEAVE_PROMPT_CANCEL_TEST_TAG = "cartography_leave_prompt_cancel"
+
+/** [confirmingSave]'s own confirm button — tagged for the same reason as the leave prompt's: this dialog's "Save" text collides with the screen's own persistent button and the leave prompt's own Save option. */
+internal const val SAVE_CONFIRM_TEST_TAG = "cartography_save_confirm"
+
+/** [showReturnPrompt]'s own three buttons. */
+internal const val RETURN_PROMPT_COMMIT_TEST_TAG = "cartography_return_prompt_commit"
+internal const val RETURN_PROMPT_SAVE_AS_DRAFT_TEST_TAG = "cartography_return_prompt_save_as_draft"
+internal const val RETURN_PROMPT_CONTINUE_EDITING_TEST_TAG = "cartography_return_prompt_continue_editing"
 
 @Composable
 private fun KeptPhotosSection(

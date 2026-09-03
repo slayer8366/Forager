@@ -12,12 +12,18 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.CartographyEntry
@@ -96,6 +102,8 @@ internal fun CartographyScreen(
     onSaveEntry: () -> Unit,
     /** The leave-prompt's Discard option. See [CartographyEntryEditScreen]'s own doc comment. */
     onDiscardEntryChanges: () -> Unit,
+    /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See this file's own lifecycle-observer doc comment below. */
+    onSaveEntryAsDraft: () -> Unit,
     onDeleteEntry: (String) -> Unit,
     modifier: Modifier = Modifier,
     /** Grid column count for the Entries/Drafts lists — 2 for compact, more for expanded/tablet. */
@@ -141,6 +149,41 @@ internal fun CartographyScreen(
         requestLeaveEntry()
     }
 
+    // Pending-edit-and-fixes dispatch, Item 1: backgrounding must not commit a dirty committed
+    // entry. Self-contained here (owner decision, over threading through AvailabilityScreen's own
+    // observer) — one new parameter (onSaveEntryAsDraft) instead of a boolean plus two callbacks
+    // crossing JournalTab/LogPanel/AvailabilityScreen, and it keeps this screen's whole
+    // backgrounding-and-return story next to the leave-prompt's own identical hoisted-state shape.
+    // On ON_STOP: no ViewModel call at all — the pending edit already sits live in
+    // CartographyUiState.editingEntry/hasUnsavedChanges (see CartographyViewModel.persist's own doc
+    // comment), so "hold it in memory" costs nothing beyond not calling onSaveEntry. This replaces
+    // the previous device-check-patch behavior, which called onSaveEntry here and silently
+    // committed an edit the user never approved — AvailabilityScreen's own ON_STOP observer no
+    // longer touches Cartography at all.
+    // On ON_RESUME: if the app was backgrounded while dirty, show the return prompt instead.
+    // rememberSaveable on both flags — plain remember would drop them on a real Activity
+    // recreation (a config change during backgrounding, or process death short of losing the
+    // process outright) and silently skip the prompt, the same catch the device-check patch's
+    // rememberSaveable fix for PhotoAcquisitionLaunchers already established.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var backgroundedWhileDirty by rememberSaveable { mutableStateOf(false) }
+    var showReturnPrompt by rememberSaveable { mutableStateOf(false) }
+    val latestIsEntryDirty by rememberUpdatedState(editingEntry != null && !editingEntry.isDraft && uiState.hasUnsavedChanges)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> if (latestIsEntryDirty) backgroundedWhileDirty = true
+                Lifecycle.Event.ON_RESUME -> if (backgroundedWhileDirty) {
+                    showReturnPrompt = true
+                    backgroundedWhileDirty = false
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     if (editingEntry != null) {
         if (mode == CartographyEntryMode.EDIT) {
             CartographyEntryEditScreen(
@@ -164,6 +207,10 @@ internal fun CartographyScreen(
                 onFinish = onFinishEntry,
                 onSave = onSaveEntry,
                 onDiscardChanges = onDiscardEntryChanges,
+                showReturnPrompt = showReturnPrompt,
+                onContinueEditing = { showReturnPrompt = false },
+                onCommit = { showReturnPrompt = false; onSaveEntry() },
+                onSaveAsDraft = { showReturnPrompt = false; onSaveEntryAsDraft() },
                 onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                 onBack = onCloseEntry,
                 modifier = modifier.fillMaxSize(),

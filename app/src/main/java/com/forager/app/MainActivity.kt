@@ -384,6 +384,7 @@ class MainActivity : ComponentActivity() {
                     onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
                     onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
                     onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                    onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
                     getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },

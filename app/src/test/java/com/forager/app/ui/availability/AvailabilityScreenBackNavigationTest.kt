@@ -71,6 +71,7 @@ import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.ui.log.CartographyUiState
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.MapSlot
+import androidx.lifecycle.Lifecycle
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,6 +125,22 @@ class AvailabilityScreenBackNavigationTest {
 
     private fun pressBack() {
         composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * Simulates the app backgrounding and the user returning to it — real `ON_STOP`/`ON_RESUME`
+     * events driven through the actual Activity lifecycle (`ActivityScenario.moveToState`), the
+     * same "the real dispatcher/lifecycle is the only thing that can settle this" reasoning this
+     * file's own class doc comment gives for [pressBack] over calling a callback directly.
+     * `CREATED` (not `DESTROYED`) is backgrounding, not a real Activity recreation — the View
+     * hierarchy and Compose composition stay alive, matching what actually happens when a user
+     * presses home or switches apps, as opposed to a config change or process death.
+     */
+    private fun backgroundThenResume() {
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        composeRule.waitForIdle()
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
         composeRule.waitForIdle()
     }
 
@@ -268,6 +285,16 @@ class AvailabilityScreenBackNavigationTest {
                     }
                 },
                 onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
+                onSaveCartographyEntryAsDraft = {
+                    cartographyState.editingEntry?.let { current ->
+                        val demoted = current.copy(isDraft = true)
+                        cartographyState = cartographyState.copy(
+                            entries = cartographyState.entries.filterNot { it.id == demoted.id },
+                            draftEntries = cartographyState.draftEntries + demoted,
+                        )
+                    }
+                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                },
                 onDeleteCartographyEntry = { id ->
                     cartographyState = cartographyState.copy(
                         entries = cartographyState.entries.filterNot { it.id == id },
@@ -566,6 +593,124 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Entries").assertIsDisplayed()
         composeRule.onNodeWithText("2026-08-01").performClick()
         composeRule.onNodeWithText("Saved via system back.").assertIsDisplayed()
+    }
+
+    // --- Pending-edit-and-fixes dispatch, Item 1: backgrounding must not commit ---------------------
+    // Real ON_STOP/ON_RESUME coverage, via backgroundThenResume() — this exact lifecycle transition
+    // (not just the ViewModel methods it can trigger) had no test anywhere in this suite before this
+    // dispatch, the same kind of gap the back-nav dispatch's own report called out and closed for
+    // system back specifically.
+
+    @Test
+    fun `backgrounding a dirty committed entry commits nothing, and resuming shows the return prompt`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Pending, not yet approved.")
+        composeRule.waitForIdle()
+
+        backgroundThenResume()
+
+        composeRule.onNodeWithText("Welcome back").assertIsDisplayed()
+        // Still showing the pending edit, right where it was — commit never happened.
+        composeRule.onNodeWithText("Pending, not yet approved.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `backgrounding a clean committed entry shows no return prompt on resume`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+
+        backgroundThenResume()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+    }
+
+    @Test
+    fun `backgrounding an open draft shows no return prompt on resume — drafts autosave, unchanged`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft text.")
+        composeRule.waitForIdle()
+
+        backgroundThenResume()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+        composeRule.onNodeWithText("Draft text.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Continue editing on the return prompt dismisses it and leaves the pending edit exactly in place`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Pending, not yet approved.")
+        composeRule.waitForIdle()
+        backgroundThenResume()
+        composeRule.onNodeWithText("Welcome back").assertIsDisplayed()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_CONTINUE_EDITING_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+        composeRule.onNodeWithText("Pending, not yet approved.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Commit on the return prompt persists the pending edit and stays on the entry`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Committed on return.")
+        composeRule.waitForIdle()
+        backgroundThenResume()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_COMMIT_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+        // Still on the entry (Commit doesn't leave), and it landed in Entries.
+        composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
+    }
+
+    /** The owner's own correction to the reported plan: demoting closes the screen rather than staying open in draft mode, so the change is visible, not discovered later. */
+    @Test
+    fun `Save as draft on the return prompt closes the screen and moves the entry to Drafts with the edit in place`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Saved as draft on return.")
+        composeRule.waitForIdle()
+        backgroundThenResume()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_SAVE_AS_DRAFT_TEST_TAG).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+        // Closed — visible under Drafts now, not left open silently rendering as a draft.
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithText("Drafts (1)").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithText("Saved as draft on return.").assertIsDisplayed()
+        // And it's really gone from Entries, not just still showing there too.
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithText("Entries").performClick()
+        composeRule.onNodeWithText("2026-08-01").assertDoesNotExist()
     }
 
     /**

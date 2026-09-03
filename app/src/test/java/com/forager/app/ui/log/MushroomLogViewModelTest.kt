@@ -711,6 +711,72 @@ class MushroomLogViewModelTest {
         assertTrue("an incidental exit must never delete, touched or not", repository.getAll().getOrThrow().any { it.id == "new-entry" })
     }
 
+    // --- Pending-edit-and-fixes dispatch, Item 2: an untouched re-edit leaves no draft behind ------
+    // Cartography already got this right — an untouched committed entry exits clean, no draft.
+    // Finds didn't: StartEditingLogEntryUseCase mints a full copy of the committed parent the
+    // instant editing *starts*, before any field is touched, so leaving immediately used to surface
+    // that untouched copy as if it were a real, abandoned edit.
+
+    @Test
+    fun `leaving a re-edit unchanged discards the draft outright, never surfaces it`() = runTest(dispatcher) {
+        val original = entry.copy(notes = "original field notes")
+        val repository = FakeMushroomLogRepository(initial = listOf(original))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(original.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        assertTrue("a re-edit's draft is a separate row from the committed entry", draftId != original.id)
+
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+
+        assertNull("the form closes on an incidental exit, same as any other", vm.uiState.value.editingEntry)
+        assertTrue(
+            "an unchanged re-edit must not appear in Drafts — there was never a real edit to abandon",
+            vm.uiState.value.draftEntries.none { it.id == draftId },
+        )
+        assertTrue(
+            "the parent stays exactly as it was, untouched",
+            vm.uiState.value.entries.single { it.id == original.id }.notes == "original field notes",
+        )
+        assertTrue(
+            "the orphaned draft row must be gone from disk too, not just hidden from the UI",
+            repository.getAll().getOrThrow().none { it.id == draftId },
+        )
+    }
+
+    @Test
+    fun `leaving a re-edit with an actual change still surfaces the draft, unchanged from before this dispatch`() = runTest(dispatcher) {
+        val original = entry.copy(notes = "original field notes")
+        val repository = FakeMushroomLogRepository(initial = listOf(original))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(original.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "actually changed this time"))
+        advanceUntilIdle()
+
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.editingEntry)
+        assertEquals(
+            "a genuinely edited re-edit must still surface in Drafts, exactly as before this dispatch",
+            listOf(draftId),
+            vm.uiState.value.draftEntries.map { it.id },
+        )
+        assertEquals("actually changed this time", vm.uiState.value.draftEntries.single().notes)
+        assertEquals(
+            "the parent stays untouched until Save, regardless",
+            "original field notes",
+            vm.uiState.value.entries.single { it.id == original.id }.notes,
+        )
+    }
+
     /**
      * The dispatch's own named hazard: photos attached during a re-edit's draft session land on
      * the draft's own id, and Save must repoint those cross-reference rows onto the parent
