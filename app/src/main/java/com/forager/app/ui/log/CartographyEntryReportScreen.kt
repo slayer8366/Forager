@@ -26,6 +26,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,11 +39,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.forager.app.domain.GeoDistance
 import com.forager.app.domain.CartographyEntryMapData
+import com.forager.app.domain.GeoDistance
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
+import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Waypoint
 import com.forager.app.domain.model.formatDistanceKm
 import com.forager.app.ui.map.Basemap
@@ -122,6 +125,22 @@ import com.forager.app.ui.theme.Spacing
  * here specifically — see that field's own doc comment for the real bug this avoids (the map seizing
  * the camera for the device's *current* location the instant permission is granted, overriding the
  * framing computed here for what is, after all, a historical place).
+ *
+ * ## The offline-map toggle (Journal Stage 2e-i)
+ *
+ * A manual switch below the map — never over it, so the standing 80% chrome-over-the-map opacity
+ * rule doesn't apply here at all, since nothing is drawn on top of the map surface. Shown only once
+ * [getCoveringOfflineRegion] resolves a non-null [OfflineRegionSummary] — absent both while that's
+ * still resolving and when it resolves to `null` (no kept region covers this entry's data), the same
+ * "absent, not disabled-and-visible" treatment the map section above already uses for its own
+ * nothing-resolved case. [getCoveringOfflineRegion] is scoped to [entry]'s own **kept**
+ * [CartographyEntry.offlineRegionDecisions] only, deliberately never falling back to searching every
+ * downloaded region on the device — see [com.forager.app.domain.GetCartographyEntryOfflineRegionUseCase]'s
+ * own doc comment for why a withheld region must stay excluded here, not just in the text below.
+ *
+ * **Flipping the toggle changes nothing about what tiles this screen's map requests, in this stage.**
+ * It only sets [MapRenderMode.useOfflineTiles], read by nothing yet — see that field's own doc
+ * comment for why an unread field here is a deliberate seam for Stage 2e-ii, not dead code.
  */
 @Composable
 internal fun CartographyEntryReportScreen(
@@ -132,6 +151,7 @@ internal fun CartographyEntryReportScreen(
     basemap: Basemap,
     night: Boolean,
     getMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    getCoveringOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     onEdit: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
@@ -140,9 +160,16 @@ internal fun CartographyEntryReportScreen(
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
     var mapData by remember(entry.id) { mutableStateOf<CartographyEntryMapData?>(null) }
+    var coveringOfflineRegion by remember(entry.id) { mutableStateOf<OfflineRegionSummary?>(null) }
+    // The user's own choice — local, never persisted, resets per entry. Stage 2e-i's own manual
+    // toggle: see this file's own doc comment, "The offline-map toggle," for why flipping this does
+    // not yet change any tile request.
+    var useOfflineTiles by remember(entry.id) { mutableStateOf(false) }
 
     LaunchedEffect(entry.id) {
-        mapData = getMapData(entry, galleryPhotos)
+        val resolved = getMapData(entry, galleryPhotos)
+        mapData = resolved
+        coveringOfflineRegion = getCoveringOfflineRegion(entry, resolved.allPoints)
     }
 
     val isEntirelyEmpty = entry.text.isBlank() &&
@@ -209,7 +236,7 @@ internal fun CartographyEntryReportScreen(
                         photoMarkers = resolvedMapData.photoMarkers,
                         offlineRegionCircles = resolvedMapData.offlineRegionCircles,
                     ),
-                    MapRenderMode(basemap = basemap, night = night, trackLiveLocation = false),
+                    MapRenderMode(basemap = basemap, night = night, trackLiveLocation = false, useOfflineTiles = useOfflineTiles),
                     null,
                     {},
                     {},
@@ -217,6 +244,29 @@ internal fun CartographyEntryReportScreen(
                     {},
                     Modifier.fillMaxSize(),
                 )
+            }
+
+            val availableOfflineRegion = coveringOfflineRegion
+            if (availableOfflineRegion != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(OFFLINE_TOGGLE_LABEL, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            OFFLINE_TOGGLE_CAPTION,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = useOfflineTiles,
+                        onCheckedChange = { useOfflineTiles = it },
+                        modifier = Modifier.testTag(OFFLINE_TOGGLE_TEST_TAG),
+                    )
+                }
             }
         }
 
@@ -311,6 +361,17 @@ private const val EMPTY_ENTRY_MESSAGE =
         "regions, and photos you choose to keep from a day's records, plus anything you write. " +
         "Tap the three-dot menu, then Edit, to add something."
 
+/** Reported verbatim, same reasoning as [EMPTY_ENTRY_MESSAGE] — the toggle's own label, Journal Stage 2e-i. */
+private const val OFFLINE_TOGGLE_LABEL = "Offline map"
+
+/**
+ * Reported verbatim, same reasoning as [EMPTY_ENTRY_MESSAGE]. States the tradeoff plainly rather than
+ * dressing it up as a warning — the current offline style is a hosting-cost constraint the owner
+ * intends to lift later, not a design choice, but it is today's reality and a user should not meet it
+ * as a surprise the first time they flip this switch.
+ */
+private const val OFFLINE_TOGGLE_CAPTION = "Offline maps show shapes only — no place names, road names, or icons."
+
 /**
  * The map's fixed height above the scrollable text — Journal Stage 2d. Not [Modifier.weight], since
  * the scrollable [Column] below it keeps its own load-bearing `weight(1f)` (CLAUDE.md, restated in
@@ -322,6 +383,9 @@ private const val CARTOGRAPHY_MAP_HEIGHT_DP = 200
 
 /** Lets tests distinguish "the map section rendered" from "nothing resolved, no map section at all" without depending on [mapSlot]'s own real content — see this file's own doc comment, "No map section at all while loading, or if nothing resolved." */
 internal const val CARTOGRAPHY_MAP_TEST_TAG = "cartography-entry-map"
+
+/** Lets tests select the offline-map [Switch] directly, rather than relying on an untagged toggleable-semantics query. */
+internal const val OFFLINE_TOGGLE_TEST_TAG = "cartography-entry-offline-toggle"
 
 private data class ReportItem(val title: String, val subtitle: String?)
 

@@ -4,11 +4,15 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.CartographyEntryMapData
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
@@ -17,6 +21,7 @@ import com.forager.app.domain.model.PhotoAttachment
 import com.forager.app.domain.model.WaypointDecision
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.MapOverlayContent
+import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -65,15 +70,22 @@ class CartographyEntryReportScreenMapTest {
 
     private var capturedContent: MapOverlayContent? = null
     private var capturedRegion: com.forager.app.domain.model.Region? = null
+    private var capturedRenderMode: MapRenderMode? = null
 
-    private val capturingMapSlot: MapSlot = { region, content, _, _, _, _, _, _, _ ->
+    private val capturingMapSlot: MapSlot = { region, content, renderMode, _, _, _, _, _, _ ->
         capturedRegion = region
         capturedContent = content
+        capturedRenderMode = renderMode
     }
 
-    private fun setScreen(entry: CartographyEntry, mapData: CartographyEntryMapData) {
+    private fun setScreen(
+        entry: CartographyEntry,
+        mapData: CartographyEntryMapData,
+        coveringOfflineRegion: OfflineRegionSummary? = null,
+    ) {
         capturedContent = null
         capturedRegion = null
+        capturedRenderMode = null
         composeRule.setContent {
             CartographyEntryReportScreen(
                 entry = entry,
@@ -83,6 +95,7 @@ class CartographyEntryReportScreenMapTest {
                 basemap = Basemap.DEFAULT,
                 night = false,
                 getMapData = { _, _ -> mapData },
+                getCoveringOfflineRegion = { _, _ -> coveringOfflineRegion },
                 onEdit = {},
                 onDeleteEntry = {},
                 onBack = {},
@@ -192,6 +205,7 @@ class CartographyEntryReportScreenMapTest {
                 // Never resolves within this test -- simulates the moment before the LaunchedEffect's
                 // suspend call returns.
                 getMapData = { _, _ -> kotlinx.coroutines.delay(Long.MAX_VALUE); throw IllegalStateException("unreachable") },
+                getCoveringOfflineRegion = { _, _ -> null },
                 onEdit = {},
                 onDeleteEntry = {},
                 onBack = {},
@@ -218,6 +232,89 @@ class CartographyEntryReportScreenMapTest {
         composeRule.onNodeWithTag(CARTOGRAPHY_MAP_TEST_TAG).assertIsDisplayed()
         assertEquals(45.5, capturedRegion?.lat)
         assertEquals(-122.5, capturedRegion?.lng)
+    }
+
+    private fun offlineRegionSummary(): OfflineRegionSummary = OfflineRegionSummary(
+        id = 1L,
+        name = "Ridge Region",
+        region = com.forager.app.domain.model.Region(lat = 45.5, lng = -122.5, radiusKm = 10),
+        minZoom = com.forager.app.domain.OfflineMapRepository.MIN_ZOOM,
+        maxZoom = com.forager.app.domain.OfflineMapRepository.MAX_ZOOM,
+        tileCount = 100,
+        sizeBytes = 1_000L,
+        createdAtEpochMillis = 0L,
+    )
+
+    private val mapDataWithWaypoint = CartographyEntryMapData(
+        trackPolylines = emptyList(),
+        findMarkers = emptyList(),
+        waypointMarkers = listOf(LatLng(45.5, -122.5)),
+        photoMarkers = emptyList(),
+        offlineRegionCircles = emptyList(),
+    )
+
+    @Test
+    fun `the offline-map toggle appears, with the exact reported copy, once a covering region resolves`() {
+        setScreen(baseEntry, mapDataWithWaypoint, coveringOfflineRegion = offlineRegionSummary())
+
+        composeRule.onNodeWithText("Offline map").assertIsDisplayed()
+        composeRule.onNodeWithText("Offline maps show shapes only — no place names, road names, or icons.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the offline-map toggle is absent when no covering region is available`() {
+        setScreen(baseEntry, mapDataWithWaypoint, coveringOfflineRegion = null)
+
+        composeRule.onNodeWithText("Offline map").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the offline-map toggle is absent while getCoveringOfflineRegion is still resolving`() {
+        composeRule.setContent {
+            CartographyEntryReportScreen(
+                entry = baseEntry,
+                galleryPhotos = emptyList(),
+                distanceUnit = DistanceUnit.MILES,
+                mapSlot = capturingMapSlot,
+                basemap = Basemap.DEFAULT,
+                night = false,
+                getMapData = { _, _ -> mapDataWithWaypoint },
+                // Never resolves within this test -- simulates the moment before the chained
+                // LaunchedEffect's second suspend call returns.
+                getCoveringOfflineRegion = { _, _ -> kotlinx.coroutines.delay(Long.MAX_VALUE); throw IllegalStateException("unreachable") },
+                onEdit = {},
+                onDeleteEntry = {},
+                onBack = {},
+            )
+        }
+
+        composeRule.onNodeWithText("Offline map").assertDoesNotExist()
+    }
+
+    @Test
+    fun `flipping the offline-map toggle sets MapRenderMode-useOfflineTiles but changes nothing else the map requests`() {
+        setScreen(baseEntry, mapDataWithWaypoint, coveringOfflineRegion = offlineRegionSummary())
+
+        composeRule.onNodeWithText("Offline map").assertIsDisplayed()
+        composeRule.onNodeWithTag(OFFLINE_TOGGLE_TEST_TAG).assertIsOff()
+        assertEquals(false, capturedRenderMode?.useOfflineTiles)
+        val regionBeforeToggle = capturedRegion
+        val contentBeforeToggle = capturedContent
+
+        composeRule.onNodeWithTag(OFFLINE_TOGGLE_TEST_TAG).performClick()
+
+        composeRule.onNodeWithTag(OFFLINE_TOGGLE_TEST_TAG).assertIsOn()
+        assertEquals(true, capturedRenderMode?.useOfflineTiles)
+        assertEquals(
+            "flipping the toggle must not change what the map is asked to draw",
+            regionBeforeToggle,
+            capturedRegion,
+        )
+        assertEquals(
+            "flipping the toggle must not change what the map is asked to draw",
+            contentBeforeToggle,
+            capturedContent,
+        )
     }
 
     @Test

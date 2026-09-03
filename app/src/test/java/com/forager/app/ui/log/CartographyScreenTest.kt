@@ -83,6 +83,7 @@ class CartographyScreenTest {
                 basemap = com.forager.app.ui.map.Basemap.DEFAULT,
                 night = false,
                 getMapData = { _, _ -> emptyCartographyMapData },
+                getCoveringOfflineRegion = { _, _ -> null },
                 onOpenEntry = { id ->
                     uiState = uiState.copy(editingEntry = uiState.entries.firstOrNull { it.id == id } ?: uiState.draftEntries.firstOrNull { it.id == id })
                 },

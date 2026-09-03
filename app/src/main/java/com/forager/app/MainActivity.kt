@@ -383,6 +383,7 @@ class MainActivity : ComponentActivity() {
                     onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
+                    getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
                         if (trackUiState.isRecording) {

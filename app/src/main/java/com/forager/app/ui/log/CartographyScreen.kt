@@ -18,9 +18,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.forager.app.domain.CartographyEntryMapData
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
+import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PhotoSource
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.map.Basemap
@@ -77,6 +79,7 @@ internal fun CartographyScreen(
     basemap: Basemap,
     night: Boolean,
     getMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    getCoveringOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     onOpenEntry: (String) -> Unit,
     onStartEntry: (LocalDate) -> Unit,
     onCloseEntry: () -> Unit,
@@ -126,6 +129,7 @@ internal fun CartographyScreen(
                 basemap = basemap,
                 night = night,
                 getMapData = getMapData,
+                getCoveringOfflineRegion = getCoveringOfflineRegion,
                 onEdit = { mode = CartographyEntryMode.EDIT },
                 onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                 onBack = onCloseEntry,

@@ -30,9 +30,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.CurrentTimeProvider
+import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
+import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
@@ -147,6 +149,8 @@ internal fun LogPanel(
     onDeleteCartographyEntry: (String) -> Unit,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    /** [CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i — see that composable's doc comment. */
+    getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     /** See [RecordsTab]'s own doc comment for all of the following — Stage 1's Records tab. */
     availabilityUiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
@@ -334,6 +338,7 @@ internal fun LogPanel(
                 basemap = basemap,
                 night = night,
                 getMapData = getCartographyEntryMapData,
+                getCoveringOfflineRegion = getCartographyEntryOfflineRegion,
                 onOpenEntry = onOpenCartographyEntry,
                 onStartEntry = onStartCartographyEntry,
                 onCloseEntry = onCloseCartographyEntry,

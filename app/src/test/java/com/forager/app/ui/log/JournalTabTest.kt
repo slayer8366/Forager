@@ -174,6 +174,7 @@ class JournalTabTest {
                 onFinishCartographyEntry = {},
                 onDeleteCartographyEntry = {},
                 getCartographyEntryMapData = { _, _ -> EMPTY_CARTOGRAPHY_MAP_DATA },
+                getCartographyEntryOfflineRegion = { _, _ -> null },
                 // Journal restructure Stage 1's Records tab — this file tests the relocated Finds
                 // section's navigation state, so these (besides waypoints/tracks below, unused by
                 // Finds) are inert fixtures, not exercised by any test.

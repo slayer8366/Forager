@@ -500,6 +500,13 @@ fun AvailabilityScreen(
         CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
     },
     /**
+     * [com.forager.app.ui.log.CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i —
+     * see that composable's doc comment. Defaulted for the same reason [getCartographyEntryMapData]
+     * is: the many existing tests of this screen that never open a Cartography entry don't need a
+     * real resolver just to compile.
+     */
+    getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = { _, _ -> null },
+    /**
      * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
      * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
      * Activity (see `MainActivity`'s `pendingLocationAction`) rather than requesting it here.
@@ -904,6 +911,7 @@ fun AvailabilityScreen(
                     onFinishCartographyEntry = onFinishCartographyEntry,
                     onDeleteCartographyEntry = onDeleteCartographyEntry,
                     getCartographyEntryMapData = getCartographyEntryMapData,
+                    getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                     // Journal restructure Stage 1: the Records tab's three submenus — see
                     // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
                     // reads its offline-map-specific fields off; distanceUnit/currentTime are the
@@ -1398,6 +1406,7 @@ fun AvailabilityScreen(
                             onFinishCartographyEntry = onFinishCartographyEntry,
                             onDeleteCartographyEntry = onDeleteCartographyEntry,
                             getCartographyEntryMapData = getCartographyEntryMapData,
+                            getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                             // Journal restructure Stage 1: the Records tab's three submenus — see
                             // RecordsTab's own doc comment.
                             availabilityUiState = uiState,

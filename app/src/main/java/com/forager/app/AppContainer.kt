@@ -49,6 +49,7 @@ import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetCartographyDraftEntriesUseCase
 import com.forager.app.domain.GetCartographyEntriesUseCase
 import com.forager.app.domain.GetCartographyEntryMapDataUseCase
+import com.forager.app.domain.GetCartographyEntryOfflineRegionUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetDerivedTripUseCase
 import com.forager.app.domain.GetDraftEntriesUseCase
@@ -220,6 +221,10 @@ class AppContainer(context: Context) {
     // (tracks/finds live-fetched, waypoints/photos/offline-regions already in the entry's own
     // snapshot) — see GetCartographyEntryMapDataUseCase's own doc comment.
     val getCartographyEntryMapDataUseCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository)
+
+    // Journal Stage 2e-i: the same screen's manual offline-map toggle — see
+    // GetCartographyEntryOfflineRegionUseCase's own doc comment.
+    val getCartographyEntryOfflineRegionUseCase = GetCartographyEntryOfflineRegionUseCase(offlineMapRepository)
 
     // Journal Stage 2a's derived-trip read, consumed by 2b's trip-report surface — data-layer-only
     // when 2a landed, so never wired here until now.

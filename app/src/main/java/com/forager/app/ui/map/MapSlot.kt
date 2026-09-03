@@ -61,6 +61,26 @@ data class MapRenderMode(
      * exists exactly to absorb an addition like this one without touching that count.
      */
     val trackLiveLocation: Boolean = true,
+    /**
+     * Whether the user has asked this map instance to serve tiles from a downloaded offline region
+     * instead of the online basemap — Journal Stage 2e-i, the manual toggle on
+     * [com.forager.app.ui.log.CartographyEntryReportScreen]'s own map. **Deliberately inert as of
+     * Stage 2e-i: nothing reads this field yet.** [SightingsMapSlot]/[SightingsMap] still always
+     * request tiles from [basemap] regardless of this value — see Stage 2e-i's own dispatch for why
+     * the toggle exists (surface the user's choice, let them see and set it) without yet acting on
+     * it (actually swapping to the offline vector style, `OFFLINE_STYLE_URL`, is Stage 2e-ii, and
+     * carries a risk — whether a live style load is actually served from the on-device offline
+     * cache rather than attempting a network fetch — that cannot be settled without a device).
+     *
+     * **Do not read this as dead code or dormant scaffolding to prune.** This project has already
+     * had an unread field mislead a planner into treating live scaffolding as abandoned once; this
+     * one is a deliberate seam, awaiting Stage 2e-ii's own consumer. Bundled here for the same
+     * reason [trackLiveLocation] is — [com.forager.app.ui.map.MapSlot]'s own function-type
+     * typealias is one parameter short of a real Compose compiler crash at 10 declared parameters
+     * (see [MapOverlayContent]'s own doc comment), so a new capability like this one goes on
+     * [MapRenderMode], never on [MapSlot] itself.
+     */
+    val useOfflineTiles: Boolean = false,
 )
 
 data class MapOverlayContent(
