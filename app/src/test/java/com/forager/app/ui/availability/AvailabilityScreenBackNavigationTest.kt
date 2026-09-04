@@ -465,6 +465,39 @@ class AvailabilityScreenBackNavigationTest {
     }
 
     /**
+     * Entry-photo-acquisition dispatch, Item 3 — found on device: system back from the add-photo
+     * picker landed on the entry *list*, skipping the editor the user came from.
+     * `CartographyScreen`'s own `BackHandler` only unwinds `editingEntry != null`; the picker is a
+     * level *inside* that it had no handler for, so back consumed the entry level and skipped the
+     * picker entirely. Proves the fix: back from the picker returns to the editor (still open, not
+     * discarded), and a second back then reaches the drafts list, unwinding one level at a time —
+     * the same "fifth instance of the same four-layer navigation problem" every other multi-level
+     * case in this file already exercises.
+     */
+    @Test
+    fun `back from the add-photo picker returns to the editor, and back again reaches the drafts list`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft with a photo picker open.")
+        composeRule.onNodeWithContentDescription("Add a photo from the Album").performClick()
+        composeRule.onNodeWithText("Camera").assertIsDisplayed()
+
+        pressBack()
+
+        // Back on the editor — the picker is gone, but the draft's own text survived, proving this
+        // landed on the editor rather than discarding the entry and reaching the list in one step.
+        composeRule.onNodeWithText("Camera").assertDoesNotExist()
+        composeRule.onNodeWithText("Draft with a photo picker open.").assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Draft with a photo picker open.").assertDoesNotExist()
+        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
+        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+    }
+
+    /**
      * The Records sub-tab layer: back from a non-default sub-tab steps to Waypoints, the fixed
      * default — not out to Cartography in the same press. Recorded Tracks, not Offline Maps: that
      * sub-tab's own `onOfflineMapsOpened` calls the real `AvailabilityViewModel`, which reaches a

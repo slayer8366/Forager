@@ -283,6 +283,49 @@ class MushroomLogViewModelTest {
     }
 
     /**
+     * Entry-photo-acquisition dispatch, Item 2: [onPersisted] is what lets `MainActivity` compose
+     * "persist to the standalone gallery" (this function, unmodified) with "attach to whatever
+     * entry the user is standing in" (`CartographyViewModel.onToggleKeptPhoto`, which
+     * `CartographyViewModelTest`'s own "a standalone photo with no owning find can be pulled into
+     * a Cartography entry" test already proves accepts any persisted id) without
+     * `CartographyViewModel` growing its own copy of [AddPhotoToGalleryUseCase]. Fired with the
+     * real persisted id — not the one on [newPhoto] as constructed by this test, but whatever
+     * [FakePhotoStore.persistResult] actually returned, proving this reads the use case's own
+     * result rather than assuming the source's shape.
+     */
+    @Test
+    fun `onAddGalleryPhoto invokes onPersisted with the newly persisted photo's id on success`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "standalone-2", relativePath = "photos/standalone-2.jpg", createdAtEpochMillis = 3_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+
+        var persistedId: String? = null
+        vm.onAddGalleryPhoto(object : PhotoSource {}) { id -> persistedId = id }
+        advanceUntilIdle()
+
+        assertEquals(newPhoto.id, persistedId)
+    }
+
+    /** The default's whole point (entry-photo-acquisition dispatch, Item 2): every call site before this dispatch — [PhotoGalleryScreen]'s own Camera/Import buttons among them — omits [onAddGalleryPhoto]'s new [onPersisted] parameter entirely, so this proves that path still succeeds unchanged rather than merely compiling. */
+    @Test
+    fun `onAddGalleryPhoto with no onPersisted argument still persists and refreshes the gallery`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "standalone-3", relativePath = "photos/standalone-3.jpg", createdAtEpochMillis = 4_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+
+        vm.onAddGalleryPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(newPhoto, vm.uiState.value.galleryPhotos.single().photo)
+    }
+
+    /**
      * Photo-geodata dispatch: a camera-captured photo's location arrives as a fire-and-forget
      * follow-up write, never bundled into the same operation that persisted the photo — see
      * [MushroomLogViewModel]'s own "Camera-capture location" doc comment. Exercised on the

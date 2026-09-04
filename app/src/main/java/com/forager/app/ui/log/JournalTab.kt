@@ -162,6 +162,8 @@ internal fun JournalTab(
     onSetWaypointDecision: (String, Boolean) -> Unit,
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
+    /** Entry-photo-acquisition dispatch, Item 2. See [CartographyScreen]'s own doc comment on this same parameter. */
+    onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit = {},
     onFinishCartographyEntry: () -> Unit,
     /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment. */
     onSaveCartographyEntry: () -> Unit = {},
@@ -313,6 +315,19 @@ internal fun JournalTab(
                     pullingPhotoForEditingEntry = false
                     onPullPhoto(photo)
                 },
+                // Entry-photo-acquisition dispatch, Item 2: the same shared composable gains
+                // Camera/Import for both its callers, not just Cartography's — "acquire and
+                // attach" here reuses onAddPhoto whole, the exact same already-correct
+                // persist-attach-and-GPS-patch path LogEntryDetailScreen's own PhotosSection
+                // already calls a few lines below, and onPhotoAcquisitionInFlightChanged is the
+                // same guard threaded there too: the two call sites are mutually exclusive
+                // branches of this same `when`, so whichever is actually composed is the only one
+                // whose in-flight state matters at a time. Reusing both rather than defaulting
+                // them to no-ops, which would have rendered live Camera/Import buttons that
+                // silently discarded whatever they captured.
+                cameraCaptureFiles = cameraCaptureFiles,
+                onPhotoAcquired = onAddPhoto,
+                onAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
                 modifier = Modifier.weight(1f),
             )
 
@@ -414,6 +429,7 @@ internal fun JournalTab(
                 onSetWaypointDecision = onSetWaypointDecision,
                 onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                 onToggleKeptPhoto = onToggleKeptPhoto,
+                onAcquirePhotoForEntry = onAcquirePhotoForCartographyEntry,
                 onFinishEntry = onFinishCartographyEntry,
                 onSaveEntry = onSaveCartographyEntry,
                 onDiscardEntryChanges = onDiscardCartographyEntryChanges,

@@ -607,12 +607,27 @@ class MushroomLogViewModel(
      * [AddPhotoToGalleryUseCase]'s own doc comment for why this stops one step short of
      * [onAddPhoto]). No [editingEntryMutex] needed: unlike [onAddPhoto], this never reads or writes
      * [MushroomLogUiState.editingEntry] at all.
+     *
+     * [onPersisted] — entry-photo-acquisition dispatch, Item 2: fired with the new photo's id on
+     * success, before this function's own `loadGalleryPhotos()` refresh but after the write has
+     * landed. Defaults to a no-op, so every call site before this dispatch is unaffected. Exists so
+     * `MainActivity` can compose "persist to the standalone gallery" (owned here) with "attach to
+     * the Cartography entry the user is standing in" (`CartographyViewModel.onToggleKeptPhoto`,
+     * owned there) at the one place both ViewModels are already visible, without
+     * `CartographyViewModel` growing its own copy of [AddPhotoToGalleryUseCase] — which would not
+     * only duplicate this function's own persist logic, but leave [MushroomLogUiState.galleryPhotos]
+     * stale: [GetGalleryPhotosUseCase] is a one-shot suspend call, not a reactive `Flow`, so a write
+     * from a use case this ViewModel never called would never be reflected here on its own. Reusing
+     * this function whole — persist, refresh, and (for a camera capture) the GPS patch below — keeps
+     * a photo acquired from inside an entry indistinguishable, everywhere else in the app, from one
+     * acquired from the Album or a find.
      */
-    fun onAddGalleryPhoto(source: PhotoSource) {
+    fun onAddGalleryPhoto(source: PhotoSource, onPersisted: (String) -> Unit = {}) {
         viewModelScope.launch {
             addPhotoToGallery(source).fold(
                 onSuccess = { photo ->
                     _uiState.update { it.copy(saveErrorMessage = null) }
+                    onPersisted(photo.id)
                     loadGalleryPhotos()
                     // Photo-geodata dispatch: see this class's own "Camera-capture location" doc comment.
                     if (source is CameraCapturePhotoSource) {

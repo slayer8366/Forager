@@ -360,6 +360,12 @@ class JournalTabTest {
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
         }
+        // Entry-photo-acquisition dispatch, Item 2: the same shared picker gained Camera/Import
+        // buttons for both its callers — see PullPhotoPickerScreen's own doc comment. Presence only,
+        // same established limit as every other Camera/Import button in this codebase (a real tap
+        // launches a system Activity Robolectric cannot drive).
+        composeRule.onNodeWithText("Camera").assertIsDisplayed()
+        composeRule.onNodeWithText("Import").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Log photo").performClick()
 
         // Back on the edit form (not stuck in the picker), now showing the pulled-in photo.

@@ -488,6 +488,8 @@ fun AvailabilityScreen(
     onSetWaypointDecision: (String, Boolean) -> Unit = { _, _ -> },
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit = { _, _ -> },
     onToggleKeptPhoto: (String) -> Unit = {},
+    /** Entry-photo-acquisition dispatch, Item 2. See [CartographyScreen]'s own doc comment on this same parameter. */
+    onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit = {},
     onFinishCartographyEntry: () -> Unit = {},
     /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. Threaded straight through to CartographyScreen, whose own lifecycle observer also uses it for the backgrounding-return prompt's Commit option (pending-edit-and-fixes dispatch, Item 1). */
     onSaveCartographyEntry: () -> Unit = {},
@@ -922,6 +924,7 @@ fun AvailabilityScreen(
                     onSetWaypointDecision = onSetWaypointDecision,
                     onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                     onToggleKeptPhoto = onToggleKeptPhoto,
+                    onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
                     onFinishCartographyEntry = onFinishCartographyEntry,
                     onSaveCartographyEntry = onSaveCartographyEntry,
                     onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
@@ -1478,6 +1481,7 @@ fun AvailabilityScreen(
                             onSetWaypointDecision = onSetWaypointDecision,
                             onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                             onToggleKeptPhoto = onToggleKeptPhoto,
+                            onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
                             onFinishCartographyEntry = onFinishCartographyEntry,
                             onSaveCartographyEntry = onSaveCartographyEntry,
                             onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
