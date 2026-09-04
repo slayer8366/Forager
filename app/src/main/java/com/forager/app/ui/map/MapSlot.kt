@@ -3,6 +3,8 @@ package com.forager.app.ui.map
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -81,6 +83,26 @@ data class MapRenderMode(
      * [MapRenderMode], never on [MapSlot] itself.
      */
     val useOfflineTiles: Boolean = false,
+    /**
+     * Extra clearance [SightingsMap]'s always-visible attribution line keeps above this map's own
+     * bottom edge — fullscreen-maps dispatch, Part 2b. Zero for every existing caller: the
+     * attribution sits flush above the map's bottom edge, as it always has, unless something floats
+     * over that edge that attribution must not be covered by. `CompactMapTab`'s own fullscreen mode
+     * is the one caller that sets this non-zero, once the app-wide bottom nav floats over the map
+     * instead of resizing it (see that composable's own doc comment) — the nav's own measured
+     * height, not a guessed constant, for the same "measure, don't hardcode" reasoning
+     * `mapIconBarBottomPx` already established for a different floating-chrome measurement in this
+     * codebase.
+     *
+     * Bundled here, alongside [basemap]/[night]/[trackLiveLocation]/[useOfflineTiles], rather than
+     * added as a new top-level [com.forager.app.ui.map.MapSlot] parameter: that function-type
+     * typealias is one parameter short of a real, previously-hit Compose compiler crash at 10
+     * declared parameters (see [MapOverlayContent]'s own doc comment) — [MapRenderMode] exists
+     * exactly to absorb an addition like this one without touching that count. [SightingsMap]'s own
+     * `bottomInset` parameter is what this actually drives; [SightingsMapSlot] forwards it through
+     * unchanged.
+     */
+    val bottomInset: Dp = 0.dp,
 )
 
 data class MapOverlayContent(
@@ -284,6 +306,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         findMarkers = content.findMarkers,
         photoMarkers = content.photoMarkers,
         offlineRegionCircles = content.offlineRegionCircles,
+        bottomInset = renderMode.bottomInset,
         modifier = modifier,
     )
 }

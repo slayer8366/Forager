@@ -32,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color as ComposeColor
 import com.forager.app.ui.theme.MapPalette
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -198,6 +199,8 @@ fun SightingsMap(
     photoMarkers: List<LatLng> = emptyList(),
     /** See [com.forager.app.ui.map.MapOverlayContent.offlineRegionCircles]'s own doc comment. */
     offlineRegionCircles: List<Region> = emptyList(),
+    /** See [com.forager.app.ui.map.MapRenderMode.bottomInset]'s own doc comment. */
+    bottomInset: Dp = 0.dp,
 ) {
     val context = LocalContext.current
 
@@ -503,6 +506,7 @@ fun SightingsMap(
             color = ComposeColor.White,
             modifier = Modifier
                 .align(Alignment.BottomStart)
+                .padding(bottom = bottomInset)
                 .background(ComposeColor.Black.copy(alpha = 0.55f))
                 .padding(horizontal = 6.dp, vertical = 2.dp),
         )

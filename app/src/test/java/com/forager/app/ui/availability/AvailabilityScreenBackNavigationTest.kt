@@ -368,8 +368,11 @@ class AvailabilityScreenBackNavigationTest {
         setScreen()
         searchAReferenceRegion()
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
-        // The bottom nav is conditionally composed away while fullscreen, not merely hidden.
-        composeRule.onNodeWithText("Tools").assertDoesNotExist()
+        // Fullscreen-maps dispatch, Part 2a: the bottom nav no longer disappears while fullscreen —
+        // it floats over the map at 80% opacity instead, so the map's own dimensions never change.
+        // Still reachable and tappable, unchanged, which is the point: "its behaviour must not
+        // change anywhere else in the app" applies here too, not just to the other three tabs.
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
 
         pressBack()
 
@@ -395,16 +398,31 @@ class AvailabilityScreenBackNavigationTest {
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 
-    // The "drawer open while fullscreen" back-priority test that used to live here is gone, not
-    // relocated: it depended on the icon stack's own "Search" button, which stayed up while
-    // fullscreen and so could open the drawer in that state. Map/navigation redesign dispatch B
-    // removed that button — Tools now lives only on the bottom nav, which itself is conditionally
-    // composed away while fullscreen (see the "back exits fullscreen" test's own assertion above) —
-    // and the drawer's scrim blocks MapIconBar's Fullscreen button while the drawer is open, so
-    // there is no path left to reach *and* leave fullscreen with the drawer open at the same time.
-    // "Drawer open and fullscreen at once" is accordingly no longer a reachable state to assert
-    // back-priority over, not merely an untested one — this is the same accepted reachability
-    // tradeoff as removing the Search icon itself.
+    /**
+     * Reachable again as of the fullscreen-maps dispatch (Part 2a floats the bottom nav, including
+     * Tools, over the fullscreen map instead of removing it) — a "drawer open while fullscreen"
+     * back-priority test used to live here and was deleted for the opposite reason (an earlier
+     * dispatch had made the combination unreachable). `BackHandler(enabled = isDrawerOpen)`'s own
+     * placement, first among this chain's four handlers and unconditional on `isMapFullscreen`,
+     * already closes the drawer before fullscreen on its own — this proves that isn't an accident.
+     */
+    @Test
+    fun `back closes the drawer without also exiting fullscreen`() {
+        setScreen()
+        searchAReferenceRegion()
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.onNodeWithText("Tools").performClick()
+        // DrawerHeader's own close affordance — proves the Tools drawer is actually open.
+        composeRule.onNodeWithContentDescription("Close search options").assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithContentDescription("Close search options").assertIsNotDisplayed()
+        // Still fullscreen — the icon reads "Exit fullscreen," not "Fullscreen" — proving back
+        // closed the drawer only, rather than also unwinding fullscreen in the same press.
+        composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
+    }
 
     /**
      * A Journal entry's own edit form is more nested than "which bottom-nav tab is selected" — back

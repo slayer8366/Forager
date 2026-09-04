@@ -399,6 +399,7 @@ class MainActivity : ComponentActivity() {
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
                     getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
+                    getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
                         if (trackUiState.isRecording) {

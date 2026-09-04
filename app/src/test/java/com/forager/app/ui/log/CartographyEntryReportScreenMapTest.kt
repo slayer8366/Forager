@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.CartographyEntryMapData
+import com.forager.app.domain.LocationResult
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
@@ -19,7 +20,6 @@ import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.OfflineRegionDecision
 import com.forager.app.domain.model.PhotoAttachment
 import com.forager.app.domain.model.WaypointDecision
-import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.map.MapSlot
@@ -92,10 +92,10 @@ class CartographyEntryReportScreenMapTest {
                 galleryPhotos = emptyList(),
                 distanceUnit = DistanceUnit.MILES,
                 mapSlot = capturingMapSlot,
-                basemap = Basemap.DEFAULT,
                 night = false,
                 getMapData = { _, _ -> mapData },
                 getCoveringOfflineRegion = { _, _ -> coveringOfflineRegion },
+                getCurrentLocation = { LocationResult.LocationUnavailable },
                 onEdit = {},
                 onDeleteEntry = {},
                 onBack = {},
@@ -200,12 +200,12 @@ class CartographyEntryReportScreenMapTest {
                 galleryPhotos = emptyList(),
                 distanceUnit = DistanceUnit.MILES,
                 mapSlot = capturingMapSlot,
-                basemap = Basemap.DEFAULT,
                 night = false,
                 // Never resolves within this test -- simulates the moment before the LaunchedEffect's
                 // suspend call returns.
                 getMapData = { _, _ -> kotlinx.coroutines.delay(Long.MAX_VALUE); throw IllegalStateException("unreachable") },
                 getCoveringOfflineRegion = { _, _ -> null },
+                getCurrentLocation = { LocationResult.LocationUnavailable },
                 onEdit = {},
                 onDeleteEntry = {},
                 onBack = {},
@@ -276,12 +276,12 @@ class CartographyEntryReportScreenMapTest {
                 galleryPhotos = emptyList(),
                 distanceUnit = DistanceUnit.MILES,
                 mapSlot = capturingMapSlot,
-                basemap = Basemap.DEFAULT,
                 night = false,
                 getMapData = { _, _ -> mapDataWithWaypoint },
                 // Never resolves within this test -- simulates the moment before the chained
                 // LaunchedEffect's second suspend call returns.
                 getCoveringOfflineRegion = { _, _ -> kotlinx.coroutines.delay(Long.MAX_VALUE); throw IllegalStateException("unreachable") },
+                getCurrentLocation = { LocationResult.LocationUnavailable },
                 onEdit = {},
                 onDeleteEntry = {},
                 onBack = {},

@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.forager.app.domain.CartographyEntryMapData
+import com.forager.app.domain.LocationResult
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DistanceUnit
@@ -33,7 +34,6 @@ import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PhotoSource
 import com.forager.app.photo.CameraCaptureFiles
-import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -84,10 +84,11 @@ internal fun CartographyScreen(
     onAddGalleryPhoto: (PhotoSource) -> Unit,
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
-    basemap: Basemap,
     night: Boolean,
     getMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     getCoveringOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
+    /** See [CartographyEntryReportScreen]'s own doc comment, "Fullscreen." */
+    getCurrentLocation: suspend () -> LocationResult,
     onOpenEntry: (String) -> Unit,
     onStartEntry: (LocalDate) -> Unit,
     onCloseEntry: () -> Unit,
@@ -256,10 +257,10 @@ internal fun CartographyScreen(
                 galleryPhotos = galleryPhotos,
                 distanceUnit = distanceUnit,
                 mapSlot = mapSlot,
-                basemap = basemap,
                 night = night,
                 getMapData = getMapData,
                 getCoveringOfflineRegion = getCoveringOfflineRegion,
+                getCurrentLocation = getCurrentLocation,
                 onEdit = { mode = CartographyEntryMode.EDIT },
                 onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                 onBack = onCloseEntry,

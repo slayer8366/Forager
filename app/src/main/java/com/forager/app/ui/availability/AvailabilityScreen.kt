@@ -193,6 +193,7 @@ import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.ForagingWeatherGuidance
 import com.forager.app.domain.FruitingPatternAssumptions
+import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MgrsConverter
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
@@ -524,6 +525,12 @@ fun AvailabilityScreen(
      * real resolver just to compile.
      */
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = { _, _ -> null },
+    /**
+     * [com.forager.app.ui.log.CartographyEntryReportScreen]'s own fullscreen recenter button —
+     * fullscreen-maps dispatch, see that composable's own doc comment, "Fullscreen." Defaulted for
+     * the same reason [getCartographyEntryMapData] is.
+     */
+    getCartographyEntryCurrentLocation: suspend () -> LocationResult = { LocationResult.LocationUnavailable },
     /**
      * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
      * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
@@ -942,6 +949,7 @@ fun AvailabilityScreen(
                     onDeleteCartographyEntry = onDeleteCartographyEntry,
                     getCartographyEntryMapData = getCartographyEntryMapData,
                     getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
+                    getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
                     // Journal restructure Stage 1: the Records tab's three submenus — see
                     // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
                     // reads its offline-map-specific fields off; distanceUnit/currentTime are the
@@ -1235,6 +1243,54 @@ fun AvailabilityScreen(
         // onLeaveLogEntryEditingIncidentally() already ran, and the Snackbar only offers an undo: a
         // dismissed or ignored one leaves the draft exactly where that call already put it (owner
         // decision, 2026-08-25: Gmail-drafts-style).
+        val onBottomNavTabSelected: (CompactTab) -> Unit = { tab ->
+            // Workstream L4b: switching away from Journal while an entry is open is
+            // "leaving without answering" — the same incidental-exit auto-save as
+            // the edit form's own back arrow or the app backgrounding (see
+            // MushroomLogViewModel's own doc comment on the three exits). Checked
+            // before compactTab actually changes, so this only fires on a genuine
+            // tab switch, never on tapping the already-selected Journal tab again.
+            // Also correct for Tools, below, since that never sets compactTab at
+            // all — tab != CompactTab.JOURNAL is still true when tab is TOOLS.
+            if (compactTab == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
+                leaveLogEntryEditingOfferingDiscard()
+            }
+            if (tab == CompactTab.TOOLS) {
+                // CompactTab.TOOLS's own doc comment: opens the drawer as an
+                // overlay over whatever tab is already showing, rather than
+                // becoming compactTab itself — the same drawer the removed
+                // MapIconBar search icon used to open (see that composable's own
+                // doc comment), including the same "dismiss any open taxon
+                // suggestion popup first" step openSearchDrawer used to do.
+                onDismissTaxonSuggestions()
+                isDrawerOpen = true
+            } else {
+                compactTab = tab
+                // Keep the shared ResultsTab-driven state in sync for the three
+                // destinations both it and CompactTab describe — see compactTab's
+                // own doc comment for why.
+                when (tab) {
+                    CompactTab.LIST -> selectedTab = ResultsTab.LIST
+                    CompactTab.MAP -> selectedTab = ResultsTab.MAP
+                    CompactTab.SEASONAL -> selectedTab = ResultsTab.SEASONAL
+                    CompactTab.JOURNAL -> Unit
+                    CompactTab.TOOLS -> Unit // unreachable — handled above
+                }
+            }
+        }
+        // ForagerBottomNav's own last-measured height, in px — fullscreen-maps dispatch, Part 2a.
+        // Reused for two things once the map goes fullscreen: sizing the invisible spacer below
+        // that takes this bar's own place in Scaffold's bottomBar slot (so Scaffold's own content
+        // padding — and with it, the weight(1f) Box below that CompactMapTab lives in — never
+        // changes size at all, the actual fix for the non-seamless resize this replaces), and
+        // MapRenderMode.bottomInset, so SightingsMap's attribution rises to sit just above wherever
+        // this bar is actually floating rather than a guessed constant. Measured, not hardcoded,
+        // the same "don't hardcode a floating-chrome height" precedent mapIconBarBottomPx already
+        // set in this file — there is always a real measurement to reuse by the time fullscreen can
+        // first be entered, since reaching it at all requires this same bar (in its ordinary,
+        // Scaffold-hosted position) to have already rendered and measured itself at least once.
+        var bottomNavHeightPx by remember { mutableStateOf(0f) }
+        val density = LocalDensity.current
         Scaffold(
             snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
             bottomBar = {
@@ -1242,42 +1298,16 @@ fun AvailabilityScreen(
                     ForagerBottomNav(
                         selectedTab = compactTab,
                         isDrawerOpen = isDrawerOpen,
-                        onTabSelected = { tab ->
-                            // Workstream L4b: switching away from Journal while an entry is open is
-                            // "leaving without answering" — the same incidental-exit auto-save as
-                            // the edit form's own back arrow or the app backgrounding (see
-                            // MushroomLogViewModel's own doc comment on the three exits). Checked
-                            // before compactTab actually changes, so this only fires on a genuine
-                            // tab switch, never on tapping the already-selected Journal tab again.
-                            // Also correct for Tools, below, since that never sets compactTab at
-                            // all — tab != CompactTab.JOURNAL is still true when tab is TOOLS.
-                            if (compactTab == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
-                                leaveLogEntryEditingOfferingDiscard()
-                            }
-                            if (tab == CompactTab.TOOLS) {
-                                // CompactTab.TOOLS's own doc comment: opens the drawer as an
-                                // overlay over whatever tab is already showing, rather than
-                                // becoming compactTab itself — the same drawer the removed
-                                // MapIconBar search icon used to open (see that composable's own
-                                // doc comment), including the same "dismiss any open taxon
-                                // suggestion popup first" step openSearchDrawer used to do.
-                                onDismissTaxonSuggestions()
-                                isDrawerOpen = true
-                            } else {
-                                compactTab = tab
-                                // Keep the shared ResultsTab-driven state in sync for the three
-                                // destinations both it and CompactTab describe — see compactTab's
-                                // own doc comment for why.
-                                when (tab) {
-                                    CompactTab.LIST -> selectedTab = ResultsTab.LIST
-                                    CompactTab.MAP -> selectedTab = ResultsTab.MAP
-                                    CompactTab.SEASONAL -> selectedTab = ResultsTab.SEASONAL
-                                    CompactTab.JOURNAL -> Unit
-                                    CompactTab.TOOLS -> Unit // unreachable — handled above
-                                }
-                            }
+                        onTabSelected = onBottomNavTabSelected,
+                        modifier = Modifier.onGloballyPositioned { coordinates ->
+                            bottomNavHeightPx = coordinates.size.height.toFloat()
                         },
                     )
+                } else {
+                    // Reserves exactly the space the real bar above last measured, so Scaffold's
+                    // own bottom content-inset never changes across the fullscreen toggle — see
+                    // bottomNavHeightPx's own doc comment above.
+                    Spacer(modifier = Modifier.fillMaxWidth().height(with(density) { bottomNavHeightPx.toDp() }))
                 }
             },
         ) { padding ->
@@ -1359,94 +1389,121 @@ fun AvailabilityScreen(
                             onViewOnMap = onViewSpeciesOnMap,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        CompactTab.MAP -> CompactMapTab(
-                            uiState = uiState,
-                            mapSlot = mapSlot,
-                            renderMode = mapRenderMode,
-                            mapMode = mapMode,
-                            onMapModeSelected = { mapMode = it },
-                            isNightMode = isNightMode,
-                            onPlaceTripPin = onPlaceTripPin,
-                            // Opens straight to the log's edit form for the new entry, bypassing
-                            // Search — see DrawerPanel's own doc comment on why Log is reachable
-                            // both ways.
-                            onLogFindHere = onLogFindHere,
-                            isFullscreen = isMapFullscreen,
-                            onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
-                            onLocateMe = onLocateMe,
-                            isRecording = isRecording,
-                            onToggleRecording = onToggleRecording,
-                            startRecordingErrorMessage = startRecordingErrorMessage,
-                            breadcrumbPoints = breadcrumbPoints,
-                            waypoints = waypoints,
-                            onDropWaypoint = onDropWaypoint,
-                            returnToStart = returnToStart,
-                            isReturning = isReturning,
-                            isOffTrack = isOffTrack,
-                            onToggleReturning = onToggleReturning,
-                            compassProvider = compassProvider,
-                            taxonFilter = mapTaxonFilter,
-                            onClearTaxonFilter = onClearMapTaxonFilter,
-                            // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
-                            // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
-                            // pickingSearchLocationOnMap doc comment.
-                            pickingSearchLocation = pickingSearchLocationOnMap,
-                            onSearchLocationPicked = { location ->
-                                onManualLatChanged("%.4f".format(location.lat))
-                                onManualLngChanged("%.4f".format(location.lng))
-                                onSearchManualCoordinates()
-                                pickingSearchLocationOnMap = false
-                            },
-                            onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
-                            // SearchEntryBar now overlays this tab directly (see searchBarSlot's
-                            // own doc comment below) rather than sitting above it in document
-                            // flow, so the strip/bubble/filter-chip positioning CompactMapTab
-                            // derives from compassStripClearance needs to start below the bar, not
-                            // at this Box's own true top edge. 0.dp while fullscreen: searchBarSlot
-                            // itself goes empty then (this call site's own comment below), so
-                            // there is no bar to clear any more — a fixed searchBarHeight here
-                            // regardless of isMapFullscreen left a bar-shaped gap above the strip
-                            // with nothing in it once the bar disappeared.
-                            topInset = if (isMapFullscreen) 0.dp else searchBarHeight,
-                            // Passed as a slot, not composed at this call site directly, so it
-                            // renders inside CompactMapTab's own Box — see that parameter's own
-                            // doc comment for why this specific nesting is load-bearing, not
-                            // cosmetic. Empty while fullscreen: matches the bar's own old
-                            // `!isMapFullscreen` gate from when it lived in this scaffold's outer
-                            // Column, now reproduced here since the slot is CompactMapTab's to
-                            // show or not.
-                            // Same Item 2 hide-during-edit condition as the non-Map SearchEntryBar
-                            // call site above — editing a Cartography entry doesn't close it when
-                            // switching to the Map tab (only find-editing does, via
-                            // leaveLogEntryEditingOfferingDiscard in ForagerBottomNav's own
-                            // onTabSelected above), so this slot needs the identical check, not just
-                            // the non-Map one.
-                            searchBarSlot = if (isMapFullscreen || isEditingJournalEntry) {
-                                {}
-                            } else {
-                                {
-                                    Column {
-                                        SearchEntryBar(
-                                            uiState = uiState,
-                                            distanceUnit = distanceUnit,
-                                            onUseCurrentLocation = {
-                                                showSearchDropdown = false
-                                                onUseCurrentLocation()
-                                            },
-                                            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                                            onTaxonSearchResultSelected = { result ->
-                                                onTaxonSearchResultSelected(result)
-                                                showSearchDropdown = false
-                                            },
-                                            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                                            onFieldFocused = { showSearchDropdown = true },
-                                        )
-                                        SearchNotice(uiState)
+                        CompactTab.MAP -> {
+                            CompactMapTab(
+                                uiState = uiState,
+                                mapSlot = mapSlot,
+                                // Attribution must rise above the floating bottom nav while fullscreen,
+                                // never covered by it — fullscreen-maps dispatch, Part 2b. bottomInset
+                                // is 0.dp (MapRenderMode's own default) otherwise, matching every other
+                                // caller unchanged.
+                                renderMode = if (isMapFullscreen) {
+                                    mapRenderMode.copy(bottomInset = with(density) { bottomNavHeightPx.toDp() })
+                                } else {
+                                    mapRenderMode
+                                },
+                                mapMode = mapMode,
+                                onMapModeSelected = { mapMode = it },
+                                isNightMode = isNightMode,
+                                onPlaceTripPin = onPlaceTripPin,
+                                // Opens straight to the log's edit form for the new entry, bypassing
+                                // Search — see DrawerPanel's own doc comment on why Log is reachable
+                                // both ways.
+                                onLogFindHere = onLogFindHere,
+                                isFullscreen = isMapFullscreen,
+                                onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
+                                onLocateMe = onLocateMe,
+                                isRecording = isRecording,
+                                onToggleRecording = onToggleRecording,
+                                startRecordingErrorMessage = startRecordingErrorMessage,
+                                breadcrumbPoints = breadcrumbPoints,
+                                waypoints = waypoints,
+                                onDropWaypoint = onDropWaypoint,
+                                returnToStart = returnToStart,
+                                isReturning = isReturning,
+                                isOffTrack = isOffTrack,
+                                onToggleReturning = onToggleReturning,
+                                compassProvider = compassProvider,
+                                taxonFilter = mapTaxonFilter,
+                                onClearTaxonFilter = onClearMapTaxonFilter,
+                                // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
+                                // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
+                                // pickingSearchLocationOnMap doc comment.
+                                pickingSearchLocation = pickingSearchLocationOnMap,
+                                onSearchLocationPicked = { location ->
+                                    onManualLatChanged("%.4f".format(location.lat))
+                                    onManualLngChanged("%.4f".format(location.lng))
+                                    onSearchManualCoordinates()
+                                    pickingSearchLocationOnMap = false
+                                },
+                                onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                                // SearchEntryBar now overlays this tab directly (see searchBarSlot's
+                                // own doc comment below) rather than sitting above it in document
+                                // flow, so the strip/bubble/filter-chip positioning CompactMapTab
+                                // derives from compassStripClearance needs to start below the bar, not
+                                // at this Box's own true top edge. 0.dp while fullscreen: searchBarSlot
+                                // itself goes empty then (this call site's own comment below), so
+                                // there is no bar to clear any more — a fixed searchBarHeight here
+                                // regardless of isMapFullscreen left a bar-shaped gap above the strip
+                                // with nothing in it once the bar disappeared.
+                                topInset = if (isMapFullscreen) 0.dp else searchBarHeight,
+                                // Passed as a slot, not composed at this call site directly, so it
+                                // renders inside CompactMapTab's own Box — see that parameter's own
+                                // doc comment for why this specific nesting is load-bearing, not
+                                // cosmetic. Empty while fullscreen: matches the bar's own old
+                                // `!isMapFullscreen` gate from when it lived in this scaffold's outer
+                                // Column, now reproduced here since the slot is CompactMapTab's to
+                                // show or not.
+                                // Same Item 2 hide-during-edit condition as the non-Map SearchEntryBar
+                                // call site above — editing a Cartography entry doesn't close it when
+                                // switching to the Map tab (only find-editing does, via
+                                // leaveLogEntryEditingOfferingDiscard in ForagerBottomNav's own
+                                // onTabSelected above), so this slot needs the identical check, not just
+                                // the non-Map one.
+                                searchBarSlot = if (isMapFullscreen || isEditingJournalEntry) {
+                                    {}
+                                } else {
+                                    {
+                                        Column {
+                                            SearchEntryBar(
+                                                uiState = uiState,
+                                                distanceUnit = distanceUnit,
+                                                onUseCurrentLocation = {
+                                                    showSearchDropdown = false
+                                                    onUseCurrentLocation()
+                                                },
+                                                onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                                                onTaxonSearchResultSelected = { result ->
+                                                    onTaxonSearchResultSelected(result)
+                                                    showSearchDropdown = false
+                                                },
+                                                onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                                                onFieldFocused = { showSearchDropdown = true },
+                                            )
+                                            SearchNotice(uiState)
+                                        }
                                     }
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                                },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            // Floats the app-wide bottom nav over the map instead of resizing it —
+                            // fullscreen-maps dispatch, Part 2a. See bottomNavHeightPx's own doc
+                            // comment above for why Scaffold's own bottomBar slot reserves the
+                            // identical height with an invisible spacer instead of just going empty,
+                            // which is exactly the resize this replaces. Scoped to this branch only
+                            // (isMapFullscreen can only be true while compactTab == MAP — the bar that
+                            // would otherwise change it is unmounted during fullscreen, and the only
+                            // exit clears it first), so no other tab's own bottom nav ever changes.
+                            if (isMapFullscreen) {
+                                ForagerBottomNav(
+                                    selectedTab = compactTab,
+                                    isDrawerOpen = isDrawerOpen,
+                                    onTabSelected = onBottomNavTabSelected,
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
+                                    modifier = Modifier.align(Alignment.BottomCenter),
+                                )
+                            }
+                        }
                         CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
                         CompactTab.JOURNAL -> JournalTab(
                             uiState = logUiState,
@@ -1499,6 +1556,7 @@ fun AvailabilityScreen(
                             onDeleteCartographyEntry = onDeleteCartographyEntry,
                             getCartographyEntryMapData = getCartographyEntryMapData,
                             getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
+                            getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
                             // Journal restructure Stage 1: the Records tab's three submenus — see
                             // RecordsTab's own doc comment.
                             availabilityUiState = uiState,
@@ -1694,10 +1752,26 @@ fun AvailabilityScreen(
  * other entry highlights the ordinary way.
  */
 @Composable
-private fun ForagerBottomNav(selectedTab: CompactTab, isDrawerOpen: Boolean, onTabSelected: (CompactTab) -> Unit) {
+private fun ForagerBottomNav(
+    selectedTab: CompactTab,
+    isDrawerOpen: Boolean,
+    onTabSelected: (CompactTab) -> Unit,
+    modifier: Modifier = Modifier,
+    /**
+     * Opaque for every existing caller. Fullscreen-maps dispatch, Part 2a: floating this bar over
+     * the map instead of resizing it needs the standing 80%-opacity chrome-over-the-map treatment
+     * this file's own map-chrome family already established
+     * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]'s own doc comment) — the
+     * container fill goes translucent, not the whole composable (a blanket
+     * [androidx.compose.ui.draw.alpha] would fade icons/labels/ripples too, which that same
+     * precedent already treats as the wrong technique for this exact kind of chrome).
+     */
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+) {
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(

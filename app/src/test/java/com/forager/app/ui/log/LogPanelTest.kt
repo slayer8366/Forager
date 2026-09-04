@@ -142,6 +142,7 @@ class LogPanelTest {
                     )
                 },
                 getCartographyEntryOfflineRegion = { _, _ -> null },
+                getCartographyEntryCurrentLocation = { com.forager.app.domain.LocationResult.LocationUnavailable },
                 // Journal restructure Stage 1's Records tab — this file tests the relocated Finds
                 // section's saveErrorMessage Toast, so these are inert fixtures, not exercised below.
                 availabilityUiState = com.forager.app.ui.availability.AvailabilityUiState(),

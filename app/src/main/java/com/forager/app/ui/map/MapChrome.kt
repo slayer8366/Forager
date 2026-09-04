@@ -267,6 +267,38 @@ internal fun MapIconBar(
      * [com.forager.app.domain.MapPreferencesRepository.getNightModeMaps]'s own doc comment).
      */
     isNightMode: Boolean = false,
+    /**
+     * Whether slot 4 (map mode) opens [MapModePicker] at all — fullscreen-maps dispatch: the
+     * Cartography entry map's own offline-tiles toggle needs this row disabled while offline tiles
+     * are in use, since offline is a single fixed style with nothing to choose between. `true` for
+     * every existing caller (nothing before this dispatch had a concept of "offline" to disable it
+     * for). Disabled rather than hidden, matching that dispatch's own explicit instruction — the row
+     * stays in place, unclickable, describing why via its own [MapBarIconButton.contentDescription]
+     * rather than a tap-to-reveal message a disabled button can no longer receive a tap to show.
+     */
+    mapModePickerEnabled: Boolean = true,
+    /**
+     * The bar's 5th (last) row — fullscreen-maps dispatch: a second map surface (the Cartography
+     * entry map) needs this row to mean something other than "plan a trip or log a find here,"
+     * since neither concept exists there. A "+" button captioned for trip-planning that actually
+     * toggled offline tiles would be wrong on its face, and forking this whole composable just to
+     * change one row would defeat the split that put it here in the first place — so the row itself
+     * is caller-supplied, defaulting to today's exact add row, unchanged, which is why
+     * `CompactMapTab`'s own call site (the only caller before this dispatch) needs no changes at
+     * all. [isDarkTheme] is handed in rather than left for the row to re-read from
+     * [LocalForagerDarkTheme] itself, matching how the default row below already needs it for
+     * [mapIconBarAddAccent].
+     */
+    fifthRow: @Composable (isDarkTheme: Boolean) -> Unit = { isDarkTheme ->
+        MapBarIconButton(
+            icon = Icons.Filled.Add,
+            contentDescription = "Plan a trip or log a find here",
+            onClick = onAdd,
+            filled = true,
+            fillColor = mapIconBarAddAccent(isDarkTheme).fill,
+            fillContentColor = mapIconBarAddAccent(isDarkTheme).onFill,
+        )
+    },
 ) {
     // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
     // comment for why the two axes are kept separate rather than one steering the other.
@@ -301,23 +333,21 @@ internal fun MapIconBar(
             )
             MapBarIconButton(
                 icon = Icons.Filled.Layers,
-                contentDescription = buildString {
-                    append("Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.")
-                    // Appended rather than replacing the tap description: the button still
-                    // primarily opens the map mode picker, and a reader needs to know night mode
-                    // is on — now toggled from Settings' "Night Maps" checkbox, not from here.
-                    append(if (isNightMode) " Night mode on." else " Night mode off.")
+                contentDescription = if (mapModePickerEnabled) {
+                    buildString {
+                        append("Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.")
+                        // Appended rather than replacing the tap description: the button still
+                        // primarily opens the map mode picker, and a reader needs to know night mode
+                        // is on — now toggled from Settings' "Night Maps" checkbox, not from here.
+                        append(if (isNightMode) " Night mode on." else " Night mode off.")
+                    }
+                } else {
+                    "Offline maps use one fixed style."
                 },
                 onClick = onOpenMapModePicker,
+                enabled = mapModePickerEnabled,
             )
-            MapBarIconButton(
-                icon = Icons.Filled.Add,
-                contentDescription = "Plan a trip or log a find here",
-                onClick = onAdd,
-                filled = true,
-                fillColor = mapIconBarAddAccent(isDarkTheme).fill,
-                fillContentColor = mapIconBarAddAccent(isDarkTheme).onFill,
-            )
+            fifthRow(isDarkTheme)
         }
     }
 }

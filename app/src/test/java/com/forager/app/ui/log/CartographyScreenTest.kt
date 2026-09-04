@@ -82,10 +82,10 @@ class CartographyScreenTest {
                 onAddGalleryPhoto = {},
                 distanceUnit = DistanceUnit.MILES,
                 mapSlot = { _, _, _, _, _, _, _, _, _ -> },
-                basemap = com.forager.app.ui.map.Basemap.DEFAULT,
                 night = false,
                 getMapData = { _, _ -> emptyCartographyMapData },
                 getCoveringOfflineRegion = { _, _ -> null },
+                getCurrentLocation = { com.forager.app.domain.LocationResult.LocationUnavailable },
                 onOpenEntry = { id ->
                     uiState = uiState.copy(editingEntry = uiState.entries.firstOrNull { it.id == id } ?: uiState.draftEntries.firstOrNull { it.id == id })
                 },
