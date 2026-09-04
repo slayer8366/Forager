@@ -1,17 +1,24 @@
 # Search dropdown dismissal breaks under Robolectric when the bar's chip row is unmounted
 
 **Status:** open. Scope: the test harness disagreement only — the product path is confirmed working
-on a real device. Not blocking; the seventeen affected tests (thirteen from the original
-2026-08-31 investigation, plus four more from the fullscreen-fixes dispatch's Item 3, added
-2026-09-04, that independently hit the same root cause) are `@Ignore`d with this document as their
-record.
+on a real device. Not blocking; the thirteen affected tests are `@Ignore`d with this document as
+their record.
+
+**A near-miss, not a fourteenth case:** the fullscreen-fixes dispatch's Item 3 (minimize/restore
+handle, added 2026-09-04) first wrote four new real-touch tests that called
+`searchAReferenceRegion()` out of habit (matching this file's own surrounding convention) and hit
+this exact bug. Unlike the thirteen below, none of those four actually needed a searched region —
+`CompactMapTab` composes `MapIconBar` and its handles unconditionally, with no `!hasSearched` gate
+— so dropping the call fixed them for real rather than adding four more entries here. Worth
+checking for any *other* future real-touch test in this file that reaches for
+`searchAReferenceRegion()` without checking whether its own target actually needs a search first.
 
 **Closing this out is two changes, not one.** Un-`@Ignore`ing these tests once they pass again is
 only half of it — `.github/workflows/ci.yml`'s "Summarize the test results" step also carries a
 named `SKIPPED_TESTS_ALLOWLIST` for exactly these `(classname, name)` pairs (added 2026-08-30 for a
-different, unrelated three-test case; extended here for these seventeen). That allowlist checks by
+different, unrelated three-test case; extended here for these thirteen). That allowlist checks by
 exact set membership in both directions: an entry with no matching actual skip fails the build just
-as an unlisted skip does. So the moment any of these seventeen tests stops being skipped, its entry
+as an unlisted skip does. So the moment any of these thirteen tests stops being skipped, its entry
 must be removed from `SKIPPED_TESTS_ALLOWLIST` in the same change — CI will fail and say so if it
 isn't.
 
@@ -55,17 +62,6 @@ is what the test reports as failing.
   MGRS`
 - `a real touch in the gap above the control pill still reaches the map`
 - `tapping the map while fullscreen restores chrome`
-- `a real touch on the minimize handle hides MapIconBar and TrailheadControls together, and the
-  restore handle brings both back` (fullscreen-fixes dispatch, Item 3 — added 2026-09-04). Confirmed
-  the new control itself is sound via an isolated standalone test rendering only
-  `MapIconBarMinimizeHandle`, with no `AvailabilityScreen` around it, which invokes `onMinimize`
-  correctly; embedded here it doesn't, for the same reason as the other tests in this list.
-- `a real touch just outside the minimize handle reaches MapIconBar's own fullscreen row, not the
-  handle` (same dispatch/date) — depends on the same click taking effect as the test above.
-- `the restore handle meets the 48dp touch-target floor` (same dispatch/date) — reaching the
-  restore handle at all requires the minimize click to have taken effect first.
-- `minimising the icon bar resets after leaving and returning to the Map tab` (same dispatch/date)
-  — same dependency.
 
 `AvailabilityScreenOfflineCacheTest`:
 - `tapping a recent search reports that entry and closes the dropdown` — its own assertion was

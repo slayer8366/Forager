@@ -1142,23 +1142,21 @@ class AvailabilityScreenMapIconStackTest {
      * the tree together — per the project owner's own "minimise means the chrome goes away, not
      * that it fragments" — and the restore handle brings both back together.
      *
-     * Confirmed, not assumed, that the click itself is sound: an isolated test rendering only
-     * [MapIconBarMinimizeHandle] (no [AvailabilityScreen] around it) invokes `onMinimize`
-     * correctly. Embedded here, it doesn't — traced to the same pre-existing, documented
+     * **No [searchAReferenceRegion] call.** This test (and the other three in this group) first
+     * failed with it present, tracing to the same pre-existing
      * `docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md` bug this file already
-     * `@Ignore`s thirteen other tests for: `searchAReferenceRegion()`'s own "Search this location"
+     * `@Ignore`s thirteen other tests for — `searchAReferenceRegion()`'s own "Search this location"
      * tap doesn't actually close `SearchDropdown` under Robolectric, and once that dropdown is
-     * stuck open, state mutations from *any* later interaction silently stop propagating — that
-     * document's own "what was ruled out" section already covers touch-path and timing theories
-     * directly, on a different control. Confirmed on real hardware per that document; this file's
-     * own established precedent for this exact bug is `@Ignore`, not a new investigation.
+     * stuck open, state mutations from *any* later interaction silently stop propagating. But
+     * unlike those thirteen, nothing here needs a searched region at all: [CompactMapTab] composes
+     * [MapIconBar] and this handle unconditionally (only [MapTab]'s own, unrelated
+     * `!uiState.hasSearched` branch gates on a search, and that composable isn't what compact width
+     * renders) — so dropping the call entirely, rather than accepting the harness bug, gives real
+     * coverage instead of another allowlist entry.
      */
-    // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
-    @Ignore("Harness-only failure (searchAReferenceRegion()'s own dropdown never actually closes under Robolectric, so this control's own state mutation never propagates) — confirmed the control itself is sound via an isolated standalone test; see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md")
     @Test
     fun `a real touch on the minimize handle hides MapIconBar and TrailheadControls together, and the restore handle brings both back`() {
         setScreen()
-        searchAReferenceRegion()
 
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithTag("control-pill").assertIsDisplayed()
@@ -1186,14 +1184,13 @@ class AvailabilityScreenMapIconStackTest {
      * it to share the bar's vertical centre while being much shorter than the bar itself, so the
      * fullscreen row (the bar's topmost) should sit well above the handle's own bounds — asserted
      * directly against real measured bounds first, so this test is a real check of that geometry,
-     * not a coincidence of whatever this suite's fixed viewport happens to produce.
+     * not a coincidence of whatever this suite's fixed viewport happens to produce. No
+     * [searchAReferenceRegion] call — see the sibling test above's own doc comment for why none of
+     * this group needs one.
      */
-    // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
-    @Ignore("Harness-only failure — see the sibling test's own comment above and docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md")
     @Test
     fun `a real touch just outside the minimize handle reaches MapIconBar's own fullscreen row, not the handle`() {
         setScreen()
-        searchAReferenceRegion()
 
         val handleBounds = composeRule.onNodeWithContentDescription("Hide map controls").getUnclippedBoundsInRoot()
         val fullscreenBounds = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot()
@@ -1216,13 +1213,11 @@ class AvailabilityScreenMapIconStackTest {
     /**
      * Item 3's own explicit ask: "the tappable area should meet MIN_TOUCH_TARGET even if the
      * visible outline is smaller." No click involved — the handle is already showing once the bar
-     * itself is — so this half is unaffected by the dropdown-dismissal bug the other tests in this
-     * group hit, and stays a real, un-`@Ignore`d assertion against real measured bounds.
+     * itself is.
      */
     @Test
     fun `the minimize handle meets the 48dp touch-target floor`() {
         setScreen()
-        searchAReferenceRegion()
 
         val minimizeBounds = composeRule.onNodeWithContentDescription("Hide map controls").getUnclippedBoundsInRoot()
         val minimizeWidth = minimizeBounds.right - minimizeBounds.left
@@ -1233,16 +1228,12 @@ class AvailabilityScreenMapIconStackTest {
     /**
      * [MapIconBarRestoreHandle]'s own half of the same touch-target requirement — its own visible
      * outline is much smaller than its own 48dp square tap target (inset via padding, not a
-     * shrunken hit area, per that composable's own doc comment). Unlike the minimize handle's own
-     * version of this check above, reaching the restore handle at all requires the minimize click
-     * to have taken effect first, which is exactly what the dropdown-dismissal bug blocks here.
+     * shrunken hit area, per that composable's own doc comment). No [searchAReferenceRegion] call —
+     * see the first test in this group's own doc comment.
      */
-    // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
-    @Ignore("Harness-only failure — see `a real touch on the minimize handle...`'s own comment above and docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md")
     @Test
     fun `the restore handle meets the 48dp touch-target floor`() {
         setScreen()
-        searchAReferenceRegion()
 
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
         composeRule.waitForIdle()
@@ -1258,14 +1249,12 @@ class AvailabilityScreenMapIconStackTest {
      * always shows the full icon bar." `isMapIconBarMinimized` lives as un-keyed `remember` state
      * inside `CompactMapTab` itself (see that composable's own doc comment) — this proves the
      * reset actually happens through the real tab-switch entry point, not just by inspecting where
-     * the state lives.
+     * the state lives. No [searchAReferenceRegion] call — see the first test in this group's own
+     * doc comment.
      */
-    // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
-    @Ignore("Harness-only failure — see `a real touch on the minimize handle...`'s own comment above and docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md")
     @Test
     fun `minimising the icon bar resets after leaving and returning to the Map tab`() {
         setScreen()
-        searchAReferenceRegion()
 
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
         composeRule.waitForIdle()
