@@ -57,6 +57,18 @@ abstract class MushroomLogDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertPhoto(photo: LogPhotoEntity)
 
+    /**
+     * Photo-geodata dispatch: patches [latitude]/[longitude] onto an already-persisted gallery
+     * photo row — the fire-and-forget write [com.forager.app.ui.log.MushroomLogViewModel] issues
+     * after a camera capture's live GPS fix resolves, separate from [insertPhoto] since the photo
+     * row (and, for an attached photo, its cross-reference) must already exist by the time a fix
+     * can possibly come back. A no-op if [photoId] no longer exists (e.g. the photo or its entry
+     * was deleted while the fix was still in flight) — not a failure to report, the same "the row
+     * being gone already answers the write" reasoning as this DAO's other delete-shaped no-ops.
+     */
+    @Query("UPDATE log_photos SET latitude = :latitude, longitude = :longitude WHERE id = :photoId")
+    abstract suspend fun updatePhotoLocation(photoId: String, latitude: Double, longitude: Double)
+
     /** One cross-reference row — an entry gaining a reference to one photo it didn't have before. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertCrossRef(crossRef: LogEntryPhotoCrossRef)

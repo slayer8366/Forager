@@ -75,7 +75,13 @@ class RoomMushroomLogRepository(
         val entryIdsByPhoto = dao.getAllCrossRefs().groupBy({ it.photoId }) { it.entryId }
         dao.getAllPhotos().map { entity ->
             GalleryPhoto(
-                photo = LogPhoto(id = entity.id, relativePath = entity.relativePath, createdAtEpochMillis = entity.createdAtEpochMillis),
+                photo = LogPhoto(
+                    id = entity.id,
+                    relativePath = entity.relativePath,
+                    createdAtEpochMillis = entity.createdAtEpochMillis,
+                    latitude = entity.latitude,
+                    longitude = entity.longitude,
+                ),
                 referencingEntryIds = entryIdsByPhoto[entity.id].orEmpty(),
             )
         }
@@ -96,6 +102,10 @@ class RoomMushroomLogRepository(
 
     override suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit> = runCatchingCancellable {
         dao.insertPhoto(photo.toEntity())
+    }
+
+    override suspend fun updatePhotoLocation(photoId: String, latitude: Double, longitude: Double): Result<Unit> = runCatchingCancellable {
+        dao.updatePhotoLocation(photoId, latitude, longitude)
     }
 
     override suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit> = runCatchingCancellable {
@@ -295,7 +305,13 @@ private fun sporePrintColorFrom(kind: String, otherText: String?): SporePrintCol
     else -> error("Unknown spore print colour kind '$kind'")
 }
 
-private fun LogPhoto.toEntity() = LogPhotoEntity(id = id, relativePath = relativePath, createdAtEpochMillis = createdAtEpochMillis)
+private fun LogPhoto.toEntity() = LogPhotoEntity(
+    id = id,
+    relativePath = relativePath,
+    createdAtEpochMillis = createdAtEpochMillis,
+    latitude = latitude,
+    longitude = longitude,
+)
 
 // --- MushroomLogEntryEntity -> MushroomLogEntry --------------------------------------------------
 
@@ -395,7 +411,15 @@ private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): Mushr
     ),
     notes = entryNotes,
     ownIdentification = ownIdentification,
-    photos = photos.map { LogPhoto(id = it.id, relativePath = it.relativePath, createdAtEpochMillis = it.createdAtEpochMillis) },
+    photos = photos.map {
+        LogPhoto(
+            id = it.id,
+            relativePath = it.relativePath,
+            createdAtEpochMillis = it.createdAtEpochMillis,
+            latitude = it.latitude,
+            longitude = it.longitude,
+        )
+    },
     syncState = when (syncStateKind) {
         "DRAFT" -> LogSyncState.Draft
         "UPLOADING" -> LogSyncState.Uploading(syncProgress ?: error("Uploading state stored with no progress on entry '$id'"))

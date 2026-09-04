@@ -103,26 +103,82 @@ class LogEntryReportScreenTest {
         composeRule.onNodeWithText("Annulus:", substring = true).assertDoesNotExist()
     }
 
-    /** [StipeSection.EMPTY]/[ContextFleshSection.EMPTY]/[SporePrintSection.EMPTY]/[HostSubstrateSection.EMPTY] carry nothing at all. */
+    /**
+     * Stage 2d: [StipeSection.EMPTY]/[ContextFleshSection.EMPTY]/[SporePrintSection.EMPTY]/
+     * [HostSubstrateSection.EMPTY] carry nothing at all — omitted entirely now, never a "Not
+     * recorded yet." placeholder (the owner's own reasoning: that text asserts an absence that may
+     * be false). [partiallyRecordedEntry] has real content elsewhere (identification, cap, notes),
+     * so this is the "partially filled — omit silently, no message" case, not the fully-empty one.
+     */
     @Test
-    fun `a section with nothing recorded says so explicitly`() {
+    fun `a section with nothing recorded is omitted, not shown with a placeholder`() {
         composeRule.setContent {
             LogEntryReportScreen(entry = partiallyRecordedEntry, onEdit = {}, onDeleteEntry = {}, onBack = {})
         }
 
-        // Stipe, Context/flesh, Spore print, Host & substrate: four sections with EMPTY state.
-        composeRule.onNodeWithText("Stipe").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Not recorded yet.").assertCountEquals(4)
+        // Stipe/Context-flesh/Spore-print/Host-substrate headings are gone along with their bodies.
+        composeRule.onNodeWithText("Stipe").assertDoesNotExist()
+        composeRule.onNodeWithText("Context / flesh").assertDoesNotExist()
+        composeRule.onNodeWithText("Spore print").assertDoesNotExist()
+        composeRule.onNodeWithText("Host & substrate").assertDoesNotExist()
+        composeRule.onNodeWithText("Not recorded yet.").assertDoesNotExist()
+        // A partially filled find shows no explanatory message either — only a fully empty one does.
+        composeRule.onNodeWithText("There's nothing in here!", substring = true).assertDoesNotExist()
+    }
+
+    /** Stage 2d: literally nothing recorded anywhere — no location, identification, photos, notes, or taxonomic content — shows the owner's exact wording rather than a title and nothing else. */
+    @Test
+    fun `a find with nothing recorded at all shows the empty-find message, exactly as worded`() {
+        val entirelyEmptyEntry = MushroomLogEntry.draft(id = "empty-1", location = null, date = LocalDate.of(2026, 8, 1))
+
+        composeRule.setContent {
+            LogEntryReportScreen(entry = entirelyEmptyEntry, onEdit = {}, onDeleteEntry = {}, onBack = {})
+        }
+
+        composeRule.onNodeWithText("There's nothing in here!  You can change this by tapping the three dot menu > tap edit.").assertIsDisplayed()
+        // The ordinary body content this message replaces is not also showing.
+        composeRule.onNodeWithText("No location set.").assertDoesNotExist()
+    }
+
+    /** Confirms the instruction in the message is true — Edit really is one tap away in the overflow menu, per the dispatch's own "confirm the overflow menu genuinely offers Edit" requirement. */
+    @Test
+    fun `the empty-find message's own overflow menu route to Edit actually works`() {
+        val entirelyEmptyEntry = MushroomLogEntry.draft(id = "empty-2", location = null, date = LocalDate.of(2026, 8, 1))
+        var editCalls = 0
+        composeRule.setContent {
+            LogEntryReportScreen(entry = entirelyEmptyEntry, onEdit = { editCalls++ }, onDeleteEntry = {}, onBack = {})
+        }
+
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+
+        assertEquals(1, editCalls)
+    }
+
+    /** A find with only a photo and nothing else is not "nothing in here" — the message must not show alongside real content. */
+    @Test
+    fun `a find with only a photo shows no empty-find message`() {
+        val photoOnlyEntry = MushroomLogEntry.draft(id = "photo-only-1", location = null, date = LocalDate.of(2026, 8, 1))
+            .copy(photos = listOf(LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)))
+
+        composeRule.setContent {
+            LogEntryReportScreen(entry = photoOnlyEntry, onEdit = {}, onDeleteEntry = {}, onBack = {})
+        }
+
+        composeRule.onNodeWithText("There's nothing in here!", substring = true).assertDoesNotExist()
     }
 
     /**
      * L3 (`docs/plans/pr26-rework.md`'s Workstream L) makes [MushroomLogEntry.foundAt] nullable —
      * this is the display side of that: a location-less entry shows the owner-decided "No location
-     * set." text rather than the "Found at ..." coordinate line.
+     * set." text rather than the "Found at ..." coordinate line. Given real content elsewhere
+     * (own identification) so this exercises the no-location line specifically, distinct from
+     * Stage 2d's own fully-empty case above, which a bare no-location draft would otherwise also be.
      */
     @Test
     fun `an entry with no location shows the no-location text instead of coordinates`() {
         val locationLessEntry = MushroomLogEntry.draft(id = "no-location-1", location = null, date = LocalDate.of(2026, 8, 1))
+            .copy(ownIdentification = "Possible chanterelle")
 
         composeRule.setContent {
             LogEntryReportScreen(entry = locationLessEntry, onEdit = {}, onDeleteEntry = {}, onBack = {})

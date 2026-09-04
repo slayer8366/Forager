@@ -2,11 +2,13 @@ package com.forager.app.domain
 
 import com.forager.app.domain.model.GeoBoundingBox
 import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.model.Region
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.roundToInt
 
 /**
  * Great-circle ("as the crow flies") distance between two geographic points.
@@ -78,6 +80,65 @@ object GeoDistance {
         val west = normalizeLongitudeDegrees(center.lng - lngSpanDegrees)
 
         return GeoBoundingBox(north = north, south = south, east = east, west = west)
+    }
+
+    /**
+     * A closed ring of [pointCount] points approximating the true circle of [radiusKm] around
+     * [center] — Journal Stage 2d, for drawing an offline region's coverage as a map polygon rather
+     * than [boundingBox]'s own rectangle (built for a tile-download API, not a drawn shape). The
+     * standard spherical "destination point given start, bearing, distance" formula, one call per
+     * point evenly spaced around the bearing circle — more accurate at high latitude than
+     * [boundingBox]'s simpler equirectangular approximation, since a drawn circle's own distortion
+     * is directly visible in a way a download rectangle's slack tile margin never is. The first and
+     * last points are identical, closing the ring, since [org.maplibre.geojson.Polygon] (like GeoJSON
+     * generally) requires a closed linear ring.
+     */
+    fun circlePolygonPoints(center: LatLng, radiusKm: Int, pointCount: Int = 32): List<LatLng> {
+        require(radiusKm >= 0) { "radiusKm must not be negative, was $radiusKm" }
+        require(pointCount >= 3) { "pointCount must be at least 3 to form a polygon, was $pointCount" }
+        val radiusMeters = radiusKm * 1_000.0
+        val angularDistance = radiusMeters / EARTH_MEAN_RADIUS_METERS
+        val lat1 = Math.toRadians(center.lat)
+        val lng1 = Math.toRadians(center.lng)
+
+        val ring = (0 until pointCount).map { index ->
+            val bearing = Math.toRadians(index * 360.0 / pointCount)
+            val lat2 = asin(sin(lat1) * cos(angularDistance) + cos(lat1) * sin(angularDistance) * cos(bearing))
+            val lng2 = lng1 + atan2(
+                sin(bearing) * sin(angularDistance) * cos(lat1),
+                cos(angularDistance) - sin(lat1) * sin(lat2),
+            )
+            LatLng(lat = Math.toDegrees(lat2), lng = Math.toDegrees(lng2))
+        }
+        return ring + ring.first()
+    }
+
+    /**
+     * A [Region] (centre + radius) that encloses every one of [points] — Journal Stage 2d's camera
+     * framing for the Cartography entry map, reusing the same `region`-driven camera control
+     * [com.forager.app.ui.map.SightingsMap] already has (see that composable's own doc comment on
+     * why this app has no true bounds-fit camera API) rather than adding one. `null` for an empty
+     * [points] — a real, reachable state (an entry made entirely of photos with no coordinates),
+     * reported as an explicit "nothing to frame" rather than a fabricated default location, per
+     * CLAUDE.md's rule against inventing a plausible-looking value for an unsupported case.
+     *
+     * The centre is the bounding box's own midpoint (not every point's average, which would skew
+     * toward a cluster of nearby points rather than covering the true extent); the radius is the
+     * farthest single point's distance from that centre, rounded up to the nearest whole kilometre
+     * and clamped into [Region]'s own [Region.MIN_RADIUS_KM]/[Region.MAX_RADIUS_KM] range — the same
+     * clamp the search-radius UI already applies, reused here rather than a second one for a
+     * different reason to bound the same field.
+     */
+    fun boundingRegion(points: List<LatLng>): Region? {
+        if (points.isEmpty()) return null
+        val minLat = points.minOf { it.lat }
+        val maxLat = points.maxOf { it.lat }
+        val minLng = points.minOf { it.lng }
+        val maxLng = points.maxOf { it.lng }
+        val center = LatLng(lat = (minLat + maxLat) / 2, lng = (minLng + maxLng) / 2)
+        val maxDistanceMeters = points.maxOf { metersBetween(center, it) }
+        val radiusKm = Region.clampRadiusKm((maxDistanceMeters / 1_000.0).roundToInt().coerceAtLeast(Region.MIN_RADIUS_KM))
+        return Region(lat = center.lat, lng = center.lng, radiusKm = radiusKm)
     }
 
     /**

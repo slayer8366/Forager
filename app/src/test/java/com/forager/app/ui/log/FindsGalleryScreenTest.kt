@@ -25,13 +25,16 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * No dedicated test file existed for [LogGalleryScreen] before this — Workstream G2
- * (`docs/plans/pr26-rework.md`) adds coverage for the one thing it touched: the cover-photo tile
- * now delegates to the shared [DecodedPhoto] rather than its own (former) `GalleryCoverThumbnail`.
+ * [FindsGalleryScreen] — the Stage 2b follow-up dispatch's restored unify (point 1), replacing the
+ * former, independently-diverged `LogGalleryScreenTest`/`LogEntryListScreenTest` this consolidates
+ * (former grid-vs-list coverage folded into one set, since there's only one shape now). Also covers
+ * [FindsGalleryScreen.onAddEntry]'s nullability (point 1's `null` branch — [LogPanel]'s own usage,
+ * see that composable's own doc comment) and confirms no Album tab exists here (point 3 — Album
+ * lives in [CartographyScreen] only now).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
-class LogGalleryScreenTest {
+class FindsGalleryScreenTest {
 
     private val composeRule = createComposeRule()
 
@@ -52,7 +55,7 @@ class LogGalleryScreenTest {
             .copy(photos = listOf(LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)))
 
         composeRule.setContent {
-            LogGalleryScreen(entries = listOf(entryWithPhoto), isLoading = false, onOpenEntry = {}, onAddEntry = {})
+            FindsGalleryScreen(entries = listOf(entryWithPhoto), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
@@ -66,7 +69,7 @@ class LogGalleryScreenTest {
         val entryWithoutPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
 
         composeRule.setContent {
-            LogGalleryScreen(entries = listOf(entryWithoutPhoto), isLoading = false, onOpenEntry = {}, onAddEntry = {})
+            FindsGalleryScreen(entries = listOf(entryWithoutPhoto), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
         composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
@@ -84,7 +87,7 @@ class LogGalleryScreenTest {
         val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
 
         composeRule.setContent {
-            LogGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
+            FindsGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
         composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
@@ -99,7 +102,7 @@ class LogGalleryScreenTest {
         val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
 
         composeRule.setContent {
-            LogGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
+            FindsGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
         composeRule.onNodeWithText("Drafts (1)").performClick()
@@ -108,5 +111,48 @@ class LogGalleryScreenTest {
         composeRule.onNodeWithText("Draft").assertIsDisplayed()
         composeRule.onNodeWithText("Find on 2026-08-01").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
+    }
+
+    /** [LogPanel]'s own usage — no "+" tile inside this list at all, matching the former `LogEntryListScreen`'s shape (the expanded window starts a find via the map's "Log a find" flow instead). */
+    @Test
+    fun `with onAddEntry null, no add tile is shown even on the Log tab`() {
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+
+        composeRule.setContent {
+            FindsGalleryScreen(entries = listOf(committed), isLoading = false, onOpenEntry = {}, onAddEntry = null)
+        }
+
+        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a set loadErrorMessage shows the unavailable text when there are no entries to show`() {
+        composeRule.setContent {
+            FindsGalleryScreen(entries = emptyList(), isLoading = false, onOpenEntry = {}, loadErrorMessage = "Log entries unavailable.")
+        }
+
+        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a set loadErrorMessage does not hide entries already showing`() {
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+
+        composeRule.setContent {
+            FindsGalleryScreen(entries = listOf(committed), isLoading = false, onOpenEntry = {}, loadErrorMessage = "Log entries unavailable.")
+        }
+
+        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+    }
+
+    /** Stage 2b follow-up dispatch, point 3 — Album lives in [CartographyScreen] only now. */
+    @Test
+    fun `there is no Album tab`() {
+        composeRule.setContent {
+            FindsGalleryScreen(entries = emptyList(), isLoading = false, onOpenEntry = {}, onAddEntry = {})
+        }
+
+        composeRule.onNodeWithText("Album").assertDoesNotExist()
     }
 }

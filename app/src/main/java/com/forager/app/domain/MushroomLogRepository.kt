@@ -82,6 +82,14 @@ interface MushroomLogRepository {
     /** Adds [photo] to the gallery — the photo existing at all, independent of any entry referencing it. */
     suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit>
 
+    /**
+     * Patches [latitude]/[longitude] onto an already-persisted gallery photo — photo-geodata
+     * dispatch, `MushroomLogDao.updatePhotoLocation`'s own doc comment for why this is a separate
+     * write from [addPhotoToGallery] rather than something [PhotoStore.persist] sets up front for a
+     * camera capture. A no-op, not a failure, if [photoId] no longer exists.
+     */
+    suspend fun updatePhotoLocation(photoId: String, latitude: Double, longitude: Double): Result<Unit>
+
     /** References [photoId] from [entryId] — the only way an entry's [MushroomLogEntry.photos] gains an entry. */
     suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit>
 

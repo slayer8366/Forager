@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LogPhoto
+import com.forager.app.photo.CameraCaptureFiles
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -26,12 +27,20 @@ import org.robolectric.annotation.Config
  * Workstream G2 (`docs/plans/pr26-rework.md`): [PhotoGalleryScreen] against the real read path's
  * [GalleryPhoto] shape, per that dispatch's own "Tests" section — the gallery renders photos
  * including one with zero references, and shows the empty state when there are none.
+ *
+ * Standalone-photos dispatch: also covers the screen's own Camera/Gallery buttons (present
+ * regardless of loading/empty/populated state) and the reworded empty-state copy. Tapping Camera/
+ * Gallery itself is not exercised here — same precedent as [LogEntryDetailScreenTest], which tests
+ * only its own "From Album" button's click (a pure Compose callback) and leaves Camera/Gallery
+ * untested at the click level, since both launch a real system activity/permission dialog Robolectric
+ * cannot meaningfully drive.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class PhotoGalleryScreenTest {
 
     private val composeRule = createComposeRule()
+    private val cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext())
 
     private val declareHostActivity = object : ExternalResource() {
         override fun before() {
@@ -52,7 +61,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {})
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
         }
 
         // 1_700_000_000_000ms -> 2023-11-14 UTC; asserted against LocalDate's own toString() (the
@@ -76,7 +85,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(orphaned), isLoading = false, onDeletePhoto = {})
+            PhotoGalleryScreen(photos = listOf(orphaned), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
@@ -90,7 +99,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(migrated), isLoading = false, onDeletePhoto = {})
+            PhotoGalleryScreen(photos = listOf(migrated), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
@@ -99,20 +108,27 @@ class PhotoGalleryScreenTest {
     @Test
     fun `the empty state shows when there are no photos`() {
         composeRule.setContent {
-            PhotoGalleryScreen(photos = emptyList(), isLoading = false, onDeletePhoto = {})
+            PhotoGalleryScreen(photos = emptyList(), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
         }
 
-        composeRule.onNodeWithText("No photos yet. Add one from a log entry's Photos section.").assertIsDisplayed()
+        composeRule.onNodeWithText("No photos yet. Use Camera or Gallery above to add one.").assertIsDisplayed()
     }
 
     @Test
     fun `a load error message shows instead of the empty state when there are no photos`() {
         composeRule.setContent {
-            PhotoGalleryScreen(photos = emptyList(), isLoading = false, onDeletePhoto = {}, loadErrorMessage = "Photo gallery unavailable.")
+            PhotoGalleryScreen(
+                photos = emptyList(),
+                isLoading = false,
+                onDeletePhoto = {},
+                cameraCaptureFiles = cameraCaptureFiles,
+                onAddGalleryPhoto = {},
+                loadErrorMessage = "Photo gallery unavailable.",
+            )
         }
 
         composeRule.onNodeWithText("Photo gallery unavailable.").assertIsDisplayed()
-        composeRule.onNodeWithText("No photos yet. Add one from a log entry's Photos section.").assertDoesNotExist()
+        composeRule.onNodeWithText("No photos yet. Use Camera or Gallery above to add one.").assertDoesNotExist()
     }
 
     /** Not belief-changing — mirrors [LogGalleryScreen]'s identical rule: a failed refresh never hides photos already showing. */
@@ -124,11 +140,34 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {}, loadErrorMessage = "Photo gallery unavailable.")
+            PhotoGalleryScreen(
+                photos = listOf(photo),
+                isLoading = false,
+                onDeletePhoto = {},
+                cameraCaptureFiles = cameraCaptureFiles,
+                onAddGalleryPhoto = {},
+                loadErrorMessage = "Photo gallery unavailable.",
+            )
         }
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
         composeRule.onNodeWithText("Photo gallery unavailable.").assertDoesNotExist()
+    }
+
+    /** Standalone-photos dispatch: Camera and Gallery are always available, not just when the gallery is empty. */
+    @Test
+    fun `Camera and Gallery buttons are shown alongside a populated gallery`() {
+        val photo = GalleryPhoto(
+            photo = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = emptyList(),
+        )
+
+        composeRule.setContent {
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+        }
+
+        composeRule.onNodeWithText("Camera").assertIsDisplayed()
+        composeRule.onNodeWithText("Gallery").assertIsDisplayed()
     }
 
     /**
@@ -144,7 +183,7 @@ class PhotoGalleryScreenTest {
         )
         var deleted: GalleryPhoto? = null
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it })
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithContentDescription("Delete this photo").performClick()
@@ -168,7 +207,7 @@ class PhotoGalleryScreenTest {
         )
         var deleted: GalleryPhoto? = null
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it })
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithContentDescription("Delete this photo").performClick()
@@ -188,7 +227,7 @@ class PhotoGalleryScreenTest {
         )
         var deleted: GalleryPhoto? = null
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it })
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithContentDescription("Delete this photo").performClick()

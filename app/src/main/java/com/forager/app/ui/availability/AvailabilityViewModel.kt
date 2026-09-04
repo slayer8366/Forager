@@ -75,6 +75,8 @@ class AvailabilityViewModel(
     private val distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository,
     private val appThemePreferenceRepository: AppThemePreferenceRepository,
     private val getTodaysForecast: GetTodaysForecastUseCase,
+    /** How many Cartography entries currently keep a reference to an offline region — Journal Stage 2b's 4b deletion warning. See `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why this is a plain suspend function rather than the whole Cartography repository. */
+    private val getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -642,7 +644,13 @@ class AvailabilityViewModel(
     private fun loadOfflineRegions() {
         viewModelScope.launch {
             offlineMapRepository.listRegions().fold(
-                onSuccess = { regions -> _uiState.update { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = null) } },
+                onSuccess = { regions ->
+                    _uiState.update { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = null) }
+                    // One query per region — see TrackRecordingViewModel.loadWaypoints' identical
+                    // choice for why this scale doesn't need a batched read.
+                    val counts = regions.associate { it.id to getOfflineRegionReferenceCount(it.id) }
+                    _uiState.update { it.copy(offlineRegionEntryReferenceCounts = counts) }
+                },
                 onFailure = { error ->
                     errorLog.w(TAG, "Couldn't read offline regions.", error)
                     _uiState.update { it.copy(offlineRegionsErrorMessage = "Couldn't read offline regions.") }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -31,6 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import com.forager.app.domain.model.GalleryPhoto
+import com.forager.app.domain.model.PhotoSource
+import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
@@ -38,74 +42,110 @@ import java.time.ZoneId
 /**
  * The photo gallery — Workstream G2 (`docs/plans/pr26-rework.md`): every photo the user has ever
  * added, independent of any entry, now that G1 made a photo a first-class gallery row rather than
- * an entry's own possession. Workstream G3 adds this screen's one interactive affordance —
- * deleting a photo, warn-then-remove — the only place a photo can be deleted from, per the
- * standing rule this repo's `CLAUDE.md` states. Pulling a photo into an entry is
- * [PullPhotoPickerScreen]'s job instead, reached from the entry side, not from here.
+ * an entry's own possession. Workstream G3 added this screen's deletion affordance — warn-then-
+ * remove, the only place a photo can be deleted from, per the standing rule this repo's `CLAUDE.md`
+ * states.
+ *
+ * **Camera and Gallery live here too, as of the standalone-photos dispatch.** A photo acquired
+ * through either button has no owning find — Album is "a place you add to, not just a place things
+ * appear" (the dispatch's own framing: "Album photos are moments, not data"). Reuses
+ * [rememberPhotoAcquisitionLaunchers] — the exact same `ActivityResultContracts`/
+ * [CameraCaptureFiles]/permission wiring [LogEntryDetailScreen]'s `PhotosSection` already uses for
+ * a find's own photos, not a second implementation of it. Pulling an *existing* gallery photo into
+ * an entry is still [PullPhotoPickerScreen]'s separate job, reached from the entry side.
  *
  * Originally a top-level destination on *both* window classes (owner decision, 2026-08-22: "the
  * gallery is a place the user goes, not a mode hidden inside the journal") — a standalone
  * `CompactTab.PHOTOS` for compact, [DrawerPanel.PhotoGallery] for medium/expanded, in
- * `AvailabilityScreen.kt`. Map/navigation redesign dispatch B folded the compact side into
- * [LogGalleryScreen]'s own Album tab (this composable embedded unchanged as that tab's content)
- * to make room for a fifth bottom-nav slot — [DrawerPanel.PhotoGallery] is untouched, so the
- * medium/expanded window still reaches this directly, only the compact path changed.
+ * `AvailabilityScreen.kt`. Map/navigation redesign dispatch B folded the compact side into what
+ * was then `LogGalleryScreen`'s own Album tab (this composable embedded unchanged as that tab's
+ * content, now [CartographyScreen]'s own Album tab after the Stage 2b follow-up) —
+ * [DrawerPanel.PhotoGallery] is untouched, so the medium/expanded window still reaches this
+ * directly. **Both call sites render the identical composable, so Camera/Gallery land on both
+ * Album surfaces at once** — consistent with the dispatch's own general "Album is a place you add
+ * to" framing, not compact-only, so this is not treated as an asymmetry to design around.
  *
  * [photos] can contain a [GalleryPhoto] with an empty [GalleryPhoto.referencingEntryIds] — a real,
- * reachable state (see that type's own doc comment), not a hypothetical one this screen can assume
- * away. [GalleryPhotoTile]'s own confirmation dialog reads that count directly: warn-then-remove
- * for a referenced photo, a plain "delete this photo?" with no entries-count line for an
- * unreferenced one — there is nothing to warn about a zero count changing.
+ * reachable state (see that type's own doc comment; every photo acquired here starts this way), not
+ * a hypothetical one this screen can assume away. [GalleryPhotoTile]'s own confirmation dialog
+ * reads that count directly: warn-then-remove for a referenced photo, a plain "delete this photo?"
+ * with no entries-count line for an unreferenced one — there is nothing to warn about a zero count
+ * changing.
  */
 @Composable
 internal fun PhotoGalleryScreen(
     photos: List<GalleryPhoto>,
     isLoading: Boolean,
     onDeletePhoto: (GalleryPhoto) -> Unit,
+    cameraCaptureFiles: CameraCaptureFiles,
+    /** A photo acquired via Camera or Gallery here — persisted and added to the gallery, standalone, never attached to anything. See [AddPhotoToGalleryUseCase]'s own doc comment. */
+    onAddGalleryPhoto: (PhotoSource) -> Unit,
     modifier: Modifier = Modifier,
     /** Set when the last load failed — see [LogGalleryScreen]'s identical parameter for why this never hides [photos] already showing, only shown when there is nothing to show because the read failed. */
     loadErrorMessage: String? = null,
+    /** How many Cartography entries currently keep each photo (by id) attached — Journal Stage 2b's 4b deletion warning, extended to photos. Shown in [GalleryPhotoTile]'s own confirm dialog alongside the existing find-reference count. */
+    cartographyEntryReferenceCounts: Map<String, Int> = emptyMap(),
 ) {
-    if (isLoading && photos.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
+    val photoAcquisition = rememberPhotoAcquisitionLaunchers(cameraCaptureFiles, onAddGalleryPhoto)
 
-    when {
-        photos.isEmpty() && loadErrorMessage != null -> Text(
-            loadErrorMessage,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(Spacing.lg),
-        )
-
-        // Mirrors LogEntryListScreen's own "nothing logged yet" empty state (wording, styling, and
-        // priority-ordering after the loading/error branches) — the closest existing precedent for
-        // an empty state in this codebase; see the G2 scoping pulse's own findings on why
-        // LogGalleryScreen's own "+"-tile-always-shown shape has no equivalent text to copy instead.
-        photos.isEmpty() -> Text(
-            "No photos yet. Add one from a log entry's Photos section.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(Spacing.lg),
-        )
-
-        else -> LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(Spacing.lg),
+    Column(modifier = modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            items(photos, key = { it.photo.id }) { galleryPhoto ->
-                GalleryPhotoTile(galleryPhoto, onDelete = { onDeletePhoto(galleryPhoto) })
+            Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
+            Button(onClick = photoAcquisition.launchGallery) { Text("Gallery") }
+        }
+
+        if (isLoading && photos.isEmpty()) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Column
+        }
+
+        when {
+            photos.isEmpty() && loadErrorMessage != null -> Text(
+                loadErrorMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+            )
+
+            // Mirrors LogEntryListScreen's own former "nothing logged yet" empty state (wording,
+            // styling, and priority-ordering after the loading/error branches) — the closest
+            // existing precedent for an empty state in this codebase.
+            photos.isEmpty() -> Text(
+                "No photos yet. Use Camera or Gallery above to add one.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+            )
+
+            else -> LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(Spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                items(photos, key = { it.photo.id }) { galleryPhoto ->
+                    GalleryPhotoTile(
+                        galleryPhoto,
+                        onDelete = { onDeletePhoto(galleryPhoto) },
+                        cartographyEntryCount = cartographyEntryReferenceCounts[galleryPhoto.photo.id] ?: 0,
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+private fun GalleryPhotoTile(
+    galleryPhoto: GalleryPhoto,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    cartographyEntryCount: Int = 0,
+) {
     var confirmingDelete by remember(galleryPhoto.photo.id) { mutableStateOf(false) }
 
     Card(
@@ -140,16 +180,27 @@ private fun GalleryPhotoTile(galleryPhoto: GalleryPhoto, onDelete: () -> Unit, m
             title = { Text("Delete this photo?") },
             text = {
                 Text(
-                    // No entries-count line for an unreferenced photo (owner decision, 2026-08-22:
-                    // "if nothing references it, no warning is needed") — there is nothing for the
-                    // count to warn about at zero. Still a confirmation either way: deletion is
-                    // irreversible regardless of how many entries are affected.
-                    if (referencedCount > 0) {
-                        "This photo is used in $referencedCount ${if (referencedCount == 1) "entry" else "entries"}. " +
-                            "Deleting it will remove it from ${if (referencedCount == 1) "that entry" else "all of them"} too."
-                    } else {
-                        "This photo isn't used in any entry."
-                    },
+                    // No count line at all for a photo referenced by neither a find nor a
+                    // Cartography entry (owner decision, 2026-08-22: "if nothing references it, no
+                    // warning is needed") — there is nothing to warn about at zero either way.
+                    buildList {
+                        if (referencedCount > 0) {
+                            add(
+                                "This photo is used in $referencedCount ${if (referencedCount == 1) "entry" else "entries"}. " +
+                                    "Deleting it will remove it from ${if (referencedCount == 1) "that entry" else "all of them"} too.",
+                            )
+                        }
+                        if (cartographyEntryCount > 0) {
+                            // Journal Stage 2b, 4b extended to photos: a wordless entry can consist
+                            // mostly of attached photos, so this deserves the same warning
+                            // track/waypoint/offline-region deletion gets. No permanence claim — see
+                            // OfflineRegionsSection's identical dialog for why.
+                            add(
+                                "This photo appears in $cartographyEntryCount ${if (cartographyEntryCount == 1) "journal entry" else "journal entries"}.",
+                            )
+                        }
+                        if (isEmpty()) add("This photo isn't used in any entry.")
+                    }.joinToString(" "),
                 )
             },
             confirmButton = {

@@ -587,3 +587,182 @@ val MIGRATION_9_10: Migration = object : Migration(9, 10) {
         )
     }
 }
+
+/**
+ * Journal Stage 2b: adds `cartography_entries` and its five ref tables ([CartographyEntryEntity],
+ * [CartographyEntryTrackRefEntity], [CartographyEntryWaypointRefEntity],
+ * [CartographyEntryOfflineRegionRefEntity], [CartographyEntryFindRefEntity],
+ * [CartographyEntryPhotoRefEntity]) — a brand-new entity family, not a change to any existing table,
+ * per `amendment-2b-entry-definition.md`: a Cartography entry is authored, not derived, and
+ * [com.forager.app.domain.model.MushroomLogEntry] stays untouched.
+ *
+ * Amended twice after the initial six-table shape, both times in place rather than as a second
+ * migration, since nothing built on this one had shipped yet either time (same precedent
+ * [MIGRATION_8_9]'s own doc comment sets for amending an unreleased migration directly):
+ * - The photo-ref table, per `amendment-2b-optional-writing.md`'s "photo attachment is load-bearing."
+ * - `kept: Boolean` on the four trip-report-derived ref tables (track/waypoint/offline-region/find —
+ *   not photo, which has no candidate pool to be undecided about), per the Stage 2b follow-up
+ *   dispatch's point 2: withholding needed to become a persisted, revisitable decision, not an
+ *   in-memory-only default that a reopen couldn't tell apart from "never considered." Row presence
+ *   still means "decided one way or the other"; [kept] carries which way.
+ *
+ * A real, hand-written migration, not `fallbackToDestructiveMigration()` (release path) — a written
+ * entry is exactly as irreplaceable as a log entry or a recorded track, the same reasoning
+ * [MIGRATION_3_4]/[MIGRATION_4_5] give.
+ *
+ * **Pure `CREATE TABLE`, no rebuild** — every one of these six tables is new, so there is nothing to
+ * copy forward and none of the rebuild machinery [MIGRATION_6_7]/[MIGRATION_7_8]/[MIGRATION_8_9]
+ * needed applies here — the same shape [MIGRATION_5_6]'s `offline_regions` table used. **Zero
+ * `@ForeignKey` anywhere**, per this database's standing rule (see [MushroomLogEntryEntity.offlineRegionId]'s
+ * own doc comment) — every kept-item ref column is a plain, unconstrained, indexed id.
+ */
+val MIGRATION_10_11: Migration = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entries` (
+            `id` TEXT NOT NULL,
+            `date` TEXT NOT NULL,
+            `text` TEXT NOT NULL,
+            `tags` TEXT NOT NULL,
+            `isDraft` INTEGER NOT NULL,
+            `updatedAtEpochMillis` INTEGER NOT NULL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_date` ON `cartography_entries` (`date`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_isDraft` ON `cartography_entries` (`isDraft`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_track_refs` (
+            `entryId` TEXT NOT NULL,
+            `trackId` TEXT NOT NULL,
+            `name` TEXT,
+            `distanceMeters` REAL NOT NULL,
+            `durationMillis` INTEGER NOT NULL,
+            `pointCount` INTEGER NOT NULL,
+            `kept` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `trackId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_track_refs_trackId` " +
+                "ON `cartography_entry_track_refs` (`trackId`)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_waypoint_refs` (
+            `entryId` TEXT NOT NULL,
+            `waypointId` TEXT NOT NULL,
+            `name` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `kept` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `waypointId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_waypoint_refs_waypointId` " +
+                "ON `cartography_entry_waypoint_refs` (`waypointId`)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_offline_region_refs` (
+            `entryId` TEXT NOT NULL,
+            `offlineRegionId` INTEGER NOT NULL,
+            `name` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `radiusKm` INTEGER NOT NULL,
+            `kept` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `offlineRegionId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_offline_region_refs_offlineRegionId` " +
+                "ON `cartography_entry_offline_region_refs` (`offlineRegionId`)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_find_refs` (
+            `entryId` TEXT NOT NULL,
+            `findId` TEXT NOT NULL,
+            `foundOn` TEXT NOT NULL,
+            `ownIdentification` TEXT,
+            `hasPhotos` INTEGER NOT NULL,
+            `kept` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `findId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_find_refs_findId` " +
+                "ON `cartography_entry_find_refs` (`findId`)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_photo_refs` (
+            `entryId` TEXT NOT NULL,
+            `photoId` TEXT NOT NULL,
+            `attachedAtEpochMillis` INTEGER NOT NULL,
+            PRIMARY KEY(`entryId`, `photoId`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cartography_entry_photo_refs_photoId` " +
+                "ON `cartography_entry_photo_refs` (`photoId`)",
+        )
+    }
+}
+
+/**
+ * Adds nullable `latitude`/`longitude` to `log_photos` — the photo-geodata dispatch, and its own
+ * amendment's decision 3: camera captures and gallery imports read a coordinate from two different,
+ * non-interchangeable sources (device GPS at the shutter vs. EXIF on import, never one substituting
+ * for the other), never written into the image file itself — see [LogPhotoEntity]'s own doc comment
+ * for the full reasoning. Every existing row gets `NULL` for both, explicitly, not left to an
+ * implicit default: no location is knowable for a photo this app persisted before this migration
+ * existed, the same "honest unknown, never fabricated" reasoning [MIGRATION_7_8] already applied to
+ * `createdAtEpochMillis`.
+ *
+ * **A full rebuild (`log_photos_new`, explicit column list, drop, rename), not
+ * `ALTER TABLE ... ADD COLUMN`** — the same choice [MIGRATION_8_9] made for
+ * [com.forager.app.data.local.MushroomLogEntryEntity], and for the same reason: `LogPhotoEntity` is
+ * declared directly (not copied) by several `LegacyForagerDatabaseVn` migration-test fixtures at
+ * versions well before this one, so those fixtures' generated `CREATE TABLE` already carries
+ * `latitude`/`longitude` the moment [LogPhotoEntity] itself gains them — an `ALTER TABLE ... ADD COLUMN`
+ * here would fail outright against a column those fixtures already have. The rebuild's own explicit
+ * `INSERT ... SELECT` column list never names either new column on the source side, so it's silently
+ * ignored there regardless of what a given fixture's own copy of the table already has — the same
+ * "explicit list, ignores extras" property [MIGRATION_8_9]'s own doc comment describes. Verified by
+ * running every `LegacyForagerDatabaseVn` migration test with this migration appended to its chain,
+ * not assumed from the reasoning above (`docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`
+ * names this exact failure mode).
+ */
+val MIGRATION_11_12: Migration = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `log_photos_new` (
+            `id` TEXT NOT NULL,
+            `relativePath` TEXT NOT NULL,
+            `createdAtEpochMillis` INTEGER,
+            `latitude` REAL,
+            `longitude` REAL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `log_photos_new` (`id`, `relativePath`, `createdAtEpochMillis`, `latitude`, `longitude`)
+            SELECT `id`, `relativePath`, `createdAtEpochMillis`, NULL, NULL FROM `log_photos`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `log_photos`")
+        db.execSQL("ALTER TABLE `log_photos_new` RENAME TO `log_photos`")
+    }
+}

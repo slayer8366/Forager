@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import org.robolectric.shadows.ShadowToast
+import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Region
@@ -77,9 +78,10 @@ class JournalTabTest {
 
     private var startedEntryAt: LatLng? = null
 
-    private fun setScreen(initial: MushroomLogUiState) {
+    private fun setScreen(initial: MushroomLogUiState, pendingDestination: PendingJournalDestination? = null) {
         composeRule.setContent {
             var uiState by remember { mutableStateOf(initial) }
+            var pending by remember { mutableStateOf(pendingDestination) }
             JournalTab(
                 uiState = uiState,
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
@@ -155,8 +157,27 @@ class JournalTabTest {
                 },
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
                 onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
-                // Journal restructure Stage 1's Records tab — this file tests Cartography's own
-                // navigation state, so these are inert fixtures, not exercised by any test below.
+                // Journal Stage 2b: Cartography's own new-entity navigation — this file tests the
+                // relocated Finds section's navigation state instead (see setScreen's own
+                // Records/Finds tap below), so these are inert fixtures, not exercised by any test.
+                cartographyUiState = CartographyUiState(),
+                onOpenCartographyEntry = {},
+                onStartCartographyEntry = {},
+                onCloseCartographyEntry = {},
+                onCartographyTextChanged = {},
+                onCartographyTagsChanged = {},
+                onSetFindDecision = { _, _ -> },
+                onSetTrackDecision = { _, _ -> },
+                onSetWaypointDecision = { _, _ -> },
+                onSetOfflineRegionDecision = { _, _ -> },
+                onToggleKeptPhoto = {},
+                onFinishCartographyEntry = {},
+                onDeleteCartographyEntry = {},
+                getCartographyEntryMapData = { _, _ -> EMPTY_CARTOGRAPHY_MAP_DATA },
+                getCartographyEntryOfflineRegion = { _, _ -> null },
+                // Journal restructure Stage 1's Records tab — this file tests the relocated Finds
+                // section's navigation state, so these (besides waypoints/tracks below, unused by
+                // Finds) are inert fixtures, not exercised by any test.
                 availabilityUiState = com.forager.app.ui.availability.AvailabilityUiState(),
                 distanceUnit = com.forager.app.domain.model.DistanceUnit.MILES,
                 currentTime = com.forager.app.domain.CurrentTimeProvider { 0L },
@@ -172,7 +193,18 @@ class JournalTabTest {
                 waypoints = emptyList(),
                 waypointsErrorMessage = null,
                 onDeleteWaypoint = {},
+                pendingDestination = pending,
+                onPendingDestinationConsumed = { pending = null },
             )
+        }
+        // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu —
+        // every test below exercises find-editing navigation, so land there once, here, rather than
+        // repeating this tap in each test. Skipped when a pendingDestination was supplied: that
+        // routing-fix test (see "the map plus icon bar" below) asserts the tab lands there on its
+        // own, with no manual tap standing in for what a real one-shot request already did.
+        if (pendingDestination == null) {
+            composeRule.onNodeWithText("Records").performClick()
+            composeRule.onNodeWithText("Finds").performClick()
         }
     }
 
@@ -283,6 +315,31 @@ class JournalTabTest {
     }
 
     /**
+     * Stage 2d's routing fix: the map "+" icon bar's "Log a find" flow used to switch only
+     * `AvailabilityScreen`'s own outer tab, leaving this tab's own [selectedTopTab] (defaults to
+     * Cartography) untouched — landing on Cartography instead of the find form a device report
+     * found. [pendingDestination] is the fix: with it set (as `AvailabilityScreen`'s own
+     * `onLogFindHere` now does) and [MushroomLogUiState.editingEntry] already populated (as
+     * `onStartLogEntry` — `MushroomLogViewModel.onStartNewEntry` — already did, coordinate
+     * included), this tab must land directly on the edit form showing that coordinate, with no
+     * manual tap standing in for the one-shot request.
+     */
+    @Test
+    fun `the map plus icon bar's pending destination lands directly on the edit form with the picked coordinate, not Cartography`() {
+        val newFind = MushroomLogEntry.draft(id = "new-find", location = LatLng(45.5, -122.5), date = LocalDate.of(2026, 8, 1))
+        setScreen(
+            MushroomLogUiState(editingEntry = newFind),
+            pendingDestination = PendingJournalDestination.EDIT_NEW_FIND,
+        )
+
+        // The edit form itself, with the picked coordinate — not Cartography's own Entries/Drafts/
+        // Album tabs (which would show "Entries"/"Drafts"/"Album" tab text instead).
+        composeRule.onNodeWithText("Photos").assertIsDisplayed()
+        composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertIsDisplayed()
+        composeRule.onNodeWithText("Entries").assertDoesNotExist()
+    }
+
+    /**
      * Workstream G3: [LogEntryDetailScreen]'s "From Album" button opens [PullPhotoPickerScreen]
      * the same way "Add Location" opens the centre-pin picker — full-screen, this tab's own state.
      * Selecting a photo pulls it into the entry and returns to the edit form, without adding a new
@@ -366,6 +423,14 @@ class JournalTabTest {
 }
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)
+
+private val EMPTY_CARTOGRAPHY_MAP_DATA = CartographyEntryMapData(
+    trackPolylines = emptyList(),
+    findMarkers = emptyList(),
+    waypointMarkers = emptyList(),
+    photoMarkers = emptyList(),
+    offlineRegionCircles = emptyList(),
+)
 
 private val StubPickerMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("picker-map")) {

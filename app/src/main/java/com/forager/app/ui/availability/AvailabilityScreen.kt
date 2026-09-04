@@ -187,6 +187,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.forager.app.BuildConfig
 import com.forager.app.crash.CrashFileStore
 import com.forager.app.domain.CachedSearchSummary
+import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.ForagingSelection
@@ -200,6 +201,7 @@ import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.AvailabilityEntry
+import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
@@ -229,9 +231,11 @@ import com.forager.app.ui.adaptive.WindowWidthClass
 import com.forager.app.ui.adaptive.currentWindowWidthClass
 import com.forager.app.ui.crash.CrashLogPanel
 import com.forager.app.ui.crash.CrashLogsEntryRow
+import com.forager.app.ui.log.CartographyUiState
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
+import com.forager.app.ui.log.PendingJournalDestination
 import com.forager.app.ui.log.PhotoGalleryScreen
 import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.CentrePinLocationPicker
@@ -468,8 +472,46 @@ fun AvailabilityScreen(
     onPullLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
+    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — [PhotoGalleryScreen]'s own buttons, both Album surfaces (Cartography's tab and [DrawerPanel.PhotoGallery]). */
+    onAddGalleryPhoto: (PhotoSource) -> Unit = {},
     /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
     onSaveLogErrorDismissed: () -> Unit = {},
+    /** Journal Stage 2b's new authored entity — see [com.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
+    cartographyUiState: CartographyUiState = CartographyUiState(),
+    onOpenCartographyEntry: (String) -> Unit = {},
+    onStartCartographyEntry: (LocalDate) -> Unit = {},
+    onCloseCartographyEntry: () -> Unit = {},
+    onCartographyTextChanged: (String) -> Unit = {},
+    onCartographyTagsChanged: (List<String>) -> Unit = {},
+    onSetFindDecision: (String, Boolean) -> Unit = { _, _ -> },
+    onSetTrackDecision: (String, Boolean) -> Unit = { _, _ -> },
+    onSetWaypointDecision: (String, Boolean) -> Unit = { _, _ -> },
+    onSetOfflineRegionDecision: (Long, Boolean) -> Unit = { _, _ -> },
+    onToggleKeptPhoto: (String) -> Unit = {},
+    onFinishCartographyEntry: () -> Unit = {},
+    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. Threaded straight through to CartographyScreen, whose own lifecycle observer also uses it for the backgrounding-return prompt's Commit option (pending-edit-and-fixes dispatch, Item 1). */
+    onSaveCartographyEntry: () -> Unit = {},
+    /** The leave-prompt's Discard option — device-check patch, Item 1. */
+    onDiscardCartographyEntryChanges: () -> Unit = {},
+    /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See CartographyScreen's own lifecycle-observer doc comment. */
+    onSaveCartographyEntryAsDraft: () -> Unit = {},
+    onDeleteCartographyEntry: (String) -> Unit = {},
+    /**
+     * [com.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
+     * composable's doc comment. Defaulted to always report nothing resolved, same reasoning as
+     * [logUiState]: the many existing tests of this screen that never open a Cartography entry
+     * don't need to pass a real resolver just to compile.
+     */
+    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = { _, _ ->
+        CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+    },
+    /**
+     * [com.forager.app.ui.log.CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i —
+     * see that composable's doc comment. Defaulted for the same reason [getCartographyEntryMapData]
+     * is: the many existing tests of this screen that never open a Cartography entry don't need a
+     * real resolver just to compile.
+     */
+    getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = { _, _ -> null },
     /**
      * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
      * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
@@ -504,6 +546,8 @@ fun AvailabilityScreen(
     waypoints: List<Waypoint> = emptyList(),
     /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
     waypointsErrorMessage: String? = null,
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in [WaypointsSection]'s own confirm dialog. */
+    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** Called with the placed location and the confirmed name when "Drop a waypoint" is chosen from [ThreeWayActionDialog] — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
@@ -556,6 +600,13 @@ fun AvailabilityScreen(
     // onSeasonalTabSelected's LaunchedEffect keeps firing correctly and a later resize to a wider
     // window lands on the same List/Maps/Seasonal tab compact was just showing.
     var compactTab by remember { mutableStateOf(CompactTab.MAP) }
+
+    // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
+    // flight, reported up from whichever of JournalTab/LogPanel is composed via
+    // onPhotoAcquisitionInFlightChanged (see LogEntryDetailScreen's own doc comment on that
+    // parameter). Read by this screen's own ON_STOP hook below, to suppress the "user backgrounded
+    // the app" incidental-exit heuristic while the backgrounding is this app's own doing.
+    var logPhotoAcquisitionInFlight by remember { mutableStateOf(false) }
 
     // "View on Map" on a List-tab species row: which taxon (if any) the map tabs should limit
     // their sightings to. Lives here, alongside selectedTab/compactTab, because both the List and
@@ -635,6 +686,13 @@ fun AvailabilityScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     var isDrawerOpen by remember { mutableStateOf(false) }
+
+    // Stage 2d's routing fix: a one-shot request into whichever of LogPanel/JournalTab is about to
+    // show, set by both onLogFindHere closures below alongside their existing drawerPanel/compactTab
+    // switch — see JournalTab's own doc comment, "The map '+' routing bug," for why this exists and
+    // why it stays a single-purpose token rather than a shared navigation type. One instance covers
+    // both window classes: only whichever of LogPanel/JournalTab is actually composed reads it.
+    var pendingJournalDestination by remember { mutableStateOf<PendingJournalDestination?>(null) }
     LaunchedEffect(isDrawerOpen) {
         if (isDrawerOpen) {
             drawerState.open()
@@ -840,12 +898,37 @@ fun AvailabilityScreen(
                     // window-class-specific copy. The PermanentNavigationDrawer's own drawer sheet
                     // (below) hosts the Snackbar this shows.
                     onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
+                    onPhotoAcquisitionInFlightChanged = { inFlight -> logPhotoAcquisitionInFlight = inFlight },
                     onAddPhoto = onAddLogPhoto,
                     onRemovePhoto = onRemoveLogPhoto,
                     onPullPhoto = onPullLogPhoto,
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
                     onSaveErrorDismissed = onSaveLogErrorDismissed,
+                    galleryPhotos = logUiState.galleryPhotos,
+                    isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
+                    onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                    onAddGalleryPhoto = onAddGalleryPhoto,
+                    galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                    galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+                    cartographyUiState = cartographyUiState,
+                    onOpenCartographyEntry = onOpenCartographyEntry,
+                    onStartCartographyEntry = onStartCartographyEntry,
+                    onCloseCartographyEntry = onCloseCartographyEntry,
+                    onCartographyTextChanged = onCartographyTextChanged,
+                    onCartographyTagsChanged = onCartographyTagsChanged,
+                    onSetFindDecision = onSetFindDecision,
+                    onSetTrackDecision = onSetTrackDecision,
+                    onSetWaypointDecision = onSetWaypointDecision,
+                    onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+                    onToggleKeptPhoto = onToggleKeptPhoto,
+                    onFinishCartographyEntry = onFinishCartographyEntry,
+                    onSaveCartographyEntry = onSaveCartographyEntry,
+                    onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
+                    onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+                    onDeleteCartographyEntry = onDeleteCartographyEntry,
+                    getCartographyEntryMapData = getCartographyEntryMapData,
+                    getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                     // Journal restructure Stage 1: the Records tab's three submenus — see
                     // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
                     // reads its offline-map-specific fields off; distanceUnit/currentTime are the
@@ -865,6 +948,9 @@ fun AvailabilityScreen(
                     waypoints = waypoints,
                     waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
+                    waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                    pendingDestination = pendingJournalDestination,
+                    onPendingDestinationConsumed = { pendingJournalDestination = null },
                 )
             }
 
@@ -877,6 +963,8 @@ fun AvailabilityScreen(
                     photos = logUiState.galleryPhotos,
                     isLoading = logUiState.isLoadingGalleryPhotos,
                     onDeletePhoto = onDeleteGalleryPhoto,
+                    cameraCaptureFiles = cameraCaptureFiles,
+                    onAddGalleryPhoto = onAddGalleryPhoto,
                     loadErrorMessage = logUiState.galleryLoadErrorMessage,
                 )
             }
@@ -938,6 +1026,9 @@ fun AvailabilityScreen(
                 val onLogFindHere: (LatLng) -> Unit = { location ->
                     drawerPanel = DrawerPanel.Log
                     isDrawerOpen = true
+                    // Stage 2d: lands LogPanel on Records -> Finds for the entry onStartLogEntry is
+                    // about to create — see JournalTab's own doc comment, "The map '+' routing bug."
+                    pendingJournalDestination = PendingJournalDestination.EDIT_NEW_FIND
                     onStartLogEntry(location, LocalDate.now())
                 }
 
@@ -1072,10 +1163,49 @@ fun AvailabilityScreen(
         val lifecycleOwner = LocalLifecycleOwner.current
         val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveLogEntryEditingIncidentally)
         val latestIsJournalEditing by rememberUpdatedState(compactTab == CompactTab.JOURNAL && logUiState.editingEntry != null)
+        // Device-check patch, Items 2/3: suppresses this same incidental-exit call while the open
+        // find's own camera/gallery round-trip is this app's own doing, not the user backgrounding
+        // it — see PhotoAcquisitionLaunchers.isAcquisitionInFlight's own doc comment for the full
+        // trace of why conflating the two was silently closing the find (and losing the photo with
+        // it) on every camera capture.
+        val latestPhotoAcquisitionInFlight by rememberUpdatedState(logPhotoAcquisitionInFlight)
+
+        // Search-focus-and-hide dispatch, Item 2's own hide condition (SearchEntryBar call sites
+        // below) — "any entry open" (view or edit), not "specifically editing": from here,
+        // CartographyEntryMode/JournalEntryMode (which distinguish the two) are local state one
+        // level down in CartographyScreen.kt/JournalTab.kt, invisible at this scope. Owner decision:
+        // hiding while merely viewing is acceptable rather than lifting that mode into shared state.
+        val isEditingJournalEntry = logUiState.editingEntry != null || cartographyUiState.editingEntry != null
+        // Search-focus-and-hide dispatch, Item 1: tried and deliberately NOT built here. The natural
+        // generalization of the established LaunchedEffect(showSearchDropdown) pattern just above
+        // — LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus(force = true) }, firing on
+        // every transition rather than one direction — was built, and it made both currently-failing
+        // tests fail differently, not pass: the "Advanced search" dropdown still opened (confirmed via
+        // composeRule.onRoot().printToLog()/onAllNodesWithText node counts, not guessed), because
+        // clearing focus at the exact recomposition where Item 2's hide condition also flips SearchEntryBar
+        // back into existence left it as the only focusable candidate with nothing else claiming
+        // focus — which is exactly the precondition this codebase's own default-focus-assignment
+        // behavior needs to reclaim it right back. Removing the effect and keeping only Item 2's own
+        // hide condition (SearchEntryBar not composed at all while `isEditingJournalEntry`, so there
+        // is no candidate to reclaim) turned both tests green with no clearFocus() call anywhere in
+        // this file. CartographyScreen's own ON_RESUME clearFocus() (that composable's own doc
+        // comment) stays — it fires while an edit screen is still open, not into this same
+        // hide/remount race, and full-suite verification found no regression from keeping it. The
+        // "entering a fresh edit" direction of Item 1 (as opposed to "returned to") was never
+        // exercised by any test either way and is not built — see this dispatch's own report for the
+        // reasoning on leaving it out rather than guessing at a shape that avoids the same race.
+        // Pending-edit-and-fixes dispatch, Item 1: this observer no longer touches Cartography at
+        // all — it used to call onSaveCartographyEntry here on a dirty committed entry, silently
+        // committing an edit the user never approved just because the app backgrounded. Backgrounding
+        // is not consent to save (owner decision): CartographyScreen now owns its own lifecycle
+        // observer for exactly this, holding the pending edit in ViewModel memory on ON_STOP (no
+        // call at all) and prompting Continue editing/Commit/Save as draft on ON_RESUME instead — see
+        // that composable's own doc comment for the full reasoning, including why it's self-contained
+        // there rather than threaded through here.
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP && latestIsJournalEditing) {
-                    latestOnLeaveEditingIncidentally()
+                if (event == Lifecycle.Event.ON_STOP) {
+                    if (latestIsJournalEditing && !latestPhotoAcquisitionInFlight) latestOnLeaveEditingIncidentally()
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
@@ -1152,7 +1282,19 @@ fun AvailabilityScreen(
                 // direct call, scoped to the Map tab specifically so the other three tabs
                 // (List/Seasonal/Journal, none of which have anything worth showing through a
                 // translucent bar) keep this bar as ordinary opaque-backed chrome, unchanged.
-                if (!isMapFullscreen && compactTab != CompactTab.MAP) {
+                // Search-focus-and-hide dispatch, Item 2 — owner decision, framed as a design change
+                // ("searching has nothing to do with editing an entry"), but this hide condition is
+                // what actually closes the dropdown-scrim-blocks-taps defect too: see
+                // `isEditingJournalEntry`'s own doc comment above for why Item 1's own fix (clearing
+                // focus explicitly) was tried first and made things worse, not better. Hidden via
+                // composition (an `if`, not an opacity/size-zero modifier) — "hide, do not remove"
+                // means the feature stays intact everywhere else, not that this specific instance
+                // keeps its state while invisible; an unmounted composable can't be the thing silently
+                // holding onto stale focus. The moment this bar *remounts*, right as an edit screen
+                // closes, was flagged as an unexercised race before this was built — now exercised and
+                // ruled out by `AvailabilityScreenBackNavigationTest`'s own "backgrounding and
+                // resuming mid-edit, then closing normally..." test.
+                if (!isMapFullscreen && compactTab != CompactTab.MAP && !isEditingJournalEntry) {
                     SearchEntryBar(
                         uiState = uiState,
                         distanceUnit = distanceUnit,
@@ -1177,6 +1319,11 @@ fun AvailabilityScreen(
                 // exact call. No drawer to open any more; Journal is a bottom-nav destination now.
                 val onLogFindHere: (LatLng) -> Unit = { location ->
                     compactTab = CompactTab.JOURNAL
+                    // Stage 2d: lands JournalTab on Records -> Finds, editing, for the entry
+                    // onStartLogEntry is about to create — see JournalTab's own doc comment, "The
+                    // map '+' routing bug." Before this fix, compactTab alone left JournalTab's own
+                    // selectedTopTab at its CARTOGRAPHY default, landing on Cartography instead.
+                    pendingJournalDestination = PendingJournalDestination.EDIT_NEW_FIND
                     onStartLogEntry(location, LocalDate.now())
                 }
 
@@ -1255,7 +1402,13 @@ fun AvailabilityScreen(
                             // `!isMapFullscreen` gate from when it lived in this scaffold's outer
                             // Column, now reproduced here since the slot is CompactMapTab's to
                             // show or not.
-                            searchBarSlot = if (isMapFullscreen) {
+                            // Same Item 2 hide-during-edit condition as the non-Map SearchEntryBar
+                            // call site above — editing a Cartography entry doesn't close it when
+                            // switching to the Map tab (only find-editing does, via
+                            // leaveLogEntryEditingOfferingDiscard in ForagerBottomNav's own
+                            // onTabSelected above), so this slot needs the identical check, not just
+                            // the non-Map one.
+                            searchBarSlot = if (isMapFullscreen || isEditingJournalEntry) {
                                 {}
                             } else {
                                 {
@@ -1297,6 +1450,7 @@ fun AvailabilityScreen(
                             onSaveEntry = onSaveLogEntry,
                             onCancelEditing = onCancelLogEntryEditing,
                             onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
+                            onPhotoAcquisitionInFlightChanged = { inFlight -> logPhotoAcquisitionInFlight = inFlight },
                             onAddPhoto = onAddLogPhoto,
                             onRemovePhoto = onRemoveLogPhoto,
                             onPullPhoto = onPullLogPhoto,
@@ -1308,7 +1462,29 @@ fun AvailabilityScreen(
                             galleryPhotos = logUiState.galleryPhotos,
                             isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
                             onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                            onAddGalleryPhoto = onAddGalleryPhoto,
                             galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                            galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+                            // Journal Stage 2b: Cartography's own Entries/Drafts/Album — see
+                            // CartographyScreen's own doc comment.
+                            cartographyUiState = cartographyUiState,
+                            onOpenCartographyEntry = onOpenCartographyEntry,
+                            onStartCartographyEntry = onStartCartographyEntry,
+                            onCloseCartographyEntry = onCloseCartographyEntry,
+                            onCartographyTextChanged = onCartographyTextChanged,
+                            onCartographyTagsChanged = onCartographyTagsChanged,
+                            onSetFindDecision = onSetFindDecision,
+                            onSetTrackDecision = onSetTrackDecision,
+                            onSetWaypointDecision = onSetWaypointDecision,
+                            onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+                            onToggleKeptPhoto = onToggleKeptPhoto,
+                            onFinishCartographyEntry = onFinishCartographyEntry,
+                            onSaveCartographyEntry = onSaveCartographyEntry,
+                            onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
+                            onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+                            onDeleteCartographyEntry = onDeleteCartographyEntry,
+                            getCartographyEntryMapData = getCartographyEntryMapData,
+                            getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                             // Journal restructure Stage 1: the Records tab's three submenus — see
                             // RecordsTab's own doc comment.
                             availabilityUiState = uiState,
@@ -1326,6 +1502,9 @@ fun AvailabilityScreen(
                             waypoints = waypoints,
                             waypointsErrorMessage = waypointsErrorMessage,
                             onDeleteWaypoint = onDeleteWaypoint,
+                            waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                            pendingDestination = pendingJournalDestination,
+                            onPendingDestinationConsumed = { pendingJournalDestination = null },
                             modifier = Modifier.fillMaxSize(),
                         )
                         // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
@@ -2534,6 +2713,7 @@ internal fun OfflineMapsPanel(
             distanceUnit = distanceUnit,
             nowEpochMillis = now,
             onDeleteOfflineRegion = onDeleteOfflineRegion,
+            entryReferenceCounts = uiState.offlineRegionEntryReferenceCounts,
         )
     }
 }
@@ -2623,6 +2803,8 @@ private fun OfflineRegionsSection(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     onDeleteOfflineRegion: (Long) -> Unit,
+    /** How many Cartography entries currently keep a reference to each region (by id) — Journal Stage 2b's 4b deletion warning, shown in the confirm dialog below. */
+    entryReferenceCounts: Map<Long, Int> = emptyMap(),
 ) {
     var pendingDeleteRegion by remember { mutableStateOf<OfflineRegionSummary?>(null) }
 
@@ -2665,10 +2847,22 @@ private fun OfflineRegionsSection(
     }
 
     pendingDeleteRegion?.let { region ->
+        val referencingEntryCount = entryReferenceCounts[region.id] ?: 0
         AlertDialog(
             onDismissRequest = { pendingDeleteRegion = null },
             title = { Text("Delete \"${region.name}\"?") },
-            text = { Text("This deletes the downloaded map tiles for this region. You can re-download it later.") },
+            text = {
+                Text(
+                    // No permanence claim (a future trash lands this becoming false) — states the
+                    // consequence, not that it's irreversible. See amendment-2b-finds-and-trash.md.
+                    if (referencingEntryCount > 0) {
+                        "This region appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}. " +
+                            "This deletes the downloaded map tiles for this region. You can re-download it later."
+                    } else {
+                        "This deletes the downloaded map tiles for this region. You can re-download it later."
+                    },
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -5845,7 +6039,15 @@ internal fun WaypointsSection(
     errorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in the confirm dialog below. */
+    entryReferenceCounts: Map<String, Int> = emptyMap(),
 ) {
+    // Journal Stage 2b, 4b: this section had no delete confirmation at all before — every other
+    // per-row delete in this drawer (OfflineRegionsSection, PlannedTripsList) already confirms
+    // first, and a deletion warning needs somewhere to show itself. Same pendingDelete-then-dialog
+    // shape as OfflineRegionsSection.
+    var pendingDeleteWaypoint by remember { mutableStateOf<Waypoint?>(null) }
+
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -5863,9 +6065,36 @@ internal fun WaypointsSection(
             )
 
             else -> waypoints.forEach { waypoint ->
-                WaypointRow(waypoint = waypoint, onDelete = { onDeleteWaypoint(waypoint.id) })
+                WaypointRow(waypoint = waypoint, onDelete = { pendingDeleteWaypoint = waypoint })
             }
         }
+    }
+
+    pendingDeleteWaypoint?.let { waypoint ->
+        val referencingEntryCount = entryReferenceCounts[waypoint.id] ?: 0
+        AlertDialog(
+            onDismissRequest = { pendingDeleteWaypoint = null },
+            title = { Text("Delete \"${waypoint.name}\"?") },
+            text = {
+                Text(
+                    // No permanence claim — see OfflineRegionsSection's identical dialog for why.
+                    if (referencingEntryCount > 0) {
+                        "This waypoint appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}."
+                    } else {
+                        "Delete this waypoint?"
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteWaypoint(waypoint.id)
+                        pendingDeleteWaypoint = null
+                    },
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDeleteWaypoint = null }) { Text("Cancel") } },
+        )
     }
 }
 

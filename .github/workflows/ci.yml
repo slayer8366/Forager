@@ -388,6 +388,13 @@ jobs:
           PY
 
       - name: Upload the debug APK
+        # if: always() -- matches "Upload the test report" below. assembleDebug (and the
+        # version check right after it) already ran and produced a real, installable APK by
+        # the time the unit-test step could fail; gating this step behind that step's success
+        # meant a red test run hid a build that exists and works, forcing anyone who wanted to
+        # check real device behavior to build it themselves. The job still reports red on a
+        # test failure -- this only stops that failure from also hiding the artifact.
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-debug-apk

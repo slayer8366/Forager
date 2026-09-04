@@ -8,6 +8,11 @@
          com.forager.app.photo.CameraCaptureFiles. Gallery attach needs no permission at all: it
          uses PickVisualMedia, the modern photo picker. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Photo-geodata dispatch: lets a gallery import's EXIF read see the location tag a photo's
+         own MediaStore entry carries (MediaStore.setRequireOriginal, API 29+) — without it, the
+         platform silently redacts GPS EXIF from any stream this app opens. Requested at the moment
+         of first import, not app launch — see com.forager.app.ui.log.PhotoAcquisitionLaunchers. -->
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
 
     <!-- For com.forager.app.service.TrackRecordingService, a foreground service so a multi-hour
          track recording keeps running (and stays visibly running to the user) while the app is

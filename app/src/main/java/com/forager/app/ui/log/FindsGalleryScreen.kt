@@ -23,8 +23,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Tab
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,17 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.Feature
-import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.Observed
 import com.forager.app.ui.theme.Spacing
 
 /**
  * True when any of [entry]'s characteristic fields are still [Observed.NotObserved]/
- * [Feature.NotObserved] — mirrors [LogEntryListScreen]'s private copy of the same check
- * ([MushroomLogEntry.hasUnrecordedFields] there is `private` to that file, so this is a second
- * copy rather than a shared one; both read the same seven sections and would need to change
- * together if a new one is ever added).
+ * [Feature.NotObserved] — the tile's "Incomplete" cue.
  */
 private fun MushroomLogEntry.hasUnrecordedFields(): Boolean =
     cap.shape is Observed.NotObserved ||
@@ -66,50 +62,53 @@ private fun MushroomLogEntry.hasUnrecordedFields(): Boolean =
         hostSubstrate.hostHealth is Observed.NotObserved
 
 /**
- * The Journal bottom-nav destination's gallery: a grid of every logged entry plus one more tile —
- * always first, so it's never scrolled past — that starts a new one. Replaces
- * [LogEntryListScreen]'s plain list for the compact bottom nav (see [JournalTab]'s doc comment for
- * why that composable, and the drawer-hosted [LogPanel] it belongs to, stay untouched for the
- * medium/expanded window instead of being reused here).
+ * Records' Finds submenu — **one implementation, responsive layout**, restoring the same "one
+ * composable, [columns] varies" shape [CartographyScreen] already uses, per the Stage 2b follow-up
+ * dispatch's own point 1 ("restore the unify"). Replaces both of this codebase's former,
+ * independently-diverged screens for browsing [MushroomLogEntry] finds: [JournalTab] (compact) used
+ * to host a grid (the former `LogGalleryScreen`) and [LogPanel] (expanded) a plain scrolling list
+ * (the former `LogEntryListScreen`) — two genuinely different shapes for the same data, an amendment
+ * to the original Stage 2b dispatch had deliberately narrowed apart before this follow-up restored
+ * the original "one implementation" decision. The grid shape wins, per the dispatch's explicit
+ * "grid-based" — [columns] is the only thing that varies between hosts (2 compact / 3 expanded, the
+ * same split [CartographyScreen] already uses), never a different arrangement.
  *
- * **Log / Drafts toggle (Workstream L4b-R, owner decision 2026-08-25):** a draft never appears
- * alongside committed entries — "unsaved work is held in a Drafts section." Implemented here as a
- * filter/toggle on this same screen rather than a separate destination, per the owner's own choice:
- * [selectedTab] selects which of [entries]/[draftEntries] the grid below actually shows, never both
- * at once.
- *
- * **Album, folded in as a third tab (map/navigation redesign dispatch B):** [CompactTab.PHOTOS] is
- * gone — the bottom nav has five destinations now (List, Seasonal, Maps, Journal, Tools), not six,
- * and the photo gallery was the one that had to give. It moves here rather than under Tools because
- * it is entry-adjacent, not a utility: [PhotoGalleryScreen] embeds unchanged as this tab's content,
- * receiving [photos]/[isLoadingPhotos]/[onDeletePhoto]/[photosLoadErrorMessage] the same way Log and
- * Drafts receive [entries]/[draftEntries] — [selectedTab] just picks which of the three the grid
- * below shows.
+ * **No Album tab here** — Stage 2b follow-up dispatch, point 3. The former `LogGalleryScreen`
+ * embedded [PhotoGalleryScreen] as a third tab (Log/Drafts/Album); that was a second, independent
+ * path to the same [com.forager.app.domain.model.GalleryPhoto] data [CartographyScreen]'s own Album
+ * submenu already shows, flagged as deliberate-but-unwanted duplication in the original Stage 2b
+ * dispatch's closing disclosure. [CartographyScreen]'s Album is now the sole path from both window
+ * classes' Records/Finds side; the drawer-hosted `DrawerPanel.PhotoGallery` destination
+ * ([AvailabilityScreen]'s own, medium/expanded-only) is untouched — that duplication predates Stage
+ * 2b and is out of this dispatch's scope. [LogEntryListScreen] never embedded an Album tab to begin
+ * with, so nothing is newly unreachable for the expanded window either.
  */
 @Composable
-internal fun LogGalleryScreen(
+internal fun FindsGalleryScreen(
     entries: List<MushroomLogEntry>,
     isLoading: Boolean,
     onOpenEntry: (String) -> Unit,
-    onAddEntry: () -> Unit,
     modifier: Modifier = Modifier,
     /** Every current draft — live edit sessions, incidentally-exited ones, and crash-orphaned ones alike (see [MushroomLogUiState.draftEntries]'s own doc comment) — shown only when the Drafts tab is selected. */
     draftEntries: List<MushroomLogEntry> = emptyList(),
     onOpenDraftEntry: (String) -> Unit = onOpenEntry,
     /**
-     * Set when the last load failed — see [LogEntryListScreen]'s own [loadErrorMessage] parameter
-     * for why this never hides [entries] that are already showing, only shown above the grid (the
-     * "+" tile stays first regardless, same as the empty-but-no-error case) when there is nothing
-     * to show because the read failed, per docs/error-presentation-spec.md.
+     * Set when the last load failed — never hides [entries] that are already showing, only shown
+     * above the grid (the "+" tile, if present, stays first regardless) when there is nothing to
+     * show because the read failed, per docs/error-presentation-spec.md.
      */
     loadErrorMessage: String? = null,
-    /** Every photo in the gallery, independent of any entry — see [PhotoGalleryScreen]'s own doc comment. Shown only when the Album tab is selected. */
-    photos: List<GalleryPhoto> = emptyList(),
-    isLoadingPhotos: Boolean = false,
-    onDeletePhoto: (GalleryPhoto) -> Unit = {},
-    photosLoadErrorMessage: String? = null,
+    /**
+     * `null` (the default) omits the "+" tile entirely — [LogPanel] passes no lambda here, matching
+     * [LogEntryListScreen]'s own former shape: the expanded window starts a new find via the map's
+     * "Log a find" flow, not a tile inside this list. [JournalTab] passes one, matching the former
+     * [LogGalleryScreen]'s always-present tile.
+     */
+    onAddEntry: (() -> Unit)? = null,
+    /** Grid column count — 2 for compact, more for expanded/tablet; see this composable's own doc comment. */
+    columns: Int = 2,
 ) {
-    var selectedTab by remember { mutableStateOf(LogGalleryTab.LOG) }
+    var selectedTab by remember { mutableStateOf(FindsGalleryTab.LOG) }
 
     if (isLoading && entries.isEmpty() && draftEntries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -120,27 +119,15 @@ internal fun LogGalleryScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-            Tab(selected = selectedTab == LogGalleryTab.LOG, onClick = { selectedTab = LogGalleryTab.LOG }, text = { Text("Log") })
+            Tab(selected = selectedTab == FindsGalleryTab.LOG, onClick = { selectedTab = FindsGalleryTab.LOG }, text = { Text("Log") })
             Tab(
-                selected = selectedTab == LogGalleryTab.DRAFTS,
-                onClick = { selectedTab = LogGalleryTab.DRAFTS },
+                selected = selectedTab == FindsGalleryTab.DRAFTS,
+                onClick = { selectedTab = FindsGalleryTab.DRAFTS },
                 text = { Text(if (draftEntries.isEmpty()) "Drafts" else "Drafts (${draftEntries.size})") },
             )
-            Tab(selected = selectedTab == LogGalleryTab.ALBUM, onClick = { selectedTab = LogGalleryTab.ALBUM }, text = { Text("Album") })
         }
 
-        if (selectedTab == LogGalleryTab.ALBUM) {
-            PhotoGalleryScreen(
-                photos = photos,
-                isLoading = isLoadingPhotos,
-                onDeletePhoto = onDeletePhoto,
-                modifier = Modifier.weight(1f),
-                loadErrorMessage = photosLoadErrorMessage,
-            )
-            return@Column
-        }
-
-        val visibleEntries = if (selectedTab == LogGalleryTab.DRAFTS) draftEntries else entries
+        val visibleEntries = if (selectedTab == FindsGalleryTab.DRAFTS) draftEntries else entries
         if (visibleEntries.isEmpty() && loadErrorMessage != null) {
             Text(
                 loadErrorMessage,
@@ -149,7 +136,7 @@ internal fun LogGalleryScreen(
             )
         }
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Fixed(columns),
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -159,18 +146,18 @@ internal fun LogGalleryScreen(
             // draft either way (see MushroomLogViewModel.onStartNewEntry), but tapping "+" while
             // looking at Drafts would read as "add a draft," which isn't a distinct action from
             // "add an entry."
-            if (selectedTab == LogGalleryTab.LOG) item { AddEntryTile(onClick = onAddEntry) }
-            if (selectedTab == LogGalleryTab.DRAFTS) {
-                items(visibleEntries, key = { it.id }) { entry -> LogEntryTile(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true) }
+            if (selectedTab == FindsGalleryTab.LOG && onAddEntry != null) item { AddEntryTile(onClick = onAddEntry) }
+            if (selectedTab == FindsGalleryTab.DRAFTS) {
+                items(visibleEntries, key = { it.id }) { entry -> FindTile(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true) }
             } else {
-                items(visibleEntries, key = { it.id }) { entry -> LogEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) }) }
+                items(visibleEntries, key = { it.id }) { entry -> FindTile(entry = entry, onClick = { onOpenEntry(entry.id) }) }
             }
         }
     }
 }
 
-/** Which of [LogGalleryScreen]'s three tabs is selected — ordinal order matches display order (Log, Drafts, Album), read directly by [SecondaryTabRow]'s `selectedTabIndex`. */
-private enum class LogGalleryTab { LOG, DRAFTS, ALBUM }
+/** Which of [FindsGalleryScreen]'s two tabs is selected — ordinal order matches display order. */
+private enum class FindsGalleryTab { LOG, DRAFTS }
 
 /**
  * The gallery's "start a new entry" tile — a blank journal-entry outline with a centered `+`, per
@@ -204,12 +191,12 @@ private fun AddEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 /**
  * One logged find in the gallery grid — a cover photo when one exists, otherwise a placeholder
- * icon. [isDraft] renders a "Draft" badge instead of (never alongside) the "Incomplete" one —
- * Workstream L4b-R's Drafts filter; a draft is always incomplete by [hasUnrecordedFields]'s own
- * definition too, so showing both would be redundant, not additive.
+ * icon. [isDraft] renders a "Draft" badge instead of (never alongside) the "Incomplete" one — a
+ * draft is always incomplete by [hasUnrecordedFields]'s own definition too, so showing both would
+ * be redundant, not additive.
  */
 @Composable
-private fun LogEntryTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {
+private fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {
     Card(
         onClick = onClick,
         modifier = modifier

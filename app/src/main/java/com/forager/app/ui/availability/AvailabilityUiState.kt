@@ -145,6 +145,8 @@ data class AvailabilityUiState(
      * [offlineDownloadStatus]'s in-flight/last-attempt state.
      */
     val offlineRegions: List<OfflineRegionSummary> = emptyList(),
+    /** How many Cartography entries currently keep a reference to each offline region (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [offlineRegions]; a region missing from this map has never been counted, treated as zero the same as an explicit zero. */
+    val offlineRegionEntryReferenceCounts: Map<Long, Int> = emptyMap(),
     /**
      * A region-*list-load* failure, not a download failure — see
      * [AvailabilityViewModel.loadOfflineRegions][com.forager.app.ui.availability.AvailabilityViewModel]'s

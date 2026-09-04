@@ -404,6 +404,9 @@ class AvailabilityScreenWideWindowLayoutTest {
         }
 
         composeRule.onNodeWithText("Mushroom Log").performClick()
+        // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu.
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Finds").performClick()
         composeRule.onNodeWithText("Find on 2026-08-01").performClick()
         composeRule.onNodeWithContentDescription("Back to your log").performClick()
 

@@ -3,6 +3,7 @@ package com.forager.app.ui.log
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forager.app.domain.AddPhotoToGalleryUseCase
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.CommitDraftEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
@@ -11,15 +12,19 @@ import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.GetDraftEntriesUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.forager.app.domain.LocationProvider
+import com.forager.app.domain.LocationResult
 import com.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.forager.app.domain.StartEditingLogEntryUseCase
+import com.forager.app.domain.UpdatePhotoLocationUseCase
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
+import com.forager.app.photo.CameraCapturePhotoSource
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -140,6 +145,23 @@ import kotlinx.coroutines.sync.withLock
  * write landing afterward — precisely the "nobody notices when it's applied properly; when it
  * isn't, confidence is lost" class of bug this workstream was scoped to close everywhere, not just
  * at the one pairing a pulse happened to find. Do not restore this exemption as a simplification.
+ *
+ * ## Camera-capture location: a fire-and-forget follow-up write (photo-geodata dispatch)
+ *
+ * [locationProvider] is only ever read from [patchCameraCaptureLocation], never awaited by
+ * [onAddPhoto]/[onAddGalleryPhoto] themselves. This was a genuine, reported tension in the
+ * dispatch's own two instructions — "read GPS at capture" and "never block/delay capture" — that
+ * directly reusing [LocationProvider.getCurrentLocation] cannot satisfy simultaneously, since that
+ * call already blocks every one of its existing callers up to its own 20-second internal timeout.
+ * The owner's decision (the photo-geodata amendment): persist the photo immediately, exactly as
+ * before this dispatch, then fire a *separate*, unawaited `viewModelScope.launch` that requests a
+ * fix and — only if one resolves — patches it onto the already-persisted row via
+ * [updatePhotoLocation]. The photo appears in the gallery/entry instantly either way; a coordinate,
+ * if one comes back, arrives a moment later as a quiet update, never as something the user waits on
+ * or that blocks the capture UI. Only a [com.forager.app.photo.CameraCapturePhotoSource]-originated
+ * photo ever triggers this — see [LogPhoto]'s own doc comment for why a gallery import's location
+ * comes from EXIF instead, read synchronously as part of [com.forager.app.photo.FilePhotoStore.persist]
+ * and never through this path.
  */
 class MushroomLogViewModel(
     private val getEntries: GetMushroomLogEntriesUseCase,
@@ -150,10 +172,17 @@ class MushroomLogViewModel(
     private val commitDraftEntry: CommitDraftEntryUseCase,
     private val deleteEntry: DeleteMushroomLogEntryUseCase,
     private val addPhoto: AddPhotoToLogEntryUseCase,
+    /** Standalone-photos dispatch: acquisition with no owning find — [PhotoGalleryScreen]'s own Camera/Gallery buttons. See [onAddGalleryPhoto]. */
+    private val addPhotoToGallery: AddPhotoToGalleryUseCase,
     private val removePhoto: RemovePhotoFromLogEntryUseCase,
     private val getGalleryPhotos: GetGalleryPhotosUseCase,
     private val pullPhotoIntoEntry: PullPhotoIntoEntryUseCase,
     private val deleteGalleryPhoto: DeleteGalleryPhotoUseCase,
+    /** Photo-geodata dispatch: the fire-and-forget GPS fix for a freshly captured camera photo — see this class's own doc comment, "Camera-capture location." */
+    private val locationProvider: LocationProvider,
+    private val updatePhotoLocation: UpdatePhotoLocationUseCase,
+    /** How many Cartography entries currently keep a photo attached — Journal Stage 2b's 4b deletion warning, extended to photos. Plain suspend function rather than the whole Cartography repository — see `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why. */
+    private val getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -219,6 +248,10 @@ class MushroomLogViewModel(
             getGalleryPhotos().fold(
                 onSuccess = { photos ->
                     _uiState.update { it.copy(galleryPhotos = photos, isLoadingGalleryPhotos = false) }
+                    // One query per photo — see TrackRecordingViewModel.loadWaypoints' identical
+                    // choice for why this scale doesn't need a batched read.
+                    val counts = photos.associate { it.photo.id to getPhotoEntryReferenceCount(it.photo.id) }
+                    _uiState.update { it.copy(cartographyEntryPhotoReferenceCounts = counts) }
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't load the photo gallery.", error)
@@ -434,27 +467,68 @@ class MushroomLogViewModel(
      * correcting the first L4b pass's auto-save-on-exit behavior): the draft is already durably
      * persisted by [onEntryEdited]'s own per-keystroke writes, so this only closes the form and — if
      * the open row is a draft — makes sure it's reflected in [MushroomLogUiState.draftEntries],
-     * without waiting for a fresh [loadEntries]. Never inspects whether the draft was actually
-     * touched (that auto-delete existed in the first pass, was never authorized, and is gone — see
-     * the L4b-R dispatch). A no-op if nothing is open. The *call* never blocks — [editingEntryMutex]
-     * (Workstream L4c) is uncontended the overwhelming majority of the time, in which case the
-     * state update inside still applies before this function returns to its caller; only while some
-     * other editing-entry mutation is genuinely in flight does this queue behind it, by design (see
-     * this class's own "Serialized editing-entry mutations" doc comment).
+     * without waiting for a fresh [loadEntries]. A no-op if nothing is open. The *call* never blocks
+     * — [editingEntryMutex] (Workstream L4c) is uncontended the overwhelming majority of the time, in
+     * which case the state update inside still applies before this function returns to its caller;
+     * only while some other editing-entry mutation is genuinely in flight does this queue behind it,
+     * by design (see this class's own "Serialized editing-entry mutations" doc comment).
+     *
+     * **A re-edit's draft that was never actually touched is deleted outright, not surfaced
+     * (pending-edit-and-fixes dispatch, Item 2).** [StartEditingLogEntryUseCase] copies [current]'s
+     * own committed parent field-for-field before this function ever runs — `id`/`isDraft`/
+     * `draftOfEntryId` are the only fields that differ by construction, so comparing the draft against
+     * its still-untouched parent (found via [MushroomLogUiState.entries], per [MushroomLogViewModel]'s
+     * own doc comment on why the parent stays untouched until Save) after normalizing exactly those
+     * three fields is an exact, not approximate, "nothing changed" check — [MushroomLogEntry] carries
+     * no timestamp or other field that could legitimately drift on its own. Scoped to a **re-edit**
+     * only ([draftOfEntryId] non-null): a brand-new entry's own draft (nothing to compare against) is
+     * a different question this dispatch does not ask, so it keeps today's behavior — surfaced in
+     * [MushroomLogUiState.draftEntries] unconditionally, same as before this fix. That auto-delete
+     * existed once in the first L4b pass, was never authorized there, and was removed by the L4b-R
+     * dispatch — this is not a return to it: that one deleted *any* draft, unconditionally, on every
+     * incidental exit; this only deletes a re-edit's draft when it is provably identical to what's
+     * already stored.
      */
     fun onLeaveEditingIncidentally() {
         val current = _uiState.value.editingEntry ?: return
         viewModelScope.launch {
             editingEntryMutex.withLock {
-                _uiState.update { state ->
-                    state.copy(
-                        draftEntries = when {
-                            !current.isDraft -> state.draftEntries
-                            state.draftEntries.any { it.id == current.id } -> state.draftEntries.map { if (it.id == current.id) current else it }
-                            else -> state.draftEntries + current
+                val state = _uiState.value
+                val parent = current.draftOfEntryId?.let { parentId -> state.entries.firstOrNull { it.id == parentId } }
+                val isUnchangedReEdit = parent != null &&
+                    current.copy(id = parent.id, isDraft = false, draftOfEntryId = null) == parent
+                if (isUnchangedReEdit) {
+                    deleteEntry(current.id).fold(
+                        onSuccess = {
+                            _uiState.update { s ->
+                                s.copy(draftEntries = s.draftEntries.filterNot { it.id == current.id }, editingEntry = null)
+                            }
                         },
-                        editingEntry = null,
+                        onFailure = { error ->
+                            Log.w(TAG, "Couldn't discard the unchanged draft '${current.id}'.", error)
+                            _uiState.update { s ->
+                                s.copy(
+                                    draftEntries = if (s.draftEntries.any { it.id == current.id }) {
+                                        s.draftEntries.map { if (it.id == current.id) current else it }
+                                    } else {
+                                        s.draftEntries + current
+                                    },
+                                    editingEntry = null,
+                                )
+                            }
+                        },
                     )
+                } else {
+                    _uiState.update { s ->
+                        s.copy(
+                            draftEntries = when {
+                                !current.isDraft -> s.draftEntries
+                                s.draftEntries.any { it.id == current.id } -> s.draftEntries.map { if (it.id == current.id) current else it }
+                                else -> s.draftEntries + current
+                            },
+                            editingEntry = null,
+                        )
+                    }
                 }
             }
         }
@@ -509,6 +583,12 @@ class MushroomLogViewModel(
                         // the ViewModel is recreated. Detach has no equivalent need: it never removes a
                         // gallery row, only a reference nothing in this screen currently displays.
                         loadGalleryPhotos()
+                        // Photo-geodata dispatch: see this class's own "Camera-capture location" doc
+                        // comment. The newly persisted photo is always the last element of updated's
+                        // photos list — AddPhotoToLogEntryUseCase's own entry.copy(photos = entry.photos + photo).
+                        if (source is CameraCapturePhotoSource) {
+                            patchCameraCaptureLocation(updated.photos.last().id)
+                        }
                     },
                     onFailure = { error ->
                         Log.w(TAG, "Couldn't attach a photo to entry '${entry.id}'.", error)
@@ -518,6 +598,59 @@ class MushroomLogViewModel(
                     },
                 )
             }
+        }
+    }
+
+    /**
+     * Standalone-photos dispatch: acquires [source] via [PhotoGalleryScreen]'s own Camera/Gallery
+     * buttons — persisted and added to the gallery only, never attached to anything (see
+     * [AddPhotoToGalleryUseCase]'s own doc comment for why this stops one step short of
+     * [onAddPhoto]). No [editingEntryMutex] needed: unlike [onAddPhoto], this never reads or writes
+     * [MushroomLogUiState.editingEntry] at all.
+     */
+    fun onAddGalleryPhoto(source: PhotoSource) {
+        viewModelScope.launch {
+            addPhotoToGallery(source).fold(
+                onSuccess = { photo ->
+                    _uiState.update { it.copy(saveErrorMessage = null) }
+                    loadGalleryPhotos()
+                    // Photo-geodata dispatch: see this class's own "Camera-capture location" doc comment.
+                    if (source is CameraCapturePhotoSource) {
+                        patchCameraCaptureLocation(photo.id)
+                    }
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't add a photo to the gallery.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't add that photo.") }
+                },
+            )
+        }
+    }
+
+    /**
+     * Fire-and-forget: requests a live GPS fix and, only if one resolves, patches it onto the
+     * already-persisted gallery photo [photoId] — see this class's own "Camera-capture location"
+     * doc comment for the full reasoning. Launched from [onAddPhoto]/[onAddGalleryPhoto] without
+     * being awaited, so this never delays the capture flow those functions already completed by the
+     * time this runs. [LocationResult.PermissionDenied]/[LocationResult.LocationUnavailable] are
+     * both silently accepted, same as [LogPhoto.latitude]/[LogPhoto.longitude] being `null` is the
+     * ordinary case, not an error — nothing here surfaces a user-facing failure for "no fix came
+     * back." Refreshes both galleries/entries on a successful patch, mirroring
+     * [onDeleteGalleryPhoto]'s own dual-refresh, so a photo already visible on screen picks up its
+     * new coordinate without the user needing to leave and return.
+     */
+    private fun patchCameraCaptureLocation(photoId: String) {
+        viewModelScope.launch {
+            val location = locationProvider.getCurrentLocation() as? LocationResult.Success ?: return@launch
+            updatePhotoLocation(photoId, location.lat, location.lng).fold(
+                onSuccess = {
+                    loadGalleryPhotos()
+                    loadEntries()
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't patch a location fix onto photo '$photoId'.", error)
+                },
+            )
         }
     }
 

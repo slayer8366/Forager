@@ -89,6 +89,18 @@ import com.forager.app.BuildConfig
  * version 4 ships a real migration) unbroken rather than carving out an exception for the one bump
  * where an exception happened to be offered.
  *
+ * [version] 11 adds `cartography_entries` and its four kept-item ref tables ([CartographyEntryEntity],
+ * [CartographyEntryTrackRefEntity], [CartographyEntryWaypointRefEntity],
+ * [CartographyEntryOfflineRegionRefEntity], [CartographyEntryFindRefEntity]) via a real
+ * [MIGRATION_10_11] — Journal Stage 2b, `amendment-2b-entry-definition.md`: the Cartography entry, a
+ * new authored entity distinct from [MushroomLogEntryEntity]. A written entry is irreplaceable field
+ * data, the same reasoning behind every hand-written migration above.
+ *
+ * [version] 12 adds nullable `latitude`/`longitude` to `log_photos` via a real [MIGRATION_11_12] —
+ * the photo-geodata dispatch: camera-capture GPS and import EXIF, never interchangeable, never
+ * required. See [LogPhotoEntity]'s own doc comment for the columns and [MIGRATION_11_12]'s own for
+ * why this rebuilds the table rather than `ALTER TABLE ... ADD COLUMN`.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -119,8 +131,14 @@ import com.forager.app.BuildConfig
         TrackPointEntity::class,
         WaypointEntity::class,
         OfflineRegionEntity::class,
+        CartographyEntryEntity::class,
+        CartographyEntryTrackRefEntity::class,
+        CartographyEntryWaypointRefEntity::class,
+        CartographyEntryOfflineRegionRefEntity::class,
+        CartographyEntryFindRefEntity::class,
+        CartographyEntryPhotoRefEntity::class,
     ],
-    version = 10,
+    version = 12,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -136,6 +154,8 @@ abstract class ForagerDatabase : RoomDatabase() {
 
     abstract fun offlineRegionDao(): OfflineRegionDao
 
+    abstract fun cartographyEntryDao(): CartographyEntryDao
+
     companion object {
         /**
          * [isDebug] defaults to [BuildConfig.DEBUG] — the parameter exists so a test can force the
@@ -149,7 +169,7 @@ abstract class ForagerDatabase : RoomDatabase() {
                 "forager.db",
             ).addMigrations(
                 MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                MIGRATION_9_10,
+                MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
             )
             // Debug-only — see this class's own doc comment ("Destructive fallback, debug-only") for
             // why release must never wipe a database instead of crashing on a missing migration.

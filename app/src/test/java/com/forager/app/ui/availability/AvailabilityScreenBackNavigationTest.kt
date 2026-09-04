@@ -67,8 +67,11 @@ import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
+import com.forager.app.domain.model.CartographyEntry
+import com.forager.app.ui.log.CartographyUiState
 import com.forager.app.ui.log.MushroomLogUiState
 import com.forager.app.ui.map.MapSlot
+import androidx.lifecycle.Lifecycle
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -125,7 +128,23 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.waitForIdle()
     }
 
-    private fun setScreen(logUiState: MushroomLogUiState = MushroomLogUiState()) {
+    /**
+     * Simulates the app backgrounding and the user returning to it — real `ON_STOP`/`ON_RESUME`
+     * events driven through the actual Activity lifecycle (`ActivityScenario.moveToState`), the
+     * same "the real dispatcher/lifecycle is the only thing that can settle this" reasoning this
+     * file's own class doc comment gives for [pressBack] over calling a callback directly.
+     * `CREATED` (not `DESTROYED`) is backgrounding, not a real Activity recreation — the View
+     * hierarchy and Compose composition stay alive, matching what actually happens when a user
+     * presses home or switches apps, as opposed to a config change or process death.
+     */
+    private fun backgroundThenResume() {
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        composeRule.waitForIdle()
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        composeRule.waitForIdle()
+    }
+
+    private fun setScreen(logUiState: MushroomLogUiState = MushroomLogUiState(), cartographyUiState: CartographyUiState = CartographyUiState()) {
         val plannedTripRepository = BackNavInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
             locationProvider = BackNavUnusedLocationProvider,
@@ -153,6 +172,11 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
             var logState by remember { mutableStateOf(logUiState) }
+            // Back-nav-and-save-flow dispatch: plain local state standing in for
+            // CartographyViewModel, mirroring logState's own fixture shape immediately above and
+            // CartographyScreenTest's identical fixture — see that file's own setScreen for the
+            // fuller reasoning on why a fixture, not a fake/mock, is right for this.
+            var cartographyState by remember { mutableStateOf(cartographyUiState) }
             AvailabilityScreen(
                 uiState = uiState,
                 onUseCurrentLocation = viewModel::useCurrentLocation,
@@ -209,6 +233,74 @@ class AvailabilityScreenBackNavigationTest {
                             editingEntry = null,
                         )
                     }
+                },
+                cartographyUiState = cartographyState,
+                onOpenCartographyEntry = { id ->
+                    cartographyState = cartographyState.copy(
+                        editingEntry = cartographyState.entries.firstOrNull { it.id == id } ?: cartographyState.draftEntries.firstOrNull { it.id == id },
+                    )
+                },
+                onStartCartographyEntry = { date ->
+                    val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
+                    cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
+                },
+                onCloseCartographyEntry = {
+                    cartographyState.editingEntry?.let { current ->
+                        cartographyState = cartographyState.copy(
+                            entries = if (!current.isDraft && cartographyState.entries.any { it.id == current.id }) {
+                                cartographyState.entries.map { if (it.id == current.id) current else it }
+                            } else {
+                                cartographyState.entries
+                            },
+                        )
+                    }
+                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                },
+                onCartographyTextChanged = { text ->
+                    cartographyState.editingEntry?.let { current ->
+                        val edited = current.copy(text = text)
+                        cartographyState = cartographyState.copy(editingEntry = edited, hasUnsavedChanges = cartographyState.hasUnsavedChanges || !edited.isDraft)
+                    }
+                },
+                onFinishCartographyEntry = {
+                    cartographyState.editingEntry?.let { current ->
+                        val committed = current.copy(isDraft = false)
+                        cartographyState = cartographyState.copy(
+                            entries = cartographyState.entries + committed,
+                            draftEntries = cartographyState.draftEntries.filterNot { it.id == committed.id },
+                            editingEntry = committed,
+                        )
+                    }
+                },
+                onSaveCartographyEntry = {
+                    cartographyState.editingEntry?.let { current ->
+                        cartographyState = cartographyState.copy(
+                            entries = if (cartographyState.entries.any { it.id == current.id }) {
+                                cartographyState.entries.map { if (it.id == current.id) current else it }
+                            } else {
+                                cartographyState.entries + current
+                            },
+                            hasUnsavedChanges = false,
+                        )
+                    }
+                },
+                onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
+                onSaveCartographyEntryAsDraft = {
+                    cartographyState.editingEntry?.let { current ->
+                        val demoted = current.copy(isDraft = true)
+                        cartographyState = cartographyState.copy(
+                            entries = cartographyState.entries.filterNot { it.id == demoted.id },
+                            draftEntries = cartographyState.draftEntries + demoted,
+                        )
+                    }
+                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                },
+                onDeleteCartographyEntry = { id ->
+                    cartographyState = cartographyState.copy(
+                        entries = cartographyState.entries.filterNot { it.id == id },
+                        draftEntries = cartographyState.draftEntries.filterNot { it.id == id },
+                        editingEntry = null,
+                    )
                 },
                 compassProvider = BackNavFakeCompassProvider,
                 mapSlot = BackNavStubMapSlot,
@@ -330,6 +422,9 @@ class AvailabilityScreenBackNavigationTest {
     fun `back backs out of a Journal entry before switching away from the Journal tab`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
+        // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu.
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Finds").performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
@@ -339,6 +434,402 @@ class AvailabilityScreenBackNavigationTest {
         // fully unmounted, not merely hidden), and still on the Journal tab — not bounced to Maps.
         composeRule.onNodeWithText("Photos").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+    }
+
+    // --- Back-nav-and-save-flow dispatch, Items 1-3: Cartography's own back-navigation gap -------
+    // Before this dispatch, none of CartographyScreen/JournalTab's selectedTopTab/RecordsTab's
+    // selectedTab had any BackHandler reaching them at all — back on any of them, draft or
+    // committed, fell straight through to AvailabilityScreen's own go-home handler in one step,
+    // exiting the Journal entirely. These are the real onBackPressedDispatcher tests that gap
+    // needed and never had — see this file's own class doc comment on why only the real dispatcher
+    // can settle a BackHandler-priority question.
+
+    private val committedCartographyEntry = CartographyEntry.draft(id = "committed-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
+        .copy(isDraft = false)
+
+    /** The entry-level layer: a draft opens straight into the editor, and back on it must step back to the Drafts list — never exit the Journal, and never prompt (drafts autosave silently, unchanged by this dispatch). */
+    @Test
+    fun `back on an open Cartography draft steps back to the drafts list, not out of the Journal, and the draft persists`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+
+        pressBack()
+
+        // Still inside the Journal (not bounced to Maps), and the draft is visible, not lost.
+        composeRule.onNodeWithText("Your own account (optional)").assertDoesNotExist()
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
+        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+    }
+
+    /**
+     * The Records sub-tab layer: back from a non-default sub-tab steps to Waypoints, the fixed
+     * default — not out to Cartography in the same press. Recorded Tracks, not Offline Maps: that
+     * sub-tab's own `onOfflineMapsOpened` calls the real `AvailabilityViewModel`, which reaches a
+     * real `LocationProvider` this fixture deliberately stubs to error (see
+     * [BackNavUnusedLocationProvider]) — unrelated to what this test is proving, so it picks the
+     * sub-tab that doesn't touch it.
+     */
+    @Test
+    fun `back on a non-default Records sub-tab steps to Waypoints before leaving Records`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
+
+        pressBack()
+
+        // Still on Records, now showing Waypoints' own content — not bounced out to Cartography or Maps.
+        composeRule.onNodeWithText("No recorded tracks yet.").assertDoesNotExist()
+        composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.").assertIsDisplayed()
+    }
+
+    /** The top-tab layer: back from Records' own default sub-tab (nothing left within Records to unwind) steps to Cartography — still inside the Journal, not out to Maps. */
+    @Test
+    fun `back on Records' default sub-tab steps to Cartography before leaving the Journal`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Waypoints").assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
+    }
+
+    /**
+     * The caution from this dispatch: adding steps must never cost the go-home fallback itself —
+     * back from Cartography's own top level (nothing open, nothing left within the Journal to
+     * unwind) must still reach it, exactly as it did before this dispatch.
+     */
+    @Test
+    fun `back on Cartography's own top level still falls through to the go-home handler`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
+    }
+
+    /** Item 2: the prompt only fires once system back actually reaches CartographyEntryEditScreen's own decision — and only for a *dirty* committed entry, never a clean one. */
+    @Test
+    fun `back on a clean committed Cartography entry closes without any prompt`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+    }
+
+    /** Item 2: a dirty committed entry's system back shows Save/Discard/Cancel — the exact prompt the on-screen arrow already showed, now reachable by the nav-bar button too. Cancel keeps editing with the change intact. */
+    @Test
+    fun `back on a dirty committed Cartography entry shows the leave prompt, and Cancel keeps editing`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Unsaved via system back.")
+        composeRule.waitForIdle()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Save your changes?").assertIsDisplayed()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.LEAVE_PROMPT_CANCEL_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Unsaved via system back.").assertIsDisplayed()
+    }
+
+    /** Item 2/3: Discard via system back's own prompt reloads from the database and leaves — no second dialog, no lingering edit. */
+    @Test
+    fun `Discard from the system-back leave prompt discards the edit and leaves`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Should not be saved.")
+        composeRule.waitForIdle()
+        pressBack()
+        composeRule.onNodeWithText("Save your changes?").assertIsDisplayed()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+    }
+
+    /** Item 2/3: Save via system back's own prompt saves and leaves in one step — no second dialog. */
+    @Test
+    fun `Save from the system-back leave prompt saves the edit and leaves, with no second dialog`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Saved via system back.")
+        composeRule.waitForIdle()
+        pressBack()
+        composeRule.onNodeWithText("Save your changes?").assertIsDisplayed()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.LEAVE_PROMPT_SAVE_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithText("Saved via system back.").assertIsDisplayed()
+    }
+
+    // --- Pending-edit-and-fixes dispatch, Item 1: backgrounding must not commit ---------------------
+    // Real ON_STOP/ON_RESUME coverage, via backgroundThenResume() — this exact lifecycle transition
+    // (not just the ViewModel methods it can trigger) had no test anywhere in this suite before this
+    // dispatch, the same kind of gap the back-nav dispatch's own report called out and closed for
+    // system back specifically.
+
+    @Test
+    fun `backgrounding a dirty committed entry commits nothing, and resuming shows the return prompt`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Pending, not yet approved.")
+        composeRule.waitForIdle()
+
+        backgroundThenResume()
+
+        composeRule.onNodeWithText("Welcome back").assertIsDisplayed()
+        // Still showing the pending edit, right where it was — commit never happened.
+        composeRule.onNodeWithText("Pending, not yet approved.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `backgrounding a clean committed entry shows no return prompt on resume`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+
+        backgroundThenResume()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+    }
+
+    @Test
+    fun `backgrounding an open draft shows no return prompt on resume — drafts autosave, unchanged`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft text.")
+        composeRule.waitForIdle()
+
+        backgroundThenResume()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+        composeRule.onNodeWithText("Draft text.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Continue editing on the return prompt dismisses it and leaves the pending edit exactly in place`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Pending, not yet approved.")
+        composeRule.waitForIdle()
+        backgroundThenResume()
+        composeRule.onNodeWithText("Welcome back").assertIsDisplayed()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_CONTINUE_EDITING_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+        composeRule.onNodeWithText("Pending, not yet approved.").assertIsDisplayed()
+    }
+
+    /**
+     * The final assertion below used to read `onNodeWithText("Committed on return.").assertIsDisplayed()`
+     * with nothing checking that the preceding tap on the tile actually opened it — that text is
+     * also the tile's own accessibility text (`CartographyEntryTile` renders `entry.text` as its
+     * preview line), so the assertion passed whether or not the tap landed on anything. It didn't,
+     * for a real reason: after "Back to Cartography" closed the editor, the app's top search field
+     * silently regained focus and popped its "Advanced search" dropdown open — scrim included — over
+     * the tab row and grid beneath, confirmed on a physical device (search-focus-and-hide dispatch)
+     * after this session first found it via `composeRule.onRoot().printToLog()`. Strengthened to
+     * assert `"Entry options"` (only present on the opened report screen, never on the tile) is
+     * displayed — a real assertion of navigation, not a coincidence of shared text — which now
+     * passes because the bar is hidden for as long as an entry is open (`AvailabilityScreen.kt`'s own
+     * `isEditingJournalEntry`-gated `SearchEntryBar` call sites) rather than because focus was
+     * explicitly cleared: see that gate's own doc comment for why a `LaunchedEffect(isEditingJournalEntry)
+     * { focusManager.clearFocus() }` was tried first and found to reintroduce this exact bug instead
+     * of fixing it.
+     */
+    @Test
+    fun `Commit on the return prompt persists the pending edit and stays on the entry`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Committed on return.")
+        composeRule.waitForIdle()
+        backgroundThenResume()
+
+        // Search-focus-and-hide dispatch, Item 3: "Submit," not "Commit" — the tag/callback
+        // (RETURN_PROMPT_COMMIT_TEST_TAG, onCommit) are unchanged, only this label.
+        composeRule.onNodeWithText("Submit").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_COMMIT_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+        // Still on the entry (Commit doesn't leave), and it landed in Entries.
+        composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        // Proves the tap actually opened the entry — see this test's own doc comment.
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
+    }
+
+    /**
+     * The owner's own correction to the reported plan: demoting closes the screen rather than
+     * staying open in draft mode, so the change is visible, not discovered later.
+     *
+     * Closing the edit screen here removes a composable holding text-field focus; after that,
+     * [ACTIVE_SEARCH_SUMMARY_TAG] (the top-level search field) used to show `Focused = true` and pop
+     * its "Advanced search" dropdown open, scrim included, over the whole screen — confirmed via
+     * `composeRule.onRoot().printToLog()`, not guessed, then confirmed again on a physical device
+     * (search-focus-and-hide dispatch). The scrim ate the next tap (switching to the Drafts tab), so
+     * the tab never switched and the demoted entry's tile was never found. The *same* focus hand-off
+     * and open dropdown were present after the "Commit on the return prompt..." test's own "Back to
+     * Cartography" click too — that one only read green because its final assertion had a blind spot
+     * of its own (see that test's own doc comment, same investigation).
+     *
+     * Fixed by hiding the bar for as long as an entry is open — `AvailabilityScreen.kt`'s own
+     * `isEditingJournalEntry`-gated `SearchEntryBar` call sites — not by clearing focus on this exact
+     * transition: that was tried first (`LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus() }`,
+     * the natural generalization of this file's own established `LaunchedEffect(showSearchDropdown)`
+     * pattern) and made this test fail the *same way*, because clearing focus at the instant the hide
+     * condition also flips the bar back into existence left it as the only focusable candidate with
+     * nothing else claiming focus — precisely what triggers this codebase's own default-focus
+     * reassignment onto it. See that gate's own doc comment for the full account.
+     */
+    @Test
+    fun `Save as draft on the return prompt closes the screen and moves the entry to Drafts with the edit in place`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Saved as draft on return.")
+        composeRule.waitForIdle()
+        backgroundThenResume()
+
+        composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_SAVE_AS_DRAFT_TEST_TAG).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
+        // Closed — visible under Drafts now, not left open silently rendering as a draft.
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithText("Drafts (1)").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithText("Saved as draft on return.").assertIsDisplayed()
+        // And it's really gone from Entries, not just still showing there too.
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithText("Entries").performClick()
+        composeRule.onNodeWithText("2026-08-01").assertDoesNotExist()
+    }
+
+    // --- Search-focus-and-hide dispatch, Item 2: the top search bar hides for as long as an entry
+    // (Cartography or a find) is open, present everywhere else. See AvailabilityScreen.kt's own
+    // `isEditingJournalEntry` gate, right above its SearchEntryBar call sites, for the fix and the
+    // race this session found and ruled out while building it.
+
+    @Test
+    fun `the top search bar hides while viewing or editing a Cartography entry, and reappears once it closes`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+
+        // Viewing (the report screen) counts as "open," not just editing — see the gate's own doc
+        // comment on why this scope was the reachable one, not a lifted VIEW/EDIT distinction.
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the top search bar hides while editing a find, and reappears once it closes`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Finds").performClick()
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithText("Photos").assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Photos").assertDoesNotExist()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+    }
+
+    /**
+     * The specific scenario this dispatch's own owner flagged as unexercised while the fix was being
+     * built: backgrounding and resuming *while still editing* (not backgrounding then immediately
+     * exiting, which the return-prompt tests above already cover on their own), then closing the
+     * editor normally afterward — the exact moment [ACTIVE_SEARCH_SUMMARY_TAG] reappears, racing
+     * against CartographyScreen's own ON_RESUME `focusManager.clearFocus()`. Passing here is what
+     * rules out that race, not an assumption that it can't happen.
+     */
+    @Test
+    fun `backgrounding and resuming mid-edit, then closing normally, leaves the search bar visible with no dropdown open`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Resumed then closed.")
+        composeRule.waitForIdle()
+        backgroundThenResume()
+        composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_CONTINUE_EDITING_TEST_TAG).performClick()
+
+        // Still dirty (Continue editing never saved) — closes through the leave-prompt's own Discard,
+        // the same as any other unsaved exit, not a direct close.
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithTag(com.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Set on map").assertDoesNotExist()
     }
 
     /**

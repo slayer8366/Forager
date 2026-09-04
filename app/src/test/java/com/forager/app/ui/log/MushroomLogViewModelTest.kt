@@ -1,5 +1,7 @@
 package com.forager.app.ui.log
 
+import android.net.Uri
+import com.forager.app.domain.AddPhotoToGalleryUseCase
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.CommitDraftEntryUseCase
 import com.forager.app.domain.CreateMushroomLogEntryUseCase
@@ -8,17 +10,22 @@ import com.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.forager.app.domain.GetDraftEntriesUseCase
 import com.forager.app.domain.GetGalleryPhotosUseCase
 import com.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.forager.app.domain.LocationProvider
+import com.forager.app.domain.LocationResult
 import com.forager.app.domain.MushroomLogRepository
 import com.forager.app.domain.PhotoStore
 import com.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.forager.app.domain.StartEditingLogEntryUseCase
+import com.forager.app.domain.UpdatePhotoLocationUseCase
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.LogPhoto
 import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
+import com.forager.app.photo.CameraCapturePhotoSource
+import com.forager.app.photo.GalleryImportPhotoSource
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -65,6 +72,7 @@ class MushroomLogViewModelTest {
     private fun viewModel(
         repository: FakeMushroomLogRepository = FakeMushroomLogRepository(),
         photoStore: FakePhotoStore = FakePhotoStore(),
+        locationProvider: FakeLocationProvider = FakeLocationProvider(),
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -74,10 +82,13 @@ class MushroomLogViewModelTest {
         commitDraftEntry = CommitDraftEntryUseCase(repository),
         deleteEntry = DeleteMushroomLogEntryUseCase(repository),
         addPhoto = AddPhotoToLogEntryUseCase(photoStore, repository),
+        addPhotoToGallery = AddPhotoToGalleryUseCase(photoStore, repository),
         removePhoto = RemovePhotoFromLogEntryUseCase(repository),
         getGalleryPhotos = GetGalleryPhotosUseCase(repository),
         pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(repository),
         deleteGalleryPhoto = DeleteGalleryPhotoUseCase(repository, photoStore),
+        locationProvider = locationProvider,
+        updatePhotoLocation = UpdatePhotoLocationUseCase(repository),
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
@@ -246,6 +257,101 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(newPhoto), vm.uiState.value.galleryPhotos.map { it.photo })
+    }
+
+    /**
+     * Standalone-photos dispatch: [MushroomLogViewModel.onAddGalleryPhoto] is [PhotoGalleryScreen]'s
+     * own Camera/Gallery entry point — no open entry needed at all (unlike [onAddPhoto] above, which
+     * requires a draft session), and the resulting photo has no owning find.
+     */
+    @Test
+    fun `onAddGalleryPhoto adds a standalone photo to the gallery with no open entry and no reference`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "standalone", relativePath = "photos/standalone.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+
+        vm.onAddGalleryPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        val galleryPhoto = vm.uiState.value.galleryPhotos.single()
+        assertEquals(newPhoto, galleryPhoto.photo)
+        assertTrue("a photo acquired from the Album page has no owning find", galleryPhoto.referencingEntryIds.isEmpty())
+        assertNull(vm.uiState.value.editingEntry)
+    }
+
+    /**
+     * Photo-geodata dispatch: a camera-captured photo's location arrives as a fire-and-forget
+     * follow-up write, never bundled into the same operation that persisted the photo — see
+     * [MushroomLogViewModel]'s own "Camera-capture location" doc comment. Exercised on the
+     * [onAddGalleryPhoto] path (no open entry needed, unlike [onAddPhoto]) since both paths funnel
+     * into the same private [MushroomLogViewModel.patchCameraCaptureLocation].
+     */
+    @Test
+    fun `a camera-captured photo picks up a location fix as a follow-up patch once one resolves`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val vm = viewModel(repository, photoStore, locationProvider)
+        advanceUntilIdle()
+
+        vm.onAddGalleryPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        val galleryPhoto = vm.uiState.value.galleryPhotos.single()
+        assertEquals(45.5, galleryPhoto.photo.latitude!!, 0.0)
+        assertEquals(-122.6, galleryPhoto.photo.longitude!!, 0.0)
+        assertEquals(listOf(Triple(newPhoto.id, 45.5, -122.6)), repository.patchedLocations)
+    }
+
+    /**
+     * No fix ever comes back — [LocationResult.PermissionDenied]/[LocationResult.LocationUnavailable]
+     * both mean "stay null," never a reported failure (see [MushroomLogViewModel]'s own doc
+     * comment): the photo itself was already persisted and shown before this path even runs.
+     */
+    @Test
+    fun `a camera-captured photo with no location fix available still succeeds, with no location patch`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "camera-photo-no-fix", relativePath = "photos/camera-photo-no-fix.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val locationProvider = FakeLocationProvider(result = LocationResult.LocationUnavailable)
+        val vm = viewModel(repository, photoStore, locationProvider)
+        advanceUntilIdle()
+
+        vm.onAddGalleryPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        val galleryPhoto = vm.uiState.value.galleryPhotos.single()
+        assertNull(galleryPhoto.photo.latitude)
+        assertNull(galleryPhoto.photo.longitude)
+        assertTrue("no fix means no patch write at all, not a patch write of null", repository.patchedLocations.isEmpty())
+        assertNull("a missing fix is not a user-facing failure", vm.uiState.value.saveErrorMessage)
+    }
+
+    /** A gallery import's location comes from EXIF, read synchronously in [com.forager.app.photo.FilePhotoStore] — never from this fire-and-forget path, which [GalleryImportPhotoSource] must never trigger. */
+    @Test
+    fun `a gallery-imported photo never triggers the camera-capture location patch`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "import-photo", relativePath = "photos/import-photo.jpg", createdAtEpochMillis = 2_000L, latitude = 10.0, longitude = 20.0)
+        photoStore.persistResult = Result.success(newPhoto)
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val vm = viewModel(repository, photoStore, locationProvider)
+        advanceUntilIdle()
+
+        vm.onAddGalleryPhoto(GalleryImportPhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        val galleryPhoto = vm.uiState.value.galleryPhotos.single()
+        // Unchanged from what FilePhotoStore already persisted — never overwritten by the live fix.
+        assertEquals(10.0, galleryPhoto.photo.latitude!!, 0.0)
+        assertEquals(20.0, galleryPhoto.photo.longitude!!, 0.0)
+        assertTrue(repository.patchedLocations.isEmpty())
     }
 
     /**
@@ -603,6 +709,72 @@ class MushroomLogViewModelTest {
         assertTrue("nothing appears in the log", vm.uiState.value.entries.isEmpty())
         assertEquals(listOf("new-entry"), vm.uiState.value.draftEntries.map { it.id })
         assertTrue("an incidental exit must never delete, touched or not", repository.getAll().getOrThrow().any { it.id == "new-entry" })
+    }
+
+    // --- Pending-edit-and-fixes dispatch, Item 2: an untouched re-edit leaves no draft behind ------
+    // Cartography already got this right — an untouched committed entry exits clean, no draft.
+    // Finds didn't: StartEditingLogEntryUseCase mints a full copy of the committed parent the
+    // instant editing *starts*, before any field is touched, so leaving immediately used to surface
+    // that untouched copy as if it were a real, abandoned edit.
+
+    @Test
+    fun `leaving a re-edit unchanged discards the draft outright, never surfaces it`() = runTest(dispatcher) {
+        val original = entry.copy(notes = "original field notes")
+        val repository = FakeMushroomLogRepository(initial = listOf(original))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(original.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        assertTrue("a re-edit's draft is a separate row from the committed entry", draftId != original.id)
+
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+
+        assertNull("the form closes on an incidental exit, same as any other", vm.uiState.value.editingEntry)
+        assertTrue(
+            "an unchanged re-edit must not appear in Drafts — there was never a real edit to abandon",
+            vm.uiState.value.draftEntries.none { it.id == draftId },
+        )
+        assertTrue(
+            "the parent stays exactly as it was, untouched",
+            vm.uiState.value.entries.single { it.id == original.id }.notes == "original field notes",
+        )
+        assertTrue(
+            "the orphaned draft row must be gone from disk too, not just hidden from the UI",
+            repository.getAll().getOrThrow().none { it.id == draftId },
+        )
+    }
+
+    @Test
+    fun `leaving a re-edit with an actual change still surfaces the draft, unchanged from before this dispatch`() = runTest(dispatcher) {
+        val original = entry.copy(notes = "original field notes")
+        val repository = FakeMushroomLogRepository(initial = listOf(original))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(original.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "actually changed this time"))
+        advanceUntilIdle()
+
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.editingEntry)
+        assertEquals(
+            "a genuinely edited re-edit must still surface in Drafts, exactly as before this dispatch",
+            listOf(draftId),
+            vm.uiState.value.draftEntries.map { it.id },
+        )
+        assertEquals("actually changed this time", vm.uiState.value.draftEntries.single().notes)
+        assertEquals(
+            "the parent stays untouched until Save, regardless",
+            "original field notes",
+            vm.uiState.value.entries.single { it.id == original.id }.notes,
+        )
     }
 
     /**
@@ -1028,6 +1200,15 @@ private class FakeMushroomLogRepository(
         crossRefs.removeAll { it.second == photoId }
         return Result.success(Unit)
     }
+
+    /** Every `(photoId, latitude, longitude)` a test can assert [MushroomLogViewModel.patchCameraCaptureLocation]'s fire-and-forget write actually landed. */
+    val patchedLocations = mutableListOf<Triple<String, Double, Double>>()
+
+    override suspend fun updatePhotoLocation(photoId: String, latitude: Double, longitude: Double): Result<Unit> {
+        patchedLocations += Triple(photoId, latitude, longitude)
+        galleryPhotos[photoId]?.let { galleryPhotos[photoId] = it.copy(latitude = latitude, longitude = longitude) }
+        return Result.success(Unit)
+    }
 }
 
 private class FakePhotoStore(
@@ -1042,4 +1223,14 @@ private class FakePhotoStore(
         deletedPhotos += photo
         return deleteResult
     }
+}
+
+/**
+ * Photo-geodata dispatch: [LocationResult.LocationUnavailable] by default — a test exercising the
+ * fire-and-forget location patch overrides [result] to [LocationResult.Success] explicitly, the
+ * same "no fix, no patch, still a success" default every camera-photo test not about geodata
+ * specifically relies on implicitly.
+ */
+private class FakeLocationProvider(var result: LocationResult = LocationResult.LocationUnavailable) : LocationProvider {
+    override suspend fun getCurrentLocation(): LocationResult = result
 }

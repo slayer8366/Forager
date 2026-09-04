@@ -59,10 +59,20 @@ import com.forager.app.ui.theme.Spacing
  * nothing yet to report — see [JournalTab]'s own doc comment.
  *
  * Only [Observed.Recorded]/[Feature.Present] values are rendered as lines — an unrecorded field is
- * left out of the report rather than printed as "Not recorded" for every one of the (usually many)
- * fields a field record accumulates gradually; [LogGalleryScreen]'s "Incomplete" tile label is
- * where the gallery already signals that some fields are still open. A section with nothing
- * recorded at all says so explicitly instead of rendering an empty heading with nothing under it.
+ * left out of the report entirely (Stage 2d — previously printed "Not recorded yet." per section;
+ * changed on the owner's own reasoning: *"Not recorded yet." asserts an absence that may be false* —
+ * a forager who examined the cap and found nothing notable, or skipped a spore print because the
+ * identification was obvious, is told their record is incomplete when it is not. Blank makes no
+ * claim; a partially filled find is not a problem needing explanation, so an empty section is simply
+ * omitted, silently, with no message). [LogGalleryScreen]'s "Incomplete" tile label is a separate,
+ * pre-existing signal this change doesn't touch.
+ *
+ * **[isEntirelyEmpty]:** when literally nothing has been recorded anywhere on this screen — no
+ * location, no own identification, no photos, no notes, and all seven taxonomic sections empty —
+ * omitting every section leaves only a title and nothing else: honest, but a screen with no
+ * affordance on it. That specific, fully-empty case shows [EMPTY_FIND_MESSAGE] instead of the
+ * ordinary body, pointing at this screen's own overflow-menu Edit route. Anything short of fully
+ * empty renders exactly as it always has — individual empty sections omitted, no message.
  */
 @Composable
 internal fun LogEntryReportScreen(
@@ -73,6 +83,26 @@ internal fun LogEntryReportScreen(
     modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
+
+    val capLines = capReportLines(entry.cap)
+    val hymenophoreLines = hymenophoreReportLines(entry.hymenophore)
+    val stipeLines = stipeReportLines(entry.stipe)
+    val veilLines = veilReportLines(entry.veil)
+    val contextFleshLines = contextFleshReportLines(entry.contextFlesh)
+    val sporePrintLines = sporePrintReportLines(entry.sporePrint)
+    val hostSubstrateLines = hostSubstrateReportLines(entry.hostSubstrate)
+
+    val isEntirelyEmpty = entry.foundAt == null &&
+        entry.ownIdentification.isNullOrBlank() &&
+        entry.photos.isEmpty() &&
+        entry.notes.isBlank() &&
+        capLines.isEmpty() &&
+        hymenophoreLines.isEmpty() &&
+        stipeLines.isEmpty() &&
+        veilLines.isEmpty() &&
+        contextFleshLines.isEmpty() &&
+        sporePrintLines.isEmpty() &&
+        hostSubstrateLines.isEmpty()
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -119,34 +149,38 @@ internal fun LogEntryReportScreen(
                 .padding(horizontal = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Text(
-                entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
-                    ?: stringResource(R.string.log_entry_no_location),
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (isEntirelyEmpty) {
+                Text(EMPTY_FIND_MESSAGE, style = MaterialTheme.typography.bodyMedium)
+            } else {
+                Text(
+                    entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
+                        ?: stringResource(R.string.log_entry_no_location),
+                    style = MaterialTheme.typography.bodySmall,
+                )
 
-            entry.ownIdentification?.takeIf { it.isNotBlank() }?.let { identification ->
-                Text("Your own identification: $identification", style = MaterialTheme.typography.bodyMedium)
-            }
-
-            if (entry.photos.isNotEmpty()) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    entry.photos.forEach { photo -> ReportPhotoThumbnail(photo = photo) }
+                entry.ownIdentification?.takeIf { it.isNotBlank() }?.let { identification ->
+                    Text("Your own identification: $identification", style = MaterialTheme.typography.bodyMedium)
                 }
-            }
 
-            HorizontalDivider()
+                if (entry.photos.isNotEmpty()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        entry.photos.forEach { photo -> ReportPhotoThumbnail(photo = photo) }
+                    }
+                }
 
-            ReportSection("Cap", capReportLines(entry.cap))
-            ReportSection("Hymenophore", hymenophoreReportLines(entry.hymenophore))
-            ReportSection("Stipe", stipeReportLines(entry.stipe))
-            ReportSection("Veil remnants", veilReportLines(entry.veil))
-            ReportSection("Context / flesh", contextFleshReportLines(entry.contextFlesh))
-            ReportSection("Spore print", sporePrintReportLines(entry.sporePrint))
-            ReportSection("Host & substrate", hostSubstrateReportLines(entry.hostSubstrate))
+                HorizontalDivider()
 
-            if (entry.notes.isNotBlank()) {
-                ReportSection("Notes", listOf(entry.notes))
+                ReportSection("Cap", capLines)
+                ReportSection("Hymenophore", hymenophoreLines)
+                ReportSection("Stipe", stipeLines)
+                ReportSection("Veil remnants", veilLines)
+                ReportSection("Context / flesh", contextFleshLines)
+                ReportSection("Spore print", sporePrintLines)
+                ReportSection("Host & substrate", hostSubstrateLines)
+
+                if (entry.notes.isNotBlank()) {
+                    ReportSection("Notes", listOf(entry.notes))
+                }
             }
 
             Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
@@ -154,20 +188,19 @@ internal fun LogEntryReportScreen(
     }
 }
 
-/** One report section: a heading, then either its compiled lines or an explicit "nothing yet" line. */
+/**
+ * The owner's exact wording (Stage 2d dispatch) — reported verbatim so it can be adjusted rather
+ * than paraphrased in code and drifting from what was actually specified.
+ */
+private const val EMPTY_FIND_MESSAGE = "There's nothing in here!  You can change this by tapping the three dot menu > tap edit."
+
+/** One report section — omitted entirely when [lines] is empty, never a "Not recorded yet." placeholder (Stage 2d — see this file's own doc comment). */
 @Composable
 private fun ReportSection(title: String, lines: List<String>) {
+    if (lines.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(title, style = MaterialTheme.typography.titleSmall)
-        if (lines.isEmpty()) {
-            Text(
-                "Not recorded yet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            lines.forEach { line -> Text(line, style = MaterialTheme.typography.bodyMedium) }
-        }
+        lines.forEach { line -> Text(line, style = MaterialTheme.typography.bodyMedium) }
     }
 }
 

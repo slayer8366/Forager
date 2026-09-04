@@ -263,6 +263,36 @@ class RoomMushroomLogRepositoryTest {
         assertTrue(galleryPhotos.single().referencingEntryIds.isEmpty())
     }
 
+    /**
+     * Standalone-photos dispatch's own required verification: a photo acquired with no owning
+     * find appears in the Album, survives a round trip (re-reading the database, not just the
+     * in-memory [GalleryPhoto] the write returned), and can then be pulled into a find — the
+     * complete lifecycle this dispatch exists to enable, against the real Room tables.
+     */
+    @Test
+    fun `a standalone photo appears in the Album, survives a round trip, and can be pulled into a find`() = runTest {
+        val standalone = com.forager.app.domain.model.LogPhoto(id = "standalone", relativePath = "photos/standalone.jpg", createdAtEpochMillis = 3_000L)
+        repository.addPhotoToGallery(standalone).getOrThrow()
+
+        val beforeAttach = repository.getAllPhotos().getOrThrow()
+        assertEquals(1, beforeAttach.size)
+        assertEquals(standalone, beforeAttach.single().photo)
+        assertTrue("no owning find yet — this is the whole point", beforeAttach.single().referencingEntryIds.isEmpty())
+
+        // A second, independent read — not the same GalleryPhoto instance the write above
+        // returned — proves this round-trips through the database, not just an in-memory echo.
+        val roundTripped = repository.getAllPhotos().getOrThrow()
+        assertEquals(beforeAttach, roundTripped)
+
+        val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        repository.save(find).getOrThrow()
+        repository.attachPhotoToEntry(find.id, standalone.id).getOrThrow()
+
+        val pulledFind = repository.getAll().getOrThrow().single { it.id == find.id }
+        assertEquals(listOf(standalone), pulledFind.photos)
+        assertEquals(listOf(find.id), repository.getAllPhotos().getOrThrow().single().referencingEntryIds)
+    }
+
     @Test
     fun `getAllPhotos on an empty database returns an empty list, not a failure`() = runTest {
         val galleryPhotos = repository.getAllPhotos().getOrThrow()
@@ -333,6 +363,26 @@ class RoomMushroomLogRepositoryTest {
     @Test
     fun `deletePhotoFromGallery on an unknown photo id is a no-op, not a failure`() = runTest {
         val result = repository.deletePhotoFromGallery("never-existed")
+
+        assertTrue(result.isSuccess)
+    }
+
+    /** Photo-geodata dispatch: the fire-and-forget follow-up write, against the real Room table rather than a fake. */
+    @Test
+    fun `updatePhotoLocation patches latitude and longitude onto an already-persisted photo`() = runTest {
+        val photo = com.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
+        repository.addPhotoToGallery(photo).getOrThrow()
+
+        repository.updatePhotoLocation(photo.id, latitude = 45.5, longitude = -122.6).getOrThrow()
+
+        val reloaded = repository.getAllPhotos().getOrThrow().single { it.photo.id == photo.id }.photo
+        assertEquals(45.5, reloaded.latitude!!, 0.0)
+        assertEquals(-122.6, reloaded.longitude!!, 0.0)
+    }
+
+    @Test
+    fun `updatePhotoLocation on an unknown photo id is a no-op, not a failure`() = runTest {
+        val result = repository.updatePhotoLocation("never-existed", latitude = 45.5, longitude = -122.6)
 
         assertTrue(result.isSuccess)
     }

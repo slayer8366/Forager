@@ -117,8 +117,33 @@ class LogPanelTest {
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
                 onBackToSearch = {},
                 onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
-                // Journal restructure Stage 1's Records tab — this file tests Cartography's own
-                // saveErrorMessage Toast, so these are inert fixtures, not exercised by any test below.
+                // Journal Stage 2b: Cartography's own new-entity navigation — this file tests the
+                // relocated Finds section, so these are inert fixtures, not exercised by any test.
+                cartographyUiState = CartographyUiState(),
+                onOpenCartographyEntry = {},
+                onStartCartographyEntry = {},
+                onCloseCartographyEntry = {},
+                onCartographyTextChanged = {},
+                onCartographyTagsChanged = {},
+                onSetFindDecision = { _, _ -> },
+                onSetTrackDecision = { _, _ -> },
+                onSetWaypointDecision = { _, _ -> },
+                onSetOfflineRegionDecision = { _, _ -> },
+                onToggleKeptPhoto = {},
+                onFinishCartographyEntry = {},
+                onDeleteCartographyEntry = {},
+                getCartographyEntryMapData = { _, _ ->
+                    com.forager.app.domain.CartographyEntryMapData(
+                        trackPolylines = emptyList(),
+                        findMarkers = emptyList(),
+                        waypointMarkers = emptyList(),
+                        photoMarkers = emptyList(),
+                        offlineRegionCircles = emptyList(),
+                    )
+                },
+                getCartographyEntryOfflineRegion = { _, _ -> null },
+                // Journal restructure Stage 1's Records tab — this file tests the relocated Finds
+                // section's saveErrorMessage Toast, so these are inert fixtures, not exercised below.
                 availabilityUiState = com.forager.app.ui.availability.AvailabilityUiState(),
                 distanceUnit = com.forager.app.domain.model.DistanceUnit.MILES,
                 currentTime = com.forager.app.domain.CurrentTimeProvider { 0L },
@@ -136,6 +161,10 @@ class LogPanelTest {
                 onDeleteWaypoint = {},
             )
         }
+        // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu —
+        // every test below exercises find-editing state, so land there once, here.
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Finds").performClick()
     }
 
     @Test

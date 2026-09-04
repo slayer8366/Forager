@@ -38,6 +38,7 @@ import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.service.TrackRecordingService
 import com.forager.app.ui.availability.AvailabilityScreen
 import com.forager.app.ui.availability.AvailabilityViewModel
+import com.forager.app.ui.log.CartographyViewModel
 import com.forager.app.ui.log.MushroomLogViewModel
 import com.forager.app.ui.theme.ForagerTheme
 import com.forager.app.ui.track.TrackRecordingViewModel
@@ -74,6 +75,7 @@ class MainActivity : ComponentActivity() {
                     container.distanceUnitPreferenceRepository,
                     container.appThemePreferenceRepository,
                     container.getTodaysForecastUseCase,
+                    getOfflineRegionReferenceCount = { id -> container.getEntryReferenceCountUseCase.forOfflineRegion(id).getOrDefault(0) },
                 )
             }
         }
@@ -91,10 +93,33 @@ class MainActivity : ComponentActivity() {
                     container.commitDraftEntryUseCase,
                     container.deleteMushroomLogEntryUseCase,
                     container.addPhotoToLogEntryUseCase,
+                    container.addPhotoToGalleryUseCase,
                     container.removePhotoFromLogEntryUseCase,
                     container.getGalleryPhotosUseCase,
                     container.pullPhotoIntoEntryUseCase,
                     container.deleteGalleryPhotoUseCase,
+                    container.locationProvider,
+                    container.updatePhotoLocationUseCase,
+                    getPhotoEntryReferenceCount = { id -> container.getEntryReferenceCountUseCase.forPhoto(id).getOrDefault(0) },
+                )
+            }
+        }
+    }
+
+    private val cartographyViewModel: CartographyViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                CartographyViewModel(
+                    container.getCartographyEntriesUseCase,
+                    container.getCartographyDraftEntriesUseCase,
+                    container.createCartographyEntryUseCase,
+                    container.saveCartographyEntryUseCase,
+                    container.getCartographyEntryUseCase,
+                    container.commitCartographyEntryUseCase,
+                    container.deleteCartographyEntryUseCase,
+                    container.getDerivedTripUseCase,
+                    container.getTripReportOfflineRegionsUseCase,
+                    container.computeTrackStatisticsUseCase,
                 )
             }
         }
@@ -114,6 +139,7 @@ class MainActivity : ComponentActivity() {
                     container.locationTracker,
                     container.getTracksUseCase,
                     androidErrorLog,
+                    getWaypointReferenceCount = { id -> container.getEntryReferenceCountUseCase.forWaypoint(id).getOrDefault(0) },
                 )
             }
         }
@@ -231,6 +257,7 @@ class MainActivity : ComponentActivity() {
             ForagerTheme(darkTheme = effectiveDarkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
+                val cartographyUiState by cartographyViewModel.uiState.collectAsState()
 
                 // Starts/stops the actual foreground service as a side effect of
                 // TrackRecordingViewModel's own state, mirroring the locateMeStatus LaunchedEffect
@@ -341,7 +368,26 @@ class MainActivity : ComponentActivity() {
                     onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
                     onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
                     onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
+                    onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
                     onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
+                    cartographyUiState = cartographyUiState,
+                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                    onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                    onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                    onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                    onSetFindDecision = cartographyViewModel::onSetFindDecision,
+                    onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
+                    onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
+                    onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                    onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                    onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                    onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
+                    onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                    onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                    getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
+                    getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
                         if (trackUiState.isRecording) {
@@ -372,6 +418,7 @@ class MainActivity : ComponentActivity() {
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     waypoints = trackUiState.waypoints,
                     waypointsErrorMessage = trackUiState.waypointsErrorMessage,
+                    waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
                     onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
                     returnToStart = trackUiState.returnToStart,
