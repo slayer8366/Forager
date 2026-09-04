@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
@@ -16,10 +17,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
@@ -252,6 +256,8 @@ import com.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.forager.app.ui.map.MapBarIconButton
 import com.forager.app.ui.map.MapFloatingIconButton
 import com.forager.app.ui.map.MapIconBar
+import com.forager.app.ui.map.MapIconBarMinimizeHandle
+import com.forager.app.ui.map.MapIconBarRestoreHandle
 import com.forager.app.ui.map.MapIconStackButtonColorDark
 import com.forager.app.ui.map.MapIconStackButtonColorLight
 import com.forager.app.ui.map.MapMode
@@ -1140,6 +1146,27 @@ fun AvailabilityScreen(
         // positioning — this stays a one-time text-measurement-derived constant instead, the
         // proven-safe shape that doc comment prescribes.
         val searchBarHeight = compassStripClearance * 2 + Spacing.xs * 3 + DividerDefaults.Thickness
+        // Fullscreen-fixes dispatch, Item 2 ("slide the chrome away instead of cutting it") —
+        // animated rather than the raw if/else this used to be, so CompassElevationStrip (and the
+        // observation bubble/TaxonMapFilterChip below it, both of which also read CompactMapTab's
+        // own topInset) slides smoothly into the space SearchEntryBar vacates instead of jumping
+        // there the instant fullscreen toggles. Purely a Dp value driving Modifier.padding on Box
+        // children of CompactMapTab's own fillMaxSize() Box — animating it has no bearing on that
+        // Box's own size, the same "pure overlay" reasoning confirmed for SearchEntryBar's and
+        // ForagerBottomNav's own slides below. Same MotionTokens.panelMotionSpec() this file
+        // already uses for AddActionTile's own slide+fade, so the three move in visual lockstep.
+        // coerceAtLeast(0.dp): panelMotionSpec() is a spring spec that accepts mild overshoot by
+        // design (that spec's own doc comment) — animating toward 0.dp, it transiently swings
+        // negative, and every consumer of this value below applies it as Modifier.padding(top =
+        // ...), which throws IllegalArgumentException for a negative Dp. Confirmed, not guessed:
+        // this crashed AvailabilityScreenMapIconStackTest's own new fullscreen-toggle test on the
+        // very first run, uncoerced.
+        val animatedTopInset by animateDpAsState(
+            targetValue = if (isMapFullscreen) 0.dp else searchBarHeight,
+            animationSpec = MotionTokens.panelMotionSpec(),
+            label = "mapTopInset",
+        )
+        val safeAnimatedTopInset = animatedTopInset.coerceAtLeast(0.dp)
         // "Set on map" (SearchDropdown's own Advanced Search section, dispatch C item 2) hands off to the exact same
         // pan-to-centre-pin-plus-confirm flow every other pin placement in this app uses
         // (CentrePinLocationPickerOverlay) rather than a second picker — see CompactMapTab's own
@@ -1482,29 +1509,45 @@ fun AvailabilityScreen(
                             // own doc comment below) rather than sitting above it in document
                             // flow, so the strip/bubble/filter-chip positioning CompactMapTab
                             // derives from compassStripClearance needs to start below the bar, not
-                            // at this Box's own true top edge. 0.dp while fullscreen: searchBarSlot
-                            // itself goes empty then (this call site's own comment below), so
-                            // there is no bar to clear any more — a fixed searchBarHeight here
-                            // regardless of isMapFullscreen left a bar-shaped gap above the strip
-                            // with nothing in it once the bar disappeared.
-                            topInset = if (isMapFullscreen) 0.dp else searchBarHeight,
+                            // at this Box's own true top edge. animatedTopInset (declared above,
+                            // own doc comment there — fullscreen-fixes dispatch, Item 2) animates
+                            // this down to 0.dp rather than jumping there the instant fullscreen
+                            // toggles: searchBarSlot below now slides its own content off-screen
+                            // instead of unmounting it outright, and the strip/bubble/chip need to
+                            // slide into the space it vacates in the same motion, not jump ahead of
+                            // it.
+                            topInset = safeAnimatedTopInset,
                             // Passed as a slot, not composed at this call site directly, so it
                             // renders inside CompactMapTab's own Box — see that parameter's own
                             // doc comment for why this specific nesting is load-bearing, not
-                            // cosmetic. Empty while fullscreen: matches the bar's own old
-                            // `!isMapFullscreen` gate from when it lived in this scaffold's outer
-                            // Column, now reproduced here since the slot is CompactMapTab's to
-                            // show or not.
-                            // Same Item 2 hide-during-edit condition as the non-Map SearchEntryBar
-                            // call site above — editing a Cartography entry doesn't close it when
-                            // switching to the Map tab (only find-editing does, via
-                            // leaveLogEntryEditingOfferingDiscard in ForagerBottomNav's own
-                            // onTabSelected above), so this slot needs the identical check, not just
-                            // the non-Map one.
-                            searchBarSlot = if (isMapFullscreen || isEditingJournalEntry) {
+                            // cosmetic. Empty while isEditingJournalEntry, unconditionally —
+                            // matches the bar's own old `!isEditingJournalEntry` gate from when it
+                            // lived in this scaffold's outer Column, now reproduced here since the
+                            // slot is CompactMapTab's to show or not. This is a real, device-
+                            // confirmed bug fix (the search field silently regaining focus after
+                            // backgrounding, opening its dropdown over the user's Journal entry) —
+                            // an instant, unconditional unmount, deliberately NOT animated, since
+                            // an animated exit would leave the field mounted (and re-focusable) for
+                            // the duration of the slide, reopening the exact race this closes.
+                            // isMapFullscreen, by contrast, drives an AnimatedVisibility inside the
+                            // branch below rather than a second unmount condition here — fullscreen-
+                            // fixes dispatch, Item 2: "slide the chrome away instead of cutting it."
+                            // SearchEntryBar composes as a translucent overlay directly inside
+                            // CompactMapTab's own Box (this same doc comment's own next paragraph),
+                            // never a layout sibling whose position or presence participates in
+                            // measuring the map — confirmed by reading every modifier in the chain,
+                            // not assumed — so sliding it is a pure translation with zero effect on
+                            // the map's own measurement, the same as the already-passing "fullscreen
+                            // does not change the map's own measured height" test already covers.
+                            searchBarSlot = if (isEditingJournalEntry) {
                                 {}
                             } else {
                                 {
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = !isMapFullscreen,
+                                        enter = slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight },
+                                        exit = slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight },
+                                    ) {
                                     Column {
                                         SearchEntryBar(
                                             uiState = uiState,
@@ -1522,6 +1565,7 @@ fun AvailabilityScreen(
                                             onFieldFocused = { showSearchDropdown = true },
                                         )
                                         SearchNotice(uiState)
+                                    }
                                     }
                                 }
                             },
@@ -1838,13 +1882,13 @@ private fun ForagerBottomNav(
     onTabSelected: (CompactTab) -> Unit,
     modifier: Modifier = Modifier,
     /**
-     * Opaque for every existing caller. Fullscreen-maps dispatch, Part 2a: floating this bar over
-     * the map instead of resizing it needs the standing 80%-opacity chrome-over-the-map treatment
-     * this file's own map-chrome family already established
-     * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]'s own doc comment) — the
-     * container fill goes translucent, not the whole composable (a blanket
-     * [androidx.compose.ui.draw.alpha] would fade icons/labels/ripples too, which that same
-     * precedent already treats as the wrong technique for this exact kind of chrome).
+     * Opaque for every caller. Fullscreen-maps dispatch, Part 2a originally floated this bar over
+     * the map at 80% opacity while fullscreen, the standing chrome-over-the-map treatment this
+     * file's own map-chrome family established elsewhere — reversed for the Map tab's own instance
+     * by the fullscreen-fixes dispatch ("slide the chrome away instead of cutting it"): that
+     * instance now slides fully off-screen while fullscreen instead of staying and crossfading, so
+     * it's never simultaneously visible and over the map, and the translucency this parameter used
+     * to carry has no case left to serve.
      */
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
 ) {
@@ -4473,6 +4517,43 @@ private fun CompactMapTab(
     // row count (that row count changes twice in quick succession across this dispatch and the
     // next one, so any such constant goes stale before the layout phase finishes).
     var mapIconBarBottomPx by remember { mutableStateOf(0f) }
+    // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking handle to
+    // restore it") — independent of isMapFullscreen by design (that item's own "do not tie it to
+    // isMapFullscreen" instruction); no key on remember, so it naturally resets to false whenever
+    // this whole composable is torn down and rebuilt, which is exactly what happens on leaving the
+    // Map tab (compactMainScaffold's own `when (compactTab) {...}` branch swap) — "minimising
+    // resets when the user leaves the Map tab" without any extra plumbing to make that happen.
+    var isMapIconBarMinimized by remember { mutableStateOf(false) }
+    // Direct owner request (not part of the fullscreen-fixes dispatch): the icon bar can be
+    // dragged up/down to reposition it, and snaps to the left or right edge — for left-handed
+    // users who want it within thumb reach on that side. Session-only remember state, matching
+    // isMapIconBarMinimized's own scope above (see that variable's own doc comment for why no key
+    // is needed for it to reset on leaving the Map tab) — not yet persisted to DataStore (CLAUDE.md's
+    // Room/DataStore split would put a "last-used side" preference there, since it's a flat,
+    // unrelated toggle), so it resets to the right side/no vertical offset on every fresh mount of
+    // this tab. Worth revisiting if the owner wants that choice to survive an app restart.
+    var isMapIconBarOnLeftSide by remember { mutableStateOf(false) }
+    var mapIconBarVerticalOffsetPx by remember { mutableStateOf(0f) }
+    // Horizontal drag distance accumulated only during an in-progress drag gesture — read once, at
+    // gesture end, to decide whether to flip isMapIconBarOnLeftSide, then reset to 0 regardless of
+    // whether the side actually flipped. This keeps the bar's own resting modifier exactly
+    // Alignment.CenterStart/CenterEnd with no leftover offset once a drag finishes, rather than a
+    // real-time "follows the finger, then snaps back" visual (a smaller, later polish, not this
+    // request's own ask).
+    var mapIconBarHorizontalDragPx by remember { mutableStateOf(0f) }
+    // This tab's own content Box's real measured height, in px — what mapIconBarVerticalOffsetPx is
+    // clamped against below, so a drag can't carry the bar (or its restore handle) fully off
+    // screen. Set via onGloballyPositioned on that Box itself, a few lines down.
+    var mapContentBoxHeightPx by remember { mutableStateOf(0f) }
+    // A drag distance past this point (either direction) commits the bar to the opposite side —
+    // deliberately more than a light brush, since a small accidental sideways slip while actually
+    // trying to reposition vertically should not also relocate the whole bar to the other side of
+    // the screen.
+    val mapIconBarSideSnapThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
+    // Keeps at least one full touch target's worth of the bar/handle on screen at either vertical
+    // extreme of a drag — reuses MIN_TOUCH_TARGET (MapChrome.kt) rather than inventing a second
+    // margin constant for the same "don't let a control go fully off-screen" idea.
+    val mapIconBarVerticalDragMarginPx = with(LocalDensity.current) { MIN_TOUCH_TARGET.toPx() }
 
     // AddActionTile and CentrePinLocationPickerOverlay are both plain overlays, not real Dialogs,
     // so — unlike TripDatePickerDialog below, an M3 DatePickerDialog whose own Dialog window
@@ -4590,7 +4671,15 @@ private fun CompactMapTab(
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
                 }
             }
-            Box(modifier = modifier.fillMaxSize()) {
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+                    // Feeds mapIconBarVerticalOffsetPx's own clamp below — see that variable's own
+                    // doc comment.
+                    .onGloballyPositioned { coordinates ->
+                        mapContentBoxHeightPx = coordinates.size.height.toFloat()
+                    },
+            ) {
                 mapSlot(
                     displayRegion,
                     MapOverlayContent(
@@ -4675,35 +4764,116 @@ private fun CompactMapTab(
                 // true after MapIconBar's own return-to-vehicle row was removed (see that
                 // composable's own doc comment) — the overlap this guards against is with the bar's
                 // Surface as a whole, not specifically with that one row.
-                MapIconBar(
-                    isFullscreen = isFullscreen,
-                    onToggleFullscreen = onToggleFullscreen,
-                    onLocateMe = {
-                        resumeTrackingRequestId++
-                        onLocateMe()
-                    },
-                    onResetOrientation = { resetOrientationRequestId++ },
-                    mapMode = mapMode,
-                    onOpenMapModePicker = { showMapModePicker = true },
-                    isNightMode = isNightMode,
-                    onAdd = {
-                        // No location to grab any more — the button just opens the menu; the
-                        // location comes from CentrePinLocationPickerOverlay's own camera tracking
-                        // once a choice is made. See this function's own doc comment.
-                        showActionMenu = true
-                    },
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(Spacing.sm)
-                        // Reports this bar's own actual laid-out bottom edge, relative to this Box,
-                        // into mapIconBarBottomPx — what ControlPill/DistanceArm anchor against
-                        // below. See mapIconBarBottomPx's own doc comment for why this is measured
-                        // rather than a hardcoded offset or a value computed from the bar's row
-                        // count.
-                        .onGloballyPositioned { coordinates ->
-                            mapIconBarBottomPx = coordinates.boundsInParent().bottom
+                // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking
+                // handle to restore it"). MapIconBar and TrailheadControls hide/show together,
+                // gated on isMapIconBarMinimized rather than isMapFullscreen — that item's own "do
+                // not tie it to isMapFullscreen" instruction, and independently required since
+                // ControlPill/DistanceArm (inside TrailheadControls) anchor themselves against
+                // mapIconBarBottomPx, a value only meaningful while MapIconBar is actually present
+                // and measured: "Minimise means the chrome goes away, not that it fragments," so
+                // leaving them floating against a stale measurement once the bar itself is gone
+                // would look broken (the project owner's own call on this exact question).
+                //
+                // MapIconBarMinimizeHandle is composed as a separate, later sibling (sharing the
+                // bar's own alignment/offset below, so it shares the bar's own vertical center —
+                // "mid-height" — and moves with it) rather than nested inside a shared container:
+                // there is no on-screen room to place a full 48dp touch target beside the bar
+                // without overlapping it (the bar's own Spacing.sm edge inset is far narrower than
+                // that), so the handle deliberately overlaps the bar's own rightmost sliver,
+                // attached to its right side the way the owner described. Composed after MapIconBar
+                // (and so painted and hit-tested on top of it) so it wins that overlap, the same
+                // composition-order-is-hit-test-order convention this file already uses for
+                // MapIconBar itself against CompassElevationStrip (see this block's own comment
+                // above).
+                //
+                // Direct owner request, layered on top of the above: the bar (and its two handles)
+                // can be dragged to reposition vertically and snaps to either screen edge — see
+                // isMapIconBarOnLeftSide/mapIconBarVerticalOffsetPx's own doc comments above.
+                // mapIconBarSideAlignment/mapIconBarPositionOffset are shared by every composable in
+                // this if/else so the bar and whichever handle is currently showing always move and
+                // land on the same side together, as one unit. detectDragGesturesAfterLongPress,
+                // not a plain drag detector or Modifier.draggable: a quick tap must keep reaching
+                // Surface's own onClick (minimize/restore) unambiguously, and the long-press
+                // threshold is what lets a tap and a drag share the same control with no gesture
+                // conflict, a well-established Compose combination for exactly this pairing.
+                // TrailheadControls (below) is deliberately NOT included in the side flip — it
+                // still always anchors TopEnd — because DistanceArm's own circular-base geometry
+                // (see that composable's own doc comment) assumes growing from a right-fixed point;
+                // mirroring it for the left side is real, separate layout work this request didn't
+                // ask for and is flagged rather than done silently.
+                val mapIconBarSideAlignment = if (isMapIconBarOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
+                val mapIconBarPositionOffset = Modifier.offset {
+                    IntOffset(mapIconBarHorizontalDragPx.roundToInt(), mapIconBarVerticalOffsetPx.roundToInt())
+                }
+                val mapIconBarDragModifier = Modifier.pointerInput(Unit) {
+                    detectDragGesturesAfterLongPress(
+                        onDragEnd = {
+                            when {
+                                mapIconBarHorizontalDragPx <= -mapIconBarSideSnapThresholdPx -> isMapIconBarOnLeftSide = true
+                                mapIconBarHorizontalDragPx >= mapIconBarSideSnapThresholdPx -> isMapIconBarOnLeftSide = false
+                            }
+                            mapIconBarHorizontalDragPx = 0f
                         },
-                )
+                        onDragCancel = { mapIconBarHorizontalDragPx = 0f },
+                    ) { change, dragAmount ->
+                        change.consume()
+                        mapIconBarHorizontalDragPx += dragAmount.x
+                        val maxVerticalOffsetPx = (mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
+                        mapIconBarVerticalOffsetPx = (mapIconBarVerticalOffsetPx + dragAmount.y)
+                            .coerceIn(-maxVerticalOffsetPx, maxVerticalOffsetPx)
+                    }
+                }
+                if (isMapIconBarMinimized) {
+                    MapIconBarRestoreHandle(
+                        onRestore = { isMapIconBarMinimized = false },
+                        onLeftSide = isMapIconBarOnLeftSide,
+                        modifier = Modifier
+                            .align(mapIconBarSideAlignment)
+                            .then(mapIconBarPositionOffset)
+                            .then(mapIconBarDragModifier),
+                    )
+                } else {
+                    MapIconBar(
+                        isFullscreen = isFullscreen,
+                        onToggleFullscreen = onToggleFullscreen,
+                        onLocateMe = {
+                            resumeTrackingRequestId++
+                            onLocateMe()
+                        },
+                        onResetOrientation = { resetOrientationRequestId++ },
+                        mapMode = mapMode,
+                        onOpenMapModePicker = { showMapModePicker = true },
+                        isNightMode = isNightMode,
+                        onAdd = {
+                            // No location to grab any more — the button just opens the menu; the
+                            // location comes from CentrePinLocationPickerOverlay's own camera
+                            // tracking once a choice is made. See this function's own doc comment.
+                            showActionMenu = true
+                        },
+                        modifier = Modifier
+                            .align(mapIconBarSideAlignment)
+                            .then(mapIconBarPositionOffset)
+                            .padding(Spacing.sm)
+                            // Reports this bar's own actual laid-out bottom edge, relative to this
+                            // Box, into mapIconBarBottomPx — what ControlPill/DistanceArm anchor
+                            // against below. See mapIconBarBottomPx's own doc comment for why this
+                            // is measured rather than a hardcoded offset or a value computed from
+                            // the bar's row count. Still correct with the drag feature layered on:
+                            // boundsInParent() reports the bar's real final laid-out position, so
+                            // it reflects wherever a drag has actually moved it to.
+                            .onGloballyPositioned { coordinates ->
+                                mapIconBarBottomPx = coordinates.boundsInParent().bottom
+                            },
+                    )
+                    MapIconBarMinimizeHandle(
+                        onMinimize = { isMapIconBarMinimized = true },
+                        onLeftSide = isMapIconBarOnLeftSide,
+                        modifier = Modifier
+                            .align(mapIconBarSideAlignment)
+                            .then(mapIconBarPositionOffset)
+                            .then(mapIconBarDragModifier),
+                    )
+                }
                 CompassElevationStrip(
                     compassProvider = compassProvider,
                     elevationMeters = uiState.liveAltitudeMeters,
@@ -4719,22 +4889,27 @@ private fun CompactMapTab(
                         .fillMaxWidth()
                         .padding(top = topInset),
                 )
-                // Always composed, regardless of isRecording — record start/stop must stay reachable
-                // before the first recording starts, the same as it was as an always-enabled
-                // MapIconBar row before this dispatch. isRecording flows in as a plain parameter
-                // (see TrailheadControls' own doc comment for how it drives the return-to-vehicle
-                // row's disabled state), not a presence check, so a tester never sees this pill
-                // appear from nowhere the first time they hit record.
-                TrailheadControls(
-                    isRecording = isRecording,
-                    onToggleRecording = onToggleRecording,
-                    returnToStart = returnToStart,
-                    isReturning = isReturning,
-                    isOffTrack = isOffTrack,
-                    onToggleReturning = onToggleReturning,
-                    mapIconBarBottomPx = mapIconBarBottomPx,
-                    modifier = Modifier.align(Alignment.TopEnd),
-                )
+                // Composed whenever MapIconBar is (regardless of isRecording — record start/stop
+                // must stay reachable before the first recording starts, the same as it was as an
+                // always-enabled MapIconBar row before this dispatch; isRecording flows in as a
+                // plain parameter, see TrailheadControls' own doc comment, not a presence check, so
+                // a tester never sees this pill appear from nowhere the first time they hit
+                // record). Gated on !isMapIconBarMinimized alongside MapIconBar itself, per this
+                // file's own comment above on that gate — this pill's own position is computed
+                // from mapIconBarBottomPx, a value that stops being meaningful the moment
+                // MapIconBar itself is gone.
+                if (!isMapIconBarMinimized) {
+                    TrailheadControls(
+                        isRecording = isRecording,
+                        onToggleRecording = onToggleRecording,
+                        returnToStart = returnToStart,
+                        isReturning = isReturning,
+                        isOffTrack = isOffTrack,
+                        onToggleReturning = onToggleReturning,
+                        mapIconBarBottomPx = mapIconBarBottomPx,
+                        modifier = Modifier.align(Alignment.TopEnd),
+                    )
+                }
 
                 // Below the compass strip (topInset + compassStripClearance as top padding), same
                 // reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts
@@ -4765,30 +4940,40 @@ private fun CompactMapTab(
                 // AvailabilityScreenTripPlanningFlowTest's own trip-planning-flow tests going from
                 // passing to reliably failing (not flaky) on exactly that ordering, the same class
                 // of miss CLAUDE.md's own "Known pitfalls" already documents twice over for chrome
-                // composed over a map. A modal that's open should sit above this persistent bar, not
-                // trapped underneath it. Full-width across the bottom, opaque normally, 80% while
-                // fullscreen — the standing chrome-over-the-map rule. selectedTab is hardcoded to
-                // CompactTab.MAP — this composable is only ever shown for that tab, so there's
-                // nothing else it could mean here. The other three tabs still render this same
-                // composable, unconditionally opaque, from compactMainScaffold's own bottomBar slot
-                // instead (that call site's own doc comment) — this overlay and that one are the two
-                // places ForagerBottomNav renders, never both for the same tab at once.
-                ForagerBottomNav(
-                    selectedTab = CompactTab.MAP,
-                    isDrawerOpen = isDrawerOpen,
-                    onTabSelected = onBottomNavTabSelected,
-                    containerColor = if (isFullscreen) {
-                        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainer
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .onGloballyPositioned { coordinates ->
-                            onBottomNavHeightMeasured(coordinates.size.height.toFloat())
-                        },
-                )
+                // composed over a map. selectedTab is hardcoded to CompactTab.MAP — this composable
+                // is only ever shown for that tab, so there's nothing else it could mean here. The
+                // other three tabs still render this same composable, unconditionally opaque, from
+                // compactMainScaffold's own bottomBar slot instead (that call site's own doc
+                // comment) — this overlay and that one are the two places ForagerBottomNav renders,
+                // never both for the same tab at once.
+                //
+                // Slides down and off the bottom edge while fullscreen — fullscreen-fixes dispatch,
+                // Item 2 ("slide the chrome away instead of cutting it"), a deliberate change from
+                // the crossfade-to-80%-opacity this bar used before: fullscreen is exited via
+                // MapIconBar's own fullscreen control, never via this nav, so the nav is not the
+                // way out and can safely leave the screen entirely. Always opaque now — the
+                // standing 80%-over-the-map rule no longer applies to it once it's never visible
+                // at the same time as being over the map; it's either docked, opaque, off
+                // fullscreen, or off-screen entirely during fullscreen. A pure Box-child overlay,
+                // same confirmed-safe reasoning as SearchEntryBar's own slide above — animating it
+                // has no bearing on this Box's own size.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !isFullscreen,
+                    enter = slideInVertically(animationSpec = MotionTokens.navigationMotionSpec()) { fullHeight -> fullHeight },
+                    exit = slideOutVertically(animationSpec = MotionTokens.navigationMotionSpec()) { fullHeight -> fullHeight },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                ) {
+                    ForagerBottomNav(
+                        selectedTab = CompactTab.MAP,
+                        isDrawerOpen = isDrawerOpen,
+                        onTabSelected = onBottomNavTabSelected,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { coordinates ->
+                                onBottomNavHeightMeasured(coordinates.size.height.toFloat())
+                            },
+                    )
+                }
 
                 // Inside this Box, not alongside it, so it can align near the add button's own
                 // corner of the icon stack above — see AddActionTile's doc comment for why this

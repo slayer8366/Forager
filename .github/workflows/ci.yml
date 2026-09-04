@@ -296,6 +296,27 @@ jobs:
                   "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "tapping the map while fullscreen restores chrome",
               ),
+              # Same docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md bug, hit by the
+              # fullscreen-fixes dispatch's Item 3 (minimize/restore handle) — added 2026-09-04,
+              # closes out with the same thirteen above, not separately.
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch on the minimize handle hides MapIconBar and TrailheadControls "
+                  "together, and the restore handle brings both back",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "a real touch just outside the minimize handle reaches MapIconBar's own "
+                  "fullscreen row, not the handle",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "the restore handle meets the 48dp touch-target floor",
+              ),
+              (
+                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "minimising the icon bar resets after leaving and returning to the Map tab",
+              ),
               (
                   "com.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest",
                   "tapping a recent search reports that entry and closes the dropdown",

@@ -368,16 +368,49 @@ class AvailabilityScreenBackNavigationTest {
         setScreen()
         searchAReferenceRegion()
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
-        // Fullscreen-maps dispatch, Part 2a: the bottom nav no longer disappears while fullscreen —
-        // it floats over the map at 80% opacity instead, so the map's own dimensions never change.
-        // Still reachable and tappable, unchanged, which is the point: "its behaviour must not
-        // change anywhere else in the app" applies here too, not just to the other three tabs.
-        composeRule.onNodeWithText("Tools").assertIsDisplayed()
+        // Fullscreen-fixes dispatch ("slide the chrome away instead of cutting it"): checked via
+        // the fullscreen toggle's own content description now, not "Tools" — ForagerBottomNav no
+        // longer stays reachable while fullscreen (it slides fully off-screen, a deliberate reversal
+        // of the fullscreen-maps dispatch's own "still reachable, just translucent" call, since
+        // fullscreen is exited via MapIconBar's own control, not the nav), so "Tools" is exactly
+        // the wrong thing for this test to depend on now — see
+        // `the bottom nav is not reachable while fullscreen, including Tools` below for that half.
+        composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
 
         pressBack()
 
-        composeRule.onNodeWithText("Tools").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         assertEquals(null, ShadowToast.getTextOfLatestToast())
+    }
+
+    /**
+     * Fullscreen-fixes dispatch ("slide the chrome away instead of cutting it") — a deliberate
+     * reversal of the fullscreen-maps dispatch's own "the bottom nav no longer disappears while
+     * fullscreen — it floats over the map at 80% opacity instead... still reachable and tappable,
+     * unchanged" call this test file used to assert (see this test's own git history). The nav now
+     * slides fully off-screen while fullscreen instead, so it's genuinely unmounted, not just
+     * visually faded — proven here by its own text disappearing from the tree entirely, not merely
+     * failing an `assertIsDisplayed()`.
+     *
+     * **A real, newly-discovered consequence, reported rather than absorbed:** the Tools drawer's
+     * only entry point on this window class is tapping "Tools" on this exact bar, so the Tools
+     * drawer — and everything reached through it (Settings, theme, night-mode maps) — is now
+     * unreachable while fullscreen too. `back closes the drawer without also exiting fullscreen`
+     * used to cover the "drawer open while fullscreen" combination this replaces; that combination
+     * is no longer constructible at all now that its own entry point is gone, the same way an
+     * earlier revision of this exact scenario was itself unreachable before the fullscreen-maps
+     * dispatch made it reachable (that history is this test class's own doc comment above, on the
+     * test this one replaces).
+     */
+    @Test
+    fun `the bottom nav is not reachable while fullscreen, including Tools`() {
+        setScreen()
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+
+        composeRule.onNodeWithText("Tools").assertDoesNotExist()
     }
 
     /**
@@ -398,31 +431,17 @@ class AvailabilityScreenBackNavigationTest {
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 
-    /**
-     * Reachable again as of the fullscreen-maps dispatch (Part 2a floats the bottom nav, including
-     * Tools, over the fullscreen map instead of removing it) — a "drawer open while fullscreen"
-     * back-priority test used to live here and was deleted for the opposite reason (an earlier
-     * dispatch had made the combination unreachable). `BackHandler(enabled = isDrawerOpen)`'s own
-     * placement, first among this chain's four handlers and unconditional on `isMapFullscreen`,
-     * already closes the drawer before fullscreen on its own — this proves that isn't an accident.
-     */
-    @Test
-    fun `back closes the drawer without also exiting fullscreen`() {
-        setScreen()
-        searchAReferenceRegion()
-        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
-        composeRule.onNodeWithText("Tools").performClick()
-        // DrawerHeader's own close affordance — proves the Tools drawer is actually open.
-        composeRule.onNodeWithContentDescription("Close search options").assertIsDisplayed()
-
-        pressBack()
-
-        composeRule.onNodeWithContentDescription("Close search options").assertIsNotDisplayed()
-        // Still fullscreen — the icon reads "Exit fullscreen," not "Fullscreen" — proving back
-        // closed the drawer only, rather than also unwinding fullscreen in the same press.
-        composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
-        assertEquals(null, ShadowToast.getTextOfLatestToast())
-    }
+    // "back closes the drawer without also exiting fullscreen" (a "drawer open while fullscreen"
+    // back-priority test) removed here — fullscreen-fixes dispatch ("slide the chrome away instead
+    // of cutting it"). Its own scenario is no longer constructible: opening the Tools drawer while
+    // fullscreen required tapping "Tools" on ForagerBottomNav, and that bar now slides fully
+    // off-screen while fullscreen (see `the bottom nav is not reachable while fullscreen, including
+    // Tools`, above, which replaces this one) — the exact combination this test's own doc comment
+    // already recorded as having been unreachable once before, for a different reason, prior to the
+    // fullscreen-maps dispatch making it reachable. `BackHandler(enabled = isDrawerOpen)`'s own
+    // priority (first among this chain's four handlers) is unchanged and still exercised by
+    // `back closes the open drawer instead of warning to exit`, above, for the non-fullscreen case;
+    // only the fullscreen-specific combination is gone.
 
     /**
      * A Journal entry's own edit form is more nested than "which bottom-nav tab is selected" — back

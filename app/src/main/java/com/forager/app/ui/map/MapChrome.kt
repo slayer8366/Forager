@@ -7,16 +7,19 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,6 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -373,6 +379,133 @@ internal fun MapIconBar(
             }
             fifthRow(isDarkTheme)
         }
+    }
+}
+
+/**
+ * The trigger that minimises [MapIconBar] — fullscreen-fixes dispatch, Item 3. The dispatch
+ * specifies the restore affordance precisely ([MapIconBarRestoreHandle]'s own rectangular-outline
+ * design) but leaves open how the bar is minimised in the first place — a decision made here rather
+ * than flagged, since it is mechanical rather than architectural.
+ *
+ * **Owner's design for this control:** a drag box on the right side of the icon bar, at mid-height
+ * — attached to the bar's own edge rather than stacked above or below its rows, rectangular (not a
+ * circle/icon button), and themed the same opaque-fill-plus-hairline-border way as [MapIconBar]
+ * itself ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) so it reads as an extension
+ * of the bar rather than an unrelated new control. Tapping it slides the bar (and, at the call
+ * site, [TrailheadControls] alongside it — see that composable's own doc comment) away.
+ *
+ * Kept as its own [Surface], a sibling of [MapIconBar] at the call site rather than folded into
+ * that composable's own Column as a 6th row: [mapIconBarRowAnchorOffset]'s own `rowCount` and the
+ * two popups anchored against specific rows ([MapModePicker], `AddActionTile`) assume exactly 5,
+ * re-derived directly against the tree per that function's own doc comment — adding a 6th row here
+ * would silently invalidate that arithmetic for an unrelated feature.
+ *
+ * Sized [MIN_TOUCH_TARGET] wide by 1.5x that tall — clearly a rectangle, not a square icon button,
+ * per the owner's own description, while still meeting the touch-target floor in both dimensions
+ * (exceeding it in height) rather than trading width for a "thinner" look the way a real drag
+ * handle might.
+ */
+@Composable
+internal fun MapIconBarMinimizeHandle(
+    onMinimize: () -> Unit,
+    modifier: Modifier = Modifier,
+    /**
+     * Direct owner request, layered on top of Item 3: the bar (and both its handles) can be
+     * dragged to either screen edge. `false` (the bar's own original right-side position) rounds
+     * the corners facing into the map, matching [MapIconBarRestoreHandle]'s own "rounded toward
+     * the map, square toward the true edge" reasoning; `true` mirrors that shape for the left edge
+     * so the rounding still faces inward rather than reading backwards once the bar is over there.
+     */
+    onLeftSide: Boolean = false,
+) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    val shape = if (onLeftSide) {
+        RoundedCornerShape(topEnd = Spacing.xs, bottomEnd = Spacing.xs, topStart = 0.dp, bottomStart = 0.dp)
+    } else {
+        RoundedCornerShape(topStart = Spacing.xs, bottomStart = Spacing.xs, topEnd = 0.dp, bottomEnd = 0.dp)
+    }
+    // Box + Modifier.clickable, matching MapBarIconButton's own proven pattern elsewhere in this
+    // file, rather than a Material3 Surface(onClick = ...) — confirmed, via an isolated standalone
+    // test, that either shape correctly invokes onMinimize on its own; picked Box+clickable for
+    // consistency with every other row in this bar rather than for a functional difference between
+    // the two. (A Surface(onClick=...) version of this control was tried first and, embedded in the
+    // real AvailabilityScreen tree, never invoked onMinimize under Robolectric even once across ten
+    // retried performClick() calls — but the same isolated test proved that specific composable
+    // shape innocent; the actual cause was the pre-existing, documented
+    // docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md harness bug, which the
+    // integration test this control needed happened to trigger via searchAReferenceRegion()'s own
+    // still-open SearchDropdown, not this Surface/Box choice.)
+    Box(
+        modifier = modifier
+            .size(width = MIN_TOUCH_TARGET, height = MIN_TOUCH_TARGET * 1.5f)
+            .background(color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight, shape = shape)
+            .border(
+                width = 1.dp,
+                color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
+                shape = shape,
+            )
+            .clickable(onClick = onMinimize)
+            .semantics { contentDescription = "Hide map controls" }
+            .testTag("map-icon-bar-minimize-handle"),
+    ) {}
+}
+
+/**
+ * The restore control for a minimised [MapIconBar] — fullscreen-fixes dispatch, Item 3.
+ * [MapIconBar] holds the only way out of fullscreen, and that same dispatch's Item 2 slides
+ * `ForagerBottomNav` fully off-screen while fullscreen, so a minimised bar with no restore control
+ * would leave a fullscreen user stuck on a bare map with no way back. This handle is composed in
+ * [MapIconBar]'s place whenever the bar is minimised, in every state — independent of
+ * `isMapFullscreen`, per this feature's own "do not tie it to isMapFullscreen" instruction — so it
+ * is always there to tap.
+ *
+ * The tappable region is a full [MIN_TOUCH_TARGET] square, the same floor every other control in
+ * this file meets; the "small rectangular outline peeking out from the right edge" the project
+ * owner asked for is a thin bordered rectangle centered inside it via padding — visually much
+ * smaller than the tap target, without the tap target itself shrinking to match. That distinction
+ * matters here specifically: this is a small `Surface`-shaped control sitting at the map's own
+ * edge, precisely the shape of thing that has silently swallowed map touches three times before
+ * (see this file's own history on [MapIconBar] and `CLAUDE.md`'s "Known pitfalls") — but the fix
+ * for that failure mode is a full-size hit area with a smaller visible mark inside it, not a
+ * smaller hit area, which is a different (and here, wrong) way to shrink a control.
+ *
+ * No fill, just the outline — this is an affordance hint, not another opaque button matching
+ * [MapIconBar]'s own bar treatment; rounding only the two corners facing into the map (the
+ * `Alignment.CenterEnd`-anchored edge nearer the screen's own right edge stays square) so the
+ * shape itself reads as something tucked against, and emerging from, that edge.
+ */
+@Composable
+internal fun MapIconBarRestoreHandle(
+    onRestore: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** See [MapIconBarMinimizeHandle]'s own `onLeftSide` doc comment — same reasoning, mirrored shape. */
+    onLeftSide: Boolean = false,
+) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    val outlineShape = if (onLeftSide) {
+        RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp, topStart = 0.dp, bottomStart = 0.dp)
+    } else {
+        RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 0.dp, bottomEnd = 0.dp)
+    }
+    Box(
+        modifier = modifier
+            .size(MIN_TOUCH_TARGET)
+            .clickable(onClick = onRestore)
+            .semantics { contentDescription = "Show map controls" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(vertical = Spacing.md)
+                .fillMaxHeight()
+                .width(10.dp)
+                .border(
+                    width = 1.5.dp,
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Bark.copy(alpha = 0.7f),
+                    shape = outlineShape,
+                ),
+        )
     }
 }
 
