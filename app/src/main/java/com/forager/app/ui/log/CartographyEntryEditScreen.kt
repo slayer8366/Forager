@@ -335,9 +335,14 @@ internal fun CartographyEntryEditScreen(
         AlertDialog(
             onDismissRequest = onContinueEditing,
             title = { Text("Welcome back") },
-            text = { Text("This entry had an edit still pending when the app went to the background. Continue editing, commit it, or save it as a draft.") },
+            text = { Text("This entry had an edit still pending when the app went to the background. Continue editing, submit it, or save it as a draft.") },
             confirmButton = {
-                TextButton(onClick = onCommit, modifier = Modifier.testTag(RETURN_PROMPT_COMMIT_TEST_TAG)) { Text("Commit") }
+                // Search-focus-and-hide dispatch, Item 3: "Submit," not "Commit" — this same file's
+                // own persistent "Finish entry" button (onFinish, above) already uses that verb for
+                // the identical action, so this dialog was the one place still saying "Commit." The
+                // tag/callback names (RETURN_PROMPT_COMMIT_TEST_TAG, onCommit) are unchanged — this
+                // is a label rename, not a rename of what the action does.
+                TextButton(onClick = onCommit, modifier = Modifier.testTag(RETURN_PROMPT_COMMIT_TEST_TAG)) { Text("Submit") }
             },
             dismissButton = {
                 Row {

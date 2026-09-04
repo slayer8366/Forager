@@ -1169,6 +1169,31 @@ fun AvailabilityScreen(
         // trace of why conflating the two was silently closing the find (and losing the photo with
         // it) on every camera capture.
         val latestPhotoAcquisitionInFlight by rememberUpdatedState(logPhotoAcquisitionInFlight)
+
+        // Search-focus-and-hide dispatch, Item 2's own hide condition (SearchEntryBar call sites
+        // below) — "any entry open" (view or edit), not "specifically editing": from here,
+        // CartographyEntryMode/JournalEntryMode (which distinguish the two) are local state one
+        // level down in CartographyScreen.kt/JournalTab.kt, invisible at this scope. Owner decision:
+        // hiding while merely viewing is acceptable rather than lifting that mode into shared state.
+        val isEditingJournalEntry = logUiState.editingEntry != null || cartographyUiState.editingEntry != null
+        // Search-focus-and-hide dispatch, Item 1: tried and deliberately NOT built here. The natural
+        // generalization of the established LaunchedEffect(showSearchDropdown) pattern just above
+        // — LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus(force = true) }, firing on
+        // every transition rather than one direction — was built, and it made both currently-failing
+        // tests fail differently, not pass: the "Advanced search" dropdown still opened (confirmed via
+        // composeRule.onRoot().printToLog()/onAllNodesWithText node counts, not guessed), because
+        // clearing focus at the exact recomposition where Item 2's hide condition also flips SearchEntryBar
+        // back into existence left it as the only focusable candidate with nothing else claiming
+        // focus — which is exactly the precondition this codebase's own default-focus-assignment
+        // behavior needs to reclaim it right back. Removing the effect and keeping only Item 2's own
+        // hide condition (SearchEntryBar not composed at all while `isEditingJournalEntry`, so there
+        // is no candidate to reclaim) turned both tests green with no clearFocus() call anywhere in
+        // this file. CartographyScreen's own ON_RESUME clearFocus() (that composable's own doc
+        // comment) stays — it fires while an edit screen is still open, not into this same
+        // hide/remount race, and full-suite verification found no regression from keeping it. The
+        // "entering a fresh edit" direction of Item 1 (as opposed to "returned to") was never
+        // exercised by any test either way and is not built — see this dispatch's own report for the
+        // reasoning on leaving it out rather than guessing at a shape that avoids the same race.
         // Pending-edit-and-fixes dispatch, Item 1: this observer no longer touches Cartography at
         // all — it used to call onSaveCartographyEntry here on a dirty committed entry, silently
         // committing an edit the user never approved just because the app backgrounded. Backgrounding
@@ -1257,7 +1282,19 @@ fun AvailabilityScreen(
                 // direct call, scoped to the Map tab specifically so the other three tabs
                 // (List/Seasonal/Journal, none of which have anything worth showing through a
                 // translucent bar) keep this bar as ordinary opaque-backed chrome, unchanged.
-                if (!isMapFullscreen && compactTab != CompactTab.MAP) {
+                // Search-focus-and-hide dispatch, Item 2 — owner decision, framed as a design change
+                // ("searching has nothing to do with editing an entry"), but this hide condition is
+                // what actually closes the dropdown-scrim-blocks-taps defect too: see
+                // `isEditingJournalEntry`'s own doc comment above for why Item 1's own fix (clearing
+                // focus explicitly) was tried first and made things worse, not better. Hidden via
+                // composition (an `if`, not an opacity/size-zero modifier) — "hide, do not remove"
+                // means the feature stays intact everywhere else, not that this specific instance
+                // keeps its state while invisible; an unmounted composable can't be the thing silently
+                // holding onto stale focus. The moment this bar *remounts*, right as an edit screen
+                // closes, was flagged as an unexercised race before this was built — now exercised and
+                // ruled out by `AvailabilityScreenBackNavigationTest`'s own "backgrounding and
+                // resuming mid-edit, then closing normally..." test.
+                if (!isMapFullscreen && compactTab != CompactTab.MAP && !isEditingJournalEntry) {
                     SearchEntryBar(
                         uiState = uiState,
                         distanceUnit = distanceUnit,
@@ -1365,7 +1402,13 @@ fun AvailabilityScreen(
                             // `!isMapFullscreen` gate from when it lived in this scaffold's outer
                             // Column, now reproduced here since the slot is CompactMapTab's to
                             // show or not.
-                            searchBarSlot = if (isMapFullscreen) {
+                            // Same Item 2 hide-during-edit condition as the non-Map SearchEntryBar
+                            // call site above — editing a Cartography entry doesn't close it when
+                            // switching to the Map tab (only find-editing does, via
+                            // leaveLogEntryEditingOfferingDiscard in ForagerBottomNav's own
+                            // onTabSelected above), so this slot needs the identical check, not just
+                            // the non-Map one.
+                            searchBarSlot = if (isMapFullscreen || isEditingJournalEntry) {
                                 {}
                             } else {
                                 {

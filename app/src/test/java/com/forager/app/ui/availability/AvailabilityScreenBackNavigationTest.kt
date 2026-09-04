@@ -664,17 +664,21 @@ class AvailabilityScreenBackNavigationTest {
     }
 
     /**
-     * **Known failing, left red on purpose — not a flake, not silenced.** The final assertion below
-     * used to read `onNodeWithText("Committed on return.").assertIsDisplayed()` with nothing checking
-     * that the preceding tap on the tile actually opened it — that text is also the tile's own
-     * accessibility text (`CartographyEntryTile` renders `entry.text` as its preview line), so the
-     * assertion passed whether or not the tap landed on anything. It didn't: confirmed via
-     * `composeRule.onRoot().printToLog()` that the same open search dropdown and scrim described on
-     * `Save as draft on the return prompt...`'s own doc comment are present here too, after "Back to
-     * Cartography," and the tap on "2026-08-01" lands on that scrim instead of the tile. Strengthened
-     * to assert `"Entry options"` (only present on the opened report screen, never on the tile) is
-     * displayed, which now correctly fails until the underlying focus question — see that other
-     * test's doc comment — is resolved by an on-device check.
+     * The final assertion below used to read `onNodeWithText("Committed on return.").assertIsDisplayed()`
+     * with nothing checking that the preceding tap on the tile actually opened it — that text is
+     * also the tile's own accessibility text (`CartographyEntryTile` renders `entry.text` as its
+     * preview line), so the assertion passed whether or not the tap landed on anything. It didn't,
+     * for a real reason: after "Back to Cartography" closed the editor, the app's top search field
+     * silently regained focus and popped its "Advanced search" dropdown open — scrim included — over
+     * the tab row and grid beneath, confirmed on a physical device (search-focus-and-hide dispatch)
+     * after this session first found it via `composeRule.onRoot().printToLog()`. Strengthened to
+     * assert `"Entry options"` (only present on the opened report screen, never on the tile) is
+     * displayed — a real assertion of navigation, not a coincidence of shared text — which now
+     * passes because the bar is hidden for as long as an entry is open (`AvailabilityScreen.kt`'s own
+     * `isEditingJournalEntry`-gated `SearchEntryBar` call sites) rather than because focus was
+     * explicitly cleared: see that gate's own doc comment for why a `LaunchedEffect(isEditingJournalEntry)
+     * { focusManager.clearFocus() }` was tried first and found to reintroduce this exact bug instead
+     * of fixing it.
      */
     @Test
     fun `Commit on the return prompt persists the pending edit and stays on the entry`() {
@@ -687,6 +691,9 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.waitForIdle()
         backgroundThenResume()
 
+        // Search-focus-and-hide dispatch, Item 3: "Submit," not "Commit" — the tag/callback
+        // (RETURN_PROMPT_COMMIT_TEST_TAG, onCommit) are unchanged, only this label.
+        composeRule.onNodeWithText("Submit").assertIsDisplayed()
         composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_COMMIT_TEST_TAG).performClick()
 
         composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
@@ -704,25 +711,24 @@ class AvailabilityScreenBackNavigationTest {
      * The owner's own correction to the reported plan: demoting closes the screen rather than
      * staying open in draft mode, so the change is visible, not discovered later.
      *
-     * **Known failing, left red on purpose — not a flake, not silenced.** Closing the edit screen
-     * here removes a composable holding text-field focus; after that, [ACTIVE_SEARCH_SUMMARY_TAG]
-     * (the top-level search field) shows `Focused = true` and its "Advanced search" dropdown opens,
-     * scrim included, over the whole screen — confirmed via `composeRule.onRoot().printToLog()`,
-     * not guessed. The scrim eats the next tap (switching to the Drafts tab), so the tab never
-     * switches and the demoted entry's tile is never found. The *same* focus hand-off and open
-     * dropdown are present after the "Commit on the return prompt..." test's own "Back to
-     * Cartography" click too — that one only read green because its final assertion had a blind
-     * spot of its own (see that test's own fix, same investigation).
+     * Closing the edit screen here removes a composable holding text-field focus; after that,
+     * [ACTIVE_SEARCH_SUMMARY_TAG] (the top-level search field) used to show `Focused = true` and pop
+     * its "Advanced search" dropdown open, scrim included, over the whole screen — confirmed via
+     * `composeRule.onRoot().printToLog()`, not guessed, then confirmed again on a physical device
+     * (search-focus-and-hide dispatch). The scrim ate the next tap (switching to the Drafts tab), so
+     * the tab never switched and the demoted entry's tile was never found. The *same* focus hand-off
+     * and open dropdown were present after the "Commit on the return prompt..." test's own "Back to
+     * Cartography" click too — that one only read green because its final assertion had a blind spot
+     * of its own (see that test's own doc comment, same investigation).
      *
-     * What's still unresolved is *why* the field regains focus — specifically, whether this is a
-     * `backgroundThenResume()` (`ActivityScenario.moveToState`) artifact of how Robolectric restores
-     * window focus, or a real gap reachable by backgrounding an entry mid-edit on an actual device.
-     * The two fixes are different (a test-helper fix vs. an app-level `focusManager.clearFocus()` on
-     * the exit path), and picking one without knowing which would either mask a real bug behind a
-     * patched helper, or add app code for a bug that only exists in the test harness. This needs a
-     * ten-second on-device check (background mid-edit, resume, see whether the dropdown pops open)
-     * to settle — not available in this environment (no `/dev/kvm`, no emulator, confirmed). Left
-     * failing, not `@Ignore`d and not weakened, until that check answers it.
+     * Fixed by hiding the bar for as long as an entry is open — `AvailabilityScreen.kt`'s own
+     * `isEditingJournalEntry`-gated `SearchEntryBar` call sites — not by clearing focus on this exact
+     * transition: that was tried first (`LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus() }`,
+     * the natural generalization of this file's own established `LaunchedEffect(showSearchDropdown)`
+     * pattern) and made this test fail the *same way*, because clearing focus at the instant the hide
+     * condition also flips the bar back into existence left it as the only focusable candidate with
+     * nothing else claiming focus — precisely what triggers this codebase's own default-focus
+     * reassignment onto it. See that gate's own doc comment for the full account.
      */
     @Test
     fun `Save as draft on the return prompt closes the screen and moves the entry to Drafts with the edit in place`() {
@@ -749,6 +755,81 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithText("Entries").performClick()
         composeRule.onNodeWithText("2026-08-01").assertDoesNotExist()
+    }
+
+    // --- Search-focus-and-hide dispatch, Item 2: the top search bar hides for as long as an entry
+    // (Cartography or a find) is open, present everywhere else. See AvailabilityScreen.kt's own
+    // `isEditingJournalEntry` gate, right above its SearchEntryBar call sites, for the fix and the
+    // race this session found and ruled out while building it.
+
+    @Test
+    fun `the top search bar hides while viewing or editing a Cartography entry, and reappears once it closes`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+
+        // Viewing (the report screen) counts as "open," not just editing — see the gate's own doc
+        // comment on why this scope was the reachable one, not a lifted VIEW/EDIT distinction.
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the top search bar hides while editing a find, and reappears once it closes`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Finds").performClick()
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithText("Photos").assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+
+        pressBack()
+
+        composeRule.onNodeWithText("Photos").assertDoesNotExist()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+    }
+
+    /**
+     * The specific scenario this dispatch's own owner flagged as unexercised while the fix was being
+     * built: backgrounding and resuming *while still editing* (not backgrounding then immediately
+     * exiting, which the return-prompt tests above already cover on their own), then closing the
+     * editor normally afterward — the exact moment [ACTIVE_SEARCH_SUMMARY_TAG] reappears, racing
+     * against CartographyScreen's own ON_RESUME `focusManager.clearFocus()`. Passing here is what
+     * rules out that race, not an assumption that it can't happen.
+     */
+    @Test
+    fun `backgrounding and resuming mid-edit, then closing normally, leaves the search bar visible with no dropdown open`() {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Resumed then closed.")
+        composeRule.waitForIdle()
+        backgroundThenResume()
+        composeRule.onNodeWithTag(com.forager.app.ui.log.RETURN_PROMPT_CONTINUE_EDITING_TEST_TAG).performClick()
+
+        // Still dirty (Continue editing never saved) — closes through the leave-prompt's own Discard,
+        // the same as any other unsaved exit, not a direct close.
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.onNodeWithTag(com.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
+
+        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Set on map").assertDoesNotExist()
     }
 
     /**

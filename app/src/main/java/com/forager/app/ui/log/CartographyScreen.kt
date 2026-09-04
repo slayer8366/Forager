@@ -21,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -166,16 +167,32 @@ internal fun CartographyScreen(
     // process outright) and silently skip the prompt, the same catch the device-check patch's
     // rememberSaveable fix for PhotoAcquisitionLaunchers already established.
     val lifecycleOwner = LocalLifecycleOwner.current
+    val focusManager = LocalFocusManager.current
     var backgroundedWhileDirty by rememberSaveable { mutableStateOf(false) }
     var showReturnPrompt by rememberSaveable { mutableStateOf(false) }
     val latestIsEntryDirty by rememberUpdatedState(editingEntry != null && !editingEntry.isDraft && uiState.hasUnsavedChanges)
+    // Search-focus-and-hide dispatch, Item 1 — the one piece of that item actually built. A general
+    // LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus() } in AvailabilityScreen was
+    // tried first and made the dropdown-scrim bug worse, not better (see that file's own
+    // `isEditingJournalEntry` doc comment for why); AvailabilityScreen's own Item 2 hide condition
+    // does that job instead. This call stays because it's not part of that same hide/remount race —
+    // it fires here, in this screen's own ON_RESUME, while the edit screen is still open and the
+    // search bar is already hidden, for the one moment the owner's own on-device account (Android
+    // silently restoring focus to the search field on resume) actually names. Unconditional on
+    // `editingEntry != null` alone, not gated behind `backgroundedWhileDirty`/the return prompt below:
+    // a clean entry or an open draft can sit through a background/resume cycle too, with nothing else
+    // here to clear focus for either of those.
+    val latestIsEntryOpen by rememberUpdatedState(editingEntry != null)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> if (latestIsEntryDirty) backgroundedWhileDirty = true
-                Lifecycle.Event.ON_RESUME -> if (backgroundedWhileDirty) {
-                    showReturnPrompt = true
-                    backgroundedWhileDirty = false
+                Lifecycle.Event.ON_RESUME -> {
+                    if (latestIsEntryOpen) focusManager.clearFocus(force = true)
+                    if (backgroundedWhileDirty) {
+                        showReturnPrompt = true
+                        backgroundedWhileDirty = false
+                    }
                 }
                 else -> Unit
             }
