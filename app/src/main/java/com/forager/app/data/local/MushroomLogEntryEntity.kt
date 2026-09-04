@@ -39,13 +39,19 @@ import androidx.room.PrimaryKey
  *   silently accepted, and they don't: `toDomain()` reads only the sub-fields that apply to the
  *   `*Kind` it dispatches on.
  */
-@Entity(tableName = "mushroom_log_entries", indices = [Index("offlineRegionId")])
+@Entity(tableName = "mushroom_log_entries", indices = [Index("offlineRegionId"), Index("foundOn")])
 data class MushroomLogEntryEntity(
     @PrimaryKey val id: String,
     /** `null` together with [lng] exactly when [com.forager.app.domain.model.MushroomLogEntry.foundAt] is `null` — see that field's own doc comment. Nullable as of [MIGRATION_6_7]. */
     val lat: Double?,
     val lng: Double?,
-    /** ISO-8601 (`yyyy-MM-dd`) — see [PlannedTripEntity.date]. */
+    /**
+     * ISO-8601 (`yyyy-MM-dd`) — see [PlannedTripEntity.date]. No stored timezone: this is whatever
+     * `LocalDate.now()` (device-default zone) resolved to at write time — see
+     * [com.forager.app.domain.LocalDayRange]'s own doc comment for how a day-scoped query reconciles
+     * that against [TrackEntity]/[WaypointEntity]/[OfflineRegionEntity]'s UTC-epoch-millis columns.
+     * Indexed as of [MIGRATION_9_10] for [MushroomLogDao]'s day-scoped read.
+     */
     val foundOn: String,
     val entryNotes: String,
     val ownIdentification: String?,

@@ -3,6 +3,7 @@ package com.forager.app
 import android.content.Context
 import com.forager.app.crash.CrashFileStore
 import com.forager.app.data.local.ForagerDatabase
+import com.forager.app.data.local.fungiindex.FungiIndexDatabase
 import com.forager.app.data.repository.DataStoreAppThemePreferenceRepository
 import com.forager.app.data.remote.INaturalistClient
 import com.forager.app.data.remote.OpenMeteoArchiveClient
@@ -10,6 +11,7 @@ import com.forager.app.data.remote.OpenMeteoClient
 import com.forager.app.data.repository.DataStoreDistanceUnitPreferenceRepository
 import com.forager.app.data.repository.DataStoreMapPreferencesRepository
 import com.forager.app.data.repository.INaturalistMushroomRepository
+import com.forager.app.data.repository.LocalFungiIndexRepository
 import com.forager.app.data.repository.OpenMeteoHistoricalWeatherProvider
 import com.forager.app.data.repository.OpenMeteoWeatherProvider
 import com.forager.app.data.repository.RoomMushroomLogRepository
@@ -19,7 +21,6 @@ import com.forager.app.data.repository.RoomTrackRepository
 import com.forager.app.data.repository.RoomWaypointRepository
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.AppThemePreferenceRepository
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeReturnToStartUseCase
@@ -68,6 +69,7 @@ import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchCacheRepository
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.StartEditingLogEntryUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.TrackRepository
@@ -110,7 +112,14 @@ class AppContainer(context: Context) {
 
     private val predictAvailabilityUseCase = PredictAvailabilityUseCase(mushroomRepository)
     val getSightingsUseCase = GetSightingsUseCase(mushroomRepository)
-    val searchTaxaUseCase = SearchTaxaUseCase(mushroomRepository)
+
+    // Species-name search reads a bundled, offline index instead of a live iNaturalist call — see
+    // TaxonSearchRepository's doc comment. A separate Room database from `database` below
+    // (FungiIndexDatabase's own doc comment has the reasoning), so it isn't part of this class's
+    // main `database` block further down.
+    private val fungiIndexDatabase = FungiIndexDatabase.create(context)
+    val taxonSearchRepository: TaxonSearchRepository = LocalFungiIndexRepository(fungiIndexDatabase.fungiIndexDao())
+    val searchTaxaUseCase = SearchTaxaUseCase(taxonSearchRepository)
     val getConditionsUseCase = GetConditionsUseCase(weatherProvider)
     val getTodaysForecastUseCase = GetTodaysForecastUseCase(tripPlanningWeatherProvider)
     val getTripWindowsUseCase = GetTripWindowsUseCase(
@@ -122,9 +131,6 @@ class AppContainer(context: Context) {
         historicalWeatherProvider,
         ComputeFruitingLagDistributionUseCase(),
     )
-
-    // No repository dependency: clustering is a pure transform of sightings already fetched.
-    val clusterForagingAreasUseCase = ClusterForagingAreasUseCase()
 
     private val database = ForagerDatabase.create(context)
     val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripDao())

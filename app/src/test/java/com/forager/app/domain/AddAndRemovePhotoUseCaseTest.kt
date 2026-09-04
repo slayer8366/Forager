@@ -111,6 +111,7 @@ private class FakeMushroomLogRepository(
     val detached = mutableListOf<Pair<String, String>>()
 
     override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(emptyList())
+    override suspend fun getForDay(foundOnKey: String): Result<List<MushroomLogEntry>> = Result.success(emptyList())
     override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> =
         Result.failure(UnsupportedOperationException("getAllPhotos is not exercised by either use case under test here"))
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> = Result.success(Unit)

@@ -1,7 +1,6 @@
 package com.forager.app.ui.availability
 
 import com.forager.app.domain.AppThemePreferenceRepository
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
@@ -29,6 +28,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -89,7 +89,6 @@ class AvailabilityViewModelDistanceUnitTest {
             getSightings = GetSightingsUseCase(DistanceUnitEmptyRepository),
             searchTaxa = SearchTaxaUseCase(DistanceUnitEmptyRepository),
             getConditions = GetConditionsUseCase(DistanceUnitStubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(DistanceUnitStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
@@ -164,7 +163,7 @@ private object DistanceUnitNoOpLocationTracker : LocationTracker {
     override val fixes: Flow<LocationFix> = emptyFlow()
 }
 
-private object DistanceUnitEmptyRepository : MushroomRepository {
+private object DistanceUnitEmptyRepository : MushroomRepository, TaxonSearchRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =

@@ -4,9 +4,9 @@ package com.forager.app.domain.model
  * The result of converting a WGS84 [LatLng] to its Military Grid Reference System string, via
  * [com.forager.app.domain.MgrsConverter].
  *
- * A sealed type rather than a plain nullable `String?`, the same "no result is unlabeled" pattern
- * as [ForagingAreas]: a caller has to look at which branch it got, so a polar coordinate this
- * app cannot grid-reference can never be silently rendered as an empty or wrong string.
+ * A sealed type rather than a plain nullable `String?`, so "no result is unlabeled": a caller has
+ * to look at which branch it got, so a polar coordinate this app cannot grid-reference can never
+ * be silently rendered as an empty or wrong string.
  */
 sealed interface MgrsCoordinate {
 

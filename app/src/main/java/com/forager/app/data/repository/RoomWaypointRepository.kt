@@ -13,6 +13,11 @@ class RoomWaypointRepository(
     override suspend fun getAll(): Result<List<Waypoint>> =
         runCatchingCancellable { dao.getAll().map(WaypointEntity::toDomain) }
 
+    override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Waypoint>> =
+        runCatchingCancellable {
+            dao.getForDay(dayStartInclusiveEpochMillis, dayEndExclusiveEpochMillis).map(WaypointEntity::toDomain)
+        }
+
     override suspend fun save(waypoint: Waypoint): Result<Unit> =
         runCatchingCancellable { dao.upsert(waypoint.toEntity()) }
 

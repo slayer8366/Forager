@@ -32,7 +32,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.AppThemeMode
-import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -65,12 +64,15 @@ import org.robolectric.annotation.Config
  *    slot receives — not just that an icon is somewhere on screen. Settings' old "Choose Maps
  *    Service" section is gone entirely — see [com.forager.app.ui.map.MapMode]'s own doc comment for
  *    what superseded it — so this file no longer tests it.
- * 2. The "Offline Maps" submenu: reachable regardless of the selected [com.forager.app.ui.map.MapMode]
- *    (offline downloads always target a fixed source internally, so nothing about reaching the
- *    submenu depends on the live mode selection — see `com.forager.app.domain.OfflineMapRepository`'s
- *    doc comment), its navigation (entry row in → back arrow out), and picking a region by panning
- *    its [com.forager.app.ui.map.CentrePinLocationPicker] map and confirming with OK, instead of
- *    typing coordinates.
+ * 2. The "Offline Maps" sub-tab, reached through the Journal's Records tab (Journal restructure
+ *    Stage 1 moved Offline Maps and Recorded Tracks out of Settings — see [com.forager.app.ui.log.RecordsTab]):
+ *    reachable regardless of the selected [com.forager.app.ui.map.MapMode] (offline downloads always
+ *    target a fixed source internally, so nothing about reaching it depends on the live mode
+ *    selection — see `com.forager.app.domain.OfflineMapRepository`'s doc comment), its navigation
+ *    (a flat tab among Waypoints/Offline Maps/Recorded Tracks, left by tapping another tab rather
+ *    than a back arrow), and picking a region by panning its
+ *    [com.forager.app.ui.map.CentrePinLocationPicker] map and confirming with OK, instead of typing
+ *    coordinates.
  *
  * The map is stubbed, same reasoning as [AvailabilityScreenLayoutTest]: composing the real one
  * starts osmdroid. [CapturingMapSlot] backs *both* the main Map tab's map and the Offline Maps
@@ -106,7 +108,7 @@ class AvailabilityScreenSettingsPanelTest {
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
-        if (content.sightings.isEmpty() && content.areas.isEmpty() && content.plannedTrips.isEmpty()) {
+        if (content.sightings.isEmpty() && content.plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = renderMode.basemap
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
                 Button(onClick = { onCameraIdle(PICKED_LOCATION) }) { Text("Simulate pan to test location") }
@@ -130,8 +132,6 @@ class AvailabilityScreenSettingsPanelTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -174,8 +174,6 @@ class AvailabilityScreenSettingsPanelTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -215,9 +213,25 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText("Settings").performClick()
     }
 
-    private fun openOfflineMaps() {
-        openSettings()
+    /**
+     * Journal restructure Stage 1: Offline Maps and Recorded Tracks moved out of Settings into the
+     * Journal's Records tab, alongside Waypoints — see [com.forager.app.ui.log.RecordsTab]. Records
+     * opens on its Waypoints sub-tab by default, so reaching either of the other two needs one more
+     * tap on its own tab.
+     */
+    private fun openRecordsTab() {
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Records").performClick()
+    }
+
+    private fun openOfflineMapsSubTab() {
+        openRecordsTab()
         composeRule.onNodeWithText("Offline Maps").performClick()
+    }
+
+    private fun openRecordedTracksSubTab() {
+        openRecordsTab()
+        composeRule.onNodeWithText("Recorded Tracks").performClick()
     }
 
     @Test
@@ -363,32 +377,30 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `Settings shows an Offline Maps entry row`() {
+    fun `Records shows an Offline Maps tab`() {
         setScreen()
-        openSettings()
+        openRecordsTab()
 
         composeRule.onNodeWithText("Offline Maps").assertIsDisplayed()
     }
 
     /**
      * Field-test dispatch item 1: `GpxCodec` was fully implemented and tested but called from
-     * nowhere. Settings' existing crash-log list-then-share pattern is the surface this reuses —
-     * see `TrackExportPanel`'s own doc comment.
+     * nowhere. The Records tab's list-then-share pattern (moved here from Settings by the Journal
+     * restructure) is the surface this reuses — see `TrackExportList`'s own doc comment.
      */
     @Test
-    fun `Settings shows a Recorded Tracks entry row`() {
+    fun `Records shows a Recorded Tracks tab`() {
         setScreen()
-        openSettings()
+        openRecordsTab()
 
-        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Recorded Tracks").assertIsDisplayed()
     }
 
     @Test
     fun `Recorded Tracks shows an empty state with nothing recorded yet`() {
         setScreen()
-        openSettings()
-
-        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
+        openRecordedTracksSubTab()
 
         composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
     }
@@ -413,9 +425,7 @@ class AvailabilityScreenSettingsPanelTest {
             ),
         )
         setScreen(tracks = listOf(track))
-        openSettings()
-
-        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
+        openRecordedTracksSubTab()
 
         composeRule.onNodeWithText(expectedTrackTimestampText(TRACK_STARTED_AT)).assertIsDisplayed()
         composeRule.onNodeWithText("2 points").assertIsDisplayed()
@@ -435,8 +445,7 @@ class AvailabilityScreenSettingsPanelTest {
             ),
         )
         setScreen(tracks = listOf(track))
-        openSettings()
-        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
+        openRecordedTracksSubTab()
 
         composeRule.onNodeWithTag("share-track-track-1").performClick()
         // The share action writes the GPX file on Dispatchers.IO (a real thread pool) before
@@ -469,9 +478,8 @@ class AvailabilityScreenSettingsPanelTest {
             points = emptyList(),
         )
         setScreen(tracks = listOf(track))
-        openSettings()
+        openRecordedTracksSubTab()
 
-        composeRule.onNodeWithText("Recorded Tracks").performScrollTo().performClick()
         composeRule.onNodeWithText("0 points · recording").assertIsDisplayed()
 
         assertNull(Shadows.shadowOf(composeRule.activity).nextStartedActivity)
@@ -485,7 +493,7 @@ class AvailabilityScreenSettingsPanelTest {
     @Test
     fun `Offline Maps is reachable under the default map mode, with no gating message`() {
         setScreen()
-        openOfflineMaps()
+        openOfflineMapsSubTab()
 
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
         composeRule.onAllNodesWithText(
@@ -497,7 +505,7 @@ class AvailabilityScreenSettingsPanelTest {
     @Test
     fun `the Offline Maps submenu always resolves the picker map to OpenTopoMap`() {
         setScreen()
-        openOfflineMaps()
+        openOfflineMapsSubTab()
         // A synchronizing node query (as every other test in this file that reads capture state
         // right after a click already has, via assertIsDisplayed/assertIsNotEnabled) is what
         // actually forces recomposition to settle before a plain var read; performClick() alone
@@ -507,26 +515,34 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(Basemap.OPEN_TOPO_MAP, capturedOfflinePickerBasemap)
     }
 
+    /**
+     * Records is flat tabs (Waypoints/Offline Maps/Recorded Tracks), not a drill-in submenu — see
+     * [com.forager.app.ui.log.RecordsTab]'s own doc comment. There is no back arrow to leave one; a
+     * sub-tab is left by tapping another sub-tab, and each swap fully replaces the shown content.
+     */
     @Test
-    fun `the Offline Maps entry row navigates into the submenu, and its back arrow returns to Settings`() {
+    fun `tapping between Waypoints, Offline Maps, and Recorded Tracks tabs switches Records content`() {
         setScreen()
-        openSettings()
+        openRecordsTab()
+
+        // Waypoints is Records' default sub-tab.
+        composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
+            .assertIsDisplayed()
 
         composeRule.onNodeWithText("Offline Maps").performClick()
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
-        // Settings' own content — the distance-unit picker — is no longer on screen once inside the submenu.
-        composeRule.onAllNodesWithText("Distance Unit").assertCountEquals(0)
+        composeRule.onAllNodesWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
+            .assertCountEquals(0)
 
-        composeRule.onNodeWithContentDescription("Back to Settings").performClick()
-
-        composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
+        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
         composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
     }
 
     @Test
     fun `Download Maps is disabled with no region picked, and no regions or delete buttons show with nothing downloaded`() {
         setScreen()
-        openOfflineMaps()
+        openOfflineMapsSubTab()
 
         composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
         // Delete is per-region now (OfflineRegionRow), not a standalone always-present button — with
@@ -538,7 +554,7 @@ class AvailabilityScreenSettingsPanelTest {
     @Test
     fun `panning the picker map and confirming with OK sets the region and enables Download Maps`() {
         setScreenWithOfflineMapsState()
-        openOfflineMaps()
+        openOfflineMapsSubTab()
         composeRule.onNodeWithText("Download Maps").assertIsNotEnabled()
 
         composeRule.onNodeWithText("Simulate pan to test location").performClick()
@@ -554,7 +570,7 @@ class AvailabilityScreenSettingsPanelTest {
     @Test
     fun `the Offline Maps submenu states it covers the continental US with vector map data`() {
         setScreen()
-        openOfflineMaps()
+        openOfflineMapsSubTab()
 
         composeRule.onAllNodesWithText("continental United States", substring = true).assertCountEquals(1)
     }
@@ -597,8 +613,6 @@ class AvailabilityScreenSettingsPanelTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -618,7 +632,7 @@ class AvailabilityScreenSettingsPanelTest {
                 mapSlot = CapturingMapSlot,
             )
         }
-        openOfflineMaps()
+        openOfflineMapsSubTab()
 
         composeRule.onAllNodesWithText("Ready to zoom 15", substring = true).assertCountEquals(1)
         composeRule.onAllNodesWithText("zoom 10–14 from the archive", substring = true).assertCountEquals(1)
@@ -652,6 +666,4 @@ private fun sighting(index: Int) = Sighting(
 private val SEARCHED_STATE = AvailabilityUiState(
     region = REGION,
     sightings = List(4) { sighting(it) },
-    foragingAreas = ForagingAreas.None(ForagingAreas.Reason.TOO_FEW_OBSERVATIONS, observationsConsidered = 4),
-    showForagingAreas = false,
 )

@@ -28,6 +28,18 @@ abstract class MushroomLogDao {
     @Query("SELECT * FROM mushroom_log_entries")
     abstract suspend fun getAllEntries(): List<MushroomLogEntryEntity>
 
+    /**
+     * One local day's entries — Journal Stage 2a's derived-trip read, against the
+     * [MushroomLogEntryEntity.foundOn] index [MIGRATION_9_10] adds. [foundOnKey] is
+     * [com.forager.app.domain.LocalDayRange.foundOnKey] — an exact string match, not a range, since
+     * [MushroomLogEntryEntity.foundOn] already stores a bare calendar date with no time component.
+     * No draft/committed filtering here, the same raw, unconditional shape every other query in this
+     * DAO already has; a caller wanting only committed entries filters afterward, the same as
+     * [com.forager.app.domain.GetMushroomLogEntriesUseCase] already does for the unscoped read.
+     */
+    @Query("SELECT * FROM mushroom_log_entries WHERE foundOn = :foundOnKey")
+    abstract suspend fun getEntriesForDay(foundOnKey: String): List<MushroomLogEntryEntity>
+
     @Query("SELECT * FROM log_photos")
     abstract suspend fun getAllPhotos(): List<LogPhotoEntity>
 

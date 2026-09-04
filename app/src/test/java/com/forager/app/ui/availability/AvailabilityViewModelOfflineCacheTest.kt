@@ -1,6 +1,5 @@
 package com.forager.app.ui.availability
 
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -30,6 +29,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -96,7 +96,7 @@ private val COUNTS = listOf(
  * query it was asked — which is how "tapping a recent search re-runs *that* search" is checked
  * against what was actually requested rather than only against what state says.
  */
-private class SwitchableMushroomRepository : MushroomRepository {
+private class SwitchableMushroomRepository : MushroomRepository, TaxonSearchRepository {
     var failure: Throwable? = null
     val speciesCountQueries = mutableListOf<Triple<Region, Int, TaxonFilter>>()
 
@@ -192,7 +192,6 @@ class AvailabilityViewModelOfflineCacheTest {
         getSightings = GetSightingsUseCase(remote),
         searchTaxa = SearchTaxaUseCase(remote),
         getConditions = GetConditionsUseCase(OfflineCacheStubWeatherProvider),
-        clusterForagingAreas = ClusterForagingAreasUseCase(),
         getTripWindows = GetTripWindowsUseCase(OfflineCacheStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
         getPlannedTrips = GetPlannedTripsUseCase(OfflineCacheStubPlannedTripRepository),
         savePlannedTrip = SavePlannedTripUseCase(OfflineCacheStubPlannedTripRepository),
@@ -331,7 +330,12 @@ class AvailabilityViewModelOfflineCacheTest {
         // Two different searches, so the picked one is distinguishable from the current state.
         vm.searchTestRegion()
         advanceUntilIdle()
-        vm.onCategorySelected(TaxonFilter.PLANTS)
+        // A second, distinguishable search — picking a searched species is the real entry point
+        // now that the category chips (this test's own onCategorySelected call, before they were
+        // removed) are gone; any filter different from the default Fungi one does the job.
+        vm.onTaxonSearchResultSelected(
+            TaxonSearchResult(taxonId = 999_001L, scientificName = "Some Other Species", commonName = null, rank = null, iconicTaxonName = "Fungi", photoUrl = null),
+        )
         vm.onMonthSelected(11)
         advanceUntilIdle()
 

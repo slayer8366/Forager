@@ -87,7 +87,7 @@ internal fun CrashLogsEntryRow(onClick: () -> Unit) {
     }
 }
 
-/** Mirrors `AvailabilityScreen`'s `SettingsHeader`/`OfflineMapsHeader` shape exactly — see those composables' own call sites for why. */
+/** Mirrors `AvailabilityScreen`'s `SettingsHeader` shape exactly — see that composable's own call site for why. */
 @Composable
 private fun CrashLogHeader(onBack: () -> Unit) {
     Row(
@@ -166,7 +166,7 @@ private fun CrashLogDetail(file: File, onBack: () -> Unit, modifier: Modifier = 
     }
 }
 
-/** Mirrors `AvailabilityScreen`'s `OfflineMapsHeader` shape: back returns to the list, one level up. */
+/** Same drill-in shape a submenu header uses elsewhere in this app: back returns to the list, one level up. */
 @Composable
 private fun CrashLogDetailHeader(onBack: () -> Unit) {
     Row(

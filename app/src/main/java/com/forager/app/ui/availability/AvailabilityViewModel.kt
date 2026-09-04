@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.AvailabilitySearchResult
 import com.forager.app.domain.CachedSearchSummary
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.ErrorLog
 import com.forager.app.domain.ForagingSelection
@@ -58,7 +57,6 @@ class AvailabilityViewModel(
     private val getSightings: GetSightingsUseCase,
     private val searchTaxa: SearchTaxaUseCase,
     private val getConditions: GetConditionsUseCase,
-    private val clusterForagingAreas: ClusterForagingAreasUseCase,
     private val getTripWindows: GetTripWindowsUseCase,
     private val getPlannedTrips: GetPlannedTripsUseCase,
     private val savePlannedTrip: SavePlannedTripUseCase,
@@ -129,20 +127,8 @@ class AvailabilityViewModel(
         _uiState.value.region?.let { refresh(it, month, _uiState.value.taxonFilter) }
     }
 
-    fun onCategorySelected(category: TaxonFilter) {
-        _uiState.update {
-            it.copy(
-                taxonFilter = category,
-                foragingSelection = ForagingSelection.forChip(category),
-                taxonSearchQuery = "",
-                taxonSearchResults = emptyList(),
-            )
-        }
-        _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, category) }
-    }
-
     fun onTaxonSearchQueryChanged(query: String) {
-        _uiState.update { it.copy(taxonSearchQuery = query) }
+        _uiState.update { it.copy(taxonSearchQuery = query, taxonSearchHasNoResults = false) }
         taxonSearchJob?.cancel()
 
         if (query.trim().length < SearchTaxaUseCase.MIN_QUERY_LENGTH) {
@@ -154,13 +140,22 @@ class AvailabilityViewModel(
             delay(SEARCH_DEBOUNCE_MS)
             _uiState.update { it.copy(isSearchingTaxa = true, taxonSearchErrorMessage = null) }
             searchTaxa(query).fold(
-                onSuccess = { results -> _uiState.update { it.copy(isSearchingTaxa = false, taxonSearchResults = results) } },
+                onSuccess = { results ->
+                    _uiState.update {
+                        it.copy(
+                            isSearchingTaxa = false,
+                            taxonSearchResults = results,
+                            taxonSearchHasNoResults = results.isEmpty(),
+                        )
+                    }
+                },
                 onFailure = { error ->
                     errorLog.w(TAG, "Species search failed.", error)
                     _uiState.update {
                         it.copy(
                             isSearchingTaxa = false,
                             taxonSearchResults = emptyList(),
+                            taxonSearchHasNoResults = false,
                             taxonSearchErrorMessage = "Species search failed.",
                         )
                     }
@@ -179,7 +174,7 @@ class AvailabilityViewModel(
      */
     fun onDismissTaxonSuggestions() {
         taxonSearchJob?.cancel()
-        _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false) }
+        _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false, taxonSearchHasNoResults = false) }
     }
 
     fun onTaxonSearchResultSelected(result: TaxonSearchResult) {
@@ -194,6 +189,7 @@ class AvailabilityViewModel(
                 lastTaxonSearchQuery = it.taxonSearchQuery,
                 taxonSearchQuery = "",
                 taxonSearchResults = emptyList(),
+                taxonSearchHasNoResults = false,
             )
         }
         _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, filter) }
@@ -310,11 +306,8 @@ class AvailabilityViewModel(
             getSightings(region, state.selectedMonth, state.taxonFilter).fold(
                 onSuccess = { page ->
                     loadedSightingsQuery = query
-                    // Clustering is a pure transform of what was just fetched — no extra API
-                    // call — so it's computed up front and the toggle only controls display.
-                    val areas = clusterForagingAreas(region, page.sightings)
                     _uiState.update {
-                        it.copy(isLoadingSightings = false, sightings = page.sightings, foragingAreas = areas)
+                        it.copy(isLoadingSightings = false, sightings = page.sightings)
                     }
                 },
                 onFailure = { error ->
@@ -322,18 +315,12 @@ class AvailabilityViewModel(
                     _uiState.update {
                         it.copy(
                             isLoadingSightings = false,
-                            foragingAreas = null,
                             sightingsErrorMessage = "Couldn't load sightings for the map.",
                         )
                     }
                 },
             )
         }
-    }
-
-    /** Toggles the Map tab's foraging-areas layer. Display only: the clustering is already computed. */
-    fun onToggleForagingAreas(show: Boolean) {
-        _uiState.update { it.copy(showForagingAreas = show) }
     }
 
     /**
@@ -371,11 +358,10 @@ class AvailabilityViewModel(
     }
 
     private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
-        // A new search invalidates any sightings loaded for a previous region/month/filter, and
-        // with them the areas clustered from those sightings.
+        // A new search invalidates any sightings loaded for a previous region/month/filter.
         loadedSightingsQuery = null
         _uiState.update {
-            it.copy(sightings = emptyList(), foragingAreas = null, sightingsErrorMessage = null)
+            it.copy(sightings = emptyList(), sightingsErrorMessage = null)
         }
 
         // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.

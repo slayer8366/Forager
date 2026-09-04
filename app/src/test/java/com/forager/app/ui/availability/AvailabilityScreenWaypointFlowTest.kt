@@ -22,7 +22,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -51,6 +50,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -126,7 +126,6 @@ class AvailabilityScreenWaypointFlowTest {
             getSightings = GetSightingsUseCase(WaypointFlowEmptyRepository),
             searchTaxa = SearchTaxaUseCase(WaypointFlowEmptyRepository),
             getConditions = GetConditionsUseCase(WaypointFlowStubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(WaypointFlowStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
@@ -155,8 +154,6 @@ class AvailabilityScreenWaypointFlowTest {
                 onMonthSelected = viewModel::onMonthSelected,
                 onMapTabSelected = viewModel::onMapTabSelected,
                 onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onToggleForagingAreas = viewModel::onToggleForagingAreas,
-                onCategorySelected = viewModel::onCategorySelected,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                 onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
                 onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
@@ -214,6 +211,16 @@ class AvailabilityScreenWaypointFlowTest {
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
         composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * Journal restructure Stage 1: Waypoints moved from the Tools drawer's own section into the
+     * Journal's Records tab (default sub-tab, so no further tap is needed once Records is open).
+     */
+    private fun openWaypointsTab() {
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
     }
 
@@ -304,8 +311,7 @@ class AvailabilityScreenWaypointFlowTest {
     fun `the drawer's Waypoints section shows a no-waypoints message when empty`() {
         setScreen()
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Waypoints").performClick()
+        openWaypointsTab()
 
         composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
             .assertIsDisplayed()
@@ -324,8 +330,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint))
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Waypoints").performClick()
+        openWaypointsTab()
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("45.4000, -122.7000").performScrollTo().assertIsDisplayed()
@@ -358,8 +363,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint), waypointsErrorMessage = "Couldn't load waypoints.")
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Waypoints").performClick()
+        openWaypointsTab()
 
         composeRule.onNodeWithText("Couldn't load waypoints.").assertIsDisplayed()
         composeRule.onNodeWithText("Hidden Waypoint").assertDoesNotExist()
@@ -380,8 +384,7 @@ class AvailabilityScreenWaypointFlowTest {
         )
         setScreen(initialWaypoints = listOf(waypoint))
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Waypoints").performClick()
+        openWaypointsTab()
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Couldn't load waypoints.").assertDoesNotExist()
@@ -408,7 +411,7 @@ private object WaypointFlowNoOpLocationTracker : LocationTracker {
     override val fixes: Flow<LocationFix> = emptyFlow()
 }
 
-private object WaypointFlowEmptyRepository : MushroomRepository {
+private object WaypointFlowEmptyRepository : MushroomRepository, TaxonSearchRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =

@@ -62,6 +62,15 @@ class RoomMushroomLogRepository(
         }
     }
 
+    override suspend fun getForDay(foundOnKey: String): Result<List<MushroomLogEntry>> = runCatchingCancellable {
+        val photosById = dao.getAllPhotos().associateBy { it.id }
+        val photoIdsByEntry = dao.getAllCrossRefs().groupBy({ it.entryId }) { it.photoId }
+        dao.getEntriesForDay(foundOnKey).map { entity ->
+            val photos = photoIdsByEntry[entity.id].orEmpty().mapNotNull { photosById[it] }
+            entity.toDomain(photos)
+        }
+    }
+
     override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = runCatchingCancellable {
         val entryIdsByPhoto = dao.getAllCrossRefs().groupBy({ it.photoId }) { it.entryId }
         dao.getAllPhotos().map { entity ->

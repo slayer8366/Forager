@@ -271,9 +271,9 @@ extension of what `SightingsMap.kt` already does.
 
 **L3 — Optional `foundAt`.**
 **Depends on:** nothing. Lands before L4.
-Smaller than it first looks: log entries are not plotted on any map, not clustered by DBSCAN, and
-not distance-sorted against anything — those systems (`ui/map/`, `ClusterForagingAreasUseCase.kt`,
-`GeoDistance.kt`) operate exclusively on `Sighting`/`ForagingArea`, never on `MushroomLogEntry`.
+Smaller than it first looks: log entries are not plotted on any map and not distance-sorted
+against anything — those systems (`ui/map/`, `GeoDistance.kt`) operate exclusively on `Sighting`,
+never on `MushroomLogEntry`.
 The real surface: three display sites need a null branch (`LogEntryDetailScreen.kt`,
 `LogEntryListScreen.kt`, `LogEntryReportScreen.kt`, each just a `"Found at ${lat}, ${lng}"` string
 today); `MushroomLogEntryEntity.lat`/`lng` are non-null `Double` columns, so this needs a real

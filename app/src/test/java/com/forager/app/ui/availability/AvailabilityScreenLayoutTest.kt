@@ -25,8 +25,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.forager.app.BuildConfig
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DistanceUnit
-import com.forager.app.domain.model.ForagingArea
-import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.NoTripWindowReason
 import com.forager.app.domain.model.PlannedTrip
@@ -35,7 +33,6 @@ import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SoilAvailability
 import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.ui.map.MapSlot
-import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
 import java.time.LocalDate
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -155,25 +152,12 @@ private fun sighting(index: Int) = Sighting(
     photoUrl = null,
 )
 
-private fun area(visitOrder: Int) = ForagingArea(
-    visitOrder = visitOrder,
-    center = LatLng(REGION.lat + visitOrder * 0.01, REGION.lng + visitOrder * 0.01),
-    sightings = List(4) { sighting(visitOrder * 10 + it) },
-    distinctSpeciesCount = 3,
-    mostRecentYear = 2025,
-    undatedObservationCount = 0,
-)
-
 /**
- * A searched region with mapped sightings and clustered areas: the state the Map tab is in for
- * most of its life, and the one where the map has the most competition for height, since the
- * foraging-areas panel below it is populated.
+ * A searched region with mapped sightings: the state the Map tab is in for most of its life.
  */
 private val SEARCHED_STATE = AvailabilityUiState(
     region = REGION,
     sightings = List(12) { sighting(it) },
-    foragingAreas = ForagingAreas.Found(areas = List(3) { area(it + 1) }, ungroupedObservationCount = 5),
-    showForagingAreas = true,
     // Fixed explicitly — this file's assertions are hardcoded to "15 km" text and have nothing to
     // do with the km/mi preference, so it must not drift with the default this field carries.
     distanceUnit = DistanceUnit.KILOMETERS,
@@ -240,8 +224,6 @@ abstract class AvailabilityScreenLayoutTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -273,7 +255,7 @@ abstract class AvailabilityScreenLayoutTest {
      * removed the map icon stack's own "Search" button and repointed Tools at this same drawer.
      * Dispatch C moved species/category search, Recent Searches, and Advanced Search all out of it
      * and into [SearchDropdown] instead (see [openSearchDropdown]) — what's left here is Trip
-     * Planner, Waypoints, Foraging areas, and Settings; see [CompactToolsDrawerContent]'s own doc
+     * Planner, Waypoints, and Settings; see [CompactToolsDrawerContent]'s own doc
      * comment. Tools opens the drawer as an overlay over whatever `compactTab` is already showing
      * rather than becoming a tab itself, and [setScreen] always lands on the Maps tab by default,
      * so it's already on screen with no tab switch needed.
@@ -370,25 +352,6 @@ abstract class AvailabilityScreenLayoutTest {
                 "imagery through it is not that bug.",
             mapTop == rootTop,
         )
-    }
-
-    /**
-     * **Test 3 — the visiting-order caption is reachable, wherever it currently lives.**
-     *
-     * Before the map redesign, [VISITING_ORDER_DISCLAIMER] rendered in a fixed-height box below
-     * the map. The redesign first made it a floating overlay on the map itself, then the project
-     * owner's own later call ("move the foraging areas to the side search panel") moved it again,
-     * into [CompactToolsDrawerContent] alongside the rest of the foraging-areas section — it no
-     * longer touches the map's own bounds at all, so a geometry claim relative to the map slot is
-     * no longer the right invariant. What stays true across all three homes: the caption must
-     * still be reachable, not lost in whichever container currently holds it.
-     */
-    @Test
-    fun `the visiting order caption is reachable inside the Tools drawer`() {
-        setScreen(SEARCHED_STATE)
-        openToolsDrawer()
-
-        composeRule.onNodeWithText(VISITING_ORDER_DISCLAIMER).assertIsDisplayed()
     }
 
     /**
@@ -583,24 +546,6 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * The foraging-areas toggle's own reachability claim. It has moved twice since the map
-     * redesign started: out of the drawer to sit below the map, then to float as an overlay on
-     * the map itself, and finally — the project owner's own later call, "move the foraging areas
-     * to the side search panel" — into [CompactToolsDrawerContent], where it lives now. Unlike
-     * [SearchControls]'s three sections, it's placed outside that composable's own scroll region
-     * (a fixed block below it, mirroring [FORAGING_AREAS_PANEL_MAX_HEIGHT]'s old below-map
-     * treatment — see that composable's doc comment), so it needs no section to expand first.
-     */
-    @Test
-    fun `the foraging areas toggle is reachable inside the Tools drawer`() {
-        setScreen(SEARCHED_STATE)
-
-        openToolsDrawer()
-
-        composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
-    }
-
-    /**
      * **Test 6 — the species search bar is reachable inside the search dropdown.**
      *
      * This is the control the user originally reported as buried, promoted out of a drawer section
@@ -613,6 +558,10 @@ abstract class AvailabilityScreenLayoutTest {
      * a duplicate inside the drawer (removed per the map/navigation search-UI redo dispatch) — and
      * has no generic hint text to match on any more (removed from the app entirely, same dispatch):
      * it shows the active filter summary instead, focused or not.
+     *
+     * The category chip row this test used to also assert on ("Fungi"/"Plants"/"Lichens (approx.)"
+     * all displayed) is gone — owner decision: the app is fungi-only now, with nothing left to
+     * choose between, so there is no chip row left to assert on.
      */
     @Test
     fun `the species search bar is reachable inside the search dropdown`() {
@@ -620,13 +569,6 @@ abstract class AvailabilityScreenLayoutTest {
 
         openSearchDropdown()
 
-        listOf(
-            "Fungi",
-            "Plants",
-            "Lichens (approx.)",
-        ).forEach { label ->
-            composeRule.onNodeWithText(label).assertIsDisplayed()
-        }
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
     }
 

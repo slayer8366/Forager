@@ -160,8 +160,8 @@ class ForagingWeatherGuidanceTest {
     }
 
     @Test
-    fun `every default chip produces guidance, and only the specific-taxon chips carry a caveat`() {
-        val caveats = TaxonFilter.DEFAULT_CATEGORIES.associate { filter ->
+    fun `every default selection produces guidance, and only a specific-taxon selection carries a caveat`() {
+        val caveats = listOf(TaxonFilter.FUNGI, TaxonFilter.PLANTS, TaxonFilter.LICHENS).associate { filter ->
             filter.label to guidanceFor(ForagingSelection.forChip(filter)).speciesDataCaveat
         }
 

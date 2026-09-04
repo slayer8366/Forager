@@ -30,6 +30,12 @@ class RoomTrackRepository(
         entity.toDomain(dao.getPointsForTrack(id))
     }
 
+    override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
+        runCatchingCancellable {
+            dao.getTracksForDay(dayStartInclusiveEpochMillis, dayEndExclusiveEpochMillis)
+                .map { entity -> entity.toDomain(dao.getPointsForTrack(entity.id)) }
+        }
+
     override suspend fun create(track: Track): Result<Unit> = runCatchingCancellable {
         dao.insertTrack(track.toEntity())
     }

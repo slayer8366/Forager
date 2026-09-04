@@ -117,6 +117,23 @@ class LogPanelTest {
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
                 onBackToSearch = {},
                 onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
+                // Journal restructure Stage 1's Records tab — this file tests Cartography's own
+                // saveErrorMessage Toast, so these are inert fixtures, not exercised by any test below.
+                availabilityUiState = com.forager.app.ui.availability.AvailabilityUiState(),
+                distanceUnit = com.forager.app.domain.model.DistanceUnit.MILES,
+                currentTime = com.forager.app.domain.CurrentTimeProvider { 0L },
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+                tracks = emptyList(),
+                onTracksOpened = {},
+                waypoints = emptyList(),
+                waypointsErrorMessage = null,
+                onDeleteWaypoint = {},
             )
         }
     }

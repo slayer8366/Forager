@@ -31,9 +31,11 @@ data class ForagingSelection(
             ForagingSelection(result.toFilter(), result.iconicTaxonName)
 
         /**
-         * The selection behind one of [TaxonFilter.DEFAULT_CATEGORIES]' chips.
+         * The selection behind an [TaxonFilter.IconicCategory] or [TaxonFilter.SpecificTaxon]
+         * chosen some way other than a name search (e.g. [TaxonFilter.LICHENS], restorable from a
+         * recent search even though no picker offers it directly any more).
          *
-         * The Lichens chip is deliberately given a null group rather than "Fungi". iNaturalist
+         * A lichens selection is deliberately given a null group rather than "Fungi". iNaturalist
          * does file lichens under Fungi, but the general pattern this app states — fleshy fungi
          * fruiting some weeks after sustained rain — is about fruiting bodies, and reusing it for
          * lichenized fungi would present it as a claim about organisms it was not written about.

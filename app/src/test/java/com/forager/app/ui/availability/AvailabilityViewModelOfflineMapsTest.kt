@@ -1,6 +1,5 @@
 package com.forager.app.ui.availability
 
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
@@ -29,6 +28,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -99,7 +99,7 @@ private object OfflineMapsUnusedLocationProvider : LocationProvider {
         error("getCurrentLocation() is not part of this test's path and must not be called")
 }
 
-private object OfflineMapsEmptyRepository : MushroomRepository {
+private object OfflineMapsEmptyRepository : MushroomRepository, TaxonSearchRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =
@@ -214,7 +214,6 @@ class AvailabilityViewModelOfflineMapsTest {
         getSightings = GetSightingsUseCase(OfflineMapsEmptyRepository),
         searchTaxa = SearchTaxaUseCase(OfflineMapsEmptyRepository),
         getConditions = GetConditionsUseCase(OfflineMapsStubWeatherProvider),
-        clusterForagingAreas = ClusterForagingAreasUseCase(),
         getTripWindows = GetTripWindowsUseCase(OfflineMapsStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
         getPlannedTrips = GetPlannedTripsUseCase(OfflineMapsStubPlannedTripRepository),
         savePlannedTrip = SavePlannedTripUseCase(OfflineMapsStubPlannedTripRepository),

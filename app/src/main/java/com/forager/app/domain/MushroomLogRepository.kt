@@ -27,6 +27,13 @@ interface MushroomLogRepository {
     suspend fun getAll(): Result<List<MushroomLogEntry>>
 
     /**
+     * Every log entry found on one local day, photos joined in the same way [getAll] does — Journal
+     * Stage 2a's derived-trip read. [foundOnKey] is [com.forager.app.domain.LocalDayRange.foundOnKey].
+     * No draft/committed filtering — see `com.forager.app.data.local.MushroomLogDao.getEntriesForDay`'s own doc comment.
+     */
+    suspend fun getForDay(foundOnKey: String): Result<List<MushroomLogEntry>>
+
+    /**
      * Every gallery photo, each paired with the entries (if any) currently referencing it —
      * Workstream G2. Deliberately the richer [GalleryPhoto] shape rather than a bare
      * `List<LogPhoto>`: G3's gallery-deletion flow must warn "used in N entries" before removing

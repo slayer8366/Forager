@@ -38,7 +38,6 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
@@ -68,6 +67,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -149,7 +149,7 @@ class AvailabilityScreenMapIconStackTest {
         isReturning: Boolean = false,
         isOffTrack: Boolean = false,
         onToggleReturning: () -> Unit = {},
-        mushroomRepository: MushroomRepository = IconStackEmptyRepository,
+        mushroomRepository: TaxonSearchRepository = IconStackEmptyRepository,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -160,7 +160,6 @@ class AvailabilityScreenMapIconStackTest {
             getSightings = GetSightingsUseCase(IconStackEmptyRepository),
             searchTaxa = SearchTaxaUseCase(mushroomRepository),
             getConditions = GetConditionsUseCase(IconStackStubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(IconStackStubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(plannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(plannedTripRepository),
@@ -188,8 +187,6 @@ class AvailabilityScreenMapIconStackTest {
                 onMonthSelected = viewModel::onMonthSelected,
                 onMapTabSelected = viewModel::onMapTabSelected,
                 onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onToggleForagingAreas = viewModel::onToggleForagingAreas,
-                onCategorySelected = viewModel::onCategorySelected,
                 onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
                 onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
                 onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
@@ -1202,26 +1199,6 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Category selection through the real [AvailabilityViewModel]. Species/category search moved
-     * out of the Tools drawer a second time — first into the top bar's own quick-search panel,
-     * then (map/navigation redesign dispatch C, item 1) into this dropdown's [SpeciesSearchControls]
-     * alongside recent searches, leaving the Tools drawer with no search surface of its own any
-     * more. Synchronous, no debounce, no Popup dropdown, so this stays free of the timing fragility
-     * a debounced-search-to-dropdown test would need — [SearchTaxaUseCase]'s own debounce/dropdown
-     * mechanics are shared, pre-existing logic with no dedicated test anywhere in this codebase yet,
-     * compact or otherwise; not a gap this task introduced.
-     */
-    @Test
-    fun `picking a category chip in the search dropdown applies the filter through the real ViewModel`() {
-        setScreen()
-
-        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Plants").performClick()
-
-        assertEquals(TaxonFilter.PLANTS, viewModel.uiState.value.taxonFilter)
-    }
-
-    /**
      * Map/navigation redesign dispatch C's own explicit ask: "this repo has shipped pointer
      * interception four times. Extend Dispatch A's performTouchInput coverage to this surface" —
      * [AdvancedSearchDropdown] floats over the map exactly like [ControlPill]/[DistanceArm] did,
@@ -1264,22 +1241,6 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Cancel").assertIsDisplayed()
     }
 
-    @Test
-    fun `the foraging areas toggle lives in the Tools drawer, not floating over the map`() {
-        setScreen()
-        searchAReferenceRegion()
-
-        // searchAReferenceRegion leaves the drawer closed (a real search closes it) — foraging
-        // areas must not be reachable without opening it, the opposite of the earlier revision
-        // where it floated as an overlay on the map itself. The drawer sheet stays composed
-        // off-screen while closed, so its toggle row is still in the tree — assertIsNotDisplayed,
-        // not assertDoesNotExist, is what actually distinguishes "closed" from "open" here.
-        composeRule.onNodeWithText("Foraging areas").assertIsNotDisplayed()
-
-        composeRule.onNodeWithText("Tools").performClick()
-
-        composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
-    }
 }
 
 /**
@@ -1416,7 +1377,7 @@ private object IconStackNoOpLocationTracker : LocationTracker {
 
 private class IconStackFakeLocationTracker(override val fixes: MutableSharedFlow<LocationFix>) : LocationTracker
 
-private object IconStackEmptyRepository : MushroomRepository {
+private object IconStackEmptyRepository : MushroomRepository, TaxonSearchRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =

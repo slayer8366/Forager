@@ -122,9 +122,9 @@ duplicating a large, still-possibly-revised document — flagging the risk inste
   mechanically simplest as a fixed Compose overlay icon with the map panning underneath, not a
   MapLibre marker/drag API this codebase has no plumbing for. Reported as a feasibility note, not
   chosen as the design.
-- **`foundAt`'s ripple is much smaller than assumed**: zero reads in map rendering, DBSCAN
-  clustering, or distance calculation — those all operate on `Sighting`/`ForagingArea`, never
-  `MushroomLogEntry`. Real ripple: three display-string sites, one Room migration
+- **`foundAt`'s ripple is much smaller than assumed**: zero reads in map rendering or distance
+  calculation — those all operate on `Sighting`, never `MushroomLogEntry`. Real ripple: three
+  display-string sites, one Room migration
   (`MIGRATION_6_7` — `lat`/`lng` are non-null `Double` columns today, current DB version is 6),
   and 13 `.draft(` construction call sites.
 - **A single `offlineRegionId: Long?` column cannot represent "capture owed" as distinct from

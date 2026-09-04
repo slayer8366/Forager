@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
  * instead of silently wiping the database, while debug keeps the escape hatch.
  *
  * The registered chain in [ForagerDatabase.create] only covers version 3 onward
- * ([MIGRATION_3_4] through [MIGRATION_8_9]) — there has never been a `MIGRATION_1_2`/`MIGRATION_2_3`
+ * ([MIGRATION_3_4] through [MIGRATION_9_10]) — there has never been a `MIGRATION_1_2`/`MIGRATION_2_3`
  * in this codebase (versions 1-3 predate `exportSchema = true`, see [ForagerDatabase]'s own doc
  * comment). A real version-2 database is therefore a genuinely uncovered version gap today, not a
  * contrived one, and stands in for "a future migration nobody registered" without needing to fake

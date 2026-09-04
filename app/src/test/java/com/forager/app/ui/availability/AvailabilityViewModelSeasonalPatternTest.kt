@@ -1,6 +1,5 @@
 package com.forager.app.ui.availability
 
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -29,6 +28,7 @@ import com.forager.app.domain.PlannedTripRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
+import com.forager.app.domain.TaxonSearchRepository
 import com.forager.app.domain.TripPlanningWeatherProvider
 import com.forager.app.domain.WeatherProvider
 import com.forager.app.domain.model.AppThemeMode
@@ -79,7 +79,7 @@ class AvailabilityViewModelSeasonalPatternTest {
     fun tearDown() = Dispatchers.resetMain()
 
     /** Records the filter every getSightings call carried, and returns a fixed dated sighting so a fetch actually happens. */
-    private class RecordingRepository : MushroomRepository {
+    private class RecordingRepository : MushroomRepository, TaxonSearchRepository {
         val filtersSeen = mutableListOf<TaxonFilter>()
         var callCount = 0
 
@@ -178,10 +178,10 @@ class AvailabilityViewModelSeasonalPatternTest {
         override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
     }
 
-    private fun viewModel(
-        repository: MushroomRepository,
+    private fun <R> viewModel(
+        repository: R,
         historicalWeatherProvider: HistoricalWeatherProvider,
-    ): AvailabilityViewModel {
+    ): AvailabilityViewModel where R : MushroomRepository, R : TaxonSearchRepository {
         val searchCache = InMemorySearchCacheRepository()
         return AvailabilityViewModel(
             locationProvider = UnusedLocationProvider,
@@ -191,7 +191,6 @@ class AvailabilityViewModelSeasonalPatternTest {
             getSightings = GetSightingsUseCase(repository),
             searchTaxa = SearchTaxaUseCase(repository),
             getConditions = GetConditionsUseCase(StubWeatherProvider),
-            clusterForagingAreas = ClusterForagingAreasUseCase(),
             getTripWindows = GetTripWindowsUseCase(StubTripPlanningWeatherProvider, ComputeTripWindowsUseCase()),
             getPlannedTrips = GetPlannedTripsUseCase(StubPlannedTripRepository),
             savePlannedTrip = SavePlannedTripUseCase(StubPlannedTripRepository),
@@ -279,7 +278,11 @@ class AvailabilityViewModelSeasonalPatternTest {
         advanceUntilIdle()
         assertEquals(1, weatherProvider.callCount)
 
-        vm.onCategorySelected(TaxonFilter.PLANTS)
+        // A different filter — picking a searched species is the real entry point now that the
+        // category chips are gone; any filter different from the default Fungi one does the job.
+        vm.onTaxonSearchResultSelected(
+            TaxonSearchResult(taxonId = 999_002L, scientificName = "Some Other Species", commonName = null, rank = null, iconicTaxonName = "Fungi", photoUrl = null),
+        )
         advanceUntilIdle()
 
         // The stale distribution from the previous filter must not linger on screen mid-refetch.
@@ -302,15 +305,17 @@ class AvailabilityViewModelSeasonalPatternTest {
         vm.onSeasonalTabSelected()
         advanceUntilIdle()
 
-        // Lichens is a SpecificTaxon: scopes to one taxon. No new picker UI — the existing
-        // category chip is what drives this, the same as the List and Map tabs.
-        vm.onCategorySelected(TaxonFilter.LICHENS)
+        // A searched species is a SpecificTaxon: scopes to one taxon — the search dropdown is
+        // what drives this now that the category chips are gone, the same as the List and Map
+        // tabs.
+        val searchedTaxon = TaxonSearchResult(taxonId = 54743L, scientificName = "Some Searched Species", commonName = null, rank = null, iconicTaxonName = "Fungi", photoUrl = null)
+        vm.onTaxonSearchResultSelected(searchedTaxon)
         advanceUntilIdle()
         vm.onSeasonalTabSelected()
         advanceUntilIdle()
 
         assertTrue(repository.filtersSeen.any { it is TaxonFilter.IconicCategory && it == TaxonFilter.FUNGI })
-        assertTrue(repository.filtersSeen.any { it is TaxonFilter.SpecificTaxon && it == TaxonFilter.LICHENS })
+        assertTrue(repository.filtersSeen.any { it is TaxonFilter.SpecificTaxon && it == searchedTaxon.toFilter() })
     }
 
     @Test

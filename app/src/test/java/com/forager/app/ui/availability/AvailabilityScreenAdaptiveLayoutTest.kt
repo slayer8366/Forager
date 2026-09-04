@@ -28,8 +28,6 @@ import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.AvailabilityForecast
-import com.forager.app.domain.model.ForagingArea
-import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.LatLng
@@ -102,8 +100,6 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -146,8 +142,6 @@ class AvailabilityScreenCompactWidthDrawerTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -218,8 +212,6 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -278,8 +270,8 @@ class AvailabilityScreenWideWindowLayoutTest {
 
     /**
      * The M3 "reveal" pattern: List and Map show together rather than one tab at a time. Proven
-     * by asserting on content unique to each — a ranked [SpeciesRow] for List, the foraging-areas
-     * toggle for Map — displayed simultaneously with no tab click in between.
+     * by asserting on content unique to each — a ranked [SpeciesRow] for List, the map slot itself
+     * for Map — displayed simultaneously with no tab click in between.
      *
      * Used to assert on [ConditionsCard]'s "Current Conditions" for the List-unique half; that card
      * now lives in the Seasonal tab instead (PANEL-CONTENTS-DISPATCH.md item 2), so this asserts on
@@ -290,7 +282,7 @@ class AvailabilityScreenWideWindowLayoutTest {
         setScreen(SEARCHED_STATE.copy(forecast = FORECAST, selectedMonth = LocalDate.now().monthValue))
 
         composeRule.onNodeWithText("artist's bracket").assertIsDisplayed()
-        composeRule.onNodeWithText("Foraging areas").assertIsDisplayed()
+        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
     }
 
     /**
@@ -376,8 +368,6 @@ class AvailabilityScreenWideWindowLayoutTest {
                 onMonthSelected = {},
                 onMapTabSelected = {},
                 onSeasonalTabSelected = {},
-                onToggleForagingAreas = {},
-                onCategorySelected = {},
                 onTaxonSearchQueryChanged = {},
                 onTaxonSearchResultSelected = {},
                 onDismissTaxonSuggestions = {},
@@ -457,20 +447,9 @@ private fun sighting(index: Int) = Sighting(
     photoUrl = null,
 )
 
-private fun area(visitOrder: Int) = ForagingArea(
-    visitOrder = visitOrder,
-    center = LatLng(REGION.lat + visitOrder * 0.01, REGION.lng + visitOrder * 0.01),
-    sightings = List(4) { sighting(visitOrder * 10 + it) },
-    distinctSpeciesCount = 3,
-    mostRecentYear = 2025,
-    undatedObservationCount = 0,
-)
-
 private val SEARCHED_STATE = AvailabilityUiState(
     region = REGION,
     sightings = List(12) { sighting(it) },
-    foragingAreas = ForagingAreas.Found(areas = List(3) { area(it + 1) }, ungroupedObservationCount = 5),
-    showForagingAreas = true,
 )
 
 /** A single ranked entry, so [ResultsSection] renders something List-unique to assert on. */

@@ -14,8 +14,7 @@ package com.forager.app.domain.model
  * rejected outright regardless of timing, since a low-accuracy fix is misleading track geometry,
  * not just a denser one.
  *
- * These numbers are labelled adjustable assumptions, not measured facts — the same status
- * `ClusterForagingAreasUseCase`'s clustering thresholds carry — chosen for a plausible
+ * These numbers are labelled adjustable assumptions, not measured facts — chosen for a plausible
  * multi-hour foraging walk and not yet checked against a real recorded track's battery draw (see
  * `maplibre-migration.md`'s risk list on vector-map battery draw for the adjacent, still-open
  * question this doesn't answer).

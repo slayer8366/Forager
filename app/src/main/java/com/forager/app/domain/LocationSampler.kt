@@ -7,8 +7,7 @@ import com.forager.app.domain.model.TrackRecordingMode
 /**
  * Decides whether a raw location fix becomes a persisted [TrackPoint], independent of how the fix
  * was obtained. Pure domain so the sampling policy is testable without a real device or a running
- * foreground service — the same isolation [ClusterForagingAreasUseCase] gets by taking sightings as
- * a plain list rather than fetching them itself.
+ * foreground service.
  */
 class LocationSampler(private val mode: TrackRecordingMode) {
 

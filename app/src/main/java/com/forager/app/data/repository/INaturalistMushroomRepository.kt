@@ -3,14 +3,12 @@ package com.forager.app.data.repository
 import com.forager.app.data.remote.INaturalistApi
 import com.forager.app.data.remote.dto.ObservationDto
 import com.forager.app.data.remote.dto.SpeciesCountDto
-import com.forager.app.data.remote.dto.TaxonDto
 import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.SightingsPage
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
-import com.forager.app.domain.model.TaxonSearchResult
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
@@ -53,11 +51,6 @@ class INaturalistMushroomRepository(
         }
     }
 
-    override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
-        return runCatchingCancellable { api.searchTaxa(query) }
-            .map { response -> response.results.map(::toDomain) }
-    }
-
     private fun toDomain(dto: SpeciesCountDto): SpeciesObservationCount {
         val taxon = dto.taxon
         return SpeciesObservationCount(
@@ -71,8 +64,25 @@ class INaturalistMushroomRepository(
         )
     }
 
-    /** Null when iNaturalist has no plottable position for this observation, rather than a fabricated one. */
+    /**
+     * Null when iNaturalist has no plottable, non-obscured position for this observation, rather
+     * than a fabricated or randomized one.
+     *
+     * Two independent reasons to drop an observation here:
+     * - `location` missing/malformed — iNaturalist withheld the coordinates entirely (fully
+     *   `private` geoprivacy).
+     * - [ObservationDto.obscured] — iNaturalist *did* return a `location`, but it's a coordinate
+     *   randomized to a coarse cell tens of kilometres across, not the true point (`obscured`
+     *   geoprivacy, set by the observer or forced by the taxon). Checked directly rather than by
+     *   inspecting [ObservationDto.geoprivacy]/[ObservationDto.taxonGeoprivacy] ourselves — see
+     *   [ObservationDto.obscured]'s own doc comment for why `obscured` is the one field that
+     *   already combines both correctly.
+     *
+     * Exclusion, not fallback: an obscured observation's [ObservationDto.location] is never used
+     * for anything, even as a rough estimate.
+     */
     private fun toDomain(dto: ObservationDto): Sighting? {
+        if (dto.obscured) return null
         val (lat, lng) = parseLocation(dto.location) ?: return null
         val taxon = dto.taxon
         return Sighting(
@@ -84,17 +94,10 @@ class INaturalistMushroomRepository(
             lng = lng,
             observedOn = parseObservedOn(dto.observedOn),
             photoUrl = dto.photos.firstOrNull()?.url,
+            positionalAccuracyMeters = dto.publicPositionalAccuracy,
         )
     }
 
-    private fun toDomain(dto: TaxonDto): TaxonSearchResult = TaxonSearchResult(
-        taxonId = dto.id,
-        scientificName = dto.name,
-        commonName = dto.preferredCommonName,
-        rank = dto.rank,
-        iconicTaxonName = dto.iconicTaxonName,
-        photoUrl = dto.defaultPhoto?.squareUrl,
-    )
 }
 
 /** Parses iNaturalist's "lat,lng" location string. Null on missing or malformed input. */

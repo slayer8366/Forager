@@ -2,6 +2,7 @@ package com.forager.app.data.local
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -23,7 +24,8 @@ import androidx.room.PrimaryKey
  * `MapLibreOfflineMapRepository.listRegions` rebuilds the missing row from the surviving blob rather
  * than fabricating a placeholder name for it.
  */
-@Entity(tableName = "offline_regions")
+/** [createdAtEpochMillis] is indexed as of [MIGRATION_9_10], for [OfflineRegionDao]'s day-scoped read. */
+@Entity(tableName = "offline_regions", indices = [Index("createdAtEpochMillis")])
 data class OfflineRegionEntity(
     @PrimaryKey val id: Long,
     val name: String,

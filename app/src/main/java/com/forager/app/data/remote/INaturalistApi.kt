@@ -2,7 +2,6 @@ package com.forager.app.data.remote
 
 import com.forager.app.data.remote.dto.ObservationsResponseDto
 import com.forager.app.data.remote.dto.SpeciesCountsResponseDto
-import com.forager.app.data.remote.dto.TaxaAutocompleteResponseDto
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -55,11 +54,4 @@ interface INaturalistApi {
         @Query("verifiable") verifiable: Boolean = true,
         @Query("per_page") perPage: Int = 200,
     ): ObservationsResponseDto
-
-    /** Name search (common or scientific) for the species-search UI. */
-    @GET("taxa/autocomplete")
-    suspend fun searchTaxa(
-        @Query("q") query: String,
-        @Query("per_page") perPage: Int = 15,
-    ): TaxaAutocompleteResponseDto
 }

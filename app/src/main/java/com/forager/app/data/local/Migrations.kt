@@ -538,3 +538,52 @@ val MIGRATION_8_9: Migration = object : Migration(8, 9) {
         )
     }
 }
+
+/**
+ * Journal Stage 2a (derived-trip data layer): indexes supporting a day-scoped lookup on each of the
+ * four entities a derived trip gathers — [MushroomLogEntryEntity.foundOn],
+ * [TrackEntity.startedAtEpochMillis]/[TrackEntity.endedAtEpochMillis], [WaypointEntity.createdAtEpochMillis],
+ * and [OfflineRegionEntity.createdAtEpochMillis]. Owner decision #2 for this dispatch: "indexed
+ * queries, not in-memory filtering" — every existing query in this database reads a whole table
+ * unconditionally (see [MushroomLogDao]/[TrackDao]/[WaypointDao]/[OfflineRegionDao]'s own doc
+ * comments), so this is the first migration whose entire purpose is making a `WHERE` clause cheap
+ * rather than adding a table or column.
+ *
+ * **No `ALTER TABLE`, no table rebuild — pure `CREATE INDEX IF NOT EXISTS`.** Unlike every migration
+ * above, this changes no column's shape or nullability, so none of the rebuild machinery
+ * [MIGRATION_6_7]/[MIGRATION_7_8]/[MIGRATION_8_9] needed applies here, and none of the
+ * `ALTER TABLE ... ADD COLUMN` failure mode [MIGRATION_5_6] hit against a legacy fixture applies
+ * either — `CREATE INDEX IF NOT EXISTS` is a genuine no-op against an index that's already there,
+ * which is exactly the shape a legacy `LegacyForagerDatabaseVn` fixture produces when it shares
+ * these entity classes (now carrying the same `@Index` annotations) at an old declared version: see
+ * `DayScopedIndexMigrationTest`'s own `LegacyForagerDatabaseV9` fixture, run through this migration
+ * to confirm that directly rather than assumed from this reasoning.
+ *
+ * Index names match Room's own generated convention (`index_<table>_<column>`) — see [MIGRATION_4_5]'s
+ * doc comment for why that matters: Room's schema validation at app startup checks the on-disk index
+ * name against what the `@Index` annotation declares, not just that *an* index covers the column.
+ */
+val MIGRATION_9_10: Migration = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_foundOn` " +
+                "ON `mushroom_log_entries` (`foundOn`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_tracks_startedAtEpochMillis` " +
+                "ON `tracks` (`startedAtEpochMillis`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_tracks_endedAtEpochMillis` " +
+                "ON `tracks` (`endedAtEpochMillis`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_waypoints_createdAtEpochMillis` " +
+                "ON `waypoints` (`createdAtEpochMillis`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_offline_regions_createdAtEpochMillis` " +
+                "ON `offline_regions` (`createdAtEpochMillis`)",
+        )
+    }
+}

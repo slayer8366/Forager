@@ -969,6 +969,13 @@ private class FakeMushroomLogRepository(
         return Result.success(snapshot)
     }
 
+    override suspend fun getForDay(foundOnKey: String): Result<List<MushroomLogEntry>> = Result.success(
+        entries.values.filter { it.foundOn.toString() == foundOnKey }.map { entry ->
+            val photos = crossRefs.filter { it.first == entry.id }.mapNotNull { galleryPhotos[it.second] }
+            entry.copy(photos = photos)
+        },
+    )
+
     override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(
         galleryPhotos.values.map { photo ->
             GalleryPhoto(photo = photo, referencingEntryIds = crossRefs.filter { it.second == photo.id }.map { it.first })

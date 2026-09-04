@@ -26,10 +26,6 @@ private class FakeSightingsRepository(
         lastFilter = filter
         return sightingsResult
     }
-
-    override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> {
-        throw NotImplementedError("not exercised by GetSightingsUseCaseTest")
-    }
 }
 
 private fun sighting(id: Long, observedOn: LocalDate?) = Sighting(

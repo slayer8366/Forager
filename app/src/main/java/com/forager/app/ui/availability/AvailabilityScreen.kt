@@ -187,7 +187,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.forager.app.BuildConfig
 import com.forager.app.crash.CrashFileStore
 import com.forager.app.domain.CachedSearchSummary
-import com.forager.app.domain.ClusterForagingAreasUseCase
 import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.ForagingSelection
@@ -205,8 +204,6 @@ import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.formatDistanceKm
-import com.forager.app.domain.model.ForagingArea
-import com.forager.app.domain.model.ForagingAreas
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.GalleryPhoto
@@ -232,8 +229,6 @@ import com.forager.app.ui.adaptive.WindowWidthClass
 import com.forager.app.ui.adaptive.currentWindowWidthClass
 import com.forager.app.ui.crash.CrashLogPanel
 import com.forager.app.ui.crash.CrashLogsEntryRow
-import com.forager.app.ui.track.TrackExportEntryRow
-import com.forager.app.ui.track.TrackExportPanel
 import com.forager.app.ui.log.JournalTab
 import com.forager.app.ui.log.LogPanel
 import com.forager.app.ui.log.MushroomLogUiState
@@ -245,8 +240,6 @@ import com.forager.app.ui.map.MapMode
 import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
-import com.forager.app.ui.map.VISITING_ORDER_DISCLAIMER
-import com.forager.app.ui.map.foragingAreaSummary
 import com.forager.app.ui.motion.MotionTokens
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
@@ -295,7 +288,7 @@ private enum class ResultsTab(val label: String) {
  * search icon used to open (that icon is gone — see `MapIconBar`'s own doc comment — this tab is
  * its replacement entry point, not a new destination alongside it). "Tools" is deliberately a
  * catch-all for things used but not wanted in the immediate way — per-trip and rare items that are
- * not destinations in their own right (trip planner, waypoints, foraging areas, and now Settings
+ * not destinations in their own right (trip planner, waypoints, and now Settings
  * too — see that composable's own doc comment). Search itself — basic species/category search,
  * Recent Searches, and Advanced Search — is **not** part of that list any more: it moved out into
  * [SearchDropdown], reached from [ActiveSearchSummary] up top rather than from this drawer, exactly
@@ -326,10 +319,13 @@ private fun CompactTab.icon(): ImageVector = when (this) {
 /**
  * The medium/expanded window's drawer panels — see [AvailabilityScreen]'s doc comment on
  * `drawerPanel` for how they're switched between. [Settings] and [Log] are both reached from
- * sticky entries at the bottom of [Search] (see [SettingsEntryRow]/`MushroomLogEntryRow`);
- * [OfflineMaps] is reached from a row inside [Settings], one level deeper — its own back arrow
- * returns to [Settings], not all the way to [Search]. Closing the drawer entirely resets all the
- * way back to [Search] regardless of which panel was showing.
+ * sticky entries at the bottom of [Search] (see [SettingsEntryRow]/`MushroomLogEntryRow`).
+ * Closing the drawer entirely resets all the way back to [Search] regardless of which panel was
+ * showing.
+ *
+ * **No longer holds [OfflineMaps] or `Tracks`.** Journal restructure Stage 1 moved both into the
+ * Journal's own Records tab ([RecordsTab] in `ui/log/`) — [Settings] now goes straight to
+ * [CrashLogs] as its only remaining submenu.
  *
  * [Log] additionally opens directly — bypassing [Search] — from the map's "Log a find" option
  * (chosen from [ThreeWayActionDialog], then placed via [com.forager.app.ui.map.CentrePinLocationPicker]);
@@ -349,11 +345,7 @@ private fun CompactTab.icon(): ImageVector = when (this) {
 private enum class DrawerPanel {
     Search,
     Settings,
-    OfflineMaps,
     CrashLogs,
-    // Field-test dispatch item 1: the Settings "Recorded Tracks" export panel — see TrackExportPanel's
-    // own doc comment for why it lives here rather than a dedicated new screen.
-    Tracks,
     Log,
     // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
     // top-level destination — see PhotoGalleryScreen's own doc comment. No longer a
@@ -405,8 +397,6 @@ fun AvailabilityScreen(
     onMonthSelected: (Int) -> Unit,
     onMapTabSelected: () -> Unit,
     onSeasonalTabSelected: () -> Unit,
-    onToggleForagingAreas: (Boolean) -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -575,36 +565,18 @@ fun AvailabilityScreen(
     // sighting view.
     var mapTaxonFilter by remember { mutableStateOf<Long?>(null) }
 
-    // Whether the foraging-areas layer was showing right before a "View on Map" filter was first
-    // applied — read back on clear so the layer returns to whatever the user actually had, not
-    // unconditionally forced back on. Only snapshotted/toggled off when mapTaxonFilter is still
-    // null in onViewSpeciesOnMap below: without that guard, tapping "View on Map" for a second
-    // species while already filtered would re-read uiState.showForagingAreas after this same
-    // effect already turned it off, silently forgetting the user's real original preference.
-    var wasShowingForagingAreasBeforeMapFilter by remember { mutableStateOf(false) }
-
     // Sets the filter and jumps to whichever map surface the current window class actually shows —
     // both selectedTab and compactTab are updated unconditionally rather than branching on
     // windowWidthClass here, since only the one the active layout reads has any effect; see
     // CompactTab's own doc comment for why the two are kept as separate state instead of one.
-    // Also hides the foraging-areas layer while the filtered view is up — a single species'
-    // sightings grouped into "areas" reads as a misleading claim about that species' own foraging
-    // pattern, not the general-purpose grouping the layer is for — restored on
-    // onClearMapTaxonFilter below.
     val onViewSpeciesOnMap: (Long) -> Unit = { taxonId ->
-        if (mapTaxonFilter == null) {
-            wasShowingForagingAreasBeforeMapFilter = uiState.showForagingAreas
-            if (uiState.showForagingAreas) onToggleForagingAreas(false)
-        }
         mapTaxonFilter = taxonId
         compactTab = CompactTab.MAP
         selectedTab = ResultsTab.MAP
     }
 
-    /** Clears the filter and restores the foraging-areas layer to whatever it was before — see [wasShowingForagingAreasBeforeMapFilter]'s own doc comment. */
     val onClearMapTaxonFilter: () -> Unit = {
         mapTaxonFilter = null
-        if (wasShowingForagingAreasBeforeMapFilter) onToggleForagingAreas(true)
     }
 
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
@@ -805,9 +777,6 @@ fun AvailabilityScreen(
                     onRadiusChanged = onRadiusChanged,
                     onMonthSelected = onMonthSelected,
                     onDeletePlannedTrip = onDeletePlannedTrip,
-                    waypoints = waypoints,
-                    waypointsErrorMessage = waypointsErrorMessage,
-                    onDeleteWaypoint = onDeleteWaypoint,
                     onRecentSearchSelected = { summary ->
                         // Closed for the same reason searching from this drawer closes it:
                         // the tap starts a search, and the results are behind the sheet.
@@ -837,57 +806,16 @@ fun AvailabilityScreen(
                     onThemeModeChanged = onThemeModeChanged,
                     nightModeMaps = uiState.nightModeMaps,
                     onNightModeMapsChanged = onNightModeMapsChanged,
-                    onOpenOfflineMaps = {
-                        drawerPanel = DrawerPanel.OfflineMaps
-                        onOfflineMapsOpened()
-                    },
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
-                    onOpenTracks = {
-                        drawerPanel = DrawerPanel.Tracks
-                        onTracksOpened()
-                    },
                 )
                 BuildIdentityFooter()
             }
 
-            DrawerPanel.OfflineMaps -> {
-                // Back returns to Settings, one level up — not all the way to Search. See
-                // DrawerPanel's own doc comment.
-                OfflineMapsHeader(onBack = { drawerPanel = DrawerPanel.Settings })
-                OfflineMapsPanel(
-                    modifier = Modifier.weight(1f),
-                    uiState = uiState,
-                    distanceUnit = distanceUnit,
-                    currentTime = currentTime,
-                    mapSlot = mapSlot,
-                    isNightMode = isNightMode,
-                    onRegionPicked = { location ->
-                        onOfflineMapLatChanged(location.lat.toString())
-                        onOfflineMapLngChanged(location.lng.toString())
-                    },
-                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                    onOfflineMapNameChanged = onOfflineMapNameChanged,
-                    onDownloadOfflineMaps = onDownloadOfflineMaps,
-                    onDeleteOfflineRegion = onDeleteOfflineRegion,
-                )
-            }
-
             DrawerPanel.CrashLogs -> {
-                // Back returns to Settings, one level up — not all the way to Search. Same
-                // reasoning as DrawerPanel.OfflineMaps above.
+                // Back returns to Settings, one level up — not all the way to Search.
                 CrashLogPanel(
                     modifier = Modifier.weight(1f),
                     files = crashFileStore.list(),
-                    onBack = { drawerPanel = DrawerPanel.Settings },
-                )
-            }
-
-            DrawerPanel.Tracks -> {
-                // Back returns to Settings, one level up — same reasoning as DrawerPanel.OfflineMaps/
-                // CrashLogs above.
-                TrackExportPanel(
-                    modifier = Modifier.weight(1f),
-                    tracks = tracks,
                     onBack = { drawerPanel = DrawerPanel.Settings },
                 )
             }
@@ -918,6 +846,25 @@ fun AvailabilityScreen(
                     onDeleteEntry = onDeleteLogEntry,
                     onBackToSearch = { drawerPanel = DrawerPanel.Search },
                     onSaveErrorDismissed = onSaveLogErrorDismissed,
+                    // Journal restructure Stage 1: the Records tab's three submenus — see
+                    // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
+                    // reads its offline-map-specific fields off; distanceUnit/currentTime are the
+                    // same values SearchControls/CompactSettingsTab already used for it.
+                    availabilityUiState = uiState,
+                    distanceUnit = distanceUnit,
+                    currentTime = currentTime,
+                    onOfflineMapLatChanged = onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = onOfflineMapNameChanged,
+                    onOfflineMapsOpened = onOfflineMapsOpened,
+                    onDownloadOfflineMaps = onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = onDeleteOfflineRegion,
+                    tracks = tracks,
+                    onTracksOpened = onTracksOpened,
+                    waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
+                    onDeleteWaypoint = onDeleteWaypoint,
                 )
             }
 
@@ -962,7 +909,6 @@ fun AvailabilityScreen(
                         drawerPanel = DrawerPanel.Search
                     },
                     onUseCurrentLocation = onUseCurrentLocation,
-                    onCategorySelected = onCategorySelected,
                     onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                     onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                     onDismissTaxonSuggestions = onDismissTaxonSuggestions,
@@ -1014,7 +960,6 @@ fun AvailabilityScreen(
                         onMapModeSelected = { mapMode = it },
                         onPlaceTripPin = onPlaceTripPin,
                         onLogFindHere = onLogFindHere,
-                        onToggleForagingAreas = onToggleForagingAreas,
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
                         onDropWaypoint = onDropWaypoint,
@@ -1215,7 +1160,6 @@ fun AvailabilityScreen(
                             showSearchDropdown = false
                             onUseCurrentLocation()
                         },
-                        onCategorySelected = onCategorySelected,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = { result ->
                             onTaxonSearchResultSelected(result)
@@ -1323,7 +1267,6 @@ fun AvailabilityScreen(
                                                 showSearchDropdown = false
                                                 onUseCurrentLocation()
                                             },
-                                            onCategorySelected = onCategorySelected,
                                             onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                                             onTaxonSearchResultSelected = { result ->
                                                 onTaxonSearchResultSelected(result)
@@ -1366,6 +1309,23 @@ fun AvailabilityScreen(
                             isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
                             onDeleteGalleryPhoto = onDeleteGalleryPhoto,
                             galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                            // Journal restructure Stage 1: the Records tab's three submenus — see
+                            // RecordsTab's own doc comment.
+                            availabilityUiState = uiState,
+                            distanceUnit = distanceUnit,
+                            currentTime = currentTime,
+                            onOfflineMapLatChanged = onOfflineMapLatChanged,
+                            onOfflineMapLngChanged = onOfflineMapLngChanged,
+                            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                            onOfflineMapNameChanged = onOfflineMapNameChanged,
+                            onOfflineMapsOpened = onOfflineMapsOpened,
+                            onDownloadOfflineMaps = onDownloadOfflineMaps,
+                            onDeleteOfflineRegion = onDeleteOfflineRegion,
+                            tracks = tracks,
+                            onTracksOpened = onTracksOpened,
+                            waypoints = waypoints,
+                            waypointsErrorMessage = waypointsErrorMessage,
+                            onDeleteWaypoint = onDeleteWaypoint,
                             modifier = Modifier.fillMaxSize(),
                         )
                         // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
@@ -1440,7 +1400,6 @@ fun AvailabilityScreen(
                             SearchDropdown(
                                 uiState = uiState,
                                 distanceUnit = distanceUnit,
-                                onCategorySelected = onCategorySelected,
                                 onRecentSearchSelected = { summary ->
                                     showSearchDropdown = false
                                     onRecentSearchSelected(summary)
@@ -1484,30 +1443,16 @@ fun AvailabilityScreen(
                 ModalDrawerSheet {
                     CompactToolsDrawerContent(
                         uiState = uiState,
-                        mapSlot = mapSlot,
                         distanceUnit = distanceUnit,
                         onDistanceUnitSelected = onDistanceUnitSelected,
                         onClose = { isDrawerOpen = false },
                         onDeletePlannedTrip = onDeletePlannedTrip,
-                        waypoints = waypoints,
-                        waypointsErrorMessage = waypointsErrorMessage,
-                        onDeleteWaypoint = onDeleteWaypoint,
                         currentTime = currentTime,
-                        onToggleForagingAreas = onToggleForagingAreas,
                         isNightMode = isNightMode,
                         onNightModeMapsChanged = onNightModeMapsChanged,
                         themeMode = uiState.themeMode,
                         onThemeModeChanged = onThemeModeChanged,
-                        onOfflineMapLatChanged = onOfflineMapLatChanged,
-                        onOfflineMapLngChanged = onOfflineMapLngChanged,
-                        onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                        onOfflineMapNameChanged = onOfflineMapNameChanged,
-                        onOfflineMapsOpened = onOfflineMapsOpened,
-                        onDownloadOfflineMaps = onDownloadOfflineMaps,
-                        onDeleteOfflineRegion = onDeleteOfflineRegion,
                         crashFileStore = crashFileStore,
-                        tracks = tracks,
-                        onTracksOpened = onTracksOpened,
                     )
                 }
             },
@@ -1613,7 +1558,6 @@ private fun CombinedResultsPane(
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
-    onToggleForagingAreas: (Boolean) -> Unit,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
@@ -1640,7 +1584,6 @@ private fun CombinedResultsPane(
             onMapModeSelected = onMapModeSelected,
             onPlaceTripPin = onPlaceTripPin,
             onLogFindHere = onLogFindHere,
-            onToggleForagingAreas = onToggleForagingAreas,
             breadcrumbPoints = breadcrumbPoints,
             waypoints = waypoints,
             onDropWaypoint = onDropWaypoint,
@@ -1740,7 +1683,6 @@ private fun SearchEntryBar(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     onUseCurrentLocation: () -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -1813,15 +1755,12 @@ private fun SearchEntryBar(
                     SpeciesSearchControls(
                         uiState = uiState,
                         onUseCurrentLocation = onUseCurrentLocation,
-                        onCategorySelected = onCategorySelected,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                        chipRowModifier = Modifier.padding(horizontal = Spacing.sm),
                         queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(fieldHeight),
                         onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
                         restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
-                        chipRowVisible = false,
                         showLocationTrailingIcon = false,
                         fieldColors = fieldColors,
                         contentPadding = fieldContentPadding,
@@ -1900,38 +1839,10 @@ private fun SearchEntryBar(
  * [RegionControls]/[MonthSelector] (the content this dropdown's own radius/month controls are
  * drawn from) before this dispatch, confirmed by reading both, so there is nothing to remove.
  */
-/**
- * The category chip row, promoted here as item 1 of "Drawer contents, in order" (map/navigation
- * search-UI redo dispatch) — [SearchEntryBar] itself never shows chips, in any state, matching
- * the reference bar's single-line-summary look exactly.
- */
-@Composable
-private fun CategoryChipRow(selected: TaxonFilter, onCategorySelected: (TaxonFilter) -> Unit) {
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
-            FilterChip(
-                selected = selected == category,
-                onClick = { onCategorySelected(category) },
-                label = {
-                    Text(
-                        category.label,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
-        }
-    }
-}
-
 @Composable
 private fun SearchDropdown(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onUseCurrentLocation: () -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
@@ -1976,8 +1887,6 @@ private fun SearchDropdown(
                     .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                CategoryChipRow(selected = uiState.taxonFilter, onCategorySelected = onCategorySelected)
-
                 // Location row — map/navigation search-UI redo dispatch: "Set on map" and "Use
                 // current location" promoted out of "Advanced search" up to the drawer's own top
                 // level, same reasoning radius/month already got (a control reached for on nearly
@@ -2069,7 +1978,13 @@ private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: Dist
     // slider doesn't re-run the search, so reporting it here would describe a search that hasn't
     // happened. Before any search there is no region, and this says so rather than implying one.
     val where = uiState.region?.let { formatDistanceKm(it.radiusKm, distanceUnit) } ?: "no location set"
-    return "${uiState.taxonFilter.label} · $month · $where"
+    // Fungi is the only category now (owner decision) — leading with its name on every search
+    // would be a label with nothing left to distinguish it from. A specific searched species is
+    // still worth naming up front; nothing selected leads with the month instead of a blank
+    // segment (a blank search still means "all fungi in this area and month" — see
+    // AvailabilityUiState.taxonFilter's default).
+    val species = (uiState.taxonFilter as? TaxonFilter.SpecificTaxon)?.label
+    return listOfNotNull(species, month, where).joinToString(" · ")
 }
 
 /**
@@ -2279,94 +2194,49 @@ private fun PhotoGalleryHeader(onBack: () -> Unit) {
 /**
  * Settings' body, reached by tapping the Settings entry at the bottom of [CompactToolsDrawerContent]
  * (the compact "Tools" drawer, map/navigation redesign dispatch B) — [SettingsContent] hosted as a
- * `showSettings`-gated state within that drawer instead of a drawer panel of its own, with the
- * Offline Maps submenu as local `showOfflineMaps` state instead of [DrawerPanel.OfflineMaps].
- * Reuses [SettingsContent]/[OfflineMapsPanel]/[OfflineMapsHeader]/[BuildIdentityFooter] unmodified —
- * only the navigation host around them changed, from a drawer panel switch to a nested-state one.
- * No header for the main Settings state, unlike the drawer panel's [SettingsHeader]: there is
- * nothing to go "back" to here via an in-content affordance — [CompactToolsDrawerContent]'s own
- * `BackHandler` unwinds `showSettings` back to the rest of the Tools drawer, the same
- * most-recently-composed-callback-wins pattern [JournalTab]'s nested states use.
+ * `showSettings`-gated state within that drawer instead of a drawer panel of its own. Reuses
+ * [SettingsContent]/[BuildIdentityFooter] unmodified — only the navigation host around them changed,
+ * from a drawer panel switch to a nested-state one. No header for the main Settings state, unlike
+ * the drawer panel's [SettingsHeader]: there is nothing to go "back" to here via an in-content
+ * affordance — [CompactToolsDrawerContent]'s own `BackHandler` unwinds `showSettings` back to the
+ * rest of the Tools drawer, the same most-recently-composed-callback-wins pattern [JournalTab]'s
+ * nested states use.
  *
  * **Was** [CompactTab.SETTINGS]'s body — a standalone sixth bottom-nav destination — before dispatch
  * B collapsed the bottom nav to five destinations and folded Settings one level deeper, behind Tools.
+ *
+ * Journal restructure Stage 1 moved Offline Maps and Recorded Tracks out of Settings entirely, into
+ * the Journal's Records tab — see [com.forager.app.ui.log.RecordsTab]. This tab's own `showOfflineMaps`/
+ * `showTracks` submenu state is gone with them; only [showCrashLogs] remains.
  */
 @Composable
 private fun CompactSettingsTab(
-    uiState: AvailabilityUiState,
-    mapSlot: MapSlot,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
-    currentTime: CurrentTimeProvider,
-    /** Night mode for the offline-download region picker this tab hosts, and Settings' own checkbox value. */
+    /** Night mode for the map, and Settings' own checkbox value. */
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onOfflineMapNameChanged: (String) -> Unit,
-    onOfflineMapsOpened: () -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineRegion: (Long) -> Unit,
     crashFileStore: CrashFileStore,
-    tracks: List<Track>,
-    onTracksOpened: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showOfflineMaps by remember { mutableStateOf(false) }
     var showCrashLogs by remember { mutableStateOf(false) }
-    var showTracks by remember { mutableStateOf(false) }
 
     // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
     // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
-    BackHandler(enabled = showOfflineMaps) {
-        showOfflineMaps = false
-    }
     BackHandler(enabled = showCrashLogs) {
         showCrashLogs = false
-    }
-    BackHandler(enabled = showTracks) {
-        showTracks = false
     }
 
     Column(modifier = modifier.fillMaxSize()) {
         when {
-            showOfflineMaps -> {
-                OfflineMapsHeader(onBack = { showOfflineMaps = false })
-                OfflineMapsPanel(
-                    modifier = Modifier.weight(1f),
-                    uiState = uiState,
-                    distanceUnit = distanceUnit,
-                    currentTime = currentTime,
-                    mapSlot = mapSlot,
-                    isNightMode = isNightMode,
-                    onRegionPicked = { location ->
-                        onOfflineMapLatChanged(location.lat.toString())
-                        onOfflineMapLngChanged(location.lng.toString())
-                    },
-                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                    onOfflineMapNameChanged = onOfflineMapNameChanged,
-                    onDownloadOfflineMaps = onDownloadOfflineMaps,
-                    onDeleteOfflineRegion = onDeleteOfflineRegion,
-                )
-            }
-
             showCrashLogs -> {
                 CrashLogPanel(
                     modifier = Modifier.weight(1f),
                     files = crashFileStore.list(),
                     onBack = { showCrashLogs = false },
-                )
-            }
-
-            showTracks -> {
-                TrackExportPanel(
-                    modifier = Modifier.weight(1f),
-                    tracks = tracks,
-                    onBack = { showTracks = false },
                 )
             }
 
@@ -2379,15 +2249,7 @@ private fun CompactSettingsTab(
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
-                    onOpenOfflineMaps = {
-                        showOfflineMaps = true
-                        onOfflineMapsOpened()
-                    },
                     onOpenCrashLogs = { showCrashLogs = true },
-                    onOpenTracks = {
-                        showTracks = true
-                        onTracksOpened()
-                    },
                 )
                 BuildIdentityFooter()
             }
@@ -2396,8 +2258,7 @@ private fun CompactSettingsTab(
 }
 
 /**
- * The Settings panel's body: [DistanceUnitSection] plus a row into the "Offline Maps" submenu,
- * built as a real menu with headroom for more sections later per this task's own framing.
+ * The Settings panel's body: [DistanceUnitSection], theme, night maps, and Crash Logs.
  *
  * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
  * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
@@ -2405,11 +2266,9 @@ private fun CompactSettingsTab(
  * option reachable only from the map's own [MapModePicker]. See [MapMode]'s own doc comment for the
  * full account of what this removed and why.
  *
- * Offline Maps is a full submenu of its own ([DrawerPanel.OfflineMaps] for medium/expanded,
- * `showOfflineMaps` local state for compact's [CompactSettingsTab]) rather than a section inline
- * here, because it now holds an interactive map (see [OfflineMapsPanel]) that needs real screen
- * space to be usable — a map squeezed into one scrolling section among several would be too small
- * to pan and position the centre pin accurately.
+ * **No longer has Offline Maps or Recorded Tracks entries.** Journal restructure Stage 1 moved
+ * both into the Journal's own Records tab ([RecordsTab] in `ui/log/`) — see that composable's own
+ * doc comment. `CrashLogs` stays here since it isn't a Records concept.
  *
  * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
  * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
@@ -2423,9 +2282,7 @@ private fun SettingsContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    onOpenOfflineMaps: () -> Unit,
     onOpenCrashLogs: () -> Unit,
-    onOpenTracks: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -2437,12 +2294,6 @@ private fun SettingsContent(
         HorizontalDivider()
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
-        HorizontalDivider()
-        OfflineMapsEntryRow(onClick = onOpenOfflineMaps)
-        HorizontalDivider()
-        // Field-test dispatch item 1 — see TrackExportPanel's own doc comment for why this reuses
-        // the crash-log row's exact shape rather than a new screen.
-        TrackExportEntryRow(onClick = onOpenTracks)
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
     }
@@ -2527,54 +2378,6 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
 }
 
 /**
- * The Settings panel's row into the [DrawerPanel.OfflineMaps] submenu. A plain row rather than a
- * sticky one like [SettingsEntryRow]: this lives inside Settings' own scrolling content, it isn't a
- * second drawer-wide sticky slot.
- *
- * Unconditionally reachable regardless of [MapMode] — offline downloads always target this
- * repository's one fixed source regardless of which mode is selected for live browsing, so
- * there is nothing to gate this row on; see `com.forager.app.domain.OfflineMapRepository`'s doc
- * comment for why that coupling was removed.
- */
-@Composable
-private fun OfflineMapsEntryRow(onClick: () -> Unit) {
-    // heightIn(min = 48.dp), not just the vertical padding [MushroomLogEntryRow]/[SettingsEntryRow]
-    // use: those rows' padding(vertical = Spacing.md) around a 24dp icon already clears 48dp, but
-    // this row's original padding(vertical = Spacing.sm) only reached ~40dp — under M3's 48x48dp
-    // minimum touch target, a real miss found by auditing this file's tap targets against that
-    // rule, not a hypothetical one.
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = Spacing.sm),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Offline Maps", style = MaterialTheme.typography.titleMedium)
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-    }
-}
-
-/** Mirrors [SettingsHeader]'s style; its back arrow returns to Settings, one level up, not to Search. */
-@Composable
-private fun OfflineMapsHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Settings")
-        Text("Offline Maps", style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-/**
  * The "Offline Maps" submenu: an interactive topo map to pick a download region via the
  * centre-pin picker, the region's radius, current status, and the Download/Delete actions.
  *
@@ -2608,7 +2411,7 @@ private fun OfflineMapsHeader(onBack: () -> Unit) {
  * own comment for why `weight(1f)` stopped working once this whole panel became one scrolling unit.
  */
 @Composable
-private fun OfflineMapsPanel(
+internal fun OfflineMapsPanel(
     modifier: Modifier = Modifier,
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
@@ -3066,22 +2869,16 @@ private fun MapModePicker(
  * lived here), then again once dispatch C moved both out into [SearchDropdown] over the map (see
  * that composable's own doc comment). The owner's own later call, on seeing that move land: stop
  * calling this the search drawer at all, "so it doesn't get lumped together in the future by some
- * ambitious planner" — species search is gone from here for good, and the name should say so. Three
+ * ambitious planner" — species search is gone from here for good, and the name should say so. Two
  * things live here now, none of them search:
  *
- * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner / Waypoints only, the two
- *    sections [SearchDropdown] doesn't also cover.
- * 2. **Foraging areas** ([ForagingAreasToggle]/[ForagingAreasPanel]) — used to float as an overlay
- *    on the map itself ([CompactMapTab]'s own doc comment has that history), then moved here per
- *    the project owner's later call: "move the foraging areas to the side search panel." Fixed at
- *    the bottom, not scrolling with [SearchControls]: [ForagingAreasPanel]'s own
- *    [FORAGING_AREAS_PANEL_MAX_HEIGHT] cap already bounds it to a footnote-sized block, the same
- *    fixed-height treatment [MapTab] gave it before this redesign, just relocated.
- * 3. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
+ * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner only. Waypoints moved
+ *    out (Journal restructure Stage 1) into the Journal's own Records tab.
+ * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
- *    tab before that dispatch) lives here instead, reached one tap deeper via the entry row fixed
- *    below Foraging areas — the same "drill in, own back step" shape [CompactSettingsTab] already
- *    uses for its own OfflineMaps/CrashLogs/Tracks submenus, not a new pattern invented for this.
+ *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
+ *    the same "drill in, own back step" shape [CompactSettingsTab] already uses for its own
+ *    CrashLogs submenu.
  *
  * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
  * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
@@ -3089,37 +2886,23 @@ private fun MapModePicker(
 @Composable
 private fun CompactToolsDrawerContent(
     uiState: AvailabilityUiState,
-    mapSlot: MapSlot,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onClose: () -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
-    waypoints: List<Waypoint>,
-    waypointsErrorMessage: String?,
-    onDeleteWaypoint: (String) -> Unit,
     currentTime: CurrentTimeProvider,
-    onToggleForagingAreas: (Boolean) -> Unit,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onOfflineMapNameChanged: (String) -> Unit,
-    onOfflineMapsOpened: () -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineRegion: (Long) -> Unit,
     crashFileStore: CrashFileStore,
-    tracks: List<Track>,
-    onTracksOpened: () -> Unit,
 ) {
-    // Own drill-in step, same shape as CompactSettingsTab's own OfflineMaps/CrashLogs/Tracks
-    // submenus — see this composable's own doc comment, item 4. Composed inside this drawer sheet
-    // (which the ModalNavigationDrawer keeps mounted even while visually closed, same as
-    // CollapsibleSection's own expand state), so its own BackHandler below takes priority over the
-    // top-level isDrawerOpen one — the same "most-recently-composed enabled callback wins"
-    // precedence AvailabilityScreen's own top-level BackHandler chain already documents.
+    // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
+    // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
+    // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
+    // own expand state), so its own BackHandler below takes priority over the top-level
+    // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
+    // AvailabilityScreen's own top-level BackHandler chain already documents.
     var showSettings by remember { mutableStateOf(false) }
     BackHandler(enabled = showSettings) {
         showSettings = false
@@ -3127,25 +2910,13 @@ private fun CompactToolsDrawerContent(
 
     if (showSettings) {
         CompactSettingsTab(
-            uiState = uiState,
-            mapSlot = mapSlot,
             distanceUnit = distanceUnit,
             onDistanceUnitSelected = onDistanceUnitSelected,
-            currentTime = currentTime,
             isNightMode = isNightMode,
             onNightModeMapsChanged = onNightModeMapsChanged,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
-            onOfflineMapLatChanged = onOfflineMapLatChanged,
-            onOfflineMapLngChanged = onOfflineMapLngChanged,
-            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-            onOfflineMapNameChanged = onOfflineMapNameChanged,
-            onOfflineMapsOpened = onOfflineMapsOpened,
-            onDownloadOfflineMaps = onDownloadOfflineMaps,
-            onDeleteOfflineRegion = onDeleteOfflineRegion,
             crashFileStore = crashFileStore,
-            tracks = tracks,
-            onTracksOpened = onTracksOpened,
             modifier = Modifier.fillMaxSize(),
         )
         return
@@ -3158,29 +2929,12 @@ private fun CompactToolsDrawerContent(
             uiState = uiState,
             distanceUnit = distanceUnit,
             onDeletePlannedTrip = onDeletePlannedTrip,
-            waypoints = waypoints,
-            waypointsErrorMessage = waypointsErrorMessage,
-            onDeleteWaypoint = onDeleteWaypoint,
             currentTime = currentTime,
             // See SearchControls' own doc comment on these params: species search, Recent
             // searches, and Advanced search all now live in SearchDropdown, over the map, not here.
             includeAdvancedSearch = false,
             includeRecentSearches = false,
         )
-        HorizontalDivider()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        ) {
-            ForagingAreasToggle(checked = uiState.showForagingAreas, onCheckedChange = onToggleForagingAreas)
-            if (uiState.showForagingAreas) {
-                Box(modifier = Modifier.height(FORAGING_AREAS_PANEL_MAX_HEIGHT)) {
-                    ForagingAreasPanel(foragingAreas = uiState.foragingAreas)
-                }
-            }
-        }
         SettingsEntryRow(onClick = { showSettings = true })
     }
 }
@@ -3196,8 +2950,8 @@ private fun CompactToolsDrawerContent(
  * Shared by both window classes' drawers, unlike most of this file's compact-vs-medium/expanded
  * split: [AvailabilitySearchTopBar] hosts species/category search above these three sections for
  * medium/expanded, while [CompactToolsDrawerContent] hosts the identical
- * [SpeciesSearchControls]/foraging-areas pieces around this same composable for compact — see that
- * composable's own doc comment for why species search and foraging areas moved there instead.
+ * [SpeciesSearchControls] around this same composable for compact — see that
+ * composable's own doc comment for why species search moved there instead.
  *
  * The scroll modifier on the outer [Column] is not optional. This is the same tall stack of
  * controls that starved the map when it lived in the main column; a drawer sheet is a
@@ -3230,9 +2984,6 @@ private fun SearchControls(
     onRadiusChanged: (Int) -> Unit = {},
     onMonthSelected: (Int) -> Unit = {},
     onDeletePlannedTrip: (String) -> Unit,
-    waypoints: List<Waypoint>,
-    waypointsErrorMessage: String?,
-    onDeleteWaypoint: (String) -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit = {},
     currentTime: CurrentTimeProvider,
     includeAdvancedSearch: Boolean = true,
@@ -3287,14 +3038,6 @@ private fun SearchControls(
         if (includeRecentSearches || includeAdvancedSearch) HorizontalDivider()
         CollapsibleSection(title = "Trip Planner") {
             TripPlannerSection(uiState = uiState, onDeletePlannedTrip = onDeletePlannedTrip)
-        }
-        HorizontalDivider()
-        CollapsibleSection(title = "Waypoints") {
-            WaypointsSection(
-                waypoints = waypoints,
-                errorMessage = waypointsErrorMessage,
-                onDeleteWaypoint = onDeleteWaypoint,
-            )
         }
     }
 }
@@ -3514,7 +3257,6 @@ private fun AvailabilitySearchTopBar(
     uiState: AvailabilityUiState,
     onOpenDrawer: () -> Unit,
     onUseCurrentLocation: () -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -3539,11 +3281,9 @@ private fun AvailabilitySearchTopBar(
                     SpeciesSearchControls(
                         uiState = uiState,
                         onUseCurrentLocation = onUseCurrentLocation,
-                        onCategorySelected = onCategorySelected,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                        chipRowModifier = Modifier,
                     )
                 }
             }
@@ -3552,31 +3292,17 @@ private fun AvailabilitySearchTopBar(
 }
 
 /**
- * The species/category search controls themselves — the category chip row plus the species text
- * field and its suggestion dropdown — factored out of [AvailabilitySearchTopBar] so
- * [CompactToolsDrawerContent] can host the identical control inside the drawer instead of the app
- * bar (per the project owner's own framing: "the whole side panel is the search feature"), rather
- * than a second copy of the [ExposedDropdownMenuBox]/chip-row logic. [AvailabilitySearchTopBar]'s
- * own external shape (the Surface, the tune icon, the two-row layout) is unchanged by this
- * extraction — only where the chips+field piece itself is called from moved.
+ * The species search controls themselves — the species text field and its suggestion dropdown —
+ * factored out of [AvailabilitySearchTopBar] so [CompactToolsDrawerContent] can host the identical
+ * control inside the drawer instead of the app bar (per the project owner's own framing: "the
+ * whole side panel is the search feature"), rather than a second copy of the
+ * [ExposedDropdownMenuBox] logic. [AvailabilitySearchTopBar]'s own external shape (the Surface,
+ * the tune icon, the two-row layout) is unchanged by this extraction — only where the field piece
+ * itself is called from moved.
  *
- * The oddly-placed [chipRowModifier] parameter is the one real difference between the two call
- * sites: the app bar puts the chip row in a shared `Row` alongside the tune icon
- * (`Modifier.weight(1f)` applied by the caller around this whole composable there), while the
- * drawer has no icon to share a row with, so its chip row can simply fill the width itself.
- *
- * [chipRowScrollable] defaults `true`, preserving the original behaviour for both call sites above
- * — real chrome (the app bar) or a modal drawer with its own scrim, neither actually "over the map"
- * in the sense Understory's four rules police. Map/navigation redesign dispatch C's own
- * [SearchDropdown] used to be a third call site that genuinely was a floating, scrim-less overlay
- * over the map, so it passed `false`: `horizontalScroll` "installs a live pointer handler even with
- * nothing to scroll" (Understory rule 3, quoting `docs/plans/understory-design-system.md`) — this
- * repo has shipped exactly that regression once already, over this exact chip row's own ancestor
- * before it moved into a drawer. `false` swaps the scrolling row for [Modifier.weight] `fill = false`
- * chips instead, per that rule's own prescribed fix. **[SearchDropdown] no longer calls this
- * composable at all** (dispatch D moved the species field out of it and into [SearchEntryBar] —
- * see that composable's own doc comment); [SearchEntryBar] is the third live call site now, and it
- * is real chrome like the app bar, not a floating map overlay, so it takes the default `true`.
+ * The category chip row this composable used to render alongside the field is gone (owner
+ * decision): the app is fungi-only now, so there is nothing left to choose between. See
+ * [AvailabilityUiState.taxonFilter]'s default and [activeSearchSummary].
  *
  * [queryFieldModifier]/[onQueryFieldFocusChanged]: both default to no-ops, exercised only by
  * [SearchEntryBar] — the compact top bar now hosts this composable's own species field directly
@@ -3591,26 +3317,22 @@ private fun AvailabilitySearchTopBar(
 private fun SpeciesSearchControls(
     uiState: AvailabilityUiState,
     onUseCurrentLocation: () -> Unit,
-    onCategorySelected: (TaxonFilter) -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
-    chipRowModifier: Modifier = Modifier,
-    chipRowScrollable: Boolean = true,
     queryFieldModifier: Modifier = Modifier,
     onQueryFieldFocusChanged: (Boolean) -> Unit = {},
     /**
      * Placeholder text shown while the field is empty, focused or not — map/navigation search-UI
      * redo dispatch, the owner's own direct call: the bar reads as the current filter summary
-     * ("Fungi · August · 9 mi") always, not a generic hint that blanks out what's currently
-     * searched the moment someone taps in to search. The generic hint this used to swap to on
-     * focus (and the two other call sites, [AvailabilitySearchTopBar] and
+     * ("August · 9 mi", or a searched species' name ahead of it) always, not a generic hint that
+     * blanks out what's currently searched the moment someone taps in to search. The generic hint
+     * this used to swap to on focus (and the two other call sites, [AvailabilitySearchTopBar] and
      * [CompactToolsDrawerContent], used to default to outright) is gone from the app entirely, by
      * direct owner instruction — those two call sites now default to a blank placeholder instead
      * of reintroducing it.
      */
     restingPlaceholder: String = "",
-    chipRowVisible: Boolean = true,
     showLocationTrailingIcon: Boolean = true,
     fieldColors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
     /**
@@ -3638,29 +3360,7 @@ private fun SpeciesSearchControls(
     contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPadding(),
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        if (chipRowVisible) {
-            Row(
-                modifier = if (chipRowScrollable) chipRowModifier.horizontalScroll(rememberScrollState()) else chipRowModifier,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                TaxonFilter.DEFAULT_CATEGORIES.forEach { category ->
-                    FilterChip(
-                        selected = uiState.taxonFilter == category,
-                        onClick = { onCategorySelected(category) },
-                        label = {
-                            Text(
-                                category.label,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        modifier = if (chipRowScrollable) Modifier else Modifier.weight(1f, fill = false),
-                    )
-                }
-            }
-        }
-
-        val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty()
+        val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty() || uiState.taxonSearchHasNoResults
         val queryFieldInteractionSource = remember { MutableInteractionSource() }
         ExposedDropdownMenuBox(
             expanded = suggestionsOpen,
@@ -3729,11 +3429,19 @@ private fun SpeciesSearchControls(
             // clear the query back below MIN_QUERY_LENGTH. Wiring the real dismiss action in
             // is the fix, not new behavior invented on top of the component.
             ExposedDropdownMenu(expanded = suggestionsOpen, onDismissRequest = onDismissTaxonSuggestions) {
-                uiState.taxonSearchResults.forEach { result ->
+                if (uiState.taxonSearchResults.isEmpty() && uiState.taxonSearchHasNoResults) {
                     DropdownMenuItem(
-                        text = { TaxonSuggestionContent(result) },
-                        onClick = { onTaxonSearchResultSelected(result) },
+                        text = { Text("No matches for “${uiState.taxonSearchQuery.trim()}”") },
+                        onClick = {},
+                        enabled = false,
                     )
+                } else {
+                    uiState.taxonSearchResults.forEach { result ->
+                        DropdownMenuItem(
+                            text = { TaxonSuggestionContent(result) },
+                            onClick = { onTaxonSearchResultSelected(result) },
+                        )
+                    }
                 }
             }
         }
@@ -3831,10 +3539,9 @@ private fun ListTab(
  * and never presented as a success; a cached ranking rendered identically to a live one is exactly
  * that failure, and the user would have no way to tell that iNaturalist was never reached.
  *
- * Tertiary rather than the error palette, for the same reason the visiting-order disclaimer is
- * (see [ForagingAreasPanel]): nothing failed in a way that cost the user their answer — the answer
- * is right there, it is simply older than it looks. Reusing the error color would make a real
- * failure read as no more urgent than this.
+ * Tertiary rather than the error palette: nothing failed in a way that cost the user their answer
+ * — the answer is right there, it is simply older than it looks. Reusing the error color would
+ * make a real failure read as no more urgent than this.
  *
  * [cachedAtEpochMillis] is non-null in every state the ViewModel produces (both fields are written
  * from one `Cached` result), but a null is rendered as an explicit "when isn't known" rather than
@@ -4106,9 +3813,8 @@ private fun SeasonalSampleSizeSummary(distribution: FruitingLagDistribution) {
 
 /**
  * A hand-rolled Compose `Canvas` bar chart — no charting dependency, consistent with
- * [com.forager.app.domain.Dbscan]/[com.forager.app.domain.GeoDistance]/
- * [com.forager.app.domain.MgrsConverter] being hand-built rather than pulled from a library for a
- * single use.
+ * [com.forager.app.domain.GeoDistance]/[com.forager.app.domain.MgrsConverter] being hand-built
+ * rather than pulled from a library for a single use.
  *
  * The bucket whose [FruitingLagBucket.isFruitingLagRule] is true — the range this whole feature
  * exists to test — is drawn in the theme's primary color; every other bucket, including "no
@@ -4201,7 +3907,6 @@ private fun MapTab(
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
     onLogFindHere: (LatLng) -> Unit,
-    onToggleForagingAreas: (Boolean) -> Unit,
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     onDropWaypoint: (LatLng, String) -> Unit,
@@ -4245,13 +3950,6 @@ private fun MapTab(
                 var tappedSightingBearingDeg by remember { mutableStateOf(0f) }
                 val context = LocalContext.current
                 Column(modifier = modifier.fillMaxWidth()) {
-                    // Areas are only handed to the map when the layer is switched on; the
-                    // clustering itself was already computed when the sightings loaded.
-                    val visibleAreas = if (uiState.showForagingAreas) {
-                        (uiState.foragingAreas as? ForagingAreas.Found)?.areas.orEmpty()
-                    } else {
-                        emptyList()
-                    }
                     // "View on Map" from a List-tab row: limits the map to one species' sightings
                     // rather than every mapped one. Filtered against uiState.sightings itself
                     // (what the map actually draws), not against uiState.forecast's own
@@ -4275,7 +3973,6 @@ private fun MapTab(
                             region,
                             MapOverlayContent(
                                 sightings = filteredSightings,
-                                areas = visibleAreas,
                                 plannedTrips = uiState.plannedTrips,
                                 breadcrumbPoints = breadcrumbPoints,
                                 waypoints = waypoints,
@@ -4359,34 +4056,6 @@ private fun MapTab(
                                 onCancel = { pendingAction = null },
                                 modifier = Modifier.fillMaxSize(),
                             )
-                        }
-                    }
-                    // Always visible below the map, not gated on showForagingAreas itself — the
-                    // switch is how the layer gets turned back on, so it has to be reachable while
-                    // off. It moved here from the drawer's "Advanced search" section: whether to
-                    // show the layer is a decision made while looking at the map, not a setting to
-                    // dig into a drawer for.
-                    ForagingAreasToggle(
-                        checked = uiState.showForagingAreas,
-                        onCheckedChange = onToggleForagingAreas,
-                        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                    )
-                    // A fixed-height Box, always present, rather than conditionally including
-                    // ForagingAreasPanel only when the layer is on: the panel used to appear and
-                    // disappear from this Column outright, which changed how much of the fixed
-                    // parent height was left over for the weighted mapSlot above — the map visibly
-                    // grew and shrank as the switch was toggled. Reserving the same
-                    // [FORAGING_AREAS_PANEL_MAX_HEIGHT] here regardless of the switch's state means
-                    // the sibling stack above the map never changes height, so the map doesn't
-                    // either — only what's drawn inside this fixed box changes.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(FORAGING_AREAS_PANEL_MAX_HEIGHT)
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                    ) {
-                        if (uiState.showForagingAreas) {
-                            ForagingAreasPanel(foragingAreas = uiState.foragingAreas)
                         }
                     }
                 }
@@ -4517,9 +4186,7 @@ private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.8f)
 /**
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
  * the map fills the entire content area, with the top compass/elevation strip and the right-edge
- * icon stack drawn over it. The foraging-areas toggle and summary panel — an earlier revision drew
- * them as a floating overlay here — now live in [CompactToolsDrawerContent] instead, per the
- * project owner's own later call: "move the foraging areas to the side search panel."
+ * icon stack drawn over it.
  *
  * Scoped to `WindowWidthClass.COMPACT` only; `MEDIUM`/`EXPANDED` keep using the unmodified [MapTab]
  * inside [CombinedResultsPane] — see the plan doc's "Scope decision" section for why this is a
@@ -4697,15 +4364,9 @@ private fun CompactMapTab(
                 if (uiState.region != null && status is LocateMeStatus.Located) focusOverride = status.location
             }
 
-            // Sightings/areas/planned trips are only real once a search has actually run — before
-            // that, displayRegion is a viewport with nothing plotted on it yet, not a stand-in
-            // search.
+            // Sightings/planned trips are only real once a search has actually run — before that,
+            // displayRegion is a viewport with nothing plotted on it yet, not a stand-in search.
             val hasSearched = uiState.region != null
-            val visibleAreas = if (hasSearched && uiState.showForagingAreas) {
-                (uiState.foragingAreas as? ForagingAreas.Found)?.areas.orEmpty()
-            } else {
-                emptyList()
-            }
             // "View on Map" from a List-tab row — see MapTab's own doc comment on the identical
             // filteredSightings/mapTaxonFilterLabel pair for why this filters uiState.sightings
             // itself rather than trusting uiState.forecast's own observationCount.
@@ -4751,7 +4412,6 @@ private fun CompactMapTab(
                     displayRegion,
                     MapOverlayContent(
                         sightings = filteredSightings,
-                        areas = visibleAreas,
                         plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList(),
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
@@ -6173,10 +5833,23 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
  * [AvailabilityUiState.tripWindowsErrorMessage] — a failed load/add/remove is belief-changing (the
  * list on screen may not be what's actually saved), so it replaces the list rather than sitting
  * beside it.
+ *
+ * Scrolls itself ([Modifier.verticalScroll]) rather than depending on a scrollable caller — same
+ * reasoning as [OfflineMapsPanel]'s own outer `Column`. Journal restructure Stage 1 moved this out
+ * of the Tools drawer's `SearchControls`, which supplied that scroll, into [com.forager.app.ui.log.RecordsTab]'s
+ * flat `Column(fillMaxSize())`, which does not — this is now `WaypointsSection`'s only caller.
  */
 @Composable
-private fun WaypointsSection(waypoints: List<Waypoint>, errorMessage: String?, onDeleteWaypoint: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+internal fun WaypointsSection(
+    waypoints: List<Waypoint>,
+    errorMessage: String?,
+    onDeleteWaypoint: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
         when {
             errorMessage != null -> Text(
                 errorMessage,
@@ -6510,6 +6183,15 @@ private fun AnchoredAtScreenPoint(
  * [RoundedCornerShape] again (all four corners), not one squared — the tail is what reads as a
  * speech/notification bubble now, not an asymmetric corner.
  */
+/**
+ * [Sighting.positionalAccuracyMeters] as a note the bubble can show verbatim.
+ *
+ * Never omitted for a null accuracy — a missing figure is not the same as a good one, and
+ * silence would read as "precise" to a user who has no way to tell the difference.
+ */
+private fun accuracyLabel(accuracyMeters: Int?): String =
+    if (accuracyMeters != null) "±$accuracyMeters m accuracy" else "Accuracy not reported"
+
 @Composable
 private fun ObservationBubble(
     sighting: Sighting,
@@ -6619,6 +6301,12 @@ private fun ObservationBubble(
                                 .testTag("observation-bubble-view-on-inaturalist"),
                         )
                     }
+                    Text(
+                        accuracyLabel(sighting.positionalAccuracyMeters),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalContentColor.current.copy(alpha = 0.7f),
+                        modifier = Modifier.testTag("observation-bubble-accuracy"),
+                    )
                 }
                 IconButton(
                     onClick = onDismiss,
@@ -6680,132 +6368,6 @@ private fun MapMessage(
             .fillMaxWidth()
             .padding(Spacing.lg),
     )
-}
-
-@Composable
-private fun ForagingAreasToggle(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text("Foraging areas", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Group the pins into spots that have produced repeatedly. Switch off to read the " +
-                    "individual observations instead.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-/**
- * The detail below the map when the layer is on: the numbered areas and their stats, or an
- * explicit reason no area was found.
- *
- * Every branch says something. A silent blank panel would look identical to a still-loading one,
- * and "no repeat-producing areas here" is a real answer worth reading (CLAUDE.md: partial or
- * empty results are reported as such).
- */
-@Composable
-private fun ForagingAreasPanel(foragingAreas: ForagingAreas?, modifier: Modifier = Modifier) {
-    when (foragingAreas) {
-        null -> Text(
-            "Foraging areas are grouped from the mapped sightings, which haven't loaded yet.",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = modifier,
-        )
-
-        is ForagingAreas.None -> Text(
-            noAreasMessage(foragingAreas),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = modifier,
-        )
-
-        is ForagingAreas.Found -> Column(
-            // fillMaxHeight, not heightIn(max = ...): the caller ([MapTab]) now wraps this whole
-            // composable in a Box already fixed at FORAGING_AREAS_PANEL_MAX_HEIGHT regardless of
-            // whether the layer is on, specifically so the map above never resizes when the
-            // switch is toggled — filling that fixed height here (and scrolling within it) is
-            // what makes the disclaimer/count caption and the area list behave as a footnote
-            // rather than a wrap-content sibling that could still grow the space it's given.
-            modifier = modifier
-                .fillMaxHeight()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            // Tertiary rather than error: this is a caution about what the ordering isn't, not a
-            // failure. Reusing the error color here would make a real failure (a failed sightings
-            // fetch, a couldn't-load message) read as no more urgent than a standing disclaimer.
-            Text(
-                VISITING_ORDER_DISCLAIMER,
-                style = MaterialTheme.typography.bodySmall,
-                fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-            if (foragingAreas.ungroupedObservationCount > 0) {
-                Text(
-                    "${foragingAreas.ungroupedObservationCount} scattered observations belong to no area.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            // Tapping a numbered marker on the map shows the same summary for that one area, so
-            // this list staying a footnote here costs nothing.
-            foragingAreas.areas.forEach { area -> ForagingAreaRow(area) }
-        }
-    }
-}
-
-/**
- * The footnote-not-competitor cap for [ForagingAreasPanel]. Bounds the disclaimer/count caption
- * together with the area list below it, so the panel as a whole stays small enough that the
- * mapSlot it shares a weighted region with keeps the larger share — see
- * [AvailabilityScreenLayoutTest]'s `MIN_MAP_SHARE_OF_SCREEN` for the map's own floor.
- */
-private val FORAGING_AREAS_PANEL_MAX_HEIGHT = 60.dp
-
-@Composable
-private fun ForagingAreaRow(area: ForagingArea) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text("${area.visitOrder}", style = MaterialTheme.typography.titleMedium)
-            Text(foragingAreaSummary(area), style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-/**
- * Why nothing was found, stated specifically. The clustering thresholds are never relaxed to
- * manufacture an area, so the honest answer here is sometimes "there isn't one".
- */
-private fun noAreasMessage(none: ForagingAreas.None): String {
-    val minPoints = ClusterForagingAreasUseCase.MIN_OBSERVATIONS_PER_AREA
-    val radiusMeters = ClusterForagingAreasUseCase.NEIGHBORHOOD_RADIUS_METERS.toInt()
-    return when (none.reason) {
-        ForagingAreas.Reason.NO_OBSERVATIONS ->
-            "No mapped observations in this radius, so there's nothing to group into areas. " +
-                "Try a wider radius, a different month, or another category."
-
-        ForagingAreas.Reason.TOO_FEW_OBSERVATIONS ->
-            "Only ${none.observationsConsidered} mapped observation(s) in this radius — fewer than " +
-                "the $minPoints it takes to call anywhere a repeat-producing area."
-
-        ForagingAreas.Reason.NO_GROUP_MET_THRESHOLD ->
-            "No repeat-producing areas found in this radius. All ${none.observationsConsidered} " +
-                "mapped observations are scattered: none form a group of $minPoints or more within " +
-                "${radiusMeters}m of each other. The threshold isn't loosened to find something."
-    }
 }
 
 /**

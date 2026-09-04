@@ -221,8 +221,10 @@ jobs:
           # always has. A listed entry that ISN'T actually skipped also fails the build: a stale
           # allowlist entry is the same invisible non-data this whole gate exists to catch, so
           # un-ignoring one of these tests must remove its entry here in the same change, not leave
-          # it to rot. Three separate investigations feed this set, each with its own audit doc; do
-          # not add another entry without the same kind of investigation trail those three have.
+          # it to rot. Three separate investigations feed most of this set, each with its own audit
+          # doc; do not add another bug-investigation entry without the same kind of trail those
+          # three have. One entry (GenerateFungiIndexDbAsset.generate, at the end) is a different
+          # kind of thing entirely -- not a bug under investigation, see its own comment below.
           #
           # See docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md -- closing that
           # investigation includes removing its three entries entirely, not just shrinking them.
@@ -338,6 +340,16 @@ jobs:
               (
                   "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "at bearing zero the observation bubble sits above the tapped dot",
+              ),
+              # Not a bug-investigation entry like the ones above. GenerateFungiIndexDbAsset.generate
+              # is a data-file generator wrapped as a JUnit test only to reach Robolectric's Android
+              # runtime (see that class's own doc comment); it rewrites a committed asset and is
+              # deliberately gated behind -Pforager.generateFungiIndexDbAsset=true
+              # (app/build.gradle.kts), so an ordinary testDebugUnitTest run always reports it
+              # skipped, by design, permanently -- there is no fix that makes this entry go away.
+              (
+                  "com.forager.app.tools.GenerateFungiIndexDbAsset",
+                  "generate",
               ),
           }
 
