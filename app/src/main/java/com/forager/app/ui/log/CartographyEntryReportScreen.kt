@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.GeoDistance
@@ -64,6 +65,7 @@ import com.forager.app.ui.map.MapModePicker
 import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.map.MapSlot
+import com.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.forager.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
@@ -178,8 +180,10 @@ import kotlinx.coroutines.launch
  * confirmed, real state leak this dispatch fixes: before this, `basemap` threaded straight from the
  * live Maps screen, so switching this entry's own preview to Satellite silently changed the live
  * map too. Defaults to [MapMode.DEFAULT] (Topographical), reset per [entry] like every other
- * per-entry state above. The basemap picker (row 4 of [MapIconBar]) is disabled, not hidden, while
- * [useOfflineTiles] is on — offline is a single fixed style with nothing to choose between.
+ * per-entry state above. The basemap picker (row 4 of [MapIconBar]) is hidden, not disabled, while
+ * [useOfflineTiles] is on (fullscreen-fixes dispatch, Item 3, reversing this file's own earlier
+ * "disabled, not hidden" call) — offline is a single fixed style with nothing to choose between,
+ * and an absent control reads as a feature not yet built rather than a limitation the app has.
  *
  * [onLocateMe] never sets [org.maplibre.android.location.modes.CameraMode.TRACKING] — this map is
  * about a historical place ([MapRenderMode.trackLiveLocation] is `false` here specifically, see
@@ -397,14 +401,15 @@ internal fun CartographyEntryReportScreen(
                                 activeColor = if (useOfflineTiles) MaterialTheme.colorScheme.primary else null,
                             )
                         },
-                        modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(Spacing.sm),
                     )
                     MapModePicker(
                         visible = showMapModePicker,
                         mapMode = entryMapMode,
                         onModeSelected = { entryMapMode = it },
                         onDismiss = { showMapModePicker = false },
-                        anchor = Alignment.TopEnd,
+                        anchor = Alignment.CenterEnd,
+                        anchorOffset = DpOffset(x = -Spacing.sm, y = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)),
                     )
                 }
             }

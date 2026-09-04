@@ -4,9 +4,12 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.CartographyEntryMapData
@@ -23,6 +26,7 @@ import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -147,6 +151,34 @@ class CartographyEntryReportScreenFullscreenTest {
         composeRule.onNodeWithContentDescription("Exit fullscreen").assertDoesNotExist()
     }
 
+    // fullscreen-fixes dispatch, Item 2 — the entry map's own MapModePicker call previously used
+    // MapIconBar's TopEnd default anchor/offset (meant for the medium/expanded lone-circle case),
+    // so the picker opened beside the fullscreen row at the very top instead of the layers row that
+    // actually opened it. Verified by measured bounds, not just that the picker shows: a wrong
+    // anchor that still renders on screen would pass an assertIsDisplayed()-only check.
+    @Test
+    fun `the mode picker opens anchored to the layers row, not the fullscreen row`() {
+        setScreen()
+        enterFullscreen()
+        val layersRowBounds = composeRule
+            .onNode(hasContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."))
+            .getUnclippedBoundsInRoot()
+        val fullscreenRowBounds = composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot()
+
+        composeRule.onNode(hasContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."))
+            .performClick()
+        composeRule.waitForIdle()
+
+        val pickerBounds = composeRule.onNodeWithText("Topographical").getUnclippedBoundsInRoot()
+        val distanceToLayersRow = kotlin.math.abs(pickerBounds.top.value - layersRowBounds.top.value)
+        val distanceToFullscreenRow = kotlin.math.abs(pickerBounds.top.value - fullscreenRowBounds.top.value)
+        assertTrue(
+            "The picker should open near the layers row (top=${layersRowBounds.top}), not the " +
+                "fullscreen row (top=${fullscreenRowBounds.top}) — it opened at top=${pickerBounds.top}.",
+            distanceToLayersRow < distanceToFullscreenRow,
+        )
+    }
+
     @Test
     fun `the recenter button pans the camera once via focusOverride, without enabling tracking`() {
         setScreen(getCurrentLocation = { LocationResult.Success(lat = 46.1, lng = -121.9) })
@@ -162,15 +194,24 @@ class CartographyEntryReportScreenFullscreenTest {
         assertEquals(false, capturedRenderMode?.trackLiveLocation)
     }
 
+    // Reversed from "disabled while offline" to "hidden while offline" — fullscreen-fixes dispatch,
+    // Item 3, a deliberate owner reversal of this exact behavior (see MapChrome.kt's own
+    // mapModePickerEnabled doc comment). This test's premise ("the picker stays present, described as
+    // disabled") is now false by design, matching the standard the fullscreen-maps dispatch's own
+    // back-navigation test change set: reported here, not silently absorbed.
     @Test
-    fun `the basemap picker is disabled while the offline toggle is on`() {
+    fun `the basemap picker is hidden while the offline toggle is on`() {
         setScreen()
         enterFullscreen()
         composeRule.onNodeWithContentDescription("Offline maps off").assertIsDisplayed()
+        composeRule.onNode(hasContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."))
+            .assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Offline maps off").performClick()
 
-        composeRule.onNodeWithContentDescription("Offline maps use one fixed style.").assertIsDisplayed()
+        composeRule.onNode(hasContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."))
+            .assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Offline maps use one fixed style.").assertDoesNotExist()
     }
 
     @Test

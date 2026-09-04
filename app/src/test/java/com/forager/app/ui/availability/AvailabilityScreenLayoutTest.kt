@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.BuildConfig
@@ -34,6 +35,7 @@ import com.forager.app.domain.model.SoilAvailability
 import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.ui.map.MapSlot
 import java.time.LocalDate
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -355,6 +357,58 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
+     * **Test 3 — fullscreen floats the bottom nav over the map; it does not resize the map.**
+     *
+     * Fullscreen-fixes dispatch, Item 1: the prior attempt kept Scaffold's own reported content
+     * padding constant by reserving an invisible same-height spacer in its `bottomBar` slot while
+     * fullscreen — which kept the map's own size correct, but left the *real* bar floating in a
+     * different Compose subtree, one row for `weight(1f)`'s content above a separately-reserved
+     * (and now empty) strip Scaffold still measured space for: dead space on a real device. The fix
+     * keeps the bar in Scaffold's `bottomBar` slot always (so Scaffold's own layout math never
+     * changes — confirmed empirically, see that code's own doc comment) and instead has the
+     * content ignore Scaffold's own reported bottom inset while fullscreen, letting the map extend
+     * under the bar rather than stopping short of it. This test guards both halves at once: the
+     * map's measured height must be identical with the bar present (normal) and floating
+     * (fullscreen) — if either half of the fix regresses, one of those two numbers moves.
+     */
+    @Test
+    fun `fullscreen does not change the map's own measured height`() {
+        setScreen(SEARCHED_STATE)
+        val heightBefore = mapSlotBounds().height
+
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+
+        val heightAfter = mapSlotBounds().height
+        println("MEASURED heightBefore=$heightBefore heightAfter=$heightAfter")
+        assertTrue(
+            "The map's own measured height must not change when fullscreen toggles — it was " +
+                "$heightBefore before and $heightAfter after. A resize here means MapLibre has to " +
+                "re-layout and re-fit, the exact non-seamless transition floating chrome over a " +
+                "map whose dimensions never change was built to remove.",
+            heightBefore == heightAfter,
+        )
+    }
+
+    /**
+     * **Test 3b — attribution's own clearance actually reaches the map while fullscreen, and only then.**
+     */
+    @Test
+    fun `bottomInset is zero normally and rises to the bar's own measured height once fullscreen`() {
+        setScreen(SEARCHED_STATE)
+        assertEquals(0.dp, capturedRenderMode?.bottomInset)
+
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+
+        val insetAfter = capturedRenderMode?.bottomInset
+        println("MEASURED bottomInset after fullscreen=$insetAfter")
+        assertTrue(
+            "bottomInset must become positive once fullscreen floats the bar over the map, so " +
+                "SightingsMap's own attribution rises to clear it, but it measured $insetAfter.",
+            (insetAfter ?: 0.dp) > 0.dp,
+        )
+    }
+
+    /**
      * **Test 4 — the Conditions card is actually on screen.**
      *
      * The card shipped and was measured to zero height for two builds: it existed, it was in the
@@ -670,6 +724,15 @@ abstract class AvailabilityScreenLayoutTest {
  * which would render anything measurable under Robolectric anyway. This fills the same box and
  * carries a tag, so the box itself can be measured.
  */
-private val StubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
+private val StubMapSlot: MapSlot = { _, _, renderMode, _, _, _, _, _, modifier ->
+    capturedRenderMode = renderMode
     Box(modifier.testTag(MAP_SLOT_TAG))
 }
+
+/**
+ * The last [com.forager.app.ui.map.MapRenderMode] [StubMapSlot] was called with — fullscreen-fixes
+ * dispatch, Item 1: lets a test confirm [com.forager.app.ui.map.MapRenderMode.bottomInset] is
+ * actually reaching the map, since the stub renders nothing real for a device-style attribution
+ * check to inspect.
+ */
+private var capturedRenderMode: com.forager.app.ui.map.MapRenderMode? = null

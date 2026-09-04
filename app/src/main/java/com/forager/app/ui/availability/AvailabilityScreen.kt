@@ -39,6 +39,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -165,6 +167,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -256,6 +259,7 @@ import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.mapIconBarRecordAccent
+import com.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.forager.app.ui.motion.MotionTokens
 import com.forager.app.ui.map.MapRenderMode
 import com.forager.app.ui.theme.Bark
@@ -1265,6 +1269,14 @@ fun AvailabilityScreen(
                 onDismissTaxonSuggestions()
                 isDrawerOpen = true
             } else {
+                // Fullscreen-fixes dispatch, Item 1: now that the bottom nav floats over the map
+                // (reachable) instead of disappearing while fullscreen, tapping any other tab from
+                // it is a real, newly-reachable path that must not leave isMapFullscreen stuck true
+                // for a tab that isn't Map — the invariant this file's own fullscreen-scoped code
+                // relies on ("isMapFullscreen can only be true while compactTab == MAP") no longer
+                // holds by construction (the bar being unreachable) once the bar is reachable during
+                // fullscreen, so it has to be enforced explicitly here instead.
+                if (tab != CompactTab.MAP) isMapFullscreen = false
                 compactTab = tab
                 // Keep the shared ResultsTab-driven state in sync for the three
                 // destinations both it and CompactTab describe — see compactTab's
@@ -1278,45 +1290,69 @@ fun AvailabilityScreen(
                 }
             }
         }
-        // ForagerBottomNav's own last-measured height, in px — fullscreen-maps dispatch, Part 2a.
-        // Reused for two things once the map goes fullscreen: sizing the invisible spacer below
-        // that takes this bar's own place in Scaffold's bottomBar slot (so Scaffold's own content
-        // padding — and with it, the weight(1f) Box below that CompactMapTab lives in — never
-        // changes size at all, the actual fix for the non-seamless resize this replaces), and
-        // MapRenderMode.bottomInset, so SightingsMap's attribution rises to sit just above wherever
-        // this bar is actually floating rather than a guessed constant. Measured, not hardcoded,
-        // the same "don't hardcode a floating-chrome height" precedent mapIconBarBottomPx already
-        // set in this file — there is always a real measurement to reuse by the time fullscreen can
-        // first be entered, since reaching it at all requires this same bar (in its ordinary,
-        // Scaffold-hosted position) to have already rendered and measured itself at least once.
+        // ForagerBottomNav's own last-measured height, in px — fullscreen-fixes dispatch, Item 1.
+        // Feeds MapRenderMode.bottomInset (below) so SightingsMap's attribution rises to sit just
+        // above the bar, wherever it actually is, rather than a guessed constant. Measured, not
+        // hardcoded, the same "don't hardcode a floating-chrome height" precedent mapIconBarBottomPx
+        // already set in this file.
         var bottomNavHeightPx by remember { mutableStateOf(0f) }
         val density = LocalDensity.current
         Scaffold(
             snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
             bottomBar = {
-                if (!isMapFullscreen) {
-                    ForagerBottomNav(
-                        selectedTab = compactTab,
-                        isDrawerOpen = isDrawerOpen,
-                        onTabSelected = onBottomNavTabSelected,
-                        modifier = Modifier.onGloballyPositioned { coordinates ->
-                            bottomNavHeightPx = coordinates.size.height.toFloat()
-                        },
-                    )
-                } else {
-                    // Reserves exactly the space the real bar above last measured, so Scaffold's
-                    // own bottom content-inset never changes across the fullscreen toggle — see
-                    // bottomNavHeightPx's own doc comment above.
-                    Spacer(modifier = Modifier.fillMaxWidth().height(with(density) { bottomNavHeightPx.toDp() }))
-                }
+                // Fullscreen-fixes dispatch, Item 1: always rendered, in the same place, never
+                // removed and never replaced by a placeholder — Material3 Scaffold sizes its own
+                // reported content padding from this slot's measured height, and that reported
+                // value driving Scaffold's own layout math is exactly what must never change across
+                // the fullscreen toggle (see the content Column's own padding below for the other
+                // half of this fix). Only the container's own opacity changes: opaque normally,
+                // 80% while fullscreen (the standing chrome-over-the-map rule), which is what lets
+                // the map — extending under this bar while fullscreen, per the Column's own
+                // padding below — actually show through it, since Scaffold places body content
+                // before bottomBar and this bar draws on top wherever the two now overlap.
+                ForagerBottomNav(
+                    selectedTab = compactTab,
+                    isDrawerOpen = isDrawerOpen,
+                    onTabSelected = onBottomNavTabSelected,
+                    containerColor = if (isMapFullscreen) {
+                        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    },
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        bottomNavHeightPx = coordinates.size.height.toFloat()
+                    },
+                )
             },
         ) { padding ->
+            val layoutDirection = LocalLayoutDirection.current
+            // Fullscreen-fixes dispatch, Item 1: while fullscreen, this content — and with it the
+            // weight(1f) Box CompactMapTab lives in — must extend all the way to the screen's own
+            // true bottom edge, under the (still Scaffold-hosted, still real-height) bottom nav
+            // above, rather than staying inset above it. Dropping only the bottom component of
+            // Scaffold's own reported padding is what does that: Scaffold itself still measures
+            // and reports the bar's real height unconditionally (so its own layout math never
+            // changes size, per that bar's own doc comment), but this Column simply declines to
+            // reserve space for it on this one edge once there's a map that should extend under it
+            // instead. Confirmed empirically before relying on it: content that omits Scaffold's
+            // own reported bottom padding is placed first and extends the full root height, with
+            // bottomBar's own composable drawn after it in the same overlapping region — not two
+            // separately-reserved, non-overlapping regions.
+            val contentPadding = if (isMapFullscreen) {
+                PaddingValues(
+                    start = padding.calculateStartPadding(layoutDirection),
+                    top = padding.calculateTopPadding(),
+                    end = padding.calculateEndPadding(layoutDirection),
+                )
+            } else {
+                padding
+            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     // Scaffold's padding carries the system bar insets, so nothing here is laid
                     // out under the status or navigation bar.
-                    .padding(padding),
+                    .padding(contentPadding),
             ) {
                 // Map tab only: SearchEntryBar moves into CompactMapTab's own searchBarSlot
                 // instead (that call site's own doc comment), composed as a real overlay inside
@@ -1389,121 +1425,102 @@ fun AvailabilityScreen(
                             onViewOnMap = onViewSpeciesOnMap,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        CompactTab.MAP -> {
-                            CompactMapTab(
-                                uiState = uiState,
-                                mapSlot = mapSlot,
-                                // Attribution must rise above the floating bottom nav while fullscreen,
-                                // never covered by it — fullscreen-maps dispatch, Part 2b. bottomInset
-                                // is 0.dp (MapRenderMode's own default) otherwise, matching every other
-                                // caller unchanged.
-                                renderMode = if (isMapFullscreen) {
-                                    mapRenderMode.copy(bottomInset = with(density) { bottomNavHeightPx.toDp() })
-                                } else {
-                                    mapRenderMode
-                                },
-                                mapMode = mapMode,
-                                onMapModeSelected = { mapMode = it },
-                                isNightMode = isNightMode,
-                                onPlaceTripPin = onPlaceTripPin,
-                                // Opens straight to the log's edit form for the new entry, bypassing
-                                // Search — see DrawerPanel's own doc comment on why Log is reachable
-                                // both ways.
-                                onLogFindHere = onLogFindHere,
-                                isFullscreen = isMapFullscreen,
-                                onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
-                                onLocateMe = onLocateMe,
-                                isRecording = isRecording,
-                                onToggleRecording = onToggleRecording,
-                                startRecordingErrorMessage = startRecordingErrorMessage,
-                                breadcrumbPoints = breadcrumbPoints,
-                                waypoints = waypoints,
-                                onDropWaypoint = onDropWaypoint,
-                                returnToStart = returnToStart,
-                                isReturning = isReturning,
-                                isOffTrack = isOffTrack,
-                                onToggleReturning = onToggleReturning,
-                                compassProvider = compassProvider,
-                                taxonFilter = mapTaxonFilter,
-                                onClearTaxonFilter = onClearMapTaxonFilter,
-                                // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
-                                // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
-                                // pickingSearchLocationOnMap doc comment.
-                                pickingSearchLocation = pickingSearchLocationOnMap,
-                                onSearchLocationPicked = { location ->
-                                    onManualLatChanged("%.4f".format(location.lat))
-                                    onManualLngChanged("%.4f".format(location.lng))
-                                    onSearchManualCoordinates()
-                                    pickingSearchLocationOnMap = false
-                                },
-                                onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
-                                // SearchEntryBar now overlays this tab directly (see searchBarSlot's
-                                // own doc comment below) rather than sitting above it in document
-                                // flow, so the strip/bubble/filter-chip positioning CompactMapTab
-                                // derives from compassStripClearance needs to start below the bar, not
-                                // at this Box's own true top edge. 0.dp while fullscreen: searchBarSlot
-                                // itself goes empty then (this call site's own comment below), so
-                                // there is no bar to clear any more — a fixed searchBarHeight here
-                                // regardless of isMapFullscreen left a bar-shaped gap above the strip
-                                // with nothing in it once the bar disappeared.
-                                topInset = if (isMapFullscreen) 0.dp else searchBarHeight,
-                                // Passed as a slot, not composed at this call site directly, so it
-                                // renders inside CompactMapTab's own Box — see that parameter's own
-                                // doc comment for why this specific nesting is load-bearing, not
-                                // cosmetic. Empty while fullscreen: matches the bar's own old
-                                // `!isMapFullscreen` gate from when it lived in this scaffold's outer
-                                // Column, now reproduced here since the slot is CompactMapTab's to
-                                // show or not.
-                                // Same Item 2 hide-during-edit condition as the non-Map SearchEntryBar
-                                // call site above — editing a Cartography entry doesn't close it when
-                                // switching to the Map tab (only find-editing does, via
-                                // leaveLogEntryEditingOfferingDiscard in ForagerBottomNav's own
-                                // onTabSelected above), so this slot needs the identical check, not just
-                                // the non-Map one.
-                                searchBarSlot = if (isMapFullscreen || isEditingJournalEntry) {
-                                    {}
-                                } else {
-                                    {
-                                        Column {
-                                            SearchEntryBar(
-                                                uiState = uiState,
-                                                distanceUnit = distanceUnit,
-                                                onUseCurrentLocation = {
-                                                    showSearchDropdown = false
-                                                    onUseCurrentLocation()
-                                                },
-                                                onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                                                onTaxonSearchResultSelected = { result ->
-                                                    onTaxonSearchResultSelected(result)
-                                                    showSearchDropdown = false
-                                                },
-                                                onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                                                onFieldFocused = { showSearchDropdown = true },
-                                            )
-                                            SearchNotice(uiState)
-                                        }
+                        CompactTab.MAP -> CompactMapTab(
+                            uiState = uiState,
+                            mapSlot = mapSlot,
+                            // Attribution must rise above the floating bottom nav while fullscreen,
+                            // never covered by it — fullscreen-maps dispatch, Part 2b. bottomInset
+                            // is 0.dp (MapRenderMode's own default) otherwise, matching every other
+                            // caller unchanged.
+                            renderMode = if (isMapFullscreen) {
+                                mapRenderMode.copy(bottomInset = with(density) { bottomNavHeightPx.toDp() })
+                            } else {
+                                mapRenderMode
+                            },
+                            mapMode = mapMode,
+                            onMapModeSelected = { mapMode = it },
+                            isNightMode = isNightMode,
+                            onPlaceTripPin = onPlaceTripPin,
+                            // Opens straight to the log's edit form for the new entry, bypassing
+                            // Search — see DrawerPanel's own doc comment on why Log is reachable
+                            // both ways.
+                            onLogFindHere = onLogFindHere,
+                            isFullscreen = isMapFullscreen,
+                            onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
+                            onLocateMe = onLocateMe,
+                            isRecording = isRecording,
+                            onToggleRecording = onToggleRecording,
+                            startRecordingErrorMessage = startRecordingErrorMessage,
+                            breadcrumbPoints = breadcrumbPoints,
+                            waypoints = waypoints,
+                            onDropWaypoint = onDropWaypoint,
+                            returnToStart = returnToStart,
+                            isReturning = isReturning,
+                            isOffTrack = isOffTrack,
+                            onToggleReturning = onToggleReturning,
+                            compassProvider = compassProvider,
+                            taxonFilter = mapTaxonFilter,
+                            onClearTaxonFilter = onClearMapTaxonFilter,
+                            // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
+                            // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
+                            // pickingSearchLocationOnMap doc comment.
+                            pickingSearchLocation = pickingSearchLocationOnMap,
+                            onSearchLocationPicked = { location ->
+                                onManualLatChanged("%.4f".format(location.lat))
+                                onManualLngChanged("%.4f".format(location.lng))
+                                onSearchManualCoordinates()
+                                pickingSearchLocationOnMap = false
+                            },
+                            onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                            // SearchEntryBar now overlays this tab directly (see searchBarSlot's
+                            // own doc comment below) rather than sitting above it in document
+                            // flow, so the strip/bubble/filter-chip positioning CompactMapTab
+                            // derives from compassStripClearance needs to start below the bar, not
+                            // at this Box's own true top edge. 0.dp while fullscreen: searchBarSlot
+                            // itself goes empty then (this call site's own comment below), so
+                            // there is no bar to clear any more — a fixed searchBarHeight here
+                            // regardless of isMapFullscreen left a bar-shaped gap above the strip
+                            // with nothing in it once the bar disappeared.
+                            topInset = if (isMapFullscreen) 0.dp else searchBarHeight,
+                            // Passed as a slot, not composed at this call site directly, so it
+                            // renders inside CompactMapTab's own Box — see that parameter's own
+                            // doc comment for why this specific nesting is load-bearing, not
+                            // cosmetic. Empty while fullscreen: matches the bar's own old
+                            // `!isMapFullscreen` gate from when it lived in this scaffold's outer
+                            // Column, now reproduced here since the slot is CompactMapTab's to
+                            // show or not.
+                            // Same Item 2 hide-during-edit condition as the non-Map SearchEntryBar
+                            // call site above — editing a Cartography entry doesn't close it when
+                            // switching to the Map tab (only find-editing does, via
+                            // leaveLogEntryEditingOfferingDiscard in ForagerBottomNav's own
+                            // onTabSelected above), so this slot needs the identical check, not just
+                            // the non-Map one.
+                            searchBarSlot = if (isMapFullscreen || isEditingJournalEntry) {
+                                {}
+                            } else {
+                                {
+                                    Column {
+                                        SearchEntryBar(
+                                            uiState = uiState,
+                                            distanceUnit = distanceUnit,
+                                            onUseCurrentLocation = {
+                                                showSearchDropdown = false
+                                                onUseCurrentLocation()
+                                            },
+                                            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                                            onTaxonSearchResultSelected = { result ->
+                                                onTaxonSearchResultSelected(result)
+                                                showSearchDropdown = false
+                                            },
+                                            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                                            onFieldFocused = { showSearchDropdown = true },
+                                        )
+                                        SearchNotice(uiState)
                                     }
-                                },
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                            // Floats the app-wide bottom nav over the map instead of resizing it —
-                            // fullscreen-maps dispatch, Part 2a. See bottomNavHeightPx's own doc
-                            // comment above for why Scaffold's own bottomBar slot reserves the
-                            // identical height with an invisible spacer instead of just going empty,
-                            // which is exactly the resize this replaces. Scoped to this branch only
-                            // (isMapFullscreen can only be true while compactTab == MAP — the bar that
-                            // would otherwise change it is unmounted during fullscreen, and the only
-                            // exit clears it first), so no other tab's own bottom nav ever changes.
-                            if (isMapFullscreen) {
-                                ForagerBottomNav(
-                                    selectedTab = compactTab,
-                                    isDrawerOpen = isDrawerOpen,
-                                    onTabSelected = onBottomNavTabSelected,
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
-                                    modifier = Modifier.align(Alignment.BottomCenter),
-                                )
-                            }
-                        }
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
                         CompactTab.JOURNAL -> JournalTab(
                             uiState = logUiState,
@@ -5387,27 +5404,10 @@ private fun AddActionTile(
 internal const val ADD_ACTION_TILE_SCRIM_TAG = "add-action-tile-scrim"
 
 /**
- * Offset from [MapIconBar]'s own vertical center (where both [AddActionTile] and [MapModePicker]
- * anchor their `Alignment.CenterEnd`-based popups) to the center of one of its rows, counting from
- * the top — the geometry [ADD_TILE_ANCHOR_OFFSET] originally computed just for the add row (row 8
- * of 8), generalized once [MapModePicker] needed the same reasoning for the layers row (row 4)
- * instead of a second guessed constant. The padding [MapIconBar] wraps its content in is symmetric
- * top/bottom, so it doesn't shift the center and isn't part of this sum. Not pixel-exact — neither
- * caller tracks its own button's real measured position — but close enough that each popup visibly
- * grows from that button's corner rather than from an unrelated point on screen.
+ * [MapIconBar]'s add row is its 5th (last) of 5 — see [mapIconBarRowAnchorOffset], promoted into
+ * `MapChrome.kt` (fullscreen-fixes dispatch, Item 2) so the Cartography entry map's own
+ * `MapModePicker` call can use the same row-anchor arithmetic this file's calls already did.
  */
-// rowCount re-derived directly against the tree, not assumed: this bar sits at 5 rows as of this
-// dispatch (fullscreen, orientation-reset, locate-me, map mode, add) — removing the search row
-// (see MapIconBar's own doc comment). Both this count and ADD_TILE_ANCHOR_OFFSET's row index below
-// are updated to match, rather than left to drift the way this constant already has twice before.
-private fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
-    val rowCount = 5
-    val contentHeight = MIN_TOUCH_TARGET * rowCount + Spacing.xs * (rowCount - 1)
-    val rowCenterFromTop = (MIN_TOUCH_TARGET + Spacing.xs) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
-    return rowCenterFromTop - contentHeight / 2
-}
-
-/** [MapIconBar]'s add row is its 5th (last) of 5 — see [mapIconBarRowAnchorOffset]. */
 private val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 5)
 
 /** [MapIconBar]'s layers ("Map Mode") row is its 4th of 5 — see [mapIconBarRowAnchorOffset]. */

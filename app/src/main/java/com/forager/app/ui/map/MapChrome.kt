@@ -52,6 +52,26 @@ import com.forager.app.ui.theme.Spacing
 internal val MIN_TOUCH_TARGET = 48.dp
 
 /**
+ * Offset from [MapIconBar]'s own vertical center (where both `AddActionTile` and [MapModePicker]
+ * anchor their `Alignment.CenterEnd`-based popups) to the center of one of its rows, counting from
+ * the top. Promoted here from `AvailabilityScreen.kt` (fullscreen-fixes dispatch, Item 2) so the
+ * Cartography entry map's own `MapModePicker` call can anchor against [MapIconBar]'s real row 4
+ * the same way the main map's call already does, instead of duplicating this arithmetic or falling
+ * back to a default meant for the medium/expanded window class's single floating button. Not
+ * pixel-exact — no caller tracks its own button's real measured position — but close enough that
+ * each popup visibly grows from that button's corner rather than from an unrelated point on screen.
+ */
+// rowCount re-derived directly against the tree, not assumed: this bar sits at 5 rows as of the
+// fullscreen-maps dispatch (fullscreen, orientation-reset, locate-me, map mode, fifth row) — see
+// MapIconBar's own doc comment.
+internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
+    val rowCount = 5
+    val contentHeight = MIN_TOUCH_TARGET * rowCount + Spacing.xs * (rowCount - 1)
+    val rowCenterFromTop = (MIN_TOUCH_TARGET + Spacing.xs) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
+    return rowCenterFromTop - contentHeight / 2
+}
+
+/**
  * The picker [MapModeToggle] (medium/expanded) and [MapIconBar]'s layers row (compact) both open —
  * three real [FilterChip]s, not a list of full-width text rows: the exact "too wide" hardware
  * finding [AddActionTile] carried (a full-width button per row makes the whole tile as wide as its
@@ -73,10 +93,10 @@ internal val MIN_TOUCH_TARGET = 48.dp
  * and [anchorOffset] are how the two callers differ here where [AddActionTile] didn't need to: that
  * tile only ever grows from the icon bar's own add row, but this picker opens from two different
  * shapes of control — a lone circular [MapModeToggle] floating at the map's own top-right corner on
- * medium/expanded, and [MapIconBar]'s layers row (row 4 of 8) on compact — so the anchor is a
- * parameter instead of a second constant hardcoded in here. [MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET]
- * computes the compact case the same way [ADD_TILE_ANCHOR_OFFSET] already computes the add row's;
- * the medium/expanded default below matches [MapModeToggle]'s own fixed position.
+ * medium/expanded, and [MapIconBar]'s layers row (row 4 of 5) on compact — so the anchor is a
+ * parameter instead of a second constant hardcoded in here. [mapIconBarRowAnchorOffset] computes
+ * the compact case for both this picker's row 4 and the add row's row 5; the medium/expanded
+ * default below matches [MapModeToggle]'s own fixed position.
  */
 @Composable
 internal fun MapModePicker(
@@ -246,8 +266,8 @@ internal fun mapIconBarRecordAccent(isDarkTheme: Boolean) =
  * dispatches' own text claimed at the time each was written; removing search leaves 5 — fullscreen,
  * orientation-reset, locate-me, map mode, add — which still reads as a coherent group of map verbs
  * (viewport and pin-drop actions only, now that both Trailhead controls and search have moved to
- * homes of their own). [mapIconBarRowAnchorOffset]'s `rowCount` and [ADD_TILE_ANCHOR_OFFSET]'s row
- * index are updated to match.
+ * homes of their own). [mapIconBarRowAnchorOffset]'s `rowCount` and its callers' own row indices
+ * are updated to match.
  */
 @Composable
 internal fun MapIconBar(
@@ -268,13 +288,20 @@ internal fun MapIconBar(
      */
     isNightMode: Boolean = false,
     /**
-     * Whether slot 4 (map mode) opens [MapModePicker] at all — fullscreen-maps dispatch: the
-     * Cartography entry map's own offline-tiles toggle needs this row disabled while offline tiles
-     * are in use, since offline is a single fixed style with nothing to choose between. `true` for
-     * every existing caller (nothing before this dispatch had a concept of "offline" to disable it
-     * for). Disabled rather than hidden, matching that dispatch's own explicit instruction — the row
-     * stays in place, unclickable, describing why via its own [MapBarIconButton.contentDescription]
-     * rather than a tap-to-reveal message a disabled button can no longer receive a tap to show.
+     * Whether slot 4 (map mode) is present at all — fullscreen-maps dispatch: the Cartography entry
+     * map's own offline-tiles toggle needs this row gone while offline tiles are in use, since
+     * offline is a single fixed style with nothing to choose between. `true` for every existing
+     * caller (nothing before this dispatch had a concept of "offline" to gate it on).
+     *
+     * **Hidden, not disabled — reversed from that dispatch's original call, deliberately (fullscreen-
+     * fixes dispatch, Item 3).** A disabled control with explanatory copy reads as a limitation the
+     * app has; an absent one reads as a feature that isn't built yet. Only the second is true here —
+     * offline downloads currently produce one vector PMTiles style, structurally unlike the three
+     * raster basemaps, and hosting a second needs an account upgrade the owner intends to make. Same
+     * principle as this codebase's own "no dormant columns, no disabled placeholders for unbuilt
+     * features" rule: don't ship the shape of something before the thing exists. The parameter itself
+     * stays — the mechanism this row's presence is gated on — so the row returns unchanged once a
+     * second offline style is hosted; only the disabled-state branch and its copy are gone.
      */
     mapModePickerEnabled: Boolean = true,
     /**
@@ -331,22 +358,19 @@ internal fun MapIconBar(
                 contentDescription = "Center on my location",
                 onClick = onLocateMe,
             )
-            MapBarIconButton(
-                icon = Icons.Filled.Layers,
-                contentDescription = if (mapModePickerEnabled) {
-                    buildString {
+            if (mapModePickerEnabled) {
+                MapBarIconButton(
+                    icon = Icons.Filled.Layers,
+                    contentDescription = buildString {
                         append("Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.")
                         // Appended rather than replacing the tap description: the button still
                         // primarily opens the map mode picker, and a reader needs to know night mode
                         // is on — now toggled from Settings' "Night Maps" checkbox, not from here.
                         append(if (isNightMode) " Night mode on." else " Night mode off.")
-                    }
-                } else {
-                    "Offline maps use one fixed style."
-                },
-                onClick = onOpenMapModePicker,
-                enabled = mapModePickerEnabled,
-            )
+                    },
+                    onClick = onOpenMapModePicker,
+                )
+            }
             fifthRow(isDarkTheme)
         }
     }
