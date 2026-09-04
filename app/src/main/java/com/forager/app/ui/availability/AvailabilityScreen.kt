@@ -4554,6 +4554,14 @@ private fun CompactMapTab(
     // extreme of a drag — reuses MIN_TOUCH_TARGET (MapChrome.kt) rather than inventing a second
     // margin constant for the same "don't let a control go fully off-screen" idea.
     val mapIconBarVerticalDragMarginPx = with(LocalDensity.current) { MIN_TOUCH_TARGET.toPx() }
+    // Icon-bar-drag-refinements dispatch, Item 4: the real measured height of whichever of
+    // MapIconBar/MapIconBarRestoreHandle is currently showing, in px — what the upward-drag clamp
+    // below needs to know where that composable's own top edge currently sits, since
+    // Alignment.CenterEnd/CenterStart centers it vertically before mapIconBarVerticalOffsetPx is
+    // applied. Set via onGloballyPositioned on whichever of the two is actually composed, same
+    // "measure the real value, don't derive it from a row count or other guess" reasoning as
+    // mapIconBarBottomPx's own doc comment.
+    var mapIconBarHeightPx by remember { mutableStateOf(0f) }
 
     // AddActionTile and CentrePinLocationPickerOverlay are both plain overlays, not real Dialogs,
     // so — unlike TripDatePickerDialog below, an M3 DatePickerDialog whose own Dialog window
@@ -4796,15 +4804,25 @@ private fun CompactMapTab(
                 // Surface's own onClick (minimize/restore) unambiguously, and the long-press
                 // threshold is what lets a tap and a drag share the same control with no gesture
                 // conflict, a well-established Compose combination for exactly this pairing.
-                // TrailheadControls (below) is deliberately NOT included in the side flip — it
-                // still always anchors TopEnd — because DistanceArm's own circular-base geometry
-                // (see that composable's own doc comment) assumes growing from a right-fixed point;
-                // mirroring it for the left side is real, separate layout work this request didn't
-                // ask for and is flagged rather than done silently.
+                // TrailheadControls (below) now follows the same side flip too, per the
+                // icon-bar-drag-refinements dispatch's Items 2-3 — DistanceArm no longer extends
+                // sideways from a right-fixed point (reoriented to extend downward, side-agnostic
+                // by construction, see that composable's own doc comment), so the mirroring concern
+                // that used to keep TrailheadControls right-anchored only no longer applies.
                 val mapIconBarSideAlignment = if (isMapIconBarOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
                 val mapIconBarPositionOffset = Modifier.offset {
                     IntOffset(mapIconBarHorizontalDragPx.roundToInt(), mapIconBarVerticalOffsetPx.roundToInt())
                 }
+                // Icon-bar-drag-refinements dispatch, Item 4: the bar cannot be dragged up far
+                // enough to rise above where SearchDropdown itself starts. compactMainScaffold's
+                // own searchDropdownTopOffset (a different, outer composable scope, not reachable
+                // from here) is searchBarHeight + compassStripClearance; topInset (this composable's
+                // own parameter, ≈ searchBarHeight — see that parameter's own doc comment) plus this
+                // exact scope's own compassStripClearance above equal the same value, reachable
+                // here without new plumbing — and already the established way this file computes
+                // "how far below the top the search chrome reaches" (see the taxon filter chip's
+                // own topInset + compassStripClearance padding a little further down).
+                val dropdownTopPx = with(compassStripDensity) { (topInset + compassStripClearance).toPx() }
                 val mapIconBarDragModifier = Modifier.pointerInput(Unit) {
                     detectDragGesturesAfterLongPress(
                         onDragEnd = {
@@ -4818,9 +4836,21 @@ private fun CompactMapTab(
                     ) { change, dragAmount ->
                         change.consume()
                         mapIconBarHorizontalDragPx += dragAmount.x
-                        val maxVerticalOffsetPx = (mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
+                        val maxDownwardOffsetPx = (mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
+                        // Upward (negative) bound: the bar's own top edge, once centered then
+                        // shifted by the offset, is (mapContentBoxHeightPx - mapIconBarHeightPx) / 2
+                        // + offset — solved for the smallest offset that keeps that top edge at or
+                        // below dropdownTopPx, so the bar can't rise into the dropdown's own space.
+                        // Falls back to maxDownwardOffsetPx (the pre-Item-4 symmetric bound) before
+                        // mapIconBarHeightPx has its first real measurement.
+                        val maxUpwardOffsetPx = if (mapIconBarHeightPx > 0f) {
+                            (dropdownTopPx - (mapContentBoxHeightPx - mapIconBarHeightPx) / 2f)
+                                .coerceIn(-maxDownwardOffsetPx, 0f)
+                        } else {
+                            -maxDownwardOffsetPx
+                        }
                         mapIconBarVerticalOffsetPx = (mapIconBarVerticalOffsetPx + dragAmount.y)
-                            .coerceIn(-maxVerticalOffsetPx, maxVerticalOffsetPx)
+                            .coerceIn(maxUpwardOffsetPx, maxDownwardOffsetPx)
                     }
                 }
                 if (isMapIconBarMinimized) {
@@ -4830,7 +4860,12 @@ private fun CompactMapTab(
                         modifier = Modifier
                             .align(mapIconBarSideAlignment)
                             .then(mapIconBarPositionOffset)
-                            .then(mapIconBarDragModifier),
+                            .then(mapIconBarDragModifier)
+                            // Feeds the drag clamp's own maxUpwardOffsetPx above — see
+                            // mapIconBarHeightPx's own doc comment.
+                            .onGloballyPositioned { coordinates ->
+                                mapIconBarHeightPx = coordinates.size.height.toFloat()
+                            },
                     )
                 } else {
                     MapIconBar(
@@ -4863,6 +4898,9 @@ private fun CompactMapTab(
                             // it reflects wherever a drag has actually moved it to.
                             .onGloballyPositioned { coordinates ->
                                 mapIconBarBottomPx = coordinates.boundsInParent().bottom
+                                // Feeds the drag clamp's own maxUpwardOffsetPx above — see
+                                // mapIconBarHeightPx's own doc comment.
+                                mapIconBarHeightPx = coordinates.size.height.toFloat()
                             },
                     )
                     MapIconBarMinimizeHandle(
@@ -4907,7 +4945,8 @@ private fun CompactMapTab(
                         isOffTrack = isOffTrack,
                         onToggleReturning = onToggleReturning,
                         mapIconBarBottomPx = mapIconBarBottomPx,
-                        modifier = Modifier.align(Alignment.TopEnd),
+                        onLeftSide = isMapIconBarOnLeftSide,
+                        modifier = Modifier.align(if (isMapIconBarOnLeftSide) Alignment.TopStart else Alignment.TopEnd),
                     )
                 }
 
@@ -5075,6 +5114,19 @@ private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
  * build field testers are using. A real measured value tracks whatever the bar's current row count
  * happens to be, automatically, with no second edit required when it changes again.
  *
+ * **Icon-bar-drag-refinements dispatch, Items 2-3: [onLeftSide] follows [MapIconBar]'s own side.**
+ * Previously always right-anchored, left un-mirrored on purpose while [DistanceArm] extended
+ * sideways from a right-fixed point (see that composable's own doc comment for the geometry that
+ * made mirroring real, separate work) — now that the arm extends downward instead, it is genuinely
+ * side-agnostic, so this whole cluster can just follow the bar's own alignment directly, the same
+ * mechanism [MapIconBar]/its handles already use, with no per-child mirroring needed anywhere
+ * inside this composable or [DistanceArm] itself. [ControlPill] stays pinned to the true screen
+ * edge on whichever side (its own alignment inside the [Box] below, not a shared
+ * `horizontalAlignment`) so it never shifts position depending on whether the arm is showing —
+ * only the arm's own extra width (when returning) grows further inward from that fixed edge.
+ * They hide and restore with the bar when minimised exactly as before — that behaviour is
+ * unaffected by any of this.
+ *
  * **Composition order: [DistanceArm] first, [ControlPill] second**, both inside one [Box] so a
  * [Box]'s own paint-and-hit-test-order-by-declaration rule (the same rule [MapIconBar] composing
  * before [CompassElevationStrip] already relies on, see that call site's own doc comment) makes
@@ -5088,17 +5140,13 @@ private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
  * composable runs at all — record start/stop must stay reachable before the first recording
  * starts, the same as when it was an always-enabled [MapIconBar] row.
  *
- * **[DistanceArm]'s own right end is a circle, not a square edge tucked under the pill — see that
- * composable's own doc comment for why a flat edge and a couple px of tuck-under weren't enough.**
- * That circle's diameter is [ControlPill]'s own measured width ([pillSizePx]`.width`), and it must
- * be *centred on the return-to-vehicle control itself*, not flush with the pill's own bottom edge:
- * [ControlPill]'s `Column` wraps its two rows in `Modifier.padding(vertical = Spacing.xs)`, so the
- * return-to-vehicle row's own centre sits [Spacing.xs] above where the pill's own rounded bottom
- * corner is centred (exactly [MAP_ICON_BAR_CORNER_RADIUS] above the pill's bottom edge, by that
- * shape's own definition). A circle of the pill's own cap radius, centred anywhere on the pill's
- * own vertical spine — which the return-to-vehicle control's centre sits on, being horizontally
- * centred in a column no wider than the pill itself — is fully contained in the pill's stadium
- * shape by construction, so no extra tuck-under margin is needed once this offset is right.
+ * **[DistanceArm] has no circular cap of its own — see that composable's own doc comment for why
+ * it instead overlaps [ControlPill]'s own existing bottom cap by exactly half the pill's own
+ * width**, the pill's own [MAP_ICON_BAR_CORNER_RADIUS]. [circleDiameterPx][DistanceArm] is
+ * [ControlPill]'s own measured width ([pillSizePx]`.width`), passed down rather than assumed —
+ * depends on [pillSizePx], which is why [ControlPill] (below) must report its size before this
+ * offset can be correct, harmless on the frame or two before the first measurement lands since
+ * [DistanceArm] is invisible (`isReturning` starts false) until a real return leg begins.
  */
 @Composable
 private fun TrailheadControls(
@@ -5109,43 +5157,33 @@ private fun TrailheadControls(
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
     mapIconBarBottomPx: Float,
+    onLeftSide: Boolean,
     modifier: Modifier = Modifier,
 ) {
     // ControlPill's own real measured size, in px — what DistanceArm positions itself against
     // below.
     var pillSizePx by remember { mutableStateOf(IntSize.Zero) }
+    val sideAlignment = if (onLeftSide) Alignment.TopStart else Alignment.TopEnd
     Box(
         modifier = modifier
-            .padding(end = Spacing.sm)
+            .padding(start = if (onLeftSide) Spacing.sm else 0.dp, end = if (onLeftSide) 0.dp else Spacing.sm)
             .offset {
                 IntOffset(x = 0, y = (mapIconBarBottomPx + CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR.toPx()).roundToInt())
             },
     ) {
-        // First: DistanceArm. Both children align TopEnd against this Box's own corner — the same
-        // corner ControlPill's own top-right lands on. x stays 0: DistanceArm's own right end is a
-        // circle the same diameter as the pill's own width (see that composable's own doc
-        // comment), so aligning both TopEnd with no x offset makes the two circles — the arm's own
-        // cap and the pill's own bottom corner — coincide exactly, with no tuck-under math needed.
-        // y lands the arm's own circular cap centred on the return-to-vehicle control's own centre
-        // (see this function's own doc comment for why that is Spacing.xs above the pill's bottom
-        // edge, not flush with it): pillSizePx.height take away the circle's own diameter
-        // (pillSizePx.width) lands the cap's centre flush with the pill's bottom edge, so a further
-        // Spacing.xs subtracted moves it up to the control's own centre. Depends on pillSizePx,
-        // which is why ControlPill (below) must report its size before this offset can be correct
-        // — harmless on the frame or two before the first measurement lands, since DistanceArm is
-        // invisible (isReturning starts false) until a real return leg begins.
+        // First: DistanceArm, so ControlPill (composed after) paints over their shared overlap
+        // band — see DistanceArm's own doc comment. Both align to the same sideAlignment as
+        // ControlPill so their outer edge (the one facing the true screen edge) always coincides;
+        // the arm's own extra width, when wider than the pill, extends inward from there.
         DistanceArm(
             visible = isReturning,
             distanceMeters = returnToStart?.distanceMeters,
             isOffTrack = isOffTrack,
             circleDiameterPx = pillSizePx.width,
             modifier = Modifier
-                .align(Alignment.TopEnd)
+                .align(sideAlignment)
                 .offset {
-                    IntOffset(
-                        x = 0,
-                        y = pillSizePx.height - pillSizePx.width - Spacing.xs.roundToPx(),
-                    )
+                    IntOffset(x = 0, y = pillSizePx.height - pillSizePx.width / 2)
                 },
         )
         // Second: ControlPill, so it paints on top of DistanceArm at their shared junction.
@@ -5157,7 +5195,7 @@ private fun TrailheadControls(
             isOffTrack = isOffTrack,
             onToggleReturning = onToggleReturning,
             modifier = Modifier
-                .align(Alignment.TopEnd)
+                .align(sideAlignment)
                 .onGloballyPositioned { coordinates -> pillSizePx = coordinates.size },
         )
     }
@@ -5240,62 +5278,55 @@ private const val DISTANCE_ARM_WIDEST_TEXT = "99.9 km"
 private const val DISTANCE_ARM_RESTING_ALPHA = 0.8f
 
 /**
- * The horizontal arm that extends left from [ControlPill] while return-to-vehicle is active,
- * holding the distance-only readout — see [ControlPill]'s own return row for the full
+ * The tab that extends downward from [ControlPill] while return-to-vehicle is active, holding the
+ * distance-only readout — see [ControlPill]'s own return row for the full
  * bearing/distance/elevation sentence this supplements (that row's `contentDescription` carries
  * it; this arm shows plain visible text only, so a test can assert it via `onNodeWithText` rather
  * than `onNodeWithContentDescription` alone, per this repo's own testing rule).
  *
- * **Sized to the widest plausible string, not to content.** [DISTANCE_ARM_WIDEST_TEXT] is measured
- * at this Text's own real [MaterialTheme.typography] style via [rememberTextMeasurer] — not
- * counted in characters — so the fixed width this arm animates to is the actual rendered pixel
- * width in the actual typeface at the actual size, not a guess.
+ * **Icon-bar-drag-refinements dispatch, Item 2: reoriented 90° from an earlier revision that
+ * extended sideways.** That design assumed growth from a right-fixed point — a real problem once
+ * [MapIconBar] gained left-edge snapping, since it would have needed mirroring (real, separate
+ * work, deliberately not done as a fallback). Extending downward instead needs no side-awareness
+ * anywhere in this composable: it grows straight down regardless of which screen edge the bar
+ * (and this pill) currently occupy.
+ *
+ * **No circular cap of its own — reuses [ControlPill]'s own existing one.** [ControlPill]'s shape
+ * is `RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS)` on *all four* corners, and
+ * [MAP_ICON_BAR_CORNER_RADIUS] is exactly half the pill's own measured width — so the pill's
+ * bottom is already a full semicircular cap, spanning the pill's own bottom
+ * [MAP_ICON_BAR_CORNER_RADIUS]-tall half. This arm is a plain flat-topped, round-bottomed tab
+ * positioned (by [TrailheadControls]) to overlap exactly that bottom half and composed *before*
+ * the pill, so the pill's own already-existing curve paints over this arm's own square top edge —
+ * the same masking trick the sideways design used at its own shared junction (see
+ * [TrailheadControls]' own doc comment), just applied to the opposite edge.
+ *
+ * **Widens to fit text where the sideways design couldn't.** [DISTANCE_ARM_WIDEST_TEXT] (measured,
+ * not counted, at this Text's own real style) is wider than [circleDiameterPx] — the pill's own
+ * width, 48dp — so [bodyWidthDp] is never pinned to the pill's own width the way the old sideways
+ * arm's height was pinned to it; it is instead sized to the wider of the two. **Known cosmetic
+ * simplification, reported rather than silently accepted as invisible:** where this arm is wider
+ * than the pill, its own flat top corners are *not* masked by the pill in the overlap band (the
+ * pill isn't wide enough to cover them there) and show as small square "shoulders" level with the
+ * pill's own curve, rather than a perfectly tapered teardrop silhouette. A true smooth taper would
+ * need a custom [androidx.compose.ui.graphics.Path]-based `Shape`; this stays within this file's
+ * existing `RoundedCornerShape`-only vocabulary.
  *
  * **Tabular figures** (`fontFeatureSettings = "tnum"`): this number updates live while someone
  * walks toward their car, and proportional digits would shimmer the text sideways as the value
  * changes on exactly the leg where someone is watching it.
  *
- * **A width animation, not shape morphing** — [AnimatedVisibility]'s
- * [expandHorizontally]/[shrinkHorizontally], driven by [MotionTokens.navigationMotionSpec] (chrome;
- * no positional truth to distort, per docs/adr/0002-motion-scheme-adoption.md's category table —
- * this is that category's first production caller). Shape morphing is listed experimental in the
- * M3 design study's own stable/experimental table; a width animation reads the same at a fraction
- * of the cost and needs nothing beyond what this codebase already uses elsewhere
- * ([AddActionTile]'s own `expandIn`/`shrinkOut`).
+ * **A height animation, not shape morphing** — [AnimatedVisibility]'s
+ * [expandVertically]/[shrinkVertically], driven by [MotionTokens.navigationMotionSpec] (chrome; no
+ * positional truth to distort, per docs/adr/0002-motion-scheme-adoption.md's category table — the
+ * same category the old sideways width-animation used, now on the perpendicular axis). Width is
+ * not animated — [bodyWidthDp] is fixed once the arm is visible at all — since there is no longer
+ * a separate circular collapsed state to animate width away from (see the no-cap note above); only
+ * height (and fade) need to move for "extend downward" to read correctly.
  *
- * **Right end is a full circle, diameter [circleDiameterPx] — not a square edge tucked under
- * [ControlPill].** An earlier revision squared the right end (`topEnd`/`bottomEnd` = 0) and tucked
- * it a couple px under the pill's own rounded left edge. Confirmed broken on real hardware:
- * [MAP_ICON_BAR_CORNER_RADIUS] is exactly half [ControlPill]'s own measured width, so the pill's
- * bottom-left corner is a full semicircular cap spanning this arm's *entire* shared row height —
- * there is no height within that row where the pill's real edge is a flat vertical line for a
- * squared arm edge to tuck under. See [TrailheadControls]' own doc comment for the full geometry.
- *
- * [circleDiameterPx] (the pill's own measured width, passed down rather than assumed — see
- * [TrailheadControls]) sets both this Surface's own fixed height and its `topEnd`/`bottomEnd`
- * corner radius (halved), so the right end is a true full circle, congruent with the pill's own
- * bottom cap, at every width this arm can reach — the enter/exit animations below never go
- * narrower than the diameter itself, so there is no width at which that corner could be less than
- * a full semicircle. A circle of that exact radius is fully contained in the pill's own stadium
- * shape wherever it's centred on the pill's own vertical spine (which is exactly where
- * [TrailheadControls] positions it), so no tuck-under margin is needed, and none remains.
- *
- * **Resting state (not returning) is that circle alone** — [expandHorizontally]'s `initialWidth`
- * and [shrinkHorizontally]'s `targetWidth` are both pinned to [circleDiameterPx], not the default
- * `0`, so growing the arm out is "circle → circle-plus-readout" rather than "nothing → full."
- * [MAP_ICON_BAR_CORNER_RADIUS] governs the *left* end regardless of [circleDiameterPx] — it is
- * [ControlPill]'s own fixed visual language, not derived from this arm's diameter — and since the
- * animation never goes narrower than [circleDiameterPx] itself, the left cap always has its full
- * own diameter of room and can never squash into the right end's curve.
- *
- * Content reserves [circleDiameterPx]'s own width on the right — the circular base's own
- * footprint, always fully covered by [ControlPill], nothing drawn there — with the readout text
- * confined to (and centred within) the region to its left, so the text itself is never drawn under
- * the curve.
- *
- * **Fades in and out alongside the width change**, [fadeIn]/[fadeOut] bundled into the same
- * enter/exit as [expandHorizontally]/[shrinkHorizontally] so both finish together — not a pop-in
- * at full strength, and not fully opaque even once settled: see [DISTANCE_ARM_RESTING_ALPHA]'s own
+ * **Fades in and out alongside the height change**, [fadeIn]/[fadeOut] bundled into the same
+ * enter/exit as [expandVertically]/[shrinkVertically] so both finish together — not a pop-in at
+ * full strength, and not fully opaque even once settled: see [DISTANCE_ARM_RESTING_ALPHA]'s own
  * doc comment for the 80% ceiling and why it applies to the whole [Surface], not just its fill.
  */
 @Composable
@@ -5310,42 +5341,43 @@ private fun DistanceArm(
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val numberStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-    val widestNumberWidthPx = remember(numberStyle) {
-        textMeasurer.measure(DISTANCE_ARM_WIDEST_TEXT, numberStyle).size.width
+    val widestTextSize = remember(numberStyle) {
+        textMeasurer.measure(DISTANCE_ARM_WIDEST_TEXT, numberStyle).size
     }
     val circleDiameterDp = with(density) { circleDiameterPx.toDp() }
-    val readoutWidthDp = with(density) { widestNumberWidthPx.toDp() } + Spacing.md
+    // Never narrower than the pill above it, so it only ever widens outward from that shared edge,
+    // never in — see this composable's own doc comment for the "widens where the sideways design
+    // couldn't" note.
+    val bodyWidthDp = maxOf(circleDiameterDp, with(density) { widestTextSize.width.toDp() } + Spacing.lg)
+    // Half the pill's own width — MAP_ICON_BAR_CORNER_RADIUS, the exact depth of the overlap band
+    // this arm's own top hides under the pill's existing bottom cap (see this composable's own doc
+    // comment) — plus room for the readout text below that hidden band.
+    val overlapDp = circleDiameterDp / 2
+    val bodyHeightDp = overlapDp + with(density) { widestTextSize.height.toDp() } + Spacing.md
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(animationSpec = MotionTokens.navigationMotionSpec()) +
-            expandHorizontally(
-                animationSpec = MotionTokens.navigationMotionSpec(),
-                expandFrom = Alignment.End,
-                initialWidth = { circleDiameterPx },
-            ),
+            expandVertically(animationSpec = MotionTokens.navigationMotionSpec(), expandFrom = Alignment.Top),
         exit = fadeOut(animationSpec = MotionTokens.navigationMotionSpec()) +
-            shrinkHorizontally(
-                animationSpec = MotionTokens.navigationMotionSpec(),
-                shrinkTowards = Alignment.End,
-                targetWidth = { circleDiameterPx },
-            ),
+            shrinkVertically(animationSpec = MotionTokens.navigationMotionSpec(), shrinkTowards = Alignment.Top),
         modifier = modifier,
     ) {
         Surface(
             shape = RoundedCornerShape(
-                topStart = MAP_ICON_BAR_CORNER_RADIUS,
+                topStart = 0.dp,
+                topEnd = 0.dp,
                 bottomStart = MAP_ICON_BAR_CORNER_RADIUS,
-                topEnd = circleDiameterDp / 2,
-                bottomEnd = circleDiameterDp / 2,
+                bottomEnd = MAP_ICON_BAR_CORNER_RADIUS,
             ),
             color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
             contentColor = if (isDarkTheme) Color.White else Bark,
             shadowElevation = 2.dp,
             border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
             modifier = Modifier
-                .height(circleDiameterDp)
-                // fadeIn/fadeOut above animate 0→1→0 in lockstep with the width transition (part of
-                // the same AnimatedVisibility Transition, so both finish together); this fixed
+                .width(bodyWidthDp)
+                .height(bodyHeightDp)
+                // fadeIn/fadeOut above animate 0→1→0 in lockstep with the height transition (part
+                // of the same AnimatedVisibility Transition, so both finish together); this fixed
                 // multiplier caps the settled/fully-grown end of that ramp at
                 // DISTANCE_ARM_RESTING_ALPHA instead of fully opaque — see that constant's own doc
                 // comment for why, and for why it's a coincidence, not a reuse, that the number
@@ -5353,30 +5385,22 @@ private fun DistanceArm(
                 .alpha(DISTANCE_ARM_RESTING_ALPHA)
                 .testTag("distance-arm"),
         ) {
-            // Outer box reserves the full readout-plus-circle width, readout content start-aligned
-            // within it — the trailing circleDiameterDp is deliberately empty (the circular base's
-            // own footprint, always hidden under ControlPill) rather than shared with the text.
+            // Bottom-anchored: overlapDp at the top is deliberately empty (hidden under ControlPill
+            // — see this composable's own doc comment), so the readout text stays clear of it
+            // without needing to compute the same padding twice.
             Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(readoutWidthDp + circleDiameterDp),
-                contentAlignment = Alignment.CenterStart,
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter,
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(readoutWidthDp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = distanceMeters?.let { formatReturnDistance(it) }.orEmpty(),
-                        style = numberStyle,
-                        color = if (isOffTrack) MaterialTheme.colorScheme.error else LocalContentColor.current,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                Text(
+                    text = distanceMeters?.let { formatReturnDistance(it) }.orEmpty(),
+                    style = numberStyle,
+                    color = if (isOffTrack) MaterialTheme.colorScheme.error else LocalContentColor.current,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = Spacing.xs),
+                )
             }
         }
     }

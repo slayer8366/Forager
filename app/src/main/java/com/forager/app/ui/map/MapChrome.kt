@@ -436,20 +436,40 @@ internal fun MapIconBarMinimizeHandle(
     // docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md harness bug, which the
     // integration test this control needed happened to trigger via searchAReferenceRegion()'s own
     // still-open SearchDropdown, not this Surface/Box choice.)
+    //
+    // Icon-bar-drag-refinements dispatch, Item 1: the outer Box below is the full 48×72dp tap
+    // target, undecorated — the same "hit area never shrinks, only the visible mark does, inset by
+    // padding" pattern [MapIconBarRestoreHandle] already established (see that composable's own doc
+    // comment and CLAUDE.md's own documented pitfall on this exact class of control). The owner's
+    // own device report: the first version drew the fill across the *entire* tap width, reading as
+    // a wide slab eating most of the bar's own width — this narrows the drawn mark to
+    // [MINIMIZE_HANDLE_VISIBLE_WIDTH], centered in the tap area via padding, while the tap target
+    // itself stays exactly what it was.
     Box(
         modifier = modifier
             .size(width = MIN_TOUCH_TARGET, height = MIN_TOUCH_TARGET * 1.5f)
-            .background(color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight, shape = shape)
-            .border(
-                width = 1.dp,
-                color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
-                shape = shape,
-            )
             .clickable(onClick = onMinimize)
             .semantics { contentDescription = "Hide map controls" }
             .testTag("map-icon-bar-minimize-handle"),
-    ) {}
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(vertical = Spacing.md)
+                .fillMaxHeight()
+                .width(MINIMIZE_HANDLE_VISIBLE_WIDTH)
+                .background(color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight, shape = shape)
+                .border(
+                    width = 1.dp,
+                    color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
+                    shape = shape,
+                ),
+        )
+    }
 }
+
+/** How much of [MapIconBarMinimizeHandle]'s own 48dp-wide tap target is actually drawn — see that composable's own doc comment for why this is much narrower than the hit area itself. */
+private val MINIMIZE_HANDLE_VISIBLE_WIDTH = 10.dp
 
 /**
  * The restore control for a minimised [MapIconBar] — fullscreen-fixes dispatch, Item 3.

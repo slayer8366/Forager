@@ -35,6 +35,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
@@ -283,6 +284,28 @@ class AvailabilityScreenMapIconStackTest {
         return with(composeRule.density) {
             Offset(((bounds.left + bounds.right) / 2).toPx(), ((bounds.top + bounds.bottom) / 2).toPx())
         }
+    }
+
+    /**
+     * Icon-bar-drag-refinements dispatch: a real long-press-then-drag on [tag] (the minimize or
+     * restore handle — the only two composables [mapIconBarDragModifier][CompactMapTab] is
+     * attached to), by ([dxDp], [dyDp]) from its own current centre. `advanceEventTime(600)` clears
+     * `detectDragGesturesAfterLongPress`'s own long-press threshold (Android's default is 500ms)
+     * before the move, matching how a real hold-and-drag gesture actually behaves — a plain
+     * `swipe`/`click` wouldn't clear that threshold and would just look like a tap or an ignored
+     * short drag.
+     */
+    private fun dragIconBarHandle(tag: String, dxDp: Dp = 0.dp, dyDp: Dp = 0.dp) {
+        val start = centerOfTag(tag)
+        val delta = with(composeRule.density) { Offset(dxDp.toPx(), dyDp.toPx()) }
+        composeRule.onRoot().performTouchInput {
+            down(start)
+            advanceEventTime(600)
+            moveTo(start + delta)
+            advanceEventTime(50)
+            up()
+        }
+        composeRule.waitForIdle()
     }
 
     /**
@@ -1091,18 +1114,22 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * The circular-base addendum's own containment claim, checked against real measured bounds
-     * rather than only the geometry worked out on paper in `DistanceArm`'s own doc comment: the
-     * arm's right edge must coincide with [ControlPill]'s own right edge (so the arm's circular
-     * base — diameter equal to the pill's own measured width — is centred on the pill's own
-     * vertical spine, not offset from it), and the arm's own vertical centre must coincide with the
-     * return-to-vehicle control's own vertical centre (not the pill's own bottom edge, and not the
-     * pill's own shape-cap centre either — see `TrailheadControls`' own doc comment for why those
-     * three are three different heights). Both within 1px, the rounding a real layout pass can
-     * introduce that paper geometry doesn't have to account for.
+     * Icon-bar-drag-refinements dispatch, Item 2: rewritten for the reoriented (downward-extending)
+     * arm — the old assertions described a sideways arm whose own circular base centred on the
+     * return-to-vehicle row specifically; that geometry no longer exists (approved rewrite, not a
+     * silent change — see this file's own standing rule about `AvailabilityScreenMapIconStackTest`
+     * needing to pass unmodified, and CLAUDE.md's own testing section on when a test change is
+     * legitimate). Checked against real measured bounds rather than only the geometry worked out on
+     * paper in `DistanceArm`'s own doc comment: the arm's own outer edge (right, on this default
+     * right-anchored setup) must still coincide with [ControlPill]'s own same edge — both aligned
+     * to the same `sideAlignment` in `TrailheadControls`, unaffected by Item 2 — and the arm's own
+     * top edge must overlap the pill's own bottom edge by exactly [MAP_ICON_BAR_CORNER_RADIUS] (half
+     * the pill's own measured width), the exact depth of the pill's own existing bottom
+     * semicircular cap that masks the arm's own square top there. Both within 1px, the rounding a
+     * real layout pass can introduce that paper geometry doesn't have to account for.
      */
     @Test
-    fun `the distance arm's own circular base is centred on the return-to-vehicle control`() {
+    fun `the distance arm overlaps the pill's own bottom cap, flush on its outer edge`() {
         setScreen(
             isRecording = true,
             isReturning = true,
@@ -1112,22 +1139,98 @@ class AvailabilityScreenMapIconStackTest {
 
         val armBounds = composeRule.onNodeWithTag("distance-arm").getUnclippedBoundsInRoot()
         val pillBounds = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot()
-        val returnButtonBounds = composeRule.onNodeWithTag("control-pill-return-to-vehicle").getUnclippedBoundsInRoot()
 
         val armRight = armBounds.right.value
         val pillRight = pillBounds.right.value
         assertTrue(
-            "the arm's own right edge ($armRight) should coincide with the pill's own right edge " +
-                "($pillRight) — that's what makes the two circles congruent",
+            "the arm's own outer edge ($armRight) should coincide with the pill's own same edge " +
+                "($pillRight) — both aligned to the same sideAlignment in TrailheadControls",
             kotlin.math.abs(armRight - pillRight) <= 1f,
         )
 
-        val armCenterY = (armBounds.top.value + armBounds.bottom.value) / 2
-        val returnButtonCenterY = (returnButtonBounds.top.value + returnButtonBounds.bottom.value) / 2
+        val pillWidth = pillBounds.right.value - pillBounds.left.value
+        val expectedOverlap = pillWidth / 2
+        val actualOverlap = pillBounds.bottom.value - armBounds.top.value
         assertTrue(
-            "the arm's own vertical centre ($armCenterY) should coincide with the return-to-vehicle " +
-                "control's own vertical centre ($returnButtonCenterY), not the pill's own bottom edge",
-            kotlin.math.abs(armCenterY - returnButtonCenterY) <= 1f,
+            "the arm's own top edge should overlap the pill's own bottom edge by exactly half the " +
+                "pill's own width ($expectedOverlap) — the depth of the pill's own existing bottom " +
+                "cap that masks the arm's own square top corners there — was $actualOverlap",
+            kotlin.math.abs(actualOverlap - expectedOverlap) <= 1f,
+        )
+    }
+
+    /**
+     * Icon-bar-drag-refinements dispatch, Item 3 ("the track recorder pills must move with the
+     * bar"). Baseline half of the pair below: a real touch on the record button reaches it while
+     * the bar sits at its own default (right) edge, before any drag has happened — control-pill-
+     * record specifically, not control-pill-return-to-vehicle, which has its own pre-existing,
+     * unrelated Robolectric-only click no-op documented in
+     * docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md.
+     */
+    @Test
+    fun `a real touch on the record button reaches it while the bar is on its default right edge`() {
+        var recordCalls = 0
+        setScreen(onToggleRecording = { recordCalls++ })
+
+        composeRule.onRoot().performTouchInput { click(centerOfTag("control-pill-record")) }
+        composeRule.waitForIdle()
+
+        assertEquals(1, recordCalls)
+    }
+
+    /**
+     * The actual bug Item 3 exists to fix, reproduced and then disproven: previously, snapping the
+     * bar to the left edge left [TrailheadControls] stranded on the right — visibly detached from
+     * the bar it belongs to. A real long-press-and-drag ([dragIconBarHandle]) past the snap
+     * threshold moves the bar; this then confirms the pill actually followed by touching it at its
+     * *new* location, not by inspecting bounds alone.
+     */
+    @Test
+    fun `after dragging the icon bar to the left edge, a real touch on the record button still reaches it there`() {
+        var recordCalls = 0
+        setScreen(onToggleRecording = { recordCalls++ })
+
+        val fullscreenLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dxDp = (-160).dp)
+
+        val fullscreenLeftAfter = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+        assertTrue(
+            "expected the bar to have snapped to the left edge (left=$fullscreenLeftAfter), not " +
+                "stayed on the right (was $fullscreenLeftBefore) — this test's own later assertion " +
+                "would otherwise pass by coincidence, still touching the bar at its old position",
+            fullscreenLeftAfter.value < fullscreenLeftBefore.value,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfTag("control-pill-record")) }
+        composeRule.waitForIdle()
+
+        assertEquals(1, recordCalls)
+    }
+
+    /**
+     * Item 4 ("clamp how high the bar can be dragged"). A real long-press-and-drag far upward —
+     * well past any reasonable clamp — then checked against the compass strip's own real measured
+     * bounds: the bar's own top edge must stay at or below the strip's own bottom edge, i.e. it
+     * cannot rise into (or above) the space the search dropdown itself would occupy. No
+     * [searchAReferenceRegion] call and the dropdown is never actually opened here — this checks
+     * the clamp's own effect on the bar's position, not the dropdown itself, so opening it isn't
+     * needed (and per this file's own established `docs/audits/2026-08-31-search-dropdown-dismiss-
+     * chip-unmount.md` precedent, opening it here would risk tripping that same unrelated harness
+     * bug for no reason).
+     */
+    @Test
+    fun `the icon bar cannot be dragged above where the search dropdown would start`() {
+        setScreen()
+        val compassStripBottom = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot().bottom
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = (-2000).dp)
+
+        val barTopAfterDrag = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
+        assertTrue(
+            "expected the bar's own top edge ($barTopAfterDrag) to stay at or below the compass " +
+                "strip's own bottom edge ($compassStripBottom) even after an extreme upward drag",
+            barTopAfterDrag.value >= compassStripBottom.value,
         )
     }
 
