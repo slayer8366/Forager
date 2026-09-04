@@ -58,6 +58,15 @@ import com.forager.app.ui.theme.Spacing
 internal val MIN_TOUCH_TARGET = 48.dp
 
 /**
+ * [MapIconBar]'s own inset from the true screen edge at its call site (`CompactMapTab`), and the
+ * one value [MapIconBarMinimizeHandle]/[MapIconBarRestoreHandle] key their visible marks off so
+ * those marks straddle the bar's own outer edge rather than sitting inside it — fullscreen-
+ * slide-out-fixes dispatch, Item 3. Named here, not left as a bare `Spacing.sm` at each site,
+ * precisely so the bar's padding and the handles' geometry can't drift apart.
+ */
+internal val MAP_ICON_BAR_EDGE_INSET = Spacing.sm
+
+/**
  * Offset from [MapIconBar]'s own vertical center (where both `AddActionTile` and [MapModePicker]
  * anchor their `Alignment.CenterEnd`-based popups) to the center of one of its rows, counting from
  * the top. Promoted here from `AvailabilityScreen.kt` (fullscreen-fixes dispatch, Item 2) so the
@@ -443,21 +452,33 @@ internal fun MapIconBarMinimizeHandle(
     // comment and CLAUDE.md's own documented pitfall on this exact class of control). The owner's
     // own device report: the first version drew the fill across the *entire* tap width, reading as
     // a wide slab eating most of the bar's own width — this narrows the drawn mark to
-    // [MINIMIZE_HANDLE_VISIBLE_WIDTH], centered in the tap area via padding, while the tap target
-    // itself stays exactly what it was.
+    // [HANDLE_VISIBLE_MARK_WIDTH] while the tap target itself stays exactly what it was.
+    //
+    // Fullscreen-slide-out-fixes dispatch, Item 3: the mark straddles the bar's own outer edge
+    // rather than sitting centered in the tap box. The tap box's outer side is flush with the true
+    // screen edge and the bar's outer edge is [MAP_ICON_BAR_EDGE_INSET] in from it — so a mark
+    // centered in the box sat 19dp in from the true edge, 11dp *inside* the bar, exactly the "sits
+    // within the bar's width" the owner saw. Aligning the mark to the box's outer side, padded by
+    // [HANDLE_MARK_EDGE_PADDING], centers it on the bar's edge: half overlapping the bar, half
+    // protruding outward, mirrored per side. Padding only — the tap box never moves or shrinks.
     Box(
         modifier = modifier
             .size(width = MIN_TOUCH_TARGET, height = MIN_TOUCH_TARGET * 1.5f)
             .clickable(onClick = onMinimize)
             .semantics { contentDescription = "Hide map controls" }
             .testTag("map-icon-bar-minimize-handle"),
-        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
+                .align(if (onLeftSide) Alignment.CenterStart else Alignment.CenterEnd)
+                .padding(
+                    start = if (onLeftSide) HANDLE_MARK_EDGE_PADDING else 0.dp,
+                    end = if (onLeftSide) 0.dp else HANDLE_MARK_EDGE_PADDING,
+                )
                 .padding(vertical = Spacing.md)
                 .fillMaxHeight()
-                .width(MINIMIZE_HANDLE_VISIBLE_WIDTH)
+                .width(HANDLE_VISIBLE_MARK_WIDTH)
+                .testTag("map-icon-bar-minimize-handle-mark")
                 .background(color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight, shape = shape)
                 .border(
                     width = 1.dp,
@@ -468,8 +489,16 @@ internal fun MapIconBarMinimizeHandle(
     }
 }
 
-/** How much of [MapIconBarMinimizeHandle]'s own 48dp-wide tap target is actually drawn — see that composable's own doc comment for why this is much narrower than the hit area itself. */
-private val MINIMIZE_HANDLE_VISIBLE_WIDTH = 10.dp
+/** How much of [MapIconBarMinimizeHandle]'s / [MapIconBarRestoreHandle]'s own 48dp-wide tap target is actually drawn — see either composable's own doc comment for why this is much narrower than the hit area itself. */
+private val HANDLE_VISIBLE_MARK_WIDTH = 10.dp
+
+/**
+ * Padding between a handle's tap box's outer side and its visible mark, chosen so the mark's own
+ * centre lands exactly on [MapIconBar]'s outer edge ([MAP_ICON_BAR_EDGE_INSET] in from the true
+ * screen edge, which the tap box is flush with): half the mark overlaps the bar, half protrudes.
+ * Derived, not a magic number — see [MapIconBarMinimizeHandle]'s own Item 3 comment.
+ */
+private val HANDLE_MARK_EDGE_PADDING = (MAP_ICON_BAR_EDGE_INSET - HANDLE_VISIBLE_MARK_WIDTH / 2).coerceAtLeast(0.dp)
 
 /**
  * The restore control for a minimised [MapIconBar] — fullscreen-fixes dispatch, Item 3.
@@ -508,18 +537,28 @@ internal fun MapIconBarRestoreHandle(
     } else {
         RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 0.dp, bottomEnd = 0.dp)
     }
+    // Fullscreen-slide-out-fixes dispatch, Item 3 (extended to this handle on the owner's own
+    // call): the outline straddles where the bar's own outer edge sits — [HANDLE_MARK_EDGE_PADDING]
+    // in from the tap box's outer side — rather than centered in the tap box, so it genuinely
+    // peeks from the edge instead of floating 19dp inboard of it. Same padding-only mechanism as
+    // [MapIconBarMinimizeHandle]; the 48dp tap box itself never moves or shrinks.
     Box(
         modifier = modifier
             .size(MIN_TOUCH_TARGET)
             .clickable(onClick = onRestore)
             .semantics { contentDescription = "Show map controls" },
-        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
+                .align(if (onLeftSide) Alignment.CenterStart else Alignment.CenterEnd)
+                .padding(
+                    start = if (onLeftSide) HANDLE_MARK_EDGE_PADDING else 0.dp,
+                    end = if (onLeftSide) 0.dp else HANDLE_MARK_EDGE_PADDING,
+                )
                 .padding(vertical = Spacing.md)
                 .fillMaxHeight()
-                .width(10.dp)
+                .width(HANDLE_VISIBLE_MARK_WIDTH)
+                .testTag("map-icon-bar-restore-handle-mark")
                 .border(
                     width = 1.5.dp,
                     color = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Bark.copy(alpha = 0.7f),

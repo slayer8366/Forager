@@ -1235,6 +1235,66 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
+     * Horizontal centre of [tag]'s own node, in dp — for the handle-mark geometry tests below.
+     * `useUnmergedTree = true`: each handle's mark is a decorative child inside the handle's own
+     * `clickable`, which merges its descendants, so the mark's tag only exists in the unmerged tree.
+     */
+    private fun centerXOfTag(tag: String): Float {
+        val bounds = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        return (bounds.left.value + bounds.right.value) / 2
+    }
+
+    /**
+     * Fullscreen-slide-out-fixes dispatch, Item 3 ("the drag handle sits inside the bar instead of
+     * on its edge"): each handle's *visible mark* must straddle [MapIconBar]'s own outer edge —
+     * centred on it, half overlapping the bar and half protruding — not sit inside the bar's width.
+     * Checked against the bar's own real measured edge (its top row's own right edge; the rows are
+     * exactly as wide as the bar), not a hardcoded inset. The restore handle's mark is checked the
+     * same way after a real touch minimises the bar, against the edge captured *before* it left —
+     * the owner's own call to extend Item 3 to that handle too. The 48dp tap boxes themselves are
+     * covered separately by the two touch-target-floor tests above; this is only about where the
+     * drawn mark sits inside them.
+     */
+    @Test
+    fun `the handle marks straddle the bar's own outer edge, on the right by default`() {
+        setScreen()
+
+        val barOuterEdge = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().right.value
+        val minimizeMarkCenter = centerXOfTag("map-icon-bar-minimize-handle-mark")
+        assertTrue(
+            "expected the minimize handle's mark to be centred on the bar's own right edge " +
+                "($barOuterEdge), was centred at $minimizeMarkCenter",
+            kotlin.math.abs(minimizeMarkCenter - barOuterEdge) <= 1f,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
+        composeRule.waitForIdle()
+
+        val restoreMarkCenter = centerXOfTag("map-icon-bar-restore-handle-mark")
+        assertTrue(
+            "expected the restore handle's mark to be centred where the bar's own right edge was " +
+                "($barOuterEdge), was centred at $restoreMarkCenter",
+            kotlin.math.abs(restoreMarkCenter - barOuterEdge) <= 1f,
+        )
+    }
+
+    /** Item 3's own "this must hold at both edges" — the same check after a real drag-snap to the left. */
+    @Test
+    fun `after dragging the icon bar to the left edge, the minimize handle's mark straddles the bar's left edge`() {
+        setScreen()
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dxDp = (-160).dp)
+
+        val barOuterEdge = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left.value
+        val markCenter = centerXOfTag("map-icon-bar-minimize-handle-mark")
+        assertTrue(
+            "expected the minimize handle's mark to be centred on the bar's own left edge " +
+                "($barOuterEdge) after snapping left, was centred at $markCenter",
+            kotlin.math.abs(markCenter - barOuterEdge) <= 1f,
+        )
+    }
+
+    /**
      * Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking handle to
      * restore it"). Real [performTouchInput], not a semantic [performClick]: this handle is a
      * small `Box` at the map's own edge — precisely the shape of control that has silently

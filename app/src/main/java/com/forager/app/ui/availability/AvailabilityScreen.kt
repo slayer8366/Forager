@@ -17,7 +17,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -48,6 +50,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBars
@@ -250,6 +253,7 @@ import com.forager.app.ui.map.Basemap
 import com.forager.app.ui.map.CentrePinLocationPicker
 import com.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
+import com.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.forager.app.ui.map.MIN_TOUCH_TARGET
@@ -1332,6 +1336,35 @@ fun AvailabilityScreen(
         var bottomNavHeightPx by remember { mutableStateOf(0f) }
         val bottomNavDensity = LocalDensity.current
         val bottomNavHeight = with(bottomNavDensity) { bottomNavHeightPx.toDp() }
+        // Fullscreen-slide-out-fixes dispatch, Item 2: attribution's bottomInset must follow the
+        // nav off screen, not hold the gap the nav used to occupy. bottomNavHeight above is a
+        // *size* measurement (coordinates.size.height at the nav's own call site) — a slide is a
+        // translation, so that size never changes during it, and once the nav's exit settles and
+        // AnimatedVisibility disposes it, onGloballyPositioned stops firing and bottomNavHeightPx
+        // simply keeps its last value forever. The inset does NOT animate for free; it needs this.
+        //
+        // Fullscreen target is the real system navigation-bar inset, not 0 — the owner's own call
+        // over the dispatch's literal "true bottom edge": the nav's measured height already
+        // includes that inset (Material3's NavigationBar self-consumes it, see bottomNavHeightPx's
+        // own doc comment), so this is exactly "the nav's own portion leaves, the system bar's
+        // portion stays", and attribution stays legible and uncovered above the gesture pill /
+        // 3-button bar per the standing rule. Under Robolectric both are 0 — device-only by
+        // construction; no test here can tell them apart, and none claims to.
+        //
+        // navigationMotionSpec(), the spec the nav's own slide uses (its own call site in
+        // CompactMapTab) — the dispatch named panelMotionSpec() for it, which the nav doesn't use;
+        // the intent ("the same spec, so the two cannot drift out of sync") is what's honoured.
+        // Same distance (the nav's own height) and same spring from the same trigger, so the two
+        // curves match — one animation drives the nav's translation, this one drives the inset.
+        // coerceAtLeast(0.dp): a spatial spring overshoots, and a negative Dp fed to
+        // Modifier.padding throws — the exact crash animatedTopInset below already hit once.
+        val systemNavigationBarInset = with(bottomNavDensity) { WindowInsets.navigationBars.getBottom(this).toDp() }
+        val animatedAttributionBottomInset by animateDpAsState(
+            targetValue = if (isMapFullscreen) systemNavigationBarInset else bottomNavHeight,
+            animationSpec = MotionTokens.navigationMotionSpec(),
+            label = "attributionBottomInset",
+        )
+        val safeAttributionBottomInset = animatedAttributionBottomInset.coerceAtLeast(0.dp)
         Scaffold(
             snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
             // Fullscreen-fixes dispatch ("still shifting"): Material3's own Scaffold falls back to
@@ -1459,14 +1492,18 @@ fun AvailabilityScreen(
                         CompactTab.MAP -> CompactMapTab(
                             uiState = uiState,
                             mapSlot = mapSlot,
-                            // Attribution must rise above the floating bottom nav, which now
-                            // overlays the map in both fullscreen states — fullscreen-fixes
-                            // dispatch, Item 1 (third design). bottomNavHeight is read back from
-                            // this same nav's own real measured height (hoisted var's own doc
-                            // comment, above), so this stays correct on a real device even though
-                            // the nav's own rendered height there differs from what Robolectric
-                            // measures.
-                            renderMode = mapRenderMode.copy(bottomInset = bottomNavHeight),
+                            // Attribution must rise above the floating bottom nav while the nav
+                            // is there — fullscreen-fixes dispatch, Item 1 (third design) — and
+                            // follow it off screen while it isn't: safeAttributionBottomInset
+                            // (declared alongside bottomNavHeight above, own doc comment there)
+                            // animates between the nav's real measured height and the system
+                            // navigation-bar inset in lockstep with the nav's own slide. Safe to
+                            // change every animation frame: SightingsMapSlot destructures this
+                            // field at the boundary and the only consumer is the attribution
+                            // Text's own padding — no map effect keys on it or on renderMode as a
+                            // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
+                            // re-measures or re-fits the map.
+                            renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset),
                             mapMode = mapMode,
                             onMapModeSelected = { mapMode = it },
                             isNightMode = isNightMode,
@@ -1543,10 +1580,23 @@ fun AvailabilityScreen(
                                 {}
                             } else {
                                 {
+                                    // Fullscreen-slide-out-fixes dispatch, Item 1: the slide distance
+                                    // is the bar's own height PLUS the real status-bar inset, not
+                                    // fullHeight alone. This bar's top edge is the content area's
+                                    // top, which is the status bar's *bottom* edge (the Scaffold
+                                    // consumes the top inset as padding on the Map tab — see its
+                                    // contentWindowInsets), so a translation of exactly fullHeight
+                                    // lands the bar's bottom at the status bar's bottom: its entire
+                                    // travel and end position is the status-bar band, nothing clips
+                                    // it, and edge-to-edge makes that band transparent — confirmed on
+                                    // device as the bar's text drawn over the clock. Device-only by
+                                    // construction: Robolectric reports this inset as 0, so this is
+                                    // a no-op in every test here and deliberately has none.
+                                    val statusBarTopPx = WindowInsets.statusBars.getTop(LocalDensity.current)
                                     androidx.compose.animation.AnimatedVisibility(
                                         visible = !isMapFullscreen,
-                                        enter = slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight },
-                                        exit = slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight },
+                                        enter = slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
+                                        exit = slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
                                     ) {
                                     Column {
                                         SearchEntryBar(
@@ -4853,13 +4903,37 @@ private fun CompactMapTab(
                             .coerceIn(maxUpwardOffsetPx, maxDownwardOffsetPx)
                     }
                 }
-                if (isMapIconBarMinimized) {
+                // Owner request (alongside the fullscreen-slide-out-fixes dispatch): minimising
+                // slides this cluster off whichever edge it's on, and the restore handle slides in
+                // from that same edge, instead of the instant cut this used to be — "like the rest
+                // of the UI," i.e. the same AnimatedVisibility slide SearchEntryBar and
+                // ForagerBottomNav use for fullscreen. Three separate AnimatedVisibility wrappers
+                // (bar, minimize handle, TrailheadControls below) rather than one: each keeps its
+                // own alignment in this Box, and all three key on the same flag with the same spec
+                // and the same edge, so they move as one. navigationMotionSpec(), the nav's own
+                // slide spec — this is navigation chrome, not a panel. Pure translations of Box
+                // children, no effect on this Box's own size, same reasoning as those two slides.
+                //
+                // mapIconBarBottomPx is now measured on the bar's wrapper (a direct child of this
+                // Box, so boundsInParent() is still in this Box's own space) minus the bar's own
+                // MAP_ICON_BAR_EDGE_INSET, which is exactly the bar's visible bottom edge the
+                // padding-then-onGloballyPositioned chain used to report directly — measured on the
+                // bar itself, boundsInParent() would now be relative to the wrapper, not this Box,
+                // and TrailheadControls' anchor would silently break (the same trap a Row/Column
+                // wrapper was rejected for when the minimize handle was first added).
+                val mapIconBarSlideOffset: (Int) -> Int = { fullWidth -> if (isMapIconBarOnLeftSide) -fullWidth else fullWidth }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isMapIconBarMinimized,
+                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
+                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
+                    modifier = Modifier
+                        .align(mapIconBarSideAlignment)
+                        .then(mapIconBarPositionOffset),
+                ) {
                     MapIconBarRestoreHandle(
                         onRestore = { isMapIconBarMinimized = false },
                         onLeftSide = isMapIconBarOnLeftSide,
                         modifier = Modifier
-                            .align(mapIconBarSideAlignment)
-                            .then(mapIconBarPositionOffset)
                             .then(mapIconBarDragModifier)
                             // Feeds the drag clamp's own maxUpwardOffsetPx above — see
                             // mapIconBarHeightPx's own doc comment.
@@ -4867,7 +4941,27 @@ private fun CompactMapTab(
                                 mapIconBarHeightPx = coordinates.size.height.toFloat()
                             },
                     )
-                } else {
+                }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !isMapIconBarMinimized,
+                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
+                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
+                    modifier = Modifier
+                        .align(mapIconBarSideAlignment)
+                        .then(mapIconBarPositionOffset)
+                        // Reports the bar's own actual laid-out bottom edge, relative to this Box,
+                        // into mapIconBarBottomPx — what ControlPill/DistanceArm anchor against
+                        // below. See mapIconBarBottomPx's own doc comment for why this is measured
+                        // rather than a hardcoded offset or a value computed from the bar's row
+                        // count, and this block's own comment above for why it's measured here on
+                        // the wrapper. Still correct with the drag feature layered on:
+                        // boundsInParent() reports the real final laid-out position, so it
+                        // reflects wherever a drag has actually moved it to.
+                        .onGloballyPositioned { coordinates ->
+                            mapIconBarBottomPx = coordinates.boundsInParent().bottom -
+                                with(compassStripDensity) { MAP_ICON_BAR_EDGE_INSET.toPx() }
+                        },
+                ) {
                     MapIconBar(
                         isFullscreen = isFullscreen,
                         onToggleFullscreen = onToggleFullscreen,
@@ -4886,30 +4980,26 @@ private fun CompactMapTab(
                             showActionMenu = true
                         },
                         modifier = Modifier
-                            .align(mapIconBarSideAlignment)
-                            .then(mapIconBarPositionOffset)
-                            .padding(Spacing.sm)
-                            // Reports this bar's own actual laid-out bottom edge, relative to this
-                            // Box, into mapIconBarBottomPx — what ControlPill/DistanceArm anchor
-                            // against below. See mapIconBarBottomPx's own doc comment for why this
-                            // is measured rather than a hardcoded offset or a value computed from
-                            // the bar's row count. Still correct with the drag feature layered on:
-                            // boundsInParent() reports the bar's real final laid-out position, so
-                            // it reflects wherever a drag has actually moved it to.
+                            .padding(MAP_ICON_BAR_EDGE_INSET)
+                            // Feeds the drag clamp's own maxUpwardOffsetPx above — see
+                            // mapIconBarHeightPx's own doc comment.
                             .onGloballyPositioned { coordinates ->
-                                mapIconBarBottomPx = coordinates.boundsInParent().bottom
-                                // Feeds the drag clamp's own maxUpwardOffsetPx above — see
-                                // mapIconBarHeightPx's own doc comment.
                                 mapIconBarHeightPx = coordinates.size.height.toFloat()
                             },
                     )
+                }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !isMapIconBarMinimized,
+                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
+                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
+                    modifier = Modifier
+                        .align(mapIconBarSideAlignment)
+                        .then(mapIconBarPositionOffset),
+                ) {
                     MapIconBarMinimizeHandle(
                         onMinimize = { isMapIconBarMinimized = true },
                         onLeftSide = isMapIconBarOnLeftSide,
-                        modifier = Modifier
-                            .align(mapIconBarSideAlignment)
-                            .then(mapIconBarPositionOffset)
-                            .then(mapIconBarDragModifier),
+                        modifier = Modifier.then(mapIconBarDragModifier),
                     )
                 }
                 CompassElevationStrip(
@@ -4936,7 +5026,13 @@ private fun CompactMapTab(
                 // file's own comment above on that gate — this pill's own position is computed
                 // from mapIconBarBottomPx, a value that stops being meaningful the moment
                 // MapIconBar itself is gone.
-                if (!isMapIconBarMinimized) {
+                // Slides off/on with the bar — see the bar's own AnimatedVisibility comment above.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !isMapIconBarMinimized,
+                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
+                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
+                    modifier = Modifier.align(if (isMapIconBarOnLeftSide) Alignment.TopStart else Alignment.TopEnd),
+                ) {
                     TrailheadControls(
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording,
@@ -4946,7 +5042,6 @@ private fun CompactMapTab(
                         onToggleReturning = onToggleReturning,
                         mapIconBarBottomPx = mapIconBarBottomPx,
                         onLeftSide = isMapIconBarOnLeftSide,
-                        modifier = Modifier.align(if (isMapIconBarOnLeftSide) Alignment.TopStart else Alignment.TopEnd),
                     )
                 }
 
