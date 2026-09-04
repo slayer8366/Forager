@@ -359,17 +359,15 @@ abstract class AvailabilityScreenLayoutTest {
     /**
      * **Test 3 — fullscreen floats the bottom nav over the map; it does not resize the map.**
      *
-     * Fullscreen-fixes dispatch, Item 1: the prior attempt kept Scaffold's own reported content
-     * padding constant by reserving an invisible same-height spacer in its `bottomBar` slot while
-     * fullscreen — which kept the map's own size correct, but left the *real* bar floating in a
-     * different Compose subtree, one row for `weight(1f)`'s content above a separately-reserved
-     * (and now empty) strip Scaffold still measured space for: dead space on a real device. The fix
-     * keeps the bar in Scaffold's `bottomBar` slot always (so Scaffold's own layout math never
-     * changes — confirmed empirically, see that code's own doc comment) and instead has the
-     * content ignore Scaffold's own reported bottom inset while fullscreen, letting the map extend
-     * under the bar rather than stopping short of it. This test guards both halves at once: the
-     * map's measured height must be identical with the bar present (normal) and floating
-     * (fullscreen) — if either half of the fix regresses, one of those two numbers moves.
+     * Fullscreen-fixes dispatch, Item 1, third design (the first two attempts both failed this
+     * exact test, with concrete numbers — see the dispatch's own investigation report for both).
+     * The bar no longer lives in Scaffold's `bottomBar` slot for the Map tab at all, in either
+     * fullscreen state — it renders as an always-present overlay inside `CompactMapTab`'s own
+     * content `Box` instead (that composable's own doc comment). Because that `Box`'s own size
+     * never depends on `isMapFullscreen` — `bottomBar` reports zero height for the Map tab
+     * regardless of fullscreen, since nothing renders there for that tab either way — the map's
+     * measured height must be identical before and after the toggle, by construction rather than by
+     * a padding trick applied after the fact.
      */
     @Test
     fun `fullscreen does not change the map's own measured height`() {
@@ -390,21 +388,37 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 3b — attribution's own clearance actually reaches the map while fullscreen, and only then.**
+     * **Test 3b — attribution's own clearance reaches the map in both states, not just fullscreen.**
+     *
+     * Fullscreen-fixes dispatch, Item 1, third design: the bottom nav overlays the map outside
+     * fullscreen too now (`CompactMapTab`'s own doc comment), not only while fullscreen — the first
+     * two attempts at this fix only floated the bar over the map while fullscreen, so this test
+     * used to assert `bottomInset` was zero normally. That premise no longer holds: attribution
+     * must clear the bar exactly the same way in both states, since the bar sits over the map in
+     * both now, so `bottomInset` must be positive — and, since only the bar's own opacity changes
+     * between the two states, not its layout, identical — in both.
      */
     @Test
-    fun `bottomInset is zero normally and rises to the bar's own measured height once fullscreen`() {
+    fun `bottomInset is positive and identical whether or not the map is fullscreen`() {
         setScreen(SEARCHED_STATE)
-        assertEquals(0.dp, capturedRenderMode?.bottomInset)
+        val insetBefore = capturedRenderMode?.bottomInset
+        println("MEASURED bottomInset before fullscreen=$insetBefore")
+        assertTrue(
+            "bottomInset must already be positive outside fullscreen, since the bottom nav overlays " +
+                "the map there too now, but it measured $insetBefore.",
+            (insetBefore ?: 0.dp) > 0.dp,
+        )
 
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
 
         val insetAfter = capturedRenderMode?.bottomInset
         println("MEASURED bottomInset after fullscreen=$insetAfter")
-        assertTrue(
-            "bottomInset must become positive once fullscreen floats the bar over the map, so " +
-                "SightingsMap's own attribution rises to clear it, but it measured $insetAfter.",
-            (insetAfter ?: 0.dp) > 0.dp,
+        assertEquals(
+            "bottomInset should not change across the fullscreen toggle — only the bar's own " +
+                "opacity changes, not its layout, so its measured height (and this inset) should be " +
+                "identical in both states.",
+            insetBefore,
+            insetAfter,
         )
     }
 

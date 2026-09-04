@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -39,8 +40,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -167,7 +166,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -1290,69 +1288,37 @@ fun AvailabilityScreen(
                 }
             }
         }
-        // ForagerBottomNav's own last-measured height, in px — fullscreen-fixes dispatch, Item 1.
-        // Feeds MapRenderMode.bottomInset (below) so SightingsMap's attribution rises to sit just
-        // above the bar, wherever it actually is, rather than a guessed constant. Measured, not
-        // hardcoded, the same "don't hardcode a floating-chrome height" precedent mapIconBarBottomPx
-        // already set in this file.
-        var bottomNavHeightPx by remember { mutableStateOf(0f) }
-        val density = LocalDensity.current
         Scaffold(
             snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
             bottomBar = {
-                // Fullscreen-fixes dispatch, Item 1: always rendered, in the same place, never
-                // removed and never replaced by a placeholder — Material3 Scaffold sizes its own
-                // reported content padding from this slot's measured height, and that reported
-                // value driving Scaffold's own layout math is exactly what must never change across
-                // the fullscreen toggle (see the content Column's own padding below for the other
-                // half of this fix). Only the container's own opacity changes: opaque normally,
-                // 80% while fullscreen (the standing chrome-over-the-map rule), which is what lets
-                // the map — extending under this bar while fullscreen, per the Column's own
-                // padding below — actually show through it, since Scaffold places body content
-                // before bottomBar and this bar draws on top wherever the two now overlap.
-                ForagerBottomNav(
-                    selectedTab = compactTab,
-                    isDrawerOpen = isDrawerOpen,
-                    onTabSelected = onBottomNavTabSelected,
-                    containerColor = if (isMapFullscreen) {
-                        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainer
-                    },
-                    modifier = Modifier.onGloballyPositioned { coordinates ->
-                        bottomNavHeightPx = coordinates.size.height.toFloat()
-                    },
-                )
+                // Fullscreen-fixes dispatch, Item 1 (third design, replacing two earlier attempts
+                // that both failed AvailabilityScreenLayoutTest's own measured-height assertion —
+                // see that test's own doc comment for the concrete numbers). The Map tab's own nav
+                // no longer lives in this slot at all, in either fullscreen state: it renders as an
+                // always-present overlay inside CompactMapTab's own content Box instead (that
+                // composable's own doc comment). So this slot renders nothing while compactTab is
+                // MAP, and the ordinary opaque bar otherwise — its own reported height then depends
+                // only on compactTab, which the fullscreen toggle never changes, so Scaffold's own
+                // content padding is stable across that toggle by construction, not by a padding
+                // trick applied after the fact.
+                if (compactTab != CompactTab.MAP) {
+                    ForagerBottomNav(
+                        selectedTab = compactTab,
+                        isDrawerOpen = isDrawerOpen,
+                        onTabSelected = onBottomNavTabSelected,
+                    )
+                }
             },
         ) { padding ->
-            val layoutDirection = LocalLayoutDirection.current
-            // Fullscreen-fixes dispatch, Item 1: while fullscreen, this content — and with it the
-            // weight(1f) Box CompactMapTab lives in — must extend all the way to the screen's own
-            // true bottom edge, under the (still Scaffold-hosted, still real-height) bottom nav
-            // above, rather than staying inset above it. Dropping only the bottom component of
-            // Scaffold's own reported padding is what does that: Scaffold itself still measures
-            // and reports the bar's real height unconditionally (so its own layout math never
-            // changes size, per that bar's own doc comment), but this Column simply declines to
-            // reserve space for it on this one edge once there's a map that should extend under it
-            // instead. Confirmed empirically before relying on it: content that omits Scaffold's
-            // own reported bottom padding is placed first and extends the full root height, with
-            // bottomBar's own composable drawn after it in the same overlapping region — not two
-            // separately-reserved, non-overlapping regions.
-            val contentPadding = if (isMapFullscreen) {
-                PaddingValues(
-                    start = padding.calculateStartPadding(layoutDirection),
-                    top = padding.calculateTopPadding(),
-                    end = padding.calculateEndPadding(layoutDirection),
-                )
-            } else {
-                padding
-            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     // Scaffold's padding carries the system bar insets, so nothing here is laid
-                    // out under the status or navigation bar.
-                    .padding(contentPadding),
+                    // out under the status or navigation bar. No isMapFullscreen special-casing
+                    // needed any more — bottomBar's own reported height already never changes for
+                    // the Map tab (nothing renders there in either state), so the weight(1f) Box
+                    // below always gets the full remaining height on that tab, fullscreen or not.
+                    .padding(padding),
             ) {
                 // Map tab only: SearchEntryBar moves into CompactMapTab's own searchBarSlot
                 // instead (that call site's own doc comment), composed as a real overlay inside
@@ -1416,7 +1382,7 @@ fun AvailabilityScreen(
                 // below now fills this Box (fillMaxSize()) rather than carrying its own weight(1f),
                 // since a Box — unlike the Column this used to be a direct child of — doesn't
                 // distribute weight among its children.
-                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     when (compactTab) {
                         CompactTab.LIST -> ListTab(
                             uiState = uiState,
@@ -1428,15 +1394,12 @@ fun AvailabilityScreen(
                         CompactTab.MAP -> CompactMapTab(
                             uiState = uiState,
                             mapSlot = mapSlot,
-                            // Attribution must rise above the floating bottom nav while fullscreen,
-                            // never covered by it — fullscreen-maps dispatch, Part 2b. bottomInset
-                            // is 0.dp (MapRenderMode's own default) otherwise, matching every other
-                            // caller unchanged.
-                            renderMode = if (isMapFullscreen) {
-                                mapRenderMode.copy(bottomInset = with(density) { bottomNavHeightPx.toDp() })
-                            } else {
-                                mapRenderMode
-                            },
+                            // Attribution must rise above the floating bottom nav, which now
+                            // overlays the map in both fullscreen states — fullscreen-fixes
+                            // dispatch, Item 1 (third design). FORAGER_BOTTOM_NAV_HEIGHT is the
+                            // nav's own fixed Material3 height, not a live measurement — see that
+                            // constant's own doc comment for why a live one was tried and reverted.
+                            renderMode = mapRenderMode.copy(bottomInset = FORAGER_BOTTOM_NAV_HEIGHT),
                             mapMode = mapMode,
                             onMapModeSelected = { mapMode = it },
                             isNightMode = isNightMode,
@@ -1447,6 +1410,8 @@ fun AvailabilityScreen(
                             onLogFindHere = onLogFindHere,
                             isFullscreen = isMapFullscreen,
                             onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
+                            isDrawerOpen = isDrawerOpen,
+                            onBottomNavTabSelected = onBottomNavTabSelected,
                             onLocateMe = onLocateMe,
                             isRecording = isRecording,
                             onToggleRecording = onToggleRecording,
@@ -1634,7 +1599,31 @@ fun AvailabilityScreen(
                                     // reordering composition, keeps the scrim's own intercept of the
                                     // map underneath it intact (composed before CompactMapTab would
                                     // let the map's own pan gesture win those same taps instead).
-                                    .padding(top = if (compactTab == CompactTab.MAP) searchBarHeight else 0.dp)
+                                    //
+                                    // Same reasoning, bottom edge up, for the bottom nav — fullscreen-
+                                    // fixes dispatch, Item 1 (third design). Before that dispatch,
+                                    // the nav always lived in Scaffold's own bottomBar slot, a
+                                    // separate composition subtree this scrim's fillMaxSize() never
+                                    // reached, so the nav stayed tappable regardless of this dropdown
+                                    // on every tab, Map included. Now that the Map tab's own nav
+                                    // instance composes inside CompactMapTab's own Box (a descendant
+                                    // of this same weight(1f) Box the scrim also fills), leaving this
+                                    // unexcluded would silently swallow every tap on it while the
+                                    // dropdown is open — confirmed, reproducible: this is exactly
+                                    // what AvailabilityScreenMapIconStackTest's own bottom-nav tests
+                                    // caught (map-slot still present after "tapping" List/Seasonal/
+                                    // Tools, because the tap never reached the nav's own onClick at
+                                    // all — though this scrim turned out not to be the actual
+                                    // culprit there; see the SearchDropdown AnimatedVisibility's own
+                                    // heightIn doc comment below for what was). FORAGER_BOTTOM_NAV_HEIGHT
+                                    // (that constant's own doc comment explains why it's fixed, not
+                                    // a live measurement) applies only on the Map tab, where the nav
+                                    // lives in this Box; every other tab keeps it in bottomBar
+                                    // again, so this is a no-op there.
+                                    .padding(
+                                        top = if (compactTab == CompactTab.MAP) searchBarHeight else 0.dp,
+                                        bottom = if (compactTab == CompactTab.MAP) FORAGER_BOTTOM_NAV_HEIGHT else 0.dp,
+                                    )
                                     .testTag(SEARCH_DROPDOWN_SCRIM_TAG)
                                     .pointerInput(Unit) {
                                         detectTapGestures { showSearchDropdown = false }
@@ -1646,6 +1635,8 @@ fun AvailabilityScreen(
                         // to ColumnScope's own AnimatedVisibility overload instead of this top-level
                         // one — Kotlin then refuses it ("cannot be called with an implicit
                         // receiver") since a BoxScope, not a ColumnScope, is this call's real one.
+                        // fullscreen-fixes dispatch, Item 1 (third design): fed into heightIn below.
+                        val searchDropdownTopOffset = if (compactTab == CompactTab.MAP) searchBarHeight + compassStripClearance else 0.dp
                         androidx.compose.animation.AnimatedVisibility(
                             visible = showSearchDropdown,
                             enter = expandVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
@@ -1661,9 +1652,29 @@ fun AvailabilityScreen(
                             // tab only: SearchEntryBar now overlays the map above the strip on this
                             // tab (see this scaffold's own searchBarHeight doc comment), so the
                             // drawer needs to start below both, not just the strip.
+                            //
+                            // heightIn(max=...) — fullscreen-fixes dispatch, Item 1 (third design):
+                            // this panel's own SearchDropdown has a verticalScroll expecting a
+                            // bounded parent, but nothing here previously bounded it — a latent
+                            // overflow, harmless before this dispatch because the weight(1f) Box
+                            // this sits in never held anything sensitive in the overflow region.
+                            // Now that the Map tab's own bottom nav lives inside that same Box (see
+                            // CompactMapTab's own doc comment), an unbounded panel here — expanded
+                            // via "Enter coordinates manually," exactly what
+                            // AvailabilityScreenMapIconStackTest's own searchAReferenceRegion()
+                            // helper does — measured tall enough to physically reach into the nav's
+                            // own screen band and, being composed after it, won every tap there:
+                            // confirmed via that test's own bounds queries (SearchDropdown's own
+                            // reported bounds genuinely overlapped the nav's), not assumed. Capped
+                            // to what's actually left below this panel's own top offset, minus the
+                            // nav's own band on the Map tab, so it scrolls instead of overflowing.
                             modifier = Modifier
                                 .align(Alignment.TopStart)
-                                .padding(top = if (compactTab == CompactTab.MAP) searchBarHeight + compassStripClearance else 0.dp),
+                                .padding(top = searchDropdownTopOffset)
+                                .heightIn(
+                                    max = maxHeight - searchDropdownTopOffset -
+                                        (if (compactTab == CompactTab.MAP) FORAGER_BOTTOM_NAV_HEIGHT else 0.dp),
+                                ),
                         ) {
                             SearchDropdown(
                                 uiState = uiState,
@@ -1767,7 +1778,30 @@ fun AvailabilityScreen(
  * never actually becomes the selected `compactTab` (see that entry's own doc comment — tapping it
  * opens a drawer instead), so [isDrawerOpen] stands in for its own highlight specifically. Every
  * other entry highlights the ordinary way.
+ *
+ * **Two call sites, never both for the same tab at once** (fullscreen-fixes dispatch, Item 1, third
+ * design): `compactMainScaffold`'s own `bottomBar` slot renders this, unconditionally opaque, for
+ * every tab except Map; the Map tab's own instance lives inside `CompactMapTab`'s own content `Box`
+ * instead, `selectedTab` hardcoded to [CompactTab.MAP] there — see that composable's own doc
+ * comment for why the nav can't stay in `bottomBar` for that one tab.
  */
+/**
+ * [ForagerBottomNav]'s own real height — Material3's own fixed spec for a [NavigationBar] built
+ * from plain icon+label [NavigationBarItem]s, not a live measurement the way [MapIconBar]'s own
+ * height needs one. The two differ on the property that justifies measuring at all: MapIconBar's
+ * height depends on its own row count, which has genuinely changed release to release (see that
+ * composable's own doc comment); a Material3 [NavigationBar] with a fixed item set has no such
+ * axis of variation. A live measurement — threaded from [CompactMapTab]'s own overlay instance
+ * back up to [compactMainScaffold]'s own scope, where both the search-dropdown dismiss scrim and
+ * its own `SearchDropdown` panel need the same band excluded — was tried first and reverted, not
+ * because it was wrong, but because a fixed constant does the identical job with less machinery
+ * for a value that never actually varies. See that scrim's own doc comment, and the
+ * `SearchDropdown` `AnimatedVisibility`'s own `heightIn` doc comment, for the real bug this height
+ * needs to be excluded from — a confirmed, reproducible one (`AvailabilityScreenMapIconStackTest`'s
+ * own bottom-nav tests), just not caused by the live-vs-fixed choice itself.
+ */
+private val FORAGER_BOTTOM_NAV_HEIGHT = 80.dp
+
 @Composable
 private fun ForagerBottomNav(
     selectedTab: CompactTab,
@@ -4317,6 +4351,18 @@ private fun CompactMapTab(
     onLogFindHere: (LatLng) -> Unit,
     isFullscreen: Boolean,
     onToggleFullscreen: () -> Unit,
+    /**
+     * Fullscreen-fixes dispatch, Item 1 (third design) — this tab now hosts [ForagerBottomNav]
+     * itself, inside its own content [Box] below, rather than the shared [Scaffold]'s `bottomBar`
+     * slot ([compactMainScaffold]'s own `bottomBar` doc comment explains why: that slot's reported
+     * height must never depend on [isFullscreen], and the only way to guarantee that is for the Map
+     * tab's nav not to live there at all). [isDrawerOpen] and [onBottomNavTabSelected] are exactly
+     * the two inputs [ForagerBottomNav] needs beyond its own `selectedTab` — hardcoded to
+     * [CompactTab.MAP] at this composable's own call to it below, since that's the only tab this
+     * composable is ever shown for.
+     */
+    isDrawerOpen: Boolean,
+    onBottomNavTabSelected: (CompactTab) -> Unit,
     onLocateMe: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
@@ -4509,7 +4555,6 @@ private fun CompactMapTab(
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
                 }
             }
-
             Box(modifier = modifier.fillMaxSize()) {
                 mapSlot(
                     displayRegion,
@@ -4671,6 +4716,41 @@ private fun CompactMapTab(
                             .padding(top = topInset + compassStripClearance + Spacing.sm),
                     )
                 }
+
+                // Fullscreen-fixes dispatch, Item 1 (third design). Composed here — after the
+                // ambient chrome above (MapIconBar/CompassElevationStrip/TrailheadControls/
+                // TaxonMapFilterChip, none of which reach this bar's own bottom band) but *before*
+                // the modal overlays below (AddActionTile/MapModePicker/CentrePinLocationPickerOverlay)
+                // — deliberately, not composed last: this Box now extends the full screen height in
+                // both fullscreen states (CompactMapTab's own doc comment), so those modals'
+                // fillMaxSize() content now reaches all the way down into this bar's own screen
+                // region too. Composing this nav after them (drawn on top, hit-tested first) was
+                // tried first and is a confirmed, reproducible regression — it silently swallowed
+                // CentrePinLocationPickerOverlay's own "OK" confirm tap, caught by
+                // AvailabilityScreenTripPlanningFlowTest's own trip-planning-flow tests going from
+                // passing to reliably failing (not flaky) on exactly that ordering, the same class
+                // of miss CLAUDE.md's own "Known pitfalls" already documents twice over for chrome
+                // composed over a map. A modal that's open should sit above this persistent bar, not
+                // trapped underneath it. Full-width across the bottom, opaque normally, 80% while
+                // fullscreen — the standing chrome-over-the-map rule. selectedTab is hardcoded to
+                // CompactTab.MAP — this composable is only ever shown for that tab, so there's
+                // nothing else it could mean here. The other three tabs still render this same
+                // composable, unconditionally opaque, from compactMainScaffold's own bottomBar slot
+                // instead (that call site's own doc comment) — this overlay and that one are the two
+                // places ForagerBottomNav renders, never both for the same tab at once.
+                ForagerBottomNav(
+                    selectedTab = CompactTab.MAP,
+                    isDrawerOpen = isDrawerOpen,
+                    onTabSelected = onBottomNavTabSelected,
+                    containerColor = if (isFullscreen) {
+                        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth(),
+                )
 
                 // Inside this Box, not alongside it, so it can align near the add button's own
                 // corner of the icon stack above — see AddActionTile's doc comment for why this
