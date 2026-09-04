@@ -121,6 +121,12 @@ class CartographyScreenTest {
                 onSetWaypointDecision = { _, _ -> },
                 onSetOfflineRegionDecision = { _, _ -> },
                 onToggleKeptPhoto = {},
+                // Real acquire-and-attach composition (persist via AddPhotoToGalleryUseCase, then
+                // this same onToggleKeptPhoto) is MainActivity's own job, untestable from here —
+                // see PullPhotoPickerScreen's own doc comment. This file isolates navigation, same
+                // as every other fixture callback above; a no-op is enough for the tests below,
+                // which only assert that Camera/Import exist and that back unwinds correctly.
+                onAcquirePhotoForEntry = {},
                 onFinishEntry = {
                     uiState.editingEntry?.let { current ->
                         val committed = current.copy(isDraft = false)
@@ -339,5 +345,31 @@ class CartographyScreenTest {
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
         composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+    }
+
+    /**
+     * Entry-photo-acquisition dispatch, Item 2: Cartography's own acquire-and-attach path,
+     * reachable for the first time. Only button *presence* is asserted — tapping either one
+     * launches a real system Activity ([rememberPhotoAcquisitionLaunchers]) Robolectric cannot
+     * meaningfully drive, the same established limit [PhotoGalleryScreenTest]/[LogEntryDetailScreenTest]
+     * already document for the identical buttons elsewhere. What happens after a tap (persist, then
+     * attach via [onAcquirePhotoForEntry]) is proven separately: the persist half by
+     * `MushroomLogViewModelTest`'s own "onAddGalleryPhoto invokes onPersisted..." test, the attach
+     * half by `CartographyViewModelTest`'s own "a standalone photo with no owning find can be
+     * pulled into a Cartography entry" test — this file isolates navigation, not persistence, same
+     * as its own class doc comment states.
+     */
+    @Test
+    fun `Camera and Import buttons are on the add-photo picker, reached from inside the editor`() {
+        setScreen(CartographyUiState(entries = listOf(committedEntry)))
+        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+
+        composeRule.onNodeWithContentDescription("Add a photo from the Album").performClick()
+
+        composeRule.onNodeWithText("Camera").assertIsDisplayed()
+        composeRule.onNodeWithText("Import").assertIsDisplayed()
+        composeRule.onNodeWithText("Gallery").assertDoesNotExist()
     }
 }

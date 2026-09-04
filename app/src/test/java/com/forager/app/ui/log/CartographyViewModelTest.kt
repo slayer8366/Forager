@@ -386,6 +386,31 @@ class CartographyViewModelTest {
         assertEquals(listOf(standalone.id), viewModel.uiState.value.editingEntry?.photos?.map { it.photoId })
     }
 
+    /**
+     * Entry-photo-acquisition dispatch, Item 2's own verification requirement: "removing it takes
+     * one tap" — [KeptPhotosSection]'s "Remove this photo" `IconButton` calls
+     * [CartographyViewModel.onToggleKeptPhoto] with the same id a second time, nothing else. Proven
+     * here at the ViewModel level (the Compose click itself is a pure callback, same precedent as
+     * every other button-click test in this codebase) so it holds regardless of whether the id
+     * arrived by pulling an existing Album photo or by acquiring a new one — [onToggleKeptPhoto]
+     * itself never distinguishes the two (see its own doc comment).
+     */
+    @Test
+    fun `toggling an already-kept photo id a second time detaches it`() = runTest(dispatcher) {
+        val standalone = com.forager.app.domain.model.LogPhoto(id = "standalone-2", relativePath = "photos/standalone-2.jpg", createdAtEpochMillis = 1_000L)
+        RoomMushroomLogRepository(database.mushroomLogDao()).addPhotoToGallery(standalone).getOrThrow()
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        viewModel.onToggleKeptPhoto(standalone.id)
+        advanceUntilIdle()
+        assertEquals(listOf(standalone.id), viewModel.uiState.value.editingEntry?.photos?.map { it.photoId })
+
+        viewModel.onToggleKeptPhoto(standalone.id)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<String>(), viewModel.uiState.value.editingEntry?.photos?.map { it.photoId })
+    }
+
     @Test
     fun `deleting an entry removes it from both entries and drafts`() = runTest(dispatcher) {
         viewModel.onStartEntry(DAY)

@@ -98,6 +98,8 @@ internal fun CartographyScreen(
     onSetWaypointDecision: (String, Boolean) -> Unit,
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
+    /** Entry-photo-acquisition dispatch, Item 2 — see [CartographyEntryEditScreen]'s own doc comment on this same parameter for the full reasoning, and this file's own lifecycle-observer doc comment for why [photoAcquisitionInFlight] below exists alongside it. */
+    onAcquirePhotoForEntry: (PhotoSource) -> Unit,
     onFinishEntry: () -> Unit,
     /** Explicit Save for a committed entry — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment on the Save/Discard/Cancel policy. */
     onSaveEntry: () -> Unit,
@@ -183,10 +185,23 @@ internal fun CartographyScreen(
     // a clean entry or an open draft can sit through a background/resume cycle too, with nothing else
     // here to clear focus for either of those.
     val latestIsEntryOpen by rememberUpdatedState(editingEntry != null)
+    // Entry-photo-acquisition dispatch, Item 2: this screen's own Camera/Import launch (inside
+    // PullPhotoPickerScreen, reached from CartographyEntryEditScreen) is a new reachable state that
+    // needed this exact guard for the first time — the device-check patch already fixed the
+    // identical failure mode for find-editing (AvailabilityScreen's own latestPhotoAcquisitionInFlight,
+    // suppressing its incidental-exit call), and PhotoAcquisitionLaunchers' own camera round trip
+    // fires ON_STOP/ON_RESUME on the app's own camera launch, indistinguishable from real
+    // backgrounding to this observer otherwise. Without this: launching the camera from inside a
+    // dirty committed entry would set backgroundedWhileDirty on the resulting ON_STOP purely because
+    // the camera app opened, then show the "Welcome back" prompt on return from a photo the user
+    // just took, not from backgrounding. rememberSaveable to match backgroundedWhileDirty/
+    // showReturnPrompt above, for the same reason: a real Activity recreation mid-capture must not
+    // lose track of this either.
+    var photoAcquisitionInFlight by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_STOP -> if (latestIsEntryDirty) backgroundedWhileDirty = true
+                Lifecycle.Event.ON_STOP -> if (latestIsEntryDirty && !photoAcquisitionInFlight) backgroundedWhileDirty = true
                 Lifecycle.Event.ON_RESUME -> {
                     if (latestIsEntryOpen) focusManager.clearFocus(force = true)
                     if (backgroundedWhileDirty) {
@@ -221,6 +236,9 @@ internal fun CartographyScreen(
                 onSetWaypointDecision = onSetWaypointDecision,
                 onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                 onToggleKeptPhoto = onToggleKeptPhoto,
+                cameraCaptureFiles = cameraCaptureFiles,
+                onAcquirePhoto = onAcquirePhotoForEntry,
+                onAcquisitionInFlightChanged = { inFlight -> photoAcquisitionInFlight = inFlight },
                 onFinish = onFinishEntry,
                 onSave = onSaveEntry,
                 onDiscardChanges = onDiscardEntryChanges,

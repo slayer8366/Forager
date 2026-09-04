@@ -1,5 +1,6 @@
 package com.forager.app.ui.log
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,7 +52,9 @@ import com.forager.app.domain.model.DerivedTrip
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.PhotoAttachment
+import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.formatDistanceKm
+import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
@@ -134,6 +137,18 @@ internal fun CartographyEntryEditScreen(
     onSetWaypointDecision: (String, Boolean) -> Unit,
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
+    /**
+     * Entry-photo-acquisition dispatch, Item 2: Camera and Import, reached from inside the open
+     * entry rather than only "pull an existing Album photo" ([onToggleKeptPhoto] above). A photo
+     * acquired here attaches to this entry automatically (owner decision — the user is standing in
+     * the entry asking for a photo; unwanted, they remove it in the same one tap
+     * [KeptPhotosSection]'s own "Remove this photo" already offers). See [PullPhotoPickerScreen]'s
+     * own doc comment for why composing "persist" and "attach" happens above this screen, not here.
+     */
+    cameraCaptureFiles: CameraCaptureFiles,
+    onAcquirePhoto: (PhotoSource) -> Unit,
+    /** See [PullPhotoPickerScreen]'s own doc comment on this same parameter. */
+    onAcquisitionInFlightChanged: (Boolean) -> Unit,
     onFinish: () -> Unit,
     /** Explicit Save for a committed entry — saves in place. Both call sites below then call [onBack] themselves: the persistent button (back-nav-and-save-flow dispatch, Item 3 — save confirms, then exits) and the leave prompt's own Save option. A no-op call for a draft (never shown either). */
     onSave: () -> Unit,
@@ -158,10 +173,27 @@ internal fun CartographyEntryEditScreen(
     modifier: Modifier = Modifier,
 ) {
     var pullingPhoto by remember(entry.id) { mutableStateOf(false) }
+    // Entry-photo-acquisition dispatch, Item 3: found on device — system back from this picker
+    // landed on the Cartography entry *list*, skipping this editor entirely. CartographyScreen's
+    // own BackHandler only knows "an entry is open"; pullingPhoto is a level inside that it had no
+    // handler for, so back consumed the entry level and this one went untouched. Nested here,
+    // enabled only while the picker is actually showing, so Compose's dispatcher tries this before
+    // CartographyScreen's own — the same "innermost enabled handler wins" shape every other
+    // multi-level back case in this codebase already uses (see CartographyScreen's own BackHandler
+    // doc comment). This is the fifth instance of the same four-layer navigation problem in this
+    // codebase (the map "+" flow, the camera return, the Cartography entry, the Records sub-tab,
+    // now this) — a shared navigation abstraction remains queued behind the AvailabilityScreen.kt
+    // split, not attempted here.
+    BackHandler(enabled = pullingPhoto) {
+        pullingPhoto = false
+    }
     if (pullingPhoto) {
         PullPhotoPickerScreen(
             photos = galleryPhotos,
             onPhotoSelected = { photo -> onToggleKeptPhoto(photo.id); pullingPhoto = false },
+            cameraCaptureFiles = cameraCaptureFiles,
+            onPhotoAcquired = onAcquirePhoto,
+            onAcquisitionInFlightChanged = onAcquisitionInFlightChanged,
             modifier = modifier.fillMaxSize(),
         )
         return

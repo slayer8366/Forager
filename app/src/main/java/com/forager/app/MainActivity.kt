@@ -381,6 +381,17 @@ class MainActivity : ComponentActivity() {
                     onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
                     onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
                     onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                    // Entry-photo-acquisition dispatch, Item 2: composed here, the one place both
+                    // ViewModels are already visible, rather than giving CartographyViewModel its
+                    // own copy of AddPhotoToGalleryUseCase — see MushroomLogViewModel.onAddGalleryPhoto's
+                    // own doc comment on `onPersisted` for why that would leave
+                    // MushroomLogUiState.galleryPhotos stale. Persist (and, for a camera capture,
+                    // the GPS patch) is entirely MushroomLogViewModel's own existing, unmodified
+                    // pipeline; only the id comes back here, to attach it to whichever entry
+                    // CartographyViewModel currently has open.
+                    onAcquirePhotoForCartographyEntry = { source ->
+                        mushroomLogViewModel.onAddGalleryPhoto(source) { id -> cartographyViewModel.onToggleKeptPhoto(id) }
+                    },
                     onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
                     onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
                     onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,

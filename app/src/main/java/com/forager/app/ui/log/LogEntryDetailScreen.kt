@@ -246,13 +246,17 @@ private fun PhotosSection(
         // invisible rather than clipped. Wrapping to a second line keeps every button reachable.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
-            Button(onClick = photoAcquisition.launchGallery) { Text("Gallery") }
-            // Workstream G3: "Gallery" above already means the system photo picker (a new file);
-            // this references an existing photo this app already has, so it needs its own word.
-            // "Album" is taken too — see CompactTab's own doc comment — by the bottom nav tab
-            // visible at the same time as this screen on compact, so this reads "From Album" (a
-            // distinct exact string) rather than the bare word, checked against every other button
-            // label and heading in this same screen and against the bottom nav before landing here.
+            // Entry-photo-acquisition dispatch, Item 1: "Import," not "Gallery" — the app calls its
+            // own photo collection "Album," so a button labelled "Gallery" that actually opens the
+            // *device's* picker was already two near-synonyms meaning opposite things. "Import" says
+            // what happens: a photo comes in from outside.
+            Button(onClick = photoAcquisition.launchGallery) { Text("Import") }
+            // Workstream G3: this button references an existing photo the app already has, so it
+            // needs its own word from the one above. "Album" is taken too — see CompactTab's own doc
+            // comment — by the bottom nav tab visible at the same time as this screen on compact, so
+            // this reads "From Album" (a distinct exact string) rather than the bare word, checked
+            // against every other button label and heading in this same screen and against the
+            // bottom nav before landing here.
             Button(onClick = onPullPhoto) { Text("From Album") }
         }
         if (photos.isNotEmpty()) {

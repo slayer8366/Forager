@@ -28,12 +28,13 @@ import org.robolectric.annotation.Config
  * [GalleryPhoto] shape, per that dispatch's own "Tests" section — the gallery renders photos
  * including one with zero references, and shows the empty state when there are none.
  *
- * Standalone-photos dispatch: also covers the screen's own Camera/Gallery buttons (present
+ * Standalone-photos dispatch: also covers the screen's own Camera/Import buttons (present
  * regardless of loading/empty/populated state) and the reworded empty-state copy. Tapping Camera/
- * Gallery itself is not exercised here — same precedent as [LogEntryDetailScreenTest], which tests
- * only its own "From Album" button's click (a pure Compose callback) and leaves Camera/Gallery
+ * Import itself is not exercised here — same precedent as [LogEntryDetailScreenTest], which tests
+ * only its own "From Album" button's click (a pure Compose callback) and leaves Camera/Import
  * untested at the click level, since both launch a real system activity/permission dialog Robolectric
- * cannot meaningfully drive.
+ * cannot meaningfully drive. Button label updated from "Gallery" to "Import" (entry-photo-acquisition
+ * dispatch, Item 1) — see [PhotoGalleryScreen]'s own doc comment on that button.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -111,7 +112,7 @@ class PhotoGalleryScreenTest {
             PhotoGalleryScreen(photos = emptyList(), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
         }
 
-        composeRule.onNodeWithText("No photos yet. Use Camera or Gallery above to add one.").assertIsDisplayed()
+        composeRule.onNodeWithText("No photos yet. Use Camera or Import above to add one.").assertIsDisplayed()
     }
 
     @Test
@@ -128,7 +129,7 @@ class PhotoGalleryScreenTest {
         }
 
         composeRule.onNodeWithText("Photo gallery unavailable.").assertIsDisplayed()
-        composeRule.onNodeWithText("No photos yet. Use Camera or Gallery above to add one.").assertDoesNotExist()
+        composeRule.onNodeWithText("No photos yet. Use Camera or Import above to add one.").assertDoesNotExist()
     }
 
     /** Not belief-changing — mirrors [LogGalleryScreen]'s identical rule: a failed refresh never hides photos already showing. */
@@ -154,9 +155,9 @@ class PhotoGalleryScreenTest {
         composeRule.onNodeWithText("Photo gallery unavailable.").assertDoesNotExist()
     }
 
-    /** Standalone-photos dispatch: Camera and Gallery are always available, not just when the gallery is empty. */
+    /** Standalone-photos dispatch: Camera and Import are always available, not just when the gallery is empty. */
     @Test
-    fun `Camera and Gallery buttons are shown alongside a populated gallery`() {
+    fun `Camera and Import buttons are shown alongside a populated gallery`() {
         val photo = GalleryPhoto(
             photo = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
             referencingEntryIds = emptyList(),
@@ -167,7 +168,7 @@ class PhotoGalleryScreenTest {
         }
 
         composeRule.onNodeWithText("Camera").assertIsDisplayed()
-        composeRule.onNodeWithText("Gallery").assertIsDisplayed()
+        composeRule.onNodeWithText("Import").assertIsDisplayed()
     }
 
     /**

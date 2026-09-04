@@ -147,6 +147,8 @@ internal fun LogPanel(
     onSetWaypointDecision: (String, Boolean) -> Unit,
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
+    /** Entry-photo-acquisition dispatch, Item 2. See [CartographyScreen]'s own doc comment on this same parameter. */
+    onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit = {},
     onFinishCartographyEntry: () -> Unit,
     /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. See [CartographyEntryEditScreen]'s own doc comment. */
     onSaveCartographyEntry: () -> Unit = {},
@@ -274,12 +276,18 @@ internal fun LogPanel(
                 modifier = Modifier.weight(1f),
             )
         } else if (editing != null && pullingPhotoForEditingEntry) {
+            // Entry-photo-acquisition dispatch, Item 2 — see JournalTab's own identical call site
+            // for the full reasoning on reusing onAddPhoto/onPhotoAcquisitionInFlightChanged here
+            // rather than defaulting them away.
             PullPhotoPickerScreen(
                 photos = uiState.galleryPhotos,
                 onPhotoSelected = { photo ->
                     pullingPhotoForEditingEntry = false
                     onPullPhoto(photo)
                 },
+                cameraCaptureFiles = cameraCaptureFiles,
+                onPhotoAcquired = onAddPhoto,
+                onAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
                 modifier = Modifier.weight(1f),
             )
         } else if (editing != null) {
@@ -370,6 +378,7 @@ internal fun LogPanel(
                 onSetWaypointDecision = onSetWaypointDecision,
                 onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                 onToggleKeptPhoto = onToggleKeptPhoto,
+                onAcquirePhotoForEntry = onAcquirePhotoForCartographyEntry,
                 onFinishEntry = onFinishCartographyEntry,
                 onSaveEntry = onSaveCartographyEntry,
                 onDiscardEntryChanges = onDiscardCartographyEntryChanges,

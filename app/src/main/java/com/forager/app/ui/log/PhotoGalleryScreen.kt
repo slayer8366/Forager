@@ -94,7 +94,11 @@ internal fun PhotoGalleryScreen(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
-            Button(onClick = photoAcquisition.launchGallery) { Text("Gallery") }
+            // Entry-photo-acquisition dispatch, Item 1: "Import," not "Gallery" — this screen
+            // itself is the app's own photo collection ("Album"), so a button here labelled
+            // "Gallery" that opens the *device's* picker was two near-synonyms meaning opposite
+            // things. See LogEntryDetailScreen's identical rename for the same reasoning.
+            Button(onClick = photoAcquisition.launchGallery) { Text("Import") }
         }
 
         if (isLoading && photos.isEmpty()) {
@@ -115,7 +119,7 @@ internal fun PhotoGalleryScreen(
             // styling, and priority-ordering after the loading/error branches) — the closest
             // existing precedent for an empty state in this codebase.
             photos.isEmpty() -> Text(
-                "No photos yet. Use Camera or Gallery above to add one.",
+                "No photos yet. Use Camera or Import above to add one.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
             )
