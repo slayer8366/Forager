@@ -33,6 +33,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -1288,8 +1291,43 @@ fun AvailabilityScreen(
                 }
             }
         }
+        // ForagerBottomNav's own real measured height, in px, hoisted here rather than kept local
+        // to CompactMapTab (which composes the Map tab's own instance) — fullscreen-fixes dispatch
+        // ("still shifting"). A flat 80.dp constant was tried here first and undershoots this bar's
+        // own real rendered height by exactly the system navigation-bar inset, since Material3's
+        // NavigationBar applies NavigationBarDefaults.windowInsets internally (confirmed against
+        // AndroidX's own NavigationBar.kt) — invisible under Robolectric, which reports zero window
+        // insets (see CLAUDE.md's own "Known pitfalls"), so a test measuring this constant's own
+        // value could never catch the mismatch. A measured height can't drift from what's actually
+        // drawn, the same reasoning mapIconBarBottomPx already established in this file — read back
+        // via bottomNavHeight below, needed in two places: the search-dropdown dismiss scrim and
+        // its own SearchDropdown panel both need this same band excluded (their own doc comments).
+        var bottomNavHeightPx by remember { mutableStateOf(0f) }
+        val bottomNavDensity = LocalDensity.current
+        val bottomNavHeight = with(bottomNavDensity) { bottomNavHeightPx.toDp() }
         Scaffold(
             snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
+            // Fullscreen-fixes dispatch ("still shifting"): Material3's own Scaffold falls back to
+            // this value's own bottom inset for its reported content padding whenever bottomBar
+            // composes no content (`bottomBarHeight?.toDp() ?: insets.calculateBottomPadding()`,
+            // confirmed against AndroidX's own Scaffold.kt, not assumed) — exactly the Map tab's own
+            // case now, in both fullscreen states. That fallback exists so content isn't drawn
+            // under the real system navigation bar when nothing else protects it — correct in
+            // general, but redundant here specifically: ForagerBottomNav's own instance inside
+            // CompactMapTab's Box already protects itself the identical way (Material3's
+            // NavigationBar applies NavigationBarDefaults.windowInsets internally, confirmed against
+            // AndroidX's own NavigationBar.kt), the same as the bottomBar-hosted instance the other
+            // three tabs still use. Left in place, Scaffold's own fallback shrinks CompactMapTab's
+            // Box above the real inset strip a second time, leaving that strip permanently
+            // undrawn — on-device only, since Robolectric reports zero window insets and never
+            // exercises this fallback at all (CLAUDE.md's own "Known pitfalls" now records this).
+            // Excluding only the bottom side, only for the Map tab, hands that strip back to the
+            // embedded nav's own self-consumed inset instead of double-reserving it.
+            contentWindowInsets = if (compactTab == CompactTab.MAP) {
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+            } else {
+                WindowInsets.safeDrawing
+            },
             bottomBar = {
                 // Fullscreen-fixes dispatch, Item 1 (third design, replacing two earlier attempts
                 // that both failed AvailabilityScreenLayoutTest's own measured-height assertion —
@@ -1396,10 +1434,12 @@ fun AvailabilityScreen(
                             mapSlot = mapSlot,
                             // Attribution must rise above the floating bottom nav, which now
                             // overlays the map in both fullscreen states — fullscreen-fixes
-                            // dispatch, Item 1 (third design). FORAGER_BOTTOM_NAV_HEIGHT is the
-                            // nav's own fixed Material3 height, not a live measurement — see that
-                            // constant's own doc comment for why a live one was tried and reverted.
-                            renderMode = mapRenderMode.copy(bottomInset = FORAGER_BOTTOM_NAV_HEIGHT),
+                            // dispatch, Item 1 (third design). bottomNavHeight is read back from
+                            // this same nav's own real measured height (hoisted var's own doc
+                            // comment, above), so this stays correct on a real device even though
+                            // the nav's own rendered height there differs from what Robolectric
+                            // measures.
+                            renderMode = mapRenderMode.copy(bottomInset = bottomNavHeight),
                             mapMode = mapMode,
                             onMapModeSelected = { mapMode = it },
                             isNightMode = isNightMode,
@@ -1412,6 +1452,7 @@ fun AvailabilityScreen(
                             onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
                             isDrawerOpen = isDrawerOpen,
                             onBottomNavTabSelected = onBottomNavTabSelected,
+                            onBottomNavHeightMeasured = { bottomNavHeightPx = it },
                             onLocateMe = onLocateMe,
                             isRecording = isRecording,
                             onToggleRecording = onToggleRecording,
@@ -1615,14 +1656,14 @@ fun AvailabilityScreen(
                                     // Tools, because the tap never reached the nav's own onClick at
                                     // all — though this scrim turned out not to be the actual
                                     // culprit there; see the SearchDropdown AnimatedVisibility's own
-                                    // heightIn doc comment below for what was). FORAGER_BOTTOM_NAV_HEIGHT
-                                    // (that constant's own doc comment explains why it's fixed, not
-                                    // a live measurement) applies only on the Map tab, where the nav
-                                    // lives in this Box; every other tab keeps it in bottomBar
-                                    // again, so this is a no-op there.
+                                    // heightIn doc comment below for what was). bottomNavHeight
+                                    // (that hoisted var's own doc comment explains why it's a live
+                                    // measurement, not a fixed constant) applies only on the Map
+                                    // tab, where the nav lives in this Box; every other tab keeps it
+                                    // in bottomBar again, so this is a no-op there.
                                     .padding(
                                         top = if (compactTab == CompactTab.MAP) searchBarHeight else 0.dp,
-                                        bottom = if (compactTab == CompactTab.MAP) FORAGER_BOTTOM_NAV_HEIGHT else 0.dp,
+                                        bottom = if (compactTab == CompactTab.MAP) bottomNavHeight else 0.dp,
                                     )
                                     .testTag(SEARCH_DROPDOWN_SCRIM_TAG)
                                     .pointerInput(Unit) {
@@ -1673,7 +1714,7 @@ fun AvailabilityScreen(
                                 .padding(top = searchDropdownTopOffset)
                                 .heightIn(
                                     max = maxHeight - searchDropdownTopOffset -
-                                        (if (compactTab == CompactTab.MAP) FORAGER_BOTTOM_NAV_HEIGHT else 0.dp),
+                                        (if (compactTab == CompactTab.MAP) bottomNavHeight else 0.dp),
                                 ),
                         ) {
                             SearchDropdown(
@@ -1784,24 +1825,12 @@ fun AvailabilityScreen(
  * every tab except Map; the Map tab's own instance lives inside `CompactMapTab`'s own content `Box`
  * instead, `selectedTab` hardcoded to [CompactTab.MAP] there — see that composable's own doc
  * comment for why the nav can't stay in `bottomBar` for that one tab.
+ *
+ * Its own real rendered height (not a fixed constant) is measured, not guessed — see
+ * `compactMainScaffold`'s own `bottomNavHeightPx` doc comment for why a flat Material3 spec value
+ * (80dp) undershoots this on a real device by exactly the system navigation-bar inset, invisible
+ * under Robolectric (CLAUDE.md's own "Known pitfalls").
  */
-/**
- * [ForagerBottomNav]'s own real height — Material3's own fixed spec for a [NavigationBar] built
- * from plain icon+label [NavigationBarItem]s, not a live measurement the way [MapIconBar]'s own
- * height needs one. The two differ on the property that justifies measuring at all: MapIconBar's
- * height depends on its own row count, which has genuinely changed release to release (see that
- * composable's own doc comment); a Material3 [NavigationBar] with a fixed item set has no such
- * axis of variation. A live measurement — threaded from [CompactMapTab]'s own overlay instance
- * back up to [compactMainScaffold]'s own scope, where both the search-dropdown dismiss scrim and
- * its own `SearchDropdown` panel need the same band excluded — was tried first and reverted, not
- * because it was wrong, but because a fixed constant does the identical job with less machinery
- * for a value that never actually varies. See that scrim's own doc comment, and the
- * `SearchDropdown` `AnimatedVisibility`'s own `heightIn` doc comment, for the real bug this height
- * needs to be excluded from — a confirmed, reproducible one (`AvailabilityScreenMapIconStackTest`'s
- * own bottom-nav tests), just not caused by the live-vs-fixed choice itself.
- */
-private val FORAGER_BOTTOM_NAV_HEIGHT = 80.dp
-
 @Composable
 private fun ForagerBottomNav(
     selectedTab: CompactTab,
@@ -4359,10 +4388,16 @@ private fun CompactMapTab(
      * tab's nav not to live there at all). [isDrawerOpen] and [onBottomNavTabSelected] are exactly
      * the two inputs [ForagerBottomNav] needs beyond its own `selectedTab` — hardcoded to
      * [CompactTab.MAP] at this composable's own call to it below, since that's the only tab this
-     * composable is ever shown for.
+     * composable is ever shown for. [onBottomNavHeightMeasured] reports the nav's own real measured
+     * height back up to [compactMainScaffold]'s own scope — see that scope's own `bottomNavHeightPx`
+     * doc comment for why this needs to be a real measurement, not a fixed constant, and why the
+     * value is needed a second time there (the search-dropdown dismiss scrim and its own
+     * `SearchDropdown` panel), which is why this tab doesn't just keep the measurement as private
+     * local state the way [mapIconBarBottomPx] below does.
      */
     isDrawerOpen: Boolean,
     onBottomNavTabSelected: (CompactTab) -> Unit,
+    onBottomNavHeightMeasured: (Float) -> Unit,
     onLocateMe: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
@@ -4749,7 +4784,10 @@ private fun CompactMapTab(
                     },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .onGloballyPositioned { coordinates ->
+                            onBottomNavHeightMeasured(coordinates.size.height.toFloat())
+                        },
                 )
 
                 // Inside this Box, not alongside it, so it can align near the add button's own

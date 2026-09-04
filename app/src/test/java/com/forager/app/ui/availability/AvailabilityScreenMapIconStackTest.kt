@@ -425,6 +425,53 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
     }
 
+    /**
+     * Fullscreen-fixes dispatch ("still shifting") — insets-independent regression coverage for
+     * the planner's own diagnosis of what reads as "the map growing upward" on a real device: not
+     * a resize (AvailabilityScreenLayoutTest's own measured-height test already covers that half —
+     * the map's own Box never changes), but SearchEntryBar — an 80%-opacity overlay that never
+     * reserved space to begin with — disappearing from composition while fullscreen, plus
+     * CompassElevationStrip repositioning to fill the clearance `topInset` used to leave for it.
+     * Unlike the dead-space and attribution-clearance bugs this same dispatch found, neither half
+     * of this one depends on real window insets (CLAUDE.md's own "Known pitfalls"), so it's fully
+     * reproducible here — this test is what should have existed already, and didn't.
+     */
+    @Test
+    fun `fullscreen removes the search bar and the compass strip moves flush to the top edge, both restored on exit`() {
+        setScreen()
+
+        composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
+        val rootTop = composeRule.onRoot().getUnclippedBoundsInRoot().top
+        val compassStripTopBefore = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot().top
+        assertTrue(
+            "the compass strip should sit below SearchEntryBar's own space before fullscreen, " +
+                "not flush against the root's own top edge already ($compassStripTopBefore vs $rootTop)",
+            compassStripTopBefore > rootTop,
+        )
+
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).assertDoesNotExist()
+        assertEquals(
+            "the compass strip must sit flush against the screen's own top edge while fullscreen, " +
+                "not leave a gap where the (now-hidden) search bar used to be",
+            rootTop,
+            composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot().top,
+        )
+
+        composeRule.onNodeWithContentDescription("Exit fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
+        assertEquals(
+            "leaving fullscreen must restore the compass strip's own original clearance below " +
+                "SearchEntryBar, not leave it stranded flush against the top",
+            compassStripTopBefore,
+            composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot().top,
+        )
+    }
+
     // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
     @Ignore("Harness-only failure, confirmed working on a real device — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md")
     @Test

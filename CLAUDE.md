@@ -159,3 +159,30 @@ here.
   regression outright (green-to-failing, not flaky) before it reached
   hardware. Any layout composed over a map needs at least one such test, not
   just visual review — visual review is exactly what missed this twice.
+- **Robolectric reports zero window insets, so anything depending on real
+  ones is device-only by construction — a green suite there proves nothing
+  about it.** This app calls `enableEdgeToEdge()`, so on a real device
+  `Scaffold`'s own `contentWindowInsets` (default `WindowInsets.safeDrawing`)
+  and Material3 `NavigationBar`'s own default `windowInsets`
+  (`NavigationBarDefaults.windowInsets`) are both real, non-zero values —
+  Robolectric simulates neither, reporting zero for both regardless of
+  device config. Two concrete failures from this, confirmed against
+  AndroidX's own `Scaffold.kt`/`NavigationBar.kt` source rather than
+  assumed: (1) `Scaffold` falls back to `insets.calculateBottomPadding()`
+  for its own reported content padding whenever `bottomBar` composes no
+  content (`bottomBarHeight?.toDp() ?: insets.calculateBottomPadding()`) —
+  real and positive on-device, zero under Robolectric, so content that
+  should reach the true screen edge when `bottomBar` is deliberately empty
+  won't, on-device, unless `contentWindowInsets` is adjusted to match; (2)
+  `NavigationBar`'s own rendered height is its nominal content height *plus*
+  the real bottom system-bar inset it self-consumes — a flat constant
+  standing in for "this bar's height" will match Robolectric's own
+  (inset-free) measurement exactly and silently undershoot the real,
+  on-device one. Both produced a bug two device screenshots showed clearly
+  while 979 Robolectric tests stayed green (fullscreen-fixes dispatch,
+  "still shifting") — the fix in both cases was to depend on a live
+  measurement or a real `WindowInsets` query, never a value that merely
+  happens to match what Robolectric reports. Where a layout's correctness
+  depends on real system-bar insets, say so in the fix and in what gets
+  reported back — a passing suite is not evidence there, and treating it as
+  such is exactly what let this one ship twice.
