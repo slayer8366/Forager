@@ -50,7 +50,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBars
@@ -1343,13 +1342,13 @@ fun AvailabilityScreen(
         // AnimatedVisibility disposes it, onGloballyPositioned stops firing and bottomNavHeightPx
         // simply keeps its last value forever. The inset does NOT animate for free; it needs this.
         //
-        // Fullscreen target is the real system navigation-bar inset, not 0 — the owner's own call
-        // over the dispatch's literal "true bottom edge": the nav's measured height already
-        // includes that inset (Material3's NavigationBar self-consumes it, see bottomNavHeightPx's
-        // own doc comment), so this is exactly "the nav's own portion leaves, the system bar's
-        // portion stays", and attribution stays legible and uncovered above the gesture pill /
-        // 3-button bar per the standing rule. Under Robolectric both are 0 — device-only by
-        // construction; no test here can tell them apart, and none claims to.
+        // Fullscreen target is 0 — the true bottom edge, level with MapLibre's own logo, the
+        // dispatch's literal wording. A first version targeted the real system navigation-bar
+        // inset instead (keeping the caption above the gesture pill, on the reasoning that the
+        // nav's measured height already includes that inset); on device that read as the caption
+        // still holding a band of empty map above the bottom, and the owner reversed it. Under
+        // Robolectric the two were indistinguishable anyway (that inset is 0 there) — device-only
+        // by construction; no test here claims to verify the on-screen result.
         //
         // navigationMotionSpec(), the spec the nav's own slide uses (its own call site in
         // CompactMapTab) — the dispatch named panelMotionSpec() for it, which the nav doesn't use;
@@ -1358,9 +1357,8 @@ fun AvailabilityScreen(
         // curves match — one animation drives the nav's translation, this one drives the inset.
         // coerceAtLeast(0.dp): a spatial spring overshoots, and a negative Dp fed to
         // Modifier.padding throws — the exact crash animatedTopInset below already hit once.
-        val systemNavigationBarInset = with(bottomNavDensity) { WindowInsets.navigationBars.getBottom(this).toDp() }
         val animatedAttributionBottomInset by animateDpAsState(
-            targetValue = if (isMapFullscreen) systemNavigationBarInset else bottomNavHeight,
+            targetValue = if (isMapFullscreen) 0.dp else bottomNavHeight,
             animationSpec = MotionTokens.navigationMotionSpec(),
             label = "attributionBottomInset",
         )
@@ -1932,13 +1930,14 @@ private fun ForagerBottomNav(
     onTabSelected: (CompactTab) -> Unit,
     modifier: Modifier = Modifier,
     /**
-     * Opaque for every caller. Fullscreen-maps dispatch, Part 2a originally floated this bar over
-     * the map at 80% opacity while fullscreen, the standing chrome-over-the-map treatment this
-     * file's own map-chrome family established elsewhere — reversed for the Map tab's own instance
-     * by the fullscreen-fixes dispatch ("slide the chrome away instead of cutting it"): that
-     * instance now slides fully off-screen while fullscreen instead of staying and crossfading, so
-     * it's never simultaneously visible and over the map, and the translucency this parameter used
-     * to carry has no case left to serve.
+     * Opaque by default — the three docked, `bottomBar`-hosted instances. The Map tab's own
+     * overlay instance (inside `CompactMapTab`'s Box, floating over the map) passes 80%, the
+     * standing chrome-over-the-map treatment this file's own map-chrome family uses everywhere
+     * else — restored on the owner's own call after a screenshot. History, so it isn't flipped a
+     * third time without knowing: fullscreen-maps Part 2a first floated it at 80% *while
+     * fullscreen*; the fullscreen-fixes dispatch made it slide fully off-screen in fullscreen and
+     * went opaque, reasoning it was never both visible and over the map at once; this restores
+     * translucency for the non-fullscreen state, where it *is* always over the map.
      */
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
 ) {
@@ -5085,10 +5084,11 @@ private fun CompactMapTab(
                 // Item 2 ("slide the chrome away instead of cutting it"), a deliberate change from
                 // the crossfade-to-80%-opacity this bar used before: fullscreen is exited via
                 // MapIconBar's own fullscreen control, never via this nav, so the nav is not the
-                // way out and can safely leave the screen entirely. Always opaque now — the
-                // standing 80%-over-the-map rule no longer applies to it once it's never visible
-                // at the same time as being over the map; it's either docked, opaque, off
-                // fullscreen, or off-screen entirely during fullscreen. A pure Box-child overlay,
+                // way out and can safely leave the screen entirely. 80% opacity outside fullscreen
+                // (the owner's own call, from a screenshot): it floats over the map whenever it's
+                // on screen at all, so the standing 80%-over-the-map rule applies to it the same as
+                // to every other piece of map chrome here — see the containerColor parameter's
+                // own doc comment for the two prior flips of this exact value. A pure Box-child overlay,
                 // same confirmed-safe reasoning as SearchEntryBar's own slide above — animating it
                 // has no bearing on this Box's own size.
                 androidx.compose.animation.AnimatedVisibility(
@@ -5099,6 +5099,9 @@ private fun CompactMapTab(
                 ) {
                     ForagerBottomNav(
                         selectedTab = CompactTab.MAP,
+                        // 80%, the standing opacity for chrome over the map — see this bar's own
+                        // containerColor doc comment.
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
                         isDrawerOpen = isDrawerOpen,
                         onTabSelected = onBottomNavTabSelected,
                         modifier = Modifier
