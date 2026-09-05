@@ -2000,34 +2000,56 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Dispatch case 4: nothing survives leaving the Map tab — neither the corrected position nor
-     * the memory. Returning puts the bar at its default, and entering fullscreen from there must
-     * not glide it to the old low position. Passes before and after this dispatch, because
-     * `CompactMapTab` is disposed on the tab change and always was; it is a regression guard
-     * against hoisting this state later, not evidence of a behaviour change — flagged as such.
+     * Direct owner request, reversing the position-memory dispatch's case 4 ("nothing survives
+     * leaving the Map tab"): the cluster's position now survives switching tabs. The old test
+     * asserted the reset and is rewritten here to assert the keep — the one assertion this change
+     * legitimately reverses, reported as such. After a low fullscreen drag and an exit, leaving
+     * and returning puts the bar back exactly where the exit had pushed it (the memory re-clamped
+     * under the nav bound, since the tab change also exited fullscreen), and entering fullscreen
+     * then glides it back to the remembered low position — the memory survived too. Fails with
+     * the state left inside CompactMapTab (reverted variant: bar back at its default on return).
      */
     @Test
-    fun `leaving the Map tab and returning discards the remembered position`() {
+    fun `leaving the Map tab and returning keeps the cluster's position and its fullscreen memory`() {
         setScreen()
         val navTop = bottomNavTop()
         val defaultTop = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
         val lowTop = enterFullscreenAndDragLow(navTop)
         touchFullscreenRow("Exit fullscreen")
+        val pushedUpTop = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
+        assertTrue("expected the exit to have moved the bar from its default ($defaultTop) — was $pushedUpTop — for the return check to mean anything", abs(pushedUpTop.value - defaultTop.value) > 1f)
 
         composeRule.onNodeWithText("List").performClick()
         composeRule.onNodeWithText("Maps").performClick()
         composeRule.waitForIdle()
 
         val topOnReturn = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
-        assertTrue("expected the bar back at its default ($defaultTop) after a tab change, was $topOnReturn", abs(topOnReturn.value - defaultTop.value) <= 1f)
+        assertTrue("expected the bar back where the exit left it ($pushedUpTop) after a tab change, was $topOnReturn", abs(topOnReturn.value - pushedUpTop.value) <= 1f)
 
         touchFullscreenRow("Fullscreen")
 
         val topInFullscreen = composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot().top
         assertTrue(
-            "expected no stale memory: entering fullscreen after a tab change should leave the bar at $defaultTop, not glide to $lowTop — was $topInFullscreen",
-            abs(topInFullscreen.value - defaultTop.value) <= 1f,
+            "expected the fullscreen memory to survive the tab change: entering fullscreen should glide the bar back to $lowTop — was $topInFullscreen",
+            abs(topInFullscreen.value - lowTop.value) <= 1f,
         )
+    }
+
+    /** The side is part of the position too: snapped left, a tab change and return keeps it left. Fails with the state left inside CompactMapTab. */
+    @Test
+    fun `leaving the Map tab and returning keeps the cluster on the left edge`() {
+        setScreen()
+        val leftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dxDp = (-160).dp)
+        val leftAfterSnap = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+        assertTrue("expected the bar to have snapped left ($leftBefore -> $leftAfterSnap)", leftAfterSnap.value < leftBefore.value)
+
+        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Maps").performClick()
+        composeRule.waitForIdle()
+
+        val leftOnReturn = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+        assertTrue("expected the bar still on the left edge ($leftAfterSnap) after a tab change, was $leftOnReturn", abs(leftOnReturn.value - leftAfterSnap.value) <= 1f)
     }
 
     // ── Icon-bar-unify-container dispatch: the cluster, not the bar, is what stays in bounds ──

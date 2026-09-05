@@ -678,6 +678,9 @@ fun AvailabilityScreen(
     // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
     // selectedTab != MAP cannot happen in practice.
     var isMapFullscreen by remember { mutableStateOf(false) }
+    // The icon cluster's position, held here rather than in CompactMapTab so it survives leaving
+    // and returning to the Map tab — see MapIconClusterPositionState's own doc comment.
+    val mapIconClusterPosition = rememberMapIconClusterPositionState()
 
     // Local remembered state, alongside selectedTab and for the same reason: which basemap is under
     // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
@@ -1498,6 +1501,7 @@ fun AvailabilityScreen(
                         CompactTab.MAP -> CompactMapTab(
                             uiState = uiState,
                             mapSlot = mapSlot,
+                            clusterPosition = mapIconClusterPosition,
                             // Attribution must rise above the floating bottom nav while the nav
                             // is there — fullscreen-fixes dispatch, Item 1 (third design) — and
                             // follow it off screen while it isn't: safeAttributionBottomInset
@@ -4450,6 +4454,37 @@ private val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.8f)
 /** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
 private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.8f)
 
+
+/**
+ * The icon cluster's position on the compact Map tab, as one holder so it can live *above*
+ * [CompactMapTab] — in `compactMainScaffold`, which persists across tab changes — rather than in
+ * the tab's own `remember`s, which are disposed with it on every tab switch. Direct owner request:
+ * "switching between tabs resets the icon position; have it remember positions when switching in
+ * and out of maps." That reverses the icon-bar-position-memory dispatch's ruling that nothing
+ * survives a tab change (taken then to avoid hoisting state for a behaviour nobody had asked for);
+ * now that the owner has asked for it, the hoisting is the behaviour, not machinery around one.
+ * Still session-only — nothing here is persisted across app restarts, which stays settled.
+ *
+ * Holds exactly the position: [userChosenOffsetPx] (the single source of truth, written only by
+ * drags), [displayedOffsetPx] (the Animatable that is always the clamp of it under the bounds in
+ * force — kept too, so returning to the tab does not glide in from zero), and [isOnLeftSide].
+ * Minimised state is deliberately *not* here: "minimising resets when the user leaves the Map
+ * tab" was the owner's own explicit ruling for that flag and the owner's ask names position only.
+ * The cluster's measurements (heights, the bar's centre) are not here either — they are re-measured
+ * on every mount and mean nothing across one. On return, the tab's bounds-change effect re-clamps
+ * the memory under the bounds then in force (the tab change also exited fullscreen), so a position
+ * chosen low in fullscreen comes back above the nav, and re-entering fullscreen glides it down
+ * again — the same behaviour a fullscreen exit already has, now also across a tab change.
+ */
+private class MapIconClusterPositionState {
+    var userChosenOffsetPx by mutableStateOf(0f)
+    val displayedOffsetPx = Animatable(0f)
+    var isOnLeftSide by mutableStateOf(false)
+}
+
+@Composable
+private fun rememberMapIconClusterPositionState(): MapIconClusterPositionState = remember { MapIconClusterPositionState() }
+
 /**
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
  * the map fills the entire content area, with the top compass/elevation strip and the right-edge
@@ -4475,6 +4510,12 @@ private fun CompactMapTab(
     mapSlot: MapSlot,
     renderMode: MapRenderMode,
     isNightMode: Boolean,
+    /**
+     * The icon cluster's position — vertical memory, displayed offset, side — held by the caller
+     * so it survives leaving and returning to this tab. See [MapIconClusterPositionState]. The
+     * default keeps any other caller self-contained.
+     */
+    clusterPosition: MapIconClusterPositionState = rememberMapIconClusterPositionState(),
     mapMode: MapMode,
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
@@ -4588,13 +4629,12 @@ private fun CompactMapTab(
     var isMapIconBarMinimized by remember { mutableStateOf(false) }
     // Direct owner request (not part of the fullscreen-fixes dispatch): the icon bar can be
     // dragged up/down to reposition it, and snaps to the left or right edge — for left-handed
-    // users who want it within thumb reach on that side. Session-only remember state, matching
-    // isMapIconBarMinimized's own scope above (see that variable's own doc comment for why no key
-    // is needed for it to reset on leaving the Map tab) — not yet persisted to DataStore (CLAUDE.md's
-    // Room/DataStore split would put a "last-used side" preference there, since it's a flat,
-    // unrelated toggle), so it resets to the right side/no vertical offset on every fresh mount of
-    // this tab. Worth revisiting if the owner wants that choice to survive an app restart.
-    var isMapIconBarOnLeftSide by remember { mutableStateOf(false) }
+    // users who want it within thumb reach on that side. Held in clusterPosition (see
+    // MapIconClusterPositionState) so it survives a tab change, per the owner's later ask; still
+    // session-only — not persisted to DataStore (CLAUDE.md's Room/DataStore split would put a
+    // "last-used side" preference there, since it's a flat, unrelated toggle). Worth revisiting
+    // if the owner wants that choice to survive an app restart.
+    var isMapIconBarOnLeftSide by clusterPosition::isOnLeftSide
     // Icon-bar-position-memory dispatch: the bar's vertical position is two values that derive
     // one from the other, never two that can drift. mapIconBarUserChosenOffsetPx is the single
     // source of truth — the offset the user last dragged the bar (or its restore handle) to, and
@@ -4609,12 +4649,11 @@ private fun CompactMapTab(
     // shape (one offset, overwritten in place by an instant re-clamp) was exactly the one-way
     // correction the owner found on device. The spring's few pixels of overshoot at a bound are
     // accepted, not clamped away: every other slide here uses the same spec and accepts the same.
-    // Session-only, like every other piece of this bar's state — both live and die with this
-    // composable, so leaving the Map tab (which also exits fullscreen, in the same frame, before
-    // any push-up could run) resets the bar to its default: the owner's own ruling that nothing
-    // survives a tab change, over hoisting state just to carry a corrected position across one.
-    var mapIconBarUserChosenOffsetPx by remember { mutableStateOf(0f) }
-    val mapIconBarDisplayedOffsetPx = remember { Animatable(0f) }
+    // Both live in clusterPosition (see MapIconClusterPositionState) so they survive leaving and
+    // returning to this tab — the owner's later ask, reversing the earlier "nothing survives a
+    // tab change" ruling for the position. Session-only still.
+    var mapIconBarUserChosenOffsetPx by clusterPosition::userChosenOffsetPx
+    val mapIconBarDisplayedOffsetPx = clusterPosition.displayedOffsetPx
     val mapIconBarOffsetScope = rememberCoroutineScope()
     // Horizontal drag distance accumulated only during an in-progress drag gesture — read once, at
     // gesture end, to decide whether to flip isMapIconBarOnLeftSide, then reset to 0 regardless of
