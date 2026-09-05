@@ -1854,6 +1854,46 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Cancel").assertIsDisplayed()
     }
 
+    /**
+     * Owner finding on device: during a side-to-side drag only the bar followed the finger, and
+     * the control pill jumped across once the side flipped at gesture end. Both must move as one
+     * unit *while the finger is still down*, so this holds the gesture open — a real long-press,
+     * a move of less than the snap threshold, no `up()` — and compares how far the bar's own top
+     * row and the pill each moved from where they started. Checked mid-gesture, not after it:
+     * after `up()` the side flip lands both on the same edge regardless, which is exactly the
+     * "ends up right, looked wrong" case this test exists to distinguish.
+     */
+    @Test
+    fun `while the icon bar is being dragged sideways, the control pill moves with it rather than waiting for the side to flip`() {
+        setScreen()
+        val barLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+        val pillLeftBefore = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot().left
+
+        val start = centerOfTag("map-icon-bar-minimize-handle")
+        val delta = with(composeRule.density) { Offset((-40).dp.toPx(), 0f) }
+        composeRule.onRoot().performTouchInput {
+            down(start)
+            advanceEventTime(600)
+            moveTo(start + delta)
+            advanceEventTime(50)
+        }
+        composeRule.waitForIdle()
+
+        val barShift = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left - barLeftBefore
+        val pillShift = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot().left - pillLeftBefore
+        assertTrue(
+            "expected the bar to have moved with the finger mid-drag (shift=$barShift) for this test's own pill check to mean anything",
+            barShift.value < -1f,
+        )
+        assertTrue(
+            "expected the control pill to have moved with the bar mid-drag (bar shift=$barShift, pill shift=$pillShift)",
+            abs(pillShift.value - barShift.value) <= 1f,
+        )
+
+        composeRule.onRoot().performTouchInput { up() }
+        composeRule.waitForIdle()
+    }
+
 }
 
 /**

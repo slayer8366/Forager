@@ -5089,11 +5089,21 @@ private fun CompactMapTab(
                 // from mapIconBarBottomPx, a value that stops being meaningful the moment
                 // MapIconBar itself is gone.
                 // Slides off/on with the bar — see the bar's own AnimatedVisibility comment above.
+                // Also carries the bar's in-progress horizontal drag (mapIconBarHorizontalDragPx,
+                // the same px mapIconBarPositionOffset applies to the bar and its handles) — owner
+                // finding on device: without it, only the bar followed the finger during a
+                // side-to-side drag and this pill jumped across once the side flipped at gesture
+                // end, instead of the two moving as one unit. The vertical term is deliberately
+                // not repeated here: TrailheadControls already follows the bar's real laid-out
+                // bottom edge via mapIconBarBottomPx, which boundsInParent() reports offset and
+                // all, so adding it again would double it.
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !isMapIconBarMinimized,
                     enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
                     exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
-                    modifier = Modifier.align(if (isMapIconBarOnLeftSide) Alignment.TopStart else Alignment.TopEnd),
+                    modifier = Modifier
+                        .align(if (isMapIconBarOnLeftSide) Alignment.TopStart else Alignment.TopEnd)
+                        .offset { IntOffset(mapIconBarHorizontalDragPx.roundToInt(), 0) },
                 ) {
                     TrailheadControls(
                         isRecording = isRecording,
