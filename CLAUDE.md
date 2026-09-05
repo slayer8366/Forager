@@ -174,7 +174,12 @@ here.
   repositories, and a per-instance `PreferenceDataStoreFactory.create`
   rather than the `by preferencesDataStore(name = ...)` singleton delegate,
   which caches per-process and breaks Robolectric isolation across `@Test`
-  methods.
+  methods. A column with no reader is not added: every Room column lands with
+  at least one read path that uses it, in the same change (practised since
+  the first migration, written down with the HUD-foundations dispatch).
+  `ForagerDatabase` declares no `@ForeignKey` — links are plain, indexed,
+  nullable columns joined in code — but that is a rule for this one database,
+  not the repo: `FungiIndexDatabase` does declare one.
 - **A `Surface` (or any composable that draws a background or attaches
   pointer input) intercepts touches across its full layout bounds, not just
   where something is visually drawn.** An unconstrained `fillMaxWidth()`/

@@ -3,6 +3,7 @@ package com.forager.app.ui.availability
 import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.ForagingSelection
+import com.forager.app.domain.LocationFix
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.AvailabilityForecast
@@ -216,16 +217,25 @@ data class AvailabilityUiState(
      */
     val locateMeStatus: LocateMeStatus = LocateMeStatus.Idle,
     /**
-     * The compass strip's own live position — continuously refreshed from
-     * [com.forager.app.domain.LocationTracker.fixes] while this ViewModel is alive, distinct from
-     * [locateMeStatus]'s one-shot fetch (still used for the map's own "center on me" action and its
-     * permission-denied/unavailable messaging). `null` before a first fix arrives, or if location
-     * permission isn't granted — the strip's own "Coordinates unavailable" text already covers that
-     * state honestly; there is no separate denied/unavailable case duplicated here.
+     * The device's own live position — the last fix received from
+     * [com.forager.app.domain.LocationTracker.fixes], continuously refreshed while this ViewModel is
+     * alive, distinct from [locateMeStatus]'s one-shot fetch (still used for the map's own "center
+     * on me" action and its permission-denied/unavailable messaging). `null` before a first fix
+     * arrives, or if location permission isn't granted — the compass strip's own "Coordinates
+     * unavailable" text already covers that state honestly; there is no separate
+     * denied/unavailable case duplicated here.
+     *
+     * HUD-foundations dispatch, Item 1: the whole [com.forager.app.domain.LocationFix.Update] is
+     * held now, not just its lat/lng/altitude, so a consumer can ask how accurate the fix is
+     * (`accuracyMeters`, where `null` — "not reported" — stays distinct from `0f`) and, via
+     * [com.forager.app.domain.ageMillis], how old it is. Both used to be dropped at this boundary,
+     * leaving the last position to read as current forever once fixes stopped. Held as the domain
+     * type itself rather than a parallel UI-side copy: it already carries exactly these fields, and
+     * `TrackRecordingViewModel`'s own path (fix → `TrackPoint`, the persisted shape) stays separate
+     * by decision — neither consumer needs the other's type. No staleness threshold or "GPS lost"
+     * state is derived here; that policy belongs to the HUD, not to this state.
      */
-    val liveLocation: LatLng? = null,
-    /** See [liveLocation] — the same fix's altitude, `null` whenever the device didn't report one. */
-    val liveAltitudeMeters: Double? = null,
+    val liveFix: LocationFix.Update? = null,
     /**
      * The unit distances are displayed in, restored from
      * [com.forager.app.domain.DistanceUnitPreferenceRepository.getDistanceUnit] at startup and
@@ -236,4 +246,14 @@ data class AvailabilityUiState(
     val distanceUnit: DistanceUnit = DistanceUnit.MILES,
 ) {
     val hasSearched: Boolean get() = region != null
+
+    /**
+     * The compass strip's live coordinates — derived from [liveFix] so the strip's call site reads
+     * exactly the lat/lng it always did (HUD-foundations dispatch, Item 1: "nothing that reads
+     * `liveLocation` today changes behaviour").
+     */
+    val liveLocation: LatLng? get() = liveFix?.let { LatLng(it.lat, it.lng) }
+
+    /** See [liveLocation] — the same fix's altitude, `null` whenever the device didn't report one. */
+    val liveAltitudeMeters: Double? get() = liveFix?.altitude
 }

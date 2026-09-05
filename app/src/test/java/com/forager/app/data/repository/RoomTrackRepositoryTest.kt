@@ -49,6 +49,19 @@ class RoomTrackRepositoryTest {
         if (database.isOpen) database.close()
     }
 
+    /** HUD-foundations dispatch, Item 3: the origin pointer is written with the row and read back as-is. */
+    @Test
+    fun `a track's origin waypoint pointer round-trips, and a track without one reads back null`() = runTest {
+        val withOrigin = Track(id = "t1", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList(), originWaypointId = "wp-origin")
+        val withoutOrigin = Track(id = "t2", name = null, startedAtEpochMillis = 2_000L, endedAtEpochMillis = null, points = emptyList())
+
+        repository.create(withOrigin).getOrThrow()
+        repository.create(withoutOrigin).getOrThrow()
+
+        assertEquals("wp-origin", repository.getById("t1").getOrThrow()?.originWaypointId)
+        assertNull(repository.getById("t2").getOrThrow()?.originWaypointId)
+    }
+
     @Test
     fun `a created track starts with no points and no end time`() = runTest {
         val track = Track(id = "t1", name = "Morning walk", startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList())

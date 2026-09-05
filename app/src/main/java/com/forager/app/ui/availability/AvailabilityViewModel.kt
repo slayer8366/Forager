@@ -115,9 +115,9 @@ class AvailabilityViewModel(
         viewModelScope.launch {
             locationTracker.fixes.collect { fix ->
                 if (fix is LocationFix.Update) {
-                    _uiState.update {
-                        it.copy(liveLocation = LatLng(fix.lat, fix.lng), liveAltitudeMeters = fix.altitude)
-                    }
+                    // The whole fix, accuracy and timestamp included — see
+                    // AvailabilityUiState.liveFix's own doc comment (HUD-foundations dispatch, Item 1).
+                    _uiState.update { it.copy(liveFix = fix) }
                 }
             }
         }

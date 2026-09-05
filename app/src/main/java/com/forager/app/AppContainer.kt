@@ -25,6 +25,8 @@ import com.forager.app.domain.AddPhotoToGalleryUseCase
 import com.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.forager.app.domain.AppThemePreferenceRepository
 import com.forager.app.domain.CompassProvider
+import com.forager.app.domain.ComputeTrueHeadingUseCase
+import com.forager.app.domain.DeclinationProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeReturnToStartUseCase
 import com.forager.app.domain.ComputeTrackStatisticsUseCase
@@ -61,6 +63,7 @@ import com.forager.app.domain.GetPlannedTripsUseCase
 import com.forager.app.domain.GetRecentSearchesUseCase
 import com.forager.app.domain.GetSeasonalPatternUseCase
 import com.forager.app.domain.GetSightingsUseCase
+import com.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.forager.app.domain.GetTracksUseCase
 import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripReportOfflineRegionsUseCase
@@ -100,6 +103,7 @@ import com.forager.app.map.MapLibreOfflineMapRepository
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.photo.FilePhotoStore
 import com.forager.app.sensor.AndroidCompassProvider
+import com.forager.app.sensor.AndroidDeclinationProvider
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
 class AppContainer(context: Context) {
@@ -118,6 +122,12 @@ class AppContainer(context: Context) {
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
     val locationTracker: LocationTracker = AndroidLocationTracker(context.applicationContext)
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
+
+    // HUD-foundations dispatch, Item 2: declination, and the one place magnetic heading becomes
+    // true heading. No consumer yet by design — the navigation HUD dispatch wires it; see
+    // ComputeTrueHeadingUseCase's own doc comment for the strip/HUD consequence recorded there.
+    val declinationProvider: DeclinationProvider = AndroidDeclinationProvider()
+    val computeTrueHeadingUseCase = ComputeTrueHeadingUseCase(declinationProvider)
 
     val crashFileStore = CrashFileStore.forContext(context.applicationContext)
 
@@ -209,7 +219,6 @@ class AppContainer(context: Context) {
     val recordTrackPointsUseCase = RecordTrackPointsUseCase(trackRepository)
     val endTrackUseCase = EndTrackUseCase(trackRepository)
     val getTracksUseCase = GetTracksUseCase(trackRepository)
-    val deleteTrackUseCase = DeleteTrackUseCase(trackRepository)
     val computeTrackStatisticsUseCase = ComputeTrackStatisticsUseCase()
     val computeReturnToStartUseCase = ComputeReturnToStartUseCase()
     val detectOffTrackUseCase = DetectOffTrackUseCase()
@@ -218,6 +227,12 @@ class AppContainer(context: Context) {
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
     val getWaypointsUseCase = GetWaypointsUseCase(waypointRepository)
     val deleteWaypointUseCase = DeleteWaypointUseCase(waypointRepository)
+    // After waypointRepository (Kotlin initialises properties in source order): deleting a track
+    // now detaches its waypoints first — HUD-foundations dispatch, Item 3, see DeleteTrackUseCase.
+    val deleteTrackUseCase = DeleteTrackUseCase(trackRepository, waypointRepository)
+    // The origin-waypoint read path for Track.originWaypointId — no consumer until the navigation
+    // HUD dispatch, by design; see GetTrackOriginWaypointUseCase's own doc comment.
+    val getTrackOriginWaypointUseCase = GetTrackOriginWaypointUseCase(trackRepository, waypointRepository)
 
     // Journal Stage 2d: CartographyEntryReportScreen's own map, resolving kept references
     // (tracks/finds live-fetched, waypoints/photos/offline-regions already in the entry's own

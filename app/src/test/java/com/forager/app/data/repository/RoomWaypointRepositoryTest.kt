@@ -69,4 +69,35 @@ class RoomWaypointRepositoryTest {
         val result = repository.delete("does-not-exist")
         assertTrue(result.isSuccess)
     }
+
+    /** HUD-foundations dispatch, Item 3: the `trackId` link round-trips, and its read path returns only the linked waypoints, oldest first. */
+    @Test
+    fun `waypoints dropped while a track recorded come back for that track, oldest first, and no others`() = runTest {
+        val second = Waypoint(id = "w2", lat = 45.53, lng = -122.69, altitude = null, name = "Second", note = "", createdAtEpochMillis = 2_000L, trackId = "t1")
+        val first = Waypoint(id = "w1", lat = 45.52, lng = -122.68, altitude = 50.0, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L, trackId = "t1")
+        val otherTrack = Waypoint(id = "w3", lat = 45.6, lng = -122.7, altitude = null, name = "Other", note = "", createdAtEpochMillis = 1_500L, trackId = "t2")
+        val unlinked = Waypoint(id = "w4", lat = 45.7, lng = -122.8, altitude = null, name = "Loose", note = "", createdAtEpochMillis = 1_200L, trackId = null)
+        listOf(second, first, otherTrack, unlinked).forEach { repository.save(it).getOrThrow() }
+
+        assertEquals(listOf(first, second), repository.getForTrack("t1").getOrThrow())
+        assertEquals(listOf(otherTrack), repository.getForTrack("t2").getOrThrow())
+        assertEquals(emptyList<Waypoint>(), repository.getForTrack("no-such-track").getOrThrow())
+        assertEquals(unlinked, repository.getById("w4").getOrThrow())
+    }
+
+    /** HUD-foundations dispatch, Item 3 (owner decision): detaching nulls the link and keeps the waypoint. */
+    @Test
+    fun `detaching from a track nulls the link on its waypoints only and keeps every row`() = runTest {
+        val linked = Waypoint(id = "w1", lat = 45.52, lng = -122.68, altitude = 50.0, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L, trackId = "t1")
+        val otherTrack = Waypoint(id = "w3", lat = 45.6, lng = -122.7, altitude = null, name = "Other", note = "", createdAtEpochMillis = 1_500L, trackId = "t2")
+        repository.save(linked).getOrThrow()
+        repository.save(otherTrack).getOrThrow()
+
+        repository.detachFromTrack("t1").getOrThrow()
+
+        assertEquals(linked.copy(trackId = null), repository.getById("w1").getOrThrow())
+        assertEquals(otherTrack, repository.getById("w3").getOrThrow())
+        assertEquals(emptyList<Waypoint>(), repository.getForTrack("t1").getOrThrow())
+        assertTrue(repository.detachFromTrack("never-linked").isSuccess)
+    }
 }

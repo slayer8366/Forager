@@ -15,6 +15,16 @@ package com.forager.app.domain.model
  * track is at most a few thousand points at any sane sampling interval (see
  * [com.forager.app.domain.model.TrackRecordingMode]), well within what a single Room query and an
  * in-memory list handle without difficulty.
+ *
+ * [originWaypointId] — HUD-foundations dispatch, Item 3 (owner decision): an explicit pointer to
+ * the [Waypoint] that marks where this track started, once the navigation HUD creates one on
+ * record-start. Explicit rather than "the earliest waypoint carrying this track's id", which would
+ * be a convention resting on an undecided question (which fix seeds the origin); with a pointer,
+ * [Waypoint.trackId] and this column each have exactly one meaning. `null` for every track
+ * recorded before the HUD exists, and for any track whose origin was never created. Written with
+ * the track row ([com.forager.app.domain.TrackRepository.create]); read back through
+ * [com.forager.app.domain.GetTrackOriginWaypointUseCase]. Defaults to `null` so no existing
+ * constructor site changes.
  */
 data class Track(
     val id: String,
@@ -22,4 +32,5 @@ data class Track(
     val startedAtEpochMillis: Long,
     val endedAtEpochMillis: Long?,
     val points: List<TrackPoint>,
+    val originWaypointId: String? = null,
 )

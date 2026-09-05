@@ -18,6 +18,15 @@ class RoomWaypointRepository(
             dao.getForDay(dayStartInclusiveEpochMillis, dayEndExclusiveEpochMillis).map(WaypointEntity::toDomain)
         }
 
+    override suspend fun getById(id: String): Result<Waypoint?> =
+        runCatchingCancellable { dao.getById(id)?.toDomain() }
+
+    override suspend fun getForTrack(trackId: String): Result<List<Waypoint>> =
+        runCatchingCancellable { dao.getForTrack(trackId).map(WaypointEntity::toDomain) }
+
+    override suspend fun detachFromTrack(trackId: String): Result<Unit> =
+        runCatchingCancellable { dao.clearTrackId(trackId) }
+
     override suspend fun save(waypoint: Waypoint): Result<Unit> =
         runCatchingCancellable { dao.upsert(waypoint.toEntity()) }
 
@@ -33,6 +42,7 @@ private fun WaypointEntity.toDomain() = Waypoint(
     name = name,
     note = note,
     createdAtEpochMillis = createdAtEpochMillis,
+    trackId = trackId,
 )
 
 private fun Waypoint.toEntity() = WaypointEntity(
@@ -43,4 +53,5 @@ private fun Waypoint.toEntity() = WaypointEntity(
     name = name,
     note = note,
     createdAtEpochMillis = createdAtEpochMillis,
+    trackId = trackId,
 )

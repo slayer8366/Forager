@@ -60,6 +60,7 @@ private fun TrackEntity.toDomain(points: List<TrackPointEntity>) = Track(
     startedAtEpochMillis = startedAtEpochMillis,
     endedAtEpochMillis = endedAtEpochMillis,
     points = points.map(TrackPointEntity::toDomain),
+    originWaypointId = originWaypointId,
 )
 
 private fun Track.toEntity() = TrackEntity(
@@ -67,6 +68,7 @@ private fun Track.toEntity() = TrackEntity(
     name = name,
     startedAtEpochMillis = startedAtEpochMillis,
     endedAtEpochMillis = endedAtEpochMillis,
+    originWaypointId = originWaypointId,
 )
 
 private fun TrackPointEntity.toDomain() = TrackPoint(

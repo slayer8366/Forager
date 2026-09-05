@@ -107,7 +107,7 @@ L6 needs: the bridge between the mushroom-log side and `OfflineMapRepository` (*
 
 ## Standing rules — do not violate, do not let a dispatch erode
 
-**Nothing disappears from a mushroom log entry indirectly.** Log data is removed only by direct deletion from the log itself. This rule decided: no `@ForeignKey` anywhere; capture moved from delete-time to create-time; the gallery ownership inversion; the delete confirmation's wording. The one sanctioned exception is replacing an entry's tile when the user themselves changes its location.
+**Nothing disappears from a mushroom log entry indirectly.** Log data is removed only by direct deletion from the log itself. This rule decided: no `@ForeignKey` in `ForagerDatabase` (see the corrected rule below); capture moved from delete-time to create-time; the gallery ownership inversion; the delete confirmation's wording. The one sanctioned exception is replacing an entry's tile when the user themselves changes its location.
 
 **Location is set by panning the map under a marker fixed at screen centre**, with OK/Cancel. No long-press. *Accessibility decision with a stated reason:* long-press is unreliable for thicker fingers, and dragging a marker has the same defect — the finger covers the target. **Never let this be re-described as a style preference**, or someone will helpfully make the marker draggable.
 
@@ -123,7 +123,7 @@ Drafts never appear in the log. They are reached through a Drafts filter on the 
 
 *(Replaces the original "Drafts are persisted (a flag on the entry row)..." text per the 2026-08-25 correction patch §1 — the flag shape had already been reversed by L4b-R/L4b-R2 by the time this document was written, and the original text left the contradiction standing.)*
 
-**No `@ForeignKey` annotations anywhere.** Indexed columns only.
+**No `@ForeignKey` annotations in `ForagerDatabase`.** Indexed columns only. *(Corrected with the HUD-foundations dispatch, 2026-09-05: this used to say "anywhere", but `FungiIndexDatabase`'s `FungiTaxonNameEntity` has declared one since the species index was built. The rule is the log/records database's, not the repo's.)*
 
 ---
 

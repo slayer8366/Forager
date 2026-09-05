@@ -101,6 +101,13 @@ import com.forager.app.BuildConfig
  * required. See [LogPhotoEntity]'s own doc comment for the columns and [MIGRATION_11_12]'s own for
  * why this rebuilds the table rather than `ALTER TABLE ... ADD COLUMN`.
  *
+ * [version] 13 adds nullable `trackId` (indexed) to `waypoints` and nullable `originWaypointId` to
+ * `tracks` via a real [MIGRATION_12_13] — the HUD-foundations dispatch's origin-waypoint schema,
+ * owner decisions on both columns' meaning and on nulling the link when a track is deleted. See
+ * [WaypointEntity]/[TrackEntity] for the columns and [MIGRATION_12_13]'s own doc comment for why
+ * this too is a rebuild. Version 13 was checked against every branch on `origin` before being
+ * claimed (the highest elsewhere was 10) — CLAUDE.md's schema-version collision rule.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -138,7 +145,7 @@ import com.forager.app.BuildConfig
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -169,7 +176,7 @@ abstract class ForagerDatabase : RoomDatabase() {
                 "forager.db",
             ).addMigrations(
                 MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
+                MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             )
             // Debug-only — see this class's own doc comment ("Destructive fallback, debug-only") for
             // why release must never wipe a database instead of crashing on a missing migration.
