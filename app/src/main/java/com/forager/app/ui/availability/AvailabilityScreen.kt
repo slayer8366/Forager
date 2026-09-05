@@ -167,6 +167,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -263,6 +265,9 @@ import com.forager.app.ui.map.MapIconBar
 import com.forager.app.ui.map.MapIconBarMinimizeHandle
 import com.forager.app.ui.map.MapIconBarRestoreHandle
 import com.forager.app.ui.map.MapIconStackButtonColorDark
+import com.forager.app.ui.map.mapIconStackBorderColor
+import com.forager.app.ui.map.mapIconClusterContainerColor
+import com.forager.app.ui.map.mapIconClusterChildColor
 import com.forager.app.ui.map.MapIconStackButtonColorLight
 import com.forager.app.ui.map.MapMode
 import com.forager.app.ui.map.MapModePicker
@@ -1330,7 +1335,7 @@ fun AvailabilityScreen(
         // AndroidX's own NavigationBar.kt) — invisible under Robolectric, which reports zero window
         // insets (see CLAUDE.md's own "Known pitfalls"), so a test measuring this constant's own
         // value could never catch the mismatch. A measured height can't drift from what's actually
-        // drawn, the same reasoning mapIconBarBottomPx already established in this file — read back
+        // drawn, the same reasoning mapIconClusterHeightPx already established in this file — read back
         // via bottomNavHeight below, needed in two places: the search-dropdown dismiss scrim and
         // its own SearchDropdown panel both need this same band excluded (their own doc comments).
         var bottomNavHeightPx by remember { mutableStateOf(0f) }
@@ -4487,7 +4492,7 @@ private fun CompactMapTab(
      * doc comment for why this needs to be a real measurement, not a fixed constant, and why the
      * value is needed a second time there (the search-dropdown dismiss scrim and its own
      * `SearchDropdown` panel), which is why this tab doesn't just keep the measurement as private
-     * local state the way [mapIconBarBottomPx] below does.
+     * local state the way [mapIconClusterHeightPx] below does.
      */
     isDrawerOpen: Boolean,
     onBottomNavTabSelected: (CompactTab) -> Unit,
@@ -4561,12 +4566,17 @@ private fun CompactMapTab(
     var resumeTrackingRequestId by remember { mutableStateOf(0) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
     var resetOrientationRequestId by remember { mutableStateOf(0) }
-    // MapIconBar's own real measured bottom edge, in px relative to this Box — the anchor
-    // ControlPill/DistanceArm position themselves against below. See MapIconBar's own call site
-    // for why this is measured rather than a hardcoded offset or a value computed from the bar's
-    // row count (that row count changes twice in quick succession across this dispatch and the
-    // next one, so any such constant goes stale before the layout phase finishes).
-    var mapIconBarBottomPx by remember { mutableStateOf(0f) }
+    // Icon-bar-unify-container dispatch: MapIconBar's own vertical centre, in px relative to the
+    // top of the cluster container it now sits in (measured on the bar via boundsInParent(), so
+    // it tracks whatever the bar's real height and position in the container are). This replaces
+    // mapIconBarBottomPx — the bar's bottom edge that TrailheadControls used to offset itself by —
+    // rather than redefining it: that value's one consumer became the container Column's own
+    // spacing, so the measurement itself went away. What remains is everything that used to
+    // *assume* the bar's centre sat at this Box's centre plus the drag offset — the two panels'
+    // row anchors and both handles' mid-height placement — which is true of the *container* now,
+    // not the bar, and would silently be ~60dp off otherwise. Combined with mapIconClusterHeightPx
+    // as (centreInCluster − clusterHeight / 2), the bar's centre relative to the container's.
+    var mapIconBarCentreInClusterPx by remember { mutableStateOf(0f) }
     // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking handle to
     // restore it") — independent of isMapFullscreen by design (that item's own "do not tie it to
     // isMapFullscreen" instruction); no key on remember, so it naturally resets to false whenever
@@ -4624,21 +4634,25 @@ private fun CompactMapTab(
     // extreme of a drag — reuses MIN_TOUCH_TARGET (MapChrome.kt) rather than inventing a second
     // margin constant for the same "don't let a control go fully off-screen" idea.
     val mapIconBarVerticalDragMarginPx = with(LocalDensity.current) { MIN_TOUCH_TARGET.toPx() }
-    // Icon-bar-drag-refinements dispatch, Item 4: MapIconBar's own real measured height, in px —
-    // what both drag clamps below need to know where the bar's top and bottom edges currently
-    // sit, since Alignment.CenterEnd/CenterStart centers it vertically before
-    // mapIconBarDisplayedOffsetPx is applied. Set via onGloballyPositioned on the bar itself, same
-    // "measure the real value, don't derive it from a row count or other guess" reasoning as
-    // mapIconBarBottomPx's own doc comment. Written by the bar *only* (icon-bar-position-memory
-    // dispatch, owner's call): this used to be overwritten by whichever of the bar or the 48dp
-    // restore handle was showing, which let the handle be dragged ~112dp lower than the bar may
-    // sit and needed a re-clamp on restore to catch it. Bounding the handle by the bar's own
-    // range instead removes a position that could never legally be occupied rather than adding
-    // machinery around it, makes that restore correction a no-op, and keeps
-    // mapIconBarUserChosenOffsetPx free of positions the bar could not return to. The handle's
-    // extra range was a measurement quirk, not a designed affordance. Keeps its last value
-    // while the bar is minimised, which is what the handle's drag is clamped against then.
-    var mapIconBarHeightPx by remember { mutableStateOf(0f) }
+    // Icon-bar-unify-container dispatch: the real measured height, in px, of the cluster container
+    // that holds MapIconBar, ControlPill and DistanceArm together — what both drag clamps below
+    // use to know where the cluster's top and bottom edges currently sit, since
+    // Alignment.CenterEnd/CenterStart centres the container vertically before
+    // mapIconBarDisplayedOffsetPx is applied. Measured on the container's own Surface, never
+    // derived from what's inside it: this is the third time the same shape of bug appeared on
+    // this surface — "fully on screen" was insufficient because the nav overlays the bar, then
+    // "the bar is in bounds" was insufficient because the pills extend past it (on device: the
+    // record pill hanging off the bottom in fullscreen, the directions pill left sitting on the
+    // nav after exiting). Each time the measured object was smaller than the thing that had to
+    // stay reachable. Measuring the container makes the bound correct by construction, and
+    // anything added to the cluster later inherits it instead of becoming a fourth instance.
+    // DistanceArm is inside that extent too (owner's call), so the drag range shrinks by the
+    // arm's height while returning and the existing animated re-clamp nudges the cluster up when
+    // the arm appears — correct behaviour, not a cost. Written by the container only (icon-bar-
+    // position-memory dispatch's ruling, carried over): the restore handle is bounded by the
+    // cluster's own range, not its own 48dp, so it can never sit where the cluster could not.
+    // Keeps its last value while minimised, which is what the handle's drag is clamped against.
+    var mapIconClusterHeightPx by remember { mutableStateOf(0f) }
     // Expanded-panels dispatch: this tab's own ForagerBottomNav overlay's real measured height, in
     // px — kept here (as well as reported up via onBottomNavHeightMeasured) because the drag
     // clamp's downward bound needs it: that nav is composed *after* MapIconBar in this tab's Box
@@ -4860,40 +4874,37 @@ private fun CompactMapTab(
                 // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking
                 // handle to restore it"). MapIconBar and TrailheadControls hide/show together,
                 // gated on isMapIconBarMinimized rather than isMapFullscreen — that item's own "do
-                // not tie it to isMapFullscreen" instruction, and independently required since
-                // ControlPill/DistanceArm (inside TrailheadControls) anchor themselves against
-                // mapIconBarBottomPx, a value only meaningful while MapIconBar is actually present
-                // and measured: "Minimise means the chrome goes away, not that it fragments," so
-                // leaving them floating against a stale measurement once the bar itself is gone
-                // would look broken (the project owner's own call on this exact question).
+                // not tie it to isMapFullscreen" instruction, and the owner's own "Minimise means
+                // the chrome goes away, not that it fragments." Since the icon-bar-unify-container
+                // dispatch they are one cluster container, so hiding together is by construction
+                // rather than two gates that happen to agree.
                 //
-                // MapIconBarMinimizeHandle is composed as a separate, later sibling (sharing the
-                // bar's own alignment/offset below, so it shares the bar's own vertical center —
-                // "mid-height" — and moves with it) rather than nested inside a shared container:
-                // there is no on-screen room to place a full 48dp touch target beside the bar
-                // without overlapping it (the bar's own Spacing.sm edge inset is far narrower than
-                // that), so the handle deliberately overlaps the bar's own rightmost sliver,
-                // attached to its right side the way the owner described. Composed after MapIconBar
-                // (and so painted and hit-tested on top of it) so it wins that overlap, the same
+                // MapIconBarMinimizeHandle is composed as a later sibling of that container (at the
+                // bar's own vertical centre — "mid-height" — via mapIconBarCentreShiftOffset below,
+                // and moving with it) rather than nested inside it: Surface clips to its shape and
+                // the handle's mark straddles the container's outer edge by design, and there is no
+                // on-screen room to place a full 48dp touch target beside the bar without
+                // overlapping it (the bar's own Spacing.sm edge inset is far narrower than that),
+                // so the handle deliberately overlaps the bar's own outermost sliver, attached to
+                // its edge the way the owner described. Composed after the container (and so
+                // painted and hit-tested on top of it) so it wins that overlap, the same
                 // composition-order-is-hit-test-order convention this file already uses for
-                // MapIconBar itself against CompassElevationStrip (see this block's own comment
+                // the container itself against CompassElevationStrip (see this block's own comment
                 // above).
                 //
-                // Direct owner request, layered on top of the above: the bar (and its two handles)
-                // can be dragged to reposition vertically and snaps to either screen edge — see
-                // isMapIconBarOnLeftSide/mapIconBarUserChosenOffsetPx's own doc comments above.
-                // mapIconBarSideAlignment/mapIconBarPositionOffset are shared by every composable in
-                // this if/else so the bar and whichever handle is currently showing always move and
+                // Direct owner request, layered on top of the above: the cluster (and its two
+                // handles) can be dragged to reposition vertically and snaps to either screen edge
+                // — see isMapIconBarOnLeftSide/mapIconBarUserChosenOffsetPx's own doc comments
+                // above. mapIconBarSideAlignment/mapIconBarPositionOffset are shared by the
+                // container and whichever handle is currently showing so they always move and
                 // land on the same side together, as one unit. detectDragGesturesAfterLongPress,
                 // not a plain drag detector or Modifier.draggable: a quick tap must keep reaching
                 // Surface's own onClick (minimize/restore) unambiguously, and the long-press
                 // threshold is what lets a tap and a drag share the same control with no gesture
                 // conflict, a well-established Compose combination for exactly this pairing.
-                // TrailheadControls (below) now follows the same side flip too, per the
-                // icon-bar-drag-refinements dispatch's Items 2-3 — DistanceArm no longer extends
-                // sideways from a right-fixed point (reoriented to extend downward, side-agnostic
-                // by construction, see that composable's own doc comment), so the mirroring concern
-                // that used to keep TrailheadControls right-anchored only no longer applies.
+                // TrailheadControls follows the same side flip because it is laid out inside the
+                // container — DistanceArm extends downward, side-agnostic by construction (see
+                // that composable's own doc comment), so nothing inside needs mirroring.
                 val mapIconBarSideAlignment = if (isMapIconBarOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
                 val mapIconBarPositionOffset = Modifier.offset {
                     IntOffset(mapIconBarHorizontalDragPx.roundToInt(), mapIconBarDisplayedOffsetPx.value.roundToInt())
@@ -4914,18 +4925,18 @@ private fun CompactMapTab(
                     // nav's own top edge otherwise (mapBottomNavHeightPx's own doc comment).
                     val bottomBoundPx = mapContentBoxHeightPx - (if (isFullscreen) 0f else mapBottomNavHeightPx)
                     val fallbackDownwardOffsetPx = (bottomBoundPx - mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
-                    val maxDownwardOffsetPx = if (mapIconBarHeightPx > 0f) {
-                        (bottomBoundPx - (mapContentBoxHeightPx + mapIconBarHeightPx) / 2f).coerceAtLeast(0f)
+                    val maxDownwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
+                        (bottomBoundPx - (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2f).coerceAtLeast(0f)
                     } else {
                         fallbackDownwardOffsetPx
                     }
                     // Upward (negative) bound: the bar's own top edge, once centered then shifted
-                    // by the offset, is (mapContentBoxHeightPx - mapIconBarHeightPx) / 2 + offset —
+                    // by the offset, is (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2 + offset —
                     // solved for the smallest offset that keeps that top edge at or below
                     // dropdownTopPx, so the bar can't rise into the dropdown's own space
                     // (icon-bar-drag-refinements dispatch, Item 4).
-                    val maxUpwardOffsetPx = if (mapIconBarHeightPx > 0f) {
-                        (dropdownTopPx - (mapContentBoxHeightPx - mapIconBarHeightPx) / 2f)
+                    val maxUpwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
+                        (dropdownTopPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f)
                             .coerceIn(-fallbackDownwardOffsetPx, 0f)
                     } else {
                         -fallbackDownwardOffsetPx
@@ -4948,7 +4959,10 @@ private fun CompactMapTab(
                     DpOffset(
                         x = (if (isMapIconBarOnLeftSide) MAP_ICON_BAR_EDGE_INSET else -MAP_ICON_BAR_EDGE_INSET) +
                             mapIconBarHorizontalDragPx.toDp(),
-                        y = mapIconBarDisplayedOffsetPx.value.toDp(),
+                        // Plus the bar's own centre relative to the container's — see
+                        // mapIconBarCentreInClusterPx's own doc comment: the container is what's
+                        // centred here now, the bar sits in its top part.
+                        y = (mapIconBarDisplayedOffsetPx.value + mapIconBarCentreInClusterPx - mapIconClusterHeightPx / 2f).toDp(),
                     )
                 }
                 val mapIconBarDragModifier = Modifier.pointerInput(Unit) {
@@ -4981,20 +4995,20 @@ private fun CompactMapTab(
                 // to — leave the screen at the bottom of the drag range, which would have carried
                 // both panels off with them once they followed the bar. Symmetric with Item 4's
                 // own upward bound: the bar's bottom edge, once centered then shifted by the
-                // offset, is (mapContentBoxHeightPx + mapIconBarHeightPx) / 2 + offset — solved
+                // offset, is (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2 + offset — solved
                 // for the largest offset that keeps it at or above the lowest reachable edge
                 // (the nav's top outside fullscreen, this Box's bottom in it — the nav is drawn
                 // over this bar, so "on screen" alone would still leave the bottom rows under
                 // it, untappable; a decision taken beyond the approved "keep the bottom edge on
                 // screen", reported as such). Falls back to the old margin-based bound before
-                // mapIconBarHeightPx has its first real measurement, same as the upward bound
+                // mapIconClusterHeightPx has its first real measurement, same as the upward bound
                 // always did. Re-applied (the LaunchedEffect below) whenever a bound's input
                 // changes, not only during a drag: a bar dragged to the very bottom while
                 // fullscreen would otherwise end up under the nav once fullscreen is exited — the
                 // same untappable-rows outcome this fix exists to rule out, just reached by a
                 // different route. (The other route this used to catch — the restore handle
                 // dragged lower than the bar may sit — no longer exists: the handle is bounded by
-                // the bar's own measured height now, see mapIconBarHeightPx's own doc comment.)
+                // the bar's own measured height now, see mapIconClusterHeightPx's own doc comment.)
                 //
                 // Icon-bar-position-memory dispatch: the target is always the clamp of the
                 // *user-chosen* offset, never of the displayed one, and the move is animated on
@@ -5003,7 +5017,7 @@ private fun CompactMapTab(
                 // mapIconBarUserChosenOffsetPx's own doc comment. Not keyed on the memory itself:
                 // a drag snaps the displayed value directly and is never animated.
                 val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
-                LaunchedEffect(mapIconBarHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen) {
+                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen) {
                     val targetPx = clampMapIconBarVerticalOffset(mapIconBarUserChosenOffsetPx)
                     if (targetPx != mapIconBarDisplayedOffsetPx.value) {
                         mapIconBarDisplayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
@@ -5013,82 +5027,46 @@ private fun CompactMapTab(
                 // slides this cluster off whichever edge it's on, and the restore handle slides in
                 // from that same edge, instead of the instant cut this used to be — "like the rest
                 // of the UI," i.e. the same AnimatedVisibility slide SearchEntryBar and
-                // ForagerBottomNav use for fullscreen. Three separate AnimatedVisibility wrappers
-                // (bar, minimize handle, TrailheadControls below) rather than one: each keeps its
-                // own alignment in this Box, and all three key on the same flag with the same spec
-                // and the same edge, so they move as one. navigationMotionSpec(), the nav's own
-                // slide spec — this is navigation chrome, not a panel. Pure translations of Box
+                // ForagerBottomNav use for fullscreen. navigationMotionSpec(), the nav's own slide
+                // spec — this is navigation chrome, not a panel. Pure translations of Box
                 // children, no effect on this Box's own size, same reasoning as those two slides.
                 //
-                // mapIconBarBottomPx is now measured on the bar's wrapper (a direct child of this
-                // Box, so boundsInParent() is still in this Box's own space) minus the bar's own
-                // MAP_ICON_BAR_EDGE_INSET, which is exactly the bar's visible bottom edge the
-                // padding-then-onGloballyPositioned chain used to report directly — measured on the
-                // bar itself, boundsInParent() would now be relative to the wrapper, not this Box,
-                // and TrailheadControls' anchor would silently break (the same trap a Row/Column
-                // wrapper was rejected for when the minimize handle was first added).
+                // Icon-bar-unify-container dispatch: what used to be three wrappers (bar, minimize
+                // handle, TrailheadControls, each aligned separately and each trusting the others
+                // to land in the right place) is now one wrapper around one filled container —
+                // MapIconBar and TrailheadControls in a Column, the gap between them the Column's
+                // own spacing rather than an offset from a measured bottom edge. The container is
+                // what gets measured (mapIconClusterHeightPx), dragged, clamped and minimised, so
+                // the bound is right by construction. The minimize handle is a *sibling* of the
+                // container, not a child: Surface clips to its shape, and the handle's visible
+                // mark straddles the container's outer edge by design, so inside it half the mark
+                // would vanish. Both handles sit at the bar's own mid-height, not the container's
+                // (mapIconBarCentreShiftOffset below), which is what "mid-height of the icon bar"
+                // has always meant; the restore handle uses the last-measured values since the
+                // bar is unmounted while minimised. The cluster, not the bar, is what's centred
+                // at rest — so the bar sits ~60dp higher by default than it did as a lone
+                // centred object. Owner's call: a default derived from the container is honest,
+                // and correcting it back to preserve the old look would reintroduce exactly the
+                // bar-specific arithmetic the container exists to remove.
                 val mapIconBarSlideOffset: (Int) -> Int = { fullWidth -> if (isMapIconBarOnLeftSide) -fullWidth else fullWidth }
+                val mapIconBarCentreShiftOffset = Modifier.offset {
+                    IntOffset(0, (mapIconBarCentreInClusterPx - mapIconClusterHeightPx / 2f).roundToInt())
+                }
                 androidx.compose.animation.AnimatedVisibility(
                     visible = isMapIconBarMinimized,
                     enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
                     exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
                     modifier = Modifier
                         .align(mapIconBarSideAlignment)
-                        .then(mapIconBarPositionOffset),
+                        .then(mapIconBarPositionOffset)
+                        .then(mapIconBarCentreShiftOffset),
                 ) {
                     MapIconBarRestoreHandle(
                         onRestore = { isMapIconBarMinimized = false },
                         onLeftSide = isMapIconBarOnLeftSide,
-                        // Deliberately does *not* report its own height into mapIconBarHeightPx
-                        // any more — its drag is clamped to the bar's own range, see that
-                        // variable's doc comment.
+                        // Reports nothing into mapIconClusterHeightPx — its drag is clamped to
+                        // the cluster's own range, see that variable's doc comment.
                         modifier = Modifier.then(mapIconBarDragModifier),
-                    )
-                }
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = !isMapIconBarMinimized,
-                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
-                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
-                    modifier = Modifier
-                        .align(mapIconBarSideAlignment)
-                        .then(mapIconBarPositionOffset)
-                        // Reports the bar's own actual laid-out bottom edge, relative to this Box,
-                        // into mapIconBarBottomPx — what ControlPill/DistanceArm anchor against
-                        // below. See mapIconBarBottomPx's own doc comment for why this is measured
-                        // rather than a hardcoded offset or a value computed from the bar's row
-                        // count, and this block's own comment above for why it's measured here on
-                        // the wrapper. Still correct with the drag feature layered on:
-                        // boundsInParent() reports the real final laid-out position, so it
-                        // reflects wherever a drag has actually moved it to.
-                        .onGloballyPositioned { coordinates ->
-                            mapIconBarBottomPx = coordinates.boundsInParent().bottom -
-                                with(compassStripDensity) { MAP_ICON_BAR_EDGE_INSET.toPx() }
-                        },
-                ) {
-                    MapIconBar(
-                        isFullscreen = isFullscreen,
-                        onToggleFullscreen = onToggleFullscreen,
-                        onLocateMe = {
-                            resumeTrackingRequestId++
-                            onLocateMe()
-                        },
-                        onResetOrientation = { resetOrientationRequestId++ },
-                        mapMode = mapMode,
-                        onOpenMapModePicker = { showMapModePicker = true },
-                        isNightMode = isNightMode,
-                        onAdd = {
-                            // No location to grab any more — the button just opens the menu; the
-                            // location comes from CentrePinLocationPickerOverlay's own camera
-                            // tracking once a choice is made. See this function's own doc comment.
-                            showActionMenu = true
-                        },
-                        modifier = Modifier
-                            .padding(MAP_ICON_BAR_EDGE_INSET)
-                            // Feeds the drag clamp's own maxUpwardOffsetPx above — see
-                            // mapIconBarHeightPx's own doc comment.
-                            .onGloballyPositioned { coordinates ->
-                                mapIconBarHeightPx = coordinates.size.height.toFloat()
-                            },
                     )
                 }
                 androidx.compose.animation.AnimatedVisibility(
@@ -5099,11 +5077,83 @@ private fun CompactMapTab(
                         .align(mapIconBarSideAlignment)
                         .then(mapIconBarPositionOffset),
                 ) {
-                    MapIconBarMinimizeHandle(
-                        onMinimize = { isMapIconBarMinimized = true },
-                        onLeftSide = isMapIconBarOnLeftSide,
-                        modifier = Modifier.then(mapIconBarDragModifier),
-                    )
+                    Box {
+                        Surface(
+                            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+                            // The lighter of the two layered fills — see
+                            // MAP_ICON_CLUSTER_CONTAINER_ALPHA's own doc comment for the
+                            // compositing arithmetic and the values chosen.
+                            color = mapIconClusterContainerColor(),
+                            shadowElevation = 2.dp,
+                            border = BorderStroke(1.dp, mapIconStackBorderColor()),
+                            modifier = Modifier
+                                .padding(MAP_ICON_BAR_EDGE_INSET)
+                                // Feeds both drag clamps above — see mapIconClusterHeightPx's own
+                                // doc comment. Measured on the container, never on its contents.
+                                .onGloballyPositioned { coordinates ->
+                                    mapIconClusterHeightPx = coordinates.size.height.toFloat()
+                                }
+                                .testTag(MAP_ICON_CLUSTER_TAG),
+                        ) {
+                            Column(
+                                horizontalAlignment = if (isMapIconBarOnLeftSide) Alignment.Start else Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
+                            ) {
+                                MapIconBar(
+                                    isFullscreen = isFullscreen,
+                                    onToggleFullscreen = onToggleFullscreen,
+                                    onLocateMe = {
+                                        resumeTrackingRequestId++
+                                        onLocateMe()
+                                    },
+                                    onResetOrientation = { resetOrientationRequestId++ },
+                                    mapMode = mapMode,
+                                    onOpenMapModePicker = { showMapModePicker = true },
+                                    isNightMode = isNightMode,
+                                    onAdd = {
+                                        // No location to grab any more — the button just opens
+                                        // the menu; the location comes from
+                                        // CentrePinLocationPickerOverlay's own camera tracking
+                                        // once a choice is made. See this function's own doc
+                                        // comment.
+                                        showActionMenu = true
+                                    },
+                                    fillColor = mapIconClusterChildColor(),
+                                    // Feeds the panels' and handles' anchors — see
+                                    // mapIconBarCentreInClusterPx's own doc comment.
+                                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                                        mapIconBarCentreInClusterPx = coordinates.boundsInParent().center.y
+                                    },
+                                )
+                                // Composed whenever MapIconBar is (regardless of isRecording —
+                                // record start/stop must stay reachable before the first
+                                // recording starts, the same as it was as an always-enabled
+                                // MapIconBar row before this dispatch; isRecording flows in as a
+                                // plain parameter, see TrailheadControls' own doc comment, not a
+                                // presence check, so a tester never sees this pill appear from
+                                // nowhere the first time they hit record). Inside the container
+                                // rather than gated separately: it minimises, slides, drags and
+                                // clamps with the bar because it is laid out with it.
+                                TrailheadControls(
+                                    isRecording = isRecording,
+                                    onToggleRecording = onToggleRecording,
+                                    returnToStart = returnToStart,
+                                    isReturning = isReturning,
+                                    isOffTrack = isOffTrack,
+                                    onToggleReturning = onToggleReturning,
+                                    onLeftSide = isMapIconBarOnLeftSide,
+                                )
+                            }
+                        }
+                        MapIconBarMinimizeHandle(
+                            onMinimize = { isMapIconBarMinimized = true },
+                            onLeftSide = isMapIconBarOnLeftSide,
+                            modifier = Modifier
+                                .align(mapIconBarSideAlignment)
+                                .then(mapIconBarCentreShiftOffset)
+                                .then(mapIconBarDragModifier),
+                        )
+                    }
                 }
                 CompassElevationStrip(
                     compassProvider = compassProvider,
@@ -5120,43 +5170,6 @@ private fun CompactMapTab(
                         .fillMaxWidth()
                         .padding(top = topInset),
                 )
-                // Composed whenever MapIconBar is (regardless of isRecording — record start/stop
-                // must stay reachable before the first recording starts, the same as it was as an
-                // always-enabled MapIconBar row before this dispatch; isRecording flows in as a
-                // plain parameter, see TrailheadControls' own doc comment, not a presence check, so
-                // a tester never sees this pill appear from nowhere the first time they hit
-                // record). Gated on !isMapIconBarMinimized alongside MapIconBar itself, per this
-                // file's own comment above on that gate — this pill's own position is computed
-                // from mapIconBarBottomPx, a value that stops being meaningful the moment
-                // MapIconBar itself is gone.
-                // Slides off/on with the bar — see the bar's own AnimatedVisibility comment above.
-                // Also carries the bar's in-progress horizontal drag (mapIconBarHorizontalDragPx,
-                // the same px mapIconBarPositionOffset applies to the bar and its handles) — owner
-                // finding on device: without it, only the bar followed the finger during a
-                // side-to-side drag and this pill jumped across once the side flipped at gesture
-                // end, instead of the two moving as one unit. The vertical term is deliberately
-                // not repeated here: TrailheadControls already follows the bar's real laid-out
-                // bottom edge via mapIconBarBottomPx, which boundsInParent() reports offset and
-                // all, so adding it again would double it.
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = !isMapIconBarMinimized,
-                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
-                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
-                    modifier = Modifier
-                        .align(if (isMapIconBarOnLeftSide) Alignment.TopStart else Alignment.TopEnd)
-                        .offset { IntOffset(mapIconBarHorizontalDragPx.roundToInt(), 0) },
-                ) {
-                    TrailheadControls(
-                        isRecording = isRecording,
-                        onToggleRecording = onToggleRecording,
-                        returnToStart = returnToStart,
-                        isReturning = isReturning,
-                        isOffTrack = isOffTrack,
-                        onToggleReturning = onToggleReturning,
-                        mapIconBarBottomPx = mapIconBarBottomPx,
-                        onLeftSide = isMapIconBarOnLeftSide,
-                    )
-                }
 
                 // Below the compass strip (topInset + compassStripClearance as top padding), same
                 // reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts
@@ -5323,58 +5336,66 @@ private fun CompactMapTab(
     }
 }
 
-/** Gap between [MapIconBar]'s own measured bottom edge and [ControlPill]'s top edge — matches [MapIconBar]'s own `Spacing.sm` inset from the screen edge, so the pill reads as continuing the same margin rather than sitting at an arbitrarily different distance. */
+/**
+ * Gap between [MapIconBar]'s bottom edge and [ControlPill]'s top edge — matches [MapIconBar]'s own
+ * `Spacing.sm` inset from the screen edge, so the pill reads as continuing the same margin rather
+ * than sitting at an arbitrarily different distance. Icon-bar-unify-container dispatch: now the
+ * cluster container Column's own `spacedBy`, no longer an offset from a measured bottom edge —
+ * the gap was structural (produced by `Modifier.offset`, not padding in a shared parent), and
+ * unifying the container is what changed how it is expressed. It is filled by the container at
+ * [com.forager.app.ui.map.MAP_ICON_CLUSTER_CONTAINER_ALPHA] and no longer passes touches to the
+ * map, which is intentional; the two `@Ignore`d gap-touch tests in
+ * `AvailabilityScreenMapIconStackTest` now carry a false premise on top of the Robolectric reason
+ * they were parked for, and are left for the owner's own separate look.
+ */
 private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
+
+/** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
+internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
 
 /**
  * The two Trailhead/Return controls — record start/stop and return-to-vehicle — anchored together
  * below [MapIconBar], per this dispatch's own Part B: they used to be split across a
  * [MapIconBar] row and a duplicate compass-strip readout; now they share one home.
  *
- * **Anchored relative to [MapIconBar]'s own measured bottom edge, not a hardcoded offset and not
- * a value computed from the bar's row count.** [mapIconBarBottomPx] comes from
- * [CompactMapTab]'s own `onGloballyPositioned` on the bar's call site (`boundsInParent().bottom`),
- * not from [mapIconBarRowAnchorOffset]-style row-count arithmetic the way [MapModePicker] and
- * [AddActionTile] anchor themselves — deliberately: the bar's own row count changes twice in quick
- * succession across this dispatch and the next one (record leaves here, search leaves in the
- * follow-up dispatch), so any constant derived from today's row count or height would already be
- * stale by the time the next dispatch lands, and this pill would visibly drift on exactly the
- * build field testers are using. A real measured value tracks whatever the bar's current row count
- * happens to be, automatically, with no second edit required when it changes again.
+ * **Icon-bar-unify-container dispatch: laid out inside the cluster container's own Column, directly
+ * below [MapIconBar], no anchoring of its own.** It used to offset itself by the bar's measured
+ * bottom edge (`mapIconBarBottomPx`, from [CompactMapTab]'s `onGloballyPositioned` on the bar's
+ * wrapper) — measured rather than derived from the bar's row count, which changed twice in quick
+ * succession at the time. That measurement is gone: the Column's `spacedBy` is the gap now, and
+ * the cluster container is what gets measured, dragged, clamped and minimised, so this pill is in
+ * bounds because it is inside the thing that is bounded. On device before this change the record
+ * pill hung off the bottom in fullscreen while the bar sat legally, and the directions pill was
+ * left sitting on the nav after exiting — the bar was in bounds, the pills extended past it.
  *
  * **Icon-bar-drag-refinements dispatch, Items 2-3: [onLeftSide] follows [MapIconBar]'s own side.**
  * Previously always right-anchored, left un-mirrored on purpose while [DistanceArm] extended
- * sideways from a right-fixed point (see that composable's own doc comment for the geometry that
- * made mirroring real, separate work) — now that the arm extends downward instead, it is genuinely
- * side-agnostic, so this whole cluster can just follow the bar's own alignment directly, the same
- * mechanism [MapIconBar]/its handles already use, with no per-child mirroring needed anywhere
- * inside this composable or [DistanceArm] itself. [ControlPill] stays pinned to the true screen
- * edge on whichever side (its own alignment inside the [Box] below, not a shared
- * `horizontalAlignment`) so it never shifts position depending on whether the arm is showing —
- * only the arm's own extra width (when returning) grows further inward from that fixed edge.
- * They hide and restore with the bar when minimised exactly as before — that behaviour is
- * unaffected by any of this.
+ * sideways from a right-fixed point — now that the arm extends downward instead, it is genuinely
+ * side-agnostic, so this whole cluster follows the bar's own alignment directly. [ControlPill]
+ * stays pinned to the container's outer edge on whichever side (the Column's `horizontalAlignment`)
+ * so it never shifts position depending on whether the arm is showing — only the arm's own extra
+ * width (when returning) grows further inward from that fixed edge, widening the container with
+ * it. They hide and restore with the bar when minimised exactly as before — by construction now.
  *
- * **Composition order: [DistanceArm] first, [ControlPill] second**, both inside one [Box] so a
- * [Box]'s own paint-and-hit-test-order-by-declaration rule (the same rule [MapIconBar] composing
- * before [CompassElevationStrip] already relies on, see that call site's own doc comment) makes
- * the pill win any overlap at their shared junction — the correct precedence, since a tap near
- * that corner should reach a control, not the arm's own plain readout. This is the third surface
- * in the same outer [Box] whose composition order is now load-bearing, alongside the
- * bar-before-strip ordering above; the two are independent (this pair doesn't overlap either the
- * bar or the strip) but both must survive the AvailabilityScreen split this file is scheduled for.
+ * **[DistanceArm] is part of the cluster's measured extent** (owner's call): it overlaps
+ * [ControlPill]'s own bottom cap by exactly half the pill's width ([MAP_ICON_BAR_CORNER_RADIUS]) —
+ * see that composable's own doc comment for why it has no cap of its own — which in a Column is
+ * expressed as a `Modifier.layout` on the arm that reports its height *minus* that overlap and
+ * places it that far upward, so the Column (and the container) end at the arm's real visible
+ * bottom, not a hidden band below it. [ControlPill] carries `zIndex(1f)` so it still draws over
+ * the arm's hidden top band, the precedence the old compose-arm-first-in-a-Box ordering gave: a
+ * tap near that junction reaches a control, not the arm's plain readout. `expandVertically` from
+ * the top still reads as the arm growing out from under the pill — its first `overlap` pixels of
+ * height are placed under the pill.
  *
  * `isRecording` is passed through as a plain parameter, not a presence check gating whether this
  * composable runs at all — record start/stop must stay reachable before the first recording
  * starts, the same as when it was an always-enabled [MapIconBar] row.
  *
- * **[DistanceArm] has no circular cap of its own — see that composable's own doc comment for why
- * it instead overlaps [ControlPill]'s own existing bottom cap by exactly half the pill's own
- * width**, the pill's own [MAP_ICON_BAR_CORNER_RADIUS]. [circleDiameterPx][DistanceArm] is
- * [ControlPill]'s own measured width ([pillSizePx]`.width`), passed down rather than assumed —
- * depends on [pillSizePx], which is why [ControlPill] (below) must report its size before this
- * offset can be correct, harmless on the frame or two before the first measurement lands since
- * [DistanceArm] is invisible (`isReturning` starts false) until a real return leg begins.
+ * [circleDiameterPx][DistanceArm] is [ControlPill]'s own measured width ([pillSizePx]`.width`),
+ * passed down rather than assumed — [ControlPill] must report its size before the overlap can be
+ * correct, harmless on the frame or two before the first measurement lands since [DistanceArm] is
+ * invisible (`isReturning` starts false) until a real return leg begins.
  */
 @Composable
 private fun TrailheadControls(
@@ -5384,37 +5405,16 @@ private fun TrailheadControls(
     isReturning: Boolean,
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
-    mapIconBarBottomPx: Float,
     onLeftSide: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    // ControlPill's own real measured size, in px — what DistanceArm positions itself against
+    // ControlPill's own real measured size, in px — what DistanceArm's overlap is computed from
     // below.
     var pillSizePx by remember { mutableStateOf(IntSize.Zero) }
-    val sideAlignment = if (onLeftSide) Alignment.TopStart else Alignment.TopEnd
-    Box(
-        modifier = modifier
-            .padding(start = if (onLeftSide) Spacing.sm else 0.dp, end = if (onLeftSide) 0.dp else Spacing.sm)
-            .offset {
-                IntOffset(x = 0, y = (mapIconBarBottomPx + CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR.toPx()).roundToInt())
-            },
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (onLeftSide) Alignment.Start else Alignment.End,
     ) {
-        // First: DistanceArm, so ControlPill (composed after) paints over their shared overlap
-        // band — see DistanceArm's own doc comment. Both align to the same sideAlignment as
-        // ControlPill so their outer edge (the one facing the true screen edge) always coincides;
-        // the arm's own extra width, when wider than the pill, extends inward from there.
-        DistanceArm(
-            visible = isReturning,
-            distanceMeters = returnToStart?.distanceMeters,
-            isOffTrack = isOffTrack,
-            circleDiameterPx = pillSizePx.width,
-            modifier = Modifier
-                .align(sideAlignment)
-                .offset {
-                    IntOffset(x = 0, y = pillSizePx.height - pillSizePx.width / 2)
-                },
-        )
-        // Second: ControlPill, so it paints on top of DistanceArm at their shared junction.
         ControlPill(
             isRecording = isRecording,
             onToggleRecording = onToggleRecording,
@@ -5423,8 +5423,21 @@ private fun TrailheadControls(
             isOffTrack = isOffTrack,
             onToggleReturning = onToggleReturning,
             modifier = Modifier
-                .align(sideAlignment)
+                .zIndex(1f)
                 .onGloballyPositioned { coordinates -> pillSizePx = coordinates.size },
+        )
+        DistanceArm(
+            visible = isReturning,
+            distanceMeters = returnToStart?.distanceMeters,
+            isOffTrack = isOffTrack,
+            circleDiameterPx = pillSizePx.width,
+            modifier = Modifier.layout { measurable, constraints ->
+                val overlapPx = pillSizePx.width / 2
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, (placeable.height - overlapPx).coerceAtLeast(0)) {
+                    placeable.place(x = 0, y = -overlapPx)
+                }
+            },
         )
     }
 }
@@ -5453,7 +5466,8 @@ private fun ControlPill(
     val isDarkTheme = LocalForagerDarkTheme.current
     Surface(
         shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc comment.
+        color = mapIconClusterChildColor(),
         contentColor = if (isDarkTheme) Color.White else Bark,
         shadowElevation = 2.dp,
         border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
@@ -5597,7 +5611,11 @@ private fun DistanceArm(
                 bottomStart = MAP_ICON_BAR_CORNER_RADIUS,
                 bottomEnd = MAP_ICON_BAR_CORNER_RADIUS,
             ),
-            color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+            // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc
+            // comment. Its own extra alpha(DISTANCE_ARM_RESTING_ALPHA) below is left as it was
+            // (out of this dispatch's scope), so the arm composites a little lighter than the
+            // pill above it: 0.5 × 0.8 = 0.4 over the container's 0.6 reads as ~0.76.
+            color = mapIconClusterChildColor(),
             contentColor = if (isDarkTheme) Color.White else Bark,
             shadowElevation = 2.dp,
             border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),

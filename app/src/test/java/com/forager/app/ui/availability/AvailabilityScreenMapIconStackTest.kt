@@ -2021,6 +2021,80 @@ class AvailabilityScreenMapIconStackTest {
         )
     }
 
+    // ── Icon-bar-unify-container dispatch: the cluster, not the bar, is what stays in bounds ──
+
+    private fun pillBottom(): Dp = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot().bottom
+
+    /**
+     * The bug, reproduced then disproven: dragged to the bottom of fullscreen's own range, the
+     * *pill's* bottom edge — not the bar's — must be on screen. Before the container, the clamp
+     * measured the bar alone and the record pill hung off the bottom edge while the bar sat
+     * legally. Fails with the clamp measuring the bar instead of the container (the reverted
+     * variant this test was run against), by roughly the pill's own height plus the gap.
+     */
+    @Test
+    fun `dragged to the bottom of its range in fullscreen, the control pill's bottom edge stays on screen`() {
+        setScreen()
+        val rootBottom = composeRule.onRoot().getUnclippedBoundsInRoot().bottom
+        val pillBottomBefore = pillBottom()
+
+        touchFullscreenRow("Fullscreen")
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+
+        val pillBottomAfter = pillBottom()
+        assertTrue("expected the cluster to have moved down (pill bottom $pillBottomBefore -> $pillBottomAfter)", pillBottomAfter.value > pillBottomBefore.value)
+        assertTrue(
+            "expected the control pill's bottom edge ($pillBottomAfter) at or above the screen's bottom ($rootBottom) at the bottom of fullscreen's drag range",
+            pillBottomAfter.value <= rootBottom.value,
+        )
+    }
+
+    /** Outside fullscreen the same bound is the nav's top: the pill, not just the bar, must clear it. */
+    @Test
+    fun `dragged to the bottom of its range outside fullscreen, the control pill's bottom edge stays above the bottom nav`() {
+        setScreen()
+        val navTop = bottomNavTop()
+        val pillBottomBefore = pillBottom()
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+
+        val pillBottomAfter = pillBottom()
+        assertTrue("expected the cluster to have moved down (pill bottom $pillBottomBefore -> $pillBottomAfter)", pillBottomAfter.value > pillBottomBefore.value)
+        assertTrue(
+            "expected the control pill's bottom edge ($pillBottomAfter) at or above the nav's top ($navTop)",
+            pillBottomAfter.value <= navTop.value,
+        )
+    }
+
+    /**
+     * The second half of the on-device finding: exiting fullscreen from the bottom of the range
+     * used to move the bar up and clear the nav while leaving the directions pill sitting on it.
+     * The whole cluster moves now — the pill clears the nav, and the bar and pill moved by the
+     * same amount, i.e. as one unit.
+     */
+    @Test
+    fun `exiting fullscreen from the bottom of the range moves the whole cluster above the nav, bar and pill together`() {
+        setScreen()
+        val navTop = bottomNavTop()
+        touchFullscreenRow("Fullscreen")
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+        val barTopLow = composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot().top
+        val pillBottomLow = pillBottom()
+
+        touchFullscreenRow("Exit fullscreen")
+
+        val barTopAfter = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
+        val pillBottomAfter = pillBottom()
+        val barShift = barTopAfter.value - barTopLow.value
+        val pillShift = pillBottomAfter.value - pillBottomLow.value
+        assertTrue("expected the cluster to have moved up on exit (bar shift $barShift)", barShift < -1f)
+        assertTrue("expected the pill to have moved with the bar (bar shift $barShift, pill shift $pillShift)", abs(barShift - pillShift) <= 1f)
+        assertTrue(
+            "expected the control pill's bottom edge ($pillBottomAfter) at or above the nav's top ($navTop) after leaving fullscreen",
+            pillBottomAfter.value <= navTop.value,
+        )
+    }
+
 }
 
 /**

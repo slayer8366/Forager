@@ -35,11 +35,13 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -228,10 +230,54 @@ internal val MAP_ICON_BAR_CORNER_RADIUS = MIN_TOUCH_TARGET / 2
  * reasoning for the opposite risk (merging into snow, sand, or other pale terrain), but nobody has
  * looked at it on a real screen yet.
  */
-internal val MapIconStackButtonColorDark = Bark.copy(alpha = 0.8f)
+internal val MapIconStackButtonColorDark = Bark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
 /** [MapIconStackButtonColorDark]'s light-theme counterpart — see that color's own doc comment. */
-internal val MapIconStackButtonColorLight = Cream.copy(alpha = 0.8f)
+internal val MapIconStackButtonColorLight = Cream.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
+
+/** The standing opacity for chrome floating over the map — the one value every fill here targets. */
+internal const val MAP_CHROME_OVER_MAP_ALPHA = 0.8f
+
+/**
+ * Icon-bar-unify-container dispatch: [MapIconBar] and `TrailheadControls` now sit inside one
+ * filled container (their cluster — measured, dragged, clamped and minimised as one), and the
+ * owner's design layers two lighter fills so the cluster still reads at [MAP_CHROME_OVER_MAP_ALPHA]
+ * where a child sits over the container. **Layered alpha composites; it does not add.** Two
+ * same-colour layers read as `top + bottom × (1 − top)` ([srcOverAlpha]), so these two were chosen
+ * to land on exactly 0.8 — 0.6 under 0.5 — not summed to it (0.5 under 0.3 would read as ~0.65).
+ * `MapChromeAlphaTest` asserts the composite of these declared constants, so the pair cannot drift
+ * apart without a test saying so; it does not pretend to verify appearance, which only a real
+ * screen over real terrain can. The owner read "the pills a lighter one again" literally: the
+ * children are the lighter layer. Where the container extends past its children (the gap between
+ * bar and pill, the arm's own width) it reads at the container's own 0.6 — intentional, that
+ * region holds no control. Every icon sits on a child, i.e. on the full 0.8 composite, so icon
+ * legibility against bright terrain is unchanged from before the container existed.
+ */
+internal const val MAP_ICON_CLUSTER_CONTAINER_ALPHA = 0.6f
+
+/** See [MAP_ICON_CLUSTER_CONTAINER_ALPHA]. Applied to [MapIconBar] (via its `fillColor`) and both Trailhead pills inside the cluster — the bar is a child too, or its region would composite to 0.92, not 0.8. */
+internal const val MAP_ICON_CLUSTER_CHILD_ALPHA = 0.5f
+
+/** Source-over compositing of two same-colour translucent layers: the resulting alpha of [top] drawn over [bottom]. */
+internal fun srcOverAlpha(top: Float, bottom: Float): Float = top + bottom * (1f - top)
+
+/** The cluster container's own fill — see [MAP_ICON_CLUSTER_CONTAINER_ALPHA]. */
+@Composable
+@ReadOnlyComposable
+internal fun mapIconClusterContainerColor(): Color =
+    (if (LocalForagerDarkTheme.current) Bark else Cream).copy(alpha = MAP_ICON_CLUSTER_CONTAINER_ALPHA)
+
+/** The fill of each child inside the cluster container — see [MAP_ICON_CLUSTER_CHILD_ALPHA]. */
+@Composable
+@ReadOnlyComposable
+internal fun mapIconClusterChildColor(): Color =
+    (if (LocalForagerDarkTheme.current) Bark else Cream).copy(alpha = MAP_ICON_CLUSTER_CHILD_ALPHA)
+
+/** The hairline edge for whichever theme is current — [MAP_ICON_STACK_BORDER_COLOR_DARK]/[MAP_ICON_STACK_BORDER_COLOR_LIGHT]. */
+@Composable
+@ReadOnlyComposable
+internal fun mapIconStackBorderColor(): Color =
+    if (LocalForagerDarkTheme.current) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT
 
 /** The hairline edge on [MapIconStackButtonColorDark] circles — see that color's own doc comment. */
 internal val MAP_ICON_STACK_BORDER_COLOR_DARK = Color.White.copy(alpha = 0.4f)
@@ -304,6 +350,13 @@ internal fun MapIconBar(
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
     /**
+     * Icon-bar-unify-container dispatch: the bar's fill, defaulting to the standing 80% chrome
+     * fill ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) so the Cartography entry
+     * map's own bare call is unchanged; `CompactMapTab` passes [mapIconClusterChildColor], the
+     * lighter fill that composites back to 80% over its cluster container.
+     */
+    fillColor: Color = Color.Unspecified,
+    /**
      * Night mode as it currently resolves — Settings' "Night Maps" checkbox
      * ([AvailabilityUiState.nightModeMaps]), shown here in slot 4's content description so the
      * state is readable rather than merely visible. No longer toggleable from this bar directly
@@ -356,7 +409,7 @@ internal fun MapIconBar(
     val isDarkTheme = LocalForagerDarkTheme.current
     Surface(
         shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        color = fillColor.takeOrElse { if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight },
         contentColor = if (isDarkTheme) Color.White else Bark,
         shadowElevation = 2.dp,
         border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
