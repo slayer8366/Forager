@@ -1412,15 +1412,17 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Item 3's own explicit rule: "minimising resets when the user leaves the Map tab. Returning
-     * always shows the full icon bar." `isMapIconBarMinimized` lives as un-keyed `remember` state
-     * inside `CompactMapTab` itself (see that composable's own doc comment) — this proves the
-     * reset actually happens through the real tab-switch entry point, not just by inspecting where
-     * the state lives. No [searchAReferenceRegion] call — see the first test in this group's own
-     * doc comment.
+     * Owner's standing UX default (CLAUDE.md, "UX defaults"): user-set state survives navigating
+     * away and back. This test used to assert the opposite — the fullscreen-fixes dispatch's own
+     * "minimising resets when the user leaves the Map tab", a planner rule the owner has since
+     * overruled in general — and is rewritten to assert the keep, the one assertion that
+     * principle legitimately reverses here. Driven through the real tab-switch entry point, not
+     * by inspecting where the state lives. Fails with the flag remembered inside `CompactMapTab`
+     * (reverted variant: the full bar is back on return). No [searchAReferenceRegion] call — see
+     * the first test in this group's own doc comment.
      */
     @Test
-    fun `minimising the icon bar resets after leaving and returning to the Map tab`() {
+    fun `the icon bar stays minimised after leaving and returning to the Map tab`() {
         setScreen()
 
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
@@ -1431,8 +1433,13 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Maps").performClick()
         composeRule.waitForIdle()
 
+        composeRule.onNodeWithContentDescription("Show map controls").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Fullscreen").assertDoesNotExist()
+
+        // And the restore handle still works there — the state survived as live state, not a snapshot.
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Show map controls")) }
+        composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Show map controls").assertDoesNotExist()
     }
 
     /**

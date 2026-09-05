@@ -4460,17 +4460,18 @@ private val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.8f)
  * [CompactMapTab] — in `compactMainScaffold`, which persists across tab changes — rather than in
  * the tab's own `remember`s, which are disposed with it on every tab switch. Direct owner request:
  * "switching between tabs resets the icon position; have it remember positions when switching in
- * and out of maps." That reverses the icon-bar-position-memory dispatch's ruling that nothing
- * survives a tab change (taken then to avoid hoisting state for a behaviour nobody had asked for);
- * now that the owner has asked for it, the hoisting is the behaviour, not machinery around one.
- * Still session-only — nothing here is persisted across app restarts, which stays settled.
+ * and out of maps." That reversed the icon-bar-position-memory dispatch's working rule that
+ * nothing survives a tab change, and the owner then made the general principle explicit —
+ * CLAUDE.md, "UX defaults": user-set state survives navigating away and back by default, and an
+ * unrequested reset is a bug unless the exception is stated for the case. Still session-only —
+ * nothing here is persisted across app restarts, which is a separate per-case decision.
  *
- * Holds exactly the position: [userChosenOffsetPx] (the single source of truth, written only by
- * drags), [displayedOffsetPx] (the Animatable that is always the clamp of it under the bounds in
- * force — kept too, so returning to the tab does not glide in from zero), and [isOnLeftSide].
- * Minimised state is deliberately *not* here: "minimising resets when the user leaves the Map
- * tab" was the owner's own explicit ruling for that flag and the owner's ask names position only.
- * The cluster's measurements (heights, the bar's centre) are not here either — they are re-measured
+ * Holds the cluster's user-set state: [userChosenOffsetPx] (the single source of truth, written
+ * only by drags), [displayedOffsetPx] (the Animatable that is always the clamp of it under the
+ * bounds in force — kept too, so returning to the tab does not glide in from zero),
+ * [isOnLeftSide], and [isMinimized] (the fullscreen-fixes dispatch's "minimising resets when the
+ * user leaves the Map tab" was a planner rule with no owner exception behind it, so the default
+ * applies). The cluster's measurements (heights, the bar's centre) are not here — they are re-measured
  * on every mount and mean nothing across one. On return, the tab's bounds-change effect re-clamps
  * the memory under the bounds then in force (the tab change also exited fullscreen), so a position
  * chosen low in fullscreen comes back above the nav, and re-entering fullscreen glides it down
@@ -4480,6 +4481,7 @@ private class MapIconClusterPositionState {
     var userChosenOffsetPx by mutableStateOf(0f)
     val displayedOffsetPx = Animatable(0f)
     var isOnLeftSide by mutableStateOf(false)
+    var isMinimized by mutableStateOf(false)
 }
 
 @Composable
@@ -4622,11 +4624,12 @@ private fun CompactMapTab(
     var mapIconBarCentreInClusterPx by remember { mutableStateOf(0f) }
     // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking handle to
     // restore it") — independent of isMapFullscreen by design (that item's own "do not tie it to
-    // isMapFullscreen" instruction); no key on remember, so it naturally resets to false whenever
-    // this whole composable is torn down and rebuilt, which is exactly what happens on leaving the
-    // Map tab (compactMainScaffold's own `when (compactTab) {...}` branch swap) — "minimising
-    // resets when the user leaves the Map tab" without any extra plumbing to make that happen.
-    var isMapIconBarMinimized by remember { mutableStateOf(false) }
+    // isMapFullscreen" instruction). Held in clusterPosition (see MapIconClusterPositionState) so
+    // it survives leaving and returning to the Map tab: that dispatch's own "minimising resets
+    // when the user leaves the Map tab" was a planner rule, and the owner's standing UX default
+    // (CLAUDE.md, "UX defaults") is that user-set state survives a tab change unless an exception
+    // is stated explicitly for the case — none has been for this.
+    var isMapIconBarMinimized by clusterPosition::isMinimized
     // Direct owner request (not part of the fullscreen-fixes dispatch): the icon bar can be
     // dragged up/down to reposition it, and snaps to the left or right edge — for left-handed
     // users who want it within thumb reach on that side. Held in clusterPosition (see
