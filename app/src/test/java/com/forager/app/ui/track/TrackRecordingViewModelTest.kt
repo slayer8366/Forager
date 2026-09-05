@@ -605,6 +605,15 @@ private class FakeWaypointRepository : com.forager.app.domain.WaypointRepository
         Result.success(
             waypoints.values.filter { it.createdAtEpochMillis in dayStartInclusiveEpochMillis until dayEndExclusiveEpochMillis },
         )
+    // HUD-foundations dispatch, Item 3 — not exercised by this ViewModel's tests, so an explicit
+    // "unsupported" rather than a fabricated answer (the same shape the MapPreferencesRepository
+    // stubs in this suite use for methods outside their test's path).
+    override suspend fun getById(id: String): Result<Waypoint?> =
+        Result.failure(UnsupportedOperationException("getById is not part of this test's path"))
+    override suspend fun getForTrack(trackId: String): Result<List<Waypoint>> =
+        Result.failure(UnsupportedOperationException("getForTrack is not part of this test's path"))
+    override suspend fun detachFromTrack(trackId: String): Result<Unit> =
+        Result.failure(UnsupportedOperationException("detachFromTrack is not part of this test's path"))
     override suspend fun save(waypoint: Waypoint): Result<Unit> {
         waypoints[waypoint.id] = waypoint
         return Result.success(Unit)

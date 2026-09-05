@@ -766,3 +766,78 @@ val MIGRATION_11_12: Migration = object : Migration(11, 12) {
         db.execSQL("ALTER TABLE `log_photos_new` RENAME TO `log_photos`")
     }
 }
+
+/**
+ * Adds nullable `trackId` (indexed) to `waypoints` and nullable `originWaypointId` to `tracks` —
+ * HUD-foundations dispatch, Item 3, the navigation HUD's origin-waypoint schema, added now rather
+ * than with the HUD because CLAUDE.md requires a relationship to be designed at creation, not
+ * retrofitted. See [WaypointEntity.trackId]/[TrackEntity.originWaypointId] and their domain
+ * counterparts for what each column means; every existing row gets `NULL` for both — no track
+ * recorded before this migration has an origin waypoint, and no waypoint was dropped "while
+ * recording" in a sense the schema could record, so `NULL` is the honest value, not a guess.
+ *
+ * **Two full rebuilds (`_new` table, explicit `INSERT ... SELECT` column list, drop, rename, then
+ * the indexes), not `ALTER TABLE ... ADD COLUMN`** — the same choice [MIGRATION_11_12] and
+ * [MIGRATION_8_9] made, for the same reason: [TrackEntity] and [WaypointEntity] are declared
+ * directly (not copied) by every `LegacyForagerDatabaseVn` migration-test fixture from version 5
+ * on, so those fixtures' generated `CREATE TABLE` already carries both new columns the moment the
+ * entities gain them — an `ADD COLUMN` here would fail against a column those fixtures already
+ * have (`docs/audits/2026-08-24-migration-fixture-entity-reuse-pitfall.md`). The explicit source
+ * column lists below never name either new column, so a leaked one is ignored on the source side.
+ * The indexes are recreated because `DROP TABLE` takes the old table's indexes with it; their
+ * names match what Room generates for the entities' `@Index` declarations, which Room validates on
+ * open. `track_points.trackId` is a plain column with no constraint on `tracks`, so rebuilding
+ * `tracks` underneath it needs no cascade handling. Verified by running every existing
+ * `LegacyForagerDatabaseVn` migration test with this migration appended to its chain, plus
+ * `TrackOriginWaypointMigrationTest` from a real version-12 file.
+ */
+val MIGRATION_12_13: Migration = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `waypoints_new` (
+            `id` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `altitude` REAL,
+            `name` TEXT NOT NULL,
+            `note` TEXT NOT NULL,
+            `createdAtEpochMillis` INTEGER NOT NULL,
+            `trackId` TEXT,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `waypoints_new` (`id`, `lat`, `lng`, `altitude`, `name`, `note`, `createdAtEpochMillis`, `trackId`)
+            SELECT `id`, `lat`, `lng`, `altitude`, `name`, `note`, `createdAtEpochMillis`, NULL FROM `waypoints`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `waypoints`")
+        db.execSQL("ALTER TABLE `waypoints_new` RENAME TO `waypoints`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_waypoints_createdAtEpochMillis` ON `waypoints` (`createdAtEpochMillis`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_waypoints_trackId` ON `waypoints` (`trackId`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE `tracks_new` (
+            `id` TEXT NOT NULL,
+            `name` TEXT,
+            `startedAtEpochMillis` INTEGER NOT NULL,
+            `endedAtEpochMillis` INTEGER,
+            `originWaypointId` TEXT,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `tracks_new` (`id`, `name`, `startedAtEpochMillis`, `endedAtEpochMillis`, `originWaypointId`)
+            SELECT `id`, `name`, `startedAtEpochMillis`, `endedAtEpochMillis`, NULL FROM `tracks`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `tracks`")
+        db.execSQL("ALTER TABLE `tracks_new` RENAME TO `tracks`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tracks_startedAtEpochMillis` ON `tracks` (`startedAtEpochMillis`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tracks_endedAtEpochMillis` ON `tracks` (`endedAtEpochMillis`)")
+    }
+}

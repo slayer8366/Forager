@@ -37,3 +37,21 @@ sealed interface LocationFix {
 
     data object PermissionDenied : LocationFix
 }
+
+/**
+ * How old this fix is at [nowEpochMillis], in milliseconds — HUD-foundations dispatch, Item 1.
+ *
+ * A pure function of the fix and a clock the caller supplies, never a stored field: a stored age
+ * is stale the moment it is written, while this stays correct for as long as the fix is held
+ * (`AvailabilityUiState.liveFix` holds the last fix indefinitely once fixes stop — canopy, a tunnel,
+ * the radio off — and this is how a consumer tells a twenty-minute-old fix from a fresh one).
+ * Deliberately **no interpretation**: no "stale" threshold, no "GPS lost" state. Whether an age is
+ * acceptable is the consumer's policy — the navigation HUD's, when it exists — not this function's.
+ *
+ * Not clamped at zero. A negative result means [nowEpochMillis] is earlier than the fix's own
+ * timestamp — clock skew between the platform's fix time and the caller's clock — and returning the
+ * raw difference reports that honestly rather than fabricating a plausible zero (CLAUDE.md, "an
+ * unsupported feature or capability returns an explicit unsupported, never a fabricated plausible
+ * value").
+ */
+fun LocationFix.Update.ageMillis(nowEpochMillis: Long): Long = nowEpochMillis - timestampEpochMillis

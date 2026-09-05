@@ -146,8 +146,9 @@ object GeoDistance {
      * `[0, 360)`. This is the bearing to *start* walking on, not a bearing that stays constant
      * along a great-circle route of any real length — over the short distances a return-to-start
      * prompt is ever computed at, that distinction is immaterial. True north, not magnetic:
-     * [com.forager.app.domain.CompassProvider.heading] is already magnetic-north-relative, so
-     * combining the two is a UI-layer concern, not this function's.
+     * [com.forager.app.domain.CompassProvider.heading] is magnetic-north-relative, and
+     * [ComputeTrueHeadingUseCase] is where the two are reconciled (HUD-foundations dispatch,
+     * Item 2) — not this function, and no longer "a UI-layer concern" as this used to say.
      */
     fun initialBearingDegrees(from: LatLng, to: LatLng): Double {
         val lat1 = Math.toRadians(from.lat)

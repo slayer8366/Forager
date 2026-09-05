@@ -8,6 +8,16 @@ package com.forager.app.domain.model
  *
  * [altitude] is `null` whenever the fix it was created from didn't report one, same rule as
  * [TrackPoint.altitude] and [com.forager.app.domain.LocationResult.Success.altitude].
+ *
+ * [trackId] — HUD-foundations dispatch, Item 3 (owner decision): the [Track] this waypoint was
+ * dropped **while recording**, or `null` for a waypoint dropped with no recording running. The
+ * richer meaning, not "this track's origin" — a track's origin is the track's own explicit pointer
+ * ([Track.originWaypointId]), so each column has exactly one meaning. A plain nullable link, no
+ * `@ForeignKey` (this database declares none — see `WaypointEntity`); when the track is deleted the
+ * link is nulled, not left dangling and not cascaded, so the waypoint — the trailhead, the one
+ * location worth keeping after clearing an old track — survives as an ordinary waypoint (see
+ * [com.forager.app.domain.DeleteTrackUseCase]). Defaults to `null` so no existing constructor site
+ * changes; read back through [com.forager.app.domain.WaypointRepository.getForTrack].
  */
 data class Waypoint(
     val id: String,
@@ -17,4 +27,5 @@ data class Waypoint(
     val name: String,
     val note: String,
     val createdAtEpochMillis: Long,
+    val trackId: String? = null,
 )
