@@ -87,6 +87,14 @@ internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
 }
 
 /**
+ * [MapModePicker]'s own panel `Surface`, for tests that measure where the panel actually opened
+ * (expanded-panels dispatch). A test hook only — no behaviour, layout, or API change to this
+ * shared composable. See `ADD_ACTION_TILE_TAG`'s own doc comment for why the chips inside are not
+ * a usable proxy for the panel's edges under Robolectric.
+ */
+internal const val MAP_MODE_PICKER_TAG = "map-mode-picker"
+
+/**
  * The picker [MapModeToggle] (medium/expanded) and [MapIconBar]'s layers row (compact) both open —
  * three real [FilterChip]s, not a list of full-width text rows: the exact "too wide" hardware
  * finding [AddActionTile] carried (a full-width button per row makes the whole tile as wide as its
@@ -155,6 +163,7 @@ internal fun MapModePicker(
                 .offset(x = anchorOffset.x, y = anchorOffset.y),
         ) {
             Surface(
+                modifier = Modifier.testTag(MAP_MODE_PICKER_TAG),
                 shape = RoundedCornerShape(Spacing.md),
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                 contentColor = if (isDarkTheme) Color.White else Bark,

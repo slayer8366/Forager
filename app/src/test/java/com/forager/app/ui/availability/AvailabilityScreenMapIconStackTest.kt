@@ -85,8 +85,11 @@ import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
+import com.forager.app.ui.map.MAP_MODE_PICKER_TAG
 import com.forager.app.ui.map.MapSlot
+import com.forager.app.ui.theme.Spacing
 import java.time.LocalDate
+import kotlin.math.abs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1592,6 +1595,261 @@ class AvailabilityScreenMapIconStackTest {
         // The dropdown closed and the centre-pin picker's own confirm row is up — proof the touch
         // actually reached "Set on map", not some other node it happened to land on.
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertDoesNotExist()
+        composeRule.onNodeWithText("OK").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+    }
+
+    // ── Expanded-panels dispatch: MapModePicker/AddActionTile follow the bar's live position ──
+
+    /** [MapIconBar]'s layers row, as it reads at this file's default (Topographical, night mode off). */
+    private val layersRowDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
+
+    /** [MapIconBar]'s add row. */
+    private val addRowDescription = "Plan a trip or log a find here"
+
+    /** Same as [centerOfTag], keyed by visible text — the two panels' own chips carry only a label. */
+    private fun centerOfText(text: String): Offset {
+        val bounds = composeRule.onNodeWithText(text).getUnclippedBoundsInRoot()
+        return with(composeRule.density) {
+            Offset(((bounds.left + bounds.right) / 2).toPx(), ((bounds.top + bounds.bottom) / 2).toPx())
+        }
+    }
+
+    /**
+     * Same real long-press-then-drag as [dragIconBarHandle], from an arbitrary [start] point —
+     * for the restore handle, which carries only a contentDescription ("Show map controls") and
+     * no testTag of its own, so [centerOfContentDescription] has to supply the start.
+     */
+    private fun dragFrom(start: Offset, dxDp: Dp = 0.dp, dyDp: Dp = 0.dp) {
+        val delta = with(composeRule.density) { Offset(dxDp.toPx(), dyDp.toPx()) }
+        composeRule.onRoot().performTouchInput {
+            down(start)
+            advanceEventTime(600)
+            moveTo(start + delta)
+            advanceEventTime(50)
+            up()
+        }
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * The bottom nav's own top edge, via its "Maps" destination — the nav itself carries no tag,
+     * and each [NavigationBarItem] spans the bar's full height. What the drag clamp's downward
+     * bound is checked against: the nav is composed *over* [MapIconBar] in [CompactMapTab]'s Box
+     * (its own call-site comment explains why that ordering is load-bearing), so a row that ends
+     * up under it is on screen yet untappable — the case the clamp exists to rule out.
+     */
+    private fun bottomNavTop(): Dp = composeRule.onNodeWithText("Maps").getUnclippedBoundsInRoot().top
+
+    /**
+     * The dispatch's own acceptance shape for both panels: opened *adjacent to the bar where it
+     * now is* — the panel's own outer edge lands on the bar's own outer edge on whichever side the
+     * bar is on, and the panel is vertically centred on the row that opened it — and *fully on
+     * screen*, checked against the root's own real bounds. The panel is measured by its own
+     * `Surface` ([MAP_MODE_PICKER_TAG]/[ADD_ACTION_TILE_TAG]), not by its chips: under
+     * Robolectric's near-zero-width fonts each chip is under 48dp wide, so Material's
+     * `minimumInteractiveComponentSize` wrapper pads it out and the chip's own semantics bounds
+     * stop a font-dependent ~6dp short of the panel's real edge (measured, not assumed — see
+     * [ADD_ACTION_TILE_TAG]'s own doc comment). The bar's edge is read from its own top row (the
+     * rows are exactly as wide as the bar), the same handle the handle-mark tests above use;
+     * nothing here is a hardcoded position. Tolerance is 1dp, for px rounding only.
+     */
+    private fun assertPanelAnchoredToBar(panelTag: String, openedFromRow: String, onLeftSide: Boolean) {
+        val panel = composeRule.onNodeWithTag(panelTag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot()
+        val row = composeRule.onNodeWithContentDescription(openedFromRow).getUnclippedBoundsInRoot()
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val tolerance = 1f
+        if (onLeftSide) {
+            assertTrue(
+                "expected the panel's own left edge (${panel.left}) to land on the bar's own left edge (${bar.left})",
+                abs(panel.left.value - bar.left.value) <= tolerance,
+            )
+        } else {
+            assertTrue(
+                "expected the panel's own right edge (${panel.right}) to land on the bar's own right edge (${bar.right})",
+                abs(panel.right.value - bar.right.value) <= tolerance,
+            )
+        }
+        val panelCenterY = (panel.top.value + panel.bottom.value) / 2
+        val rowCenterY = (row.top.value + row.bottom.value) / 2
+        assertTrue(
+            "expected the panel (centre y=$panelCenterY, bounds $panel) to be centred on the row that opened it " +
+                "(centre y=$rowCenterY, bounds $row) — i.e. to have followed the bar to its dragged position",
+            abs(panelCenterY - rowCenterY) <= tolerance,
+        )
+        assertTrue(
+            "expected the panel ($panel) to sit fully inside the root's own bounds ($root)",
+            panel.left >= root.left && panel.right <= root.right && panel.top >= root.top && panel.bottom <= root.bottom,
+        )
+    }
+
+    /**
+     * The sweep finding this dispatch's owner approved fixing ("fix the clamp"): the old downward
+     * bound kept only the bar's *centre* MIN_TOUCH_TARGET above the Box's bottom, so a drag to the
+     * bottom of the range carried the bar's own last two rows — layers and add, exactly the rows
+     * the two panels anchor to — off the bottom of the screen, and under the bottom nav before
+     * that. Reproduced as: a real long-press-and-drag far downward, then the add row's own bottom
+     * edge checked against the nav's own real top edge. The "it actually moved" guard keeps this
+     * from passing on a clamp that merely refuses all downward movement.
+     */
+    @Test
+    fun `dragging the icon bar to the bottom of its range keeps its add row above the bottom nav`() {
+        setScreen()
+        val navTop = bottomNavTop()
+        val addRowBottomBefore = composeRule.onNodeWithContentDescription(addRowDescription).getUnclippedBoundsInRoot().bottom
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+
+        val addRowBottomAfter = composeRule.onNodeWithContentDescription(addRowDescription).getUnclippedBoundsInRoot().bottom
+        assertTrue(
+            "expected the bar to have actually moved down (add row bottom $addRowBottomBefore -> $addRowBottomAfter)",
+            addRowBottomAfter.value > addRowBottomBefore.value,
+        )
+        assertTrue(
+            "expected the add row's own bottom edge ($addRowBottomAfter) to stay at or above the " +
+                "bottom nav's own top edge ($navTop) after an extreme downward drag",
+            addRowBottomAfter.value <= navTop.value,
+        )
+    }
+
+    /**
+     * The other route to the same off-screen-rows outcome: the 48dp restore handle shares the
+     * bar's one vertical offset, so it can be dragged lower than the ~272dp bar itself may go —
+     * restoring from there used to bring the bar back with its bottom rows under the nav. The
+     * clamp now re-applies when the measured height changes (the `LaunchedEffect` beside the drag
+     * modifier), which this checks the same way as the test above, after a real minimise, drag
+     * and restore.
+     */
+    @Test
+    fun `restoring the bar after dragging its restore handle to the bottom keeps the add row above the bottom nav`() {
+        setScreen()
+        val navTop = bottomNavTop()
+
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
+        composeRule.waitForIdle()
+        dragFrom(centerOfContentDescription("Show map controls"), dyDp = 2000.dp)
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Show map controls")) }
+        composeRule.waitForIdle()
+
+        val addRowBottom = composeRule.onNodeWithContentDescription(addRowDescription).getUnclippedBoundsInRoot().bottom
+        assertTrue(
+            "expected the restored bar's add row bottom ($addRowBottom) to stay at or above the " +
+                "bottom nav's own top edge ($navTop)",
+            addRowBottom.value <= navTop.value,
+        )
+    }
+
+    /**
+     * The dispatch's own bug, reproduced then disproven for [MapModePicker] on the default (right)
+     * edge: the bar is dragged to the bottom of its range, the picker opened by a real touch on
+     * the layers row *at its new position*, then checked against where the bar now is (see
+     * [assertPanelAnchoredToBar]) — previously it opened at the bar's old, centred position. A real
+     * touch on the "Street" chip then proves the panel's own buttons are tappable where it
+     * landed: the layers row's own contentDescription reflects the new mode.
+     */
+    @Test
+    fun `with the bar dragged to the bottom on the right, the map mode picker opens beside the layers row and its chips are tappable`() {
+        setScreen()
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
+        composeRule.waitForIdle()
+
+        assertPanelAnchoredToBar(
+            panelTag = MAP_MODE_PICKER_TAG,
+            openedFromRow = layersRowDescription,
+            onLeftSide = false,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfText("Street")) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
+    }
+
+    /** [MapModePicker], left edge — the horizontal case the dispatch asked to confirm, not assume: one drag snaps the bar left and drops it to the bottom of its range. */
+    @Test
+    fun `with the bar dragged to the bottom on the left, the map mode picker opens beside the layers row and its chips are tappable`() {
+        setScreen()
+        val fullscreenLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dxDp = (-160).dp, dyDp = 2000.dp)
+
+        val fullscreenLeftAfter = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+        assertTrue(
+            "expected the bar to have snapped to the left edge (left=$fullscreenLeftAfter, was $fullscreenLeftBefore)",
+            fullscreenLeftAfter.value < fullscreenLeftBefore.value,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
+        composeRule.waitForIdle()
+
+        assertPanelAnchoredToBar(
+            panelTag = MAP_MODE_PICKER_TAG,
+            openedFromRow = layersRowDescription,
+            onLeftSide = true,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfText("Street")) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
+    }
+
+    /**
+     * `AddActionTile`, right edge, bar at the bottom of its range — the same shape as the picker
+     * tests above. A real touch on "Trip" proves the chips are tappable where the tile landed:
+     * [CentrePinLocationPickerOverlay]'s own confirm row comes up. No [searchAReferenceRegion]
+     * call — that overlay is composed on `pendingAction` alone, not on a searched region.
+     */
+    @Test
+    fun `with the bar dragged to the bottom on the right, the add tile opens beside the add row and its chips are tappable`() {
+        setScreen()
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(addRowDescription)) }
+        composeRule.waitForIdle()
+
+        assertPanelAnchoredToBar(
+            panelTag = ADD_ACTION_TILE_TAG,
+            openedFromRow = addRowDescription,
+            onLeftSide = false,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfText("Trip")) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("OK").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+    }
+
+    /** `AddActionTile`, left edge — see the left-edge picker test above for the one-drag snap-and-drop. */
+    @Test
+    fun `with the bar dragged to the bottom on the left, the add tile opens beside the add row and its chips are tappable`() {
+        setScreen()
+        val fullscreenLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dxDp = (-160).dp, dyDp = 2000.dp)
+
+        val fullscreenLeftAfter = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
+        assertTrue(
+            "expected the bar to have snapped to the left edge (left=$fullscreenLeftAfter, was $fullscreenLeftBefore)",
+            fullscreenLeftAfter.value < fullscreenLeftBefore.value,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(addRowDescription)) }
+        composeRule.waitForIdle()
+
+        assertPanelAnchoredToBar(
+            panelTag = ADD_ACTION_TILE_TAG,
+            openedFromRow = addRowDescription,
+            onLeftSide = true,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfText("Trip")) }
+        composeRule.waitForIdle()
+
         composeRule.onNodeWithText("OK").assertIsDisplayed()
         composeRule.onNodeWithText("Cancel").assertIsDisplayed()
     }

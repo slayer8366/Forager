@@ -4611,6 +4611,14 @@ private fun CompactMapTab(
     // "measure the real value, don't derive it from a row count or other guess" reasoning as
     // mapIconBarBottomPx's own doc comment.
     var mapIconBarHeightPx by remember { mutableStateOf(0f) }
+    // Expanded-panels dispatch: this tab's own ForagerBottomNav overlay's real measured height, in
+    // px — kept here (as well as reported up via onBottomNavHeightMeasured) because the drag
+    // clamp's downward bound needs it: that nav is composed *after* MapIconBar in this tab's Box
+    // (drawn over it, hit-tested first — see its own call-site comment for why that ordering is
+    // load-bearing), so "the bar's bottom edge is on screen" is not enough for its lower rows to
+    // be tappable outside fullscreen; they have to stay above the nav's own top edge. Read as 0
+    // while fullscreen, where the nav has slid off entirely.
+    var mapBottomNavHeightPx by remember { mutableStateOf(0f) }
 
     // AddActionTile and CentrePinLocationPickerOverlay are both plain overlays, not real Dialogs,
     // so — unlike TripDatePickerDialog below, an M3 DatePickerDialog whose own Dialog window
@@ -4872,6 +4880,49 @@ private fun CompactMapTab(
                 // "how far below the top the search chrome reaches" (see the taxon filter chip's
                 // own topInset + compassStripClearance padding a little further down).
                 val dropdownTopPx = with(compassStripDensity) { (topInset + compassStripClearance).toPx() }
+                // See the comment on the LaunchedEffect below for both bounds' derivations.
+                fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
+                    // The lowest edge the bar may reach: this Box's own bottom in fullscreen, the
+                    // nav's own top edge otherwise (mapBottomNavHeightPx's own doc comment).
+                    val bottomBoundPx = mapContentBoxHeightPx - (if (isFullscreen) 0f else mapBottomNavHeightPx)
+                    val fallbackDownwardOffsetPx = (bottomBoundPx - mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
+                    val maxDownwardOffsetPx = if (mapIconBarHeightPx > 0f) {
+                        (bottomBoundPx - (mapContentBoxHeightPx + mapIconBarHeightPx) / 2f).coerceAtLeast(0f)
+                    } else {
+                        fallbackDownwardOffsetPx
+                    }
+                    // Upward (negative) bound: the bar's own top edge, once centered then shifted
+                    // by the offset, is (mapContentBoxHeightPx - mapIconBarHeightPx) / 2 + offset —
+                    // solved for the smallest offset that keeps that top edge at or below
+                    // dropdownTopPx, so the bar can't rise into the dropdown's own space
+                    // (icon-bar-drag-refinements dispatch, Item 4).
+                    val maxUpwardOffsetPx = if (mapIconBarHeightPx > 0f) {
+                        (dropdownTopPx - (mapContentBoxHeightPx - mapIconBarHeightPx) / 2f)
+                            .coerceIn(-fallbackDownwardOffsetPx, 0f)
+                    } else {
+                        -fallbackDownwardOffsetPx
+                    }
+                    return offsetPx.coerceIn(maxUpwardOffsetPx, maxOf(maxUpwardOffsetPx, maxDownwardOffsetPx))
+                }
+                // Expanded-panels dispatch: where MapModePicker and AddActionTile below anchor —
+                // the bar's live position, not its default one. Both panels align to the same
+                // edge the bar is on (mapIconBarSideAlignment) and are inset from it by the bar's
+                // own MAP_ICON_BAR_EDGE_INSET, so a panel's outer edge lands exactly on the bar's
+                // outer edge on either side (the same overlap the old fixed CenterEnd/-Spacing.sm
+                // pair produced on the right, now mirrored on the left with a positive inset).
+                // The vertical term is the bar's own drag offset (the same px
+                // mapIconBarPositionOffset applies to the bar), converted to dp for
+                // DpOffset; each caller adds its own row's mapIconBarRowAnchorOffset on top. The
+                // horizontal drag px is included too — it is always zero once a drag ends, and no
+                // panel can open mid-drag (the finger is on the handle), so this is parity with
+                // mapIconBarPositionOffset rather than a visible effect.
+                val mapIconBarPanelAnchorOffset = with(compassStripDensity) {
+                    DpOffset(
+                        x = (if (isMapIconBarOnLeftSide) MAP_ICON_BAR_EDGE_INSET else -MAP_ICON_BAR_EDGE_INSET) +
+                            mapIconBarHorizontalDragPx.toDp(),
+                        y = mapIconBarVerticalOffsetPx.toDp(),
+                    )
+                }
                 val mapIconBarDragModifier = Modifier.pointerInput(Unit) {
                     detectDragGesturesAfterLongPress(
                         onDragEnd = {
@@ -4885,22 +4936,34 @@ private fun CompactMapTab(
                     ) { change, dragAmount ->
                         change.consume()
                         mapIconBarHorizontalDragPx += dragAmount.x
-                        val maxDownwardOffsetPx = (mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
-                        // Upward (negative) bound: the bar's own top edge, once centered then
-                        // shifted by the offset, is (mapContentBoxHeightPx - mapIconBarHeightPx) / 2
-                        // + offset — solved for the smallest offset that keeps that top edge at or
-                        // below dropdownTopPx, so the bar can't rise into the dropdown's own space.
-                        // Falls back to maxDownwardOffsetPx (the pre-Item-4 symmetric bound) before
-                        // mapIconBarHeightPx has its first real measurement.
-                        val maxUpwardOffsetPx = if (mapIconBarHeightPx > 0f) {
-                            (dropdownTopPx - (mapContentBoxHeightPx - mapIconBarHeightPx) / 2f)
-                                .coerceIn(-maxDownwardOffsetPx, 0f)
-                        } else {
-                            -maxDownwardOffsetPx
-                        }
-                        mapIconBarVerticalOffsetPx = (mapIconBarVerticalOffsetPx + dragAmount.y)
-                            .coerceIn(maxUpwardOffsetPx, maxDownwardOffsetPx)
+                        mapIconBarVerticalOffsetPx = clampMapIconBarVerticalOffset(mapIconBarVerticalOffsetPx + dragAmount.y)
                     }
+                }
+                // Expanded-panels dispatch (sweep finding, owner-approved "fix the clamp"): the
+                // bar's own measured top and bottom edges both stay on screen now, not just "at
+                // least one touch target's worth of it". The old downward bound (bar centre no
+                // further than MIN_TOUCH_TARGET above the Box's bottom) let the bar's last two
+                // rows — layers and add, the very rows MapModePicker and AddActionTile anchor
+                // to — leave the screen at the bottom of the drag range, which would have carried
+                // both panels off with them once they followed the bar. Symmetric with Item 4's
+                // own upward bound: the bar's bottom edge, once centered then shifted by the
+                // offset, is (mapContentBoxHeightPx + mapIconBarHeightPx) / 2 + offset — solved
+                // for the largest offset that keeps it at or above the lowest reachable edge
+                // (the nav's top outside fullscreen, this Box's bottom in it — the nav is drawn
+                // over this bar, so "on screen" alone would still leave the bottom rows under
+                // it, untappable; a decision taken beyond the approved "keep the bottom edge on
+                // screen", reported as such). Falls back to the old margin-based bound before
+                // mapIconBarHeightPx has its first real measurement, same as the upward bound
+                // always did. Re-applied (the LaunchedEffect below) whenever any input changes,
+                // not only during a drag: the restore handle (48dp) and the bar (~272dp) share
+                // one offset, so a handle dragged to either extreme then restored would otherwise
+                // bring the taller bar back with its rows past the edge; likewise a bar dragged
+                // to the very bottom while fullscreen would otherwise end up under the nav once
+                // fullscreen is exited — the same untappable-rows outcome this fix exists to rule
+                // out, just reached by a different route. The bar moves instantly in those two
+                // cases, not animated: this is a clamp catching up, not a transition of its own.
+                LaunchedEffect(mapIconBarHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen) {
+                    mapIconBarVerticalOffsetPx = clampMapIconBarVerticalOffset(mapIconBarVerticalOffsetPx)
                 }
                 // Owner request (alongside the fullscreen-slide-out-fixes dispatch): minimising
                 // slides this cluster off whichever edge it's on, and the restore handle slides in
@@ -5107,6 +5170,7 @@ private fun CompactMapTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .onGloballyPositioned { coordinates ->
+                                mapBottomNavHeightPx = coordinates.size.height.toFloat()
                                 onBottomNavHeightMeasured(coordinates.size.height.toFloat())
                             },
                     )
@@ -5131,6 +5195,14 @@ private fun CompactMapTab(
                     },
                     onDismiss = { showActionMenu = false },
                     modifier = Modifier.fillMaxSize(),
+                    // Expanded-panels dispatch: anchored to the bar's live side and drag offset
+                    // (see mapIconBarPanelAnchorOffset above), plus this panel's own row.
+                    anchor = mapIconBarSideAlignment,
+                    anchorOffset = DpOffset(
+                        x = mapIconBarPanelAnchorOffset.x,
+                        y = mapIconBarPanelAnchorOffset.y + ADD_TILE_ANCHOR_OFFSET,
+                    ),
+                    growsFrom = if (isMapIconBarOnLeftSide) Alignment.BottomStart else Alignment.BottomEnd,
                 )
 
                 MapModePicker(
@@ -5138,8 +5210,15 @@ private fun CompactMapTab(
                     mapMode = mapMode,
                     onModeSelected = onMapModeSelected,
                     onDismiss = { showMapModePicker = false },
-                    anchor = Alignment.CenterEnd,
-                    anchorOffset = DpOffset(x = -Spacing.sm, y = MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET),
+                    // Expanded-panels dispatch: same live anchoring as AddActionTile above — the
+                    // bar's side and drag offset (mapIconBarPanelAnchorOffset), plus this panel's
+                    // own row. MapModePicker itself is unchanged (shared with the Cartography
+                    // entry map); only what this caller feeds it moved from static to live.
+                    anchor = mapIconBarSideAlignment,
+                    anchorOffset = DpOffset(
+                        x = mapIconBarPanelAnchorOffset.x,
+                        y = mapIconBarPanelAnchorOffset.y + MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET,
+                    ),
                 )
 
                 if (pendingAction != null) {
@@ -5755,6 +5834,15 @@ private fun ThreeWayActionDialog(
  * replaces had, just without borrowing [AlertDialog]'s fixed presentation. The scrim carries no
  * visible label of its own (unlike the three buttons beside it), so it is addressed in tests by
  * [ADD_ACTION_TILE_SCRIM_TAG] rather than text.
+ *
+ * [anchor]/[anchorOffset] mirror [MapModePicker]'s own pair exactly (expanded-panels dispatch):
+ * this used to hardcode `CenterEnd` / `-Spacing.sm` / [ADD_TILE_ANCHOR_OFFSET] internally, which
+ * was fine while [MapIconBar] could only ever sit at its default right-centre position, and
+ * silently wrong once the bar became draggable — the tile kept opening at the bar's *old*
+ * position. The single caller now feeds the bar's live side and drag offset. [growsFrom] is the
+ * corner the tile grows out of / shrinks back into, the add row's own corner of the bar: bottom-
+ * end on the right, bottom-start once the bar is snapped to the left — passed explicitly rather
+ * than derived from [anchor] here, so the caller's intent is visible at the call site.
  */
 @Composable
 private fun AddActionTile(
@@ -5764,6 +5852,9 @@ private fun AddActionTile(
     onDropWaypoint: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    anchor: Alignment = Alignment.CenterEnd,
+    anchorOffset: DpOffset = DpOffset(x = -MAP_ICON_BAR_EDGE_INSET, y = ADD_TILE_ANCHOR_OFFSET),
+    growsFrom: Alignment = Alignment.BottomEnd,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     Box(modifier = modifier) {
@@ -5794,18 +5885,19 @@ private fun AddActionTile(
             enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()) +
                 expandIn(
                     animationSpec = MotionTokens.panelMotionSpec(),
-                    expandFrom = Alignment.BottomEnd,
+                    expandFrom = growsFrom,
                 ),
             exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()) +
                 shrinkOut(
                     animationSpec = MotionTokens.panelMotionSpec(),
-                    shrinkTowards = Alignment.BottomEnd,
+                    shrinkTowards = growsFrom,
                 ),
             modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .offset(x = -Spacing.sm, y = ADD_TILE_ANCHOR_OFFSET),
+                .align(anchor)
+                .offset(x = anchorOffset.x, y = anchorOffset.y),
         ) {
             Surface(
+                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG),
                 shape = RoundedCornerShape(Spacing.md),
                 shadowElevation = 4.dp,
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
@@ -5827,6 +5919,15 @@ private fun AddActionTile(
 
 /** See [AddActionTile]'s own doc comment — its scrim has no visible label, so tests address it by tag. */
 internal const val ADD_ACTION_TILE_SCRIM_TAG = "add-action-tile-scrim"
+
+/**
+ * [AddActionTile]'s own panel `Surface` — what the expanded-panels dispatch's tests measure its
+ * real edges by. Its chips are not a usable proxy for those edges: under Robolectric's near-zero-
+ * width fonts each chip measures under 48dp wide, so Material's `minimumInteractiveComponentSize`
+ * wrapper pads it out and the chip's own semantics bounds stop short of the panel's edge by a
+ * font-dependent margin (measured: ~5.5–7dp) that a real device would not show.
+ */
+internal const val ADD_ACTION_TILE_TAG = "add-action-tile"
 
 /**
  * [MapIconBar]'s add row is its 5th (last) of 5 — see [mapIconBarRowAnchorOffset], promoted into
