@@ -35,6 +35,7 @@ import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.formatDistanceKm
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -125,6 +126,51 @@ class AvailabilityViewModelDistanceUnitTest {
         vm.onDistanceUnitSelected(DistanceUnit.KILOMETERS)
 
         assertEquals(DistanceUnit.KILOMETERS, vm.uiState.value.distanceUnit)
+    }
+
+    /**
+     * Radius-default dispatch, Item 2: the offline-map radius default is selected per unit, not
+     * converted. A persisted kilometres preference starts the slider at 10 km; miles starts it at
+     * 8 km, the value that displays as "5 mi". Literals, not the default function. Fails with the
+     * per-unit apply removed (the old single 15 km default, "9 mi").
+     */
+    @Test
+    fun `the offline map radius starts at 10 km for a persisted kilometres unit and 8 km for miles`() = runTest(dispatcher) {
+        val km = viewModel(DistanceUnitRecordingPreferenceRepository(DistanceUnit.KILOMETERS))
+        advanceUntilIdle()
+        assertEquals(10, km.uiState.value.offlineMapRadiusKm)
+        assertEquals("10 km", formatDistanceKm(km.uiState.value.offlineMapRadiusKm, km.uiState.value.distanceUnit))
+
+        val mi = viewModel(DistanceUnitRecordingPreferenceRepository(DistanceUnit.MILES))
+        advanceUntilIdle()
+        assertEquals(8, mi.uiState.value.offlineMapRadiusKm)
+        assertEquals("5 mi", formatDistanceKm(mi.uiState.value.offlineMapRadiusKm, mi.uiState.value.distanceUnit))
+    }
+
+    /** While untouched, switching units re-applies the per-unit default: kilometres gives 10 km, not a converted 8. */
+    @Test
+    fun `switching units while the radius is untouched re-applies the per-unit default`() = runTest(dispatcher) {
+        val vm = viewModel(DistanceUnitRecordingPreferenceRepository(DistanceUnit.MILES))
+        advanceUntilIdle()
+        assertEquals(8, vm.uiState.value.offlineMapRadiusKm)
+
+        vm.onDistanceUnitSelected(DistanceUnit.KILOMETERS)
+        assertEquals(10, vm.uiState.value.offlineMapRadiusKm)
+
+        vm.onDistanceUnitSelected(DistanceUnit.MILES)
+        assertEquals(8, vm.uiState.value.offlineMapRadiusKm)
+    }
+
+    /** Once the user has set the radius it is theirs: a later unit change never moves it. */
+    @Test
+    fun `a radius the user has set is never moved by a unit change`() = runTest(dispatcher) {
+        val vm = viewModel(DistanceUnitRecordingPreferenceRepository(DistanceUnit.MILES))
+        advanceUntilIdle()
+
+        vm.onOfflineMapRadiusChanged(20)
+        vm.onDistanceUnitSelected(DistanceUnit.KILOMETERS)
+
+        assertEquals(20, vm.uiState.value.offlineMapRadiusKm)
     }
 
     @Test

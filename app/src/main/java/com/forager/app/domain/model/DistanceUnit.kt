@@ -35,6 +35,25 @@ private const val MILES_PER_KM = 0.621371
  * applies to heading/elevation, so a distance label reads as cleanly as either of those rather than
  * carrying decimal places nothing else in this app's distance displays has ever shown.
  */
+/**
+ * The offline-map radius slider's starting value, chosen per display unit rather than converted
+ * from one stored value (radius-default dispatch, Item 2): a single metric default cannot be round
+ * in both units — 15 km read as "9 mi", and 5 mi is 8.05 km. Miles gets 8 km, the km value
+ * [formatDistanceKm] rounds to "5 mi" (8 × 0.621371 = 4.97), the same reasoning the search
+ * radius's own default of 8 already records; kilometres gets 10 km. Selected by [unit], and only
+ * ever applied while the radius is untouched — see `AvailabilityViewModel.applyDistanceUnit`.
+ */
+fun defaultOfflineMapRadiusKm(unit: DistanceUnit): Int = when (unit) {
+    DistanceUnit.KILOMETERS -> OFFLINE_MAP_DEFAULT_RADIUS_KM_FOR_KILOMETERS
+    DistanceUnit.MILES -> OFFLINE_MAP_DEFAULT_RADIUS_KM_FOR_MILES
+}
+
+/** See [defaultOfflineMapRadiusKm]. 8 km displays as "5 mi". */
+private const val OFFLINE_MAP_DEFAULT_RADIUS_KM_FOR_MILES = 8
+
+/** See [defaultOfflineMapRadiusKm]. */
+private const val OFFLINE_MAP_DEFAULT_RADIUS_KM_FOR_KILOMETERS = 10
+
 fun formatDistanceKm(radiusKm: Int, unit: DistanceUnit): String = when (unit) {
     DistanceUnit.KILOMETERS -> "$radiusKm km"
     DistanceUnit.MILES -> "${(radiusKm * MILES_PER_KM).roundToInt()} mi"

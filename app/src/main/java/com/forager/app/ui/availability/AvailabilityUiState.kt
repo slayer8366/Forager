@@ -9,6 +9,7 @@ import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.defaultOfflineMapRadiusKm
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
@@ -129,7 +130,20 @@ data class AvailabilityUiState(
      */
     val offlineMapLatText: String = "",
     val offlineMapLngText: String = "",
-    val offlineMapRadiusKm: Int = 15,
+    /**
+     * Starts at the per-unit default for [distanceUnit]'s own initial value (miles → 8 km, which
+     * displays as "5 mi") and is re-applied by the ViewModel whenever the unit changes while
+     * [offlineMapRadiusTouched] is still false — see `defaultOfflineMapRadiusKm` and
+     * `AvailabilityViewModel.applyDistanceUnit`. Radius-default dispatch, Item 2: the old single
+     * default of 15 km read as "9 mi" in this app's default unit.
+     */
+    val offlineMapRadiusKm: Int = defaultOfflineMapRadiusKm(DistanceUnit.MILES),
+    /**
+     * `true` once the user has set the radius themselves (the slider) or a last-picked region has
+     * restored it — from then on the per-unit default never moves it. Session state; the persisted
+     * last-picked region is what carries a chosen radius across restarts.
+     */
+    val offlineMapRadiusTouched: Boolean = false,
     /**
      * A blank name defaults to "Region N" at download time — see
      * [AvailabilityViewModel.onDownloadOfflineMaps][com.forager.app.ui.availability.AvailabilityViewModel.onDownloadOfflineMaps] —
