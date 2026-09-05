@@ -101,6 +101,7 @@ class AvailabilityViewModel(
         loadOfflineMapPreferences()
         loadDistanceUnitPreference()
         loadNightModePreferences()
+        loadMapFullscreenPreference()
         loadThemeModePreference()
         // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
         // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
@@ -718,6 +719,37 @@ class AvailabilityViewModel(
             mapPreferencesRepository.setNightModeMaps(night).fold(
                 onSuccess = {},
                 onFailure = { error -> errorLog.w(TAG, "Couldn't persist the night-maps preference.", error) },
+            )
+        }
+    }
+
+    /**
+     * Restores whether the Maps tab was left in fullscreen — same read-failure treatment as
+     * [loadNightModePreferences]: a failed read logs and leaves [AvailabilityUiState.persistedMapFullscreen]
+     * `null`, so the screen simply starts as it always did. See
+     * [com.forager.app.domain.MapPreferencesRepository.getMapFullscreen] for the precedent this sets.
+     */
+    private fun loadMapFullscreenPreference() {
+        viewModelScope.launch {
+            mapPreferencesRepository.getMapFullscreen().fold(
+                onSuccess = { fullscreen -> _uiState.update { it.copy(persistedMapFullscreen = fullscreen) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the map-fullscreen preference.", error) },
+            )
+        }
+    }
+
+    /**
+     * The screen entered or left fullscreen by a user action (the icon bar's toggle, system back,
+     * or leaving the Maps tab). Persists in the background; a persist failure is logged but not
+     * surfaced, the same treatment [onNightModeMapsChanged] gives. Deliberately does *not* update
+     * [AvailabilityUiState.persistedMapFullscreen]: that field is the launch-time value the screen
+     * applies once, and the screen's own live flag is the source of truth after that.
+     */
+    fun onMapFullscreenChanged(fullscreen: Boolean) {
+        viewModelScope.launch {
+            mapPreferencesRepository.setMapFullscreen(fullscreen).fold(
+                onSuccess = {},
+                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the map-fullscreen preference.", error) },
             )
         }
     }

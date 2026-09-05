@@ -86,7 +86,14 @@ here.
   behaviour nobody had asked for — the owner's ruling is that convenience is
   the service, and an unrequested reset is not a neutral default. Persisting
   across app restarts is a separate, per-case decision (DataStore, see the
-  Room/DataStore pitfall below), not implied by this.
+  Room/DataStore pitfall below), not implied by this. First per-case "yes":
+  the map's fullscreen mode persists across restarts (reasoning recorded on
+  `MapPreferencesRepository.getMapFullscreen`); the cluster's position, side
+  and minimised flag deliberately do not. Not an exception to this rule:
+  leaving the Maps tab exits fullscreen. The bottom nav is off screen in
+  fullscreen, so the tab cannot be left from there at all — the tab
+  handler's explicit exit holds an invariant rather than resetting anything
+  the user could still be relying on.
 
 ## Documentation
 

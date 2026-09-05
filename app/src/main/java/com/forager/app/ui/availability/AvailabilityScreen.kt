@@ -471,6 +471,14 @@ fun AvailabilityScreen(
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     onThemeModeChanged: (AppThemeMode) -> Unit,
     /**
+     * The Maps tab entered or left fullscreen by a user action — persisted across restarts, see
+     * [AvailabilityUiState.persistedMapFullscreen]. Called only from the three user-driven
+     * mutation sites (the icon bar's toggle, system back, leaving the Maps tab), never from an
+     * effect on the flag — see `isMapFullscreen`'s own doc comment for why. Defaulted so callers
+     * that don't persist (tests) need not care.
+     */
+    onMapFullscreenChanged: (Boolean) -> Unit = {},
+    /**
      * The mushroom log drawer destination's own state — see [com.forager.app.ui.log.LogPanel].
      * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
      * to do with the log don't need to pass log-specific state and callbacks just to compile.
@@ -678,6 +686,31 @@ fun AvailabilityScreen(
     // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
     // selectedTab != MAP cannot happen in practice.
     var isMapFullscreen by remember { mutableStateOf(false) }
+    // Persisted across restarts (persist-fullscreen dispatch — see
+    // MapPreferencesRepository.getMapFullscreen for the precedent and its reasoning). The loaded
+    // value is applied exactly once, when it first arrives, and only if it arrived at all (a
+    // failed read leaves it null and the screen starts as it always did). Two load-bearing
+    // choices here:
+    //
+    // 1. Writes happen at the three user-driven mutation sites (the toggle below, the fullscreen
+    //    BackHandler, the tab handler's exit) — never from a LaunchedEffect on isMapFullscreen.
+    //    Such an effect would fire on first composition with the default `false` and write it
+    //    before the DataStore read lands, clobbering a persisted `true`: a data-loss bug that
+    //    would present as "the feature doesn't work" and be hard to trace.
+    // 2. The read is asynchronous, so the first frame composes with `false`; when a persisted
+    //    `true` lands the search bar, nav and cluster slide away rather than starting hidden.
+    //    Chosen, not overlooked (owner's call): the alternatives were gating the map's first
+    //    composition on a disk read, or recreating the map once loaded, which would re-fit it —
+    //    the very thing the "nothing may re-fit the map" rule exists to protect. A DataStore
+    //    first read is a few milliseconds, typically before any tile has appeared.
+    var hasAppliedPersistedMapFullscreen by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.persistedMapFullscreen) {
+        val persisted = uiState.persistedMapFullscreen
+        if (persisted != null && !hasAppliedPersistedMapFullscreen) {
+            hasAppliedPersistedMapFullscreen = true
+            isMapFullscreen = persisted
+        }
+    }
     // The icon cluster's position, held here rather than in CompactMapTab so it survives leaving
     // and returning to the Map tab — see MapIconClusterPositionState's own doc comment.
     val mapIconClusterPosition = rememberMapIconClusterPositionState()
@@ -781,6 +814,7 @@ fun AvailabilityScreen(
     }
     BackHandler(enabled = !isDrawerOpen && isMapFullscreen) {
         isMapFullscreen = false
+        onMapFullscreenChanged(false)
     }
     BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP) {
         compactTab = CompactTab.MAP
@@ -1318,7 +1352,14 @@ fun AvailabilityScreen(
                 // relies on ("isMapFullscreen can only be true while compactTab == MAP") no longer
                 // holds by construction (the bar being unreachable) once the bar is reachable during
                 // fullscreen, so it has to be enforced explicitly here instead.
-                if (tab != CompactTab.MAP) isMapFullscreen = false
+                // Still exits fullscreen — not an exception to CLAUDE.md's "UX defaults" rule,
+                // see the note recorded beside it: the nav is off screen in fullscreen, so this
+                // path is unreachable from there in practice; it holds the invariant, and
+                // persists the exit when it does fire.
+                if (tab != CompactTab.MAP && isMapFullscreen) {
+                    isMapFullscreen = false
+                    onMapFullscreenChanged(false)
+                }
                 compactTab = tab
                 // Keep the shared ResultsTab-driven state in sync for the three
                 // destinations both it and CompactTab describe — see compactTab's
@@ -1523,7 +1564,10 @@ fun AvailabilityScreen(
                             // both ways.
                             onLogFindHere = onLogFindHere,
                             isFullscreen = isMapFullscreen,
-                            onToggleFullscreen = { isMapFullscreen = !isMapFullscreen },
+                            onToggleFullscreen = {
+                                isMapFullscreen = !isMapFullscreen
+                                onMapFullscreenChanged(isMapFullscreen)
+                            },
                             isDrawerOpen = isDrawerOpen,
                             onBottomNavTabSelected = onBottomNavTabSelected,
                             onBottomNavHeightMeasured = { bottomNavHeightPx = it },

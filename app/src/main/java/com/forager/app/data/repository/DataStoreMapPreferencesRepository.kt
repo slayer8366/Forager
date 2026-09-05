@@ -64,6 +64,14 @@ class DataStoreMapPreferencesRepository(context: Context) : MapPreferencesReposi
         dataStore.edit { prefs -> prefs[KEY_NIGHT_MODE_MAPS] = night }
     }
 
+    override suspend fun getMapFullscreen(): Result<Boolean> = runCatchingCancellable {
+        dataStore.data.first()[KEY_MAP_FULLSCREEN] ?: false
+    }
+
+    override suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_MAP_FULLSCREEN] = fullscreen }
+    }
+
     private companion object {
         const val DATA_STORE_NAME = "map_preferences"
         val KEY_LAST_PICKED_LAT = doublePreferencesKey("offline_map.last_picked_lat")
@@ -71,5 +79,6 @@ class DataStoreMapPreferencesRepository(context: Context) : MapPreferencesReposi
         val KEY_LAST_PICKED_RADIUS_KM = intPreferencesKey("offline_map.last_picked_radius_km")
         val KEY_STALE_THRESHOLD_DAYS = intPreferencesKey("offline_map.stale_threshold_days")
         val KEY_NIGHT_MODE_MAPS = booleanPreferencesKey("night_mode.maps")
+        val KEY_MAP_FULLSCREEN = booleanPreferencesKey("map.fullscreen")
     }
 }

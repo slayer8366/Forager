@@ -40,4 +40,21 @@ interface MapPreferencesRepository {
     suspend fun getNightModeMaps(): Result<Boolean>
 
     suspend fun setNightModeMaps(night: Boolean): Result<Unit>
+
+    /**
+     * Whether the Maps tab was left in fullscreen — restored on the next launch. **The first
+     * per-case "yes" under CLAUDE.md's "UX defaults" restart rule, and the precedent the next one
+     * will point at, so the reasoning is recorded here, not just the outcome.** The owner's
+     * decision: the map is fully usable in fullscreen, the exit control sits on the icon bar in
+     * plain view, and a user who chose fullscreen deliberately should not have it taken away by
+     * closing the app. *Only* fullscreen persists — the cluster's minimised flag, drag position
+     * and side stay session-only, because a cold launch showing a bare map with nothing but a
+     * peeking handle is the least oriented the app can be, and that is not what persisting
+     * fullscreen is for. This store, not a new one: a flat boolean with no relations belongs in
+     * DataStore under the Room/DataStore split, and this repository already holds the map's other
+     * flat preferences under the prescribed pattern.
+     */
+    suspend fun getMapFullscreen(): Result<Boolean>
+
+    suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit>
 }

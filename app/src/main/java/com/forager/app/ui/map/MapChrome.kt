@@ -581,10 +581,16 @@ private val HANDLE_MARK_EDGE_PADDING = (MAP_ICON_BAR_EDGE_INSET - HANDLE_VISIBLE
  * for that failure mode is a full-size hit area with a smaller visible mark inside it, not a
  * smaller hit area, which is a different (and here, wrong) way to shrink a control.
  *
- * No fill, just the outline — this is an affordance hint, not another opaque button matching
- * [MapIconBar]'s own bar treatment; rounding only the two corners facing into the map (the
- * `Alignment.CenterEnd`-anchored edge nearer the screen's own right edge stays square) so the
- * shape itself reads as something tucked against, and emerging from, that edge.
+ * Filled, at the standing over-map value ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight],
+ * [MAP_CHROME_OVER_MAP_ALPHA]) — persist-fullscreen dispatch, Item 2, from the owner's device
+ * pass: the bare outline read as a white mark over the map and was hard to spot against pale
+ * terrain. The cluster it stands in for layers 0.6 under 0.5 to composite to 0.8, but a lone
+ * handle has nothing beneath it to composite against, so the single value that matches the
+ * cluster's weight is the composite itself, not either layer. Findability, not prominence: the
+ * size, the padding-inset mark, the outline and the full 48dp tap box are all unchanged; only the
+ * fill is new. Rounding only the two corners facing into the map (the edge nearer the screen's
+ * own edge stays square) so the shape itself reads as something tucked against, and emerging
+ * from, that edge. Legibility over real terrain in either theme is a device check.
  */
 @Composable
 internal fun MapIconBarRestoreHandle(
@@ -621,6 +627,10 @@ internal fun MapIconBarRestoreHandle(
                 .fillMaxHeight()
                 .width(HANDLE_VISIBLE_MARK_WIDTH)
                 .testTag("map-icon-bar-restore-handle-mark")
+                .background(
+                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                    shape = outlineShape,
+                )
                 .border(
                     width = 1.5.dp,
                     color = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Bark.copy(alpha = 0.7f),

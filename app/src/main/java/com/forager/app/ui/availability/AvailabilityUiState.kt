@@ -168,6 +168,15 @@ data class AvailabilityUiState(
      */
     val nightModeMaps: Boolean = false,
     /**
+     * Whether the Maps tab was left in fullscreen on the last run, restored from
+     * [com.forager.app.domain.MapPreferencesRepository.getMapFullscreen] — the one cluster/map
+     * UI preference that persists across restarts (see that method's own doc comment for the
+     * precedent it sets). `null` until the load completes or when the read failed; the screen
+     * applies a non-null value once, on arrival, and never writes it back from an effect — see
+     * `AvailabilityScreen`'s own `isMapFullscreen` for why that ordering is load-bearing.
+     */
+    val persistedMapFullscreen: Boolean? = null,
+    /**
      * The app's own theme choice — Settings' Light/Dark/System Default radio group, restored from
      * [com.forager.app.domain.AppThemePreferenceRepository.getThemeMode]. [AppThemeMode.LIGHT]
      * until that load completes. Independent of [nightModeMaps], which controls only the map's

@@ -155,6 +155,7 @@ class AvailabilityScreenMapIconStackTest {
         isOffTrack: Boolean = false,
         onToggleReturning: () -> Unit = {},
         mushroomRepository: TaxonSearchRepository = IconStackEmptyRepository,
+        mapPreferencesRepository: MapPreferencesRepository = IconStackStubMapPreferencesRepository,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -175,7 +176,7 @@ class AvailabilityScreenMapIconStackTest {
                 ComputeFruitingLagDistributionUseCase(),
             ),
             offlineMapRepository = IconStackStubOfflineMapRepository,
-            mapPreferencesRepository = IconStackStubMapPreferencesRepository,
+            mapPreferencesRepository = mapPreferencesRepository,
             distanceUnitPreferenceRepository = IconStackStubDistanceUnitPreferenceRepository,
             appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(IconStackStubTripPlanningWeatherProvider),
@@ -208,6 +209,7 @@ class AvailabilityScreenMapIconStackTest {
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                 onThemeModeChanged = viewModel::onThemeModeChanged,
+                onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                 onStartLogEntry = onStartLogEntry,
                 onLocateMe = onLocateMe,
                 isRecording = isRecording,
@@ -2042,6 +2044,66 @@ class AvailabilityScreenMapIconStackTest {
         )
     }
 
+    // ── Persist-fullscreen dispatch: fullscreen survives a restart; nothing else about the cluster does ──
+
+    private fun pressBack() {
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * A "restart" here is a fresh screen whose preference store already says fullscreen — the
+     * only part of a restart this harness can stand in for. The tab starts in fullscreen: the
+     * exit control is up and the nav has never composed. Fails with the ViewModel's launch-time
+     * read removed (reverted variant: the screen starts with the nav showing). What is *not*
+     * persisted — position, side, minimise — has no mechanism to test against: the repository
+     * gained fullscreen keys only, and that is the whole of the guarantee.
+     */
+    @Test
+    fun `a persisted fullscreen preference starts the Map tab in fullscreen`() {
+        setScreen(mapPreferencesRepository = IconStackFakeMapPreferencesRepository(Result.success(true)))
+
+        composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
+        composeRule.onNodeWithText("Maps").assertDoesNotExist()
+    }
+
+    /**
+     * The write side, through the two user-driven exits reachable from fullscreen: the icon
+     * bar's toggle both ways, then system back. The third site, the tab handler's exit, cannot be
+     * driven from fullscreen — the nav is off screen there — which is exactly why it is not an
+     * exception to the UX rule; it is not exercised here for the same reason. No write happens
+     * at launch: the persisted value is applied, never echoed back, so a persisted `true` is
+     * never clobbered by the default `false` before the read lands. Fails with the writes at
+     * the mutation sites removed.
+     */
+    @Test
+    fun `entering and leaving fullscreen writes the preference through, and launch never writes it`() {
+        val repository = IconStackFakeMapPreferencesRepository(Result.success(false))
+        setScreen(mapPreferencesRepository = repository)
+        assertEquals(emptyList<Boolean>(), repository.fullscreenWrites)
+
+        touchFullscreenRow("Fullscreen")
+        assertEquals(listOf(true), repository.fullscreenWrites)
+
+        touchFullscreenRow("Exit fullscreen")
+        assertEquals(listOf(true, false), repository.fullscreenWrites)
+
+        touchFullscreenRow("Fullscreen")
+        pressBack()
+        composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
+        assertEquals(listOf(true, false, true, false), repository.fullscreenWrites)
+    }
+
+    /** The persisted value is applied once at launch and never echoed back, even when the store says `true`. */
+    @Test
+    fun `a persisted fullscreen preference is applied without being written back`() {
+        val repository = IconStackFakeMapPreferencesRepository(Result.success(true))
+        setScreen(mapPreferencesRepository = repository)
+        composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
+
+        assertEquals(emptyList<Boolean>(), repository.fullscreenWrites)
+    }
+
     /** The side is part of the position too: snapped left, a tab change and return keeps it left. Fails with the state left inside CompactMapTab. */
     @Test
     fun `leaving the Map tab and returning keeps the cluster on the left edge`() {
@@ -2401,6 +2463,29 @@ private object IconStackStubOfflineMapRepository : OfflineMapRepository {
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
 }
 
+/**
+ * Persist-fullscreen dispatch: the one map preference this file exercises, held in memory — what
+ * the screen read at launch ([persistedFullscreen]) and every value it wrote back
+ * ([fullscreenWrites]). Everything else is the same explicit "not exercised" failure the stub
+ * below returns.
+ */
+private class IconStackFakeMapPreferencesRepository(
+    private val persistedFullscreen: Result<Boolean>,
+) : MapPreferencesRepository {
+    val fullscreenWrites = mutableListOf<Boolean>()
+    override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(null)
+    override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
+    override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
+    override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
+    override suspend fun getNightModeMaps(): Result<Boolean> = Result.success(false)
+    override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun getMapFullscreen(): Result<Boolean> = persistedFullscreen
+    override suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit> {
+        fullscreenWrites += fullscreen
+        return Result.success(Unit)
+    }
+}
+
 private object IconStackStubMapPreferencesRepository : MapPreferencesRepository {
     override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(null)
     override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
@@ -2408,6 +2493,8 @@ private object IconStackStubMapPreferencesRepository : MapPreferencesRepository 
     override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
     override suspend fun getNightModeMaps(): Result<Boolean> = Result.success(false)
     override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun getMapFullscreen(): Result<Boolean> = Result.failure(UnsupportedOperationException("map fullscreen preference not exercised by this test"))
+    override suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit> = Result.failure(UnsupportedOperationException("map fullscreen preference not exercised by this test"))
 }
 
 /** [DistanceUnit.KILOMETERS] fixed — this file's assertions are hardcoded to "km" text and have nothing to do with the km/mi preference. */

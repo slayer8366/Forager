@@ -467,6 +467,8 @@ private object WaypointFlowStubMapPreferencesRepository : MapPreferencesReposito
     override suspend fun setStaleThresholdDays(days: Int): Result<Unit> = Result.success(Unit)
     override suspend fun getNightModeMaps(): Result<Boolean> = Result.success(false)
     override suspend fun setNightModeMaps(night: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun getMapFullscreen(): Result<Boolean> = Result.failure(UnsupportedOperationException("map fullscreen preference not exercised by this test"))
+    override suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit> = Result.failure(UnsupportedOperationException("map fullscreen preference not exercised by this test"))
 }
 
 private object WaypointFlowStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {

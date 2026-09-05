@@ -351,6 +351,7 @@ class MainActivity : ComponentActivity() {
                     onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
+                    onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
