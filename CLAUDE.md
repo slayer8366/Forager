@@ -74,6 +74,20 @@ here.
 - Pin dependency versions (Gradle version catalog, exact versions) rather
   than open ranges, so a build is reproducible.
 
+## UX defaults
+
+- What the user has set survives navigating away and back within a session —
+  a position they dragged something to, a side they snapped it to, a panel
+  they collapsed. Remembering it is the default, not a feature to be
+  requested; a piece of user-set UI state that resets on a tab change is a
+  bug unless the exception was stated explicitly for that case. This replaced
+  an earlier working rule that "nothing survives a tab change" for the map's
+  icon cluster, which had been taken as a way to avoid hoisting state for a
+  behaviour nobody had asked for — the owner's ruling is that convenience is
+  the service, and an unrequested reset is not a neutral default. Persisting
+  across app restarts is a separate, per-case decision (DataStore, see the
+  Room/DataStore pitfall below), not implied by this.
+
 ## Documentation
 
 - Record why a non-obvious decision was made and what alternative was
