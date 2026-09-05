@@ -104,6 +104,33 @@ interface OfflineMapRepository {
          */
         const val MIN_ZOOM: Double = 10.0
         const val MAX_ZOOM: Double = 15.0
+
+        /**
+         * **A client-side constant encoding a server-side fact — it goes stale silently.** The
+         * highest zoom the *deployed* tile worker actually advertises in its tileset JSON
+         * (`https://forager-pmtiles.brandonlee1-894.workers.dev/us.json`, field `maxzoom`), which is
+         * what MapLibre's `OfflineTilePyramidRegionDefinition` clamps an offline download to
+         * regardless of the [MAX_ZOOM] the definition asks for. Verified 2026-09-05 by fetching that
+         * JSON (`maxzoom: 14`) and probing a zoom-15 tile inside a real region (HTTP 404, zoom 14
+         * HTTP 200). The repo's worker source (`server/pmtiles-worker`, commit 46e3647) advertises 15
+         * and serves zoom-15 overflow, but the deployed worker does not — the "Workers Builds:
+         * forager-pmtiles" check has been failing in zero seconds on every push since then, so that
+         * deploy has not gone live. That is a separate dispatch.
+         *
+         * Why this exists (tile-estimate dispatch, owner finding on device): the pre-flight estimate
+         * counted zoom 15 while the download enumerated 10..14, so a 15 km region at 45°N showed
+         * "~1774 tiles" and downloaded 480 — 3.7× apart — and larger radii were refused against a
+         * budget they actually fit. [com.forager.app.domain.estimateServedOfflineTileCount] estimates
+         * against `min(MAX_ZOOM, SERVED_MAX_ZOOM)` so the number shown, the number gated and the
+         * number downloaded agree.
+         *
+         * **What to check, and the consequence, if the worker deploy is ever fixed:** fetch `us.json`
+         * again; if `maxzoom` reads 15, raise this to 15.0 — and know that every count then grows
+         * ~3.7×, so the 6000-tile [TILE_COUNT_LIMIT] holds a 28 km radius at 45°N rather than the
+         * slider's full 50 km (39 km vs 19 km at 60°N). Whether to accept that is a decision, not an
+         * arithmetic fix, and belongs with that dispatch.
+         */
+        const val SERVED_MAX_ZOOM: Double = 14.0
     }
 }
 

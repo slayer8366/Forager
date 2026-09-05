@@ -214,6 +214,7 @@ import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.estimateOfflineTileCount
+import com.forager.app.domain.estimateServedOfflineTileCount
 import com.forager.app.domain.isOfflineRegionStale
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.AvailabilityEntry
@@ -2571,7 +2572,9 @@ internal fun OfflineMapsPanel(
             // So the tile budget is discovered here, while there's still time to pick a smaller
             // radius, rather than only on a refused download — a user should not discover the
             // ceiling at a trailhead.
-            val estimatedTiles = estimateOfflineTileCount(pickerRegion, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM)
+            // Against the zoom the deployed source actually serves, not MAX_ZOOM — see
+            // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch).
+            val estimatedTiles = estimateServedOfflineTileCount(pickerRegion)
             val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
             val exceedsBudget = estimatedTiles > remainingBudget
             Text(

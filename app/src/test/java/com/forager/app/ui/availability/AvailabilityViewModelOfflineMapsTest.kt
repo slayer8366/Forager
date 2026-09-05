@@ -417,6 +417,31 @@ class AvailabilityViewModelOfflineMapsTest {
         assertEquals(listOf(REFERENCE_REGION_SUMMARY), vm.uiState.value.offlineRegions)
     }
 
+    /**
+     * Tile-estimate dispatch: a radius that fits the 6000-tile budget must not be refused. The
+     * slider's 50 km maximum at the owner's latitude is 4772 tiles against the served ceiling and
+     * was being refused at 18696 against MAX_ZOOM. Driven through the real pre-flight gate
+     * (onDownloadOfflineMaps), asserting the repository was actually asked to download that
+     * region — not merely that no Failed status appeared. Fails with the estimate reverted to
+     * MAX_ZOOM.
+     */
+    @Test
+    fun `the slider's maximum radius fits the budget at the owner's latitude and reaches the repository`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository().apply { downloadResult = Result.success(REFERENCE_REGION_SUMMARY) }
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOfflineMapLatChanged("45.357")
+        vm.onOfflineMapLngChanged("-122.607")
+        vm.onOfflineMapRadiusChanged(50)
+
+        vm.onDownloadOfflineMaps()
+        advanceUntilIdle()
+
+        assertTrue("expected the pre-flight gate to let a 50 km region through to the repository", repository.downloadCalled)
+        assertEquals(Region(lat = 45.357, lng = -122.607, radiusKm = 50), repository.lastRegion)
+        assertTrue(vm.uiState.value.offlineDownloadStatus !is OfflineMapStatus.Failed)
+    }
+
     @Test
     fun `the offline map region radius is clamped the same way the search radius is`() = runTest(dispatcher) {
         val vm = viewModel(RecordingOfflineMapRepository())

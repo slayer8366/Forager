@@ -20,6 +20,24 @@ class EstimateOfflineTileCountTest {
         assertTrue("expected roughly 71 tiles, was $estimate", estimate in 40..120)
     }
 
+    /**
+     * Tile-estimate dispatch: the served-ceiling estimate must agree with what a download actually
+     * enumerates — three radii spanning the slider's range, including its 50 km maximum, at the
+     * owner's own latitude (Oregon City, ~45.36°N). **Expected values are literals computed
+     * independently** (a separate slippy-map implementation summing zooms 10..14 over the same
+     * equirectangular bounding box), not derived from the function under test; the 15 km case is
+     * the region the owner downloaded, whose MapLibre status reported 480 required resources
+     * (tiles plus the style and tileset JSON). With the ceiling reverted to MAX_ZOOM these read
+     * 224, 1781 and 18696 — the 3.7× inflation that was refusing radii the budget actually fits.
+     */
+    @Test
+    fun `the served-ceiling estimate matches the download's own enumeration at three radii spanning the slider`() {
+        val oregonCity = { radiusKm: Int -> Region(lat = 45.357, lng = -122.607, radiusKm = radiusKm) }
+        assertEquals(68, estimateServedOfflineTileCount(oregonCity(5)))
+        assertEquals(485, estimateServedOfflineTileCount(oregonCity(15)))
+        assertEquals(4772, estimateServedOfflineTileCount(oregonCity(50)))
+    }
+
     @Test
     fun `a larger radius never estimates fewer tiles`() {
         val small = estimateOfflineTileCount(Region(lat = 45.0, lng = -122.0, radiusKm = 5), 10.0, 14.0)

@@ -23,6 +23,21 @@ import kotlin.math.floor
  * a box crossing it (`east < west`): the tile-x range wraps around the grid rather than coming out
  * negative or empty.
  */
+/**
+ * The estimate for what a download of [region] will *actually* enumerate: [estimateOfflineTileCount]
+ * over [OfflineMapRepository.MIN_ZOOM]..`min(`[OfflineMapRepository.MAX_ZOOM]`, `
+ * [OfflineMapRepository.SERVED_MAX_ZOOM]`)`, because MapLibre clamps an offline pyramid to the
+ * zoom the tile source advertises, not to the zoom the definition asks for — see
+ * [OfflineMapRepository.SERVED_MAX_ZOOM] for the evidence and what keeps it honest. The one
+ * function both the panel's "~N tiles" label and the ViewModel's pre-flight gate call, so the
+ * number shown and the number gated cannot drift from each other again.
+ */
+fun estimateServedOfflineTileCount(region: Region): Int = estimateOfflineTileCount(
+    region,
+    OfflineMapRepository.MIN_ZOOM,
+    minOf(OfflineMapRepository.MAX_ZOOM, OfflineMapRepository.SERVED_MAX_ZOOM),
+)
+
 fun estimateOfflineTileCount(region: Region, minZoom: Double, maxZoom: Double): Int {
     val box = GeoDistance.boundingBox(LatLng(region.lat, region.lng), region.radiusKm)
     var total = 0

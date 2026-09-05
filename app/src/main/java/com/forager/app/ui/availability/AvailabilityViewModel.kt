@@ -27,8 +27,10 @@ import com.forager.app.domain.PredictAvailabilityUseCase
 import com.forager.app.domain.SavePlannedTripUseCase
 import com.forager.app.domain.SearchTaxaUseCase
 import com.forager.app.domain.estimateOfflineTileCount
+import com.forager.app.domain.estimateServedOfflineTileCount
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.defaultOfflineMapRadiusKm
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.TaxonFilter
@@ -587,7 +589,9 @@ class AvailabilityViewModel(
     }
 
     fun onOfflineMapRadiusChanged(radiusKm: Int) {
-        _uiState.update { it.copy(offlineMapRadiusKm = Region.clampRadiusKm(radiusKm)) }
+        // Touched: from here on the radius is the user's and the per-unit default never moves it —
+        // see AvailabilityUiState.offlineMapRadiusTouched.
+        _uiState.update { it.copy(offlineMapRadiusKm = Region.clampRadiusKm(radiusKm), offlineMapRadiusTouched = true) }
     }
 
     fun onOfflineMapNameChanged(text: String) {
@@ -684,6 +688,9 @@ class AvailabilityViewModel(
                             it.copy(
                                 offlineMapPickerDefaultCenter = LatLng(region.lat, region.lng),
                                 offlineMapRadiusKm = region.radiusKm,
+                                // A restored last-picked radius is the user's own — see
+                                // AvailabilityUiState.offlineMapRadiusTouched.
+                                offlineMapRadiusTouched = true,
                             )
                         }
                     }
@@ -780,6 +787,26 @@ class AvailabilityViewModel(
     }
 
     /**
+     * The one place the display unit changes, from the persisted read at startup and from Settings'
+     * toggle alike (radius-default dispatch, Item 2). Alongside the unit it applies the offline-map
+     * radius's per-unit default — [defaultOfflineMapRadiusKm]: 8 km, which displays as "5 mi", when
+     * the unit is miles; 10 km when it is kilometres — but only while the radius is still untouched
+     * ([AvailabilityUiState.offlineMapRadiusTouched]). Selected by the unit, never converted from
+     * one canonical value: a single stored default cannot be round in both units (15 km read as
+     * "9 mi"; 5 mi is 8.05 km). Re-applies on every unit change while untouched, so a user who has
+     * never set a radius and switches to kilometres gets 10 km, not a converted 8; once they have
+     * touched it, or a last-picked region restored it, it is theirs and never moves.
+     */
+    private fun applyDistanceUnit(unit: DistanceUnit) {
+        _uiState.update {
+            it.copy(
+                distanceUnit = unit,
+                offlineMapRadiusKm = if (it.offlineMapRadiusTouched) it.offlineMapRadiusKm else defaultOfflineMapRadiusKm(unit),
+            )
+        }
+    }
+
+    /**
      * Restores the persisted display unit at startup — see [AvailabilityUiState.distanceUnit]'s own
      * doc comment for the bug this fixes. A read failure keeps [AvailabilityUiState.distanceUnit] at
      * its default rather than surfacing an error the user never asked for, the same reasoning
@@ -788,7 +815,7 @@ class AvailabilityViewModel(
     private fun loadDistanceUnitPreference() {
         viewModelScope.launch {
             distanceUnitPreferenceRepository.getDistanceUnit().fold(
-                onSuccess = { unit -> _uiState.update { it.copy(distanceUnit = unit) } },
+                onSuccess = { unit -> applyDistanceUnit(unit) },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the saved distance unit.", error) },
             )
         }
@@ -796,7 +823,7 @@ class AvailabilityViewModel(
 
     /** The Settings panel's km/mi toggle — updates the UI immediately and persists in the background. */
     fun onDistanceUnitSelected(unit: DistanceUnit) {
-        _uiState.update { it.copy(distanceUnit = unit) }
+        applyDistanceUnit(unit)
         viewModelScope.launch {
             distanceUnitPreferenceRepository.setDistanceUnit(unit).fold(
                 onSuccess = {},
@@ -841,7 +868,10 @@ class AvailabilityViewModel(
         val name = state.offlineMapNameText.trim().ifBlank { "Region ${state.offlineRegions.size + 1}" }
 
         val tilesAlreadyUsed = state.offlineRegions.sumOf { it.tileCount }
-        val estimatedTiles = estimateOfflineTileCount(region, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM)
+        // Against the zoom the deployed source actually serves, not MAX_ZOOM — the same function the
+        // panel's "~N tiles" label uses, so the gate and the label agree; see
+        // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch).
+        val estimatedTiles = estimateServedOfflineTileCount(region)
         val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - tilesAlreadyUsed
         if (estimatedTiles > remainingBudget) {
             _uiState.update {
