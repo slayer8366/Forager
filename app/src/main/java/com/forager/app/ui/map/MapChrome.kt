@@ -523,9 +523,27 @@ internal fun MapIconBarMinimizeHandle(
     // within the bar's width" the owner saw. Aligning the mark to the box's outer side, padded by
     // [HANDLE_MARK_EDGE_PADDING], centers it on the bar's edge: half overlapping the bar, half
     // protruding outward, mirrored per side. Padding only — the tap box never moves or shrinks.
+    //
+    // Handle-tap-area dispatch (owner finding on device): **the tap box is [HANDLE_TAP_WIDTH]
+    // wide, deliberately below MIN_TOUCH_TARGET in that one dimension. This is a recorded
+    // exception, not an oversight — do not "fix" it back to 48dp.** At 48dp the box reached 40dp
+    // of the bar's own 48dp width and, centred on the bar's centre, sat squarely over the locate
+    // row: a tap at locate's own centre (32dp in from the screen edge) hit this handle and
+    // minimised the whole cluster when the user meant to find their position. Composition order
+    // is the mechanism — this handle is composed after the container, so it wins every point
+    // both cover. On this surface an over-large target steals taps from a neighbouring control;
+    // a slightly small target that requires deliberation is better than one that fires when the
+    // user meant something else. Width, not height, is the excepted dimension: the box is centred
+    // on the locate row, so a shorter box would still cover locate's centre — only a narrower one
+    // gives the row back. At 20dp from the screen edge the visible mark (10dp wide, centred 8dp
+    // in) sits fully inside with 7dp to spare, the handle owns only the outer 12dp of the locate
+    // row — 0–20dp from the edge *inclusive*, hit-testing gives a boundary pixel to the box — and
+    // every point past 20dp — the whole glyph and its centre — belongs to locate.
+    // The height stays 72dp; the drag gesture is unchanged but must now start within 20dp of
+    // the edge, on or beside the mark.
     Box(
         modifier = modifier
-            .size(width = MIN_TOUCH_TARGET, height = MIN_TOUCH_TARGET * 1.5f)
+            .size(width = HANDLE_TAP_WIDTH, height = MIN_TOUCH_TARGET * 1.5f)
             .clickable(onClick = onMinimize)
             .semantics { contentDescription = "Hide map controls" }
             .testTag("map-icon-bar-minimize-handle"),
@@ -553,6 +571,14 @@ internal fun MapIconBarMinimizeHandle(
 
 /** How much of [MapIconBarMinimizeHandle]'s / [MapIconBarRestoreHandle]'s own 48dp-wide tap target is actually drawn — see either composable's own doc comment for why this is much narrower than the hit area itself. */
 private val HANDLE_VISIBLE_MARK_WIDTH = 10.dp
+
+/**
+ * [MapIconBarMinimizeHandle]'s tap-box width, measured inward from the screen edge — a recorded
+ * exception below [MIN_TOUCH_TARGET] in this one dimension; see the comment at its use for why.
+ * The test that pins the exception asserts the literal 20dp, deliberately not this constant — a
+ * drift here back to 48dp must fail that test, not be absorbed by it.
+ */
+private val HANDLE_TAP_WIDTH = 20.dp
 
 /**
  * Padding between a handle's tap box's outer side and its visible mark, chosen so the mark's own

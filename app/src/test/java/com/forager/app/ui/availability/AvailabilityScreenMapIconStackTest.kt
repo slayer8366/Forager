@@ -1380,18 +1380,33 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Item 3's own explicit ask: "the tappable area should meet MIN_TOUCH_TARGET even if the
-     * visible outline is smaller." No click involved — the handle is already showing once the bar
-     * itself is.
+     * Item 3's own explicit ask was "the tappable area should meet MIN_TOUCH_TARGET even if the
+     * visible outline is smaller." The handle-tap-area dispatch made a recorded exception to that
+     * in one dimension (see [HANDLE_TAP_WIDTH]'s own doc comment and the comment at its use):
+     * the box is exactly that wide, still at least 48dp tall, and the visible mark sits fully
+     * inside it. This test used to assert width >= 48dp and is rewritten to pin the exception —
+     * the one assertion that dispatch legitimately reverses, reported as such. A width that
+     * drifts back to 48dp would silently re-cover the locate row, and this is what says so.
      */
     @Test
-    fun `the minimize handle meets the 48dp touch-target floor`() {
+    fun `the minimize handle is exactly its recorded tap width, at least 48dp tall, with the mark inside it`() {
         setScreen()
 
         val minimizeBounds = composeRule.onNodeWithContentDescription("Hide map controls").getUnclippedBoundsInRoot()
+        val markBounds = composeRule.onNodeWithTag("map-icon-bar-minimize-handle-mark", useUnmergedTree = true).getUnclippedBoundsInRoot()
         val minimizeWidth = minimizeBounds.right - minimizeBounds.left
-        assertTrue("minimize handle width was $minimizeWidth", minimizeWidth >= 48.dp)
+        // The literal, not HANDLE_TAP_WIDTH: comparing against the constant the box is built from
+        // would pass at any value, including a drift back to 48dp — which is exactly the
+        // regression this test exists to catch. Confirmed: against the constant it passed under
+        // the 48dp reverted variant; against the literal it fails there.
+        assertTrue("minimize handle width was $minimizeWidth, expected the recorded 20dp exception", abs((minimizeWidth - 20.dp).value) <= 0.5f)
+        assertTrue("minimize handle width was $minimizeWidth, expected below the 48dp floor it deliberately excepts", minimizeWidth < 48.dp)
         assertTrue("minimize handle height was ${minimizeBounds.height}", minimizeBounds.height >= 48.dp)
+        assertTrue(
+            "expected the mark ($markBounds) fully inside the tap box ($minimizeBounds)",
+            markBounds.left >= minimizeBounds.left && markBounds.right <= minimizeBounds.right &&
+                markBounds.top >= minimizeBounds.top && markBounds.bottom <= minimizeBounds.bottom,
+        )
     }
 
     /**
@@ -2102,6 +2117,91 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
 
         assertEquals(emptyList<Boolean>(), repository.fullscreenWrites)
+    }
+
+    // ── Handle-tap-area dispatch: the locate row belongs to locate, sampled across its bounds ──
+
+    /**
+     * The owner's device finding, reproduced then disproven: a real touch at the locate row's
+     * own centre reached the minimize handle (composed after the container, 48dp wide, centred on
+     * this very row) and minimised the cluster. Fails with the tap box back at 48dp wide: the
+     * cluster disappears and locate is never called. The scaffold pings location once on its own
+     * first composition, so the count is taken before the touch.
+     */
+    @Test
+    fun `a real touch at the locate row's centre reaches locate, not the minimize handle`() {
+        var locateMeCalls = 0
+        setScreen(onLocateMe = { locateMeCalls++ })
+        val callsBeforeTouch = locateMeCalls
+
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Center on my location")) }
+        composeRule.waitForIdle()
+
+        assertEquals(callsBeforeTouch + 1, locateMeCalls)
+        composeRule.onNodeWithContentDescription("Hide map controls").assertIsDisplayed()
+    }
+
+    /**
+     * A finger is not a point (CLAUDE.md, Testing): the row is sampled at real touches off its
+     * centre — 12dp out along the vertical axis and toward the map, 11dp toward the screen edge,
+     * the region a thumb actually covers — and every one must reach locate. One test per sample,
+     * since the harness allows one screen per test and a minimise from one sample must not mask
+     * the next. The outer-side sample lands at 21dp from the screen edge, one dp inside locate's
+     * territory: the handle's 20dp box owns 0–20dp *inclusive* (hit-testing gives a boundary
+     * pixel to the box), so a sample at exactly 20dp is the handle's by rule, not by bug —
+     * confirmed, that sample failed against the fixed code. That outer sample is the one that
+     * was missing, and the one a 48dp handle takes.
+     */
+    private fun assertLocateReachedAt(dx: Dp, dy: Dp) {
+        var locateMeCalls = 0
+        setScreen(onLocateMe = { locateMeCalls++ })
+        val callsBeforeTouch = locateMeCalls
+        val centre = centerOfContentDescription("Center on my location")
+        val delta = with(composeRule.density) { Offset(dx.toPx(), dy.toPx()) }
+        val rowBounds = composeRule.onNodeWithContentDescription("Center on my location").getUnclippedBoundsInRoot()
+        val point = centre + delta
+        with(composeRule.density) {
+            assertTrue(
+                "sample ($dx, $dy) must lie inside locate's own row $rowBounds for this test to mean anything",
+                point.x >= rowBounds.left.toPx() && point.x <= rowBounds.right.toPx() &&
+                    point.y >= rowBounds.top.toPx() && point.y <= rowBounds.bottom.toPx(),
+            )
+        }
+
+        composeRule.onRoot().performTouchInput { click(point) }
+        composeRule.waitForIdle()
+
+        assertEquals("sample ($dx, $dy) did not reach locate", callsBeforeTouch + 1, locateMeCalls)
+        composeRule.onNodeWithContentDescription("Hide map controls").assertIsDisplayed()
+    }
+
+    /** The outer-side sample: 11dp toward the screen edge from locate's centre, i.e. 21dp in from the edge — one dp past the handle's own inclusive 20dp boundary. Fails with the tap box at 48dp. */
+    @Test
+    fun `a real touch 11dp toward the screen edge from the locate row's centre reaches locate`() = assertLocateReachedAt(dx = 11.dp, dy = 0.dp)
+
+    @Test
+    fun `a real touch 12dp toward the map from the locate row's centre reaches locate`() = assertLocateReachedAt(dx = (-12).dp, dy = 0.dp)
+
+    @Test
+    fun `a real touch 12dp above the locate row's centre reaches locate`() = assertLocateReachedAt(dx = 0.dp, dy = (-12).dp)
+
+    @Test
+    fun `a real touch 12dp below the locate row's centre reaches locate`() = assertLocateReachedAt(dx = 0.dp, dy = 12.dp)
+
+    /** The handle still does its job from its own mark: a real touch there minimises. Passes before and after — a regression guard on the narrowed box, not evidence of the change. */
+    @Test
+    fun `a real touch on the minimize handle's own mark still minimises the cluster`() {
+        setScreen()
+        val markBounds = composeRule.onNodeWithTag("map-icon-bar-minimize-handle-mark", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val markCentre = with(composeRule.density) {
+            Offset(((markBounds.left + markBounds.right) / 2).toPx(), ((markBounds.top + markBounds.bottom) / 2).toPx())
+        }
+
+        composeRule.onRoot().performTouchInput { click(markCentre) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Show map controls").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Center on my location").assertDoesNotExist()
     }
 
     /** The side is part of the position too: snapped left, a tab change and return keeps it left. Fails with the state left inside CompactMapTab. */

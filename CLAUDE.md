@@ -64,6 +64,19 @@ here.
   when the failure is diagnosed as harness-only and backed by an audit doc.
   Diagnosing the cause is the job; deciding to reduce coverage belongs to
   the owner.
+- **A semantic `performClick` asserts wiring, not routing.** It invokes the
+  node's own click action directly and bypasses hit-testing entirely, so it
+  passes even when another composable covers the control completely. Only a
+  real `performTouchInput` at screen coordinates tests what a finger gets.
+  The map's icon-bar drag handle covered the locate row's whole centre for
+  several dispatches while the one locate test in the class — a semantic
+  click — would have passed un-ignored; the same distinction plausibly
+  explains the three earlier touch-interception bugs on that surface
+  surviving green suites. Where a test's claim is "a touch here reaches this
+  control", it must be a coordinate touch. And a finger is not a point:
+  sample several real touches across the target's own bounds, not one at its
+  centre — the broken region on the icon bar was the one region no test
+  touched, because every real-touch test picked a centre point outside it.
 
 ## Building
 
