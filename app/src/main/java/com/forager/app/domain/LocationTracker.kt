@@ -18,6 +18,15 @@ interface LocationTracker {
      * Emits [LocationFix.PermissionDenied] once and completes if location permission isn't
      * granted when collection starts — the same "explicit unsupported, not a silent empty stream"
      * rule [CompassProvider.heading] already follows for a missing sensor.
+     *
+     * **Because it completes, a collector that started before the permission was granted is
+     * finished, not waiting.** Permission is checked at each collection start and never again, so
+     * a caller that wants fixes after a grant must start a *new* collection once the grant arrives
+     * — nothing here re-registers on its own. `AvailabilityViewModel.onLocationPermissionGranted`
+     * is that restart for the compass strip's collector; the first-launch dispatch found that
+     * collector starting at construction, completing on the not-yet-granted permission, and never
+     * collecting again until the app was restarted. This sentence exists so the next collector
+     * written against this interface doesn't repeat that.
      */
     val fixes: Flow<LocationFix>
 }

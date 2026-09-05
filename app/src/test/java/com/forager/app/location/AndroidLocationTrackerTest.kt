@@ -1,0 +1,85 @@
+package com.forager.app.location
+
+import android.Manifest
+import android.app.Application
+import android.location.Location
+import android.location.LocationManager
+import android.os.Looper
+import androidx.test.core.app.ApplicationProvider
+import com.forager.app.domain.LocationFix
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLocationManager
+
+/**
+ * The real tracker's half of the first-launch dispatch: permission is checked at each collection
+ * start, so a collection begun before the grant is finished (one `PermissionDenied`, then
+ * completion, no OS listener), and a *fresh* collection begun after the grant is the one that
+ * registers listeners and delivers. Same Robolectric idioms as [AndroidLocationProviderTest].
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+class AndroidLocationTrackerTest {
+
+    private lateinit var context: Application
+    private lateinit var shadowLocationManager: ShadowLocationManager
+    private lateinit var tracker: AndroidLocationTracker
+
+    @Before
+    fun setUp() {
+        context = ApplicationProvider.getApplicationContext()
+        shadowOf(context).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
+        shadowLocationManager = shadowOf(locationManager)
+        shadowLocationManager.setProviderEnabled(LocationManager.NETWORK_PROVIDER, true)
+        tracker = AndroidLocationTracker(context)
+    }
+
+    @Test
+    fun `a collection started before the grant completes with PermissionDenied and registers no listener`() = runTest {
+        val everything = tracker.fixes.toList()
+
+        assertEquals(listOf(LocationFix.PermissionDenied), everything)
+        assertTrue(shadowLocationManager.requestLocationUpdateListeners.isEmpty())
+    }
+
+    @Test
+    fun `a fresh collection after the grant registers a listener and delivers the fix`() = runTest {
+        // The first-launch sequence: collected once too early, then granted, then collected again.
+        assertEquals(listOf(LocationFix.PermissionDenied), tracker.fixes.toList())
+        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+
+        val pending = async { tracker.fixes.first() }
+        // Not a single yield() as in AndroidLocationProviderTest: callbackFlow runs its producer
+        // block in its own coroutine, one dispatch hop further than that test's
+        // suspendCancellableCoroutine, so run the scheduler to idle before looking for the listener.
+        advanceUntilIdle()
+        assertEquals(1, shadowLocationManager.requestLocationUpdateListeners.size)
+
+        shadowLocationManager.simulateLocation(
+            Location(LocationManager.NETWORK_PROVIDER).apply {
+                latitude = 45.52
+                longitude = -122.68
+                accuracy = 12.5f
+                time = 1_700_000_000_000L
+            },
+        )
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            LocationFix.Update(lat = 45.52, lng = -122.68, altitude = null, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L),
+            pending.await(),
+        )
+    }
+}

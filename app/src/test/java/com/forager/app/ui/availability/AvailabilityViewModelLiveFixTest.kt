@@ -49,6 +49,8 @@ import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -168,6 +170,87 @@ class AvailabilityViewModelLiveFixTest {
         assertNull(vm.uiState.value.liveFix)
         assertNull(vm.uiState.value.liveLocation)
         assertNull(vm.uiState.value.liveAltitudeMeters)
+    }
+
+    // ---- First-launch dispatch (owner-found on device) ----------------------------------------
+    // The sequence that used to fail: permission not held when the ViewModel is constructed, so
+    // the tracker's first collection completes with PermissionDenied; then the grant arrives and
+    // fixes flow — all without reconstructing the ViewModel. A test that only covered "permission
+    // already held" passed before the fix and proved nothing about this.
+
+    @Test
+    fun `first launch - permission granted after construction - fixes reach the strip without a restart`() = runTest(dispatcher) {
+        val tracker = FirstLaunchFakeLocationTracker()
+        val vm = viewModel(tracker)
+        advanceUntilIdle()
+        // The construction-time collection has already completed on the not-yet-granted permission.
+        assertEquals(1, tracker.collectionsStarted)
+        assertNull(vm.uiState.value.liveFix)
+
+        tracker.permissionHeld = true
+        vm.onLocationPermissionGranted()
+        advanceUntilIdle()
+        tracker.updates.emit(fix)
+        advanceUntilIdle()
+
+        assertEquals(2, tracker.collectionsStarted)
+        assertEquals(LatLng(45.52, -122.68), vm.uiState.value.liveLocation)
+        assertEquals(50.0, vm.uiState.value.liveAltitudeMeters)
+        assertEquals(12.5f, vm.uiState.value.liveFix?.accuracyMeters)
+    }
+
+    @Test
+    fun `a grant reported while fixes are already flowing does not start a second collection`() = runTest(dispatcher) {
+        val tracker = FirstLaunchFakeLocationTracker().apply { permissionHeld = true }
+        val vm = viewModel(tracker)
+        advanceUntilIdle()
+        assertEquals(1, tracker.collectionsStarted)
+
+        // The launcher answers immediately for an already-held permission, on every locate tap.
+        vm.onLocationPermissionGranted()
+        vm.onLocationPermissionGranted()
+        advanceUntilIdle()
+        tracker.updates.emit(fix)
+        advanceUntilIdle()
+
+        assertEquals(1, tracker.collectionsStarted)
+        assertEquals(LatLng(45.52, -122.68), vm.uiState.value.liveLocation)
+    }
+
+    @Test
+    fun `denial is unchanged - no live fix, the locate-me status reports it, and nothing crashes`() = runTest(dispatcher) {
+        val tracker = FirstLaunchFakeLocationTracker()
+        val vm = viewModel(tracker)
+        advanceUntilIdle()
+
+        vm.onLocateMePermissionDenied()
+        advanceUntilIdle()
+
+        assertEquals(LocateMeStatus.PermissionDenied, vm.uiState.value.locateMeStatus)
+        assertNull(vm.uiState.value.liveFix)
+        assertEquals(1, tracker.collectionsStarted)
+    }
+}
+
+/**
+ * Mirrors the real [com.forager.app.location.AndroidLocationTracker]'s contract exactly as
+ * [LocationTracker.fixes] documents it: permission is checked at each collection start; not held
+ * means one [LocationFix.PermissionDenied] and completion, held means the live stream. The counter
+ * is what lets a test assert "a new collection started" or "no second collection started" on a
+ * real number rather than infer it.
+ */
+private class FirstLaunchFakeLocationTracker : LocationTracker {
+    var permissionHeld = false
+    var collectionsStarted = 0
+    val updates = MutableSharedFlow<LocationFix>()
+
+    override val fixes: Flow<LocationFix> = flow {
+        collectionsStarted++
+        if (!permissionHeld) {
+            emit(LocationFix.PermissionDenied)
+            return@flow
+        }
+        emitAll(updates)
     }
 }
 
