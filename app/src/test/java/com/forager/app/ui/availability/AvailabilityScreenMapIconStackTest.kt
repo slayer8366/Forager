@@ -1909,15 +1909,23 @@ class AvailabilityScreenMapIconStackTest {
      * (the Box bottom — the nav has slid away), returning the bar's top edge there. The guard
      * assertion is what makes the tests below meaningful: fullscreen's range must actually reach
      * below where the nav's top would be, or "pushed back above the nav on exit" is vacuous.
+     *
+     * Guard subject (icon-bar-unify-container dispatch, owner-approved): the *control pill's*
+     * bottom, previously the add row's. The guard asserts "the lowest clamped element sits below
+     * the nav's top"; that element was the add row while the clamp measured the bar alone, and is
+     * the pill now that the clamp measures the whole cluster (the add row stops ~40dp above the
+     * nav at the bottom of the range). A guard change, not a coverage change — the four tests'
+     * own bodies and assertions are untouched. Confirmed still guarding: under the reverted
+     * variant (clamp measuring the bar alone) this guard fails the same way the cluster tests do.
      */
     private fun enterFullscreenAndDragLow(navTop: Dp): Dp {
         touchFullscreenRow("Fullscreen")
         dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
-        val lowAddRowBottom = addRowBottom()
+        val lowPillBottom = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot().bottom
         assertTrue(
             "expected fullscreen's own drag range to reach below the nav's top ($navTop) for this " +
-                "test to check anything — add row bottom was only $lowAddRowBottom",
-            lowAddRowBottom.value > navTop.value,
+                "test to check anything — control pill bottom was only $lowPillBottom",
+            lowPillBottom.value > navTop.value,
         )
         return composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot().top
     }
