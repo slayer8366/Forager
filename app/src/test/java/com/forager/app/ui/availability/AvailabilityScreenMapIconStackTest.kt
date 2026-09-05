@@ -1894,6 +1894,133 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
     }
 
+    // ── Icon-bar-position-memory dispatch ──────────────────────────────────────────────────
+
+    /** Real touch on the bar's own fullscreen row (its contentDescription flips between the two). */
+    private fun touchFullscreenRow(description: String) {
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(description)) }
+        composeRule.waitForIdle()
+    }
+
+    private fun addRowBottom(): Dp = composeRule.onNodeWithContentDescription(addRowDescription).getUnclippedBoundsInRoot().bottom
+
+    /**
+     * Enters fullscreen by touch and drags the bar to the bottom of fullscreen's own, lower range
+     * (the Box bottom — the nav has slid away), returning the bar's top edge there. The guard
+     * assertion is what makes the tests below meaningful: fullscreen's range must actually reach
+     * below where the nav's top would be, or "pushed back above the nav on exit" is vacuous.
+     */
+    private fun enterFullscreenAndDragLow(navTop: Dp): Dp {
+        touchFullscreenRow("Fullscreen")
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+        val lowAddRowBottom = addRowBottom()
+        assertTrue(
+            "expected fullscreen's own drag range to reach below the nav's top ($navTop) for this " +
+                "test to check anything — add row bottom was only $lowAddRowBottom",
+            lowAddRowBottom.value > navTop.value,
+        )
+        return composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot().top
+    }
+
+    /**
+     * Dispatch case 1: drag low in fullscreen, exit, and the bar clears the nav — the bounds
+     * changed under it and the displayed position followed the clamp of the remembered one. The
+     * animation itself completes under `waitForIdle`, so this checks where it lands, not the
+     * motion. Fails with the bounds-change effect removed (bar left under the nav).
+     */
+    @Test
+    fun `leaving fullscreen with the bar dragged low pushes it back up above the bottom nav`() {
+        setScreen()
+        val navTop = bottomNavTop()
+        val lowTop = enterFullscreenAndDragLow(navTop)
+
+        touchFullscreenRow("Exit fullscreen")
+
+        val pushedUpTop = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
+        assertTrue("expected the bar to have moved up on exit (top $lowTop -> $pushedUpTop)", pushedUpTop.value < lowTop.value)
+        assertTrue(
+            "expected the add row's bottom (${addRowBottom()}) at or above the nav's top ($navTop) after leaving fullscreen",
+            addRowBottom().value <= navTop.value,
+        )
+    }
+
+    /**
+     * Dispatch case 2, the actual bug: re-entering fullscreen returns the bar to where the user
+     * had put it, not to the pushed-up position. Fails with the effect targeting the *displayed*
+     * offset instead of the remembered one (the previous one-way overwrite).
+     */
+    @Test
+    fun `re-entering fullscreen returns the bar to where the user left it`() {
+        setScreen()
+        val navTop = bottomNavTop()
+        val lowTop = enterFullscreenAndDragLow(navTop)
+        touchFullscreenRow("Exit fullscreen")
+
+        touchFullscreenRow("Fullscreen")
+
+        val restoredTop = composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot().top
+        assertTrue(
+            "expected the bar's top ($restoredTop) back at its remembered fullscreen position ($lowTop) on re-entry",
+            abs(restoredTop.value - lowTop.value) <= 1f,
+        )
+    }
+
+    /**
+     * Dispatch case 3: a drag outside fullscreen replaces the memory, so entering fullscreen keeps
+     * the new position rather than gliding back to the older fullscreen one. Fails with the drag
+     * writing only the displayed offset and not the memory.
+     */
+    @Test
+    fun `a drag outside fullscreen replaces the remembered fullscreen position`() {
+        setScreen()
+        val navTop = bottomNavTop()
+        val lowTop = enterFullscreenAndDragLow(navTop)
+        touchFullscreenRow("Exit fullscreen")
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = (-100).dp)
+        val draggedTop = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
+        assertTrue("expected the outside-fullscreen drag to land somewhere other than the old low position ($lowTop)", abs(draggedTop.value - lowTop.value) > 1f)
+
+        touchFullscreenRow("Fullscreen")
+
+        val topInFullscreen = composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot().top
+        assertTrue(
+            "expected the bar to stay at the new drag ($draggedTop) on entering fullscreen, not return to the older memory ($lowTop) — was $topInFullscreen",
+            abs(topInFullscreen.value - draggedTop.value) <= 1f,
+        )
+    }
+
+    /**
+     * Dispatch case 4: nothing survives leaving the Map tab — neither the corrected position nor
+     * the memory. Returning puts the bar at its default, and entering fullscreen from there must
+     * not glide it to the old low position. Passes before and after this dispatch, because
+     * `CompactMapTab` is disposed on the tab change and always was; it is a regression guard
+     * against hoisting this state later, not evidence of a behaviour change — flagged as such.
+     */
+    @Test
+    fun `leaving the Map tab and returning discards the remembered position`() {
+        setScreen()
+        val navTop = bottomNavTop()
+        val defaultTop = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
+        val lowTop = enterFullscreenAndDragLow(navTop)
+        touchFullscreenRow("Exit fullscreen")
+
+        composeRule.onNodeWithText("List").performClick()
+        composeRule.onNodeWithText("Maps").performClick()
+        composeRule.waitForIdle()
+
+        val topOnReturn = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().top
+        assertTrue("expected the bar back at its default ($defaultTop) after a tab change, was $topOnReturn", abs(topOnReturn.value - defaultTop.value) <= 1f)
+
+        touchFullscreenRow("Fullscreen")
+
+        val topInFullscreen = composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot().top
+        assertTrue(
+            "expected no stale memory: entering fullscreen after a tab change should leave the bar at $defaultTop, not glide to $lowTop — was $topInFullscreen",
+            abs(topInFullscreen.value - defaultTop.value) <= 1f,
+        )
+    }
+
 }
 
 /**

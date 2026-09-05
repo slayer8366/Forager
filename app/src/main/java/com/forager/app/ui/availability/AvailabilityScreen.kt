@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandIn
@@ -4582,7 +4583,27 @@ private fun CompactMapTab(
     // unrelated toggle), so it resets to the right side/no vertical offset on every fresh mount of
     // this tab. Worth revisiting if the owner wants that choice to survive an app restart.
     var isMapIconBarOnLeftSide by remember { mutableStateOf(false) }
-    var mapIconBarVerticalOffsetPx by remember { mutableStateOf(0f) }
+    // Icon-bar-position-memory dispatch: the bar's vertical position is two values that derive
+    // one from the other, never two that can drift. mapIconBarUserChosenOffsetPx is the single
+    // source of truth — the offset the user last dragged the bar (or its restore handle) to, and
+    // the only thing a drag writes. mapIconBarDisplayedOffsetPx is what's actually drawn: always
+    // clampMapIconBarVerticalOffset(userChosen) under the bounds *currently* in force, snapped to
+    // the finger during a drag and animated (navigationMotionSpec(), the nav's own slide spec, so
+    // the bar's move and the nav's arrival stay in step rather than crossing) whenever the bounds
+    // themselves change — leaving fullscreen brings the nav back over the bar's bottom band and
+    // pushes the bar up out of its way; re-entering removes that bound and the bar glides back to
+    // where the user had put it, because the push never touched the memory. A drag in either
+    // state replaces the memory, so it only ever holds a position the user chose. The previous
+    // shape (one offset, overwritten in place by an instant re-clamp) was exactly the one-way
+    // correction the owner found on device. The spring's few pixels of overshoot at a bound are
+    // accepted, not clamped away: every other slide here uses the same spec and accepts the same.
+    // Session-only, like every other piece of this bar's state — both live and die with this
+    // composable, so leaving the Map tab (which also exits fullscreen, in the same frame, before
+    // any push-up could run) resets the bar to its default: the owner's own ruling that nothing
+    // survives a tab change, over hoisting state just to carry a corrected position across one.
+    var mapIconBarUserChosenOffsetPx by remember { mutableStateOf(0f) }
+    val mapIconBarDisplayedOffsetPx = remember { Animatable(0f) }
+    val mapIconBarOffsetScope = rememberCoroutineScope()
     // Horizontal drag distance accumulated only during an in-progress drag gesture — read once, at
     // gesture end, to decide whether to flip isMapIconBarOnLeftSide, then reset to 0 regardless of
     // whether the side actually flipped. This keeps the bar's own resting modifier exactly
@@ -4590,7 +4611,7 @@ private fun CompactMapTab(
     // real-time "follows the finger, then snaps back" visual (a smaller, later polish, not this
     // request's own ask).
     var mapIconBarHorizontalDragPx by remember { mutableStateOf(0f) }
-    // This tab's own content Box's real measured height, in px — what mapIconBarVerticalOffsetPx is
+    // This tab's own content Box's real measured height, in px — what mapIconBarDisplayedOffsetPx is
     // clamped against below, so a drag can't carry the bar (or its restore handle) fully off
     // screen. Set via onGloballyPositioned on that Box itself, a few lines down.
     var mapContentBoxHeightPx by remember { mutableStateOf(0f) }
@@ -4603,13 +4624,20 @@ private fun CompactMapTab(
     // extreme of a drag — reuses MIN_TOUCH_TARGET (MapChrome.kt) rather than inventing a second
     // margin constant for the same "don't let a control go fully off-screen" idea.
     val mapIconBarVerticalDragMarginPx = with(LocalDensity.current) { MIN_TOUCH_TARGET.toPx() }
-    // Icon-bar-drag-refinements dispatch, Item 4: the real measured height of whichever of
-    // MapIconBar/MapIconBarRestoreHandle is currently showing, in px — what the upward-drag clamp
-    // below needs to know where that composable's own top edge currently sits, since
-    // Alignment.CenterEnd/CenterStart centers it vertically before mapIconBarVerticalOffsetPx is
-    // applied. Set via onGloballyPositioned on whichever of the two is actually composed, same
+    // Icon-bar-drag-refinements dispatch, Item 4: MapIconBar's own real measured height, in px —
+    // what both drag clamps below need to know where the bar's top and bottom edges currently
+    // sit, since Alignment.CenterEnd/CenterStart centers it vertically before
+    // mapIconBarDisplayedOffsetPx is applied. Set via onGloballyPositioned on the bar itself, same
     // "measure the real value, don't derive it from a row count or other guess" reasoning as
-    // mapIconBarBottomPx's own doc comment.
+    // mapIconBarBottomPx's own doc comment. Written by the bar *only* (icon-bar-position-memory
+    // dispatch, owner's call): this used to be overwritten by whichever of the bar or the 48dp
+    // restore handle was showing, which let the handle be dragged ~112dp lower than the bar may
+    // sit and needed a re-clamp on restore to catch it. Bounding the handle by the bar's own
+    // range instead removes a position that could never legally be occupied rather than adding
+    // machinery around it, makes that restore correction a no-op, and keeps
+    // mapIconBarUserChosenOffsetPx free of positions the bar could not return to. The handle's
+    // extra range was a measurement quirk, not a designed affordance. Keeps its last value
+    // while the bar is minimised, which is what the handle's drag is clamped against then.
     var mapIconBarHeightPx by remember { mutableStateOf(0f) }
     // Expanded-panels dispatch: this tab's own ForagerBottomNav overlay's real measured height, in
     // px — kept here (as well as reported up via onBottomNavHeightMeasured) because the drag
@@ -4739,7 +4767,7 @@ private fun CompactMapTab(
             Box(
                 modifier = modifier
                     .fillMaxSize()
-                    // Feeds mapIconBarVerticalOffsetPx's own clamp below — see that variable's own
+                    // Feeds mapIconBarDisplayedOffsetPx's own clamp below — see that variable's own
                     // doc comment.
                     .onGloballyPositioned { coordinates ->
                         mapContentBoxHeightPx = coordinates.size.height.toFloat()
@@ -4853,7 +4881,7 @@ private fun CompactMapTab(
                 //
                 // Direct owner request, layered on top of the above: the bar (and its two handles)
                 // can be dragged to reposition vertically and snaps to either screen edge — see
-                // isMapIconBarOnLeftSide/mapIconBarVerticalOffsetPx's own doc comments above.
+                // isMapIconBarOnLeftSide/mapIconBarUserChosenOffsetPx's own doc comments above.
                 // mapIconBarSideAlignment/mapIconBarPositionOffset are shared by every composable in
                 // this if/else so the bar and whichever handle is currently showing always move and
                 // land on the same side together, as one unit. detectDragGesturesAfterLongPress,
@@ -4868,7 +4896,7 @@ private fun CompactMapTab(
                 // that used to keep TrailheadControls right-anchored only no longer applies.
                 val mapIconBarSideAlignment = if (isMapIconBarOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
                 val mapIconBarPositionOffset = Modifier.offset {
-                    IntOffset(mapIconBarHorizontalDragPx.roundToInt(), mapIconBarVerticalOffsetPx.roundToInt())
+                    IntOffset(mapIconBarHorizontalDragPx.roundToInt(), mapIconBarDisplayedOffsetPx.value.roundToInt())
                 }
                 // Icon-bar-drag-refinements dispatch, Item 4: the bar cannot be dragged up far
                 // enough to rise above where SearchDropdown itself starts. compactMainScaffold's
@@ -4920,7 +4948,7 @@ private fun CompactMapTab(
                     DpOffset(
                         x = (if (isMapIconBarOnLeftSide) MAP_ICON_BAR_EDGE_INSET else -MAP_ICON_BAR_EDGE_INSET) +
                             mapIconBarHorizontalDragPx.toDp(),
-                        y = mapIconBarVerticalOffsetPx.toDp(),
+                        y = mapIconBarDisplayedOffsetPx.value.toDp(),
                     )
                 }
                 val mapIconBarDragModifier = Modifier.pointerInput(Unit) {
@@ -4936,7 +4964,13 @@ private fun CompactMapTab(
                     ) { change, dragAmount ->
                         change.consume()
                         mapIconBarHorizontalDragPx += dragAmount.x
-                        mapIconBarVerticalOffsetPx = clampMapIconBarVerticalOffset(mapIconBarVerticalOffsetPx + dragAmount.y)
+                        // The finger is the source of truth during a drag: the clamped position
+                        // becomes the memory and is drawn immediately (snapTo, which also cancels
+                        // any bounds-change glide still in flight) — see
+                        // mapIconBarUserChosenOffsetPx's own doc comment.
+                        val draggedToPx = clampMapIconBarVerticalOffset(mapIconBarDisplayedOffsetPx.value + dragAmount.y)
+                        mapIconBarUserChosenOffsetPx = draggedToPx
+                        mapIconBarOffsetScope.launch { mapIconBarDisplayedOffsetPx.snapTo(draggedToPx) }
                     }
                 }
                 // Expanded-panels dispatch (sweep finding, owner-approved "fix the clamp"): the
@@ -4954,16 +4988,26 @@ private fun CompactMapTab(
                 // it, untappable; a decision taken beyond the approved "keep the bottom edge on
                 // screen", reported as such). Falls back to the old margin-based bound before
                 // mapIconBarHeightPx has its first real measurement, same as the upward bound
-                // always did. Re-applied (the LaunchedEffect below) whenever any input changes,
-                // not only during a drag: the restore handle (48dp) and the bar (~272dp) share
-                // one offset, so a handle dragged to either extreme then restored would otherwise
-                // bring the taller bar back with its rows past the edge; likewise a bar dragged
-                // to the very bottom while fullscreen would otherwise end up under the nav once
-                // fullscreen is exited — the same untappable-rows outcome this fix exists to rule
-                // out, just reached by a different route. The bar moves instantly in those two
-                // cases, not animated: this is a clamp catching up, not a transition of its own.
+                // always did. Re-applied (the LaunchedEffect below) whenever a bound's input
+                // changes, not only during a drag: a bar dragged to the very bottom while
+                // fullscreen would otherwise end up under the nav once fullscreen is exited — the
+                // same untappable-rows outcome this fix exists to rule out, just reached by a
+                // different route. (The other route this used to catch — the restore handle
+                // dragged lower than the bar may sit — no longer exists: the handle is bounded by
+                // the bar's own measured height now, see mapIconBarHeightPx's own doc comment.)
+                //
+                // Icon-bar-position-memory dispatch: the target is always the clamp of the
+                // *user-chosen* offset, never of the displayed one, and the move is animated on
+                // the nav's own spec — so the push-up on leaving fullscreen and the glide back on
+                // re-entry read as one behaviour, and the memory survives the push untouched. See
+                // mapIconBarUserChosenOffsetPx's own doc comment. Not keyed on the memory itself:
+                // a drag snaps the displayed value directly and is never animated.
+                val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
                 LaunchedEffect(mapIconBarHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen) {
-                    mapIconBarVerticalOffsetPx = clampMapIconBarVerticalOffset(mapIconBarVerticalOffsetPx)
+                    val targetPx = clampMapIconBarVerticalOffset(mapIconBarUserChosenOffsetPx)
+                    if (targetPx != mapIconBarDisplayedOffsetPx.value) {
+                        mapIconBarDisplayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
+                    }
                 }
                 // Owner request (alongside the fullscreen-slide-out-fixes dispatch): minimising
                 // slides this cluster off whichever edge it's on, and the restore handle slides in
@@ -4995,13 +5039,10 @@ private fun CompactMapTab(
                     MapIconBarRestoreHandle(
                         onRestore = { isMapIconBarMinimized = false },
                         onLeftSide = isMapIconBarOnLeftSide,
-                        modifier = Modifier
-                            .then(mapIconBarDragModifier)
-                            // Feeds the drag clamp's own maxUpwardOffsetPx above — see
-                            // mapIconBarHeightPx's own doc comment.
-                            .onGloballyPositioned { coordinates ->
-                                mapIconBarHeightPx = coordinates.size.height.toFloat()
-                            },
+                        // Deliberately does *not* report its own height into mapIconBarHeightPx
+                        // any more — its drag is clamped to the bar's own range, see that
+                        // variable's doc comment.
+                        modifier = Modifier.then(mapIconBarDragModifier),
                     )
                 }
                 androidx.compose.animation.AnimatedVisibility(
