@@ -4921,11 +4921,32 @@ private fun CompactMapTab(
                 // "how far below the top the search chrome reaches" (see the taxon filter chip's
                 // own topInset + compassStripClearance padding a little further down).
                 val dropdownTopPx = with(compassStripDensity) { (topInset + compassStripClearance).toPx() }
+                // Stale-clamp-bound dispatch (owner finding on device): every input to the clamp
+                // below must be *live state*, never a plain value closed over. mapIconBarDragModifier's
+                // pointerInput(Unit) block is started lazily on the first pointer event and never
+                // restarted (its key is Unit, and a changed lambda instance does not restart it),
+                // so the drag callback keeps the closure from the user's *first drag* for the life
+                // of the handle. isFullscreen (a plain Boolean parameter) and dropdownTopPx (a
+                // plain Float) were captured that way: whichever fullscreen state existed at the
+                // first drag bounded every later drag — a first drag in fullscreen let later drags
+                // outside it pass under the nav; a first drag outside it capped later fullscreen
+                // drags at the nav's former top — while the LaunchedEffect below, re-run per
+                // recomposition, always read the fresh values and corrected the position, which
+                // the next drag then undid. Reproduced under Robolectric (enter fullscreen, drag
+                // low, exit, drag low: 640dp vs the nav's 560dp top) before this fix. The nav's
+                // height does not vary by theme; the theme the owner noticed was a different
+                // first-drag order after the tab change a theme switch goes through. Every other
+                // clamp input is already a MutableState delegate, read live. rememberUpdatedState
+                // is the standard shape for a long-lived gesture block reading composition values —
+                // one clamp, derived live, used by the drag path and the effect alike; no path
+                // holds its own copy, and nothing re-runs the effect more often to paper over it.
+                val currentIsFullscreen by rememberUpdatedState(isFullscreen)
+                val currentDropdownTopPx by rememberUpdatedState(dropdownTopPx)
                 // See the comment on the LaunchedEffect below for both bounds' derivations.
                 fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
                     // The lowest edge the bar may reach: this Box's own bottom in fullscreen, the
                     // nav's own top edge otherwise (mapBottomNavHeightPx's own doc comment).
-                    val bottomBoundPx = mapContentBoxHeightPx - (if (isFullscreen) 0f else mapBottomNavHeightPx)
+                    val bottomBoundPx = mapContentBoxHeightPx - (if (currentIsFullscreen) 0f else mapBottomNavHeightPx)
                     val fallbackDownwardOffsetPx = (bottomBoundPx - mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
                     val maxDownwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
                         (bottomBoundPx - (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2f).coerceAtLeast(0f)
@@ -4938,7 +4959,7 @@ private fun CompactMapTab(
                     // dropdownTopPx, so the bar can't rise into the dropdown's own space
                     // (icon-bar-drag-refinements dispatch, Item 4).
                     val maxUpwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
-                        (dropdownTopPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f)
+                        (currentDropdownTopPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f)
                             .coerceIn(-fallbackDownwardOffsetPx, 0f)
                     } else {
                         -fallbackDownwardOffsetPx

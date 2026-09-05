@@ -2136,6 +2136,61 @@ class AvailabilityScreenMapIconStackTest {
         assertEquals(1, placed)
     }
 
+    // ── Stale-clamp-bound dispatch: the drag path must read the same live bound as the effect ──
+
+    /**
+     * Owner finding on device (symptom A), reproduced here before the fix at 640dp against the
+     * nav's 560dp top: the drag handler's `pointerInput(Unit)` block starts on the *first* pointer
+     * event and never restarts, so the clamp it calls kept the `isFullscreen` value from the
+     * user's first drag. A first drag in fullscreen therefore let every later drag, outside
+     * fullscreen too, pass under the nav — while the bounds-change effect, reading the fresh
+     * value, kept correcting the position the next drag undid. Fails with the live reads
+     * reverted to plain captures.
+     */
+    @Test
+    fun `after a first drag in fullscreen, a drag outside fullscreen still stops the cluster at the bottom nav`() {
+        setScreen()
+        val navTop = bottomNavTop()
+
+        touchFullscreenRow("Fullscreen")
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+        touchFullscreenRow("Exit fullscreen")
+        assertTrue("expected the exit to have corrected the position first (pill bottom ${pillBottom()}, nav top $navTop)", pillBottom().value <= navTop.value)
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+
+        assertTrue(
+            "expected the control pill's bottom (${pillBottom()}) at or above the nav's top ($navTop) after a drag outside fullscreen that followed a drag in it",
+            pillBottom().value <= navTop.value,
+        )
+    }
+
+    /**
+     * The other direction of the same capture (symptom B, which the owner saw as a theme
+     * difference — it was a different first-drag order): a first drag outside fullscreen left the
+     * nav bound in the drag path for good, so fullscreen drags were capped at the nav's former top
+     * and the cluster never used the space fullscreen frees. Fails with the live reads reverted,
+     * pill bottom stuck exactly at the nav's top. Not theme-keyed: the nav's height is the same in
+     * both themes in the code and Robolectric reports zero insets, so a theme test here would
+     * assert nothing.
+     */
+    @Test
+    fun `after a first drag outside fullscreen, a drag in fullscreen still reaches below the nav's former top`() {
+        setScreen()
+        val navTop = bottomNavTop()
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+        assertTrue("expected the first drag to stop at the nav (pill bottom ${pillBottom()}, nav top $navTop)", pillBottom().value <= navTop.value)
+
+        touchFullscreenRow("Fullscreen")
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+
+        assertTrue(
+            "expected the control pill's bottom (${pillBottom()}) below the nav's former top ($navTop) in fullscreen, after a first drag outside it",
+            pillBottom().value > navTop.value,
+        )
+    }
+
 }
 
 /**
