@@ -91,6 +91,13 @@ class AvailabilityViewModel(
     private var loadedSeasonalPatternQuery: Triple<Region, Int, TaxonFilter>? = null
     private var taxonSearchJob: Job? = null
 
+    /**
+     * The one live collection of [LocationTracker.fixes] feeding [AvailabilityUiState.liveFix] —
+     * see [collectLiveFixes]. Tracked so [onLocationPermissionGranted] can tell "still collecting"
+     * from "collected once, completed, nothing listening any more", which is the first-launch bug.
+     */
+    private var liveFixJob: Job? = null
+
     init {
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
         // up front rather than waiting on a region the way sightings and trip windows do.
@@ -105,14 +112,32 @@ class AvailabilityViewModel(
         loadNightModePreferences()
         loadMapFullscreenPreference()
         loadThemeModePreference()
-        // The compass strip's live coordinates — see AvailabilityUiState.liveLocation's own doc
+        // The compass strip's live coordinates — see AvailabilityUiState.liveFix's own doc
         // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
-        // recording: "any time the map is open" was the explicit ask this answers. A denied/
-        // unsupported permission just never emits an Update here — locationTracker.fixes' own doc
-        // comment covers that "explicit unsupported, not a silent empty stream" contract; this
-        // ViewModel doesn't duplicate that signaling, since the strip's own "Coordinates
-        // unavailable" text already covers the null case honestly either way.
-        viewModelScope.launch {
+        // recording: "any time the map is open" was the explicit ask this answers. Restarted by
+        // onLocationPermissionGranted() when this first collection ran before the permission
+        // existed — see collectLiveFixes()' own doc comment for the first-launch bug that was.
+        collectLiveFixes()
+    }
+
+    /**
+     * Starts collecting [LocationTracker.fixes] into [AvailabilityUiState.liveFix].
+     *
+     * **First-launch dispatch (owner-found on device):** on a fresh install the app's very first
+     * collection of `fixes` happens here, at construction, *before* the OS permission dialog has
+     * been shown — and [LocationTracker.fixes]' own contract is to emit
+     * [LocationFix.PermissionDenied] once and **complete** when permission isn't held at
+     * collection start. The flow didn't go silent; it terminated. `collect` returned, this
+     * coroutine ended, and nothing collected again for the life of the process — so the compass
+     * strip read "Elevation unavailable · Coordinates unavailable" until a restart, whose
+     * construction-time collection then found the permission already held. Heading was fine
+     * (a different sensor, no permission), and the map's own puck was fine (MapLibre's activation
+     * is re-invoked from events, not subscribed once in an init block) — which is exactly the shape
+     * this ViewModel lacked. A denied/unsupported permission still just never emits an Update here;
+     * the strip's own "unavailable" text covers that honestly, unchanged.
+     */
+    private fun collectLiveFixes() {
+        liveFixJob = viewModelScope.launch {
             locationTracker.fixes.collect { fix ->
                 if (fix is LocationFix.Update) {
                     // The whole fix, accuracy and timestamp included — see
@@ -121,6 +146,29 @@ class AvailabilityViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * The OS just granted location permission — `MainActivity`'s one permission launcher reports
+     * this from its result callback, for either action it was launched for. Starts a fresh
+     * collection of [LocationTracker.fixes] if the construction-time one has already completed
+     * (see [collectLiveFixes]: it completes, rather than idling, when permission wasn't held at
+     * its start). The tracker re-checks permission at every collection start, so the new
+     * collection is the one that actually registers OS listeners.
+     *
+     * A no-op while a collection is still live — so a grant reported while fixes are already
+     * flowing (the launcher answers immediately for an already-held permission, on every locate
+     * tap) never stacks a second OS listener on the four this app already runs while recording.
+     * Deliberately *not* driven from [locateMe]/[useCurrentLocation] succeeding: "a one-shot fix
+     * resolved" and "the permission was just granted" are different facts that happen to coincide
+     * on first launch, and the next reader should not have to know that. Not driven from
+     * `ON_RESUME` either — see the dispatch's own constraint: re-registering on every resume would
+     * mask this bug and add churn. Never requests the permission itself; it only reacts to the
+     * grant the existing launcher already delivers.
+     */
+    fun onLocationPermissionGranted() {
+        if (liveFixJob?.isActive == true) return
+        collectLiveFixes()
     }
 
     fun onRadiusChanged(radiusKm: Int) {

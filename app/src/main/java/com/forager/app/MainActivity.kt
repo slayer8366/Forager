@@ -172,6 +172,12 @@ class MainActivity : ComponentActivity() {
     ) { grants ->
         val granted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        // First-launch dispatch: the grant is the event the compass strip's live-fix collection
+        // has to restart on — see AvailabilityViewModel.onLocationPermissionGranted's own doc
+        // comment. Reported before the per-action call so the stream is live by the time the
+        // one-shot below resolves; a no-op when the collection is already running. The denied
+        // branches are exactly what they were.
+        if (granted) viewModel.onLocationPermissionGranted()
         when (pendingLocationAction) {
             PendingLocationAction.USE_CURRENT_LOCATION ->
                 if (granted) viewModel.useCurrentLocation() else viewModel.onPermissionDenied()
