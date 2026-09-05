@@ -85,6 +85,7 @@ import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.WeatherSeries
+import com.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
 import com.forager.app.ui.map.MAP_MODE_PICKER_TAG
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.theme.Spacing
@@ -2101,6 +2102,38 @@ class AvailabilityScreenMapIconStackTest {
             "expected the control pill's bottom edge ($pillBottomAfter) at or above the nav's top ($navTop) after leaving fullscreen",
             pillBottomAfter.value <= navTop.value,
         )
+    }
+
+    /**
+     * Owner finding on device: the centre-pin picker's OK/Cancel row sat under the app's bottom
+     * nav (and under Android's own navigation bar in fullscreen). Opened the real way — add row,
+     * "Trip" chip — then the confirm surface's own bottom edge is checked against the nav's real
+     * top, and "OK" is real-touched to prove the row is where it can be hit. The fullscreen half
+     * (system navigation-bar inset) is device-only by construction: Robolectric reports that inset
+     * as zero, so a test of it here would pass without checking anything. Fails with the inset
+     * removed (confirm row bottom at the screen's bottom, 80dp under the nav's top).
+     */
+    @Test
+    fun `the centre-pin picker's confirm row sits above the bottom nav outside fullscreen, and OK is tappable there`() {
+        var placed = 0
+        setScreen(onStartLogEntry = { _, _ -> placed++ })
+        val navTop = bottomNavTop()
+
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(addRowDescription)) }
+        composeRule.waitForIdle()
+        composeRule.onRoot().performTouchInput { click(centerOfText("Find")) }
+        composeRule.waitForIdle()
+
+        val confirmRow = composeRule.onNodeWithTag(CENTRE_PIN_CONFIRM_ROW_TAG).getUnclippedBoundsInRoot()
+        assertTrue(
+            "expected the confirm row's bottom (${confirmRow.bottom}) at or above the nav's top ($navTop)",
+            confirmRow.bottom.value <= navTop.value,
+        )
+
+        composeRule.onRoot().performTouchInput { click(centerOfText("OK")) }
+        composeRule.waitForIdle()
+
+        assertEquals(1, placed)
     }
 
 }

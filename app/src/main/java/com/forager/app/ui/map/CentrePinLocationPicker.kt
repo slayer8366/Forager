@@ -23,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
@@ -123,11 +125,26 @@ fun CentrePinLocationPickerOverlay(
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * How far above this overlay's own bottom edge the OK/Cancel row sits. Owner finding on
+     * device: the compact Map tab's content Box spans the full screen height (its bottom nav
+     * floats over it and slides away in fullscreen, and the app is edge-to-edge), so a row aligned
+     * to that Box's bottom lands under the app's nav outside fullscreen and under Android's own
+     * navigation bar in it. The caller passes whichever of those is currently underneath: its
+     * measured nav height (which already includes the system bar it consumes) or the system
+     * navigation-bar inset. Zero keeps the previous behaviour for callers whose Scaffold already
+     * pads for its bottom bar.
+     */
+    bottomInset: Dp = 0.dp,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         CentrePin(modifier = Modifier.align(Alignment.Center))
         Surface(
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = bottomInset)
+                .fillMaxWidth()
+                .testTag(CENTRE_PIN_CONFIRM_ROW_TAG),
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 4.dp,
         ) {
@@ -166,3 +183,6 @@ private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, on
 }
 
 private val CENTRE_PIN_SIZE = 40.dp
+
+/** [CentrePinLocationPickerOverlay]'s own OK/Cancel surface — what tests measure its real placement by. */
+const val CENTRE_PIN_CONFIRM_ROW_TAG = "centre-pin-confirm-row"

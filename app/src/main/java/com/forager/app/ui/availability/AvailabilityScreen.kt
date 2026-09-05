@@ -51,6 +51,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBars
@@ -5285,6 +5287,18 @@ private fun CompactMapTab(
                     ),
                 )
 
+                // Owner finding on device: the OK/Cancel row sat under the app's nav (and under
+                // Android's own navigation bar in fullscreen), because this Box spans the full
+                // screen height. Outside fullscreen the nav's real measured height — which already
+                // includes the system bar it consumes (CLAUDE.md, "Robolectric reports zero window
+                // insets") — is what's underneath; in fullscreen the nav has slid away and only
+                // the system navigation bar is. The fullscreen half is device-only by
+                // construction: Robolectric reports that inset as zero.
+                val centrePinConfirmBottomInset = if (isFullscreen) {
+                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                } else {
+                    with(LocalDensity.current) { mapBottomNavHeightPx.toDp() }
+                }
                 if (pendingAction != null) {
                     CentrePinLocationPickerOverlay(
                         onConfirm = {
@@ -5298,6 +5312,7 @@ private fun CompactMapTab(
                         },
                         onCancel = { pendingAction = null },
                         modifier = Modifier.fillMaxSize(),
+                        bottomInset = centrePinConfirmBottomInset,
                     )
                 } else if (pickingSearchLocation) {
                     // AdvancedSearchDropdown's own "Set on map" — same overlay, same already-shown
@@ -5307,6 +5322,7 @@ private fun CompactMapTab(
                         onConfirm = { onSearchLocationPicked(cameraCenter) },
                         onCancel = onCancelSearchLocationPick,
                         modifier = Modifier.fillMaxSize(),
+                        bottomInset = centrePinConfirmBottomInset,
                     )
                 }
             }
