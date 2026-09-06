@@ -368,8 +368,10 @@ class AvailabilityScreenMapIconStackTest {
             composeRule.onRoot().performTouchInput { click(point) }
             composeRule.waitForIdle()
             assertEquals("touch $index at $sample must reach the exit", index + 1, exits)
-            // Still in fullscreen: no touch fell through to the map (whose tap would restore chrome).
-            composeRule.onNodeWithContentDescription("Exit fullscreen").assertExists()
+            // Still in fullscreen: no touch fell through to the map, whose tap would restore chrome
+            // and slide the nav back in. The nav is the witness, not the icon bar's exit-fullscreen
+            // row — that row is unmounted here precisely because the cluster is minimised.
+            composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
         }
     }
 

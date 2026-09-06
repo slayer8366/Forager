@@ -539,6 +539,9 @@ class TrackRecordingViewModelTest {
 
     // ---- Navigation HUD stage one: the auto-created origin and end waypoints -------------------
     // fixedTime is 1_000 ms after the epoch, so every default name reads "Jan 1, 12:00 AM" in UTC.
+    // runCurrent(), never advanceUntilIdle(), while a recording is active: the breadcrumb poll is an
+    // infinite delay loop, and advancing virtual time until idle never returns (found the hard way —
+    // a 77-minute hung test worker). The origin/end saves have no delays, so runCurrent() runs them.
 
     private fun fix(lat: Double, accuracy: Float?, t: Long, altitude: Double? = null) =
         LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = accuracy, timestampEpochMillis = t)
@@ -553,12 +556,12 @@ class TrackRecordingViewModelTest {
         runCurrent()
 
         fixes.emit(fix(lat = 45.0, accuracy = 80f, t = 2_000L)) // worse than the gate: not the origin
-        advanceUntilIdle()
+        runCurrent()
         assertNull(vm.uiState.value.originWaypoint)
         assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
 
         fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L, altitude = 120.0))
-        advanceUntilIdle()
+        runCurrent()
 
         val origin = requireNotNull(vm.uiState.value.originWaypoint)
         assertEquals("waypoint-1", origin.id)
@@ -572,7 +575,7 @@ class TrackRecordingViewModelTest {
         assertEquals(listOf(origin), vm.uiState.value.waypoints)
 
         fixes.emit(fix(lat = 45.002, accuracy = 10f, t = 4_000L))
-        advanceUntilIdle()
+        runCurrent()
         assertEquals("a second gated fix must not create a second origin", 1, waypointRepository.getAll().getOrThrow().size)
         vm.stopRecording()
     }
@@ -588,7 +591,7 @@ class TrackRecordingViewModelTest {
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
         fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L)) // seeds the origin at 45.001
-        advanceUntilIdle()
+        runCurrent()
 
         val info = vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 4_000L))
 
@@ -606,14 +609,14 @@ class TrackRecordingViewModelTest {
         vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
         runCurrent()
         fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L))
-        advanceUntilIdle()
+        runCurrent()
         fixes.emit(fix(lat = 45.010, accuracy = 10f, t = 4_000L))
-        advanceUntilIdle()
+        runCurrent()
         fixes.emit(fix(lat = 45.500, accuracy = 80f, t = 5_000L)) // rejected by the gate
-        advanceUntilIdle()
+        runCurrent()
 
         vm.stopRecording()
-        advanceUntilIdle()
+        runCurrent()
 
         val saved = waypointRepository.getAll().getOrThrow().sortedBy { it.id }
         assertEquals(listOf("waypoint-1", "waypoint-2"), saved.map { it.id })
@@ -633,10 +636,10 @@ class TrackRecordingViewModelTest {
         vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
         runCurrent()
         fixes.emit(fix(lat = 45.0, accuracy = 80f, t = 2_000L))
-        advanceUntilIdle()
+        runCurrent()
 
         vm.stopRecording()
-        advanceUntilIdle()
+        runCurrent()
 
         assertNull(vm.uiState.value.originWaypoint)
         assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
