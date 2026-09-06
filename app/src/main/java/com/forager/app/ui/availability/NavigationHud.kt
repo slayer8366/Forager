@@ -97,11 +97,13 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  * The close button is part of this panel, so it is reachable whenever the HUD is — independent of
  * the icon cluster, which can be minimised or dragged to an edge. It sits at the panel's right
  * end but the panel is composed after the cluster, so even a cluster dragged up to its upward
- * bound cannot cover it. System back exits too (`CompactMapTab`'s own `BackHandler`), and so does
- * the control pill's lit return toggle — three exits, kept deliberately (navigation-chrome
- * dispatch, owner's ruling): the toggle is the entry and a lit toggle that ignores a second tap
- * would be worse; the close button is the one guaranteed reachable. Exit means `stopReturn()` —
- * stage one's HUD *is* the return mode, see `TrackRecordingViewModel.startReturn`.
+ * bound cannot cover it. The control pill's lit return toggle exits too — two direct exits, kept
+ * deliberately (navigation-chrome dispatch, owner's ruling): the toggle is the entry and a lit
+ * toggle that ignores a second tap would be worse; the close button is the one guaranteed
+ * reachable. **System back is not an exit** (navigation-chrome amendment): it raises a prompt
+ * that back can only dismiss — see `AvailabilityScreen`'s back chain and the reason recorded
+ * there. Exit means `stopReturn()` — stage one's HUD *is* the return mode, see
+ * `TrackRecordingViewModel.startReturn`.
  *
  * ## What it shows, and when
  *
@@ -122,9 +124,11 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   diagnosed on device by the owner). Bearing to a nearby point is geometrically unstable: at
  *   10 m with 8 m accuracy, ordinary GPS drift swings the computed bearing through tens of
  *   degrees, and no heading smoothing can fix it because the heading is not what is wrong. Inside
- *   the threshold the target column shows the distance alone (owner's call — no dash, no
- *   placeholder), and the no-sensor bearing text is withheld too, since an absolute bearing you
- *   cannot orient to is a number without a use. One constant gates both the needle and the word:
+ *   the threshold the target column shows **nothing** under its dimmed icon — the HUD shows the
+ *   distance once, in the distance slot, and "Approaching" (owner's call; a first cut put the
+ *   distance in the column too and the owner read "9 ft · 9 ft" on device) — and the no-sensor
+ *   bearing text is withheld too, since an absolute bearing you cannot orient to is a number
+ *   without a use. One constant gates both the needle and the word:
  *   [isApproaching]. Two thresholds would drift, producing a needle that vanishes before the label
  *   appears or the reverse. The bearing is never smoothed as a substitute — a smoothed unstable
  *   bearing is a stable wrong direction.
@@ -337,7 +341,9 @@ internal fun navigationReadout(
     val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !approaching) relativeBearingDegrees(bearing, headingDegrees) else null
     val targetText = when {
         freshness == FixFreshness.LOST -> "Target"
-        approaching -> distanceText
+        // Nothing — not the distance (that was one number in two slots on device, "9 ft · 9 ft ·
+        // Approaching"), not a dash, not a placeholder. The distance slot carries the one number.
+        approaching -> ""
         headingDegrees != null -> "Turn ${relativeBearingDegrees(bearing, headingDegrees).roundToInt() % 360}°"
         else -> "Bearing ${bearing.roundToInt() % 360}° ${cardinalDirection(bearing.toFloat())}"
     }

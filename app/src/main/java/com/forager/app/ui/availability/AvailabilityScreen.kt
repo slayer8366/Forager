@@ -831,7 +831,8 @@ fun AvailabilityScreen(
     // AvailabilityScreenBackNavigationTest, including the case only compact width can reach where
     // isDrawerOpen and isMapFullscreen are both true (the drawer's own Search entry point is still
     // reachable while fullscreen — see MapIconBar). Corrected 2026-08-28: named MapIconStack here
-    // before that composable was renamed.
+    // before that composable was renamed. Navigation-chrome amendment: a fifth step, navigation,
+    // sits between "return to the Maps tab" and the exit handler — see its own comment below.
     //
     // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are compact-only state
     // that a medium/expanded window never changes away from its own defaults (isDrawerOpen stays
@@ -851,12 +852,62 @@ fun AvailabilityScreen(
         selectedTab = ResultsTab.MAP
     }
 
-    // "Home": drawer closed, chrome visible, Maps tab selected. A second back press within the
-    // window actually exits; a lone press just warns. This is a single-Activity app with nothing
-    // else back could sensibly navigate to once nothing is nested, so an un-warned single back
-    // press (which a pan gesture can graze) would otherwise dump the user straight out.
+    // Navigation is the last thing backed out of before the app closes, and backing out of it
+    // asks first (navigation-chrome amendment, owner-directed, found on device). This handler is
+    // enabled only once everything nested is unwound — dropdown, drawer, fullscreen, other tab —
+    // so a back press while navigating in fullscreen exits fullscreen and does not touch the
+    // navigation; the next press asks. Stage one had this in CompactMapTab's own handler with no
+    // exclusions, which — being the deepest registered — exited navigation BEFORE fullscreen, the
+    // drawer or the dropdown unwound: a user in fullscreen lost the return leg to a press they
+    // expected to exit fullscreen. That inversion was the bug this replaces.
+    //
+    // THIS HANDLER PRODUCES A LOOP ON PURPOSE. Back raises the prompt; back dismisses it; back
+    // raises it again. Back can never exit navigation, and — because this handler is enabled
+    // whenever the exit handler below would otherwise be — back can no longer close the app from
+    // this screen while navigating. Home and the app switcher still work, so nobody is trapped.
+    // The reason, in the owner's words: backing out can kill a process a person is relying on.
+    // Someone navigating out of the woods must not lose it to a stray press. The user decides when
+    // to exit — the HUD's ✕ and the control pill's toggle are the only exits, both deliberate
+    // presses, and neither asks. Do not "fix" the loop; do not let a second press confirm (that
+    // would be the accidental exit with one extra step: the second press cancels); do not remove
+    // this handler without another that consumes back here, or a stray press falls through to
+    // the exit handler and drops the user out of the app while a track is recording.
+    //
+    // Toggle, not raise-only: on a device the open AlertDialog is its own window and consumes
+    // back itself (onDismissRequest → keep navigating), so this handler only ever sees the
+    // raising press there. Under Robolectric, onBackPressedDispatcher.onBackPressed() reaches the
+    // Activity, not the dialog window, so the tests' second press lands here — the toggle makes
+    // that path end in the same place. The tests therefore exercise THIS toggle path, not the
+    // dialog window's own dismiss; the guarantee (back never exits) holds by either route, but
+    // the dialog's own back handling is device-only coverage.
+    var showExitNavigationPrompt by remember { mutableStateOf(false) }
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && isNavigating) {
+        showExitNavigationPrompt = !showExitNavigationPrompt
+    }
+    // If navigation ends by any other route while the prompt is up (the recording stopping under
+    // it, say), the prompt has nothing left to ask about.
+    LaunchedEffect(isNavigating) {
+        if (!isNavigating) showExitNavigationPrompt = false
+    }
+    if (showExitNavigationPrompt) {
+        ExitNavigationPrompt(
+            onExit = {
+                showExitNavigationPrompt = false
+                onToggleReturning()
+            },
+            onKeepNavigating = { showExitNavigationPrompt = false },
+        )
+    }
+
+    // "Home": drawer closed, chrome visible, Maps tab selected, not navigating. A second back
+    // press within the window actually exits; a lone press just warns. This is a single-Activity
+    // app with nothing else back could sensibly navigate to once nothing is nested, so an
+    // un-warned single back press (which a pan gesture can graze) would otherwise dump the user
+    // straight out. Never reached while navigating — the handler above holds that state, by
+    // design (see its comment); this exclusion is what makes the two mutually exclusive, the same
+    // way the tab and fullscreen handlers exclude the states nested inside them.
     var backPressedOnce by remember { mutableStateOf(false) }
-    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP) {
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && !isNavigating) {
         if (backPressedOnce) {
             (context as? Activity)?.finish()
         } else {
@@ -3109,14 +3160,16 @@ private fun CompactMapTab(
     // the menu only once the picker's already closed. pickingSearchLocation joins the same picker
     // tier as pendingAction (both show the identical CentrePinLocationPickerOverlay, just for a
     // different caller) rather than a third priority level of its own.
-    // Navigation HUD stage one: system back also exits the HUD, at the lowest priority — an
-    // overlay above it (picker, menu) still pops first, one per press.
-    BackHandler(enabled = pendingAction != null || pickingSearchLocation || showActionMenu || isReturning) {
+    // Navigation is deliberately NOT here any more (navigation-chrome amendment). Stage one had
+    // `|| isReturning` in this condition with `else -> onToggleReturning()`, and because this is
+    // the deepest registered handler it exited navigation before fullscreen, the drawer or the
+    // search dropdown unwound — see AvailabilityScreen's own back chain, where navigation now sits
+    // as the last step before exit and raises a prompt rather than exiting.
+    BackHandler(enabled = pendingAction != null || pickingSearchLocation || showActionMenu) {
         when {
             pendingAction != null -> pendingAction = null
             pickingSearchLocation -> onCancelSearchLocationPick()
-            showActionMenu -> showActionMenu = false
-            else -> onToggleReturning()
+            else -> showActionMenu = false
         }
     }
 
@@ -4242,6 +4295,39 @@ internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInf
     } ?: "elevation diff. unavailable"
     val bearing = info.bearingDegrees.roundToInt()
     return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · ${formatDistanceMeters(info.distanceMeters, distanceUnit)} · $elevationText"
+}
+
+/** The exit-navigation prompt's buttons, for the back-navigation tests. */
+internal const val EXIT_NAVIGATION_PROMPT_TAG = "exit-navigation-prompt"
+internal const val EXIT_NAVIGATION_PROMPT_EXIT_TAG = "exit-navigation-prompt-exit"
+internal const val EXIT_NAVIGATION_PROMPT_KEEP_TAG = "exit-navigation-prompt-keep"
+
+/**
+ * What system back raises while navigating, instead of exiting — see the back chain in
+ * [AvailabilityScreen] for why back can only ever raise and dismiss this. Same [AlertDialog]
+ * shape as [ThreeWayActionDialog] and the Cartography editor's leave prompt, not a new dialog
+ * style. Wording is the owner's: exiting navigation is not stopping the recording, and the text
+ * says so, because a user who thinks "Exit" ends the track will keep navigating when they meant
+ * to stop, or the reverse. Dismissing by any route — the Keep button, a tap outside, the dialog
+ * window's own back — keeps navigating; only the Exit button calls [onExit].
+ */
+@Composable
+private fun ExitNavigationPrompt(
+    onExit: () -> Unit,
+    onKeepNavigating: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onKeepNavigating,
+        title = { Text("Exit navigation?") },
+        text = { Text("Your track will keep recording.") },
+        confirmButton = {
+            TextButton(onClick = onExit, modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_EXIT_TAG)) { Text("Exit") }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeepNavigating, modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_KEEP_TAG)) { Text("Keep navigating") }
+        },
+        modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_TAG),
+    )
 }
 
 /**
