@@ -243,12 +243,12 @@ jobs:
                   "control while not returning",
               ),
               # See docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md -- closing that
-              # investigation includes removing these thirteen entries entirely, not just shrinking
-              # them.
-              (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
-                  "a real touch beside the distance arm still reaches the map",
-              ),
+              # investigation includes removing these twelve entries entirely, not just shrinking
+              # them. (Thirteen until the navigation-chrome dispatch: "a real touch beside the
+              # distance arm still reaches the map" was removed together with DistanceArm itself,
+              # the composable it covered -- owner-authorised, one entry, recorded in
+              # docs/audits/2026-09-06-navigation-chrome-prebuild-report.md. Not a silenced test:
+              # there is no arm left for it to touch beside.)
               (
                   "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "the add button opens the same plan-or-log chooser the long-press gesture used "

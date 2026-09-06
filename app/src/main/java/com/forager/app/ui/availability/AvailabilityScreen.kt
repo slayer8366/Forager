@@ -46,7 +46,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
@@ -161,7 +160,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
@@ -169,8 +167,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -195,7 +191,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -699,10 +694,17 @@ fun AvailabilityScreen(
         mapTaxonFilter = null
     }
 
+    // THE navigation predicate — defined once, here, and nowhere else (navigation-chrome dispatch,
+    // item 1). Everything that means "a navigation mode is active" reads this: the HUD's presence,
+    // the compass strip's absence, and which waypoints the map shows. Stage one has exactly one
+    // mode, the return leg, so this is isReturning; stage two's target picker ORs its own state
+    // into this one line, and the strip, the HUD and the map cannot drift apart because none of
+    // them was ever written against isReturning directly.
+    val isNavigating = isReturning
     // Navigation HUD stage one's display rules, applied once here so the compact map and the
     // wide-layout MapTab agree — see mapVisibleWaypoints. Records keeps the full list.
-    val mapWaypoints = remember(waypoints, isReturning, navigationTarget) {
-        mapVisibleWaypoints(waypoints, isNavigating = isReturning, target = navigationTarget)
+    val mapWaypoints = remember(waypoints, isNavigating, navigationTarget) {
+        mapVisibleWaypoints(waypoints, isNavigating = isNavigating, target = navigationTarget)
     }
 
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
@@ -1606,6 +1608,7 @@ fun AvailabilityScreen(
                             onDropWaypoint = onDropWaypoint,
                             returnToStart = returnToStart,
                             isReturning = isReturning,
+                            isNavigating = isNavigating,
                             isOffTrack = isOffTrack,
                             onToggleReturning = onToggleReturning,
                             compassProvider = compassProvider,
@@ -2929,6 +2932,14 @@ private fun CompactMapTab(
     onDropWaypoint: (LatLng, String) -> Unit,
     returnToStart: ReturnToStartInfo?,
     isReturning: Boolean,
+    /**
+     * Whether *any* navigation mode is active — [AvailabilityScreen]'s one `isNavigating`, see its
+     * doc comment. Gates the HUD's presence and the compass strip's absence together, so heading,
+     * elevation and coordinates are on screen exactly once in either state. Distinct from
+     * [isReturning], which is one such mode (the only one in stage one) and still drives the
+     * control pill's lit return toggle and the off-track heuristic.
+     */
+    isNavigating: Boolean,
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
     compassProvider: CompassProvider,
@@ -3063,7 +3074,7 @@ private fun CompactMapTab(
     // margin constant for the same "don't let a control go fully off-screen" idea.
     val mapIconBarVerticalDragMarginPx = with(LocalDensity.current) { MIN_TOUCH_TARGET.toPx() }
     // Icon-bar-unify-container dispatch: the real measured height, in px, of the cluster container
-    // that holds MapIconBar, ControlPill and DistanceArm together — what both drag clamps below
+    // that holds MapIconBar and ControlPill together — what both drag clamps below
     // use to know where the cluster's top and bottom edges currently sit, since
     // Alignment.CenterEnd/CenterStart centres the container vertically before
     // mapIconBarDisplayedOffsetPx is applied. Measured on the container's own Surface, never
@@ -3073,10 +3084,10 @@ private fun CompactMapTab(
     // record pill hanging off the bottom in fullscreen, the directions pill left sitting on the
     // nav after exiting). Each time the measured object was smaller than the thing that had to
     // stay reachable. Measuring the container makes the bound correct by construction, and
-    // anything added to the cluster later inherits it instead of becoming a fourth instance.
-    // DistanceArm is inside that extent too (owner's call), so the drag range shrinks by the
-    // arm's height while returning and the existing animated re-clamp nudges the cluster up when
-    // the arm appears — correct behaviour, not a cost. Written by the container only (icon-bar-
+    // anything added to the cluster later inherits it instead of becoming a fourth instance
+    // (the since-removed DistanceArm was inside it too, and the drag range shrank by its height
+    // while returning — the same mechanism will cover whatever stage two adds). Written by the
+    // container only (icon-bar-
     // position-memory dispatch's ruling, carried over): the restore handle is bounded by the
     // cluster's own range, not its own 48dp, so it can never sit where the cluster could not.
     // Keeps its last value while minimised, which is what the handle's drag is clamped against.
@@ -3191,7 +3202,7 @@ private fun CompactMapTab(
             // type style rather than a hardcoded touch-target constant (Part A item 1 of this
             // dispatch un-pinned the strip's height back to wrapping its text content, so a fixed
             // 48dp guess would now be too generous). Measured once via rememberTextMeasurer — the
-            // same approach DistanceArm uses for its own widest-string width below — rather than
+            // same approach the since-removed DistanceArm used for its widest-string width — rather than
             // read back from the strip's real onGloballyPositioned layout: a state value written
             // during layout and read here to construct AnchoredAtScreenPoint's own minY argument
             // was tried and is a confirmed, reproducible regression — AvailabilityScreenMapIconStackTest's
@@ -3206,6 +3217,15 @@ private fun CompactMapTab(
             // leaves — reading it here would recompose this whole tab at sensor rate. See
             // rememberTrueHeading's own doc comment before touching this.
             val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.liveFix)
+            // MGRS by default, the labelled decimal pair on tap — hoisted here from the strip's
+            // own leaf (navigation-chrome dispatch) because the strip and the HUD now take turns
+            // showing the coordinates: a format chosen while navigating must still be the format
+            // the strip shows on exit (CLAUDE.md, UX defaults — user-set state that resets on its
+            // own is a bug). Local state, not AvailabilityUiState: purely which of two always-
+            // computable representations of the same fix to display, nothing the ViewModel or a
+            // future session needs. Still resets when this tab unmounts, as it did before.
+            var showDecimalDegrees by remember { mutableStateOf(false) }
+            val onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees }
             val compassStripTextMeasurer = rememberTextMeasurer()
             val compassStripLabelStyle = MaterialTheme.typography.labelMedium
             val compassStripDensity = LocalDensity.current
@@ -3339,8 +3359,8 @@ private fun CompactMapTab(
                 // threshold is what lets a tap and a drag share the same control with no gesture
                 // conflict, a well-established Compose combination for exactly this pairing.
                 // TrailheadControls follows the same side flip because it is laid out inside the
-                // container — DistanceArm extends downward, side-agnostic by construction (see
-                // that composable's own doc comment), so nothing inside needs mirroring.
+                // container, and nothing inside it needs mirroring (the since-removed DistanceArm
+                // extended downward, side-agnostic by construction, for the same reason).
                 val mapIconBarSideAlignment = if (isMapIconBarOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
                 val mapIconBarPositionOffset = Modifier.offset {
                     IntOffset(mapIconBarHorizontalDragPx.roundToInt(), mapIconBarDisplayedOffsetPx.value.roundToInt())
@@ -3613,21 +3633,33 @@ private fun CompactMapTab(
                         )
                     }
                 }
-                CompassElevationStrip(
-                    heading = trueHeading,
-                    elevationMeters = uiState.liveAltitudeMeters,
-                    location = uiState.liveLocation,
-                    // Full width, "just below" SearchEntryBar rather than a narrow floating pill
-                    // with margins on both sides, per the project owner's own redesign call — topInset
-                    // is how that clearance reaches here now that the bar composes as a real overlay
-                    // in the same Box as this tab's own content (compactMainScaffold's own call
-                    // site) instead of a sibling Column entry above it; 0.dp (this parameter's own
-                    // default) reproduces the old flush-against-the-map-top behavior exactly.
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .padding(top = topInset),
-                )
+                // Not composed at all while navigating (navigation-chrome dispatch, item 1) — the
+                // HUD below carries the heading, elevation and coordinates then, and on device
+                // both showing meant the heading appeared three times. Removed from composition
+                // rather than made invisible: this strip's leaf is what reads the heading State
+                // at sensor rate, and an invisible strip would still be recomposing at 16 Hz
+                // alongside the HUD doing the same work. Gated on isNavigating, never isReturning,
+                // so stage two's picker cannot bring it back by accident — see AvailabilityScreen's
+                // own isNavigating doc comment.
+                if (!isNavigating) {
+                    CompassElevationStrip(
+                        heading = trueHeading,
+                        elevationMeters = uiState.liveAltitudeMeters,
+                        location = uiState.liveLocation,
+                        showDecimalDegrees = showDecimalDegrees,
+                        onToggleCoordinateFormat = onToggleCoordinateFormat,
+                        // Full width, "just below" SearchEntryBar rather than a narrow floating pill
+                        // with margins on both sides, per the project owner's own redesign call — topInset
+                        // is how that clearance reaches here now that the bar composes as a real overlay
+                        // in the same Box as this tab's own content (compactMainScaffold's own call
+                        // site) instead of a sibling Column entry above it; 0.dp (this parameter's own
+                        // default) reproduces the old flush-against-the-map-top behavior exactly.
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .padding(top = topInset),
+                    )
+                }
 
                 // Below the compass strip (topInset + compassStripClearance as top padding), same
                 // reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts
@@ -3646,24 +3678,29 @@ private fun CompactMapTab(
                 }
 
                 // Navigation HUD stage one. Composed after the cluster (so its own exit wins any
-                // overlap with a cluster dragged up to the strip's clearance) and before the nav
+                // overlap with a cluster dragged up to its upward bound) and before the nav
                 // below (so the nav keeps winning its own band) — see NavigationHud's own doc
-                // comment for the full mounting reasoning. Visible only while returning: stage
-                // one's HUD *is* the return mode (TrackRecordingViewModel.startReturn). Same
-                // top padding as the taxon chip, so it sits directly under the compass strip and
-                // follows the search bar's fullscreen slide with it. Never touches mapSlot.
-                if (isReturning) {
+                // comment for the full mounting reasoning. Gated on the same isNavigating that
+                // removes the compass strip above, so the two are never on screen together; in
+                // stage one that is the return mode (TrackRecordingViewModel.startReturn). Top
+                // padding is topInset alone — with the strip gone there is nothing above this
+                // panel but the search bar, whose fullscreen slide it follows the way the strip
+                // does; compassStripClearance stays in the taxon chip's and bubble's paths only
+                // because those still clear the strip while not navigating. Never touches mapSlot.
+                if (isNavigating) {
                     NavigationHud(
                         heading = trueHeading,
                         liveFix = uiState.liveFix,
                         target = navigationTarget,
                         distanceUnit = uiState.distanceUnit,
                         currentTime = currentTime,
+                        showDecimalDegrees = showDecimalDegrees,
+                        onToggleCoordinateFormat = onToggleCoordinateFormat,
                         onExit = onToggleReturning,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .fillMaxWidth()
-                            .padding(top = topInset + compassStripClearance),
+                            .padding(top = topInset),
                     )
                 }
 
@@ -3844,8 +3881,11 @@ private fun CompactMapTab(
  */
 private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
 
-/** The compass strip's heading text — navigation HUD stage one asserts it and the HUD's north compass read the same value. */
+/** The compass strip's heading text — one of the two places a heading can appear, never both at once (the strip hides while the HUD shows). */
 internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"
+
+/** The compass strip's whole content while there is no fix — one message, [NO_FIX_MESSAGE], in place of three fragments. */
+internal const val COMPASS_STRIP_NO_FIX_TAG = "compass-strip-no-fix"
 
 /** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
 internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
@@ -3866,33 +3906,23 @@ internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
  * left sitting on the nav after exiting — the bar was in bounds, the pills extended past it.
  *
  * **Icon-bar-drag-refinements dispatch, Items 2-3: [onLeftSide] follows [MapIconBar]'s own side.**
- * Previously always right-anchored, left un-mirrored on purpose while [DistanceArm] extended
- * sideways from a right-fixed point — now that the arm extends downward instead, it is genuinely
- * side-agnostic, so this whole cluster follows the bar's own alignment directly. [ControlPill]
- * stays pinned to the container's outer edge on whichever side (the Column's `horizontalAlignment`)
- * so it never shifts position depending on whether the arm is showing — only the arm's own extra
- * width (when returning) grows further inward from that fixed edge, widening the container with
- * it. They hide and restore with the bar when minimised exactly as before — by construction now.
+ * [ControlPill] stays pinned to the container's outer edge on whichever side (the Column's
+ * `horizontalAlignment`). It hides and restores with the bar when minimised — by construction now.
  *
- * **[DistanceArm] is part of the cluster's measured extent** (owner's call): it overlaps
- * [ControlPill]'s own bottom cap by exactly half the pill's width ([MAP_ICON_BAR_CORNER_RADIUS]) —
- * see that composable's own doc comment for why it has no cap of its own — which in a Column is
- * expressed as a `Modifier.layout` on the arm that reports its height *minus* that overlap and
- * places it that far upward, so the Column (and the container) end at the arm's real visible
- * bottom, not a hidden band below it. [ControlPill] carries `zIndex(1f)` so it still draws over
- * the arm's hidden top band, the precedence the old compose-arm-first-in-a-Box ordering gave: a
- * tap near that junction reaches a control, not the arm's plain readout. `expandVertically` from
- * the top still reads as the arm growing out from under the pill — its first `overlap` pixels of
- * height are placed under the pill.
+ * **The distance arm is gone (navigation-chrome dispatch, item 3).** `DistanceArm` used to extend
+ * downward from [ControlPill] while returning, showing the return distance; navigation HUD stage
+ * one then made the HUD visible on exactly the condition the arm rendered on, so the two were
+ * always on screen together showing the same number ("0 ft beside 0 ft", on device). Confirmed
+ * before removal: no state showed the arm without the HUD — both keyed on the one `isReturning`,
+ * both in this tab's map Box — while the reverse (HUD without arm, cluster minimised) did exist.
+ * The return row's `contentDescription` still carries the full bearing/distance/elevation
+ * sentence, so the TalkBack path is unchanged; the visible distance is the HUD's. This Column is
+ * kept rather than inlining the pill: it is the cluster's named "Trailhead/Return controls" slot,
+ * and stage two's picker entry is expected to land here.
  *
  * `isRecording` is passed through as a plain parameter, not a presence check gating whether this
  * composable runs at all — record start/stop must stay reachable before the first recording
  * starts, the same as when it was an always-enabled [MapIconBar] row.
- *
- * [circleDiameterPx][DistanceArm] is [ControlPill]'s own measured width ([pillSizePx]`.width`),
- * passed down rather than assumed — [ControlPill] must report its size before the overlap can be
- * correct, harmless on the frame or two before the first measurement lands since [DistanceArm] is
- * invisible (`isReturning` starts false) until a real return leg begins.
  */
 @Composable
 private fun TrailheadControls(
@@ -3902,14 +3932,11 @@ private fun TrailheadControls(
     isReturning: Boolean,
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
-    /** Navigation HUD stage one: the arm and the HUD render the same distance the same way — see [formatDistanceMeters]. */
+    /** For the return row's `contentDescription` sentence — the same [formatDistanceMeters] the HUD's visible distance uses. */
     distanceUnit: DistanceUnit,
     onLeftSide: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    // ControlPill's own real measured size, in px — what DistanceArm's overlap is computed from
-    // below.
-    var pillSizePx by remember { mutableStateOf(IntSize.Zero) }
     Column(
         modifier = modifier,
         horizontalAlignment = if (onLeftSide) Alignment.Start else Alignment.End,
@@ -3922,23 +3949,6 @@ private fun TrailheadControls(
             isOffTrack = isOffTrack,
             onToggleReturning = onToggleReturning,
             distanceUnit = distanceUnit,
-            modifier = Modifier
-                .zIndex(1f)
-                .onGloballyPositioned { coordinates -> pillSizePx = coordinates.size },
-        )
-        DistanceArm(
-            visible = isReturning,
-            distanceMeters = returnToStart?.distanceMeters,
-            isOffTrack = isOffTrack,
-            distanceUnit = distanceUnit,
-            circleDiameterPx = pillSizePx.width,
-            modifier = Modifier.layout { measurable, constraints ->
-                val overlapPx = pillSizePx.width / 2
-                val placeable = measurable.measure(constraints)
-                layout(placeable.width, (placeable.height - overlapPx).coerceAtLeast(0)) {
-                    placeable.place(x = 0, y = -overlapPx)
-                }
-            },
         )
     }
 }
@@ -4006,155 +4016,6 @@ private fun ControlPill(
     }
 }
 
-/** The widest plausible [formatReturnDistance] output — measured, not counted: a two-digit km reading with its decimal ("99.9 km") is wider in this typeface than any three-digit metre reading ("999 m"), so this is what [DistanceArm] sizes its own fixed-width readout against. */
-private const val DISTANCE_ARM_WIDEST_TEXT = "99.9 km"
-
-/**
- * [DistanceArm]'s own settled opacity, once its enter transition finishes growing out from
- * [ControlPill] — requested directly: the whole arm (fill, border, shadow, and readout text
- * together, via a single [androidx.compose.ui.draw.alpha] on the outer [Surface]) fades in from
- * fully invisible rather than popping in at full strength, and settles at 80%, not 100%, once
- * the width animation completes; deactivating reverses both in lockstep. Coincidentally the same
- * number as [MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]'s own baked-in fill
- * alpha, but a separate, independent property applied to the *entire* Surface — those colors'
- * translucency only ever affected the fill, never the border, shadow, or text this also dims.
- */
-private const val DISTANCE_ARM_RESTING_ALPHA = 0.8f
-
-/**
- * The tab that extends downward from [ControlPill] while return-to-vehicle is active, holding the
- * distance-only readout — see [ControlPill]'s own return row for the full
- * bearing/distance/elevation sentence this supplements (that row's `contentDescription` carries
- * it; this arm shows plain visible text only, so a test can assert it via `onNodeWithText` rather
- * than `onNodeWithContentDescription` alone, per this repo's own testing rule).
- *
- * **Icon-bar-drag-refinements dispatch, Item 2: reoriented 90° from an earlier revision that
- * extended sideways.** That design assumed growth from a right-fixed point — a real problem once
- * [MapIconBar] gained left-edge snapping, since it would have needed mirroring (real, separate
- * work, deliberately not done as a fallback). Extending downward instead needs no side-awareness
- * anywhere in this composable: it grows straight down regardless of which screen edge the bar
- * (and this pill) currently occupy.
- *
- * **No circular cap of its own — reuses [ControlPill]'s own existing one.** [ControlPill]'s shape
- * is `RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS)` on *all four* corners, and
- * [MAP_ICON_BAR_CORNER_RADIUS] is exactly half the pill's own measured width — so the pill's
- * bottom is already a full semicircular cap, spanning the pill's own bottom
- * [MAP_ICON_BAR_CORNER_RADIUS]-tall half. This arm is a plain flat-topped, round-bottomed tab
- * positioned (by [TrailheadControls]) to overlap exactly that bottom half and composed *before*
- * the pill, so the pill's own already-existing curve paints over this arm's own square top edge —
- * the same masking trick the sideways design used at its own shared junction (see
- * [TrailheadControls]' own doc comment), just applied to the opposite edge.
- *
- * **Widens to fit text where the sideways design couldn't.** [DISTANCE_ARM_WIDEST_TEXT] (measured,
- * not counted, at this Text's own real style) is wider than [circleDiameterPx] — the pill's own
- * width, 48dp — so [bodyWidthDp] is never pinned to the pill's own width the way the old sideways
- * arm's height was pinned to it; it is instead sized to the wider of the two. **Known cosmetic
- * simplification, reported rather than silently accepted as invisible:** where this arm is wider
- * than the pill, its own flat top corners are *not* masked by the pill in the overlap band (the
- * pill isn't wide enough to cover them there) and show as small square "shoulders" level with the
- * pill's own curve, rather than a perfectly tapered teardrop silhouette. A true smooth taper would
- * need a custom [androidx.compose.ui.graphics.Path]-based `Shape`; this stays within this file's
- * existing `RoundedCornerShape`-only vocabulary.
- *
- * **Tabular figures** (`fontFeatureSettings = "tnum"`): this number updates live while someone
- * walks toward their car, and proportional digits would shimmer the text sideways as the value
- * changes on exactly the leg where someone is watching it.
- *
- * **A height animation, not shape morphing** — [AnimatedVisibility]'s
- * [expandVertically]/[shrinkVertically], driven by [MotionTokens.navigationMotionSpec] (chrome; no
- * positional truth to distort, per docs/adr/0002-motion-scheme-adoption.md's category table — the
- * same category the old sideways width-animation used, now on the perpendicular axis). Width is
- * not animated — [bodyWidthDp] is fixed once the arm is visible at all — since there is no longer
- * a separate circular collapsed state to animate width away from (see the no-cap note above); only
- * height (and fade) need to move for "extend downward" to read correctly.
- *
- * **Fades in and out alongside the height change**, [fadeIn]/[fadeOut] bundled into the same
- * enter/exit as [expandVertically]/[shrinkVertically] so both finish together — not a pop-in at
- * full strength, and not fully opaque even once settled: see [DISTANCE_ARM_RESTING_ALPHA]'s own
- * doc comment for the 80% ceiling and why it applies to the whole [Surface], not just its fill.
- */
-@Composable
-private fun DistanceArm(
-    visible: Boolean,
-    distanceMeters: Double?,
-    isOffTrack: Boolean,
-    distanceUnit: DistanceUnit,
-    circleDiameterPx: Int,
-    modifier: Modifier = Modifier,
-) {
-    val isDarkTheme = LocalForagerDarkTheme.current
-    val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
-    val numberStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-    val widestTextSize = remember(numberStyle) {
-        textMeasurer.measure(DISTANCE_ARM_WIDEST_TEXT, numberStyle).size
-    }
-    val circleDiameterDp = with(density) { circleDiameterPx.toDp() }
-    // Never narrower than the pill above it, so it only ever widens outward from that shared edge,
-    // never in — see this composable's own doc comment for the "widens where the sideways design
-    // couldn't" note.
-    val bodyWidthDp = maxOf(circleDiameterDp, with(density) { widestTextSize.width.toDp() } + Spacing.lg)
-    // Half the pill's own width — MAP_ICON_BAR_CORNER_RADIUS, the exact depth of the overlap band
-    // this arm's own top hides under the pill's existing bottom cap (see this composable's own doc
-    // comment) — plus room for the readout text below that hidden band.
-    val overlapDp = circleDiameterDp / 2
-    val bodyHeightDp = overlapDp + with(density) { widestTextSize.height.toDp() } + Spacing.md
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(animationSpec = MotionTokens.navigationMotionSpec()) +
-            expandVertically(animationSpec = MotionTokens.navigationMotionSpec(), expandFrom = Alignment.Top),
-        exit = fadeOut(animationSpec = MotionTokens.navigationMotionSpec()) +
-            shrinkVertically(animationSpec = MotionTokens.navigationMotionSpec(), shrinkTowards = Alignment.Top),
-        modifier = modifier,
-    ) {
-        Surface(
-            shape = RoundedCornerShape(
-                topStart = 0.dp,
-                topEnd = 0.dp,
-                bottomStart = MAP_ICON_BAR_CORNER_RADIUS,
-                bottomEnd = MAP_ICON_BAR_CORNER_RADIUS,
-            ),
-            // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc
-            // comment. Its own extra alpha(DISTANCE_ARM_RESTING_ALPHA) below is left as it was
-            // (out of this dispatch's scope), so the arm composites a little lighter than the
-            // pill above it: 0.5 × 0.8 = 0.4 over the container's 0.6 reads as ~0.76.
-            color = mapIconClusterChildColor(),
-            contentColor = if (isDarkTheme) Color.White else Bark,
-            shadowElevation = 2.dp,
-            border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
-            modifier = Modifier
-                .width(bodyWidthDp)
-                .height(bodyHeightDp)
-                // fadeIn/fadeOut above animate 0→1→0 in lockstep with the height transition (part
-                // of the same AnimatedVisibility Transition, so both finish together); this fixed
-                // multiplier caps the settled/fully-grown end of that ramp at
-                // DISTANCE_ARM_RESTING_ALPHA instead of fully opaque — see that constant's own doc
-                // comment for why, and for why it's a coincidence, not a reuse, that the number
-                // matches MapIconStackButtonColorDark/Light's own fill alpha.
-                .alpha(DISTANCE_ARM_RESTING_ALPHA)
-                .testTag("distance-arm"),
-        ) {
-            // Bottom-anchored: overlapDp at the top is deliberately empty (hidden under ControlPill
-            // — see this composable's own doc comment), so the readout text stays clear of it
-            // without needing to compute the same padding twice.
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.BottomCenter,
-            ) {
-                Text(
-                    text = distanceMeters?.let { formatDistanceMeters(it, distanceUnit) }.orEmpty(),
-                    style = numberStyle,
-                    color = if (isOffTrack) MaterialTheme.colorScheme.error else LocalContentColor.current,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = Spacing.xs),
-                )
-            }
-        }
-    }
-}
-
 /**
  * Decisions #7-8: compass heading + GPS elevation folded into one bar at the top of the map — a
  * compass-tape-style heading readout, not a separate elevation/speed stats pill (that would be
@@ -4184,6 +4045,9 @@ private fun CompassElevationStrip(
     heading: State<TrueHeadingReading>,
     elevationMeters: Double?,
     location: LatLng?,
+    /** The MGRS/decimal choice, hoisted to [CompactMapTab] and shared with [NavigationHud] — see that call site. */
+    showDecimalDegrees: Boolean,
+    onToggleCoordinateFormat: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val reading by heading
@@ -4191,6 +4055,8 @@ private fun CompassElevationStrip(
         heading = reading,
         elevationMeters = elevationMeters,
         location = location,
+        showDecimalDegrees = showDecimalDegrees,
+        onToggleCoordinateFormat = onToggleCoordinateFormat,
         modifier = modifier,
     )
 }
@@ -4198,16 +4064,27 @@ private fun CompassElevationStrip(
 /**
  * Heading, elevation, and coordinates only — one centered line. Pure readout, per this dispatch's
  * Part A item 3: the return-to-vehicle readout field-test dispatch item 2 added here is removed,
- * not merely hidden — it moved into [ControlPill]/[DistanceArm] instead, alongside record
- * start/stop, so the two Trailhead/Return controls live in one place rather than split between
- * this strip and [MapIconBar]. **Corrected 2026-08-28**: named `MapIconStack` here before that
- * composable was renamed.
+ * not merely hidden — it moved into [ControlPill] instead, alongside record start/stop, so the two
+ * Trailhead/Return controls live in one place rather than split between this strip and
+ * [MapIconBar]. **Corrected 2026-08-28**: named `MapIconStack` here before that composable was
+ * renamed. **Navigation-chrome dispatch**: not composed while navigating (see the call site); the
+ * MGRS/decimal toggle state is hoisted and shared with [NavigationHud]; and with no fix the whole
+ * strip is one statement, [NO_FIX_MESSAGE], not three fragments.
+ *
+ * Two causes, two messages, and the third combination folds into the first: **no fix** (whatever
+ * the sensor says) is [NO_FIX_MESSAGE] alone; **no sensor with a fix** is "Compass unavailable"
+ * with elevation and coordinates still shown. Keyed on [location], not on
+ * [TrueHeadingReading.NeedsFix] — `rememberTrueHeading` reports [TrueHeadingReading.NoSensor]
+ * before it checks for a fix, so keying on the heading would leave a phone with no magnetometer
+ * and no fix showing three fragments again.
  */
 @Composable
 private fun CompassElevationStripContent(
     heading: TrueHeadingReading,
     elevationMeters: Double?,
     location: LatLng?,
+    showDecimalDegrees: Boolean,
+    onToggleCoordinateFormat: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
@@ -4218,11 +4095,6 @@ private fun CompassElevationStripContent(
     // intercept anything, so the map keeps receiving touches everywhere except this strip's own
     // real interactive child (the coordinates segment below).
     //
-    // Local state, not AvailabilityUiState: this is purely which of two always-computable string
-    // representations of the same fix to display, nothing the ViewModel or a future session needs
-    // to remember — the same reasoning showQuickSearch elsewhere in this file already applies to a
-    // similar tap-to-reveal toggle.
-    var showDecimalDegrees by remember { mutableStateOf(false) }
     // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
     // comment for why the two axes are kept separate rather than one steering the other.
     val isDarkTheme = LocalForagerDarkTheme.current
@@ -4282,57 +4154,71 @@ private fun CompassElevationStripContent(
                             .rotate((heading as? TrueHeadingReading.Available)?.degrees ?: 0f),
                     )
                 }
-                // Heading, elevation, and coordinates, taking whatever width is left after the fixed
-                // compass-icon box above — this group used to share its weight(1f) budget with that
-                // icon's inline width, which is exactly the width the coordinates segment's own
-                // ellipsis was giving up first on a narrow screen (a hardware report: "cut off for no
-                // reason" — there was room, it just wasn't reaching this Text). Pulling the icon out
-                // of this Row's own measurement entirely is the fix, not a wider budget. Only one
-                // fixed sibling now (Part A item 3 removed the strip's own return-to-vehicle box),
-                // so this group's own available width is wider still than when that box also took a
-                // share. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
-                // safety net for a screen too narrow for all three fields regardless, not
-                // horizontalScroll — see this composable's own doc comment above for why
-                // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
-                ) {
+                if (location == null) {
+                    // One statement across the strip — see this composable's own doc comment. Not
+                    // tappable: there is no coordinate pair to toggle, and nothing to fabricate one
+                    // from. The Row's remaining width, so it centres where the three segments did.
                     Text(
-                        // Three states, not two — "needs a fix" and "no sensor" are different
-                        // problems (see TrueHeadingReading), and one word for both would hide
-                        // which is true.
-                        text = when (heading) {
-                            is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
-                            TrueHeadingReading.NoSensor -> "Compass unavailable"
-                            TrueHeadingReading.NeedsFix -> "Compass needs a fix"
-                        },
+                        text = NO_FIX_MESSAGE,
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
-                        modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                    )
-                    Text("·", style = MaterialTheme.typography.labelMedium)
-                    Text(
-                        // Meters, matching this app's existing metric convention (radiusKm) rather
-                        // than introducing feet — nothing else in the app displays imperial units.
-                        text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                    )
-                    Text("·", style = MaterialTheme.typography.labelMedium)
-                    Text(
-                        text = coordinatesStripText(location, showDecimalDegrees),
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier
-                            .weight(1f, fill = false)
-                            .clickable(
-                                enabled = location != null,
-                                onClick = { showDecimalDegrees = !showDecimalDegrees },
-                            ),
+                            .weight(1f)
+                            .testTag(COMPASS_STRIP_NO_FIX_TAG),
                     )
+                } else {
+                    // Heading, elevation, and coordinates, taking whatever width is left after the fixed
+                    // compass-icon box above — this group used to share its weight(1f) budget with that
+                    // icon's inline width, which is exactly the width the coordinates segment's own
+                    // ellipsis was giving up first on a narrow screen (a hardware report: "cut off for no
+                    // reason" — there was room, it just wasn't reaching this Text). Pulling the icon out
+                    // of this Row's own measurement entirely is the fix, not a wider budget. Only one
+                    // fixed sibling now (Part A item 3 removed the strip's own return-to-vehicle box),
+                    // so this group's own available width is wider still than when that box also took a
+                    // share. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
+                    // safety net for a screen too narrow for all three fields regardless, not
+                    // horizontalScroll — see this composable's own doc comment above for why
+                    // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                    ) {
+                        Text(
+                            // With a fix, the heading has two real states and one transient: a value,
+                            // no sensor, or NeedsFix for the frame or two between the fix landing and
+                            // the next sensor emission (rememberTrueHeading restarts its producer on
+                            // that transition). The transient shows a dash, the same as the HUD — the
+                            // "needs a fix" wording is gone, replaced by NO_FIX_MESSAGE above.
+                            text = when (heading) {
+                                is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
+                                TrueHeadingReading.NoSensor -> "Compass unavailable"
+                                TrueHeadingReading.NeedsFix -> "—"
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                        )
+                        Text("·", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            // Meters, matching this app's existing metric convention (radiusKm) rather
+                            // than introducing feet — nothing else in the app displays imperial units.
+                            text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                        )
+                        Text("·", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            text = coordinatesStripText(location, showDecimalDegrees),
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .clickable(onClick = onToggleCoordinateFormat),
+                        )
+                    }
                 }
             }
         }
