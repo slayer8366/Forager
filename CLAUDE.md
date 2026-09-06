@@ -77,6 +77,19 @@ here.
   sample several real touches across the target's own bounds, not one at its
   centre — the broken region on the icon bar was the one region no test
   touched, because every real-touch test picked a centre point outside it.
+- **A stalled test run in this repo is an unstopped poll loop, not a slow
+  test, and `runTest` will not rescue it.** `TrackRecordingViewModel` polls
+  in an unbounded `delay` loop while recording; a test body that throws
+  before stopping the recording leaves that loop scheduled, and `runTest`'s
+  closing idle-advance spins through virtual time forever. The natural
+  assumption that the framework protects you here is wrong: coroutines-test
+  1.11's `runTest` timeout did not fire in 77 minutes of real time on that
+  spin. The hang is the failing test's own `runTest`, so an `@After` never
+  runs either. `TrackRecordingViewModelTest.runRecordingTest` stops every
+  recording inside the body, in a `finally`; any new test in that class
+  goes through it, and any new ViewModel with a poll loop needs the same
+  shape. Diagnose a stall with a thread dump of the test worker, which
+  names the test that actually failed — what is lost is its message.
 
 ## Building
 

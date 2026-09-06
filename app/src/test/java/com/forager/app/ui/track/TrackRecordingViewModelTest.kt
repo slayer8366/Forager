@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -43,8 +44,23 @@ import org.junit.Test
  *
  * [beginPolling] runs an unbounded `while (true) { ...; delay(...) }` loop while recording, so
  * every test here uses [runCurrent]/[advanceTimeBy] rather than [advanceUntilIdle] once recording
- * has started — draining an infinite loop to "idle" never actually finishes. Every test that starts
- * a recording stops it before returning, so no job is left dangling when the test scope tears down.
+ * has started — draining an infinite loop to "idle" never actually finishes.
+ *
+ * ## Every test runs inside [runRecordingTest], never bare `runTest`
+ *
+ * "Every test that starts a recording stops it before returning" was this class's rule, and it
+ * held only while every assertion passed. A test body that throws *before* its own
+ * `stopRecording()` leaves the poll loop scheduled on this test's own [dispatcher] — and
+ * `runTest`'s closing idle-advance then spins through that loop forever. The visible symptom is a
+ * run that never ends, not a failure: the assertion message is lost, and `runTest`'s own timeout
+ * did not fire in 77 minutes of real time on a virtual-time spin (found by thread dump, twice, on
+ * the same test). Not the next test, and not a shared dispatcher — JUnit 4 builds this class per
+ * test method, so [dispatcher] is per test; the hang is the failing test's own `runTest`, which
+ * also rules out an `@After` (it never gets to run). [runRecordingTest] stops every ViewModel the
+ * [viewModel] fixture handed out, in a `finally`, *inside* the test body — before that closing
+ * idle-advance — so a failing test fails and names itself, and the class continues. Proven by a
+ * deliberately failing assertion with and without the helper, not by a green run: the suite was
+ * green with the hazard in place, and a hang cannot turn a failure into a pass, only stall it.
  */
 class TrackRecordingViewModelTest {
 
@@ -58,6 +74,23 @@ class TrackRecordingViewModelTest {
 
     private val fixedTime = CurrentTimeProvider { 1_000L }
     private var waypointIds = 0
+
+    /** Every ViewModel [viewModel] built for this test — what [runRecordingTest] stops on the way out. */
+    private val createdViewModels = mutableListOf<TrackRecordingViewModel>()
+
+    /**
+     * `runTest` on this class's [dispatcher], with every recording stopped before `runTest`'s own
+     * closing idle-advance can reach an unstopped poll loop — see the class doc comment for the
+     * hang this exists to make impossible. The one mechanism for the job: individual tests do not
+     * need (and should not add) their own `finally`.
+     */
+    private fun runRecordingTest(body: suspend TestScope.() -> Unit) = runTest(dispatcher) {
+        try {
+            body()
+        } finally {
+            createdViewModels.forEach { it.stopRecording() }
+        }
+    }
 
     private fun viewModel(
         trackRepository: TrackRepository = InMemoryTrackRepository(),
@@ -82,10 +115,10 @@ class TrackRecordingViewModelTest {
         getTracks = GetTracksUseCase(trackRepository),
         currentTime = offTrackAlertClock,
         zone = ZoneOffset.UTC,
-    )
+    ).also(createdViewModels::add)
 
     @Test
-    fun `starting a recording creates a track and sets active state`() = runTest(dispatcher) {
+    fun `starting a recording creates a track and sets active state`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -103,7 +136,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `a failed start surfaces an error and leaves no active track, without the exception's own message`() = runTest(dispatcher) {
+    fun `a failed start surfaces an error and leaves no active track, without the exception's own message`() = runRecordingTest {
         val vm = viewModel(FailingTrackRepository())
 
         vm.startRecording()
@@ -116,7 +149,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `a permission-denied start is reported without ever setting an active track`() = runTest(dispatcher) {
+    fun `a permission-denied start is reported without ever setting an active track`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -129,7 +162,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `a permission-denied report after an active recording rolls it back, matching stopRecording`() = runTest(dispatcher) {
+    fun `a permission-denied report after an active recording rolls it back, matching stopRecording`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
         vm.startRecording()
@@ -148,7 +181,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `stopping clears active state and the poll loop stops scheduling further work`() = runTest(dispatcher) {
+    fun `stopping clears active state and the poll loop stops scheduling further work`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -165,7 +198,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `breadcrumb points refresh on each poll while recording`() = runTest(dispatcher) {
+    fun `breadcrumb points refresh on each poll while recording`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -183,7 +216,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `return to start uses the earliest breadcrumb point as the start`() = runTest(dispatcher) {
+    fun `return to start uses the earliest breadcrumb point as the start`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -204,7 +237,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `return to start is null with no active recording`() = runTest(dispatcher) {
+    fun `return to start is null with no active recording`() = runRecordingTest {
         val vm = viewModel()
 
         val info = vm.returnToStart(point(lat = 45.0, t = 1_000L))
@@ -213,7 +246,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `starting a recording collects live fixes and updates returnToStart reactively, without a direct call`() = runTest(dispatcher) {
+    fun `starting a recording collects live fixes and updates returnToStart reactively, without a direct call`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val fixes = MutableSharedFlow<LocationFix>()
         val vm = viewModel(trackRepository, locationTracker = FakeLocationTracker(fixes))
@@ -233,7 +266,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `stopping the recording stops collecting fixes and clears returnToStart`() = runTest(dispatcher) {
+    fun `stopping the recording stops collecting fixes and clears returnToStart`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val fixes = MutableSharedFlow<LocationFix>()
         val vm = viewModel(trackRepository, locationTracker = FakeLocationTracker(fixes))
@@ -256,7 +289,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `starting a recording does not mark the walker as returning`() = runTest(dispatcher) {
+    fun `starting a recording does not mark the walker as returning`() = runRecordingTest {
         val vm = viewModel()
 
         vm.startRecording()
@@ -285,7 +318,7 @@ class TrackRecordingViewModelTest {
      * close once the harness issue is root-caused.
      */
     @Test
-    fun `startReturn is a no-op with nothing recording`() = runTest(dispatcher) {
+    fun `startReturn is a no-op with nothing recording`() = runRecordingTest {
         val vm = viewModel()
 
         vm.startReturn()
@@ -294,7 +327,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `startReturn marks returning while actively recording, stopReturn clears it without stopping the recording`() = runTest(dispatcher) {
+    fun `startReturn marks returning while actively recording, stopReturn clears it without stopping the recording`() = runRecordingTest {
         val vm = viewModel()
 
         vm.startRecording()
@@ -312,7 +345,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `moving steadily away from the start while returning sets off-track`() = runTest(dispatcher) {
+    fun `moving steadily away from the start while returning sets off-track`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -340,7 +373,7 @@ class TrackRecordingViewModelTest {
      * [AvailabilityViewModelLocateMeTest] draws for its own permission-dialog side effects.
      */
     @Test
-    fun `going off-track bumps offTrackAlertId once, not once per fix`() = runTest(dispatcher) {
+    fun `going off-track bumps offTrackAlertId once, not once per fix`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository, offTrackAlertClock = CurrentTimeProvider { 1_000L })
 
@@ -367,7 +400,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `a sustained drift alerts again once the cooldown elapses`() = runTest(dispatcher) {
+    fun `a sustained drift alerts again once the cooldown elapses`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         var nowMillis = 1_000L
         val vm = viewModel(trackRepository, offTrackAlertClock = CurrentTimeProvider { nowMillis })
@@ -398,7 +431,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `staying on track never bumps offTrackAlertId`() = runTest(dispatcher) {
+    fun `staying on track never bumps offTrackAlertId`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -418,7 +451,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `stopReturn resets the cooldown so a later return attempt can alert immediately`() = runTest(dispatcher) {
+    fun `stopReturn resets the cooldown so a later return attempt can alert immediately`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository, offTrackAlertClock = CurrentTimeProvider { 1_000L })
 
@@ -446,7 +479,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `moving steadily toward the start while returning stays on track`() = runTest(dispatcher) {
+    fun `moving steadily toward the start while returning stays on track`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -466,7 +499,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `moving away from the start does not set off-track unless actively returning`() = runTest(dispatcher) {
+    fun `moving away from the start does not set off-track unless actively returning`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -486,7 +519,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `stopping the recording clears returning and off-track state`() = runTest(dispatcher) {
+    fun `stopping the recording clears returning and off-track state`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -508,7 +541,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `waypoints load on init and adding one refreshes the list`() = runTest(dispatcher) {
+    fun `waypoints load on init and adding one refreshes the list`() = runRecordingTest {
         val waypointRepository = FakeWaypointRepository()
         val vm = viewModel(waypointRepository = waypointRepository)
         advanceUntilIdle()
@@ -524,7 +557,7 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `removing a waypoint refreshes the list`() = runTest(dispatcher) {
+    fun `removing a waypoint refreshes the list`() = runRecordingTest {
         val waypointRepository = FakeWaypointRepository()
         waypointRepository.save(Waypoint(id = "waypoint-1", lat = 45.0, lng = -122.0, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 1_000L))
         val vm = viewModel(waypointRepository = waypointRepository)
@@ -542,91 +575,80 @@ class TrackRecordingViewModelTest {
     // runCurrent(), never advanceUntilIdle(), while a recording is active: the breadcrumb poll is an
     // infinite delay loop, and advancing virtual time until idle never returns (found the hard way —
     // a 77-minute hung test worker). The origin/end saves have no delays, so runCurrent() runs them.
-    // And stopRecording() in a finally: this class shares one StandardTestDispatcher across tests,
-    // so a recording leaked by a failing assertion keeps its poll loop scheduled and the *next*
-    // test's runTest spins forever in its closing idle-advance (found the same way). The existing
-    // recording tests above carry the same hazard; only these four guard against it.
+    // No per-test finally here any more: runRecordingTest stops every recording on the way out
+    // (see the class doc comment), one mechanism for the whole class.
 
     private fun fix(lat: Double, accuracy: Float?, t: Long, altitude: Double? = null) =
         LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = accuracy, timestampEpochMillis = t)
 
     @Test
-    fun `the origin is created from the first fix that passes the mode's accuracy gate, linked to the track and pointed at by it`() = runTest(dispatcher) {
+    fun `the origin is created from the first fix that passes the mode's accuracy gate, linked to the track and pointed at by it`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val waypointRepository = FakeWaypointRepository()
         val fixes = MutableSharedFlow<LocationFix>()
         val vm = viewModel(trackRepository, waypointRepository, locationTracker = FakeLocationTracker(fixes))
         vm.startRecording(TrackRecordingMode.HIGH_ACCURACY) // gate: 30 m
         runCurrent()
-        try {
-            fixes.emit(fix(lat = 45.0, accuracy = 80f, t = 2_000L)) // worse than the gate: not the origin
-            runCurrent()
-            assertNull(vm.uiState.value.originWaypoint)
-            assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
+        fixes.emit(fix(lat = 45.0, accuracy = 80f, t = 2_000L)) // worse than the gate: not the origin
+        runCurrent()
+        assertNull(vm.uiState.value.originWaypoint)
+        assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
 
-            fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L, altitude = 120.0))
-            runCurrent()
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L, altitude = 120.0))
+        runCurrent()
 
-            val origin = requireNotNull(vm.uiState.value.originWaypoint)
-            assertEquals("waypoint-1", origin.id)
-            assertEquals(45.001, origin.lat, 1e-9)
-            assertEquals(120.0, origin.altitude)
-            assertEquals(WaypointDesignation.ORIGIN, origin.designation)
-            assertEquals("track-1", origin.trackId)
-            assertEquals("Start · Jan 1, 12:00 AM", origin.name)
-            assertEquals(listOf(origin), waypointRepository.getAll().getOrThrow())
-            assertEquals("waypoint-1", trackRepository.getById("track-1").getOrThrow()?.originWaypointId)
-            assertEquals(listOf(origin), vm.uiState.value.waypoints)
+        val origin = requireNotNull(vm.uiState.value.originWaypoint)
+        assertEquals("waypoint-1", origin.id)
+        assertEquals(45.001, origin.lat, 1e-9)
+        assertEquals(120.0, origin.altitude)
+        assertEquals(WaypointDesignation.ORIGIN, origin.designation)
+        assertEquals("track-1", origin.trackId)
+        assertEquals("Start · Jan 1, 12:00 AM", origin.name)
+        assertEquals(listOf(origin), waypointRepository.getAll().getOrThrow())
+        assertEquals("waypoint-1", trackRepository.getById("track-1").getOrThrow()?.originWaypointId)
+        assertEquals(listOf(origin), vm.uiState.value.waypoints)
 
-            fixes.emit(fix(lat = 45.002, accuracy = 10f, t = 4_000L))
-            runCurrent()
-            assertEquals("a second gated fix must not create a second origin", 1, waypointRepository.getAll().getOrThrow().size)
-        } finally {
-            vm.stopRecording()
-        }
+        fixes.emit(fix(lat = 45.002, accuracy = 10f, t = 4_000L))
+        runCurrent()
+        assertEquals("a second gated fix must not create a second origin", 1, waypointRepository.getAll().getOrThrow().size)
+        vm.stopRecording()
     }
 
     @Test
-    fun `return to start points at the origin waypoint once it exists, not the first breadcrumb`() = runTest(dispatcher) {
+    fun `return to start points at the origin waypoint once it exists, not the first breadcrumb`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val fixes = MutableSharedFlow<LocationFix>()
         val vm = viewModel(trackRepository, locationTracker = FakeLocationTracker(fixes))
         vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
         runCurrent()
-        try {
-            trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
-            advanceTimeBy(POLL_INTERVAL_MILLIS)
-            runCurrent()
-            fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L)) // seeds the origin at 45.001
-            runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L)) // seeds the origin at 45.001
+        runCurrent()
 
-            val info = vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 4_000L))
+        val info = vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 4_000L))
 
-            // 0.001° of latitude is 111.2 m: to the origin at 45.001, not 222 m to the breadcrumb at 45.0.
-            assertEquals(111.2, info?.distanceMeters ?: -1.0, 1.0)
-            assertEquals(180.0, info?.bearingDegrees ?: -1.0, 0.01)
-        } finally {
-            vm.stopRecording()
-        }
+        // 0.001° of latitude is 111.2 m: to the origin at 45.001, not 222 m to the breadcrumb at 45.0.
+        assertEquals(111.2, info?.distanceMeters ?: -1.0, 1.0)
+        assertEquals(180.0, info?.bearingDegrees ?: -1.0, 0.01)
+        vm.stopRecording()
     }
 
     @Test
-    fun `stopping creates the end waypoint from the last gated fix, not from a later rejected one`() = runTest(dispatcher) {
+    fun `stopping creates the end waypoint from the last gated fix, not from a later rejected one`() = runRecordingTest {
         val waypointRepository = FakeWaypointRepository()
         val fixes = MutableSharedFlow<LocationFix>()
         val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
         vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
         runCurrent()
-        try {
-            fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L))
-            runCurrent()
-            fixes.emit(fix(lat = 45.010, accuracy = 10f, t = 4_000L))
-            runCurrent()
-            fixes.emit(fix(lat = 45.500, accuracy = 80f, t = 5_000L)) // rejected by the gate
-            runCurrent()
-        } finally {
-            vm.stopRecording()
-        }
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L))
+        runCurrent()
+        fixes.emit(fix(lat = 45.010, accuracy = 10f, t = 4_000L))
+        runCurrent()
+        fixes.emit(fix(lat = 45.500, accuracy = 80f, t = 5_000L)) // rejected by the gate
+        runCurrent()
+        vm.stopRecording()
         runCurrent()
 
         val saved = waypointRepository.getAll().getOrThrow().sortedBy { it.id }
@@ -640,18 +662,15 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
-    fun `a recording whose fixes never pass the gate has neither an origin nor an end - a valid state`() = runTest(dispatcher) {
+    fun `a recording whose fixes never pass the gate has neither an origin nor an end - a valid state`() = runRecordingTest {
         val waypointRepository = FakeWaypointRepository()
         val fixes = MutableSharedFlow<LocationFix>()
         val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
         vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
         runCurrent()
-        try {
-            fixes.emit(fix(lat = 45.0, accuracy = 80f, t = 2_000L))
-            runCurrent()
-        } finally {
-            vm.stopRecording()
-        }
+        fixes.emit(fix(lat = 45.0, accuracy = 80f, t = 2_000L))
+        runCurrent()
+        vm.stopRecording()
         runCurrent()
 
         assertNull(vm.uiState.value.originWaypoint)
