@@ -17,6 +17,7 @@ import com.forager.app.domain.GetSightingsUseCase
 import com.forager.app.domain.GetTodaysForecastUseCase
 import com.forager.app.domain.GetTripWindowsUseCase
 import com.forager.app.domain.LocationFix
+import com.forager.app.domain.acceptLiveFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.LocationTracker
@@ -139,7 +140,11 @@ class AvailabilityViewModel(
     private fun collectLiveFixes() {
         liveFixJob = viewModelScope.launch {
             locationTracker.fixes.collect { fix ->
-                if (fix is LocationFix.Update) {
+                // Location-accuracy dispatch, item 1: the one place the live fix is gated. A fix
+                // worse than LIVE_FIX_MAX_ACCURACY_METERS is dropped and the previous one held —
+                // and a held fix ages into the HUD's stale display on purpose; see acceptLiveFix's
+                // own doc comment for the threshold, the null rule, and the alternative refused.
+                if (fix is LocationFix.Update && acceptLiveFix(fix)) {
                     // The whole fix, accuracy and timestamp included — see
                     // AvailabilityUiState.liveFix's own doc comment (HUD-foundations dispatch, Item 1).
                     _uiState.update { it.copy(liveFix = fix) }

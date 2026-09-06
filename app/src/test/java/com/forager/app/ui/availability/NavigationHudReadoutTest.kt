@@ -67,7 +67,9 @@ class NavigationHudReadoutTest {
         val r = readout(target = close)
 
         assertEquals("Approaching", r.statusText)
-        assertEquals("33 ft", r.distanceText)
+        // Inside the error circle the distance is the accuracy — 12.5 m is 41.01 ft — never "33 ft"
+        // as if the fix knew where you stood to the foot (location-accuracy dispatch, item 2).
+        assertEquals("within 41 ft", r.distanceText)
         assertNull(r.targetArrowDegrees)
         // The target column shows nothing — no "Turn N°" (the same unstable bearing as the
         // needle), no dash, no placeholder, and not the distance either: a first cut put the
@@ -90,13 +92,17 @@ class NavigationHudReadoutTest {
         val outside = north.copy(lat = 45.52 + 0.000148)
 
         val r1 = readout(liveFix = eightMetres, target = inside)
-        assertEquals("51 ft", r1.distanceText)
+        // 15.57 m is 51.08 ft; 8 m accuracy is 26.25 ft → step 50 ft → "≈ 50 ft". The needle claim
+        // below is the point of this test; the distance string is item 2's rounding, pinned too.
+        assertEquals("≈ 50 ft", r1.distanceText)
         assertNull("no needle at 15.57 m with 8 m accuracy", r1.targetArrowDegrees)
         assertEquals("Approaching", r1.statusText)
         assertEquals("", r1.targetText)
 
         val r2 = readout(liveFix = eightMetres, target = outside)
-        assertEquals("54 ft", r2.distanceText)
+        // 16.46 m is 54.0 ft → same 50 ft step → "≈ 50 ft" as well: the rounding does not tell the
+        // two sides apart, which is exactly its job; the needle does.
+        assertEquals("≈ 50 ft", r2.distanceText)
         assertNotNull("a needle at 16.46 m with 8 m accuracy", r2.targetArrowDegrees)
         assertEquals(315f, r2.targetArrowDegrees!!, 1e-3f)
         assertEquals("", r2.statusText)
@@ -113,6 +119,8 @@ class NavigationHudReadoutTest {
         assertNotNull(r.targetArrowDegrees)
         assertEquals("", r.statusText)
         assertEquals("Turn 315°", r.targetText)
+        // And the distance formats exactly as before item 2: no accuracy, no rounding, no marker.
+        assertEquals("33 ft", r.distanceText)
     }
 
     @Test
