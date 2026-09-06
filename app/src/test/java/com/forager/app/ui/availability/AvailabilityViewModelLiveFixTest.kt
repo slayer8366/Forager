@@ -147,6 +147,48 @@ class AvailabilityViewModelLiveFixTest {
         assertEquals(1_200_000L, held.ageMillis(nowEpochMillis = 1_700_001_200_000L))
     }
 
+    /**
+     * Location-accuracy dispatch, item 1: a fix worse than 50 m never becomes the live fix; the
+     * previous one is held. And the held fix **ages** — the consequence the owner accepted, not a
+     * side effect — so the age is asserted directly against the *first* fix's timestamp at a
+     * clock reading taken after the rejected fix arrived. Fails with the gate removed (the 60 m fix
+     * lands: accuracy 60, and the age collapses to 10 s).
+     */
+    @Test
+    fun `a fix worse than 50 m is dropped, the previous fix is held, and the held fix ages`() = runTest(dispatcher) {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        val vm = viewModel(LiveFixFakeLocationTracker(fixes))
+        advanceUntilIdle()
+
+        fixes.emit(fix.copy(accuracyMeters = 40f, timestampEpochMillis = 1_700_000_000_000L))
+        advanceUntilIdle()
+        fixes.emit(fix.copy(lat = 45.525, accuracyMeters = 60f, timestampEpochMillis = 1_700_000_050_000L))
+        advanceUntilIdle()
+
+        val held = requireNotNull(vm.uiState.value.liveFix)
+        assertEquals(40f, held.accuracyMeters)
+        assertEquals(45.52, held.lat, 0.0)
+        assertEquals(1_700_000_000_000L, held.timestampEpochMillis)
+        // 60 s after the first fix, 10 s after the rejected one: the age is the first fix's.
+        assertEquals(60_000L, held.ageMillis(nowEpochMillis = 1_700_000_060_000L))
+    }
+
+    @Test
+    fun `a fix at exactly 50 m passes the gate, and a null accuracy passes it too`() = runTest(dispatcher) {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        val vm = viewModel(LiveFixFakeLocationTracker(fixes))
+        advanceUntilIdle()
+
+        fixes.emit(fix.copy(accuracyMeters = 50f, timestampEpochMillis = 1_700_000_000_000L))
+        advanceUntilIdle()
+        assertEquals(50f, vm.uiState.value.liveFix?.accuracyMeters)
+
+        fixes.emit(fix.copy(accuracyMeters = null, timestampEpochMillis = 1_700_000_001_000L))
+        advanceUntilIdle()
+        assertEquals(1_700_000_001_000L, vm.uiState.value.liveFix?.timestampEpochMillis)
+        assertNull(vm.uiState.value.liveFix?.accuracyMeters)
+    }
+
     @Test
     fun `an unreported accuracy stays null, distinct from a reported zero`() = runTest(dispatcher) {
         val fixes = MutableSharedFlow<LocationFix>(replay = 1)

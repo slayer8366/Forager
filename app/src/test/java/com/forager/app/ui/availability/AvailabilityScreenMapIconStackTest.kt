@@ -515,10 +515,47 @@ class AvailabilityScreenMapIconStackTest {
         setNavigatingScreen(fix = hudFix.copy(lat = 45.53009))
         composeRule.waitForIdle()
 
-        assertEquals("10 m", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        // Location-accuracy dispatch, item 2: 10 m from the origin with 12.5 m accuracy is inside
+        // the error circle, so the slot reads the accuracy ("within 13 m", 12.5 rounded half up),
+        // not a to-the-metre "10 m" the fix cannot support.
+        assertEquals("within 13 m", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("Approaching", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
-        composeRule.onAllNodesWithText("10 m").assertCountEquals(1)
+        composeRule.onAllNodesWithText("within 13 m").assertCountEquals(1)
+        composeRule.onAllNodesWithText("10 m").assertCountEquals(0)
+    }
+
+    /**
+     * Location-accuracy dispatch, item 1, through the real entry point (the tracker's flow into
+     * the ViewModel into the HUD): a 12.5 m fix 1.1 km from the origin lands; a 60 m fix 500 m
+     * closer arrives next and must not — the HUD keeps reading the held fix's distance. Fails with
+     * the gate removed: the rejected fix is 612 m from the origin, which with 60 m accuracy rounds
+     * to the 100 m step, so "≈ 600 m" replaces "1.1 km".
+     */
+    @Test
+    fun `a fix worse than 50 m does not reach the HUD - the held fix's distance stays`() {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        setScreen(
+            compassProvider = FakeCompassProvider(80f),
+            locationTracker = IconStackFakeLocationTracker(fixes),
+            isRecording = true,
+            isReturning = true,
+            computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
+            navigationTarget = hudOrigin,
+            currentTime = hudClock,
+        )
+        composeRule.waitForIdle()
+
+        fixes.tryEmit(hudFix)
+        composeRule.waitForIdle()
+        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+
+        // 0.0045° of latitude north of the fix is 500 m; 60 m accuracy fails the 50 m gate.
+        fixes.tryEmit(hudFix.copy(lat = 45.5245, accuracyMeters = 60f, timestampEpochMillis = 1_700_000_001_000L))
+        composeRule.waitForIdle()
+
+        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        composeRule.onAllNodesWithText("≈ 600 m").assertCountEquals(0)
     }
 
     // ── Navigation-chrome amendment, Fix 2: back asks, and never exits ──────────────────────
