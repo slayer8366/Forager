@@ -259,3 +259,66 @@ Blocked: no `/dev/kvm` in this container, so no emulator. The owner must check o
 **Premises in this dispatch that were wrong.** Unchanged from the pre-build report: no-sensor and no-fix are not disjoint; item 3 needed an allowlist edit; the layout guard to extend was at `:414`, not `:373`. One premise of my own: the pre-build list of tests to change missed the off-track tint test.
 
 **Decided without cover.** (1) The HUD's second row is omitted entirely with no fix, rather than showing "Elevation unavailable · Coordinates unavailable" under the one message — the dispatch's "one statement" rule applied to the HUD, not stated for it. (2) `NeedsFix` *with* a fix (the transient frame) shows a dash in the strip, matching the HUD. (3) `coordinatesStripText`'s "Coordinates unavailable" branch is now unreachable from production (both callers pass a non-null location); left in place, since the pure function's contract still admits `null`. (4) `TrailheadControls` kept as a Column around the pill rather than inlined, as the named slot stage two's entry is expected to land in. (5) The `@Ignore`d return-tap test's provenance comment still mentions the arm extending and retracting on device; that is a record of what happened on that date and was left as written.
+
+---
+---
+
+# Amendment pre-build report: the duplicate distance, and back
+
+**Applies to:** `claude/new-session-102gri` at `04e22e2` (PR #67). **Status:** report before building — nothing changed yet.
+
+## Fix 1 — which duplicate it is
+
+**The target column is duplicating the distance.** By construction, not by accident: `navigationReadout` sets `targetText = distanceText` whenever `approaching` is true (`NavigationHud.kt`, the `when` under "The one threshold"). The north compass's own label is untouched — it still reads the heading (`52° NE`) or a dash.
+
+How it got there: the completion report's §"Decided without cover" does not list it because I did not treat it as a decision. The owner's reply to my pre-build question "what the target column reads while suppressed" was "the target column shows the distance alone while suppressed, no dash and no placeholder", and I read "the distance" literally as the column's content. The amendment says the decision was that the column shows *nothing*; the owner's "the distance alone" meant the HUD as a whole shows one distance. My reading produced `9 ft · 9 ft · Approaching`. The `NavigationHudReadoutTest` cases I wrote assert the wrong reading (`assertEquals("33 ft", r.targetText)` in three tests) — they pinned my misreading, which is exactly what the amendment's "assert the node count" verification would have caught on screen and the pure tests could not.
+
+**Fix, once cleared:** `approaching -> ""` for `targetText`; the dimmed static icon stays as the column's only content. Screen test: with a fix inside the threshold, `onAllNodesWithText("<distance>")` counts exactly one. Readout tests: the three `targetText` literals become `""`.
+
+## Fix 2 — the back chain on this surface today, back-to-front
+
+Compose's `OnBackPressedDispatcher` invokes the **most recently registered enabled** callback; `BackHandler` registers in composition order, so the deepest composable wins. On `04e22e2`, from the innermost out:
+
+| # | Handler | Where | Enabled when | Does |
+|---|---|---|---|---|
+| 1 | `CompactMapTab`'s own | `AvailabilityScreen.kt:3114` | `pendingAction != null \|\| pickingSearchLocation \|\| showActionMenu \|\| isReturning` | pops the picker, then the search-location pick, then the action menu, **else `onToggleReturning()` — exits navigation directly** |
+| 2 | search dropdown | `:1259`, inside the `compactMainScaffold` lambda (`:1190`), *before* its `Scaffold` (`:1446`) whose content composes `CompactMapTab` (`:1568`) | `showSearchDropdown` | closes the dropdown |
+| 3 | drawer | `:840` | `isDrawerOpen` | closes the drawer |
+| 4 | fullscreen | `:843` | `!isDrawerOpen && isMapFullscreen` | exits fullscreen |
+| 5 | tab | `:847` | `!isDrawerOpen && !isMapFullscreen && compactTab != MAP` | returns to the Maps tab |
+| 6 | **go-home / exit** | `:859` | `!isDrawerOpen && !isMapFullscreen && compactTab == MAP` | first press: toast "Tap Back Button Again to Exit"; second within 2 s (`DOUBLE_BACK_EXIT_WINDOW_MS`, `:396`): `Activity.finish()` |
+
+Handlers 3–6 are written so at most one is enabled at a time (each excludes the more-nested states). Handlers 1 and 2 are not part of that exclusion scheme — they rely on registration depth. Dialogs on this surface (`ThreeWayActionDialog`, `TripDatePickerDialog`, `WaypointNameDialog`) are real `Dialog` windows with their own dispatcher; system back reaches them first and never enters this chain. Nothing above `AvailabilityScreen` consumes back: `MainActivity` declares no handler and the manifest sets no `enableOnBackInvokedCallback`.
+
+**Finding — the premise "navigation sits after overlays" is not what the code does.** Because handler 1 is the deepest and its `isReturning` clause has no exclusions, **while navigating, back exits navigation before anything else**: with the search dropdown open (2), the drawer open (3), or fullscreen on (4), the first back press ends the return leg and leaves the dropdown/drawer/fullscreen exactly as they were. That is stage one's coupling, not the amendment's target, but it is the opposite of the owner's order ("navigation is the last thing backed out of"), and it is where the accidental exit is most likely: a stray back while fullscreen, the state a navigating user is most likely in. Verified by reading, not by test — no existing test presses back while navigating with anything else open. **Not in the amendment; flagged, not fixed.**
+
+### Is the go-home fallback reached from here today?
+
+- **Not navigating:** yes — on the Maps tab with nothing nested (no drawer, no fullscreen, no dropdown, no picker/menu), back reaches handler 6: toast, then `finish()` on a second press within two seconds. `AvailabilityScreenBackNavigationTest:949-954` covers exactly this (`ShadowToast` text, then `activity.isFinishing`).
+- **Navigating:** never — handler 1 consumes every press first. After the amendment it is still never reached while navigating, which is the owner's stated intent. The handler at `:859` itself is not touched by the proposal below; it acquires one more exclusion, the same way `:847` and `:843` already exclude the states nested inside them.
+
+### Is there a dialog pattern to match?
+
+Yes: Material3 `AlertDialog` with `title` + `text` + `confirmButton`/`dismissButton` as `TextButton`s, used four times on this app's surfaces — `ThreeWayActionDialog` (`AvailabilityScreen.kt:4255`, the wide map's own chooser) and the Cartography editor's delete confirm and leave prompt (`CartographyEntryEditScreen.kt:303`, `:315`, the latter with `testTag`s on each button, the shape the back-navigation tests already drive). The leave prompt is the closest analogue (system back raises it; Cancel keeps editing). No custom dialog style is introduced.
+
+### Proposal (not built)
+
+1. **Move navigation out of handler 1 and into the top-level chain as its own step**, between 5 and 6, so it is last before exit and unwinds *after* dropdown, drawer, fullscreen and tab:
+   `BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == MAP && isNavigating) { showExitNavigationPrompt = !showExitNavigationPrompt }` — raise on one press, dismiss on the next, never exit; and handler 6 gains `&& !isNavigating`. Handler 1 loses its `isReturning` clause (its picker/menu pops are unchanged). This also fixes the finding above as a consequence: the drawer, fullscreen and the dropdown are backed out of before navigation is asked about. **This changes behaviour the amendment did not name** (back while navigating in fullscreen now exits fullscreen first instead of raising the dialog) — it follows from the owner's own order, but it is a decision: **confirm.**
+2. **The prompt** is an `AlertDialog` in the leave-prompt pattern, wording as proposed in the amendment: title "Exit navigation?", text "Your track will keep recording.", confirm "Exit" → `onToggleReturning()` (which is `stopReturn()`, never `stopRecording()`), dismiss "Keep navigating". `onDismissRequest` (outside tap, and the dialog window's own back) = keep navigating. The dialog's dismissal via system back happens in the dialog's own window on device; under Robolectric the test's `onBackPressedDispatcher.onBackPressed()` targets the Activity, where the handler in (1) toggles the flag off — the same outcome by the other path, and the reason the handler toggles rather than only raises.
+3. **The reason recorded at the handler**, verbatim from the owner: backing out can kill a process a person is relying on; someone navigating out of the woods must not lose it to a stray press; the raise/dismiss loop is deliberate and back cannot close the app from this screen while navigating; Home and the app switcher remain.
+4. **Tests** (in `AvailabilityScreenMapIconStackTest`, which has `setNavigatingScreen`, `pressBack`, and the `onToggleReturning` counter): back raises the prompt and `exits == 0`; back again dismisses it and the HUD is still displayed; five presses in a row, `exits == 0`, HUD still displayed, no exit toast, `activity.isFinishing` false; "Exit" calls `onToggleReturning` once; ✕ and the pill toggle still exit with no prompt composed; the existing `system back while navigating exits the HUD` test inverts (it asserted the behaviour being removed — reported as a change, not absorbed). Back after navigation ends: the existing `AvailabilityScreenBackNavigationTest` chain is unchanged and stays the witness. Each new test reverted and re-run.
+
+### Decisions this amendment does not make — stop-and-flag
+
+- **(A) Order versus fullscreen/drawer/dropdown**, above. My proposal puts navigation after them, per "navigation is the last thing backed out of". The alternative — leave the handler in `CompactMapTab` and only swap the direct exit for the prompt — keeps today's inversion (prompt before fullscreen exit). Owner's call.
+- **(B) Where the prompt state lives.** Top-level `AvailabilityScreen` (with the chain) rather than `CompactMapTab`. Compact-only in effect: the wide layout composes no HUD and no return control, so `isNavigating` cannot become true there from the UI; if a phone rotates into the medium width class while returning, the prompt handler would still be enabled with no HUD on screen. Pre-existing gap in stage one (the wide layout has no exit at all in that state); noted, not addressed.
+- **(C) Predictive back.** Not enabled in the manifest; no gesture preview to reason about. If it is enabled later, an `AlertDialog` raised from a back callback is the standard shape and needs nothing extra.
+
+## Standing rules
+
+Baseline on this branch, confirmed last pass: 1114 tests, 24 skipped, skip set identical to the allowlist. The over-deletion that check caught is recorded above; the comparison runs again after this amendment.
+
+## Required disclosure (pre-build)
+
+**Confirmed:** the chain order and each handler's condition, by reading; that handler 1 consumes back while navigating before all others, by registration order (comment at `:1253-1258` states the same precedence rule for handler 2). **Inferred:** that the Robolectric back path bypasses the dialog window — from Compose's `Dialog` being its own `ComponentDialog`; the test will show it either way. **Could not determine:** device behaviour. **Premises in the amendment that were wrong:** "any open overlay is dismissed first, as today" — not while navigating; today navigation exits first (the finding). **Decided:** nothing yet.
