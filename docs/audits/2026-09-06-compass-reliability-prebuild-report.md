@@ -160,6 +160,10 @@ Baseline 1134 / 24 confirmed on this tree at the end of the last pulse; skip set
 
 **One more rendering difference, reported not changed:** `NoSensor` still shows the absolute bearing as text ("Bearing 0° N", `NavigationHud.kt`), the one state that does; `Unreliable` shows nothing, matching the approach case as ruled. The owner's ruling said "matching no-sensor" and "leave the user in the same position" — if the intent was that `NoSensor` should *also* withhold the text, that is a one-branch change and one existing test (`with no compass sensor the HUD still shows the distance and the absolute true bearing`) that this dispatch did not authorise; flagged, not done.
 
+## Owner's rulings on the completion report
+
+Merged on the strength of the ten revert checks and the real provider's first tests. Two findings outlive the dispatch: (1) the revert runner's stale-results failure mode is now recorded in `CLAUDE.md` beside the "passes identically before and after" rule — the rule and its failure mode belong together, and every revert check in this project's history could in principle have passed on stale output; (2) **`NoSensor` still showing the bearing text is wrong by the reasoning `Unreliable` and the approach case follow** — the owner's ruling, correcting their own "matching no-sensor": a number the user cannot orient to. **Queued as a follow-up to ride with the next dispatch:** one branch (`else -> "Bearing …"` → `""`) and one existing test, making the reasoning consistent across all four states. **Device check one first**, before the vehicle and power-line checks: the per-reading log of `Estimated` versus `Status` decides which path the field results belong to.
+
 ## Device list (verification blocked — no KVM)
 
 1. **Whether `values[4]` is populated at all on the test device.** A debug log of `uncertainty` per reading will say `Estimated` or `Status`; a device that never says `Estimated` is on the status-level path for good. Everything else rests on this.

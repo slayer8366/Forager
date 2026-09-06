@@ -57,6 +57,24 @@ here.
   an inner method with made-up arguments.
 - A check that passes identically before and after a code change is
   suspect — flag it as possibly not covering what it claims to.
+- **A reverted-variant check is only evidence if the reverted build actually
+  ran.** The way this project proves a new test bites is to revert the
+  behaviour by a one-line edit, run the affected classes, and read the JUnit
+  XML. That XML is left over from the previous run when the reverted build
+  fails to compile — and a one-line revert can fail to compile in ways that
+  look nothing like the edit (removing a `null` check drops a smart cast three
+  lines down). The runner then reports the previous run's failures as if the
+  revert produced them, and a check that never ran reads as confirmed. This
+  happened once here (compass-reliability dispatch); it was caught only because
+  the "failures" named a case that revert could not have caused, not because
+  anything flagged it. So: a revert runner must check the build log for
+  compile errors before it reads results, and refuse to cite them if it finds
+  any; and when reading a revert's failures, ask whether each one is a failure
+  this revert could produce — a failure that belongs to a different edit is a
+  stale run, not a confirmation. Every revert check before that fix could in
+  principle have passed on stale output; the ones recorded in `docs/audits/`
+  each name a message specific to their own edit, which is the only reason
+  they can be trusted.
 - Silencing a test is never in scope for a dispatch that didn't ask for it.
   A test unrelated to the dispatched task that starts failing mid-task gets
   reported, not touched — no `@Ignore`, no widening the CI skip allowlist,
