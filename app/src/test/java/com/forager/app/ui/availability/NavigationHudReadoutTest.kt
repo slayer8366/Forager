@@ -178,6 +178,53 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
     }
 
+    // ── Compass-reliability dispatch: the fourth state, and its precedence ──────────────────
+
+    @Test
+    fun `unreliable compass - the label says so, both arrows withheld, target text empty, distance untouched`() {
+        val r = readout(heading = TrueHeadingReading.Unreliable)
+
+        assertEquals("Compass unreliable", r.headingText)
+        assertNull(r.northArrowDegrees)
+        assertNull(r.targetArrowDegrees)
+        assertEquals("", r.targetText)
+        assertEquals("0.7 mi", r.distanceText)
+        assertEquals("", r.statusText)
+    }
+
+    /** Lost fix wins over an unreliable compass: the position failure is the more fundamental. */
+    @Test
+    fun `precedence - lost fix with unreliable compass reads as lost`() {
+        val r = readout(heading = TrueHeadingReading.Unreliable, now = t + 6L * 60L * 1_000L)
+
+        assertEquals("Target", r.targetText)
+        assertEquals("No fix for 6 min", r.statusText)
+        assertEquals("—", r.distanceText)
+        assertNull(r.targetArrowDegrees)
+        assertEquals("Compass unreliable", r.headingText)
+    }
+
+    /** Unreliable compass with the approach threshold: both withhold the needle; the status still says Approaching (a fact about distance, not heading). */
+    @Test
+    fun `precedence - unreliable compass while approaching withholds the needle and keeps Approaching`() {
+        val close = north.copy(lat = 45.52009)
+
+        val r = readout(heading = TrueHeadingReading.Unreliable, target = close)
+
+        assertNull(r.targetArrowDegrees)
+        assertEquals("", r.targetText)
+        assertEquals("Approaching", r.statusText)
+        assertEquals("within 41 ft", r.distanceText)
+    }
+
+    @Test
+    fun `unreliable compass with no fix - the no-fix message still carries the status line`() {
+        val r = readout(heading = TrueHeadingReading.Unreliable, liveFix = null)
+
+        assertEquals("Compass unreliable", r.headingText)
+        assertEquals("Location services unavailable", r.statusText)
+    }
+
     @Test
     fun `no fix yet for the compass - a dash, not a message of its own`() {
         // The status line carries the one no-fix message (below); the heading label does not repeat

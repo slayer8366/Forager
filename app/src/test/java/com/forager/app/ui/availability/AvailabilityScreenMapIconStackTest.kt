@@ -47,6 +47,9 @@ import com.forager.app.domain.model.WaypointDesignation
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.DpOffset
 import com.forager.app.domain.CompassProvider
+import com.forager.app.domain.CompassReading
+import com.forager.app.domain.CompassStatus
+import com.forager.app.domain.HeadingUncertainty
 import com.forager.app.domain.ComputeTrueHeadingUseCase
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.DeclinationProvider
@@ -299,6 +302,99 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)
         composeRule.onAllNodesWithText("95° E").assertCountEquals(1)
         assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+    }
+
+    // ── Compass-reliability dispatch ────────────────────────────────────────────────────────
+    //
+    // The fake bypasses AndroidCompassProvider (its own Robolectric tests drive the real sensor
+    // path); here the reading's uncertainty and timestamp are handed straight to the judge in
+    // rememberTrueHeading. 0.35 rad on the device is 20.05° — the literal used below is the
+    // degrees the provider would have emitted.
+
+    /**
+     * The strip, not navigating: an untrusted heading reads "Compass unreliable" in the heading
+     * slot, the number withheld; elevation and coordinates beside it are GPS and untouched. Then
+     * recovery: good readings held for two seconds bring the number back — and the number is the
+     * *new* reading exactly, not a blend with the 200° the sensor reported while distorted (the
+     * smoother reset). Fails with the judge bypassed (the 20° reading shows as "90° E") and with the
+     * reset removed (a blend, not "90° E", after recovery).
+     */
+    @Test
+    fun `an untrusted heading reads Compass unreliable on the strip, and a recovered one snaps back to the new reading`() {
+        // Seeded trusted at 200° first, so the smoother holds history when the reading goes bad:
+        // without the reset, recovery at 90° would show a blend (~175°), not 90°.
+        val compass = FakeCompassProvider(200f)
+        setScreen(compassProvider = compass, locationTracker = IconStackFixedLocationTracker(portlandFix))
+        searchAReferenceRegion()
+        assertEquals("200° S", textOfTag(COMPASS_STRIP_HEADING_TAG))
+
+        compass.emit(CompassReading(200f, HeadingUncertainty.Estimated(20.05f), timestampMillis = 0L))
+        composeRule.waitForIdle()
+        assertEquals("Compass unreliable", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        composeRule.onAllNodesWithText("200° S").assertCountEquals(0)
+        composeRule.onNodeWithText("210 m").assertIsDisplayed()
+        composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
+
+        // Good readings at 0, 1000 and 2000 ms after the last bad one: still unreliable at 1000 ms
+        // (the hold is 2 s), clear at 2000 ms — and the heading shown is 90° exactly.
+        compass.emit(CompassReading(90f, HeadingUncertainty.Estimated(5f), timestampMillis = 1_000L))
+        composeRule.waitForIdle()
+        assertEquals("Compass unreliable", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        compass.emit(CompassReading(90f, HeadingUncertainty.Estimated(5f), timestampMillis = 2_000L))
+        composeRule.waitForIdle()
+        assertEquals("Compass unreliable", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        compass.emit(CompassReading(90f, HeadingUncertainty.Estimated(5f), timestampMillis = 3_000L))
+        composeRule.waitForIdle()
+        assertEquals("90° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
+    }
+
+    /**
+     * The HUD, navigating: the heading label reads the message, the needle and its text are
+     * withheld, the distance is untouched — and the message is on screen exactly once (the strip is
+     * absent while navigating). The status-level fallback path is driven here too: a LOW status
+     * with no estimate produces the same state.
+     */
+    @Test
+    fun `an untrusted heading on the HUD withholds the needle and its text and reads Compass unreliable once`() {
+        // Seeded trusted at 80° ("95° E" true) so the smoother holds history; recovery below is at a
+        // different heading, 170° (185° true), so a blend would be visible (~118° true) if the
+        // reset were missing.
+        val compass = FakeCompassProvider(80f)
+        setScreen(
+            compassProvider = compass,
+            locationTracker = IconStackFixedLocationTracker(hudFix),
+            isRecording = true,
+            isReturning = true,
+            computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
+            navigationTarget = hudOrigin,
+            currentTime = hudClock,
+        )
+        composeRule.waitForIdle()
+        assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+
+        compass.emit(CompassReading(80f, HeadingUncertainty.Estimated(20.05f), timestampMillis = 0L))
+        composeRule.waitForIdle()
+        assertEquals("Compass unreliable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        composeRule.onAllNodesWithText("Compass unreliable").assertCountEquals(1)
+        composeRule.onAllNodesWithText("95° E").assertCountEquals(0)
+
+        // The fallback path, on its own: no estimate, status LOW — the same state.
+        compass.emit(CompassReading(80f, HeadingUncertainty.Status(CompassStatus.LOW), timestampMillis = 500L))
+        composeRule.waitForIdle()
+        assertEquals("Compass unreliable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+
+        // Recovery through the status path: HIGH held for two seconds, then the needle is back —
+        // at the new reading exactly: 170° magnetic + 15° declination = 185°, and the target due
+        // north from a device facing 185° is a 175° turn.
+        compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 1_000L))
+        composeRule.waitForIdle()
+        assertEquals("Compass unreliable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 3_000L))
+        composeRule.waitForIdle()
+        assertEquals("185° S", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Turn 175°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**
@@ -2969,9 +3065,20 @@ private val PannableSightingStubMapSlot: MapSlot = { _, content, _, _, _, _, onS
     }
 }
 
+/**
+ * A magnetic heading with a trustworthy uncertainty (2°, well under the 15° threshold) at a fixed
+ * timestamp — what every pre-existing compass test meant by "a heading of N". [emit] hands the
+ * compass-reliability tests full control of the reading, uncertainty and timestamp.
+ */
 private class FakeCompassProvider(initial: Float?) : CompassProvider {
-    private val state = MutableStateFlow(initial)
-    override val heading: Flow<Float?> = state
+    private val state = MutableStateFlow(initial?.let { trusted(it) })
+    override val heading: Flow<CompassReading?> = state
+    fun emit(reading: CompassReading?) { state.value = reading }
+
+    companion object {
+        fun trusted(headingDegrees: Float, timestampMillis: Long = 0L) =
+            CompassReading(headingDegrees, HeadingUncertainty.Estimated(2f), timestampMillis)
+    }
 }
 
 private object IconStackUnusedLocationProvider : LocationProvider {

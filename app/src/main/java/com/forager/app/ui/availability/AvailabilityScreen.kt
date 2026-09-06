@@ -4247,6 +4247,11 @@ private fun CompassElevationStripContent(
                             text = when (heading) {
                                 is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
                                 TrueHeadingReading.NoSensor -> "Compass unavailable"
+                                // Present but not to be trusted (compass-reliability dispatch).
+                                // Names no cause: the status cannot tell a truck from a poorly
+                                // calibrated sensor, and the remedies differ — telling someone to
+                                // calibrate beside a truck is wrong advice confidently given.
+                                TrueHeadingReading.Unreliable -> "Compass unreliable"
                                 TrueHeadingReading.NeedsFix -> "—"
                             },
                             style = MaterialTheme.typography.labelMedium,
