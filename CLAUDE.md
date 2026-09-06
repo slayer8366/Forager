@@ -74,7 +74,19 @@ here.
   stale run, not a confirmation. Every revert check before that fix could in
   principle have passed on stale output; the ones recorded in `docs/audits/`
   each name a message specific to their own edit, which is the only reason
-  they can be trusted.
+  they can be trusted. The same tool lied a second way the same day (two-data-
+  corrections dispatch): it restored the reverted file with `git checkout --
+  FILE`, which restores the *committed* version, so when the forward change
+  under test was still uncommitted the "restore" silently discarded it — the
+  runner reported the revert failing for the right reason, the file was then a
+  clean copy of HEAD, and the change the check had just vouched for no longer
+  existed. Caught only because the next `git diff --stat` came up a file
+  short; nothing in the runner's output said so. So: a revert runner restores
+  from a copy it saved before editing, never from git, and after any revert
+  check confirm the forward change is still present before citing the result.
+  Both failures were found by a discrepancy the runner did not report itself;
+  the rule is the same in both — the runner's output is not evidence until the
+  state it claims to describe has been checked against something outside it.
 - Silencing a test is never in scope for a dispatch that didn't ask for it.
   A test unrelated to the dispatched task that starts failing mid-task gets
   reported, not touched — no `@Ignore`, no widening the CI skip allowlist,

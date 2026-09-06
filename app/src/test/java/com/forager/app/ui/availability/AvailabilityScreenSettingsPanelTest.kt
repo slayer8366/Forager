@@ -1,5 +1,7 @@
 package com.forager.app.ui.availability
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
@@ -637,6 +639,30 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onAllNodesWithText("Ready to zoom 15", substring = true).assertCountEquals(1)
         composeRule.onAllNodesWithText("zoom 10–14 from the archive", substring = true).assertCountEquals(1)
         composeRule.onAllNodesWithText("zoom 15 detail fetched live from Protomaps", substring = true).assertCountEquals(1)
+    }
+
+    /**
+     * Two-data-corrections dispatch, Part B: the offline radius slider's own range ends at the
+     * offline ceiling (24 km), so a radius one step above it is not reachable from the UI — asserted
+     * on the slider's semantics (`ProgressBarRangeInfo` is what Material3's Slider publishes for its
+     * value range and step count), the closest thing to "what the thumb can reach" a Robolectric
+     * test can read. Literals: range 1–24, 22 steps (24 − 1 − 1), current 8 (the miles default the
+     * state starts on). Fails with the slider's `valueRange` reverted to `Region.MAX_RADIUS_KM`
+     * (1–50, 48 steps).
+     */
+    @Test
+    fun `the offline radius slider cannot reach one step above the offline ceiling`() {
+        setScreenWithOfflineMapsState()
+        openOfflineMapsSubTab()
+
+        val sliders = composeRule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .fetchSemanticsNodes()
+            .map { it.config[SemanticsProperties.ProgressBarRangeInfo] }
+        val offlineRadiusSlider = sliders.single { it.range.start == 1f && it.range.endInclusive != 50f }
+        assertEquals(24f, offlineRadiusSlider.range.endInclusive)
+        assertEquals(22, offlineRadiusSlider.steps)
+        // Material3 snaps the thumb to its step grid in float, which lands on 7.9999995 for 8.
+        assertEquals(8f, offlineRadiusSlider.current, 0.001f)
     }
 }
 

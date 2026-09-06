@@ -31,6 +31,15 @@ import kotlin.math.floor
  * [OfflineMapRepository.SERVED_MAX_ZOOM] for the evidence and what keeps it honest. The one
  * function both the panel's "~N tiles" label and the ViewModel's pre-flight gate call, so the
  * number shown and the number gated cannot drift from each other again.
+ *
+ * **The `min` is currently a no-op** — since the two-data-corrections dispatch both constants read
+ * 15.0 and it selects 15.0 either way. It stays (owner decision) because it encodes that two
+ * *different* facts bound this estimate — what the app asks for and what the server advertises —
+ * and the day either moves on its own (the worker regressing to 14, or [OfflineMapRepository.MAX_ZOOM]
+ * rising to 16 ahead of the worker) this is the one line that keeps shown, gated and downloaded
+ * counts together without a code change. Removing it would mean re-deriving that seam under
+ * pressure the next time the two diverge, which is how [OfflineMapRepository.SERVED_MAX_ZOOM]
+ * went stale in the first place.
  */
 fun estimateServedOfflineTileCount(region: Region): Int = estimateOfflineTileCount(
     region,

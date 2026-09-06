@@ -113,8 +113,11 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   to true north relative to the way the device faces); the target compass's arrow by the
  *   bearing *relative to the heading* ([relativeBearingDegrees]) — where to turn, not an absolute
  *   bearing. Both arrows are device-relative, deliberately the same convention.
- * - **No sensor**: the north compass says so and the target compass falls back to the absolute
- *   true bearing as text, no needle. **Unreliable compass** (compass-reliability dispatch — the
+ * - **No sensor**: the north compass says so and the target compass shows nothing — no needle and
+ *   no text. It used to fall back to the absolute true bearing as text; the two-data-corrections
+ *   dispatch (Part C, owner decision) withdrew that: an absolute bearing the user cannot orient to
+ *   is a number without a use whether the compass is absent or untrusted, the same reasoning the
+ *   approach and unreliable cases already recorded. **Unreliable compass** (compass-reliability dispatch — the
  *   sensor is present and its reading is not to be trusted, decided upstream by
  *   [com.forager.app.domain.CompassTrustJudge] with hysteresis): the north compass reads "Compass
  *   unreliable" with its arrow unrotated, and the needle and its text are withheld, ranked between
@@ -361,7 +364,8 @@ internal fun navigationReadout(
     //      fundamental, and the user's remedy is different.
     //   2. Unreliable compass next. The heading exists and cannot be trusted.
     //   3. Approach threshold last. The only one of the three that is not a failure.
-    //   4. No heading at all (no sensor) is the existing case and is unchanged.
+    //   4. No heading at all (no sensor) is the existing case — and since the two-data-corrections
+    //      dispatch (Part C) it withholds the text as well, not just the needle.
     // `compassUnreliable` is named in the `if` even though headingDegrees is already null for that
     // state, so the term is visible where the order is stated rather than implied by a null.
     val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !compassUnreliable && !approaching) relativeBearingDegrees(bearing, headingDegrees) else null
@@ -369,14 +373,18 @@ internal fun navigationReadout(
         freshness == FixFreshness.LOST -> "Target"
         // Same rendering as the approach case below, and for the same reason the owner recorded
         // there: an absolute bearing you cannot orient to is a number without a use. Unreliable
-        // leaves the user in that position. (NoSensor still shows the bearing as text — the one
-        // state that does; reported in the dispatch's completion report, not changed here.)
+        // leaves the user in that position.
         compassUnreliable -> ""
         // Nothing — not the distance (that was one number in two slots on device, "9 ft · 9 ft ·
         // Approaching"), not a dash, not a placeholder. The distance slot carries the one number.
         approaching -> ""
         headingDegrees != null -> "Turn ${relativeBearingDegrees(bearing, headingDegrees).roundToInt() % 360}°"
-        else -> "Bearing ${bearing.roundToInt() % 360}° ${cardinalDirection(bearing.toFloat())}"
+        // No sensor. This branch used to read "Bearing N° X" — the one state that still showed the
+        // absolute bearing as text. The compass-reliability dispatch asked for the unreliable case
+        // to match it and was wrong about what it did; the follow-up (two-data-corrections dispatch,
+        // Part C, owner decision) brought no-sensor into line with approach and unreliable instead:
+        // a number the user cannot orient to is withheld, the distance slot carries the one number.
+        else -> ""
     }
     val statusText = when (freshness) {
         FixFreshness.LOST -> "No fix for ${formatFixAge(age)}"

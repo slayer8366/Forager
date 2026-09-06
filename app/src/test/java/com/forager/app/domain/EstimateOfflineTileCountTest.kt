@@ -30,12 +30,23 @@ class EstimateOfflineTileCountTest {
      * (tiles plus the style and tileset JSON). With the ceiling reverted to MAX_ZOOM these read
      * 224, 1781 and 18696 — the 3.7× inflation that was refusing radii the budget actually fits.
      */
+    /**
+     * Two-data-corrections dispatch, Part B: SERVED_MAX_ZOOM rose from 14 to 15 once the worker's
+     * zoom-15 overflow went live, and the slider's ceiling shrank from 50 km to 24 km to fit the
+     * budget. Three radii spanning the new slider range, including its maximum, at the owner's
+     * coordinates; literals re-derived independently in Python from the slippy-map definition
+     * (docs/audits/2026-09-06-filter-and-tile-cost-prebuild-report.md, B2), not from this code.
+     * The previous literals at ceiling 14 were 68 / 485 / 4772 for 5 / 15 / 50 km — 224 and 1781
+     * are the same 5 and 15 km at ceiling 15, the cross-check figures the dispatch supplied.
+     * Fails with SERVED_MAX_ZOOM reverted to 14.0 (68 / 485 / 1112).
+     */
     @Test
     fun `the served-ceiling estimate matches the download's own enumeration at three radii spanning the slider`() {
         val oregonCity = { radiusKm: Int -> Region(lat = 45.357, lng = -122.607, radiusKm = radiusKm) }
-        assertEquals(68, estimateServedOfflineTileCount(oregonCity(5)))
-        assertEquals(485, estimateServedOfflineTileCount(oregonCity(15)))
-        assertEquals(4772, estimateServedOfflineTileCount(oregonCity(50)))
+        assertEquals(224, estimateServedOfflineTileCount(oregonCity(5)))
+        assertEquals(1781, estimateServedOfflineTileCount(oregonCity(15)))
+        assertEquals(4304, estimateServedOfflineTileCount(oregonCity(OfflineMapRepository.MAX_RADIUS_KM)))
+        assertEquals(24, OfflineMapRepository.MAX_RADIUS_KM)
     }
 
     @Test

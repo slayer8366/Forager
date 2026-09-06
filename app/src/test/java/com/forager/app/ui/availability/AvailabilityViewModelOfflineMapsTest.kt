@@ -208,7 +208,10 @@ class AvailabilityViewModelOfflineMapsTest {
 
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun viewModel(offlineMapRepository: OfflineMapRepository): AvailabilityViewModel = AvailabilityViewModel(
+    private fun viewModel(
+        offlineMapRepository: OfflineMapRepository,
+        mapPreferencesRepository: MapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
+    ): AvailabilityViewModel = AvailabilityViewModel(
         locationProvider = OfflineMapsUnusedLocationProvider,
         locationTracker = OfflineMapsNoOpLocationTracker,
         getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(OfflineMapsEmptyRepository), searchCache),
@@ -226,7 +229,7 @@ class AvailabilityViewModelOfflineMapsTest {
             ComputeFruitingLagDistributionUseCase(),
         ),
         offlineMapRepository = offlineMapRepository,
-        mapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
+        mapPreferencesRepository = mapPreferencesRepository,
         distanceUnitPreferenceRepository = OfflineMapsStubDistanceUnitPreferenceRepository,
         appThemePreferenceRepository = OfflineMapsStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(OfflineMapsStubTripPlanningWeatherProvider),
@@ -418,40 +421,78 @@ class AvailabilityViewModelOfflineMapsTest {
     }
 
     /**
-     * Tile-estimate dispatch: a radius that fits the 6000-tile budget must not be refused. The
-     * slider's 50 km maximum at the owner's latitude is 4772 tiles against the served ceiling and
-     * was being refused at 18696 against MAX_ZOOM. Driven through the real pre-flight gate
+     * Tile-estimate dispatch, re-sized by the two-data-corrections dispatch (Part B): a radius that
+     * fits the 6000-tile budget must not be refused. The slider's maximum is now 24 km, sized to
+     * fit at the tile archive's northern edge (49.60°N) — the worst case the app supports — where a
+     * 24 km region at this longitude costs 5120 tiles against the served ceiling of 15 (literal from
+     * the pre-build report's independent derivation). Driven through the real pre-flight gate
      * (onDownloadOfflineMaps), asserting the repository was actually asked to download that
-     * region — not merely that no Failed status appeared. Fails with the estimate reverted to
-     * MAX_ZOOM.
+     * region — not merely that no Failed status appeared. Fails with MAX_RADIUS_KM reverted to 50
+     * (22 028 tiles worst-case here, refused) and with SERVED_MAX_ZOOM at anything above 15.
      */
     @Test
-    fun `the slider's maximum radius fits the budget at the owner's latitude and reaches the repository`() = runTest(dispatcher) {
+    fun `the slider's maximum radius fits the budget at the archive's northern edge and reaches the repository`() = runTest(dispatcher) {
         val repository = RecordingOfflineMapRepository().apply { downloadResult = Result.success(REFERENCE_REGION_SUMMARY) }
         val vm = viewModel(repository)
         advanceUntilIdle()
-        vm.onOfflineMapLatChanged("45.357")
+        vm.onOfflineMapLatChanged("49.60")
         vm.onOfflineMapLngChanged("-122.607")
-        vm.onOfflineMapRadiusChanged(50)
+        vm.onOfflineMapRadiusChanged(OfflineMapRepository.MAX_RADIUS_KM)
 
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
-        assertTrue("expected the pre-flight gate to let a 50 km region through to the repository", repository.downloadCalled)
-        assertEquals(Region(lat = 45.357, lng = -122.607, radiusKm = 50), repository.lastRegion)
+        assertTrue("expected the pre-flight gate to let a ${OfflineMapRepository.MAX_RADIUS_KM} km region through to the repository", repository.downloadCalled)
+        assertEquals(Region(lat = 49.60, lng = -122.607, radiusKm = 24), repository.lastRegion)
         assertTrue(vm.uiState.value.offlineDownloadStatus !is OfflineMapStatus.Failed)
     }
 
+    /**
+     * Two-data-corrections dispatch, Part B: the offline radius clamps to its own ceiling
+     * (OfflineMapRepository.MAX_RADIUS_KM = 24), no longer the search radius's 50 — and one step
+     * above the ceiling is not reachable even by a direct call, which is the tightest statement of
+     * "not reachable from the UI" the ViewModel can make (the slider's own range is asserted in
+     * AvailabilityScreenSettingsPanelTest). Literals, not the constants: this test is what notices
+     * the constants moving.
+     */
     @Test
-    fun `the offline map region radius is clamped the same way the search radius is`() = runTest(dispatcher) {
+    fun `the offline map radius is clamped to the offline ceiling, not the search radius's`() = runTest(dispatcher) {
         val vm = viewModel(RecordingOfflineMapRepository())
         advanceUntilIdle()
 
         vm.onOfflineMapRadiusChanged(500)
-        assertEquals(Region.MAX_RADIUS_KM, vm.uiState.value.offlineMapRadiusKm)
+        assertEquals(24, vm.uiState.value.offlineMapRadiusKm)
+
+        vm.onOfflineMapRadiusChanged(25)
+        assertEquals(24, vm.uiState.value.offlineMapRadiusKm)
+
+        vm.onOfflineMapRadiusChanged(24)
+        assertEquals(24, vm.uiState.value.offlineMapRadiusKm)
 
         vm.onOfflineMapRadiusChanged(-5)
-        assertEquals(Region.MIN_RADIUS_KM, vm.uiState.value.offlineMapRadiusKm)
+        assertEquals(1, vm.uiState.value.offlineMapRadiusKm)
+
+        // The search radius keeps its own ceiling: the two no longer share a constant.
+        vm.onRadiusChanged(500)
+        assertEquals(50, vm.uiState.value.radiusKm)
+    }
+
+    /**
+     * A last-picked radius persisted before the ceiling shrank (up to 50 km) is restored at the
+     * ceiling, not above the slider's range — otherwise the picker would open on a value the slider
+     * cannot represent and the gate would refuse the first download. Fails with the clamp removed
+     * from loadOfflineMapPreferences (restores 50).
+     */
+    @Test
+    fun `a last-picked radius from before the ceiling shrank is restored at the ceiling`() = runTest(dispatcher) {
+        val fiftyKmLastPicked = object : MapPreferencesRepository by OfflineMapsStubMapPreferencesRepository {
+            override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(Region(lat = 45.357, lng = -122.607, radiusKm = 50))
+        }
+        val vm = viewModel(RecordingOfflineMapRepository(), mapPreferencesRepository = fiftyKmLastPicked)
+        advanceUntilIdle()
+
+        assertEquals(24, vm.uiState.value.offlineMapRadiusKm)
+        assertTrue(vm.uiState.value.offlineMapRadiusTouched)
     }
 
     @Test

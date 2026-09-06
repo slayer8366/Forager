@@ -156,12 +156,15 @@ class NavigationHudReadoutTest {
     }
 
     @Test
-    fun `no sensor - heading says so, target falls back to the absolute true bearing as text, no needle`() {
+    fun `no sensor - heading says so, target shows neither needle nor bearing text`() {
         val r = readout(heading = TrueHeadingReading.NoSensor)
 
         assertEquals("Compass unavailable", r.headingText)
         assertNull(r.northArrowDegrees)
-        assertEquals("Bearing 0° N", r.targetText)
+        // Was "Bearing 0° N" until the two-data-corrections dispatch (Part C, owner-authorised
+        // change to this assertion): an absolute bearing the user cannot orient to is withheld,
+        // matching the approach and unreliable cases.
+        assertEquals("", r.targetText)
         assertNull(r.targetArrowDegrees)
         assertEquals("0.7 mi", r.distanceText)
     }
