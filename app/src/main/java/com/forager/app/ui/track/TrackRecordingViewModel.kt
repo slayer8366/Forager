@@ -2,7 +2,12 @@ package com.forager.app.ui.track
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forager.app.domain.Alert
+import com.forager.app.domain.AlertAudibility
+import com.forager.app.domain.AlertDelivery
+import com.forager.app.domain.AlertKind
 import com.forager.app.domain.ComputeReturnToStartUseCase
+import com.forager.app.domain.alertAudibilityWarning
 import com.forager.app.domain.CreateWaypointUseCase
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.DeleteWaypointUseCase
@@ -85,6 +90,15 @@ class TrackRecordingViewModel(
     private val locationTracker: LocationTracker,
     private val getTracks: GetTracksUseCase,
     /**
+     * Alert-delivery dispatch: where an off-track alert actually goes. Called directly from
+     * [returnToStart] — not via UI state — so delivery does not depend on a composed tree being
+     * live; see [AlertDelivery]'s own doc comment for the failure that replaced, and for the
+     * swipe-away hole this ViewModel's lifetime still leaves open.
+     */
+    private val alertDelivery: AlertDelivery,
+    /** Read once per [startRecording] for [TrackRecordingUiState.tripStartWarning]; never watched live. */
+    private val alertAudibility: AlertAudibility,
+    /**
      * Logs a failure's throwable for diagnosis, without ever exposing its text to the user — see
      * [ErrorLog]'s own doc comment for why this exists rather than calling [android.util.Log]
      * directly. Defaults to discarding the throwable, which is exactly what makes every existing
@@ -129,6 +143,7 @@ class TrackRecordingViewModel(
     // second fix arriving during the origin's own async save from creating a second origin.
     private var lastGatedFix: TrackPoint? = null
     private var originCreationInFlight = false
+    private var tripStartWarningIds = 0
 
     init {
         loadWaypoints()
@@ -147,12 +162,17 @@ class TrackRecordingViewModel(
                 .onSuccess { track ->
                     lastGatedFix = null
                     originCreationInFlight = false
+                    // Alert-delivery dispatch, Item 3: "the start of a trip" is here — the user
+                    // just chose to rely on the app, and the screen is on because they tapped.
+                    // Read once; a phone silenced later in the trip is not re-checked (Item 3.5).
+                    val warning = alertAudibilityWarning(alertAudibility.current())
                     _uiState.update {
                         it.copy(
                             activeTrack = ActiveTrack(track.id, track.startedAtEpochMillis, mode),
                             startRecordingErrorMessage = null,
                             breadcrumbPoints = emptyList(),
                             originWaypoint = null,
+                            tripStartWarning = warning?.let { message -> TripStartWarning(++tripStartWarningIds, message) },
                         )
                     }
                     beginPolling(track.id)
@@ -399,8 +419,10 @@ class TrackRecordingViewModel(
      * nowhere but an icon tint (see [com.forager.app.ui.availability.AvailabilityScreen]'s
      * `MapIconBar`) — nothing a forager with the phone pocketed on the return leg, exactly the body
      * state this alert exists for, could ever perceive. Every call where the heuristic reads `true`
-     * bumps [TrackRecordingUiState.offTrackAlertId] — which `MainActivity` observes to post a
-     * notification and vibrate — but **only** once [OFF_TRACK_ALERT_COOLDOWN_MILLIS] has passed
+     * hands an [Alert] to [alertDelivery] **directly from here** (alert-delivery dispatch: it used to
+     * bump a counter in UI state that a `LaunchedEffect` in `MainActivity` observed, and that
+     * composed hop is what stopped a stopped Activity delivering anything) — but **only** once
+     * [OFF_TRACK_ALERT_COOLDOWN_MILLIS] has passed
      * since the last one: this method runs on every live fix while returning (as often as every few
      * seconds — see [com.forager.app.domain.model.TrackRecordingMode]), and a heuristic that stays
      * `true` for a sustained drift would otherwise re-fire on every single one of those, buzzing a
@@ -422,14 +444,14 @@ class TrackRecordingViewModel(
             recentReturnDistancesMeters += info.distanceMeters
             val isOffTrackNow = detectOffTrack(recentReturnDistancesMeters)
             val shouldAlert = isOffTrackNow && canFireOffTrackAlert()
-            if (shouldAlert) lastOffTrackAlertAtMillis = currentTime.nowEpochMillis()
-            _uiState.update {
-                it.copy(
-                    returnToStart = info,
-                    isOffTrack = isOffTrackNow,
-                    offTrackAlertId = if (shouldAlert) it.offTrackAlertId + 1 else it.offTrackAlertId,
-                )
+            if (shouldAlert) {
+                lastOffTrackAlertAtMillis = currentTime.nowEpochMillis()
+                // overridesSilence = true: off-track is advisory, but someone who turned on
+                // recording and walked into the woods has opted into being told they have strayed
+                // (owner decision). The value is passed, not baked in — see Alert's doc comment.
+                alertDelivery.deliver(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = true))
             }
+            _uiState.update { it.copy(returnToStart = info, isOffTrack = isOffTrackNow) }
         } else {
             _uiState.update { it.copy(returnToStart = info) }
         }

@@ -28,6 +28,10 @@ import com.forager.app.domain.CompassProvider
 import com.forager.app.domain.ComputeTrueHeadingUseCase
 import com.forager.app.domain.DeclinationProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
+import com.forager.app.alert.AndroidAlertAudibility
+import com.forager.app.alert.AndroidAlertDelivery
+import com.forager.app.domain.AlertAudibility
+import com.forager.app.domain.AlertDelivery
 import com.forager.app.domain.ComputeReturnToStartUseCase
 import com.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.forager.app.domain.CartographyEntryRepository
@@ -222,6 +226,13 @@ class AppContainer(context: Context) {
     val computeTrackStatisticsUseCase = ComputeTrackStatisticsUseCase()
     val computeReturnToStartUseCase = ComputeReturnToStartUseCase()
     val detectOffTrackUseCase = DetectOffTrackUseCase()
+
+    // Alert-delivery dispatch: the one path by which the app interrupts the user, and the
+    // trip-start read of whether the device would let it. Built here, at process start, so the
+    // alert's notification channel exists before any recording and delivery never depends on the
+    // Activity's composition — see AlertDelivery's doc comment, including the swipe-away hole.
+    val alertDelivery: AlertDelivery = AndroidAlertDelivery(context.applicationContext)
+    val alertAudibility: AlertAudibility = AndroidAlertAudibility(context.applicationContext)
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)

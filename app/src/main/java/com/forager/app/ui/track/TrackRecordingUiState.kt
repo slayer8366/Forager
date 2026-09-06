@@ -64,17 +64,24 @@ data class TrackRecordingUiState(
      */
     val tracks: List<Track> = emptyList(),
     /**
-     * Field-test dispatch item 4: incremented each time [TrackRecordingViewModel.returnToStart]
-     * decides a pocketed-phone off-track alert should fire — a one-shot event counter, the same
-     * "increment, and let the observer diff against the last value it saw" shape
-     * [startRecordingErrorMessage]'s own `LaunchedEffect` consumer uses for a Toast, except this
-     * needs to fire again on a *repeated* condition ("still off track"), which a nulled-out single
-     * message field can't represent. `MainActivity` observes this to post a notification and
-     * vibrate — see [TrackRecordingViewModel.returnToStart]'s own doc comment for the debounce this
-     * counter reflects. Starts at 0, which is never itself treated as a real alert — the observer's
-     * `LaunchedEffect` fires once on first composition with whatever value is already here.
+     * Alert-delivery dispatch, Item 3: the one-time "your phone is silenced" warning for the
+     * recording that just started, or `null` when the device would deliver an alert normally. Set
+     * by [TrackRecordingViewModel.startRecording] from [com.forager.app.domain.alertAudibilityWarning]
+     * and shown once as a Snackbar over the map. Carries an [TripStartWarning.id] that increments
+     * per recording so the *same* text on a later trip re-shows — the same "event, not condition"
+     * shape [startRecordingErrorMessage]'s Toast uses, except that field only clears on the next
+     * success and would not re-fire for an identical message.
+     *
+     * The off-track alert itself no longer passes through this state: it used to be an
+     * `offTrackAlertId` counter here that a `LaunchedEffect` in `MainActivity` observed, and that
+     * composed path is why nothing fired with the screen off — see
+     * [com.forager.app.domain.AlertDelivery], which [TrackRecordingViewModel.returnToStart] now
+     * calls directly.
      */
-    val offTrackAlertId: Int = 0,
+    val tripStartWarning: TripStartWarning? = null,
 ) {
     val isRecording: Boolean get() = activeTrack != null
 }
+
+/** See [TrackRecordingUiState.tripStartWarning]. */
+data class TripStartWarning(val id: Int, val message: String)

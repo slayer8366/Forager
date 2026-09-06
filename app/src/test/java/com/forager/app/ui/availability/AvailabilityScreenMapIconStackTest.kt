@@ -103,6 +103,7 @@ import com.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
 import com.forager.app.ui.map.MAP_MODE_PICKER_TAG
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.theme.Spacing
+import com.forager.app.ui.track.TripStartWarning
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlinx.coroutines.flow.Flow
@@ -171,6 +172,8 @@ class AvailabilityScreenMapIconStackTest {
         isReturning: Boolean = false,
         /** Navigation-chrome dispatch: a live `State` for tests that enter *and leave* navigation in one composition; when given, it overrides [isReturning]. */
         returning: State<Boolean>? = null,
+        /** Alert-delivery dispatch, Item 3: the one-time silenced-phone warning shown in the map's Snackbar host. */
+        tripStartWarning: TripStartWarning? = null,
         isOffTrack: Boolean = false,
         onToggleReturning: () -> Unit = {},
         mushroomRepository: TaxonSearchRepository = IconStackEmptyRepository,
@@ -237,6 +240,7 @@ class AvailabilityScreenMapIconStackTest {
                 onStartLogEntry = onStartLogEntry,
                 onLocateMe = onLocateMe,
                 isRecording = isRecording,
+                tripStartWarning = tripStartWarning,
                 onToggleRecording = onToggleRecording,
                 returnToStart = returnToStart,
                 isReturning = returning?.value ?: isReturning,
@@ -524,6 +528,30 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
         composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
         composeRule.onAllNodesWithText("10T ER 25118 40235").assertCountEquals(0)
+    }
+
+    /**
+     * Alert-delivery dispatch, Item 3: the trip-start warning is shown once, as a Snackbar in the
+     * map Scaffold's existing host, and is absent when there is nothing to warn about — asserted
+     * by node count in both directions. The copy is the owner's literal. Fails with the
+     * `LaunchedEffect(tripStartWarning?.id)` removed from AvailabilityScreen (no node, times out).
+     */
+    @Test
+    fun `a trip-start warning shows once as a Snackbar over the map and a null warning shows nothing`() {
+        val message = "Your phone is silenced. If you go off track, the alert may not be felt."
+        setScreen(isRecording = true, tripStartWarning = TripStartWarning(id = 1, message = message))
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText(message).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onAllNodesWithText(message).assertCountEquals(1)
+    }
+
+    @Test
+    fun `no trip-start warning means no Snackbar`() {
+        val message = "Your phone is silenced. If you go off track, the alert may not be felt."
+        setScreen(isRecording = true, tripStartWarning = null)
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithText(message).assertCountEquals(0)
     }
 
     @Test

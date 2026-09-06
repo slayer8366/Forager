@@ -1,5 +1,10 @@
 package com.forager.app.ui.track
 
+import com.forager.app.domain.Alert
+import com.forager.app.domain.AlertAudibility
+import com.forager.app.domain.AlertAudibilityState
+import com.forager.app.domain.AlertDelivery
+import com.forager.app.domain.AlertKind
 import com.forager.app.domain.ComputeReturnToStartUseCase
 import com.forager.app.domain.CreateWaypointUseCase
 import com.forager.app.domain.CurrentTimeProvider
@@ -9,6 +14,7 @@ import com.forager.app.domain.GetTracksUseCase
 import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.RingerMode
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.TrackRepository
 import com.forager.app.domain.model.Track
@@ -79,6 +85,14 @@ class TrackRecordingViewModelTest {
     private val createdViewModels = mutableListOf<TrackRecordingViewModel>()
 
     /**
+     * Alert-delivery dispatch: every [Alert] any ViewModel in this test handed to its delivery, in
+     * order. One instance per test method (JUnit rebuilds the class), shared by every [viewModel]
+     * built in it. The off-track tests assert on this list's size — an invocation count, the
+     * dispatch's own "exactly one delivery per event" — and nothing here composes anything.
+     */
+    private val alertDelivery = RecordingAlertDelivery()
+
+    /**
      * `runTest` on this class's [dispatcher], with every recording stopped before `runTest`'s own
      * closing idle-advance can reach an unstopped poll loop — see the class doc comment for the
      * hang this exists to make impossible. The one mechanism for the job: individual tests do not
@@ -101,6 +115,7 @@ class TrackRecordingViewModelTest {
         // stream is enough there; nothing needs beginLocationTracking() to ever actually emit.
         locationTracker: LocationTracker = NoOpLocationTracker(),
         offTrackAlertClock: CurrentTimeProvider = fixedTime,
+        alertAudibility: AlertAudibility = FakeAlertAudibility(AUDIBLE),
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
@@ -113,6 +128,8 @@ class TrackRecordingViewModelTest {
         detectOffTrack = DetectOffTrackUseCase(),
         locationTracker = locationTracker,
         getTracks = GetTracksUseCase(trackRepository),
+        alertDelivery = alertDelivery,
+        alertAudibility = alertAudibility,
         currentTime = offTrackAlertClock,
         zone = ZoneOffset.UTC,
     ).also(createdViewModels::add)
@@ -367,13 +384,15 @@ class TrackRecordingViewModelTest {
     }
 
     /**
-     * Field-test dispatch item 4: [TrackRecordingUiState.offTrackAlertId] is what `MainActivity`
-     * observes to post a notification and vibrate — this suite can't drive an Activity, so it
-     * asserts the counter [MainActivity] reacts to instead, the same boundary
-     * [AvailabilityViewModelLocateMeTest] draws for its own permission-dialog side effects.
+     * Field-test dispatch item 4, re-seated by the alert-delivery dispatch: the off-track alert is
+     * handed to [AlertDelivery] directly from `returnToStart`, not signalled through UI state for a
+     * composed observer — so this test counts deliveries on a fake, with no Compose anywhere in
+     * it. That is the structural claim: the decision and the delivery are reachable with no
+     * composed tree. Exactly one delivery per event, asserted as a count, not as the absence of a
+     * second. Fails with the `alertDelivery.deliver` call removed (0 deliveries).
      */
     @Test
-    fun `going off-track bumps offTrackAlertId once, not once per fix`() = runRecordingTest {
+    fun `going off-track delivers exactly one alert, not one per fix`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository, offTrackAlertClock = CurrentTimeProvider { 1_000L })
 
@@ -383,18 +402,21 @@ class TrackRecordingViewModelTest {
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
         vm.startReturn()
-        assertEquals(0, vm.uiState.value.offTrackAlertId)
+        assertEquals(0, alertDelivery.alerts.size)
 
         vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 2_000L))
         vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 3_000L))
         vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 4_000L))
         assertTrue(vm.uiState.value.isOffTrack)
-        assertEquals(1, vm.uiState.value.offTrackAlertId)
+        assertEquals(1, alertDelivery.alerts.size)
+        // Off-track passes overridesSilence = true (owner decision) — asserted on the value the
+        // delivery received, since the parameter exists precisely so it is never assumed.
+        assertEquals(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = true), alertDelivery.alerts.single())
 
         // Still off-track (net distance keeps increasing) on the very next fix, same clock instant
-        // — the cooldown, not the heuristic, is what must keep this from bumping again immediately.
+        // — the cooldown, not the heuristic, is what must keep this from delivering again immediately.
         vm.returnToStart(point(lat = 45.004, lng = -122.0, t = 5_000L))
-        assertEquals(1, vm.uiState.value.offTrackAlertId)
+        assertEquals(1, alertDelivery.alerts.size)
 
         vm.stopRecording()
     }
@@ -415,23 +437,23 @@ class TrackRecordingViewModelTest {
         vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 2_000L))
         vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 3_000L))
         vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 4_000L))
-        assertEquals(1, vm.uiState.value.offTrackAlertId)
+        assertEquals(1, alertDelivery.alerts.size)
 
         // Just short of the cooldown: still just the one alert.
         nowMillis += OFF_TRACK_ALERT_COOLDOWN_MILLIS - 1
         vm.returnToStart(point(lat = 45.004, lng = -122.0, t = 5_000L))
-        assertEquals(1, vm.uiState.value.offTrackAlertId)
+        assertEquals(1, alertDelivery.alerts.size)
 
         // Cooldown elapsed, and the drift continues: a second, real reminder.
         nowMillis += 1
         vm.returnToStart(point(lat = 45.005, lng = -122.0, t = 6_000L))
-        assertEquals(2, vm.uiState.value.offTrackAlertId)
+        assertEquals(2, alertDelivery.alerts.size)
 
         vm.stopRecording()
     }
 
     @Test
-    fun `staying on track never bumps offTrackAlertId`() = runRecordingTest {
+    fun `staying on track never delivers an alert`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
         val vm = viewModel(trackRepository)
 
@@ -446,7 +468,7 @@ class TrackRecordingViewModelTest {
         vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 3_000L))
         vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 4_000L))
 
-        assertEquals(0, vm.uiState.value.offTrackAlertId)
+        assertEquals(0, alertDelivery.alerts.size)
         vm.stopRecording()
     }
 
@@ -464,7 +486,7 @@ class TrackRecordingViewModelTest {
         vm.returnToStart(point(lat = 45.001, lng = -122.0, t = 2_000L))
         vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 3_000L))
         vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 4_000L))
-        assertEquals(1, vm.uiState.value.offTrackAlertId)
+        assertEquals(1, alertDelivery.alerts.size)
 
         vm.stopReturn()
         vm.startReturn()
@@ -474,7 +496,7 @@ class TrackRecordingViewModelTest {
         vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 6_000L))
         vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 7_000L))
 
-        assertEquals(2, vm.uiState.value.offTrackAlertId)
+        assertEquals(2, alertDelivery.alerts.size)
         vm.stopRecording()
     }
 
@@ -686,11 +708,63 @@ class TrackRecordingViewModelTest {
         /** Mirrors TrackRecordingViewModel's own private constant of the same name — see its own doc comment. */
         const val OFF_TRACK_ALERT_COOLDOWN_MILLIS = 120_000L
     }
+
+    /**
+     * Alert-delivery dispatch, Item 3: a silenced phone at record start sets the one-time warning,
+     * a normal one sets none, and vibrate mode is not a silenced state for a vibration. The copy
+     * is pinned as the owner's literal, not read from the constant. Fails with the audibility read
+     * removed from startRecording (warning stays null).
+     */
+    @Test
+    fun `a silenced phone at record start sets the trip-start warning`() = runRecordingTest {
+        val vm = viewModel(alertAudibility = FakeAlertAudibility(AlertAudibilityState(RingerMode.SILENT, doNotDisturbOn = false, notificationsEnabled = true)))
+
+        vm.startRecording()
+        runCurrent()
+
+        assertEquals("Your phone is silenced. If you go off track, the alert may not be felt.", vm.uiState.value.tripStartWarning?.message)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `a normal or vibrate-mode phone at record start sets no trip-start warning`() = runRecordingTest {
+        val normal = viewModel()
+        normal.startRecording()
+        runCurrent()
+        assertNull(normal.uiState.value.tripStartWarning)
+        normal.stopRecording()
+
+        val vibrate = viewModel(alertAudibility = FakeAlertAudibility(AlertAudibilityState(RingerMode.VIBRATE, doNotDisturbOn = false, notificationsEnabled = true)))
+        vibrate.startRecording()
+        runCurrent()
+        assertNull(vibrate.uiState.value.tripStartWarning)
+        vibrate.stopRecording()
+    }
+
+    /** The same text on a later trip must re-show, so each recording's warning carries a new id (the Snackbar effect is keyed on it). */
+    @Test
+    fun `the trip-start warning gets a new id on each recording so an identical message re-shows`() = runRecordingTest {
+        val vm = viewModel(alertAudibility = FakeAlertAudibility(AlertAudibilityState(RingerMode.NORMAL, doNotDisturbOn = true, notificationsEnabled = true)))
+
+        vm.startRecording()
+        runCurrent()
+        val first = vm.uiState.value.tripStartWarning
+        vm.stopRecording()
+        vm.startRecording()
+        runCurrent()
+        val second = vm.uiState.value.tripStartWarning
+
+        assertEquals("Do Not Disturb is on. If you go off track, the alert may not be felt.", first?.message)
+        assertEquals(first?.message, second?.message)
+        assertTrue("expected a fresh id per recording, got ${first?.id} then ${second?.id}", first != null && second != null && second.id > first.id)
+        vm.stopRecording()
+    }
 }
 
 private class NoOpLocationTracker : LocationTracker {
     override val fixes: Flow<LocationFix> = emptyFlow()
 }
+
 
 private class FakeLocationTracker(override val fixes: MutableSharedFlow<LocationFix>) : LocationTracker
 
@@ -776,3 +850,18 @@ private class FakeWaypointRepository : com.forager.app.domain.WaypointRepository
         return Result.success(Unit)
     }
 }
+
+/** Records every [Alert] handed over, in order — see [TrackRecordingViewModelTest.alertDelivery]. */
+private class RecordingAlertDelivery : AlertDelivery {
+    val alerts = mutableListOf<Alert>()
+    override fun deliver(alert: Alert) {
+        alerts += alert
+    }
+}
+
+private class FakeAlertAudibility(private val state: AlertAudibilityState) : AlertAudibility {
+    override fun current(): AlertAudibilityState = state
+}
+
+/** A phone that would deliver an alert normally — the default every test not about the warning runs with. */
+private val AUDIBLE = AlertAudibilityState(ringerMode = RingerMode.NORMAL, doNotDisturbOn = false, notificationsEnabled = true)
