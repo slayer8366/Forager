@@ -137,7 +137,35 @@ exception at the entity — A2's decisions are recorded above for when A1 lands.
 
 ### Verification
 
-PARTB_VERIFICATION
+Forward: the five affected classes (`EstimateOfflineTileCountTest`, `OfflineMapRadiusBudgetGuardTest`,
+`AvailabilityViewModelOfflineMapsTest`, `AvailabilityScreenSettingsPanelTest`,
+`AvailabilityViewModelDistanceUnitTest`) — 50 tests, 0 failed, after one fix to my own new
+assertion (the 7.9999995 tolerance above; the first run failed on it and on nothing else).
+
+Reverted variants, each a one-line sed on the source, the build log checked for `e:` /
+`compileDebugKotlin FAILED` before results were read (none in any of the four — every reverted
+build compiled and ran), and the source restored from a saved copy afterwards:
+
+| Revert | Predicted | Observed |
+|---|---|---|
+| `SERVED_MAX_ZOOM` back to 14.0 | served-ceiling literals and all three guard literals fail | 4 failures: `expected:<224> but was:<68>`; guard `5246→1402`, `5718→1493`, `6075→1586` |
+| `MAX_RADIUS_KM` back to 50 | every test that pins 24 or gates 24 km fails | 9 failures: served `4304→18696`; guard `5246→22028`, `5718→22790`, `6075→23778`, `24→50`; gate test "expected the pre-flight gate to let a 50 km region through" (refused at 49.60°N); clamp `24→50`; restored radius `24→50`; slider test finds no 1–≠50 slider |
+| the `loadOfflineMapPreferences` clamp removed | only the restored-radius test | 1 failure: `expected:<24> but was:<50>` |
+| slider `valueRange` back to `Region.MAX_RADIUS_KM` | only the slider semantics test | 1 failure: no slider whose range ends other than 50 |
+
+Every failure names a value only its own revert could produce; none is a stale result.
+
+Full suite after Part B: **1 161 tests, 0 failed, 24 skipped** (1 155 + 4 guard tests + the
+restored-radius test + the slider test). Skip set compared by (class, name) against the CI
+`SKIPPED_TESTS_ALLOWLIST` parsed from `.github/workflows/ci.yml`: byte-identical, 24 = 24. The
+`JournalTabTest` "From Album" flake did not fire.
+
+One process note: the reverted-variant runner used `git checkout -- FILE` to restore the source,
+which restores the *committed* version — on the first Part C revert this silently discarded the
+uncommitted forward edit, caught only because the next diff was a file short. The runner now
+restores from a copy saved before the sed. Recorded because the CLAUDE.md line on reverted variants
+covers stale results, and this is a second way the same tool can lie: a restore that removes the
+change under test.
 
 ### Device checks the owner must run for Part B
 
