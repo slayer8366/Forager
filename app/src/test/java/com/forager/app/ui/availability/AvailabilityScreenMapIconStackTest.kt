@@ -108,6 +108,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Ignore
@@ -119,6 +120,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 /**
  * The map redesign's right-edge icon stack, bottom nav, fullscreen toggle, and compass/elevation
@@ -501,15 +503,187 @@ class AvailabilityScreenMapIconStackTest {
         }
     }
 
+    /**
+     * Navigation-chrome amendment, Fix 1: inside the approach threshold the HUD shows the distance
+     * exactly once — the target column is empty under its dimmed icon. A first cut put the distance
+     * in that column too and the owner read "9 ft · 9 ft · Approaching" on device. Node count, as
+     * the heading test does — the duplicate heading was caught that way and this is the same class
+     * of bug. The fix is 10 m north of the origin with 12.5 m accuracy (threshold 25 m).
+     */
     @Test
-    fun `system back while navigating exits the HUD`() {
+    fun `inside the approach threshold the distance appears exactly once and the target column is empty`() {
+        setNavigatingScreen(fix = hudFix.copy(lat = 45.53009))
+        composeRule.waitForIdle()
+
+        assertEquals("10 m", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("Approaching", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        composeRule.onAllNodesWithText("10 m").assertCountEquals(1)
+    }
+
+    // ── Navigation-chrome amendment, Fix 2: back asks, and never exits ──────────────────────
+    //
+    // These press back through the Activity's OnBackPressedDispatcher (pressBack), which is where
+    // AvailabilityScreen's BackHandlers live. On a device the open AlertDialog is its own window
+    // and consumes the dismissing press itself; under Robolectric that press reaches the Activity
+    // instead, where the same handler toggles the prompt off. So the "back dismisses the prompt"
+    // tests below exercise the handler's TOGGLE path, not the dialog window's own dismiss — the
+    // guarantee (back never exits navigation) holds by either route, but the dialog's own back
+    // handling is device-only coverage. Said plainly so this does not read as coverage it isn't.
+
+    /** The stage-one test here asserted `exits == 1` after one back press — the behaviour the amendment removes. Inverted, not absorbed. */
+    @Test
+    fun `system back while navigating raises the exit prompt and does not exit`() {
         var exits = 0
         setNavigatingScreen(onToggleReturning = { exits++ })
         composeRule.waitForIdle()
 
         pressBack()
 
+        composeRule.onNodeWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Exit navigation?").assertIsDisplayed()
+        composeRule.onNodeWithText("Your track will keep recording.").assertIsDisplayed()
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        assertEquals(0, exits)
+    }
+
+    @Test
+    fun `back while the exit prompt is open dismisses it and leaves navigation running`() {
+        var exits = 0
+        setNavigatingScreen(onToggleReturning = { exits++ })
+        composeRule.waitForIdle()
+        pressBack()
+        composeRule.onNodeWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onAllNodesWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertCountEquals(0)
+        // Navigation still active — not merely "the dialog is gone".
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        assertEquals(0, exits)
+    }
+
+    /**
+     * The whole guarantee: repeated presses never exit and never reach the app-exit handler. A
+     * test of one press would not catch a second press confirming. Seven presses: the prompt
+     * alternates open/closed, exits stays 0, the HUD stays, no "Tap Back Button Again to Exit"
+     * toast (the exit handler's own witness in AvailabilityScreenBackNavigationTest), and the
+     * Activity is not finishing.
+     */
+    @Test
+    fun `repeated back presses while navigating never exit navigation and never close the app`() {
+        var exits = 0
+        setNavigatingScreen(onToggleReturning = { exits++ })
+        composeRule.waitForIdle()
+
+        repeat(7) { press ->
+            pressBack()
+            val promptExpected = press % 2 == 0
+            composeRule.onAllNodesWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertCountEquals(if (promptExpected) 1 else 0)
+            composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+            assertEquals("press ${press + 1} must not exit navigation", 0, exits)
+            assertEquals("press ${press + 1} must not reach the app-exit handler", null, ShadowToast.getTextOfLatestToast())
+            assertFalse("press ${press + 1} must not finish the Activity", composeRule.activity.isFinishing)
+        }
+    }
+
+    @Test
+    fun `Exit on the prompt exits navigation once - Keep navigating does not`() {
+        var exits = 0
+        setNavigatingScreen(onToggleReturning = { exits++ })
+        composeRule.waitForIdle()
+
+        pressBack()
+        composeRule.onNodeWithTag(EXIT_NAVIGATION_PROMPT_KEEP_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        assertEquals(0, exits)
+
+        pressBack()
+        composeRule.onNodeWithTag(EXIT_NAVIGATION_PROMPT_EXIT_TAG).performClick()
+        composeRule.waitForIdle()
         assertEquals(1, exits)
+        composeRule.onAllNodesWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertCountEquals(0)
+    }
+
+    /**
+     * The reordering (owner's ruling): navigation is the LAST thing backed out of. In fullscreen,
+     * back exits fullscreen and leaves navigation untouched — no prompt, no exit; the next press
+     * asks. Stage one did the reverse (CompactMapTab's handler, the deepest, exited navigation
+     * first), which no test caught because none pressed back while navigating with anything
+     * else open. The nav's "Tools" returning is the fullscreen-exit witness.
+     */
+    @Test
+    fun `back while navigating in fullscreen exits fullscreen first and only the next press asks about navigation`() {
+        var exits = 0
+        setNavigatingScreen(onToggleReturning = { exits++ })
+        composeRule.waitForIdle()
+        touchFullscreenRow("Fullscreen")
+        composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
+
+        pressBack()
+
+        composeRule.onNodeWithText("Tools").assertIsDisplayed()
+        composeRule.onAllNodesWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        assertEquals(0, exits)
+
+        pressBack()
+
+        composeRule.onNodeWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertIsDisplayed()
+        assertEquals(0, exits)
+    }
+
+    // The search-dropdown ordering case lives in AvailabilityScreenBackNavigationTest: this
+    // fixture hits the documented Robolectric dropdown-dismissal failure
+    // (docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md) — a diagnostic run here
+    // showed the dropdown's handler taking the press (no prompt, no exit) but the dropdown never
+    // unmounting — so the claim is asserted where the dropdown demonstrably closes on back.
+
+    /**
+     * The ✕ is a deliberate press and still exits directly, with no prompt composed. (The control
+     * pill's toggle is wired the same way — `onClick = onToggleReturning`, nothing in between —
+     * but its semantic click is this suite's documented Robolectric no-op, see
+     * docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md, so it is not asserted
+     * here; the real-touch exit test above covers the ✕ by coordinates.)
+     */
+    @Test
+    fun `the HUD's close button exits directly without the prompt`() {
+        var exits = 0
+        setNavigatingScreen(onToggleReturning = { exits++ })
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(NAVIGATION_HUD_EXIT_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, exits)
+        composeRule.onAllNodesWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertCountEquals(0)
+    }
+
+    /**
+     * Once navigation has ended, back reaches what it reached before this change: the go-home
+     * exit handler, whose first press only warns. Its toast is the witness, the same one
+     * AvailabilityScreenBackNavigationTest uses. A prompt left open when navigation ends is
+     * dismissed with it.
+     */
+    @Test
+    fun `after navigation ends back reaches the exit warning again, unchanged`() {
+        val returning = mutableStateOf(true)
+        setNavigatingScreen(returning = returning)
+        composeRule.waitForIdle()
+        pressBack()
+        composeRule.onNodeWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertIsDisplayed()
+
+        composeRule.runOnUiThread { returning.value = false }
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).assertCountEquals(0)
+
+        pressBack()
+
+        assertEquals("Tap Back Button Again to Exit", ShadowToast.getTextOfLatestToast())
+        assertFalse(composeRule.activity.isFinishing)
     }
 
     /**

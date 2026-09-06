@@ -12,7 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -144,7 +146,13 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.waitForIdle()
     }
 
-    private fun setScreen(logUiState: MushroomLogUiState = MushroomLogUiState(), cartographyUiState: CartographyUiState = CartographyUiState()) {
+    private fun setScreen(
+        logUiState: MushroomLogUiState = MushroomLogUiState(),
+        cartographyUiState: CartographyUiState = CartographyUiState(),
+        /** Navigation-chrome amendment: a navigating screen (recording, returning, origin set) for the back-chain ordering tests. */
+        isReturning: Boolean = false,
+        onToggleReturning: () -> Unit = {},
+    ) {
         val plannedTripRepository = BackNavInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
             locationProvider = BackNavUnusedLocationProvider,
@@ -203,6 +211,14 @@ class AvailabilityScreenBackNavigationTest {
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                 onThemeModeChanged = viewModel::onThemeModeChanged,
+                isRecording = isReturning,
+                isReturning = isReturning,
+                onToggleReturning = onToggleReturning,
+                navigationTarget = if (isReturning) {
+                    com.forager.app.domain.model.Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = com.forager.app.domain.model.WaypointDesignation.ORIGIN)
+                } else {
+                    null
+                },
                 logUiState = logState,
                 onStartLogEntry = { location, date ->
                     // Workstream L4b: a brand-new entry is a draft, never added to entries at
@@ -360,6 +376,41 @@ class AvailabilityScreenBackNavigationTest {
         pressBack()
 
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertDoesNotExist()
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
+    }
+
+    /**
+     * Navigation-chrome amendment, the reordering: navigation is the LAST thing backed out of, so
+     * with the search dropdown open while navigating, back closes the dropdown and leaves
+     * navigation alone — no exit-navigation prompt, no exit. Stage one's handler in CompactMapTab
+     * was the deepest registered and exited navigation first; nothing caught it because no test
+     * pressed back while navigating with anything else open. Lives here rather than in
+     * AvailabilityScreenMapIconStackTest because this fixture's dropdown demonstrably closes on
+     * back (the test above), whereas that class's fixture hits the documented Robolectric
+     * dismissal failure (docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md): a
+     * diagnostic run there showed the dropdown handler taking the press (no prompt, no exit) but
+     * the dropdown staying mounted — the harness half of the claim, not the ordering half.
+     */
+    @Test
+    fun `back while navigating with the search dropdown open closes the dropdown first, without asking about navigation`() {
+        var exits = 0
+        setScreen(isReturning = true, onToggleReturning = { exits++ })
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
+
+        pressBack()
+
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertDoesNotExist()
+        composeRule.onAllNodesWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        assertEquals(0, exits)
+        assertEquals(null, ShadowToast.getTextOfLatestToast())
+
+        // And only now does back ask — the prompt, not the exit warning.
+        pressBack()
+        composeRule.onNodeWithTag(EXIT_NAVIGATION_PROMPT_TAG).assertIsDisplayed()
+        assertEquals(0, exits)
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
 

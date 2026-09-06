@@ -69,9 +69,10 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("33 ft", r.distanceText)
         assertNull(r.targetArrowDegrees)
-        // The target column shows the distance alone — no "Turn N°" (the same unstable bearing as
-        // the needle), no dash, no placeholder (owner's call).
-        assertEquals("33 ft", r.targetText)
+        // The target column shows nothing — no "Turn N°" (the same unstable bearing as the
+        // needle), no dash, no placeholder, and not the distance either: a first cut put the
+        // distance here and the owner read "9 ft · 9 ft" on device (navigation-chrome amendment).
+        assertEquals("", r.targetText)
     }
 
     /**
@@ -92,7 +93,7 @@ class NavigationHudReadoutTest {
         assertEquals("51 ft", r1.distanceText)
         assertNull("no needle at 15.57 m with 8 m accuracy", r1.targetArrowDegrees)
         assertEquals("Approaching", r1.statusText)
-        assertEquals("51 ft", r1.targetText)
+        assertEquals("", r1.targetText)
 
         val r2 = readout(liveFix = eightMetres, target = outside)
         assertEquals("54 ft", r2.distanceText)
@@ -132,7 +133,7 @@ class NavigationHudReadoutTest {
 
         assertEquals("Approaching · last fix 45 s ago", r.statusText)
         assertNull(r.targetArrowDegrees)
-        assertEquals("33 ft", r.targetText)
+        assertEquals("", r.targetText)
         assertTrue(r.distanceDeEmphasised)
     }
 
@@ -165,7 +166,7 @@ class NavigationHudReadoutTest {
 
         val r = readout(heading = TrueHeadingReading.NoSensor, target = close)
 
-        assertEquals("33 ft", r.targetText)
+        assertEquals("", r.targetText)
         assertEquals("Approaching", r.statusText)
     }
 
