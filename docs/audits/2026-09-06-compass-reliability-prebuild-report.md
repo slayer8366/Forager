@@ -117,3 +117,57 @@ Baseline 1134 / 24 confirmed on this tree at the end of the last pulse; skip set
 ## Required disclosure (pre-build)
 
 **Confirmed:** every citation; the single-sensor registration on the rotation-vector path; the exhaustive `when`s; the approach suppression's exact form; the Robolectric factory's second argument (bytecode). **Inferred:** calibrated devices' typical `values[4]` (a few degrees) and distorted values (tens); that zero is what unpopulating implementations leave; that the fusion's status follows the magnetometer; ~16 Hz at `SENSOR_DELAY_UI`. **Could not determine:** whether the owner's device populates `values[4]`; everything on the device list. **Premises in this dispatch that were wrong:** none in the dispatch. One in the pulse it relies on, corrected above (the shadow factory's second argument). **Decided:** nothing built; every proposal above waits on the owner's answer, and five unlisted decisions are flagged.
+
+---
+---
+
+# Completion report
+
+**Owner's answers:** zero handling as proposed; 15° and the status-level equivalence taken; hysteresis two-threshold and asymmetric in time (enter above 15°, leave below 12°, warn at once, clear after ~2 s held good); one emission carrying heading and uncertainty together; bearing text suppressed for unreliable; smoother reset on recovery; fallback gated on the magnetometer; the pulse correction noted; branch not restarted.
+
+**Commits on `claude/new-session-102gri`:** `d9cd710` (this pre-build report), `570f4ff` (product), `4c3a100` (tests), plus this one. Not merged; no PR opened (none asked for).
+
+## What was built
+
+- **`domain/CompassProvider.kt`** — `heading: Flow<CompassReading?>`; `CompassReading(magneticHeadingDegrees, uncertainty, timestampMillis)`; `HeadingUncertainty` sealed as `Estimated(degrees)` (from `values[4]`) or `Status(level)` (the fallback, naming itself so a test or a log can see which path decided); `CompassStatus { UNRELIABLE, LOW, MEDIUM, HIGH }`. One value per update, never two flows (owner: the same shape as `liveFix`).
+- **`domain/CompassTrustJudge.kt`** — pure: `next(reading): Boolean`. Estimated: enter when `degrees > 15f`, and once unreliable stay while `degrees >= 12f`; Status: `UNRELIABLE`/`LOW` bad, `MEDIUM`/`HIGH` good. Enter immediately; clear only when the reading's own monotonic timestamp shows 2 000 ms of good readings since the first good one, any bad reading restarting the hold. The 15° argument is at the class.
+- **`sensor/AndroidCompassProvider.kt`** — registration unchanged (rotation vector at `SENSOR_DELAY_UI`, else accelerometer + magnetometer). Rotation-vector events: `values[4]` → `Estimated` when supplied (size ≥ 5, not NaN, `> 0f`, `≤ π`), else `Status(event.accuracy)` — that sensor's own status, the only one registered there. Fallback path: `Status` of the **magnetometer's** accuracy; the accelerometer's is never read for gating. `onAccuracyChanged` is no longer empty: it records the gating sensor's status and, when the last emitted reading was status-based, re-emits that heading with the new status at once; after an estimate-carrying reading it only records. Exactly zero falls back, for the reason recorded in the class doc and in §1.1 above.
+- **`ui/map/TrueHeading.kt`** — `TrueHeadingReading.Unreliable` (no heading carried, on purpose); the judge is fed every reading before the `when`; order: `NoSensor` → `NeedsFix` → `Unreliable` → `Available`, with the reason for `NeedsFix` before `Unreliable` written there (position failure first, as the HUD's needle ranks it). The smoother resets on every unreliable reading, so recovery re-seeds from the first good one and shows it as-is.
+- **Strip** (`AvailabilityScreen.kt`) and **HUD** (`NavigationHud.kt`): "Compass unreliable" in the heading slot, no cause named; the HUD's north arrow unrotated, needle and target text withheld, the four-term precedence written in a comment at the `if` and the `when` (lost fix → unreliable → approaching; no-sensor unchanged), with `compassUnreliable` named in the `if` so the term is visible where the order is stated rather than implied by a null heading.
+
+## Tests
+
+**Suite:** **1155 tests, 0 failures, 0 errors, 24 skipped** on the final tree (`./gradlew :app:testDebugUnitTest --continue`, summed from the JUnit XML); the skipped set is byte-identical to the CI `SKIPPED_TESTS_ALLOWLIST` (24 entries; no unallowed skip, no stale entry). `JournalTabTest`'s "From Album" flake did not fire. Baseline 1134 / 24; the new tests account for the difference and the skip count did not move.
+
+**Reverted-and-rerun** — ten one-line edits, each with the affected classes run and the file restored:
+
+| Reverted | Red, and how |
+|---|---|
+| Judge bypassed (`val unreliable = false`) | both screen tests: `expected Compass unreliable but was 200° S` / `95° E`. |
+| Enter threshold 15 → 50 | six judge tests and both screen tests (the 20.05° reading shows as a heading). |
+| Leave band removed (enter threshold used both ways) | `leaves only below 12 degrees…` (13.5° cleared). 1 failure, the one that isolates the band. |
+| Clear hold 2 000 → 0 ms | five judge tests; both screen tests (cleared on the first good reading: `was 90° E` / `185° S` one step early). |
+| Zero treated as an estimate (`< 0f` for `<= 0f`) | provider: `values4 exactly zero…` (`Estimated(0.0)`), the literal test, and the callback test (the zero reading no longer status-based, so no re-emit). |
+| Callback re-emit inverted (`!lastWasStatusBased`) | provider: `the accuracy callback alone re-emits…` (`expected 2 but was 1`). **A first attempt at this revert, `if (false)`, removed a smart cast and did not compile; the runner printed the previous run's stale results.** Caught because the failures named the zero case that revert could not have caused; the revert script now flags compile failures and refuses to cite stale results, and the check was redone with a compiling inversion. |
+| Smoother reset removed while unreliable | strip: `expected 90° E but was 175° S`; HUD: `expected 185° S but was 118° SE` — the exact blends worked by hand in the test comments (0.7·seed + 0.3·new as unit vectors). |
+| Precedence: unreliable placed before lost fix | readout: `precedence - lost fix with unreliable compass reads as lost` (`expected Target but was ""`). |
+| Strip label wrong ("Compass unavailable") | strip screen test (`expected Compass un[reli]able but was Compass un[avail]able`). |
+| Magnetometer status no longer gating on the fallback path | provider: `fallback path - the magnetometer's status gates…` (`expected LOW but was HIGH`). |
+
+**Both signals driven separately, through the sensor shadow** (`AndroidCompassProviderTest`, the real provider's first tests): `values[4] = 0.35` → `Estimated(20.05°)` with the framework-computed heading (0° for the identity rotation); a `LOW` status with `values[4] = 0` → `Status(LOW)`, **asserted by the reading naming the status path**, not by absence of effect; four-element values, `−1`, NaN and `3.2` rad all fall back; the callback alone produces an emission; the fallback path gates on the magnetometer; no sensor → one `null`. The 0.2618 rad ↔ 15.000° literal is pinned with the arithmetic beside it. **Precedence for every pair that can hold at once** (`NavigationHudReadoutTest`): lost + unreliable → lost; unreliable + approaching → needle withheld, "Approaching" kept; unreliable + no fix → the no-fix message. **Recovery**: both screen tests hold good readings across the 2 s and come back — and, seeded with a trusted heading first, they come back to the *new* reading exactly (the reset); a first draft started unreliable with the smoother never seeded and would have passed without the reset, caught before the revert check by reasoning about what the check would show.
+
+**Fakes:** both test fakes emit `CompassReading`; a `Float` still means "a trusted heading" (2° uncertainty), so every pre-existing heading test is unchanged in meaning. **Left untested by design** (dispatch): the fallback path's heading arithmetic beyond one sanity value; `combinedHeading`'s `getRotationMatrix` failure branch.
+
+**One more rendering difference, reported not changed:** `NoSensor` still shows the absolute bearing as text ("Bearing 0° N", `NavigationHud.kt`), the one state that does; `Unreliable` shows nothing, matching the approach case as ruled. The owner's ruling said "matching no-sensor" and "leave the user in the same position" — if the intent was that `NoSensor` should *also* withhold the text, that is a one-branch change and one existing test (`with no compass sensor the HUD still shows the distance and the absolute true bearing`) that this dispatch did not authorise; flagged, not done.
+
+## Device list (verification blocked — no KVM)
+
+1. **Whether `values[4]` is populated at all on the test device.** A debug log of `uncertainty` per reading will say `Estimated` or `Status`; a device that never says `Estimated` is on the status-level path for good. Everything else rests on this.
+2. **Beside a vehicle**: does "Compass unreliable" appear, how quickly, and how wrong was the heading just before it did (against a known bearing).
+3. **Beside a power line or a metal fence**, the same.
+4. **Recovery time** after walking away — the 2 s hold plus however long the sensor takes to report good again.
+5. The message on the strip and in the HUD, both themes; the HUD's arrows unrotated and dimmed while it shows.
+
+## Required disclosure
+
+**Confirmed:** every line of the revert table and the suite line, by running (with the one stale run identified and redone); the blends in the smoother revert match the hand arithmetic; registration unchanged. **Inferred:** that the fusion's status tracks the magnetometer on real devices; that unpopulating implementations leave `values[4]` at zero; the 16 Hz rate behind the "flicker" reasoning. **Could not determine:** everything on the device list. **Premises in this dispatch that were wrong:** none. **Decided without cover:** (1) `NeedsFix` ranks before `Unreliable` in `rememberTrueHeading`, by extension of the dispatch's own lost-fix-first rule to the no-fix-yet case; (2) the callback re-emits only after a status-based reading (an estimate is the better signal and arrives again with the next event); (3) `SENSOR_STATUS_NO_CONTACT` and any unknown status read as `UNRELIABLE`, never as trusted; (4) the fake's "trusted" uncertainty is 2°; (5) the revert script's compile-failure guard.
