@@ -10,7 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
@@ -161,6 +164,8 @@ class AvailabilityScreenMapIconStackTest {
         onToggleRecording: () -> Unit = {},
         returnToStart: ReturnToStartInfo? = null,
         isReturning: Boolean = false,
+        /** Navigation-chrome dispatch: a live `State` for tests that enter *and leave* navigation in one composition; when given, it overrides [isReturning]. */
+        returning: State<Boolean>? = null,
         isOffTrack: Boolean = false,
         onToggleReturning: () -> Unit = {},
         mushroomRepository: TaxonSearchRepository = IconStackEmptyRepository,
@@ -229,7 +234,7 @@ class AvailabilityScreenMapIconStackTest {
                 isRecording = isRecording,
                 onToggleRecording = onToggleRecording,
                 returnToStart = returnToStart,
-                isReturning = isReturning,
+                isReturning = returning?.value ?: isReturning,
                 isOffTrack = isOffTrack,
                 onToggleReturning = onToggleReturning,
                 compassProvider = compassProvider,
@@ -247,18 +252,23 @@ class AvailabilityScreenMapIconStackTest {
     // declination = 95° true, "95° E".
 
     private val hudFix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L)
+    /** MgrsConverterTest's own Portland point ("10T ER 25118 40235"), with an altitude — for the HUD's second row. */
+    private val portlandFix = LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 1_700_000_000_000L)
     private val hudOrigin = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 1_700_000_000_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val hudClock = CurrentTimeProvider { 1_700_000_001_000L }
 
     private fun setNavigatingScreen(
         compassHeading: Float? = 80f,
         withFix: Boolean = true,
+        fix: LocationFix.Update = hudFix,
+        returning: State<Boolean>? = null,
         onToggleReturning: () -> Unit = {},
     ) = setScreen(
         compassProvider = FakeCompassProvider(compassHeading),
-        locationTracker = if (withFix) IconStackFixedLocationTracker(hudFix) else IconStackNoOpLocationTracker,
+        locationTracker = if (withFix) IconStackFixedLocationTracker(fix) else IconStackNoOpLocationTracker,
         isRecording = true,
         isReturning = true,
+        returning = returning,
         onToggleReturning = onToggleReturning,
         computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
         navigationTarget = hudOrigin,
@@ -269,18 +279,44 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
 
     /**
-     * The dispatch's own requirement, asserted directly: the strip and the HUD's north compass
-     * read one value — and that value is *true* north (80° magnetic + 15° declination), not the
-     * raw magnetic the strip used to rotate. Fails with the strip back on magnetic ("80° E" vs
-     * "95° E") and with either reading its own filter.
+     * The navigation-chrome dispatch's finding, stated plainly: this test's stage-one form asserted
+     * the strip *and* the HUD both reading "95° E" while navigating — the "heading appears three
+     * times" bug the owner saw on device, pinned here as a requirement. A test can encode a defect
+     * as a requirement, and this one did; it stayed green through the whole of stage one because
+     * it never questioned that both should be there. Now: while navigating the strip is not
+     * composed at all, and the heading text appears exactly **once** on screen — asserted as a
+     * node count, not merely the HUD's presence — and that one reading is *true* north (80°
+     * magnetic + 15° declination). Fails with the strip composed while navigating (two "95° E"
+     * nodes) and with the HUD back on magnetic ("80° E").
      */
     @Test
-    fun `the compass strip and the HUD's north compass read the same true heading`() {
+    fun `while navigating the compass strip is absent and the true heading appears exactly once`() {
         setNavigatingScreen()
         composeRule.waitForIdle()
 
-        assertEquals("95° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)
+        composeRule.onAllNodesWithText("95° E").assertCountEquals(1)
         assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+    }
+
+    /**
+     * The other half of item 1: the strip comes back when navigation ends — asserted by leaving,
+     * not by a second screen that never navigated. Heading still exactly once, now in the strip.
+     */
+    @Test
+    fun `leaving navigation brings the compass strip back with the heading, still exactly once`() {
+        val returning = mutableStateOf(true)
+        setNavigatingScreen(returning = returning)
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)
+
+        composeRule.runOnUiThread { returning.value = false }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
+        composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithText("95° E").assertCountEquals(1)
+        assertEquals("95° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
     }
 
     @Test
@@ -293,14 +329,103 @@ class AvailabilityScreenMapIconStackTest {
         assertEquals("Turn 265°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
+    /**
+     * Item 4, the HUD's side: with no fix the HUD says one thing, once — the heading label is a
+     * dash, the status line carries the message, and there is no elevation/coordinates row to
+     * repeat the same cause twice more. "Compass needs a fix" and "Waiting for a fix" are gone,
+     * not kept alongside. Magnetic is still never shown (the "80° E" count).
+     */
     @Test
-    fun `before any fix the strip says the compass needs a fix rather than showing magnetic`() {
+    fun `with no fix the HUD shows one message, a dash for the heading, and no elevation or coordinates row`() {
         setNavigatingScreen(withFix = false)
         composeRule.waitForIdle()
 
-        assertEquals("Compass needs a fix", textOfTag(COMPASS_STRIP_HEADING_TAG))
-        assertEquals("Compass needs a fix", textOfTag(NAVIGATION_HUD_HEADING_TAG))
-        assertEquals("Waiting for a fix", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("—", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Location services unavailable", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        composeRule.onAllNodesWithText("Location services unavailable").assertCountEquals(1)
+        composeRule.onAllNodesWithTag(NAVIGATION_HUD_COORDINATES_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(NAVIGATION_HUD_ELEVATION_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithText("Compass needs a fix").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Waiting for a fix").assertCountEquals(0)
+        composeRule.onAllNodesWithText("80° E").assertCountEquals(0)
+    }
+
+    /**
+     * Item 2: what the strip was carrying that the HUD was not — elevation and coordinates — now
+     * on the HUD's second row. Pinned against MgrsConverterTest's own Portland point, the same
+     * value the strip's own MGRS test uses, so the two readouts are held to one converter.
+     */
+    @Test
+    fun `while navigating the HUD's second row shows the elevation and the MGRS grid reference`() {
+        setNavigatingScreen(fix = portlandFix)
+        composeRule.waitForIdle()
+
+        assertEquals("210 m", textOfTag(NAVIGATION_HUD_ELEVATION_TAG))
+        assertEquals("10T ER 25118 40235", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+        composeRule.onAllNodesWithText("10T ER 25118 40235").assertCountEquals(1)
+    }
+
+    /**
+     * The affordance most at risk (dispatch verification list): the coordinates toggle, by real
+     * coordinate touches at five points across its own bounds — not its centre alone, a finger is
+     * not a point — in fullscreen with the icon cluster minimised, the pulse's tightest reachable
+     * set (restore handle, this toggle, the map). Each touch must flip the format and nothing
+     * else: a touch that fell through to the map would exit fullscreen (the nav's "Tools" would
+     * return) and not count. Same shape as the exit's own test above.
+     */
+    @Test
+    fun `the coordinates toggle is reachable by real touches across its bounds while navigating, in fullscreen with the cluster minimised`() {
+        setNavigatingScreen(fix = portlandFix)
+        composeRule.waitForIdle()
+        touchFullscreenRow("Fullscreen")
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Show map controls").assertIsDisplayed()
+        assertEquals("10T ER 25118 40235", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+
+        val bounds = composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG).getUnclippedBoundsInRoot()
+        val inset = 4.dp
+        val samples = listOf(
+            DpOffset((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2),
+            DpOffset(bounds.left + inset, bounds.top + inset),
+            DpOffset(bounds.right - inset, bounds.top + inset),
+            DpOffset(bounds.left + inset, bounds.bottom - inset),
+            DpOffset(bounds.right - inset, bounds.bottom - inset),
+        )
+        val formats = listOf("10T ER 25118 40235", "Lat. 45.5152 Long. -122.6784")
+        samples.forEachIndexed { index, sample ->
+            val point = with(composeRule.density) { Offset(sample.x.toPx(), sample.y.toPx()) }
+            composeRule.onRoot().performTouchInput { click(point) }
+            composeRule.waitForIdle()
+            assertEquals("touch $index at $sample must flip the format", formats[(index + 1) % 2], textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+            // Still in fullscreen: no touch fell through to the map. The nav is the witness.
+            composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
+        }
+    }
+
+    /**
+     * The toggle state is one value shared by the strip and the HUD (hoisted to `CompactMapTab`),
+     * so a format chosen while navigating is the format the strip shows on exit — CLAUDE.md's UX
+     * default: user-set state does not reset on its own. Fails with per-leaf state (the strip
+     * would come back on MGRS). A semantic click is enough here: the claim is state, not routing —
+     * routing is the real-touch test above.
+     */
+    @Test
+    fun `a coordinate format chosen in the HUD is the format the strip shows after leaving navigation`() {
+        val returning = mutableStateOf(true)
+        setNavigatingScreen(fix = portlandFix, returning = returning)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG).performClick()
+        composeRule.waitForIdle()
+        assertEquals("Lat. 45.5152 Long. -122.6784", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+
+        composeRule.runOnUiThread { returning.value = false }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
+        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
+        composeRule.onAllNodesWithText("10T ER 25118 40235").assertCountEquals(0)
     }
 
     @Test
@@ -331,11 +456,12 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the HUD is not composed while not returning`() {
+    fun `the HUD is not composed while not returning, and the strip is`() {
         setScreen(isRecording = true, isReturning = false, navigationTarget = hudOrigin)
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
     }
 
     /**
@@ -904,14 +1030,43 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
     }
 
+    /**
+     * Navigation-chrome dispatch, item 4: with no fix the whole strip is one statement, not three
+     * fragments ("Compass needs a fix · Elevation unavailable · Coordi…" read as broken on device).
+     * This is the no-sensor-AND-no-fix combination on purpose — `rememberTrueHeading` reports
+     * `NoSensor` before it checks for a fix, so a message keyed on `NeedsFix` would still show three
+     * fragments here. Keyed on the missing fix, it is one. This test's previous form asserted the
+     * three fragments; the sibling below keeps the no-sensor case distinct.
+     */
     @Test
-    fun `the compass elevation strip shows an explicit unavailable state, never a guessed value, with no sensor and no fix yet`() {
+    fun `with no fix the compass strip shows one message, not three fragments - even with no sensor`() {
         setScreen(compassProvider = FakeCompassProvider(null))
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Compass unavailable").assertIsDisplayed()
-        composeRule.onNodeWithText("Elevation unavailable").assertIsDisplayed()
-        composeRule.onNodeWithText("Coordinates unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText("Location services unavailable").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Location services unavailable").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Compass unavailable").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Compass needs a fix").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Elevation unavailable").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Coordinates unavailable").assertCountEquals(0)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
+    }
+
+    /**
+     * Two causes, two messages: a phone with no magnetometer but a working fix has a location and
+     * no heading — "Compass unavailable", with elevation and coordinates still shown. Asserted
+     * separately from the no-fix case above, since a test covering only one would pass while the
+     * other collapsed into it.
+     */
+    @Test
+    fun `with a fix but no sensor the compass strip says the compass is unavailable and still shows elevation and coordinates`() {
+        setScreen(compassProvider = FakeCompassProvider(null), locationTracker = IconStackFixedLocationTracker(portlandFix))
+        searchAReferenceRegion()
+
+        assertEquals("Compass unavailable", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        composeRule.onNodeWithText("210 m").assertIsDisplayed()
+        composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Location services unavailable").assertCountEquals(0)
     }
 
     /**
@@ -930,11 +1085,12 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `a heading with no fix reads needs-a-fix, never the magnetic value`() {
+    fun `a heading with no fix reads the one no-fix message, never the magnetic value`() {
         setScreen(compassProvider = FakeCompassProvider(90f))
         searchAReferenceRegion()
 
-        composeRule.onNodeWithText("Compass needs a fix").assertIsDisplayed()
+        composeRule.onNodeWithText("Location services unavailable").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Compass needs a fix").assertCountEquals(0)
         composeRule.onAllNodesWithText("90° E").assertCountEquals(0)
     }
 
@@ -990,14 +1146,15 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `the coordinates segment is not tappable before a first fix arrives`() {
+    fun `the strip's no-fix message is not a coordinates toggle - tapping it reveals nothing`() {
         setScreen(compassProvider = FakeCompassProvider(null))
         searchAReferenceRegion()
 
-        // "Coordinates unavailable" has nothing to toggle between — clicking it should be a no-op,
+        // There is no coordinate pair to toggle between — a tap on the one message must be a no-op,
         // not silently reveal a fabricated decimal-degree pair for a location that was never fixed.
-        composeRule.onNodeWithText("Coordinates unavailable").performClick()
-        composeRule.onNodeWithText("Coordinates unavailable").assertIsDisplayed()
+        composeRule.onNodeWithTag(COMPASS_STRIP_NO_FIX_TAG).performClick()
+        composeRule.onNodeWithText("Location services unavailable").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Lat. ", substring = true).assertCountEquals(0)
     }
 
     /**
@@ -1015,7 +1172,7 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `recording with no fix yet shows a waiting message via contentDescription, and no distance arm yet`() {
+    fun `recording with no fix yet shows a waiting message via contentDescription`() {
         setScreen(isRecording = true, returnToStart = null)
         searchAReferenceRegion()
 
@@ -1024,24 +1181,19 @@ class AvailabilityScreenMapIconStackTest {
                 hasContentDescription("Recording — waiting for a fix to compute the way back"),
         ).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Stop recording track").assertIsDisplayed()
-        // isReturning defaults false in this test — DistanceArm only shows once return-to-vehicle
-        // is actually toggled on, not merely while recording (see TrailheadControls' own doc
-        // comment), so it stays out of the tree entirely rather than reserved-but-blank the way
-        // the old compass-strip control's fixed-width slot used to.
-        composeRule.onNodeWithTag("distance-arm").assertDoesNotExist()
     }
 
     /**
      * The exact bug field-test dispatch item 2 (an earlier dispatch) existed to fix: the same
      * [ReturnToStartInfo] used to reach a sighted user nowhere but a `contentDescription`
-     * (TalkBack-only). This asserts both the full sentence via contentDescription on
-     * [ControlPill]'s own return row, and the compact distance readout via [onNodeWithText] on
-     * [DistanceArm] — the visible surface field testers can actually read. `isReturning = true` is
-     * what makes the arm visible at all; without it, the button's contentDescription is still the
-     * full sentence, but there is no visible arm to read "1.2 km" from (see the test above).
+     * (TalkBack-only). This asserts the full sentence via contentDescription on [ControlPill]'s
+     * own return row. The *visible* distance used to be read off `DistanceArm` here; the arm is
+     * gone (navigation-chrome dispatch, item 3) and the visible distance is the HUD's — see `the
+     * HUD shows the straight-line distance to the origin` above, which computes it from the live
+     * fix rather than from [ReturnToStartInfo].
      */
     @Test
-    fun `recording with a real fix and return-to-vehicle active shows the full sentence via contentDescription and the distance visibly`() {
+    fun `recording with a real fix and return-to-vehicle active shows the full sentence via contentDescription`() {
         setScreen(
             isRecording = true,
             isReturning = true,
@@ -1053,7 +1205,6 @@ class AvailabilityScreenMapIconStackTest {
             hasTestTag("control-pill-return-to-vehicle") and
                 hasContentDescription("Return: 180° S · 1.2 km · -45 m"),
         ).assertIsDisplayed()
-        composeRule.onNodeWithText("1.2 km").assertIsDisplayed()
     }
 
     /**
@@ -1127,8 +1278,10 @@ class AvailabilityScreenMapIconStackTest {
     @Test
     fun `an off-track fix tints the return-to-vehicle button with the error color's contentDescription state`() {
         // isOffTrack only changes tint color, not text/contentDescription — this asserts the state
-        // reaches the control at all (enabled, present, still showing the right distance) rather
+        // reaches the control at all (enabled, present, still carrying the right distance) rather
         // than the tint's actual pixel value, which this suite has no existing way to assert either.
+        // The distance used to be read as visible text off DistanceArm; the arm is gone
+        // (navigation-chrome dispatch, item 3), so it is read from the row's own sentence.
         setScreen(
             isRecording = true,
             returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
@@ -1137,12 +1290,14 @@ class AvailabilityScreenMapIconStackTest {
         )
         searchAReferenceRegion()
 
-        composeRule.onNodeWithTag("control-pill-return-to-vehicle").assertIsDisplayed()
-        composeRule.onNodeWithText("500 m").assertIsDisplayed()
+        composeRule.onNode(
+            hasTestTag("control-pill-return-to-vehicle") and
+                hasContentDescription("Return: 180° S · 500 m · elevation diff. unavailable"),
+        ).assertIsDisplayed()
     }
 
     @Test
-    fun `a return distance under a kilometer is shown in meters on the distance arm`() {
+    fun `a return distance under a kilometer is shown in meters in the return row's sentence`() {
         setScreen(
             isRecording = true,
             isReturning = true,
@@ -1154,7 +1309,6 @@ class AvailabilityScreenMapIconStackTest {
             hasTestTag("control-pill-return-to-vehicle") and
                 hasContentDescription("Return: 45° NE · 350 m · elevation diff. unavailable"),
         ).assertIsDisplayed()
-        composeRule.onNodeWithText("350 m").assertIsDisplayed()
     }
 
     /**
@@ -1198,16 +1352,10 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Same as above, `isReturning = false` — the circular-base addendum's own "resting state"
-     * (`DistanceArm`'s own doc comment: the arm's right end is a circle the same diameter as
-     * [ControlPill]'s own width, congruent with the pill's own bottom cap, present at every width
-     * the arm can reach including its minimum). Whether or not that circle stays mounted while not
-     * actively returning, [ControlPill] still composes after [DistanceArm] in [TrailheadControls]'
-     * own `Box` and wins any hit-test overlap at their shared junction (see that composable's own
-     * doc comment) — so a real touch at each control's own screen coordinates must reach that
-     * control here exactly as it does in the extended state above, not just when the arm happens to
-     * be fully grown.
-     *
+     * Same as above, `isReturning = false` — originally the "resting state" of the since-removed
+     * `DistanceArm` (navigation-chrome dispatch, item 3), kept because its claim stands on its
+     * own: a real touch at each control's own screen coordinates must reach that control whether
+     * or not a return leg is active.
      */
     // @Ignore for the same harness-only reason as its twin above — see `tapping the control pill's
     // return-to-vehicle button calls onToggleReturning`'s own comment for the full provenance and
@@ -1233,115 +1381,11 @@ class AvailabilityScreenMapIconStackTest {
         assertEquals("a real touch on the return-to-vehicle button must reach it", 1, returnCalls)
     }
 
-    /**
-     * The other half of item 5: a tap in the real empty space around [TrailheadControls] — the gap
-     * between [MapIconBar]'s own bottom edge and [ControlPill]'s top edge — must still reach the
-     * map underneath, not get silently swallowed by either surface's own bounding box. Reuses the
-     * same fullscreen-restore signal `tapping the map while fullscreen restores chrome` already
-     * relies on for exactly this reason: it is a real, already-proven way to observe "this tap
-     * reached the map slot's own onTap," not a new assertion mechanism invented for this test.
-     */
-    // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
-    @Ignore("Harness-only failure, confirmed working on a real device — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md")
-    @Test
-    fun `a real touch in the gap above the control pill still reaches the map`() {
-        setScreen(
-            mapSlot = TappableStubMapSlot,
-            isRecording = true,
-            isReturning = true,
-            returnToStart = ReturnToStartInfo(bearingDegrees = 90.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
-        )
-        searchAReferenceRegion()
-        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
-        composeRule.waitForIdle()
-        composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
-
-        val pillBounds = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot()
-        val gapPoint = with(composeRule.density) {
-            Offset(((pillBounds.left + pillBounds.right) / 2).toPx(), (pillBounds.top - 4.dp).toPx())
-        }
-        composeRule.onRoot().performTouchInput { click(gapPoint) }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Tools").assertIsDisplayed()
-    }
-
-    /**
-     * Same as above, checked beside [DistanceArm]'s own left edge instead of above [ControlPill] —
-     * the arm's own width is animated and content-measured (see that composable's own doc
-     * comment), so this is a second, independent point rather than assuming the first point's
-     * result generalizes to the arm's own bounding box.
-     */
-    // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
-    @Ignore("Harness-only failure, confirmed working on a real device — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md")
-    @Test
-    fun `a real touch beside the distance arm still reaches the map`() {
-        setScreen(
-            mapSlot = TappableStubMapSlot,
-            isRecording = true,
-            isReturning = true,
-            returnToStart = ReturnToStartInfo(bearingDegrees = 90.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
-        )
-        searchAReferenceRegion()
-        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
-        composeRule.waitForIdle()
-        composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
-
-        val armBounds = composeRule.onNodeWithTag("distance-arm").getUnclippedBoundsInRoot()
-        val besideArmPoint = with(composeRule.density) {
-            Offset((armBounds.left - 8.dp).toPx().coerceAtLeast(0f), ((armBounds.top + armBounds.bottom) / 2).toPx())
-        }
-        composeRule.onRoot().performTouchInput { click(besideArmPoint) }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Tools").assertIsDisplayed()
-    }
-
-    /**
-     * Icon-bar-drag-refinements dispatch, Item 2: rewritten for the reoriented (downward-extending)
-     * arm — the old assertions described a sideways arm whose own circular base centred on the
-     * return-to-vehicle row specifically; that geometry no longer exists (approved rewrite, not a
-     * silent change — see this file's own standing rule about `AvailabilityScreenMapIconStackTest`
-     * needing to pass unmodified, and CLAUDE.md's own testing section on when a test change is
-     * legitimate). Checked against real measured bounds rather than only the geometry worked out on
-     * paper in `DistanceArm`'s own doc comment: the arm's own outer edge (right, on this default
-     * right-anchored setup) must still coincide with [ControlPill]'s own same edge — both aligned
-     * to the same `sideAlignment` in `TrailheadControls`, unaffected by Item 2 — and the arm's own
-     * top edge must overlap the pill's own bottom edge by exactly [MAP_ICON_BAR_CORNER_RADIUS] (half
-     * the pill's own measured width), the exact depth of the pill's own existing bottom
-     * semicircular cap that masks the arm's own square top there. Both within 1px, the rounding a
-     * real layout pass can introduce that paper geometry doesn't have to account for.
-     */
-    @Test
-    fun `the distance arm overlaps the pill's own bottom cap, flush on its outer edge`() {
-        setScreen(
-            isRecording = true,
-            isReturning = true,
-            returnToStart = ReturnToStartInfo(bearingDegrees = 90.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
-        )
-        searchAReferenceRegion()
-
-        val armBounds = composeRule.onNodeWithTag("distance-arm").getUnclippedBoundsInRoot()
-        val pillBounds = composeRule.onNodeWithTag("control-pill").getUnclippedBoundsInRoot()
-
-        val armRight = armBounds.right.value
-        val pillRight = pillBounds.right.value
-        assertTrue(
-            "the arm's own outer edge ($armRight) should coincide with the pill's own same edge " +
-                "($pillRight) — both aligned to the same sideAlignment in TrailheadControls",
-            kotlin.math.abs(armRight - pillRight) <= 1f,
-        )
-
-        val pillWidth = pillBounds.right.value - pillBounds.left.value
-        val expectedOverlap = pillWidth / 2
-        val actualOverlap = pillBounds.bottom.value - armBounds.top.value
-        assertTrue(
-            "the arm's own top edge should overlap the pill's own bottom edge by exactly half the " +
-                "pill's own width ($expectedOverlap) — the depth of the pill's own existing bottom " +
-                "cap that masks the arm's own square top corners there — was $actualOverlap",
-            kotlin.math.abs(actualOverlap - expectedOverlap) <= 1f,
-        )
-    }
+    // Two DistanceArm tests were removed here with the arm itself (navigation-chrome dispatch,
+    // item 3, owner-authorised): `a real touch beside the distance arm still reaches the map`
+    // (@Ignored, and the one CI allowlist entry removed with it — see ci.yml) and `the distance
+    // arm overlaps the pill's own bottom cap, flush on its outer edge`. Not silenced: there is no
+    // arm left for either to test.
 
     /**
      * Icon-bar-drag-refinements dispatch, Item 3 ("the track recorder pills must move with the
@@ -1740,7 +1784,7 @@ class AvailabilityScreenMapIconStackTest {
         // performTouchInput, not performClick: the scrim is a plain Modifier.pointerInput tap
         // catcher with no Modifier.clickable, so it carries no semantics OnClick action for
         // performClick to invoke — a real simulated touch is the only way to reach it, the same
-        // reasoning this file's own DistanceArm touch-routing tests already rely on.
+        // reasoning this file's own trailhead-control touch-routing tests already rely on.
         composeRule.onRoot().performTouchInput { click(belowDropdown) }
         composeRule.waitForIdle()
 
@@ -1762,7 +1806,7 @@ class AvailabilityScreenMapIconStackTest {
     /**
      * Map/navigation redesign dispatch C's own explicit ask: "this repo has shipped pointer
      * interception four times. Extend Dispatch A's performTouchInput coverage to this surface" —
-     * [AdvancedSearchDropdown] floats over the map exactly like [ControlPill]/[DistanceArm] did,
+     * [AdvancedSearchDropdown] floats over the map exactly like [ControlPill] does,
      * and it's new content over that same surface, so it gets the same real-touch proof those two
      * did rather than trusting Understory rule 1 (no [Surface], so nothing here should intercept a
      * touch meant for a sibling) on inspection alone. Real [performTouchInput] at screen

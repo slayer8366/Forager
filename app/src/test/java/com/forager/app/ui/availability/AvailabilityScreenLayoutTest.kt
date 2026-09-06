@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -409,17 +410,25 @@ abstract class AvailabilityScreenLayoutTest {
      * was — with and without fullscreen. This is the dispatch's own guard, extended with the
      * HUD-open case: if the HUD ever gets wrapped around the map, or reserves layout space, this is
      * the test that goes red.
+     *
+     * **Navigation-chrome dispatch: the navigating case, both ways.** The compass strip is a
+     * top-aligned child of the same constraint-sized Box, so hiding it while navigating and
+     * restoring it after must not move the map either — asserted by measuring on entry *and* on
+     * exit, with the strip's absence and return asserted at each step so the height claim is
+     * about the transition that actually happened.
      */
     @Test
-    fun `opening the navigation HUD does not change the map's own measured height, in or out of fullscreen`() {
+    fun `entering and leaving navigation does not change the map's own measured height, in or out of fullscreen`() {
         val returning = mutableStateOf(false)
         val origin = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
         setScreen(SEARCHED_STATE, isReturning = returning, navigationTarget = origin)
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
         val heightClosed = mapSlotBounds().height
 
         composeRule.runOnUiThread { returning.value = true }
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag("compass-elevation-strip").assertDoesNotExist()
         val heightOpen = mapSlotBounds().height
         println("MEASURED heightClosed=$heightClosed heightOpen=$heightOpen")
         assertTrue(
@@ -431,10 +440,23 @@ abstract class AvailabilityScreenLayoutTest {
 
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag("compass-elevation-strip").assertDoesNotExist()
         val heightFullscreen = mapSlotBounds().height
         assertTrue(
             "…and fullscreen with the HUD open must not change it either: $heightOpen vs $heightFullscreen.",
             heightOpen == heightFullscreen,
+        )
+
+        composeRule.runOnUiThread { returning.value = false }
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
+        val heightLeft = mapSlotBounds().height
+        println("MEASURED heightFullscreen=$heightFullscreen heightLeft=$heightLeft")
+        assertTrue(
+            "…and leaving navigation (the strip returning) must not change it either: " +
+                "$heightFullscreen vs $heightLeft.",
+            heightFullscreen == heightLeft,
         )
     }
 
