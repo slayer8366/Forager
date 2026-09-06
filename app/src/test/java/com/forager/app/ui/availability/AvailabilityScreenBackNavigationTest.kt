@@ -25,6 +25,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.domain.CompassProvider
+import com.forager.app.domain.CompassReading
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -1013,7 +1014,7 @@ private val BackNavStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, m
 }
 
 private class BackNavFakeCompassProviderImpl : CompassProvider {
-    override val heading: Flow<Float?> = MutableStateFlow(null)
+    override val heading: Flow<CompassReading?> = MutableStateFlow(null)
 }
 private val BackNavFakeCompassProvider = BackNavFakeCompassProviderImpl()
 
