@@ -189,7 +189,7 @@ internal fun ActiveSearchSummary(
  * pair already sits at exactly 0.8 alpha, so no second multiplier is layered on top — and
  * [MAP_ICON_STACK_BORDER_COLOR_DARK]/[MAP_ICON_STACK_BORDER_COLOR_LIGHT] for the [HorizontalDivider],
  * the same hairline-border pair already drawn against that exact fill everywhere else in this map
- * chrome family ([MapIconBar], [ControlPill], [DistanceArm]), rather than a new one-off colour.
+ * chrome family ([MapIconBar], [ControlPill]), rather than a new one-off colour.
  * [LocalForagerDarkTheme], not the app's own system light/dark [MaterialTheme.colorScheme]: this
  * bar sits immediately above map chrome that already keys off that same night/day concept
  * (`isDarkTheme` throughout this file), and reads as one coherent system with it rather than two
