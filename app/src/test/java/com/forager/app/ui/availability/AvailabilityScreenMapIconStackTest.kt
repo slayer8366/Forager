@@ -242,8 +242,9 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     // ---- Navigation HUD stage one -----------------------------------------------------------
-    // Fix at 45.52 N 122.68 W; the origin 0.01° of latitude due north (1112 m, "0.7 mi" in the
-    // default miles). Magnetic 80° + a fake +15° declination = 95° true, "95° E".
+    // Fix at 45.52 N 122.68 W; the origin 0.01° of latitude due north (1112 m — "1.1 km", since
+    // this harness's distance-unit stub reports kilometres). Magnetic 80° + a fake +15°
+    // declination = 95° true, "95° E".
 
     private val hudFix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L)
     private val hudOrigin = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 1_700_000_000_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
@@ -287,7 +288,7 @@ class AvailabilityScreenMapIconStackTest {
         setNavigatingScreen()
         composeRule.waitForIdle()
 
-        assertEquals("0.7 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         // Target due north (0°) from a device facing 95° true: 265° relative, a left turn.
         assertEquals("Turn 265°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
@@ -309,7 +310,7 @@ class AvailabilityScreenMapIconStackTest {
 
         assertEquals("Compass unavailable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
         assertEquals("Bearing 0° N", textOfTag(NAVIGATION_HUD_TARGET_TAG))
-        assertEquals("0.7 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
     }
 
     @Test
@@ -911,12 +912,28 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Coordinates unavailable").assertIsDisplayed()
     }
 
+    /**
+     * Premise updated by navigation HUD stage one (owner decision): the strip reads *true* north,
+     * which needs a fix for declination, so a heading with no fix now reads "Compass needs a fix"
+     * (the test below) rather than the raw magnetic value this test used to assert. With a fix and
+     * this harness's zero-declination default, 90° magnetic is 90° true — the claim ("the strip
+     * reflects a fake heading, no real sensor involved") is unchanged; only its precondition is.
+     */
     @Test
     fun `the compass elevation strip reflects a fake heading without any real sensor`() {
-        setScreen(compassProvider = FakeCompassProvider(90f))
+        setScreen(compassProvider = FakeCompassProvider(90f), locationTracker = IconStackFixedLocationTracker(hudFix))
         searchAReferenceRegion()
 
         composeRule.onNodeWithText("90° E").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a heading with no fix reads needs-a-fix, never the magnetic value`() {
+        setScreen(compassProvider = FakeCompassProvider(90f))
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("Compass needs a fix").assertIsDisplayed()
+        composeRule.onAllNodesWithText("90° E").assertCountEquals(0)
     }
 
     @Test
