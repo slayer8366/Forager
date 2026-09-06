@@ -38,6 +38,10 @@ import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
+import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.WaypointDesignation
 import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
@@ -214,11 +218,21 @@ abstract class AvailabilityScreenLayoutTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     /** Composes the real screen with every real callback wired to a recorder, and a stubbed map. */
-    private fun setScreen(uiState: AvailabilityUiState, onUseCurrentLocation: () -> Unit = {}) {
+    private fun setScreen(
+        uiState: AvailabilityUiState,
+        onUseCurrentLocation: () -> Unit = {},
+        // Navigation HUD stage one: a State so a test can open the HUD mid-composition and
+        // measure the map before and after, in one setContent.
+        isReturning: State<Boolean> = mutableStateOf(false),
+        navigationTarget: Waypoint? = null,
+    ) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
                 onUseCurrentLocation = onUseCurrentLocation,
+                isRecording = isReturning.value,
+                isReturning = isReturning.value,
+                navigationTarget = navigationTarget,
                 onManualLatChanged = {},
                 onManualLngChanged = {},
                 onSearchManualCoordinates = {},
@@ -384,6 +398,43 @@ abstract class AvailabilityScreenLayoutTest {
                 "re-layout and re-fit, the exact non-seamless transition floating chrome over a " +
                 "map whose dimensions never change was built to remove.",
             heightBefore == heightAfter,
+        )
+    }
+
+    /**
+     * **Test 3c — the navigation HUD (stage one) floats over the map; it does not resize it.**
+     *
+     * The HUD is a child of `CompactMapTab`'s own map Box (see `NavigationHud`'s doc comment for
+     * the mounting reasoning), so opening it must leave the map's own measured height exactly as it
+     * was — with and without fullscreen. This is the dispatch's own guard, extended with the
+     * HUD-open case: if the HUD ever gets wrapped around the map, or reserves layout space, this is
+     * the test that goes red.
+     */
+    @Test
+    fun `opening the navigation HUD does not change the map's own measured height, in or out of fullscreen`() {
+        val returning = mutableStateOf(false)
+        val origin = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+        setScreen(SEARCHED_STATE, isReturning = returning, navigationTarget = origin)
+        val heightClosed = mapSlotBounds().height
+
+        composeRule.runOnUiThread { returning.value = true }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        val heightOpen = mapSlotBounds().height
+        println("MEASURED heightClosed=$heightClosed heightOpen=$heightOpen")
+        assertTrue(
+            "The map's own measured height must not change when the navigation HUD opens — it was " +
+                "$heightClosed closed and $heightOpen open. The HUD is chrome floating over the map, " +
+                "never a sibling that reserves space or a wrapper that resizes it.",
+            heightClosed == heightOpen,
+        )
+
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        val heightFullscreen = mapSlotBounds().height
+        assertTrue(
+            "…and fullscreen with the HUD open must not change it either: $heightOpen vs $heightFullscreen.",
+            heightOpen == heightFullscreen,
         )
     }
 

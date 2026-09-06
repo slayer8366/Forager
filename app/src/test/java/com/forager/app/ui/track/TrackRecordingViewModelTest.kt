@@ -14,6 +14,8 @@ import com.forager.app.domain.TrackRepository
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
 import com.forager.app.domain.model.TrackRecordingMode
+import com.forager.app.domain.model.WaypointDesignation
+import java.time.ZoneOffset
 import com.forager.app.domain.model.Waypoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +57,7 @@ class TrackRecordingViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private val fixedTime = CurrentTimeProvider { 1_000L }
+    private var waypointIds = 0
 
     private fun viewModel(
         trackRepository: TrackRepository = InMemoryTrackRepository(),
@@ -69,13 +72,16 @@ class TrackRecordingViewModelTest {
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
         getWaypoints = GetWaypointsUseCase(waypointRepository),
-        createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "waypoint-1" }),
+        // A counter, not a fixed id: navigation HUD stage one creates an origin *and* an end
+        // waypoint per recording, and a fixed id would make the second silently replace the first.
+        createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "waypoint-${++waypointIds}" }),
         deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
         computeReturnToStart = ComputeReturnToStartUseCase(),
         detectOffTrack = DetectOffTrackUseCase(),
         locationTracker = locationTracker,
         getTracks = GetTracksUseCase(trackRepository),
         currentTime = offTrackAlertClock,
+        zone = ZoneOffset.UTC,
     )
 
     @Test
@@ -531,6 +537,111 @@ class TrackRecordingViewModelTest {
         assertTrue(vm.uiState.value.waypoints.isEmpty())
     }
 
+    // ---- Navigation HUD stage one: the auto-created origin and end waypoints -------------------
+    // fixedTime is 1_000 ms after the epoch, so every default name reads "Jan 1, 12:00 AM" in UTC.
+
+    private fun fix(lat: Double, accuracy: Float?, t: Long, altitude: Double? = null) =
+        LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = accuracy, timestampEpochMillis = t)
+
+    @Test
+    fun `the origin is created from the first fix that passes the mode's accuracy gate, linked to the track and pointed at by it`() = runTest(dispatcher) {
+        val trackRepository = InMemoryTrackRepository()
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(trackRepository, waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY) // gate: 30 m
+        runCurrent()
+
+        fixes.emit(fix(lat = 45.0, accuracy = 80f, t = 2_000L)) // worse than the gate: not the origin
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.originWaypoint)
+        assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
+
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L, altitude = 120.0))
+        advanceUntilIdle()
+
+        val origin = requireNotNull(vm.uiState.value.originWaypoint)
+        assertEquals("waypoint-1", origin.id)
+        assertEquals(45.001, origin.lat, 1e-9)
+        assertEquals(120.0, origin.altitude)
+        assertEquals(WaypointDesignation.ORIGIN, origin.designation)
+        assertEquals("track-1", origin.trackId)
+        assertEquals("Start · Jan 1, 12:00 AM", origin.name)
+        assertEquals(listOf(origin), waypointRepository.getAll().getOrThrow())
+        assertEquals("waypoint-1", trackRepository.getById("track-1").getOrThrow()?.originWaypointId)
+        assertEquals(listOf(origin), vm.uiState.value.waypoints)
+
+        fixes.emit(fix(lat = 45.002, accuracy = 10f, t = 4_000L))
+        advanceUntilIdle()
+        assertEquals("a second gated fix must not create a second origin", 1, waypointRepository.getAll().getOrThrow().size)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `return to start points at the origin waypoint once it exists, not the first breadcrumb`() = runTest(dispatcher) {
+        val trackRepository = InMemoryTrackRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(trackRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L)) // seeds the origin at 45.001
+        advanceUntilIdle()
+
+        val info = vm.returnToStart(point(lat = 45.002, lng = -122.0, t = 4_000L))
+
+        // 0.001° of latitude is 111.2 m: to the origin at 45.001, not 222 m to the breadcrumb at 45.0.
+        assertEquals(111.2, info?.distanceMeters ?: -1.0, 1.0)
+        assertEquals(180.0, info?.bearingDegrees ?: -1.0, 0.01)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `stopping creates the end waypoint from the last gated fix, not from a later rejected one`() = runTest(dispatcher) {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L))
+        advanceUntilIdle()
+        fixes.emit(fix(lat = 45.010, accuracy = 10f, t = 4_000L))
+        advanceUntilIdle()
+        fixes.emit(fix(lat = 45.500, accuracy = 80f, t = 5_000L)) // rejected by the gate
+        advanceUntilIdle()
+
+        vm.stopRecording()
+        advanceUntilIdle()
+
+        val saved = waypointRepository.getAll().getOrThrow().sortedBy { it.id }
+        assertEquals(listOf("waypoint-1", "waypoint-2"), saved.map { it.id })
+        val end = saved.last()
+        assertEquals(WaypointDesignation.END, end.designation)
+        assertEquals("track-1", end.trackId)
+        assertEquals(45.010, end.lat, 1e-9)
+        assertEquals("End · Jan 1, 12:00 AM", end.name)
+        assertNull(vm.uiState.value.originWaypoint)
+    }
+
+    @Test
+    fun `a recording whose fixes never pass the gate has neither an origin nor an end - a valid state`() = runTest(dispatcher) {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        fixes.emit(fix(lat = 45.0, accuracy = 80f, t = 2_000L))
+        advanceUntilIdle()
+
+        vm.stopRecording()
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.originWaypoint)
+        assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
+    }
+
     private fun point(lat: Double, lng: Double = -122.0, t: Long) =
         TrackPoint(lat = lat, lng = lng, altitude = null, accuracyMeters = null, timestampEpochMillis = t)
 
@@ -580,6 +691,12 @@ private class InMemoryTrackRepository : TrackRepository {
         return Result.success(Unit)
     }
 
+    override suspend fun setOriginWaypoint(trackId: String, waypointId: String): Result<Unit> {
+        val existing = tracks[trackId] ?: return Result.success(Unit)
+        tracks[trackId] = existing.copy(originWaypointId = waypointId)
+        return Result.success(Unit)
+    }
+
     override suspend fun delete(id: String): Result<Unit> {
         tracks.remove(id)
         return Result.success(Unit)
@@ -594,6 +711,7 @@ private class FailingTrackRepository : TrackRepository {
     override suspend fun create(track: Track): Result<Unit> = Result.failure(RuntimeException("boom"))
     override suspend fun appendPoints(trackId: String, points: List<TrackPoint>): Result<Unit> = Result.success(Unit)
     override suspend fun end(trackId: String, endedAtEpochMillis: Long): Result<Unit> = Result.success(Unit)
+    override suspend fun setOriginWaypoint(trackId: String, waypointId: String): Result<Unit> = Result.success(Unit)
     override suspend fun delete(id: String): Result<Unit> = Result.success(Unit)
 }
 

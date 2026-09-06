@@ -39,7 +39,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
+import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.WaypointDesignation
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.unit.DpOffset
 import com.forager.app.domain.CompassProvider
+import com.forager.app.domain.ComputeTrueHeadingUseCase
+import com.forager.app.domain.CurrentTimeProvider
+import com.forager.app.domain.DeclinationProvider
+import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
@@ -95,6 +103,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -156,6 +165,11 @@ class AvailabilityScreenMapIconStackTest {
         onToggleReturning: () -> Unit = {},
         mushroomRepository: TaxonSearchRepository = IconStackEmptyRepository,
         mapPreferencesRepository: MapPreferencesRepository = IconStackStubMapPreferencesRepository,
+        // Navigation HUD stage one: a fake declination so the true-heading sign is pinned, the
+        // HUD's target, and a clock the fix-age tests can hold still.
+        computeTrueHeading: ComputeTrueHeadingUseCase = ComputeTrueHeadingUseCase(IconStackFixedDeclination(0f)),
+        navigationTarget: Waypoint? = null,
+        currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -220,8 +234,153 @@ class AvailabilityScreenMapIconStackTest {
                 onToggleReturning = onToggleReturning,
                 compassProvider = compassProvider,
                 mapSlot = mapSlot,
+                computeTrueHeading = computeTrueHeading,
+                navigationTarget = navigationTarget,
+                currentTime = currentTime,
             )
         }
+    }
+
+    // ---- Navigation HUD stage one -----------------------------------------------------------
+    // Fix at 45.52 N 122.68 W; the origin 0.01° of latitude due north (1112 m, "0.7 mi" in the
+    // default miles). Magnetic 80° + a fake +15° declination = 95° true, "95° E".
+
+    private val hudFix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L)
+    private val hudOrigin = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 1_700_000_000_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val hudClock = CurrentTimeProvider { 1_700_000_001_000L }
+
+    private fun setNavigatingScreen(
+        compassHeading: Float? = 80f,
+        withFix: Boolean = true,
+        onToggleReturning: () -> Unit = {},
+    ) = setScreen(
+        compassProvider = FakeCompassProvider(compassHeading),
+        locationTracker = if (withFix) IconStackFixedLocationTracker(hudFix) else IconStackNoOpLocationTracker,
+        isRecording = true,
+        isReturning = true,
+        onToggleReturning = onToggleReturning,
+        computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
+        navigationTarget = hudOrigin,
+        currentTime = hudClock,
+    )
+
+    private fun textOfTag(tag: String): String =
+        composeRule.onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
+
+    /**
+     * The dispatch's own requirement, asserted directly: the strip and the HUD's north compass
+     * read one value — and that value is *true* north (80° magnetic + 15° declination), not the
+     * raw magnetic the strip used to rotate. Fails with the strip back on magnetic ("80° E" vs
+     * "95° E") and with either reading its own filter.
+     */
+    @Test
+    fun `the compass strip and the HUD's north compass read the same true heading`() {
+        setNavigatingScreen()
+        composeRule.waitForIdle()
+
+        assertEquals("95° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+    }
+
+    @Test
+    fun `the HUD shows the straight-line distance to the origin in the display unit and the turn to it`() {
+        setNavigatingScreen()
+        composeRule.waitForIdle()
+
+        assertEquals("0.7 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        // Target due north (0°) from a device facing 95° true: 265° relative, a left turn.
+        assertEquals("Turn 265°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+    }
+
+    @Test
+    fun `before any fix the strip says the compass needs a fix rather than showing magnetic`() {
+        setNavigatingScreen(withFix = false)
+        composeRule.waitForIdle()
+
+        assertEquals("Compass needs a fix", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        assertEquals("Compass needs a fix", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Waiting for a fix", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+    }
+
+    @Test
+    fun `with no compass sensor the HUD still shows the distance and the absolute true bearing`() {
+        setNavigatingScreen(compassHeading = null)
+        composeRule.waitForIdle()
+
+        assertEquals("Compass unavailable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Bearing 0° N", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("0.7 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+    }
+
+    @Test
+    fun `a fix older than five minutes withholds the distance and says how old it is`() {
+        setScreen(
+            compassProvider = FakeCompassProvider(80f),
+            locationTracker = IconStackFixedLocationTracker(hudFix),
+            isRecording = true,
+            isReturning = true,
+            computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
+            navigationTarget = hudOrigin,
+            currentTime = CurrentTimeProvider { 1_700_000_000_000L + 6L * 60L * 1_000L },
+        )
+        composeRule.waitForIdle()
+
+        assertEquals("—", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("No fix for 6 min", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+    }
+
+    @Test
+    fun `the HUD is not composed while not returning`() {
+        setScreen(isRecording = true, isReturning = false, navigationTarget = hudOrigin)
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).assertCountEquals(0)
+    }
+
+    /**
+     * The exit, by real coordinate touches at five points across the button's own bounds — not
+     * its centre alone (CLAUDE.md: a finger is not a point) — in fullscreen with the icon cluster
+     * minimised, the pulse's tightest reachable set. Each touch must reach the exit and nothing
+     * else: a touch that fell through to the map would exit fullscreen instead and not count.
+     */
+    @Test
+    fun `the exit is reachable by real touches across its bounds, in fullscreen with the cluster minimised`() {
+        var exits = 0
+        setNavigatingScreen(onToggleReturning = { exits++ })
+        composeRule.waitForIdle()
+        touchFullscreenRow("Fullscreen")
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Show map controls").assertIsDisplayed()
+
+        val bounds = composeRule.onNodeWithTag(NAVIGATION_HUD_EXIT_TAG).getUnclippedBoundsInRoot()
+        val inset = 6.dp
+        val samples = listOf(
+            DpOffset((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2),
+            DpOffset(bounds.left + inset, bounds.top + inset),
+            DpOffset(bounds.right - inset, bounds.top + inset),
+            DpOffset(bounds.left + inset, bounds.bottom - inset),
+            DpOffset(bounds.right - inset, bounds.bottom - inset),
+        )
+        samples.forEachIndexed { index, sample ->
+            val point = with(composeRule.density) { Offset(sample.x.toPx(), sample.y.toPx()) }
+            composeRule.onRoot().performTouchInput { click(point) }
+            composeRule.waitForIdle()
+            assertEquals("touch $index at $sample must reach the exit", index + 1, exits)
+            // Still in fullscreen: no touch fell through to the map (whose tap would restore chrome).
+            composeRule.onNodeWithContentDescription("Exit fullscreen").assertExists()
+        }
+    }
+
+    @Test
+    fun `system back while navigating exits the HUD`() {
+        var exits = 0
+        setNavigatingScreen(onToggleReturning = { exits++ })
+        composeRule.waitForIdle()
+
+        pressBack()
+
+        assertEquals(1, exits)
     }
 
     /**
@@ -2514,6 +2673,15 @@ private object IconStackUnusedLocationProvider : LocationProvider {
 
 private object IconStackNoOpLocationTracker : LocationTracker {
     override val fixes: Flow<LocationFix> = emptyFlow()
+}
+
+/** One fix, then nothing more — the HUD's "current" position; its age is whatever the test's clock says. */
+private class IconStackFixedLocationTracker(fix: LocationFix.Update) : LocationTracker {
+    override val fixes: Flow<LocationFix> = flowOf(fix)
+}
+
+private class IconStackFixedDeclination(private val degrees: Float) : DeclinationProvider {
+    override fun declinationDegrees(latitude: Double, longitude: Double, altitudeMeters: Double?, epochMillis: Long): Float = degrees
 }
 
 private class IconStackFakeLocationTracker(override val fixes: MutableSharedFlow<LocationFix>) : LocationTracker

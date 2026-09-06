@@ -1,6 +1,7 @@
 package com.forager.app.domain
 
 import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.WaypointDesignation
 import java.util.UUID
 
 /**
@@ -13,7 +14,20 @@ class CreateWaypointUseCase(
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
 ) {
-    suspend operator fun invoke(lat: Double, lng: Double, altitude: Double?, name: String, note: String = ""): Result<Waypoint> {
+    /**
+     * [trackId] and [designation] are the navigation HUD's auto-created origin/end waypoints (see
+     * [WaypointDesignation]); both default to `null`, which is an ordinary user-dropped waypoint,
+     * so every existing caller is unchanged.
+     */
+    suspend operator fun invoke(
+        lat: Double,
+        lng: Double,
+        altitude: Double?,
+        name: String,
+        note: String = "",
+        trackId: String? = null,
+        designation: WaypointDesignation? = null,
+    ): Result<Waypoint> {
         val waypoint = Waypoint(
             id = idGenerator(),
             lat = lat,
@@ -22,6 +36,8 @@ class CreateWaypointUseCase(
             name = name,
             note = note,
             createdAtEpochMillis = currentTime.nowEpochMillis(),
+            trackId = trackId,
+            designation = designation,
         )
         return repository.save(waypoint).map { waypoint }
     }

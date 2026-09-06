@@ -47,6 +47,16 @@ data class TrackRecordingUiState(
      */
     val returnToStart: ReturnToStartInfo? = null,
     /**
+     * The active track's origin waypoint — navigation HUD stage one's target — once
+     * [TrackRecordingViewModel] has created it from the first accuracy-gated fix after
+     * [TrackRecordingViewModel.startRecording]. `null` before that fix arrives, for the whole
+     * recording if none ever passes the gate (under canopy, say — a valid state the HUD handles by
+     * saying so, never by substituting the first breadcrumb), and whenever nothing is recording.
+     * In-memory only, like [activeTrack]: the persisted pointer is
+     * [com.forager.app.domain.model.Track.originWaypointId].
+     */
+    val originWaypoint: Waypoint? = null,
+    /**
      * Every recorded track, newest-started first — the Settings "Recorded Tracks" export surface's
      * only data source. Loaded on init and refreshed whenever that panel is opened (see
      * [TrackRecordingViewModel.loadTracks]), not reactively: [TrackRepository] is plain suspend

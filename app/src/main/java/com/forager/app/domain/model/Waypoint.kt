@@ -28,4 +28,6 @@ data class Waypoint(
     val note: String,
     val createdAtEpochMillis: Long,
     val trackId: String? = null,
+    /** See [WaypointDesignation] — `null` for an ordinary, user-dropped waypoint. Defaults to `null` so no existing constructor site changes. */
+    val designation: WaypointDesignation? = null,
 )

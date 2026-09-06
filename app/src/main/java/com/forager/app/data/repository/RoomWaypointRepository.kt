@@ -4,6 +4,7 @@ import com.forager.app.data.local.WaypointDao
 import com.forager.app.data.local.WaypointEntity
 import com.forager.app.domain.WaypointRepository
 import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.WaypointDesignation
 
 /** Room-backed [WaypointRepository]; the only place [WaypointEntity] and [Waypoint] meet. */
 class RoomWaypointRepository(
@@ -43,6 +44,10 @@ private fun WaypointEntity.toDomain() = Waypoint(
     note = note,
     createdAtEpochMillis = createdAtEpochMillis,
     trackId = trackId,
+    // valueOf, not a lenient firstOrNull: a stored name this build doesn't know is a corrupt row,
+    // and runCatchingCancellable turns the throw into a reported read failure rather than a
+    // silently-ordinary waypoint (CLAUDE.md: no default fallback that isn't reported).
+    designation = designation?.let(WaypointDesignation::valueOf),
 )
 
 private fun Waypoint.toEntity() = WaypointEntity(
@@ -54,4 +59,5 @@ private fun Waypoint.toEntity() = WaypointEntity(
     note = note,
     createdAtEpochMillis = createdAtEpochMillis,
     trackId = trackId,
+    designation = designation?.name,
 )

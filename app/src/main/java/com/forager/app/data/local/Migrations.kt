@@ -841,3 +841,47 @@ val MIGRATION_12_13: Migration = object : Migration(12, 13) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_tracks_endedAtEpochMillis` ON `tracks` (`endedAtEpochMillis`)")
     }
 }
+
+/**
+ * Adds nullable `designation` to `waypoints` — navigation HUD stage one: the field that says an
+ * auto-created waypoint is a track's origin or end (see
+ * [com.forager.app.domain.model.WaypointDesignation] for why this is a column and not a naming
+ * convention). Every existing row gets `NULL`: nothing recorded before this migration was created
+ * by the app on the user's behalf, so "ordinary waypoint" is the honest value.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for exactly the reason [MIGRATION_12_13]
+ * records: [WaypointEntity] is shared by every `LegacyForagerDatabaseVn` fixture, so their generated
+ * tables already carry this column, and the explicit source column list below ignores it there.
+ * The two indexes are recreated because `DROP TABLE` takes them with it. Verified by running every
+ * existing migration test with this appended to its chain, plus `WaypointDesignationMigrationTest`
+ * from a real version-13 file.
+ */
+val MIGRATION_13_14: Migration = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `waypoints_new` (
+            `id` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `altitude` REAL,
+            `name` TEXT NOT NULL,
+            `note` TEXT NOT NULL,
+            `createdAtEpochMillis` INTEGER NOT NULL,
+            `trackId` TEXT,
+            `designation` TEXT,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `waypoints_new` (`id`, `lat`, `lng`, `altitude`, `name`, `note`, `createdAtEpochMillis`, `trackId`, `designation`)
+            SELECT `id`, `lat`, `lng`, `altitude`, `name`, `note`, `createdAtEpochMillis`, `trackId`, NULL FROM `waypoints`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `waypoints`")
+        db.execSQL("ALTER TABLE `waypoints_new` RENAME TO `waypoints`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_waypoints_createdAtEpochMillis` ON `waypoints` (`createdAtEpochMillis`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_waypoints_trackId` ON `waypoints` (`trackId`)")
+    }
+}

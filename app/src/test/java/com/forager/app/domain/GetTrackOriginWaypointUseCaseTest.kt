@@ -61,6 +61,10 @@ internal class InMemoryTracks(vararg initial: Track) : TrackRepository {
     override suspend fun create(track: Track): Result<Unit> = Result.success(Unit).also { tracks[track.id] = track }
     override suspend fun appendPoints(trackId: String, points: List<TrackPoint>): Result<Unit> = Result.success(Unit)
     override suspend fun end(trackId: String, endedAtEpochMillis: Long): Result<Unit> = Result.success(Unit)
+    override suspend fun setOriginWaypoint(trackId: String, waypointId: String): Result<Unit> {
+        tracks[trackId]?.let { tracks[trackId] = it.copy(originWaypointId = waypointId) }
+        return Result.success(Unit)
+    }
     override suspend fun delete(id: String): Result<Unit> {
         if (failDelete) return Result.failure(IllegalStateException("delete refused by test"))
         tracks.remove(id)

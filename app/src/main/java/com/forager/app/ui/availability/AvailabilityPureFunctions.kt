@@ -13,6 +13,7 @@ import com.forager.app.domain.model.MgrsCoordinate
 import com.forager.app.domain.model.NoTripWindowReason
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.TripWindowReport
+import com.forager.app.domain.model.Waypoint
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
@@ -52,9 +53,15 @@ private const val MILLIS_PER_MINUTE = 60_000L
 private const val MILLIS_PER_HOUR = 60 * MILLIS_PER_MINUTE
 private const val MILLIS_PER_DAY = 24 * MILLIS_PER_HOUR
 
-/** "412 m" below 1 km, "1.2 km" at or above — shared by [returnToStartStripText] and [DistanceArm]'s own readout. */
-internal fun formatReturnDistance(distanceMeters: Double): String =
-    if (distanceMeters < 1000) "${distanceMeters.roundToInt()} m" else "${"%.1f".format(distanceMeters / 1000)} km"
+/**
+ * Which waypoints the map draws — navigation HUD stage one's display rules. Ordinary (user-dropped,
+ * [Waypoint.designation] `null`) waypoints always; an auto-created origin only while it is the
+ * active navigation target; an end waypoint never in this stage, since it cannot be a target until
+ * stage two (an out-and-back ends where it started, and two markers at one spot read as clutter).
+ * Records is the archive and shows everything — this filter is the map's alone.
+ */
+internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolean, target: Waypoint?): List<Waypoint> =
+    waypoints.filter { it.designation == null || (isNavigating && target != null && it.id == target.id) }
 
 /**
  * "Coordinates unavailable" before a first fix (distinct wording from [MgrsCoordinate.Unsupported]

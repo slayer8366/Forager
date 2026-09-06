@@ -62,6 +62,17 @@ class RoomTrackRepositoryTest {
         assertNull(repository.getById("t2").getOrThrow()?.originWaypointId)
     }
 
+    /** Navigation HUD stage one: the origin pointer's write path, run after the origin waypoint is created. */
+    @Test
+    fun `setting the origin pointer updates the stored track, and a missing track is not a failure`() = runTest {
+        repository.create(Track(id = "t1", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+
+        repository.setOriginWaypoint("t1", "wp-origin").getOrThrow()
+
+        assertEquals("wp-origin", repository.getById("t1").getOrThrow()?.originWaypointId)
+        assertTrue(repository.setOriginWaypoint("no-such-track", "wp").isSuccess)
+    }
+
     @Test
     fun `a created track starts with no points and no end time`() = runTest {
         val track = Track(id = "t1", name = "Morning walk", startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList())

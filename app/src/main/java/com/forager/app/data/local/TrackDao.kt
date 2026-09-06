@@ -57,6 +57,10 @@ abstract class TrackDao {
     @Query("UPDATE tracks SET endedAtEpochMillis = :endedAtEpochMillis WHERE id = :id")
     abstract suspend fun updateEndedAt(id: String, endedAtEpochMillis: Long)
 
+    /** See [com.forager.app.domain.TrackRepository.setOriginWaypoint]. */
+    @Query("UPDATE tracks SET originWaypointId = :waypointId WHERE id = :id")
+    abstract suspend fun updateOriginWaypointId(id: String, waypointId: String)
+
     @Query("DELETE FROM track_points WHERE trackId = :trackId")
     abstract suspend fun deletePointsForTrack(trackId: String)
 

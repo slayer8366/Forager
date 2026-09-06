@@ -49,6 +49,10 @@ class RoomTrackRepository(
         dao.updateEndedAt(trackId, endedAtEpochMillis)
     }
 
+    override suspend fun setOriginWaypoint(trackId: String, waypointId: String): Result<Unit> = runCatchingCancellable {
+        dao.updateOriginWaypointId(trackId, waypointId)
+    }
+
     override suspend fun delete(id: String): Result<Unit> = runCatchingCancellable {
         dao.deleteTrackAndPoints(id)
     }

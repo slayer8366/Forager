@@ -145,10 +145,10 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -204,6 +204,7 @@ import com.forager.app.crash.CrashFileStore
 import com.forager.app.domain.CachedSearchSummary
 import com.forager.app.domain.CartographyEntryMapData
 import com.forager.app.domain.CompassProvider
+import com.forager.app.domain.ComputeTrueHeadingUseCase
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.ForagingSelection
 import com.forager.app.domain.ForagingWeatherGuidance
@@ -222,6 +223,7 @@ import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.formatDistanceKm
+import com.forager.app.domain.model.formatDistanceMeters
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.GalleryPhoto
@@ -243,6 +245,7 @@ import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.domain.model.Waypoint
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.sensor.AndroidCompassProvider
+import com.forager.app.sensor.AndroidDeclinationProvider
 import com.forager.app.ui.adaptive.WindowWidthClass
 import com.forager.app.ui.adaptive.currentWindowWidthClass
 import com.forager.app.ui.crash.CrashLogPanel
@@ -275,6 +278,8 @@ import com.forager.app.ui.map.MapMode
 import com.forager.app.ui.map.MapModePicker
 import com.forager.app.ui.map.MapOverlayContent
 import com.forager.app.ui.map.MapSlot
+import com.forager.app.ui.map.TrueHeadingReading
+import com.forager.app.ui.map.rememberTrueHeading
 import com.forager.app.ui.map.SightingsMapSlot
 import com.forager.app.ui.map.mapIconBarRecordAccent
 import com.forager.app.ui.map.mapIconBarRowAnchorOffset
@@ -618,6 +623,21 @@ fun AvailabilityScreen(
      */
     compassProvider: CompassProvider = AndroidCompassProvider(LocalContext.current),
     /**
+     * Navigation HUD stage one: what turns [compassProvider]'s magnetic heading into a true one
+     * (see [rememberTrueHeading]). Defaults to the real declination model so no production caller
+     * *has* to pass it, same pattern as [compassProvider]; `MainActivity` passes the container's
+     * own instance, and a test passes one over a fake [com.forager.app.domain.DeclinationProvider]
+     * to pin the sign.
+     */
+    computeTrueHeading: ComputeTrueHeadingUseCase = remember { ComputeTrueHeadingUseCase(AndroidDeclinationProvider()) },
+    /**
+     * Navigation HUD stage one's target — the active track's origin waypoint
+     * ([com.forager.app.ui.track.TrackRecordingUiState.originWaypoint]), `null` when there is
+     * none. Threaded separately from [waypoints] because it decides which of them the *map* draws
+     * ([mapVisibleWaypoints]) as well as what the HUD points at.
+     */
+    navigationTarget: Waypoint? = null,
+    /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
@@ -677,6 +697,12 @@ fun AvailabilityScreen(
 
     val onClearMapTaxonFilter: () -> Unit = {
         mapTaxonFilter = null
+    }
+
+    // Navigation HUD stage one's display rules, applied once here so the compact map and the
+    // wide-layout MapTab agree — see mapVisibleWaypoints. Records keeps the full list.
+    val mapWaypoints = remember(waypoints, isReturning, navigationTarget) {
+        mapVisibleWaypoints(waypoints, isNavigating = isReturning, target = navigationTarget)
     }
 
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
@@ -1132,7 +1158,7 @@ fun AvailabilityScreen(
                         onPlaceTripPin = onPlaceTripPin,
                         onLogFindHere = onLogFindHere,
                         breadcrumbPoints = breadcrumbPoints,
-                        waypoints = waypoints,
+                        waypoints = mapWaypoints,
                         onDropWaypoint = onDropWaypoint,
                         taxonFilter = mapTaxonFilter,
                         onClearTaxonFilter = onClearMapTaxonFilter,
@@ -1576,13 +1602,16 @@ fun AvailabilityScreen(
                             onToggleRecording = onToggleRecording,
                             startRecordingErrorMessage = startRecordingErrorMessage,
                             breadcrumbPoints = breadcrumbPoints,
-                            waypoints = waypoints,
+                            waypoints = mapWaypoints,
                             onDropWaypoint = onDropWaypoint,
                             returnToStart = returnToStart,
                             isReturning = isReturning,
                             isOffTrack = isOffTrack,
                             onToggleReturning = onToggleReturning,
                             compassProvider = compassProvider,
+                            computeTrueHeading = computeTrueHeading,
+                            navigationTarget = navigationTarget,
+                            currentTime = currentTime,
                             taxonFilter = mapTaxonFilter,
                             onClearTaxonFilter = onClearMapTaxonFilter,
                             // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
@@ -2903,6 +2932,12 @@ private fun CompactMapTab(
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
     compassProvider: CompassProvider,
+    /** See [AvailabilityScreen]'s own `computeTrueHeading` doc comment. */
+    computeTrueHeading: ComputeTrueHeadingUseCase,
+    /** See [AvailabilityScreen]'s own `navigationTarget` doc comment. */
+    navigationTarget: Waypoint?,
+    /** The HUD's fix-age clock — [AvailabilityScreen]'s own `currentTime`, so a test can pin an old fix as stale. */
+    currentTime: CurrentTimeProvider,
     /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
     taxonFilter: Long?,
     onClearTaxonFilter: () -> Unit,
@@ -3063,11 +3098,14 @@ private fun CompactMapTab(
     // the menu only once the picker's already closed. pickingSearchLocation joins the same picker
     // tier as pendingAction (both show the identical CentrePinLocationPickerOverlay, just for a
     // different caller) rather than a third priority level of its own.
-    BackHandler(enabled = pendingAction != null || pickingSearchLocation || showActionMenu) {
+    // Navigation HUD stage one: system back also exits the HUD, at the lowest priority — an
+    // overlay above it (picker, menu) still pops first, one per press.
+    BackHandler(enabled = pendingAction != null || pickingSearchLocation || showActionMenu || isReturning) {
         when {
             pendingAction != null -> pendingAction = null
             pickingSearchLocation -> onCancelSearchLocationPick()
-            else -> showActionMenu = false
+            showActionMenu -> showActionMenu = false
+            else -> onToggleReturning()
         }
     }
 
@@ -3163,6 +3201,11 @@ private fun CompactMapTab(
             // not fully pin down inside Compose's own recomposition-scope internals. A remembered,
             // one-time measurement carries no such risk: it never changes after first composition,
             // so nothing here ever triggers a later recomposition.
+            // Navigation HUD stage one: the ONE true-north heading both the compass strip and the
+            // HUD read. Passed down as the State object; its .value is read only inside those two
+            // leaves — reading it here would recompose this whole tab at sensor rate. See
+            // rememberTrueHeading's own doc comment before touching this.
+            val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.liveFix)
             val compassStripTextMeasurer = rememberTextMeasurer()
             val compassStripLabelStyle = MaterialTheme.typography.labelMedium
             val compassStripDensity = LocalDensity.current
@@ -3555,6 +3598,7 @@ private fun CompactMapTab(
                                     isReturning = isReturning,
                                     isOffTrack = isOffTrack,
                                     onToggleReturning = onToggleReturning,
+                                    distanceUnit = uiState.distanceUnit,
                                     onLeftSide = isMapIconBarOnLeftSide,
                                 )
                             }
@@ -3570,7 +3614,7 @@ private fun CompactMapTab(
                     }
                 }
                 CompassElevationStrip(
-                    compassProvider = compassProvider,
+                    heading = trueHeading,
                     elevationMeters = uiState.liveAltitudeMeters,
                     location = uiState.liveLocation,
                     // Full width, "just below" SearchEntryBar rather than a narrow floating pill
@@ -3598,6 +3642,28 @@ private fun CompactMapTab(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .padding(top = topInset + compassStripClearance + Spacing.sm),
+                    )
+                }
+
+                // Navigation HUD stage one. Composed after the cluster (so its own exit wins any
+                // overlap with a cluster dragged up to the strip's clearance) and before the nav
+                // below (so the nav keeps winning its own band) — see NavigationHud's own doc
+                // comment for the full mounting reasoning. Visible only while returning: stage
+                // one's HUD *is* the return mode (TrackRecordingViewModel.startReturn). Same
+                // top padding as the taxon chip, so it sits directly under the compass strip and
+                // follows the search bar's fullscreen slide with it. Never touches mapSlot.
+                if (isReturning) {
+                    NavigationHud(
+                        heading = trueHeading,
+                        liveFix = uiState.liveFix,
+                        target = navigationTarget,
+                        distanceUnit = uiState.distanceUnit,
+                        currentTime = currentTime,
+                        onExit = onToggleReturning,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .padding(top = topInset + compassStripClearance),
                     )
                 }
 
@@ -3778,6 +3844,9 @@ private fun CompactMapTab(
  */
 private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
 
+/** The compass strip's heading text — navigation HUD stage one asserts it and the HUD's north compass read the same value. */
+internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"
+
 /** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
 internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
 
@@ -3833,6 +3902,8 @@ private fun TrailheadControls(
     isReturning: Boolean,
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
+    /** Navigation HUD stage one: the arm and the HUD render the same distance the same way — see [formatDistanceMeters]. */
+    distanceUnit: DistanceUnit,
     onLeftSide: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -3850,6 +3921,7 @@ private fun TrailheadControls(
             isReturning = isReturning,
             isOffTrack = isOffTrack,
             onToggleReturning = onToggleReturning,
+            distanceUnit = distanceUnit,
             modifier = Modifier
                 .zIndex(1f)
                 .onGloballyPositioned { coordinates -> pillSizePx = coordinates.size },
@@ -3858,6 +3930,7 @@ private fun TrailheadControls(
             visible = isReturning,
             distanceMeters = returnToStart?.distanceMeters,
             isOffTrack = isOffTrack,
+            distanceUnit = distanceUnit,
             circleDiameterPx = pillSizePx.width,
             modifier = Modifier.layout { measurable, constraints ->
                 val overlapPx = pillSizePx.width / 2
@@ -3889,6 +3962,7 @@ private fun ControlPill(
     isReturning: Boolean,
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
+    distanceUnit: DistanceUnit,
     modifier: Modifier = Modifier,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
@@ -3917,7 +3991,7 @@ private fun ControlPill(
             )
             MapBarIconButton(
                 icon = Icons.Filled.Directions,
-                contentDescription = returnToStartStripText(isRecording, returnToStart)
+                contentDescription = returnToStartStripText(isRecording, returnToStart, distanceUnit)
                     .ifBlank { "Return to vehicle — start recording first" },
                 onClick = onToggleReturning,
                 enabled = isRecording,
@@ -4004,6 +4078,7 @@ private fun DistanceArm(
     visible: Boolean,
     distanceMeters: Double?,
     isOffTrack: Boolean,
+    distanceUnit: DistanceUnit,
     circleDiameterPx: Int,
     modifier: Modifier = Modifier,
 ) {
@@ -4067,7 +4142,7 @@ private fun DistanceArm(
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Text(
-                    text = distanceMeters?.let { formatReturnDistance(it) }.orEmpty(),
+                    text = distanceMeters?.let { formatDistanceMeters(it, distanceUnit) }.orEmpty(),
                     style = numberStyle,
                     color = if (isOffTrack) MaterialTheme.colorScheme.error else LocalContentColor.current,
                     maxLines = 1,
@@ -4096,14 +4171,24 @@ private fun DistanceArm(
  */
 @Composable
 private fun CompassElevationStrip(
-    compassProvider: CompassProvider,
+    /**
+     * **True north, as of navigation HUD stage one** — the one smoothed, declination-corrected
+     * reading the HUD reads too ([rememberTrueHeading]), so the strip and the HUD can never
+     * disagree. This strip used to rotate the raw magnetic value, which differs from the HUD's
+     * true-north bearings by local declination — about 15° in the Pacific Northwest, a fixed
+     * offset that no averaging removes. Do not move it back to magnetic: a needle and a readout on
+     * the same screen that disagree by 15° is the exact failure the foundations work exists to
+     * prevent. Read as a [State] here, in this leaf, and nowhere above — see
+     * [rememberTrueHeading]'s own doc comment.
+     */
+    heading: State<TrueHeadingReading>,
     elevationMeters: Double?,
     location: LatLng?,
     modifier: Modifier = Modifier,
 ) {
-    val headingDegrees by compassProvider.heading.collectAsState(initial = null)
+    val reading by heading
     CompassElevationStripContent(
-        headingDegrees = headingDegrees,
+        heading = reading,
         elevationMeters = elevationMeters,
         location = location,
         modifier = modifier,
@@ -4120,7 +4205,7 @@ private fun CompassElevationStrip(
  */
 @Composable
 private fun CompassElevationStripContent(
-    headingDegrees: Float?,
+    heading: TrueHeadingReading,
     elevationMeters: Double?,
     location: LatLng?,
     modifier: Modifier = Modifier,
@@ -4194,7 +4279,7 @@ private fun CompassElevationStripContent(
                         contentDescription = null,
                         modifier = Modifier
                             .size(18.dp)
-                            .rotate(headingDegrees ?: 0f),
+                            .rotate((heading as? TrueHeadingReading.Available)?.degrees ?: 0f),
                     )
                 }
                 // Heading, elevation, and coordinates, taking whatever width is left after the fixed
@@ -4215,9 +4300,17 @@ private fun CompassElevationStripContent(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
                 ) {
                     Text(
-                        text = headingDegrees?.let { "${it.roundToInt()}° ${cardinalDirection(it)}" } ?: "Compass unavailable",
+                        // Three states, not two — "needs a fix" and "no sensor" are different
+                        // problems (see TrueHeadingReading), and one word for both would hide
+                        // which is true.
+                        text = when (heading) {
+                            is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
+                            TrueHeadingReading.NoSensor -> "Compass unavailable"
+                            TrueHeadingReading.NeedsFix -> "Compass needs a fix"
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
+                        modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
                     )
                     Text("·", style = MaterialTheme.typography.labelMedium)
                     Text(
@@ -4255,14 +4348,14 @@ private fun CompassElevationStripContent(
  * dispatch's Part A — see [CompassElevationStripContent]'s own doc comment).
  * [ReturnToStartInfo]'s own doc comment covers why there's no ETA here.
  */
-internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInfo?): String {
+internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInfo?, distanceUnit: DistanceUnit): String {
     if (!isRecording) return ""
     if (info == null) return "Recording — waiting for a fix to compute the way back"
     val elevationText = info.elevationDifferenceMeters?.let {
         "${if (it >= 0) "+" else ""}${it.roundToInt()} m"
     } ?: "elevation diff. unavailable"
     val bearing = info.bearingDegrees.roundToInt()
-    return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · ${formatReturnDistance(info.distanceMeters)} · $elevationText"
+    return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · ${formatDistanceMeters(info.distanceMeters, distanceUnit)} · $elevationText"
 }
 
 /**

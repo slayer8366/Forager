@@ -10,15 +10,20 @@ import com.forager.app.domain.DetectOffTrackUseCase
 import com.forager.app.domain.ErrorLog
 import com.forager.app.domain.GetTracksUseCase
 import com.forager.app.domain.GetWaypointsUseCase
+import com.forager.app.domain.LocationSampler
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.TrackRepository
+import com.forager.app.domain.autoWaypointName
 import com.forager.app.domain.model.ReturnToStartInfo
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
 import com.forager.app.domain.model.TrackRecordingMode
+import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.WaypointDesignation
+import java.time.ZoneId
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,6 +103,8 @@ class TrackRecordingViewModel(
      * to always reporting zero, matching every other optional dependency here.
      */
     private val getWaypointReferenceCount: suspend (String) -> Int = { 0 },
+    /** The zone the auto-created origin/end waypoints' default names are written in — injected so a test can pin the wall-clock text. */
+    private val zone: ZoneId = ZoneId.systemDefault(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -116,6 +123,13 @@ class TrackRecordingViewModel(
     // by a cooldown left over from a much earlier one.
     private var lastOffTrackAlertAtMillis: Long? = null
 
+    // Navigation HUD stage one — the auto-created origin/end waypoints. lastGatedFix is the most
+    // recent fix that passed the active mode's own accuracy gate (LocationSampler's first-fix
+    // rule), what stopRecording() seeds the end waypoint from; originCreationInFlight stops a
+    // second fix arriving during the origin's own async save from creating a second origin.
+    private var lastGatedFix: TrackPoint? = null
+    private var originCreationInFlight = false
+
     init {
         loadWaypoints()
         loadTracks()
@@ -131,11 +145,14 @@ class TrackRecordingViewModel(
         viewModelScope.launch {
             startTrack(null)
                 .onSuccess { track ->
+                    lastGatedFix = null
+                    originCreationInFlight = false
                     _uiState.update {
                         it.copy(
                             activeTrack = ActiveTrack(track.id, track.startedAtEpochMillis, mode),
                             startRecordingErrorMessage = null,
                             breadcrumbPoints = emptyList(),
+                            originWaypoint = null,
                         )
                     }
                     beginPolling(track.id)
@@ -168,20 +185,50 @@ class TrackRecordingViewModel(
      * Clears local recording state. Ending the track's own row (`endedAtEpochMillis`) is the
      * foreground service's job once it receives the stop intent — see
      * [com.forager.app.service.TrackRecordingService.stopRecording] — not duplicated here.
+     *
+     * Navigation HUD stage one: also creates the track's **end waypoint** (see
+     * [WaypointDesignation.END]) from the last fix that passed the mode's accuracy gate, linked by
+     * `trackId`. None if no fix ever passed — the same "validly absent" rule the origin follows.
+     * Async, after local state is cleared, so the stop itself is never held up by the save.
      */
     fun stopRecording() {
+        val endingTrack = uiState.value.activeTrack
+        val endFix = lastGatedFix
         pollingJob?.cancel()
         pollingJob = null
         locationJob?.cancel()
         locationJob = null
         recentReturnDistancesMeters.clear()
         lastOffTrackAlertAtMillis = null
-        _uiState.update { it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null) }
+        lastGatedFix = null
+        originCreationInFlight = false
+        _uiState.update {
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null)
+        }
+        if (endingTrack != null && endFix != null) {
+            viewModelScope.launch {
+                createWaypoint(
+                    lat = endFix.lat,
+                    lng = endFix.lng,
+                    altitude = endFix.altitude,
+                    name = autoWaypointName(WaypointDesignation.END, currentTime.nowEpochMillis(), zone),
+                    trackId = endingTrack.trackId,
+                    designation = WaypointDesignation.END,
+                )
+                    .onSuccess { loadWaypoints() }
+                    .onFailure { error -> errorLog.w(TAG, "Couldn't save the track's end waypoint.", error) }
+            }
+        }
     }
 
     /**
      * Marks the walker as now heading back to the track's start — the only state
-     * [DetectOffTrackUseCase] runs against. Outbound travel away from the start isn't "off track"
+     * [DetectOffTrackUseCase] runs against, and, as of navigation HUD stage one, **the only way the
+     * HUD appears**: `CompactMapTab` shows the HUD while this is true, targeting
+     * [TrackRecordingUiState.originWaypoint]. Stage two's target picker (This Trip / Recents /
+     * Nearby) will need a way to navigate *without* returning, so this coupling is stage one's
+     * deliberate smallness, not a design — expect it to be loosened then.
+     * Outbound travel away from the start isn't "off track"
      * by any definition available here (there's no planned route to deviate from, only the trail
      * being made right now), so the heuristic would be meaningless, and noisy, applied to it.
      * A no-op while nothing is recording — there is nothing to return to yet.
@@ -211,23 +258,70 @@ class TrackRecordingViewModel(
         }
     }
 
-    /** See this class's own doc comment for why [returnToStart] is driven from here rather than a one-shot fetch. */
+    /**
+     * See this class's own doc comment for why [returnToStart] is driven from here rather than a
+     * one-shot fetch. Navigation HUD stage one: this same stream is what seeds the track's origin
+     * waypoint — the **first fix that passes the active mode's accuracy gate**, no timeout (owner
+     * decision): the origin lands where the recorder actually stood within seconds in the open,
+     * and under canopy it may never, in which case the track validly has no origin. The last-known
+     * fix from elsewhere was rejected as a seed because it may be minutes old and somewhere the
+     * user has already left; the first breadcrumb because it arrives 30–45 s late via the
+     * service's flush and this ViewModel's poll.
+     */
     private fun beginLocationTracking() {
         locationJob?.cancel()
         locationJob = viewModelScope.launch {
             locationTracker.fixes.collect { fix ->
                 if (fix is LocationFix.Update) {
-                    returnToStart(
-                        TrackPoint(
-                            lat = fix.lat,
-                            lng = fix.lng,
-                            altitude = fix.altitude,
-                            accuracyMeters = fix.accuracyMeters,
-                            timestampEpochMillis = fix.timestampEpochMillis,
-                        ),
+                    val point = TrackPoint(
+                        lat = fix.lat,
+                        lng = fix.lng,
+                        altitude = fix.altitude,
+                        accuracyMeters = fix.accuracyMeters,
+                        timestampEpochMillis = fix.timestampEpochMillis,
                     )
+                    val active = uiState.value.activeTrack
+                    // LocationSampler's own first-fix rule *is* the accuracy gate: with no
+                    // lastAccepted it accepts exactly the fixes whose reported accuracy clears the
+                    // mode's ceiling — reused rather than restated.
+                    if (active != null && LocationSampler(active.mode).shouldAccept(lastAccepted = null, candidate = point)) {
+                        lastGatedFix = point
+                        if (uiState.value.originWaypoint == null && !originCreationInFlight) createOriginWaypoint(active, point)
+                    }
+                    returnToStart(point)
                 }
             }
+        }
+    }
+
+    private fun createOriginWaypoint(active: ActiveTrack, fix: TrackPoint) {
+        originCreationInFlight = true
+        viewModelScope.launch {
+            createWaypoint(
+                lat = fix.lat,
+                lng = fix.lng,
+                altitude = fix.altitude,
+                name = autoWaypointName(WaypointDesignation.ORIGIN, currentTime.nowEpochMillis(), zone),
+                trackId = active.trackId,
+                designation = WaypointDesignation.ORIGIN,
+            )
+                .onSuccess { waypoint ->
+                    // The pointer is what survives the process; the state field is this session's
+                    // target. A failed pointer write is logged and the session still navigates —
+                    // a partial result reported as such, not hidden and not fatal.
+                    trackRepository.setOriginWaypoint(active.trackId, waypoint.id)
+                        .onFailure { error -> errorLog.w(TAG, "Couldn't point track '${active.trackId}' at its origin waypoint.", error) }
+                    if (uiState.value.activeTrack?.trackId == active.trackId) {
+                        _uiState.update { it.copy(originWaypoint = waypoint) }
+                    }
+                    loadWaypoints()
+                }
+                .onFailure { error ->
+                    errorLog.w(TAG, "Couldn't save the track's origin waypoint.", error)
+                    // Cleared so the next gated fix tries again rather than leaving the track
+                    // origin-less for a transient write failure.
+                    originCreationInFlight = false
+                }
         }
     }
 
@@ -317,7 +411,12 @@ class TrackRecordingViewModel(
      * it was; only where its output goes is new here.
      */
     fun returnToStart(current: TrackPoint): ReturnToStartInfo? {
-        val start = uiState.value.breadcrumbPoints.firstOrNull() ?: return null
+        // Navigation HUD stage one (owner decision): the origin *waypoint* is the target once it
+        // exists, so the return arm and the HUD point at one place; before it exists — or for a
+        // track that never gets one — the first breadcrumb stands in exactly as it always did.
+        val start = uiState.value.originWaypoint?.asStartPoint()
+            ?: uiState.value.breadcrumbPoints.firstOrNull()
+            ?: return null
         val info = computeReturnToStart(current, start)
         if (uiState.value.isReturning) {
             recentReturnDistancesMeters += info.distanceMeters
@@ -336,6 +435,14 @@ class TrackRecordingViewModel(
         }
         return info
     }
+
+    private fun Waypoint.asStartPoint() = TrackPoint(
+        lat = lat,
+        lng = lng,
+        altitude = altitude,
+        accuracyMeters = null,
+        timestampEpochMillis = createdAtEpochMillis,
+    )
 
     private fun canFireOffTrackAlert(): Boolean {
         val last = lastOffTrackAlertAtMillis ?: return true

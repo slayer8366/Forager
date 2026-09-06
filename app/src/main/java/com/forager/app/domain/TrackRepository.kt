@@ -36,6 +36,14 @@ interface TrackRepository {
     /** Marks the track with id [trackId] as finished at [endedAtEpochMillis]. */
     suspend fun end(trackId: String, endedAtEpochMillis: Long): Result<Unit>
 
+    /**
+     * Points [com.forager.app.domain.model.Track.originWaypointId] at [waypointId] — the write path
+     * for that column (navigation HUD stage one), run once by `TrackRecordingViewModel` after it
+     * creates the origin waypoint from the first accuracy-gated fix. A no-op, not a failure, if no
+     * such track exists.
+     */
+    suspend fun setOriginWaypoint(trackId: String, waypointId: String): Result<Unit>
+
     /** Removes the track with this id and all its points. A no-op, not a failure, if none exists. */
     suspend fun delete(id: String): Result<Unit>
 }

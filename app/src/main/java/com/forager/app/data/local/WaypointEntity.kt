@@ -25,4 +25,11 @@ data class WaypointEntity(
     val note: String,
     val createdAtEpochMillis: Long,
     val trackId: String? = null,
+    /**
+     * [com.forager.app.domain.model.WaypointDesignation]'s name, or `null` for an ordinary waypoint
+     * — nullable `TEXT` as of [MIGRATION_13_14] (navigation HUD stage one). Not indexed: the only
+     * readers already filter on `trackId` (indexed) or on an in-memory list, never on this column
+     * alone.
+     */
+    val designation: String? = null,
 )

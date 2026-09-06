@@ -5,9 +5,11 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.forager.app.data.local.ForagerDatabase
 import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.WaypointDesignation
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -99,5 +101,20 @@ class RoomWaypointRepositoryTest {
         assertEquals(otherTrack, repository.getById("w3").getOrThrow())
         assertEquals(emptyList<Waypoint>(), repository.getForTrack("t1").getOrThrow())
         assertTrue(repository.detachFromTrack("never-linked").isSuccess)
+    }
+
+    /** Navigation HUD stage one: the designation is a column, and a rename leaves it untouched. */
+    @Test
+    fun `an origin waypoint's designation persists and survives renaming it`() = runTest {
+        val origin = Waypoint(id = "w1", lat = 45.52, lng = -122.68, altitude = 50.0, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 1_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+        val end = Waypoint(id = "w2", lat = 45.53, lng = -122.69, altitude = null, name = "End · Sep 5, 11:02 AM", note = "", createdAtEpochMillis = 2_000L, trackId = "t1", designation = WaypointDesignation.END)
+        val plain = Waypoint(id = "w3", lat = 45.6, lng = -122.7, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 3_000L)
+        listOf(origin, end, plain).forEach { repository.save(it).getOrThrow() }
+
+        repository.save(origin.copy(name = "Truck")).getOrThrow()
+
+        assertEquals(origin.copy(name = "Truck"), repository.getById("w1").getOrThrow())
+        assertEquals(WaypointDesignation.END, repository.getById("w2").getOrThrow()?.designation)
+        assertNull(repository.getById("w3").getOrThrow()?.designation)
     }
 }

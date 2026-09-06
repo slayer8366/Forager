@@ -58,3 +58,23 @@ fun formatDistanceKm(radiusKm: Int, unit: DistanceUnit): String = when (unit) {
     DistanceUnit.KILOMETERS -> "$radiusKm km"
     DistanceUnit.MILES -> "${(radiusKm * MILES_PER_KM).roundToInt()} mi"
 }
+
+/**
+ * A metre-scale distance in the user's display unit — navigation HUD stage one, the first reader
+ * of [DistanceUnit] below the kilometre scale. Metric: "412 m" below a kilometre, "1.2 km" at or
+ * above. Miles: feet below a quarter mile ("328 ft"), tenths of a mile at or above ("0.3 mi",
+ * "1.0 mi") — a quarter mile is where a walker stops counting in feet. Replaces the metric-only
+ * `formatReturnDistance` the return-to-vehicle arm used to read, so the arm and the HUD render the
+ * same distance the same way.
+ */
+fun formatDistanceMeters(distanceMeters: Double, unit: DistanceUnit): String = when (unit) {
+    DistanceUnit.KILOMETERS ->
+        if (distanceMeters < 1_000.0) "${distanceMeters.roundToInt()} m" else "${"%.1f".format(distanceMeters / 1_000.0)} km"
+    DistanceUnit.MILES -> {
+        val miles = distanceMeters / METERS_PER_MILE
+        if (miles < 0.25) "${(distanceMeters * FEET_PER_METER).roundToInt()} ft" else "${"%.1f".format(miles)} mi"
+    }
+}
+
+private const val METERS_PER_MILE = 1_609.344
+private const val FEET_PER_METER = 3.28084

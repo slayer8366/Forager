@@ -447,6 +447,8 @@ class MainActivity : ComponentActivity() {
                         if (trackUiState.isReturning) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
                     },
                     compassProvider = container.compassProvider,
+                    computeTrueHeading = container.computeTrueHeadingUseCase,
+                    navigationTarget = trackUiState.originWaypoint,
                     crashFileStore = container.crashFileStore,
                     tracks = trackUiState.tracks,
                     onTracksOpened = trackRecordingViewModel::loadTracks,
