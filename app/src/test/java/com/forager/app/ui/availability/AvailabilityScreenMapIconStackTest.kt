@@ -527,12 +527,16 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     @Test
-    fun `with no compass sensor the HUD still shows the distance and the absolute true bearing`() {
+    fun `with no compass sensor the HUD shows the distance and no bearing text`() {
         setNavigatingScreen(compassHeading = null)
         composeRule.waitForIdle()
 
         assertEquals("Compass unavailable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
-        assertEquals("Bearing 0° N", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        // Was "Bearing 0° N" until the two-data-corrections dispatch (Part C, owner-authorised
+        // change to this assertion). Asserted by node count as well as by the tagged text: no node
+        // anywhere on the screen carries a bearing.
+        assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        composeRule.onAllNodesWithText("Bearing", substring = true).assertCountEquals(0)
         assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
     }
 
