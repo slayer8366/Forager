@@ -165,3 +165,60 @@ No `/dev/kvm`; device verification will be blocked. The Android SDK, Gradle and 
 ## Required disclosure (pre-build)
 
 **Confirmed:** every file/line citation; `LocationSampler` passes null; the three collectors and their reliance on completion; the artifact versions, sizes and POM dependencies (fetched today); `isMinifyEnabled = false`; no flavours; `androidx.fragment` already in the graph. **Inferred:** APK growth (~1–1.5 MB unshrunk); that GPS/network fixes report accuracy on API 26+ devices; the distance slot's width; F-Droid's treatment of GMS dependencies (their published inclusion policy, not tested against this app). **Could not determine:** what the owner's device does for `hasAccuracy()`; whether the residual drift is bad enough to need a filter. **Premises in the dispatch that were wrong or incomplete:** none found wrong; one incomplete — "detection itself requires the dependency" has a dependency-free answer good enough for the greyed-out setting but not for the real availability check. **Decided:** nothing built; the proposals above each name the decision they wait on — (1a) aging consequence vs. best-in-30-s, (1b) stale wording, item 2's `≈`/`within` wording and scope, item 3's (3a)/(3b).
+
+---
+---
+
+# Completion report — items 1 and 2 built; item 3 deferred, not rejected
+
+**Owner's answers** (`ANSWERS — Location accuracy`): item 1 as proposed, aging accepted, the refused alternative recorded at the gate; item 2 as proposed, a new formatter, the TalkBack sentence queued; **item 3 deferred to pre-release, after the beta — superseding the earlier "no dependency" answer.** Nothing of item 3 is built here; §ITEM 3 above stays as the bulk of its eventual report-before-building (the dependency measurement, availability detection with and without the dependency, the new location-preference repository, and **the `flatMapLatest` switching trap that would resurrect the first-launch bug**). Its first open question is R8: whether shrinking strips the unused paths with the preference off, which may make the flavour pair unnecessary. Kalman: not now; **behind the gate, never in front of it** — recorded at the gate's doc comment too.
+
+**Commits on `claude/new-session-102gri`:** `e6cd929` (pre-build report), `01e7df5` (product), `cc7b97b` (tests), plus this one. Not merged; no PR opened (none was asked for).
+
+## What was built
+
+**Item 1 — `domain/LiveFixGate.kt`.** `LIVE_FIX_MAX_ACCURACY_METERS = 50f` (its own constant; the doc says why it is not a reference to BALANCED) and `acceptLiveFix(candidate, maxAccuracyMeters = LIVE_FIX_MAX_ACCURACY_METERS)`: null passes, `<= 50` passes. Applied once, in `AvailabilityViewModel.collectLiveFixes`, as `if (fix is LocationFix.Update && acceptLiveFix(fix))`. Rejected fixes are dropped; the previous fix is held and ages. The file's doc comment records the threshold's reasoning, the null rule, the accepted aging, **the refused alternative and why** (an honest silence traded for a confident lie — the pattern this app has been removing everywhere else), and that a future filter goes behind the gate. Recording's own gate is untouched.
+
+**Item 2 — `formatDistanceWithAccuracy` in `domain/model/DistanceUnit.kt`.** Null accuracy → `formatDistanceMeters`, unchanged; `distance <= accuracy` → `"within <accuracy in the display unit>"`; otherwise, below the km / quarter-mile switch, the distance rounded to the first step ≥ accuracy from `1/5/10/50/100/500 m` or `1/5/10/50/100/500/1000 ft`, prefixed `"≈ "` unless the step is the unit's natural 1 m / 1 ft; at or above the switch, unchanged. The HUD's distance slot is its only reader (`NavigationHud.kt`, `distanceText`). `formatDistanceMeters` itself and all its other callers are byte-for-byte as they were.
+
+## Tests
+
+**Suite:** **1134 tests, 0 failures, 0 errors, 24 skipped** on the final tree (`./gradlew :app:testDebugUnitTest --continue`, summed from the JUnit XML); the skipped set is byte-identical to the CI `SKIPPED_TESTS_ALLOWLIST` (24 entries; no unallowed skip, no stale entry), checked by parsing the workflow against the report. `JournalTabTest`'s "From Album" flake did not fire in this run. Baseline was 1122 / 24; the new tests account for the difference and the skip count did not move.
+
+**Reverted-and-rerun**, each a one-line `sed`, the affected classes run, the file restored with `git checkout`:
+
+| Reverted | Red, and how |
+|---|---|
+| Gate not applied in the collector | screen: `a fix worse than 50 m does not reach the HUD` (`expected 1.1 km but was ≈ 600 m`); ViewModel: `…the previous fix is held, and the held fix ages` (`expected 40.0 but was 60.0`). 2 failures. |
+| Gate boundary made exclusive (`<` for `<=`) | `LiveFixGateTest` (50.0 rejected); ViewModel `a fix at exactly 50 m passes…` (`expected 50.0 but was null`). 2 failures. |
+| `within` branch disabled | formatter ×2 (`within 16 ft` → `≈ 0 ft`; `within 8 m` → `≈ 10 m`); screen node-count (`within 13 m` → `≈ 0 m`); readout approaching (`within 41 ft` → `≈ 50 ft`). 4 failures. |
+| Rounding removed (outside branch returns plain formatting) | formatter ×2 (`≈ 10 m` → `12 m`, `8 m`); readout boundary (`≈ 50 ft` → `51 ft`). 3 failures. |
+| Null accuracy treated as 5 m | formatter `no accuracy reported - exactly today's formatting` (`12 m` → `≈ 10 m`); readout `no reported accuracy…` (`33 ft` → `≈ 50 ft`). 2 failures. |
+
+**New and changed tests.** `LiveFixGateTest` (new, 3). `AvailabilityViewModelLiveFixTest` +2: the 40 m-then-60 m case asserts the held fix's accuracy, latitude and timestamp, **and its age at a later clock reading** (60 000 ms, from the first fix's timestamp — the consequence the owner accepted, asserted directly); exactly-50 and null both land. `FormatDistanceMetersTest` +6, every string worked by hand from the pinned conversions and the step tables, never from the formatter (the "within" boundary at 8.0 m vs 8.01 m with 8 m accuracy is the case the answers named). `NavigationHudReadoutTest`: the approach cases now read `within 41 ft`; the 15.57 m / 16.46 m needle boundary reads `≈ 50 ft` on **both** sides — the rounding cannot tell them apart, which is its job, and the needle still does; the no-accuracy case pins `33 ft` unchanged. `AvailabilityScreenMapIconStackTest`: the approach node-count test's literal is `within 13 m` (12.5 rounded half up), asserted once and `10 m` asserted absent; a new test drives a 12.5 m fix then a 60 m fix through the real tracker flow and the HUD keeps `1.1 km`.
+
+**Guard that the edit applied:** every revert above went red; the suite on the unedited tree was not the evidence.
+
+## Device verification
+
+Blocked: no `/dev/kvm`. For the owner, in order of what cannot be judged here:
+
+1. **Whether the held-fix aging reads as honest or as broken under real canopy.** With only 60 m+ fixes arriving, the HUD will de-emphasise at 30 s ("Last fix 45 s ago") and withhold the distance at 5 min ("No fix for 5 min") while the map's own puck may still be moving on those rejected fixes (the map reads MapLibre's location component, not `liveFix`). That divergence is expected and is the thing to look at.
+2. At the origin: the slot reads `within N ft` (or `m`), not `0 ft`.
+3. Walking away from the origin: `≈ 50 ft`, `≈ 100 ft`… stepping coarsely, then plain tenths of a mile past a quarter mile.
+4. Whether real fixes on the owner's device ever report a null accuracy (they would show today's fine-grained formatting with no `≈`).
+
+## Queued, not lost
+
+- **The control pill's TalkBack sentence** (`returnToStartStripText`): same false precision, no accuracy on `ReturnToStartInfo`; needs the field threaded from `TrackRecordingViewModel.returnToStart` through `ComputeReturnToStartUseCase`.
+- **The stale wording** ("Last fix…") now has a second cause — a fix arrived and was refused. A third status string was not opened here.
+- **Item 3**, per the owner's answers: R8 measurement first, then the flavour question; the findings above stand.
+- **Kalman**: one canopy track with raw fixes logged, after this lands; behind the gate.
+
+## Does landing 1 and 2 change the read on whether fused is needed?
+
+Slightly, toward "wait and see": with the gate in, the *visible* drift the owner reported (the readout yanking on a bad fix) is gone by construction, and with the formatter in, the number will not pretend to know more than it does. What remains is real positional drift between fixes that all pass 50 m — the case fused would improve. My early signal from the code, not from the field: the gate's ceiling is generous enough that under moderate canopy most fixes will still pass, so the HUD will keep moving; what the beta should watch is whether testers see the *stale* states fire often under trees. If they do, fused (or a tighter ceiling) is solving a real problem; if they don't, the raw path is holding and the 1.4 MB is not worth it before release.
+
+## Required disclosure
+
+**Confirmed:** everything in the revert table and the suite line, by running; every literal in the formatter tests, by hand arithmetic recorded beside it. **Inferred:** that the map's puck will diverge from the gated `liveFix` under canopy (from MapLibre's location component being fed by the platform directly — read, not run). **Could not determine:** device behaviour, above; what the owner's device reports for `hasAccuracy()`. **Premises in the answers that were wrong:** none found. **Decided without cover:** (1) the step tables' exact values (1/5/10/50/100/500 m and their foot counterparts) and that the last entry exceeds the gate's ceiling so `first { }` cannot throw; (2) `≈` rather than `~`; (3) the `within` string formats the accuracy through `formatDistanceMeters`, so 12.5 m reads `within 13 m` (half-up) rather than `within 12 m`; (4) the screen gate test's rejected fix sits 500 m closer to the origin than the held one, so a missing gate shows as `≈ 600 m` — a visible, not subtle, failure.
