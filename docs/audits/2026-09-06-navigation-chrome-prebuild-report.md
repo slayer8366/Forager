@@ -322,3 +322,56 @@ Baseline on this branch, confirmed last pass: 1114 tests, 24 skipped, skip set i
 ## Required disclosure (pre-build)
 
 **Confirmed:** the chain order and each handler's condition, by reading; that handler 1 consumes back while navigating before all others, by registration order (comment at `:1253-1258` states the same precedence rule for handler 2). **Inferred:** that the Robolectric back path bypasses the dialog window — from Compose's `Dialog` being its own `ComponentDialog`; the test will show it either way. **Could not determine:** device behaviour. **Premises in the amendment that were wrong:** "any open overlay is dismissed first, as today" — not while navigating; today navigation exits first (the finding). **Decided:** nothing yet.
+
+---
+
+# Amendment completion report
+
+**Owner's decisions:** take the reordering (back in fullscreen exits fullscreen first, then asks); Fix 1 is an empty column and a node count; the doc comments say plainly that the tests exercise the toggle path; the rotation-into-wide-layout gap is queued, not fixed.
+
+**Commits:** `d78b75a` (amendment pre-build report), `e43326e` (product), `e65e6d1` (tests), plus this one.
+
+## What was built
+
+**Fix 1.** `navigationReadout`: `approaching -> ""` for the target column. The column is its dimmed icon and nothing else; the distance appears once, in the distance slot. Three readout tests that had pinned my misreading now assert `""`. Screen test: 10 m from the origin with 12.5 m accuracy, `onAllNodesWithText("10 m")` counts exactly one and the target tag's text is empty.
+
+**Fix 2.** Navigation is removed from `CompactMapTab`'s back handler (which keeps its picker/menu pops) and becomes a top-level step between "return to the Maps tab" and the go-home handler: `enabled = !isDrawerOpen && !isMapFullscreen && compactTab == MAP && isNavigating`, body `showExitNavigationPrompt = !showExitNavigationPrompt`. The go-home handler gains `&& !isNavigating`. A `LaunchedEffect(isNavigating)` clears the prompt if navigation ends underneath it. The prompt is an `AlertDialog` in the surface's existing pattern — "Exit navigation?" / "Your track will keep recording." / **Exit** / **Keep navigating** — with `onDismissRequest` = keep navigating. The reason for the loop is recorded at the handler in the owner's words, together with the Robolectric note.
+
+**Chain after the change, back-to-front:** map-tab picker/menu → search dropdown → drawer → fullscreen → other tab → **navigation (prompt; never exits)** → go-home (never reached while navigating).
+
+## Tests
+
+**Suite:** **Two full-suite runs on the final tree.** First run: **1122 tests, 1 failure, 0 errors, 24 skipped**; the failure was `JournalTabTest > From Album on the edit form opens the picker and pulls the selected photo into the entry` (`'Log photo' is not displayed`, `JournalTabTest.kt:374`) — **not this dispatch's**: it is the pre-existing flake recorded in `docs/audits/2026-08-31-session-handoff.md` ("passes alone, fails in the full suite", open), it passed when its class was rerun alone here, and it had passed in both earlier full-suite runs on this branch. Per CLAUDE.md it is reported, not touched — no `@Ignore`, no allowlist change, no retry loop. **Second run: 1122 tests, 0 failures, 0 errors, 24 skipped.** In both runs the skipped set is byte-identical to the CI allowlist (24 entries, no unallowed skip, no stale entry). Baseline for this amendment was 1114 / 24; the eight new tests account for the difference, and the skip count did not move..
+
+**Reverted-and-rerun**, each by a one-line edit, restored with `git checkout`:
+
+| Reverted | Red, and how |
+|---|---|
+| Target column shows the distance again | the node-count screen test (`expected "" but was "10 m"`) and four readout tests. 5 failures. |
+| Handler exits directly (`onToggleReturning()` in place of the toggle) | every prompt test: raise, dismiss, seven presses, Exit/Keep, fullscreen-then-ask, after-navigation-ends. 6 failures. |
+| Navigation handler no longer excludes fullscreen | `back while navigating in fullscreen exits fullscreen first…` ("Tools" not displayed — the prompt won over fullscreen). 1 failure. |
+| Go-home handler no longer excludes navigation | the later-registered go-home handler wins every press: no prompt ever appears. 6 failures — the exclusion is load-bearing, not tidy. |
+| Prompt not cleared when navigation ends | `after navigation ends back reaches the exit warning again` (prompt still mounted). 1 failure. |
+
+**New tests** (`AvailabilityScreenMapIconStackTest` unless stated): distance once while approaching; back raises the prompt and does not exit; back dismisses it with the HUD still displayed and `exits == 0`; seven presses alternate the prompt, never exit, never toast the exit warning, never finish the Activity; Exit exits once and Keep does not; the ✕ exits with no prompt composed; back in fullscreen exits fullscreen first and the next press asks; after navigation ends back reaches the exit warning. `AvailabilityScreenBackNavigationTest`: back with the search dropdown open while navigating closes the dropdown first, then asks — that fixture gained `isReturning`/`onToggleReturning` and an origin waypoint.
+
+**Changed test:** `system back while navigating exits the HUD` asserted the direct exit the amendment removes; it is inverted into `system back while navigating raises the exit prompt and does not exit`, reported here rather than absorbed.
+
+**A test that moved classes, and why.** The dropdown-ordering test was first written in the icon-stack class and failed there: a diagnostic run showed the dropdown's handler taking both presses (no prompt, `exits == 0`) with the dropdown still mounted — the documented Robolectric dismissal failure for that fixture (`docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md`), not an ordering fault. It was not `@Ignore`d; it was moved to the back-navigation class, whose fixture demonstrably closes the dropdown on back, and the icon-stack class carries a comment pointing there.
+
+**Coverage stated plainly, per the owner:** under Robolectric `onBackPressedDispatcher.onBackPressed()` reaches the Activity, not the dialog window, so every "back dismisses the prompt" test exercises the handler's toggle path. The dialog window's own back handling (`onDismissRequest`) is device-only coverage. The guarantee — back never exits navigation — holds by either route, and the doc comments at the handler and at the tests say so.
+
+**Not asserted:** the control pill's toggle still exiting directly. Its wiring is unchanged (`onClick = onToggleReturning`, nothing between), but its semantic click is this suite's documented Robolectric no-op (`docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md`), so it is on the device list.
+
+## Device verification
+
+Blocked, no KVM. To check on hardware: (1) back while navigating with nothing open raises the prompt; back again dismisses it; several presses never exit and never leave the app; (2) back in fullscreen while navigating exits fullscreen only, and the next press asks; (3) the dialog's own back (device path) keeps navigating; (4) Exit ends navigation and the track keeps recording; (5) the ✕ and the pill toggle still exit with no prompt; (6) near the origin the HUD reads one distance, "Approaching", and an empty target column.
+
+## Queued, not lost (owner: "worth queuing rather than losing")
+
+- **Rotation into the medium/expanded width class while returning.** The wide layout composes no HUD and no return control, so `isNavigating` cannot be entered there from the UI, but a phone rotating into that class mid-return keeps `isReturning == true` with no HUD, no ✕, and — after this amendment — a back handler that raises a prompt over a screen showing no navigation. Pre-existing since stage one; not this amendment's scope. Needs a decision on whether the wide layout gets the HUD, or navigation ends on the class change.
+- **The stage-one back inversion class of bug.** No test pressed back while navigating with anything else open, which is why the inversion shipped; two such tests exist now (fullscreen, dropdown). The drawer case (`isDrawerOpen` while navigating) is covered by the same exclusion and the same registration order but has no test of its own.
+
+## Required disclosure
+
+**Confirmed:** every claim in the tables above, by running. **Inferred:** that the dialog window consumes back on device (from Compose's `Dialog` being its own `ComponentDialog`; the handler's toggle covers the other case regardless). **Could not determine:** device behaviour, listed above. **Premises in the amendment that were wrong:** "any open overlay is dismissed first, as today" — it was not while navigating; the amendment's fix corrected that as a consequence of the ordering. **Decided without cover:** (1) the `LaunchedEffect` clearing the prompt when navigation ends by another route; (2) the dropdown-ordering test's home in the back-navigation class rather than a second fixture in the icon-stack class; (3) the pill toggle's direct exit left to the device list rather than asserted through a known no-op click.
