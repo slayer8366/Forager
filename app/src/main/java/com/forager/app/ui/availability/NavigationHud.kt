@@ -41,7 +41,7 @@ import com.forager.app.domain.isApproaching
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Waypoint
-import com.forager.app.domain.model.formatDistanceMeters
+import com.forager.app.domain.model.formatDistanceWithAccuracy
 import com.forager.app.domain.relativeBearingDegrees
 import com.forager.app.ui.map.TrueHeadingReading
 import com.forager.app.ui.theme.Bark
@@ -118,8 +118,13 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   carries [NO_FIX_MESSAGE] — one message for one cause; the second row is not shown at all,
  *   since "elevation unavailable · coordinates unavailable" would be the same cause twice more.
  *   See [TrueHeadingReading.NeedsFix] for why not magnetic-until-then. No GPS-course fallback.
- * - **Distance** is straight-line from the current fix to the target, in the user's unit. Never
- *   "arrived" — "Approaching" once inside twice the fix's reported accuracy ([isApproaching]).
+ * - **Distance** is straight-line from the current fix to the target, in the user's unit, and
+ *   never more precise than the fix: "within 16 ft" inside the error circle (the "0 ft" the owner
+ *   saw on device), "≈ 10 m" beyond it, plain formatting only when no accuracy was reported
+ *   ([formatDistanceWithAccuracy], location-accuracy dispatch item 2). Never "arrived" —
+ *   "Approaching" once inside twice the fix's reported accuracy ([isApproaching]). The fix itself
+ *   has already passed the live-fix gate upstream ([com.forager.app.domain.acceptLiveFix]): a fix
+ *   worse than 50 m never reaches this panel, and the held one ages into the stale states below.
  * - **The needle is not drawn inside that same threshold** (navigation-chrome dispatch, item 5,
  *   diagnosed on device by the owner). Bearing to a nearby point is geometrically unstable: at
  *   10 m with 8 m accuracy, ordinary GPS drift swings the computed bearing through tens of
@@ -336,7 +341,9 @@ internal fun navigationReadout(
     val freshness = fixFreshness(age)
     // The one threshold — see the class doc's needle paragraph.
     val approaching = freshness != FixFreshness.LOST && isApproaching(distanceMeters, liveFix.accuracyMeters)
-    val distanceText = if (freshness == FixFreshness.LOST) "—" else formatDistanceMeters(distanceMeters, distanceUnit)
+    // Never more precision than the fix supports — "within 16 ft" inside the error circle, "≈ 10 m"
+    // beyond it, today's formatting when no accuracy was reported. See formatDistanceWithAccuracy.
+    val distanceText = if (freshness == FixFreshness.LOST) "—" else formatDistanceWithAccuracy(distanceMeters, liveFix.accuracyMeters, distanceUnit)
 
     val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !approaching) relativeBearingDegrees(bearing, headingDegrees) else null
     val targetText = when {

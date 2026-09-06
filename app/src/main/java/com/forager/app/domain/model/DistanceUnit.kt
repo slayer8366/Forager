@@ -76,5 +76,56 @@ fun formatDistanceMeters(distanceMeters: Double, unit: DistanceUnit): String = w
     }
 }
 
+/**
+ * [formatDistanceMeters], but never claiming more precision than the fix supports — location-
+ * accuracy dispatch, item 2. The HUD showed "0 ft" on device with several metres of reported
+ * accuracy: the number was not wrong, its resolution was a lie, the same class of problem as a
+ * confident needle pointing nowhere. A new function so every other caller of
+ * [formatDistanceMeters] keeps its exact output; the HUD's distance slot is the only reader.
+ *
+ * Three cases (owner decision — rounding, not "12 m ± 8 m", because one number is what reads at
+ * arm's length in the woods on a two-row HUD):
+ *
+ * - **No accuracy reported** (`null`): today's formatting, unchanged, no marker. There is no basis
+ *   for coarsening, and inventing a resolution would be the same fabrication in the other
+ *   direction.
+ * - **Inside the error circle** (`distance <= accuracy`): `"within 16 ft"` — the accuracy itself,
+ *   formatted in the display unit. This is the "0 ft" case: the honest statement is "you are
+ *   inside the circle", and it dovetails with "Approaching", which fires at twice accuracy.
+ * - **Outside it**, below the km / quarter-mile switch: the distance rounded to a step no finer
+ *   than the accuracy, from [METRE_STEPS] or [FOOT_STEPS], with a leading `"≈ "` whenever that
+ *   step is coarser than the unit's natural resolution (1 m / 1 ft). 12 m with 8 m accuracy is
+ *   `"≈ 10 m"`; 340 m with 15 m is `"≈ 350 m"`. At or above the switch the existing one-decimal
+ *   formatting (100 m / 0.1 mi steps) is already coarser than any accuracy the live-fix gate lets
+ *   through, so it is left exactly as it is.
+ *
+ * The `≈` glyph and the `within` wording are the owner's; a `~` was considered and rejected as
+ * reading like a typo at `titleMedium`.
+ */
+fun formatDistanceWithAccuracy(distanceMeters: Double, accuracyMeters: Float?, unit: DistanceUnit): String {
+    if (accuracyMeters == null) return formatDistanceMeters(distanceMeters, unit)
+    val accuracy = accuracyMeters.toDouble()
+    if (distanceMeters <= accuracy) return "within ${formatDistanceMeters(accuracy, unit)}"
+    return when (unit) {
+        DistanceUnit.KILOMETERS -> {
+            if (distanceMeters >= 1_000.0) return formatDistanceMeters(distanceMeters, unit)
+            val step = METRE_STEPS.first { it >= accuracy } // METRE_STEPS' last entry exceeds the gate's ceiling
+            val rounded = (distanceMeters / step).roundToInt() * step
+            if (step == 1) "$rounded m" else "≈ $rounded m"
+        }
+        DistanceUnit.MILES -> {
+            if (distanceMeters / METERS_PER_MILE >= 0.25) return formatDistanceMeters(distanceMeters, unit)
+            val accuracyFeet = accuracy * FEET_PER_METER
+            val step = FOOT_STEPS.first { it >= accuracyFeet }
+            val rounded = (distanceMeters * FEET_PER_METER / step).roundToInt() * step
+            if (step == 1) "$rounded ft" else "≈ $rounded ft"
+        }
+    }
+}
+
+/** Rounding steps for [formatDistanceWithAccuracy], coarsest last; the last entry must exceed the live-fix gate's ceiling (50 m ≈ 164 ft) so `first { }` always finds one. */
+private val METRE_STEPS = listOf(1, 5, 10, 50, 100, 500)
+private val FOOT_STEPS = listOf(1, 5, 10, 50, 100, 500, 1_000)
+
 private const val METERS_PER_MILE = 1_609.344
 private const val FEET_PER_METER = 3.28084
