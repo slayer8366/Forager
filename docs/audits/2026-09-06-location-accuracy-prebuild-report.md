@@ -201,12 +201,17 @@ No `/dev/kvm`; device verification will be blocked. The Android SDK, Gradle and 
 
 ## Device verification
 
-Blocked: no `/dev/kvm`. For the owner, in order of what cannot be judged here:
+Blocked: no `/dev/kvm`. For the owner, in the owner's order:
 
-1. **Whether the held-fix aging reads as honest or as broken under real canopy.** With only 60 m+ fixes arriving, the HUD will de-emphasise at 30 s ("Last fix 45 s ago") and withhold the distance at 5 min ("No fix for 5 min") while the map's own puck may still be moving on those rejected fixes (the map reads MapLibre's location component, not `liveFix`). That divergence is expected and is the thing to look at.
-2. At the origin: the slot reads `within N ft` (or `m`), not `0 ft`.
-3. Walking away from the origin: `≈ 50 ft`, `≈ 100 ft`… stepping coarsely, then plain tenths of a mile past a quarter mile.
-4. Whether real fixes on the owner's device ever report a null accuracy (they would show today's fine-grained formatting with no `≈`).
+1. **The aging under canopy.** With only 60 m+ fixes arriving, the HUD de-emphasises at 30 s ("Last fix 45 s ago") and withholds the distance at 5 min ("No fix for 5 min"). Does that read as honest, or as broken?
+2. **The puck divergence, beside it — the finding that matters most in this dispatch.** The map's position marker is fed by MapLibre's location component from the platform directly, not by the gated `liveFix`; `AndroidLocationTracker` and the map engine are separate listeners. So during a stale stretch the puck *may* keep gliding along on the very fixes the HUD refused, while the HUD says "No fix for 5 min". **A user watching that will conclude the HUD is broken, not that the puck is optimistic. Two honest displays contradicting each other on one screen is worse than either alone, and it is the exact failure the gate was built to remove.** Not fixed blind: watch whether the puck actually keeps moving during a stale stretch, or whether MapLibre's engine goes quiet at the same time the gate does (it applies its own filtering to the same raw stream). **If they drift apart visibly, that is a dispatch** — and it most likely lands with the duplicate-listener consolidation already queued under battery measurement, since four independent listeners on one screen is the reason two parts of it can disagree about where the user is.
+3. **"within 16 ft" at the origin**, not `0 ft`.
+4. **The "≈" reading at a distance where the step is visibly coarse** — walking away from the origin: `≈ 50 ft`, `≈ 100 ft`… then plain tenths of a mile past a quarter mile.
+5. Whether real fixes on the owner's device ever report a null accuracy (they would show today's fine-grained formatting with no `≈`).
+
+## For the beta report template (queued with the battery fields)
+
+The signal that decides item 3 is **how often testers see the HUD's stale states fire under trees** — "Last fix N s ago" / "No fix for N min" while walking under canopy with the phone's location on. It is answerable from reports rather than from opinion, which makes it a better question than "does fused help". The template must ask for it explicitly and, like the battery fields, **must explicitly solicit reports of *not* seeing it**: a tester who walked an hour under canopy and never saw the stale display is the data point most likely to go unreported. Alongside it: whether the position marker kept moving while the HUD was stale (item 2 above).
 
 ## Queued, not lost
 
@@ -214,6 +219,8 @@ Blocked: no `/dev/kvm`. For the owner, in order of what cannot be judged here:
 - **The stale wording** ("Last fix…") now has a second cause — a fix arrived and was refused. A third status string was not opened here.
 - **Item 3**, per the owner's answers: R8 measurement first, then the flavour question; the findings above stand.
 - **Kalman**: one canopy track with raw fixes logged, after this lands; behind the gate.
+- **The puck/HUD divergence**, if the device check confirms it: a dispatch, most likely with the duplicate-listener consolidation under battery measurement.
+- **The beta report template**: the stale-states-under-trees signal and the puck question, with the "did not see it" solicitation, beside the battery fields.
 
 ## Does landing 1 and 2 change the read on whether fused is needed?
 
