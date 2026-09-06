@@ -72,11 +72,16 @@ interface OfflineMapRepository {
          * is kept as a defensive floor, not relied on.
          *
          * Kept at 6000 — the library's own former default — rather than replaced with a guessed
-         * number: the design doc's own math (a zoom-14 tile is ~1.7km across at 45°N, matching the
-         * ~71 tiles observed for a 5km-radius region) puts a 15km-radius region at roughly 600
-         * tiles, so this budget holds about nine such regions — a number with no real usage data
-         * yet behind it to say is too few or too many (CLAUDE.md: don't build speculative limits
-         * without real data).
+         * number. What it buys changed when [SERVED_MAX_ZOOM] rose to 15 (two-data-corrections
+         * dispatch): with zoom 15 in every download a 15 km region at 45°N is ~1 781 tiles, not the
+         * ~480 it was at ceiling 14, so this budget now holds about three such regions rather than
+         * about nine, and the per-unit default radii (8 km / 10 km, see
+         * [com.forager.app.domain.model.defaultOfflineMapRadiusKm]) cost roughly 530–700 and
+         * 820–1 010 tiles depending on latitude — 9–17 % of the budget each. The owner's decision
+         * was to shrink the radius ceiling ([MAX_RADIUS_KM]) to fit this budget rather than raise
+         * the budget: it moves with the planned Cloudflare upgrade, not before, and there is still
+         * no usage data saying how many regions a trip needs (CLAUDE.md: don't build speculative
+         * limits without real data).
          */
         const val TILE_COUNT_LIMIT: Long = 6000L
 
@@ -110,27 +115,80 @@ interface OfflineMapRepository {
          * highest zoom the *deployed* tile worker actually advertises in its tileset JSON
          * (`https://forager-pmtiles.brandonlee1-894.workers.dev/us.json`, field `maxzoom`), which is
          * what MapLibre's `OfflineTilePyramidRegionDefinition` clamps an offline download to
-         * regardless of the [MAX_ZOOM] the definition asks for. Verified 2026-09-05 by fetching that
-         * JSON (`maxzoom: 14`) and probing a zoom-15 tile inside a real region (HTTP 404, zoom 14
-         * HTTP 200). The repo's worker source (`server/pmtiles-worker`, commit 46e3647) advertises 15
-         * and serves zoom-15 overflow, but the deployed worker does not — the "Workers Builds:
-         * forager-pmtiles" check has been failing in zero seconds on every push since then, so that
-         * deploy has not gone live. That is a separate dispatch.
+         * regardless of the [MAX_ZOOM] the definition asks for.
+         *
+         * **Current value, 15.0, verified 2026-09-06 by the owner against the deployed worker:**
+         * `us.json` reports `"maxzoom": 15` at the top level and a zoom-15 tile returns HTTP 200
+         * with content. The worker's deploy pipeline had been broken for over two weeks
+         * (Cloudflare's production branch pointed at a branch deleted on merge), which is why the
+         * previous value here was 14.0 — verified 2026-09-05 against a deployed worker that still
+         * advertised 14 and 404'd zoom 15 while the repo's worker source already served it. The
+         * pipeline is fixed and the zoom-15 overflow is live (`server/pmtiles-worker/src/index.ts`,
+         * `OVERFLOW_MAX_ZOOM = 15`).
          *
          * Why this exists (tile-estimate dispatch, owner finding on device): the pre-flight estimate
          * counted zoom 15 while the download enumerated 10..14, so a 15 km region at 45°N showed
          * "~1774 tiles" and downloaded 480 — 3.7× apart — and larger radii were refused against a
          * budget they actually fit. [com.forager.app.domain.estimateServedOfflineTileCount] estimates
          * against `min(MAX_ZOOM, SERVED_MAX_ZOOM)` so the number shown, the number gated and the
-         * number downloaded agree.
+         * number downloaded agree. **That `min` is a no-op today** — both constants read 15.0 — and
+         * is kept on purpose as the seam for the next time the two facts diverge (the worker
+         * regressing, or [MAX_ZOOM] rising ahead of it); see that function's own doc comment.
          *
-         * **What to check, and the consequence, if the worker deploy is ever fixed:** fetch `us.json`
-         * again; if `maxzoom` reads 15, raise this to 15.0 — and know that every count then grows
-         * ~3.7×, so the 6000-tile [TILE_COUNT_LIMIT] holds a 28 km radius at 45°N rather than the
-         * slider's full 50 km (39 km vs 19 km at 60°N). Whether to accept that is a decision, not an
-         * arithmetic fix, and belongs with that dispatch.
+         * **What to check, and the consequence, if this ever moves again:** fetch `us.json` and read
+         * `maxzoom`. Lowering this back to 14.0 shrinks every count ~3.7× and the radius ceiling
+         * [MAX_RADIUS_KM] would then be far more conservative than the budget requires; raising it
+         * past [MAX_ZOOM] does nothing until [MAX_ZOOM] follows. Either way the guard test
+         * (`OfflineMapRadiusBudgetGuardTest`) pins the arithmetic that ties this constant,
+         * [TILE_COUNT_LIMIT] and [MAX_RADIUS_KM] together and fails the build when one moves
+         * without the others.
          */
-        const val SERVED_MAX_ZOOM: Double = 14.0
+        const val SERVED_MAX_ZOOM: Double = 15.0
+
+        /**
+         * The offline-map radius slider's ceiling, in km — **the largest radius whose download fits
+         * [TILE_COUNT_LIMIT] on an otherwise empty budget everywhere the tile archive reaches**,
+         * rounded to a value that reads cleanly in miles (two-data-corrections dispatch, Part B,
+         * owner decision). Deliberately *not* [com.forager.app.domain.model.Region.MAX_RADIUS_KM]
+         * (50), which the iNaturalist search radius keeps: the search costs no tiles, and the two
+         * used to share one constant only because nothing had yet made the offline radius cost
+         * anything the search radius did not.
+         *
+         * **The arithmetic, so the next person can redo it rather than trust it.** The archive is a
+         * continental-US extract to 49.60°N (`server/pmtiles-worker/README.md`, `--bbox`), so the
+         * worst case the app supports is a centre on that edge; Web Mercator tile counts grow with
+         * latitude, and also vary by up to one extra column and row per zoom with where the centre
+         * sits relative to tile edges, so the ceiling was sized against the *worst alignment* at
+         * 49.60°N (a 40 × 40 sweep of the centre across one zoom-15 tile), summed over zooms
+         * 10–15 with the same slippy-map math [estimateOfflineTileCount] uses, re-derived
+         * independently in the dispatch's pre-build report
+         * (`docs/audits/2026-09-06-filter-and-tile-cost-prebuild-report.md`, B2):
+         *
+         *   24 km → 5 246 worst-case tiles (4 405 at 45.357°N)
+         *   25 km → 5 718 (4 860)
+         *   26 km → 6 075 (5 246) — over budget.
+         *
+         * 25 km is the true maximum, at 95 % of the budget; the owner chose **24 km** for the
+         * margin against alignment variance and because it reads round in the unit 25 does not
+         * ("15 mi" — 24 × 0.621371 = 14.91; 25 km would read "16 mi"), the same reasoning that once
+         * left 50 km reading "31 mi" rather than rounding up past the budget. The previous 50 km
+         * was never honest at ceiling 15: it costs 18 696 tiles at the owner's latitude and 22 028
+         * worst-case at 49.60°N.
+         *
+         * **Stated, not derived — and guarded.** A runtime derivation from the budget and the
+         * ceiling was considered and rejected: it would need the archive's northern latitude as
+         * yet another client constant encoding a server fact, plus an alignment argument in code,
+         * and would leave the slider's maximum a number nobody can read off the source. Instead
+         * `OfflineMapRadiusBudgetGuardTest` pins the three figures above as hand-derived literals
+         * and asserts this value fits while a radius two steps larger does not — so when the
+         * budget rises with the Cloudflare upgrade, raising [TILE_COUNT_LIMIT] alone fails the
+         * build and names this constant as the one to move. Reversal is one constant here plus
+         * redoing the table above.
+         */
+        const val MAX_RADIUS_KM: Int = 24
+
+        /** [MAX_RADIUS_KM]'s clamp — the offline radius's own, distinct from [com.forager.app.domain.model.Region.clampRadiusKm]. */
+        fun clampRadiusKm(radiusKm: Int): Int = radiusKm.coerceIn(com.forager.app.domain.model.Region.MIN_RADIUS_KM, MAX_RADIUS_KM)
     }
 }
 

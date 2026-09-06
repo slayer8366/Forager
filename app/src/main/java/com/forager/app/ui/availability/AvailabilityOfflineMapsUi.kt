@@ -193,15 +193,19 @@ internal fun OfflineMapsPanel(
             Slider(
                 value = uiState.offlineMapRadiusKm.toFloat(),
                 onValueChange = { onOfflineMapRadiusChanged(it.toInt()) },
-                valueRange = Region.MIN_RADIUS_KM.toFloat()..Region.MAX_RADIUS_KM.toFloat(),
-                steps = Region.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
+                // The offline radius has its own ceiling, sized to the tile budget — not the search
+                // radius's Region.MAX_RADIUS_KM it used to share. See OfflineMapRepository.MAX_RADIUS_KM
+                // for the arithmetic (two-data-corrections dispatch, Part B).
+                valueRange = Region.MIN_RADIUS_KM.toFloat()..OfflineMapRepository.MAX_RADIUS_KM.toFloat(),
+                steps = OfflineMapRepository.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
             )
 
             // So the tile budget is discovered here, while there's still time to pick a smaller
             // radius, rather than only on a refused download — a user should not discover the
             // ceiling at a trailhead.
-            // Against the zoom the deployed source actually serves, not MAX_ZOOM — see
-            // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch).
+            // Against the zoom the deployed source actually serves (SERVED_MAX_ZOOM, now equal to
+            // MAX_ZOOM; the min inside is kept as the seam for their next divergence) — see
+            // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch; two-data-corrections dispatch).
             val estimatedTiles = estimateServedOfflineTileCount(pickerRegion)
             val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
             val exceedsBudget = estimatedTiles > remainingBudget

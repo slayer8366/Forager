@@ -644,7 +644,9 @@ class AvailabilityViewModel(
     fun onOfflineMapRadiusChanged(radiusKm: Int) {
         // Touched: from here on the radius is the user's and the per-unit default never moves it —
         // see AvailabilityUiState.offlineMapRadiusTouched.
-        _uiState.update { it.copy(offlineMapRadiusKm = Region.clampRadiusKm(radiusKm), offlineMapRadiusTouched = true) }
+        // Clamped to the offline radius's own ceiling (OfflineMapRepository.MAX_RADIUS_KM, sized to the
+        // tile budget), not the search radius's Region.clampRadiusKm it used to share.
+        _uiState.update { it.copy(offlineMapRadiusKm = OfflineMapRepository.clampRadiusKm(radiusKm), offlineMapRadiusTouched = true) }
     }
 
     fun onOfflineMapNameChanged(text: String) {
@@ -740,7 +742,10 @@ class AvailabilityViewModel(
                         _uiState.update {
                             it.copy(
                                 offlineMapPickerDefaultCenter = LatLng(region.lat, region.lng),
-                                offlineMapRadiusKm = region.radiusKm,
+                                // Clamped: a radius picked before the ceiling shrank to
+                                // OfflineMapRepository.MAX_RADIUS_KM (up to 50 km) is restored at the
+                                // ceiling, not above the slider's own range.
+                                offlineMapRadiusKm = OfflineMapRepository.clampRadiusKm(region.radiusKm),
                                 // A restored last-picked radius is the user's own — see
                                 // AvailabilityUiState.offlineMapRadiusTouched.
                                 offlineMapRadiusTouched = true,
@@ -921,9 +926,10 @@ class AvailabilityViewModel(
         val name = state.offlineMapNameText.trim().ifBlank { "Region ${state.offlineRegions.size + 1}" }
 
         val tilesAlreadyUsed = state.offlineRegions.sumOf { it.tileCount }
-        // Against the zoom the deployed source actually serves, not MAX_ZOOM — the same function the
+        // Against the zoom the deployed source actually serves (SERVED_MAX_ZOOM, now equal to MAX_ZOOM;
+        // the min inside is kept as the seam for their next divergence) — the same function the
         // panel's "~N tiles" label uses, so the gate and the label agree; see
-        // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch).
+        // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch; two-data-corrections dispatch).
         val estimatedTiles = estimateServedOfflineTileCount(region)
         val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - tilesAlreadyUsed
         if (estimatedTiles > remainingBudget) {
