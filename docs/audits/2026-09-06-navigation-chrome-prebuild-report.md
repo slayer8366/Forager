@@ -25,7 +25,7 @@ All three are children of the one `fillMaxSize()` Box that holds `mapSlot` (`Ava
 
 ### 1.1 The HUD's padding once the strip hides
 
-- Today the HUD sits at `topInset + compassStripClearance` (`AvailabilityScreen.kt:3666`) purely to clear the strip. The clearance is a one-time text measurement of `"Mg"` at `labelMedium` (`:3212-3216`), roughly 16dp, while the strip's actual height is its 18dp icon (`:4274`, the tallest child of a Row with no vertical padding). So on `ed3ac52` the HUD's top edge already overlaps the strip's bottom by about 2dp, HUD on top (composed later). Inferred from the layout code, not yet measured; harmless and about to become moot.
+- Today the HUD sits at `topInset + compassStripClearance` (`AvailabilityScreen.kt:3666`) purely to clear the strip. The clearance is a one-time text measurement of `"Mg"` at `labelMedium` (`:3212-3216`). **Measured** (Robolectric, w360dp×h640dp, xhdpi, a throwaway test not committed): the clearance is 18dp and the strip is 18dp tall (its icon, `:4274`), so the HUD's top edge (67dp) sits exactly on the strip's bottom edge (67dp) with no overlap. An earlier draft of this report inferred a ~2dp overlap from the code; the measurement says otherwise.
 - **Proposed:** while navigating the strip is not composed, so the HUD pads by `topInset` alone. While not navigating there is no HUD. No state has both, so `compassStripClearance` drops out of the HUD's path entirely. The HUD continues to follow the search bar's fullscreen slide through `topInset`, as the strip does today.
 - `compassStripClearance` keeps its other three consumers unchanged: the observation bubble's `minY` (`:3278`), the taxon filter chip's top padding (`:3644`), and the search dropdown's top offset (`:1857`, `:3357`). While navigating the HUD is taller than the clearance, so those elements clear less than they should, but this is **already true on `ed3ac52`**: the taxon chip is composed before the HUD at `clearance + 8dp` (`:3639-3646`) and the HUD is composed after it at `clearance`, so a chip is hidden under the HUD whenever both exist. Pre-existing, out of scope, reported here rather than fixed.
 
@@ -51,21 +51,24 @@ This is the owner's decision; the above is a recommendation, not a change made.
 
 ### 1.5 Height on a small screen (w360dp × h640dp, the suite's own viewport)
 
-Arithmetic from the layout code, to be confirmed by measurement once the suite is up (see §5):
+Measured on `ed3ac52` (Robolectric, w360dp×h640dp, xhdpi; the throwaway test was run and discarded, not committed) for the states that exist; arithmetic for the proposed one:
 
 | State | Stack at the top of the map | Height |
 |---|---|---|
-| Today, not navigating | strip | ~18dp |
-| Today, navigating | strip 18dp + HUD (48dp `IconButton` + 2×4dp padding) | ~74dp (HUD overlaps strip by ~2dp → ~72dp visible) |
-| Proposed, not navigating | strip | ~18dp (unchanged) |
-| Proposed, navigating | HUD with a second row for elevation · coordinates | ~80dp (see below) |
+| Search bar (outside fullscreen, both states) | `SearchEntryBar` | **49dp measured** (top 0 → 49) |
+| Today, not navigating | strip | **18dp measured** (49 → 67) |
+| Today, navigating | strip 18dp + HUD (48dp interactive-size `IconButton` + 2×4dp padding) | **74dp measured** (strip 49 → 67, HUD 67 → 123, HUD 56dp) |
+| Proposed, not navigating | strip | 18dp (unchanged) |
+| Proposed, navigating | HUD with a second row for elevation · coordinates | ~80dp, arithmetic (see below) |
+
+Also measured, for the arm's removal: `ControlPill` 108dp tall, `DistanceArm` 54dp of layout height of which 24dp hides under the pill's cap, so the cluster shortens by ~30dp when the arm goes. Text *widths* under Robolectric are not trustworthy (the HUD's distance text measured 3.5dp wide, a font-rendering artefact of the harness), so every width figure below stays inferred.
 
 Two ways to fold elevation and coordinates in:
 
 - **(A) A second full-width row under the existing Row** — `210 m · 10T ER 25118 40235`, coordinates tappable. Row 1 stays 48dp; row 2 is `labelMedium` (16dp) plus 4dp vertical padding each side for a ~24dp tap band; outer padding 8dp. **≈ 80dp**, about 6dp taller than today's strip-plus-HUD stack. The coordinates get the full width, so both MGRS and the labelled decimal pair (~170dp wide at `labelMedium`, inferred) fit at w360 without ellipsis.
 - **(B) A third line inside the distance column** — the column becomes 24 + 16 + 16 = 56dp, HUD ≈ 64dp. But the column's width is what is left after two compass columns, the close button and three 12dp gaps — roughly 140dp at w360 (inferred). The labelled decimal pair would ellipsize there. Half a coordinate is not a coordinate; this is the exact finding that removed the strip's combined line (`AvailabilityPureFunctions.kt:71-75`). **Rejected.**
 
-Crowding, with (A): outside fullscreen at h640 the column is status bar (~24dp, device-only) + search bar (~45dp: `compassStripClearance * 2 + 3×4dp + divider`, `:1222`) + HUD 80dp + bottom nav (~80dp plus real inset) → roughly 410dp of map left, versus ~416dp today while navigating. In fullscreen only the HUD remains over the map. The arm's removal also shortens the cluster by its ~32dp. **My read: (A) does not crowd enough to hurt, and the net change against today's navigating state is ~6dp.** I am not invoking the stop clause; the owner can overrule on the measured numbers in §5.
+Crowding, with (A): outside fullscreen at h640 the column is status bar (~24dp, device-only) + search bar (49dp measured, `:1222`) + HUD ~80dp + bottom nav (~80dp plus real inset, device-only) → roughly 405dp of map left, versus ~411dp today while navigating. In fullscreen only the HUD remains over the map. The arm's removal also shortens the cluster by its ~32dp. **My read: (A) does not crowd enough to hurt, and the net change against today's navigating state is ~6dp.** I am not invoking the stop clause; the owner can overrule on the measured numbers in §5.
 
 One open sub-decision under (A): the coordinates tap band. The strip's toggle today is an 18dp-tall text `clickable` (`:4326-4332`), well under a 48dp target. Row 2 at ~24dp is better than today and keeps the HUD at ~80dp; a full 48dp band would push the HUD to ~104dp. I would build the ~24dp band unless told otherwise.
 
@@ -140,15 +143,15 @@ Strip tests that do **not** navigate and are unaffected: `:584` (`@Ignore`d) and
 
 ### 4.3 Skip count
 
-Baseline stated by the dispatch: 1106 tests, 25 skipped. Measured on `ed3ac52` in this container: **see §5** (run in progress when this file was first written; updated in place once it finishes). `@Ignore` annotations in `app/src/test`: 54 occurrences by grep, which counts the commented-out `// @Ignore:` provenance lines beside each real one — the XML report is the authority.
+Baseline stated by the dispatch: 1106 tests, 25 skipped. **Measured on `ed3ac52` in this container: 1106 tests, 0 failures, 0 errors, 25 skipped** (`./gradlew :app:testDebugUnitTest --continue`, 5m 18s, summed from the JUnit XML under `app/build/test-results/testDebugUnitTest`). Matches the dispatch exactly. Nothing was adjusted.
 
 ---
 
 ## 5. Environment and verification
 
 - **Device verification: blocked.** `/dev/kvm` does not exist in this container; no emulator. The owner must check on hardware: the strip returns on leaving navigation (close button, pill toggle, and system back — all three exits), the folded coordinates still toggle MGRS ↔ decimal by finger, and the HUD's top edge sits under the search bar outside fullscreen and flush at the top in fullscreen.
-- No Android SDK was installed in the container; `scripts/setup-android-sdk.sh` installed platform 37.1 and build-tools 37.0.0 to `/opt/android-sdk` through the proxy. Gradle 9.7.0 bootstrapped. Suite run: pending at time of writing.
-- Measured heights (strip, HUD) at w360dp×h640dp: pending the same run; §1.5's numbers are arithmetic until then.
+- No Android SDK was installed in the container; `scripts/setup-android-sdk.sh` installed platform 37.1 and build-tools 37.0.0 to `/opt/android-sdk` through the proxy. Gradle 9.7.0 bootstrapped. Full suite: green, counts in §4.3.
+- Heights measured by a throwaway `@Test` appended to `AvailabilityScreenMapIconStackTest` (its `setNavigatingScreen()` fixture, `getUnclippedBoundsInRoot()` on the strip, HUD, search bar, pill and arm), run alone, then the file restored with `git checkout` — the working tree carried no change from it. Numbers in §1.1 and §1.5.
 
 ---
 
@@ -165,9 +168,13 @@ Baseline stated by the dispatch: 1106 tests, 25 skipped. Measured on `ed3ac52` i
 
 **Confirmed (read on `ed3ac52`):** every file/line citation above; that the arm and the HUD share one `isReturning`; that the strip is a constraint-sized Box's child; that `NoSensor` is emitted independent of fix; that the allowlist fails on stale entries; that the `:278` test asserts the duplicated heading; that `isApproaching` is the only threshold constant.
 
-**Inferred (not measured yet):** every dp figure in §1.5; the ~2dp strip/HUD overlap; the width available to the distance column.
+**Confirmed by measurement (§1.5):** search bar 49dp, strip 18dp, clearance 18dp, HUD 56dp, pill 108dp, arm 54dp layout / ~30dp visible; suite 1106 / 25 skipped / 0 failures.
+
+**Inferred (not measured):** the ~80dp height of the folded HUD (it does not exist yet); every text *width* figure, since Robolectric's text widths are not usable; the bottom nav's on-device height.
 
 **Could not determine:** on-device behaviour (no KVM); whether the owner's "0 ft beside 0 ft" ever diverges under a missing-origin track in practice.
+
+**A premise of my own that was wrong:** the first draft of this report inferred a ~2dp HUD-over-strip overlap; measurement shows the clearance equals the strip's height exactly (§1.1).
 
 **Premises in the dispatch that were wrong or incomplete:** (1) the "no sensor" and "no fix" cases are not disjoint in the code — no-sensor-and-no-fix reads as `NoSensor` (§3.1); (2) item 3 collides with the standing rule on allowlist changes (§4.1); (3) `AvailabilityScreenLayoutTest:373` is the fullscreen guard; the HUD-open guard to extend is at `:414` (§1.2).
 
