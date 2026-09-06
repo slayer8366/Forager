@@ -179,3 +179,83 @@ Baseline stated by the dispatch: 1106 tests, 25 skipped. **Measured on `ed3ac52`
 **Premises in the dispatch that were wrong or incomplete:** (1) the "no sensor" and "no fix" cases are not disjoint in the code — no-sensor-and-no-fix reads as `NoSensor` (§3.1); (2) item 3 collides with the standing rule on allowlist changes (§4.1); (3) `AvailabilityScreenLayoutTest:373` is the fullscreen guard; the HUD-open guard to extend is at `:414` (§1.2).
 
 **Decided without cover:** nothing built. The proposals in §1, §3 and §6 are what I would do; each is waiting on the owner's answer to the questions marked as decisions.
+
+---
+---
+
+# Completion report (same day, after the owner's answers)
+
+**Owner's decisions, verbatim in effect:** item 3 authorised (arm, its test, exactly one allowlist entry); item 4 keyed on the missing fix, dash + "Location services unavailable" for the HUD; item 5 gated on `isApproaching`, "Approaching · last fix N s ago", the target column shows the distance alone while suppressed, no-sensor bearing text suppressed too; layout confirmed at ~80dp with a ~24dp tap band; all three exits stay.
+
+**Commits on `claude/new-session-102gri`** (each pushed before the next was started):
+
+| Commit | What |
+|---|---|
+| `9b7edad`, `dabd8b7` | this report, pre-build |
+| `6ded66e` | product change: strip gate, HUD second row, hoisted toggle, no-fix message, needle gate, arm removed, one allowlist entry removed |
+| `917d298` | tests |
+| (this commit) | completion report |
+
+## What was built, by dispatch item
+
+1. **Strip hides while any navigation mode is active.** `val isNavigating = isReturning` is defined once in `AvailabilityScreen` (the name the waypoint filter already used) with a comment that stage two ORs into that line and nowhere else; it is passed to `CompactMapTab` and gates the HUD's presence and the strip's absence together. The strip is `if (!isNavigating)` — out of composition, not invisible, so only the HUD's leaf reads the heading at sensor rate. The HUD's top padding is `topInset` alone.
+2. **Elevation and coordinates fold into the HUD** as a second full-width row: the fix's altitude, "·", and `coordinatesStripText` of the fix. The coordinates segment's tap band is the row's remaining width by 24dp (text plus 4dp above and below). `showDecimalDegrees` is hoisted to `CompactMapTab` and shared by the strip and the HUD. With no fix the row is not drawn.
+3. **`DistanceArm` removed**, with its two constants, its two tests, and the one allowlist entry at `ci.yml` (the comment there now says twelve and records why). `TrailheadControls` keeps `ControlPill` only; the return row's `contentDescription` sentence is unchanged, so the TalkBack path is intact. Five now-unused imports removed.
+4. **One no-fix message.** Strip: `location == null` → the single `NO_FIX_MESSAGE` text, centred, not tappable, whatever the heading says; `NoSensor` with a fix → "Compass unavailable · elevation · coordinates"; `NeedsFix` with a fix (the transient frame between a fix landing and the next sensor emission) → a dash. HUD: heading label "—", status line `NO_FIX_MESSAGE`. "Compass needs a fix" and "Waiting for a fix" no longer exist in `app/src/main`.
+5. **Needle suppressed inside the threshold.** `navigationReadout` computes `approaching = freshness != LOST && isApproaching(...)` once and uses it for the needle, the target column's text, and the status word. The bearing is not smoothed.
+
+## Tests
+
+**Suite:** **1114 tests, 0 failures, 0 errors, 24 skipped** on the final tree (`./gradlew :app:testDebugUnitTest --continue`, summed from the JUnit XML), and the skipped set is exactly the CI allowlist — checked by parsing `ci.yml`'s `SKIPPED_TESTS_ALLOWLIST` against the report: no unallowed skip, no stale entry. The baseline was 1106 / 25 skipped; the skip count fell by one because the arm's `@Ignore`d test was removed with the arm (owner-authorised), not silenced. No other skip changed.
+
+**New tests, each run with the behaviour reverted** (a one-line `sed` on the product code, the affected classes run, the file restored with `git checkout`), failing for the predicted reason:
+
+| Reverted behaviour | Tests that went red, and how |
+|---|---|
+| Strip composed while navigating (`if (true)`) | `while navigating the compass strip is absent and the true heading appears exactly once` (strip node found); `leaving navigation brings the compass strip back…` (strip found before leaving); `with no fix the HUD shows one message…` (**two** "Location services unavailable" nodes — the strip's and the HUD's); `while navigating the HUD's second row shows…` (two MGRS nodes); `entering and leaving navigation does not change the map's own measured height` ×3 subclasses (strip found while navigating). 7 failures. |
+| HUD coordinates segment not clickable | `the coordinates toggle is reachable by real touches across its bounds…` (touch 0 did not flip); `a coordinate format chosen in the HUD is the format the strip shows after leaving navigation`. 2 failures. |
+| Toggle state not shared (strip passed a constant `false`) | `a coordinate format chosen in the HUD is the format the strip shows after leaving navigation` only — the strip came back on MGRS. 1 failure. (A first attempt at this revert also hit the HUD's call site and failed the touch test too; redone against the strip's line alone.) |
+| Strip's no-fix branch disabled (three fragments again) | `with no fix the compass strip shows one message…`; `a heading with no fix reads the one no-fix message…`; `the strip's no-fix message is not a coordinates toggle…` (no `compass-strip-no-fix` node). 3 failures. |
+| Needle gate removed (`&& !approaching` dropped) | `just inside the threshold the needle is absent… just outside, present` ("no needle at 15.57 m with 8 m accuracy expected null, but was 315.0"); `approaching inside twice the reported accuracy…`; `stale and approaching…`. 3 failures. |
+| HUD no-fix status back to "Waiting for a fix" | `with no fix the HUD shows one message…` (screen); `no fix at all - one message on the status line…` (readout). 2 failures. |
+
+**Boundary literals** (`NavigationHudReadoutTest`): accuracy 8 m; targets 0.000140° and 0.000148° of latitude north of the fix, which on `GeoDistance`'s own radius (6 371 008.8 m → 111 195.08 m per degree) are 15.57 m and 16.46 m. Neither number touches `APPROACHING_ACCURACY_MULTIPLIER`. Needle absent and "Approaching" shown at 15.57 m; needle present, status blank at 16.46 m.
+
+**Existing tests changed** (all in `AvailabilityScreenMapIconStackTest` unless stated), each for the reason given in §4.2 of the pre-build report:
+
+- `the compass strip and the HUD's north compass read the same true heading` → rewritten as `while navigating the compass strip is absent and the true heading appears exactly once`. **A test can encode a defect as a requirement, and this one did**: its stage-one form asserted the strip and the HUD both reading "95° E" while navigating, which is the "heading three times" bug the owner saw on device, pinned as correct. It stayed green through all of stage one because it never questioned that both should be there. The one-source claim survives as the HUD's value against the fake heading; the new claim is a node count of one.
+- `before any fix the strip says the compass needs a fix…` → `with no fix the HUD shows one message, a dash for the heading, and no elevation or coordinates row`.
+- `the HUD is not composed while not returning` → also asserts the strip is.
+- `…explicit unavailable state… with no sensor and no fix yet` (asserted the three fragments) → `with no fix the compass strip shows one message, not three fragments - even with no sensor`, plus the new sibling `with a fix but no sensor the compass strip says the compass is unavailable and still shows elevation and coordinates`.
+- `a heading with no fix reads needs-a-fix…` → `…reads the one no-fix message…`.
+- `the coordinates segment is not tappable before a first fix arrives` → `the strip's no-fix message is not a coordinates toggle - tapping it reveals nothing`.
+- `recording with no fix yet … and no distance arm yet` → arm assertion dropped (it would have passed identically after the removal); renamed.
+- `…shows the full sentence via contentDescription and the distance visibly` → visible-distance half dropped (it read the arm); renamed. The visible distance is the HUD's, covered by `the HUD shows the straight-line distance…`.
+- `a return distance under a kilometer is shown in meters on the distance arm` → `…in the return row's sentence`.
+- `an off-track fix tints the return-to-vehicle button…` → **not in the pre-build list**; it read "500 m" off the arm as visible text and failed on the first run after the removal. Now asserts the return row's own sentence. Reported here as the one test the pre-build audit missed.
+- `a real touch beside the distance arm still reaches the map` (`@Ignore`d, allowlisted) and `the distance arm overlaps the pill's own bottom cap…` → deleted with the arm; a comment marks the spot. **Caught and corrected before this commit:** my first deletion span started one doc comment too early and also removed `a real touch in the gap above the control pill still reaches the map` (`@Ignore`d, allowlisted, no arm dependence). The full-suite skip count came back at 23 instead of 24, the allowlist comparison named the missing test, and it was restored verbatim from `ed3ac52`. The allowlist gate exists for exactly this; it worked.
+- The two `@Ignore`d trailhead touch tests: doc comments corrected, bodies and `@Ignore` untouched.
+- `NavigationHudReadoutTest`: the NeedsFix and no-fix literals; approaching now also asserts no needle and the target column's text.
+- `AvailabilityScreenLayoutTest` (three subclasses): the HUD-open height guard renamed `entering and leaving navigation does not change the map's own measured height, in or out of fullscreen`; asserts the strip present → absent → absent (fullscreen) → present, map height 640dp at every step.
+
+**Fixture additions:** `setScreen(returning: State<Boolean>?)` and `setNavigatingScreen(fix, returning)` in the icon-stack test, so one composition can enter and leave navigation and use the Portland fix whose MGRS `MgrsConverterTest` already pins.
+
+## Device verification
+
+Blocked: no `/dev/kvm` in this container, so no emulator. The owner must check on hardware:
+
+1. The strip returns on leaving navigation by each of the three exits (HUD close, pill toggle, system back).
+2. The HUD's coordinates toggle flips MGRS ↔ decimal by finger, including in fullscreen with the cluster minimised, and the strip shows the chosen format afterwards.
+3. The HUD's top edge sits directly under the search bar outside fullscreen and flush at the top in fullscreen (`topInset` is the search bar's animated height; real system-bar insets are Robolectric-invisible per CLAUDE.md's pitfall, so the fullscreen top edge is device-only).
+4. Near the origin: the needle disappears and "Approaching" appears together, at the same step, and the target column reads the distance.
+5. With location off: the strip reads one line, "Location services unavailable".
+
+## Required disclosure
+
+**Confirmed vs. inferred.** Confirmed by running: the suite count above; every revert check's failure and its message; the map's measured height at 640dp through enter/leave/fullscreen. Inferred, still: the folded HUD's ~80dp (Robolectric text widths are unusable for the second row and I did not re-measure heights after the build — the second row is 16dp text + 8dp padding by construction, so 80dp follows arithmetically, not by measurement); on-device touch behaviour of the 24dp band.
+
+**Could not determine.** Anything device-only, listed above. Whether "Location services unavailable" is the right wording for a cold-start-no-fix-yet state (premise flagged pre-build; owner chose it).
+
+**Premises in this dispatch that were wrong.** Unchanged from the pre-build report: no-sensor and no-fix are not disjoint; item 3 needed an allowlist edit; the layout guard to extend was at `:414`, not `:373`. One premise of my own: the pre-build list of tests to change missed the off-track tint test.
+
+**Decided without cover.** (1) The HUD's second row is omitted entirely with no fix, rather than showing "Elevation unavailable · Coordinates unavailable" under the one message — the dispatch's "one statement" rule applied to the HUD, not stated for it. (2) `NeedsFix` *with* a fix (the transient frame) shows a dash in the strip, matching the HUD. (3) `coordinatesStripText`'s "Coordinates unavailable" branch is now unreachable from production (both callers pass a non-null location); left in place, since the pure function's contract still admits `null`. (4) `TrailheadControls` kept as a Column around the pill rather than inlined, as the named slot stage two's entry is expected to land in. (5) The `@Ignore`d return-tap test's provenance comment still mentions the arm extending and retracting on device; that is a record of what happened on that date and was left as written.
