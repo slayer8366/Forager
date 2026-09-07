@@ -528,3 +528,73 @@ Which renderer; what a multi-site plate shows; whether plates are worth it if on
 - I read `AvailabilityScreen.kt` only for the window-class branch and drawer width (lines 2013-2047, 2149) and `BoxWithConstraints`'s existence; the pulse holds that file and I made no further claims about it.
 - I installed the Android SDK into this session (via the repo's own `scripts/setup-android-sdk.sh`) to run the unit suite for the counts the pulse requires, and unzipped the pinned MapLibre `.aar` from the resulting Gradle cache into the session scratchpad to check for `MapSnapshotter`; nothing was written into the repository by either.
 - I filed this under `docs/audits/` and added its row to `docs/audits/README.md`, following the light-budget and track-point-filter pulses' precedent.
+
+---
+
+## Addendum: owner rulings on the seven decisions, and the single-column question
+
+Recorded the same day, after the owner read the report. Rulings are the owner's; the facts under each are what the code says on `0ca2f55` and were checked when recording them. **Nothing below is built.**
+
+### Item 2 — `updatedAtEpochMillis`: stamp it on every save; sort the grid on something else
+
+**Ruling:** one field cannot honestly be both a modification time and a sort key. Stamp `updatedAtEpochMillis` on every save. Make the Entries grid sort explicitly on when the entry was created, not on the modification time it inherits today. "An entry is a day; days don't reorder because you fixed a typo." The intent was never recorded, which is why it is recorded here.
+
+**Facts for whoever builds it:**
+
+- The current sort *was* the stated intent at the time: `GetCartographyEntriesUseCase.kt:5` reads "Loads every committed Cartography entry, most recently updated first — the Entries submenu's own feed." The ruling reverses that, deliberately; the doc comment must change with the code.
+- **There is no created-at field.** `CartographyEntryEntity` has `id`, `date`, `text`, `tags`, `isDraft`, `updatedAtEpochMillis` (`CartographyEntryEntity.kt:24-31`). So "sort on createdAt" is one of two different changes: sort on the existing `date` column (no migration), or add a `createdAtEpochMillis` column (a Room migration from `ForagerDatabase.version = 14`, `ForagerDatabase.kt:153` — the globally-unique-claim pitfall in CLAUDE.md applies). The owner's wording, "an entry is a day", points at `date`; which one is the owner's call and is not made here.
+- **Two entries can share a date.** `onStartEntry` creates a new entry unconditionally (`CartographyViewModel.kt:105-118`), and the DAO has no query by date at all (`CartographyEntryDao.kt:18-25`: by `isDraft` and by `id` only) — the `date` index's own comment anticipates a "does a draft already exist for this day" lookup (`CartographyEntryEntity.kt:14`) that nothing performs. A `date` sort therefore needs a stated tie-break, and `updatedAtEpochMillis` is the obvious one, which puts the modification time back into the ordering for same-day entries only.
+- The draft list sorts on the same field (`GetCartographyDraftEntriesUseCase.kt:10`). Whether Drafts should follow the ruling or stay "most recently touched first" — arguably right for unfinished work — was not asked and is flagged.
+
+### Item 6 — `isEmpty`: fix the property, and drop empty polylines in the use case. Both.
+
+**Ruling:** an empty polyline is not content. Relying on the `boundingRegion` null check is a second guard covering a wrong first one; the report screen survives by accident. Fix `CartographyEntryMapData.isEmpty` so it is true when nothing drawable resolved, and make `GetCartographyEntryMapDataUseCase` drop a track that resolves to zero points rather than emit `[]`.
+
+**Fact:** `GetCartographyEntryMapDataUseCaseTest` has no case for a track resolving to zero points (§7); the fix needs one, and a revert check that names this exact input.
+
+### Item 5 — remove the red search-centre dot from entry maps
+
+**Ruling:** a marker at a point where nothing happened is the class of thing this project has been removing. It belongs to the search UI and was inherited.
+
+**Fact:** the dot is drawn unconditionally — `refreshOverlayData` sets the search-centre source from `region` for every caller (`SightingsMap.kt:682`), and `SightingsMap` has no per-caller switch for it. Removing it from entry maps only means the map needs to know it is an entry map, which today it learns only through `MapRenderMode.trackLiveLocation = false` (`CartographyEntryReportScreen.kt:365`). Whether to key on that, or add an explicit flag to `MapRenderMode` (the bundle that exists to absorb such additions without touching `MapSlot`'s parameter count, `MapSlot.kt` doc comment), is a build-time choice to state, not a design decision.
+
+### Item 4 — a kept offline region alone is not georeferenced
+
+**Ruling:** a green circle with nothing in it is not a day. Fall back to the cover photo or the contour texture.
+
+**Fact:** today `allPoints` includes region centres (`GetCartographyEntryMapDataUseCase.kt:96-97` in the quoted type), so the report screen currently *does* show a map for a region-only entry. The ruling changes that screen's behaviour too, not just a future plate's; the "no map section if nothing resolved" rule (§7) would then need a definition of "resolved" that excludes regions, while the region circle still draws whenever anything else is present.
+
+### Item 7 — kept only, stated as a rule
+
+**Ruling:** yes. A renderer repeating the filter independently is a bug waiting to happen; better that it cannot reach withheld items at all.
+
+**Fact:** the only place today that exposes resolved map geometry is `GetCartographyEntryMapDataUseCase`, which filters (§1). The rule is therefore "map geometry comes only from that use case," and the one thing that would violate it is a plate reading `WaypointDecision`/`OfflineRegionDecision` coordinates straight off the entry — which is exactly the zero-fetch shortcut §1 noted was available. Item 7 closes that shortcut on purpose.
+
+### Items 1 and 3 — moot
+
+Both depend on plates surviving at 104 dp, which the owner does not think they do. Left open.
+
+### On plates: what a single-column, full-width plate would be
+
+The owner's question, answered from the same arithmetic as §4, not from a build.
+
+**Width.** The grid's content padding is 16 dp a side (`CartographyEntryListScreen.kt:87`); at one column there is no gap.
+
+| Host | Grid width | 1-up plate width |
+|---|---|---|
+| Compact, 360 dp | 360 dp | **328 dp** |
+| Compact, 393 dp | 393 dp | 361 dp |
+| Compact, 412 dp | 412 dp | 380 dp |
+| Medium/expanded (360 dp drawer sheet) | 360 dp | **328 dp** |
+
+One consequence worth noticing: at one column the drawer plate and the 360 dp phone plate are the *same* size, so the medium/expanded case stops being the smaller one. The pulse's "~330 dp" is right.
+
+**Height.** The tile's `aspectRatio(0.85f)` (`:124-125, 163`) would make a 328 dp plate 386 dp tall — a portrait card, most of a compact screen. The report screen's own map preview is `aspectRatio(4f / 3f)` at full width (`CartographyEntryReportScreen.kt:337`), i.e. 328 × 246 dp on a 360 dp phone. **That is a size the owner has already seen on hardware**, in the fullscreen-maps dispatch's screenshots, which is the only device evidence for map legibility this project has. A 1-up plate at 4:3 is the report screen's preview, not a new size.
+
+**What it carries, from the §4 table.** At the report screen's own zoom table, a one-site day (zoom 13, ~9.5 m/dp at 45° N, inferred) spans ~3.1 km across 328 dp; a 2 km walk is ~210 dp of line. A Canvas fit to the true bounding box does better still for a compact day. **What it does not fix is the multi-site day**: a 40 km extent across 328 dp is ~122 m/dp, and a 2 km walk is ~16 dp — three dp longer than at 160 dp. The §2 finding is a property of the data's extent-to-walk ratio, not of the plate's width, and stays regardless of column count.
+
+**Cost.** At 328 × 246 dp on a compact screen with roughly 600 dp of grid visible, two to three plates are composed at once plus a prefetched row — a quarter of the 2-up figure, which changes the arithmetic for every renderer, option 3 included.
+
+**What only hardware answers, still:** whether 210 dp of GPS-jittered line at 420 dpi reads as a walk. The report-screen precedent says the size is viable for a live map with tiles under it; a tile-less Canvas sketch at the same size has never been seen on a device.
+
+**Decisions this raises, not made:** whether a 1-up plate keeps the tile's 0.85 aspect, takes the report screen's 4:3, or something else; and what the tile shows besides the map at that size (the date, the kept-item count and the text excerpt today all fit in a 160 dp card; a 328 dp map leaves them somewhere new).
