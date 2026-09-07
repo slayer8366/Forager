@@ -291,3 +291,70 @@ Not run for this report — nothing changed. `main` at `bc72811` is PR #75's hea
 - **Reading `AvailabilityScreen.kt`** at the three elevation-display lines and the compass strip only, to answer Item 4's search; seams F and G were not touched or characterised.
 - **Running no tests**, since nothing changed; the baseline is cited from the merged head's CI and the pre-merge local run rather than re-run here.
 - **§2.4's suggested floor band and §4.3's precision** are offered as starting points with the arithmetic shown, explicitly not as decisions.
+
+---
+
+## Addendum: owner rulings, and the three numbers proposed in return
+
+Recorded the same day, after the owner read the report. Rulings are the owner's; the proposals are this session's, with the reasoning, and stop where the owner's decision is still needed.
+
+### Rulings
+
+1. **Position-to-track mapping: most-recent-point.** "Its error is never short, and that's the only property that matters in a safety input." To be recorded at the site, because nearest-point will look like an obvious improvement to someone later.
+2. **The off-track hop: straight line, and it triggers the degraded form beyond a threshold** (proposed below). The only thing available, and short by nature; anything past the threshold reads "at least X".
+3. **The origin's last hop: include it** when an origin waypoint exists and differs from the first surviving point. Omitting it is short.
+4. **Moving floor: 0.5 m/s**, the middle of the 0.3–0.7 m/s band §2.4 established, with the band itself recorded at the constant so a later tuner knows the bounds.
+5. **"Enough": in accumulated moving time**, not point count. Owner's instinct five minutes; the number and reasoning proposed below.
+6. **Degrade thresholds:** proposed below.
+7. **Inch precision: tenths with a trace floor**, as proposed. Built (completion report).
+8. **Units system: introduce the preference and derive distance from it.** Widening the distance preference's meaning would keep a wrong name on a growing responsibility, and this is the third miss. Built here; rainfall converted; soil temperature and elevation wait on it, reported (completion report).
+9. **Speed columns: authorised, conditional on the walk.** The per-fix log first (built, completion report). If Doppler speed is populated, build on it; the `hasSpeed() == false` tell for network fixes is worth recording either way.
+10. **Naismith stays reported.** The alert's margin absorbs terrain; a correction now would double-count.
+
+### Proposal 1 — the off-track hop threshold
+
+**Enter the degraded form when the hop exceeds 50 m; leave it below 25 m.**
+
+- **Why 50 m:** it is the live-fix gate's own ceiling (`LIVE_FIX_MAX_ACCURACY_METERS = 50f`). A hop shorter than the worst position error the app will display cannot be told from that error, so it must not change the label; a hop longer than it cannot be explained by error and is a real departure from the path. It is also at most one accuracy circle in every recording mode (30/50/100 m), so a user walking the track in BATTERY_SAVER does not trip it on jitter alone.
+- **Why a band, and why 25 m:** the compass-reliability precedent (`CompassTrustJudge`: enter above one figure, leave below a lower one) — a user hovering near the threshold must not see the label flicker between "≈" and "at least" on successive fixes. Half the entry figure is a wide enough gap to cover two fixes' worth of jitter at the gate's ceiling.
+- **Worked cases:** a user 20 m off the track under 12 m accuracy — plain figure, the hop is within noise; 80 m off — "at least", and the estimate includes the 80 m; back to 40 m — still "at least" (inside the band); 20 m — plain again.
+- **What it does not do:** distinguish 80 m across a meadow from 80 m across a ravine. Nothing can. The label is the honesty; the hop is added either way.
+
+### Proposal 2 — "enough" moving time to replace the default: **five minutes**
+
+The owner's instinct survives the data. The reasoning, per recording mode, from the sampler's own constants:
+
+| Mode | Interval | Kept pairs in 5 min of walking (≈ 300 m at 1 m/s) | What the measured speed rests on |
+|---|---|---|---|
+| HIGH_ACCURACY | 5 s | ~60 | sixty independent steps; a per-step position error of ~5–10 m over 5 m steps is large, but sixty of them average to a few percent |
+| BALANCED | 15 s | ~20 | twenty steps of ~15 m; a few percent again |
+| BATTERY_SAVER | 60 s | ~5 | five steps of ~60 m; the thinnest, but each step is long enough that position error is a small fraction of it |
+
+Three further reasons five minutes is the right order and not, say, one or fifteen:
+
+- **Below it the default is doing the honest job.** 3.2 km/h is deliberately slow; during the first five minutes nobody is near a turnaround, so the cost of the default being slow is nil and the cost of a bad early measurement is a wrong number the user might act on.
+- **At the switch the estimate can move, and five minutes bounds the move.** A typical measured walking speed on a trail is 3.6–5 km/h (general knowledge, not from this codebase); replacing 3.2 km/h with 4.5 km/h shortens the estimate by ~30 % in one step. That is a visible jump and, because the measured figure is faster, it is a jump in the short direction — which is why the switch must not happen on thin data, and why §3's "at least" should persist for a while past it (Proposal 3).
+- **With Doppler speed, five minutes is generous.** Sixty samples at ~0.3 m/s accuracy give a standard error under 0.05 m/s; one minute would already do. Five minutes is chosen for the point-differencing fallback and for BATTERY_SAVER, where it is the minimum that gives five kept pairs. One bar for every mode and both instruments, rather than a table the user cannot see.
+
+**A note the build must carry:** GPS jitter inflates a differenced path — a stationary receiver "walks" a few metres between fixes, and a moving one records a slightly longer path than the ground walked. That inflates measured speed (short direction) *and* the remaining path length (long direction), and the two partly cancel in distance ÷ speed. Doppler speed does not inflate, so with it the remaining path's inflation is uncancelled and the estimate leans long. Both are safe or neutral; recorded so nobody "corrects" one without the other.
+
+### Proposal 3 — degrade thresholds, per condition
+
+The form is decided ("at least X"). The proposed triggers, each with its signal and the reasoning:
+
+| Condition | Trigger | Reasoning |
+|---|---|---|
+| No measured pace yet | moving time < 5 min (Proposal 2) | the figure is from the default, which is slow on purpose but unmeasured |
+| Pace freshly measured | moving time between 5 and **15 min** | the switch just moved the estimate, possibly by ~30 % in the short direction, on the day's flattest early leg; three times the bar is enough walking to include some variation of ground |
+| Stale fix | `FixFreshness.STALE` (≥ 30 s, existing) | the hop from fix to track is unknown; the track length is not |
+| Lost fix | `FixFreshness.LOST` (≥ 5 min, existing) | **withhold the estimate entirely**, matching the HUD, which withholds the distance — a number with no position under it is not "at least", it is a guess |
+| Off the track | hop > 50 m, band to 25 m (Proposal 1) | the hop is a straight line and short by nature |
+| Path under-measured by the filter | `excludedPointCount ≥ 10 %` of stored points | one excluded point among hundreds is one chord; a tenth of the track excluded is a bend flattened somewhere. The fraction is the tunable; the simpler alternative (any exclusion → "at least") is stricter and also defensible |
+| Mostly excluded | `isMostlyNetworkFixes()` (> 75 % of ≥ 10) | already computed; the track is chords |
+| No usable points | `hasNoUsablePoints()` | **withhold**: there is no path to measure |
+| Few surviving points | fewer than **10** stored survivors | the same floor `MOSTLY_NETWORK_FIXES_MIN_STORED_POINTS` uses; below it the "path" is a handful of chords whatever the mode |
+| No origin waypoint | — | **no degrade**: the path ends at the first point and nothing is omitted; the last hop exists only when the waypoint does |
+
+**Two things this table does not do, on purpose:** it does not stack — one trigger is enough, and the label is the same; and it does not touch the walking-time-not-arrival-time distinction, which is a labelling rule the surface must carry and this input must record at the code, per the ruling.
+
+**Stopped here.** The three proposals are the owner's to accept or move.

@@ -18,6 +18,7 @@ import com.forager.app.domain.MutableClock
 import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.SpeciesObservationCount
 import com.forager.app.domain.model.TaxonFilter
@@ -254,11 +255,11 @@ class AvailabilityScreenOfflineCacheTest {
 
         /**
          * A searched region showing a ranking; the cached-results flags are what each test varies.
-         * [DistanceUnit.KILOMETERS] fixed explicitly — this file's own assertions are hardcoded to
-         * "15 km" text and have nothing to do with the km/mi preference, so it must not drift with
-         * [AvailabilityUiState.distanceUnit]'s own default.
+         * [UnitSystem.METRIC] fixed explicitly — this file's own assertions are hardcoded to
+         * "15 km" text and have nothing to do with the units preference, so it must not drift with
+         * [AvailabilityUiState.unitSystem]'s own default.
          */
-        val CACHED_STATE = AvailabilityUiState(region = REGION, selectedMonth = 8, forecast = FORECAST, distanceUnit = DistanceUnit.KILOMETERS)
+        val CACHED_STATE = AvailabilityUiState(region = REGION, selectedMonth = 8, forecast = FORECAST, unitSystem = UnitSystem.METRIC)
 
         val RECENT_FUNGI = CachedSearchSummary(
             region = REGION,

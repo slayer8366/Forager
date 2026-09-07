@@ -6,7 +6,7 @@ import com.forager.app.domain.model.AppThemeMode
  * Settings' theme choice — the app-wide light/dark [androidx.compose.material3.ColorScheme]
  * [com.forager.app.ui.theme.ForagerTheme] renders, as a direct, persistent preference. Same
  * DataStore-for-flat-settings reasoning as [MapPreferencesRepository] and
- * [DistanceUnitPreferenceRepository]'s own doc comments (a single scalar, not rows to query).
+ * [UnitSystemPreferenceRepository]'s own doc comments (a single scalar, not rows to query).
  *
  * A three-way [AppThemeMode], not a boolean — [AppThemeMode.SYSTEM_DEFAULT] added per the project
  * owner's own request, alongside the two explicit choices ([AppThemeMode.LIGHT]/

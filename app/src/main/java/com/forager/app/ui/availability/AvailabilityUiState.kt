@@ -10,6 +10,7 @@ import com.forager.app.domain.model.AvailabilityForecast
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
 import com.forager.app.domain.model.defaultOfflineMapRadiusKm
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.LatLng
@@ -237,14 +238,18 @@ data class AvailabilityUiState(
      */
     val liveFix: LocationFix.Update? = null,
     /**
-     * The unit distances are displayed in, restored from
-     * [com.forager.app.domain.DistanceUnitPreferenceRepository.getDistanceUnit] at startup and
-     * persisted on every change — see [DistanceUnit]'s own doc comment for the bug this fixes
-     * (a system theme switch, among other configuration changes, used to reset this to the
-     * default because it was plain Compose state, not ViewModel/persisted state).
+     * The system of units this person reads, restored from
+     * [com.forager.app.domain.UnitSystemPreferenceRepository.getUnitSystem] at startup and
+     * persisted on every change — see [DistanceUnit]'s own doc comment for the bug the persisted
+     * form fixes (a system theme switch, among other configuration changes, used to reset it to
+     * the default because it was plain Compose state, not ViewModel/persisted state), and
+     * [UnitSystem]'s for why this is a system rather than the distance unit it used to be.
      */
-    val distanceUnit: DistanceUnit = DistanceUnit.MILES,
+    val unitSystem: UnitSystem = UnitSystem.IMPERIAL,
 ) {
+    /** Derived from [unitSystem], never set on its own — every distance display reads this exactly as before. */
+    val distanceUnit: DistanceUnit get() = unitSystem.distanceUnit
+
     val hasSearched: Boolean get() = region != null
 
     /**

@@ -21,7 +21,7 @@ import com.forager.app.domain.MushroomRepository
 import com.forager.app.domain.MutableClock
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.AppThemePreferenceRepository
-import com.forager.app.domain.DistanceUnitPreferenceRepository
+import com.forager.app.domain.UnitSystemPreferenceRepository
 import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.OfflineRegionSummary
@@ -36,6 +36,7 @@ import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Sighting
@@ -163,9 +164,9 @@ private object OfflineCacheStubMapPreferencesRepository : MapPreferencesReposito
     override suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit> = Result.failure(UnsupportedOperationException("map fullscreen preference not exercised by this test"))
 }
 
-private object OfflineCacheStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
-    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
-    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+private object OfflineCacheStubUnitSystemPreferenceRepository : UnitSystemPreferenceRepository {
+    override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(UnitSystem.IMPERIAL)
+    override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> = Result.success(Unit)
 }
 
 private object OfflineCacheStubAppThemePreferenceRepository : AppThemePreferenceRepository {
@@ -205,7 +206,7 @@ class AvailabilityViewModelOfflineCacheTest {
         ),
         offlineMapRepository = OfflineCacheStubOfflineMapRepository,
         mapPreferencesRepository = OfflineCacheStubMapPreferencesRepository,
-        distanceUnitPreferenceRepository = OfflineCacheStubDistanceUnitPreferenceRepository,
+        unitSystemPreferenceRepository = OfflineCacheStubUnitSystemPreferenceRepository,
         appThemePreferenceRepository = OfflineCacheStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(OfflineCacheStubTripPlanningWeatherProvider),
     )

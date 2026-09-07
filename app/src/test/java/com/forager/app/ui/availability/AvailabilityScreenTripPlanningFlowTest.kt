@@ -23,7 +23,7 @@ import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.AppThemePreferenceRepository
-import com.forager.app.domain.DistanceUnitPreferenceRepository
+import com.forager.app.domain.UnitSystemPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
@@ -54,6 +54,7 @@ import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -143,7 +144,7 @@ class AvailabilityScreenTripPlanningFlowTest {
             ),
             offlineMapRepository = TripFlowStubOfflineMapRepository,
             mapPreferencesRepository = TripFlowStubMapPreferencesRepository,
-            distanceUnitPreferenceRepository = TripFlowStubDistanceUnitPreferenceRepository,
+            unitSystemPreferenceRepository = TripFlowStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = TripFlowStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(TripFlowStubTripPlanningWeatherProvider),
         )
@@ -416,9 +417,9 @@ private object TripFlowStubMapPreferencesRepository : MapPreferencesRepository {
     override suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit> = Result.failure(UnsupportedOperationException("map fullscreen preference not exercised by this test"))
 }
 
-private object TripFlowStubDistanceUnitPreferenceRepository : DistanceUnitPreferenceRepository {
-    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(DistanceUnit.MILES)
-    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> = Result.success(Unit)
+private object TripFlowStubUnitSystemPreferenceRepository : UnitSystemPreferenceRepository {
+    override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(UnitSystem.IMPERIAL)
+    override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> = Result.success(Unit)
 }
 
 private object TripFlowStubAppThemePreferenceRepository : AppThemePreferenceRepository {

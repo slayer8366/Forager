@@ -63,6 +63,8 @@ import com.forager.app.domain.model.AvailabilityEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
+import com.forager.app.domain.model.formatRainfall
 import com.forager.app.domain.model.FruitingLagBucket
 import com.forager.app.domain.model.FruitingLagDistribution
 import com.forager.app.domain.model.TripWindow
@@ -262,6 +264,7 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
                 uiState.isLoadingTodaysForecast || uiState.todaysForecast != null || uiState.todaysForecastErrorMessage != null
             ) {
                 ConditionsCard(
+                    unitSystem = uiState.unitSystem,
                     conditions = uiState.conditions,
                     conditionsErrorMessage = uiState.conditionsErrorMessage,
                     isLoadingTodaysForecast = uiState.isLoadingTodaysForecast,
@@ -445,6 +448,7 @@ private fun FruitingLagBucketCounts(buckets: List<FruitingLagBucket>) {
  */
 @Composable
 private fun ConditionsCard(
+    unitSystem: UnitSystem,
     conditions: ConditionsSummary? = null,
     conditionsErrorMessage: String? = null,
     isLoadingTodaysForecast: Boolean = false,
@@ -457,7 +461,7 @@ private fun ConditionsCard(
             if (conditions != null) {
                 val totalMm = conditions.totalPrecipitationMm
                 Text(
-                    "${"%.1f".format(totalMm)}mm of rain in the last 14 days",
+                    "${formatRainfall(totalMm, unitSystem)} of rain in the last 14 days",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 val daysSince = conditions.daysSinceSignificantRain
@@ -488,7 +492,7 @@ private fun ConditionsCard(
                 )
 
                 todaysForecast != null -> Text(
-                    "${"%.1f".format(todaysForecast.precipitationMm)}mm of rain forecast today.",
+                    "${formatRainfall(todaysForecast.precipitationMm, unitSystem)} of rain forecast today.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
 
@@ -530,7 +534,7 @@ internal fun TripWindowsCard(uiState: AvailabilityUiState) {
                     color = MaterialTheme.colorScheme.error,
                 )
 
-                uiState.tripWindowReport != null -> TripWindowReportContent(uiState.tripWindowReport)
+                uiState.tripWindowReport != null -> TripWindowReportContent(uiState.tripWindowReport, uiState.unitSystem)
             }
 
             HorizontalDivider()
@@ -540,18 +544,18 @@ internal fun TripWindowsCard(uiState: AvailabilityUiState) {
 }
 
 @Composable
-private fun TripWindowReportContent(report: TripWindowReport) {
+private fun TripWindowReportContent(report: TripWindowReport, unitSystem: UnitSystem) {
     if (report.windows.isEmpty()) {
-        Text(noTripWindowMessage(report), style = MaterialTheme.typography.bodySmall)
+        Text(noTripWindowMessage(report, unitSystem), style = MaterialTheme.typography.bodySmall)
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        report.windows.forEach { window -> TripWindowRow(window) }
+        report.windows.forEach { window -> TripWindowRow(window, unitSystem) }
     }
 }
 
 @Composable
-private fun TripWindowRow(window: TripWindow) {
+private fun TripWindowRow(window: TripWindow, unitSystem: UnitSystem) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             "${TRIP_WINDOW_DATE_FORMAT.format(window.startDate)} – ${TRIP_WINDOW_DATE_FORMAT.format(window.endDate)}",
@@ -560,14 +564,14 @@ private fun TripWindowRow(window: TripWindow) {
         val mostRecentRain = window.precedingRainEvents.first()
         Text(
             "${window.daysAfterMostRecentRainAtStart}–${window.daysAfterMostRecentRainAtEnd} days after " +
-                "${"%.0f".format(mostRecentRain.totalMm)}mm of rain ending " +
+                "${formatRainfall(mostRecentRain.totalMm, unitSystem, metricDecimals = 0)} of rain ending " +
                 TRIP_WINDOW_DATE_FORMAT.format(mostRecentRain.endDate) +
                 if (mostRecentRain.isForecast) " (forecast)" else "",
             style = MaterialTheme.typography.bodySmall,
         )
         if (window.precipitationDuringWindowMm > 0.0) {
             Text(
-                "${"%.1f".format(window.precipitationDuringWindowMm)}mm more rain forecast during the window",
+                "${formatRainfall(window.precipitationDuringWindowMm, unitSystem)} more rain forecast during the window",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -582,7 +586,7 @@ private fun TripWindowRow(window: TripWindow) {
         }
         window.evapotranspirationSinceRainMm?.let { et0 ->
             Text(
-                "${"%.1f".format(et0)}mm evapotranspiration since the rain",
+                "${formatRainfall(et0, unitSystem)} evapotranspiration since the rain",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

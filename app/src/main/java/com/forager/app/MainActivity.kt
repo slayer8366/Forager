@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
                     container.offlineMapRepository,
                     androidErrorLog,
                     container.mapPreferencesRepository,
-                    container.distanceUnitPreferenceRepository,
+                    container.unitSystemPreferenceRepository,
                     container.appThemePreferenceRepository,
                     container.getTodaysForecastUseCase,
                     getOfflineRegionReferenceCount = { id -> container.getEntryReferenceCountUseCase.forOfflineRegion(id).getOrDefault(0) },

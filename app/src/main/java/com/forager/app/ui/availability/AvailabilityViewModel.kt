@@ -21,7 +21,7 @@ import com.forager.app.domain.acceptLiveFix
 import com.forager.app.domain.LocationProvider
 import com.forager.app.domain.LocationResult
 import com.forager.app.domain.LocationTracker
-import com.forager.app.domain.DistanceUnitPreferenceRepository
+import com.forager.app.domain.UnitSystemPreferenceRepository
 import com.forager.app.domain.MapPreferencesRepository
 import com.forager.app.domain.OfflineMapRepository
 import com.forager.app.domain.PredictAvailabilityUseCase
@@ -31,6 +31,7 @@ import com.forager.app.domain.estimateOfflineTileCount
 import com.forager.app.domain.estimateServedOfflineTileCount
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
 import com.forager.app.domain.model.defaultOfflineMapRadiusKm
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Region
@@ -75,7 +76,7 @@ class AvailabilityViewModel(
      */
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
     private val mapPreferencesRepository: MapPreferencesRepository,
-    private val distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository,
+    private val unitSystemPreferenceRepository: UnitSystemPreferenceRepository,
     private val appThemePreferenceRepository: AppThemePreferenceRepository,
     private val getTodaysForecast: GetTodaysForecastUseCase,
     /** How many Cartography entries currently keep a reference to an offline region — Journal Stage 2b's 4b deletion warning. See `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why this is a plain suspend function rather than the whole Cartography repository. */
@@ -109,7 +110,7 @@ class AvailabilityViewModel(
         loadRecentSearches()
         loadOfflineRegions()
         loadOfflineMapPreferences()
-        loadDistanceUnitPreference()
+        loadUnitSystemPreference()
         loadNightModePreferences()
         loadMapFullscreenPreference()
         loadThemeModePreference()
@@ -855,40 +856,49 @@ class AvailabilityViewModel(
      * never set a radius and switches to kilometres gets 10 km, not a converted 8; once they have
      * touched it, or a last-picked region restored it, it is theirs and never moves.
      */
-    private fun applyDistanceUnit(unit: DistanceUnit) {
+    private fun applyUnitSystem(system: UnitSystem) {
         _uiState.update {
             it.copy(
-                distanceUnit = unit,
-                offlineMapRadiusKm = if (it.offlineMapRadiusTouched) it.offlineMapRadiusKm else defaultOfflineMapRadiusKm(unit),
+                unitSystem = system,
+                offlineMapRadiusKm = if (it.offlineMapRadiusTouched) it.offlineMapRadiusKm else defaultOfflineMapRadiusKm(system.distanceUnit),
             )
         }
     }
 
     /**
-     * Restores the persisted display unit at startup — see [AvailabilityUiState.distanceUnit]'s own
-     * doc comment for the bug this fixes. A read failure keeps [AvailabilityUiState.distanceUnit] at
+     * Restores the persisted unit system at startup — see [AvailabilityUiState.unitSystem]'s own
+     * doc comment for the bug this fixes. A read failure keeps [AvailabilityUiState.unitSystem] at
      * its default rather than surfacing an error the user never asked for, the same reasoning
      * [loadOfflineMapPreferences] applies to its own reads; the throwable is still logged.
      */
-    private fun loadDistanceUnitPreference() {
+    private fun loadUnitSystemPreference() {
         viewModelScope.launch {
-            distanceUnitPreferenceRepository.getDistanceUnit().fold(
-                onSuccess = { unit -> applyDistanceUnit(unit) },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the saved distance unit.", error) },
+            unitSystemPreferenceRepository.getUnitSystem().fold(
+                onSuccess = { system -> applyUnitSystem(system) },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the saved unit system.", error) },
             )
         }
     }
 
-    /** The Settings panel's km/mi toggle — updates the UI immediately and persists in the background. */
-    fun onDistanceUnitSelected(unit: DistanceUnit) {
-        applyDistanceUnit(unit)
+    /** The Settings panel's Metric/Imperial choice — updates the UI immediately and persists in the background. */
+    fun onUnitSystemSelected(system: UnitSystem) {
+        applyUnitSystem(system)
         viewModelScope.launch {
-            distanceUnitPreferenceRepository.setDistanceUnit(unit).fold(
+            unitSystemPreferenceRepository.setUnitSystem(system).fold(
                 onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't save the selected distance unit.", error) },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't save the selected unit system.", error) },
             )
         }
     }
+
+    /**
+     * The Settings control's existing callback, kept by name so `AvailabilityScreen.kt`'s plumbing
+     * (nine sites, in a file whose split is held at seams F and G) does not change shape: it hands
+     * over the chosen system by its distance unit, a bijection ([UnitSystem.forDistanceUnit]). The
+     * name is legacy and says less than the call does; renaming it through the screen is the
+     * split's job, not this dispatch's — recorded in the return-estimate completion report.
+     */
+    fun onDistanceUnitSelected(unit: DistanceUnit) = onUnitSystemSelected(UnitSystem.forDistanceUnit(unit))
 
     /**
      * Adds a region to whatever's already downloaded — see
