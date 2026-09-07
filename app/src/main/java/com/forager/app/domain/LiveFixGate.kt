@@ -57,8 +57,9 @@ package com.forager.app.domain
  * the sky, and it is not doing for GPS the work the sections above describe. It still does real
  * work on network-provider fixes, whose accuracy there genuinely varies (12.5–71.7 m on the
  * same walk), which is why it stays. The same field feeds `formatDistanceWithAccuracy`'s
- * "within" circle and `isApproaching`'s threshold, and `LocationSampler`'s recording ceiling —
- * all four read a constant on that hardware. Confirmed on one device only; whether it is the
+ * "within" circle and `LocationSampler`'s recording ceiling, which like this gate show or keep a
+ * wrong number, and `isApproaching`'s threshold, which *decides* from it — the serious one of
+ * the four (owner's ranking), noted on its own. Confirmed on one device only; whether it is the
  * chipset, the vendor's GNSS stack or that build is the beta's question (the trip report asks
  * it). Do not tune this threshold, or build an uncertainty calibration on reported accuracy,
  * until a device is known to report a varying value. Record:

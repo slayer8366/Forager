@@ -308,7 +308,7 @@ Recorded the same day, after the owner read the report. Rulings are the owner's;
 6. **Degrade thresholds:** proposed below.
 7. **Inch precision: tenths with a trace floor**, as proposed. Built (completion report).
 8. **Units system: introduce the preference and derive distance from it.** Widening the distance preference's meaning would keep a wrong name on a growing responsibility, and this is the third miss. Built here; rainfall converted; soil temperature and elevation wait on it, reported (completion report).
-9. **Speed columns: authorised, conditional on the walk.** The per-fix log first (built, completion report). If Doppler speed is populated, build on it; the `hasSpeed() == false` tell for network fixes is worth recording either way. **Condition met (addendum below): populated on 289/289 GPS fixes, `hasSpeed=false` on 55/55 network fixes. Authorised, with one number the addendum puts to the owner before the build.**
+9. **Speed columns: authorised, conditional on the walk.** The per-fix log first (built, completion report). If Doppler speed is populated, build on it; the `hasSpeed() == false` tell for network fixes is worth recording either way. **Condition met (addendum below): populated on 289/289 GPS fixes, `hasSpeed=false` on 55/55 network fixes. Authorised, with one number the addendum puts to the owner before the build — ruled the same day: the averaged reading governs, the per-fix bar is retired (addendum).**
 10. **Naismith stays reported.** The alert's margin absorbs terrain; a correction now would double-count.
 
 ### Proposal 1 — the off-track hop threshold
@@ -387,7 +387,16 @@ analysis and the coder's reproduction of every figure from the raw log are in
   every stopped one. Averaged over the five-minute bar that is a standard error near 0.05 m/s, which
   is what Proposal 2 wanted; per fix it is useless. Whether the averaged reading is enough to build
   the pace on Doppler speed, as proposed, is put to the owner in the findings file's coder's note
-  and is the first question of the Items 1–3 dispatch, not decided here.
+  and is the first question of the Items 1–3 dispatch, not decided here. **Ruled the same day
+  (owner): the averaged reading governs — not because √N buys 0.05 m/s (consecutive Doppler fixes
+  share receiver, geometry and multipath, so their errors are correlated and 0.05 is a floor, not
+  an estimate) but because the model never consumes a per-fix speed, only one average over five
+  minutes of moving time; a bar written for per-fix use was aimed at something the design does not
+  do, so §2.1's bar is retired rather than recorded as failed. For the build: no confidence
+  interval from `speedAccuracy`, which the walk shows to be a two-state flag (0.72 moving, 0.01–0.07
+  stopped) and not a per-fix measurement; validate the average against point differencing over the
+  same window instead, since the differencing path exists anyway as the fallback. Full text in the
+  findings file's coder's note.**
 - **A finding the dispatch did not ask for and that outranks the one it did:** GPS horizontal
   accuracy on this device is a constant, `3.7900925`, on all 289 GPS fixes. The live-fix gate and
   the HUD's honest-precision formatter both read a field with no signal in it on this device; the

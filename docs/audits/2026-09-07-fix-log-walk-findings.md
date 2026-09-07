@@ -156,6 +156,22 @@ where the planner put it.
    reading governs is the owner's ruling to make, not mine. **Noted for the Items 1–3 dispatch;
    nothing here changes what this file's Actions ask for.**
 
+   **Owner's ruling (same day): the averaged reading governs, but not for the reason offered.**
+   The standard-error argument assumes the errors are independent across fixes; consecutive
+   1 Hz Doppler fixes share a receiver, a satellite geometry and a multipath environment, so they
+   are correlated and √N overstates the benefit by an unknown factor — **0.05 m/s is a floor on
+   the achievable error, not an estimate of it.** The stronger reason is simpler: the model never
+   consumes a per-fix speed. It consumes one average over five minutes of moving time, so a bar
+   written for per-fix use was aimed at something the design does not do. **The bar is retired,
+   not recorded as failed.** Two consequences for the build: (a) **do not compute a confidence
+   interval from `speedAccuracy`** — 199 fixes at 0.72, the rest of the moving cluster 0.67–0.81,
+   stopped fixes at 0.01–0.07 is a two-state flag, not a per-fix measurement, and error
+   propagation on it is unjustified, the same smell as the constant accuracy field; (b) **validate
+   the average against point differencing instead** — compute both over the same window and
+   compare; the differencing path has to exist anyway as the fallback, so the check costs almost
+   nothing and is a real check against ground truth, and a material divergence on a track is
+   worth knowing about.
+
 2. **Four readers of the accuracy field, not two.** §3 names the live-fix gate and the HUD
    formatter. On the same constant: `isApproaching` (`domain/NavigationReadout.kt:29`) fires at
    twice the fix's accuracy, so on this device "Approaching" is a fixed 7.58 m circle, and
@@ -163,7 +179,12 @@ where the planner put it.
    recording mode's ceiling (30 / 50 / 100 m), which a GPS fix on this device never exceeds
    either. Both keep doing real work on network fixes, as §3 says of the gate. Action 2 asked for
    the note at two sites and that is where it went; these two are listed here so the next reader
-   of either knows, and are not annotated in code by this change.
+   of either knows, and are not annotated in code by this change. **Owner's ruling (same day):
+   annotate all four, and treat `isApproaching` as the serious one, noted separately — the gate
+   and the formatters show or keep a wrong number; `isApproaching` makes a decision from a field
+   with no signal in it.** Done in the follow-up commit on this branch: notes on `isApproaching`
+   (`domain/NavigationReadout.kt`, with the ranking stated) and `LocationSampler.shouldAccept`
+   (`domain/LocationSampler.kt`); the gate's own list re-ordered to carry the ranking.
 
 **One correction to the log's own format, for whoever parses it next:** a network fix logs
 `speed=null` and `speedAccuracy=null` (the tracker prints the value only when the platform's
@@ -177,7 +198,7 @@ walk with perfect correlation. That is how my first pass failed, and it would ha
 | Action | Where |
 |---|---|
 | 1. Amend the return-estimate record | `2026-09-07-return-estimate-prebuild-report.md`: a "Walk result" addendum after the owner-acceptance section; the "Inferred" line, the "could not determine" bullet and ruling #9 each carry a pointer to it. The single-hardware note is kept in all four places. |
-| 2. Record the accuracy constant at `acceptLiveFix` and the HUD formatter | `domain/LiveFixGate.kt` (a new doc section on what the field carries on the owner's device) and `domain/model/DistanceUnit.kt` (a paragraph on `formatDistanceWithAccuracy`). Comments only; no behaviour changed, no test changed. |
+| 2. Record the accuracy constant at `acceptLiveFix` and the HUD formatter | `domain/LiveFixGate.kt` (a new doc section on what the field carries on the owner's device) and `domain/model/DistanceUnit.kt` (a paragraph on `formatDistanceWithAccuracy`). Widened by the owner's ruling to all four readers: `domain/NavigationReadout.kt` (`isApproaching`, the decision-maker, noted on its own) and `domain/LocationSampler.kt` (`shouldAccept`). Comments only; no behaviour changed, no test changed. |
 | 3. The accuracy question in the beta template | `docs/beta/trip-report.md`, LOCATION block, gated on having used the arrow screen — the only surface where a tester can see the field, as "within N ft". `docs/beta/README.md` records why it asks, adds it to the never-cut set, and updates the line count. |
 | 4. The 1.99 mph measurement on the default-speed constant | The constant does not exist yet (Items 1–3 unbuilt). Recorded on the pre-build report's Proposal 2, as the text the constant's comment must carry. |
 | 5. The 1.0 m/s boundary on the moving-floor constant | Same: recorded on ruling #4 in the pre-build report, as the text the constant's comment must carry. |
@@ -186,3 +207,9 @@ walk with perfect correlation. That is how my first pass failed, and it would ha
 **Not in scope, not built:** the speed columns (migration 14→15), the path home, the pace — the
 Items 1–3 dispatch. The three-listener finding (§8) stays queued with the duplicate-listener item;
 the dedupe rule at the top of this file is the thing to carry into any later log analysis.
+
+**The parser hazard is now a CLAUDE.md entry** (Testing), by the owner's ruling, as the third
+instance of one family: a check that passes because it never saw the data that could fail it —
+the legacy-miles test that passed under both branches, the revert runner printing stale results,
+and this parser confirming a correlation on the sample that excluded every disconfirming case.
+
