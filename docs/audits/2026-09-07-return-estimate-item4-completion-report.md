@@ -86,7 +86,13 @@ This is the pattern CLAUDE.md warns about from the other side: a green test that
 
 ### Full suite
 
-<!-- FULL_SUITE -->
+`./gradlew testDebugUnitTest` on the restored tree (code as committed at `b6127b2`, plus the strengthened legacy-miles test), `BUILD SUCCESSFUL`:
+
+| suites | tests | failures | errors | skipped |
+|---|---|---|---|---|
+| 160 | 1237 | 0 | 0 | 24 |
+
+Against `main`'s 159 / 1224 / 24: one class replaced by one (the DataStore repository test, 3 → 6 cases), `UnitSystemTest` new (5), one ViewModel case, one case in each of the two layout classes, one tracker case. The 24 skips are the CI allowlist's identity set unchanged (AvailabilityScreenMapIconStackTest 19, AvailabilityScreenOfflineCacheTest 1, AvailabilityScreenTripPlanningFlowTest 2, AvailabilityScreenWaypointFlowTest 1, GenerateFungiIndexDbAsset 1). `JournalTabTest`'s "From Album" case passed on this run; not touched.
 
 ### What has no test, and why
 
