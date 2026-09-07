@@ -63,7 +63,36 @@ No existing test asserted the old label (grep of `app/src/test` for `trackSubtit
 `" km · "`: only `TrackExportPanel`'s own, different `trackSubtitle(track)` in
 `NetworkFixExclusionPerConsumerTest`, untouched). No test was modified or silenced.
 
-{{VERIFICATION}}
+## Verification
+
+### Reverted-variant check
+
+The same discipline as every revert on this branch: the file copied aside before the edit, restored
+from that copy (never from git), the build log checked for compile errors before the XML was read,
+XML older than the run refused, the restore compared byte for byte. One one-line revert — the old
+two roundings put back (`formatDistanceKm((distanceMeters / 1000.0).roundToInt(), distanceUnit)`,
+with its import) — predicting all three `TrackSubtitleTest` cases fail:
+
+| Case | Predicted | Actual message |
+|---|---|---|
+| 92 m | fail | `expected:<[302 ft] · 4m> but was:<[0 mi] · 4m>` — the defect, verbatim |
+| 733 m | fail | `expected:<[0.5] mi · 22m> but was:<[1] mi · 22m>` |
+| 1957.4 m | fail | `expected:<1[.2] mi · 1h 5m> but was:<1[] mi · 1h 5m>` |
+
+3 predicted, 3 actual, each message the old label and nothing else's; compile log clean; restore
+identical. The 92 m case is the one that could only fail on data the old test set never had.
+
+### Full suite
+
+On the forward tree (`f6ca6b0`), compile log clean, exit 0, every XML written by this run:
+
+| Suites | Tests | Failures | Errors | Skipped |
+|---|---|---|---|---|
+| 166 | **1277** | 0 | 0 | 24 |
+
+1274 on this branch before this dispatch, plus the three new cases. The 24 skips are the CI
+allowlist's identity set exactly, by `(classname, name)`; the skip count was not touched.
+Device: not verified — no `/dev/kvm`; the rows' strings are proven at the formatter.
 
 ## Required disclosure
 
