@@ -339,7 +339,16 @@ clean after.
 | I `HOP_LEAVE_BELOW_METERS` 20 → 25 (counted band collapsed to a plain threshold) | 2 | 2 | yes | the hover: `expected:<[COUNTED, COUNTED, COUNTED, COUNTED]> but was:<[COUNTED, NONE, COUNTED, NONE]>` — the flicker the ruling describes, verbatim; the edge: `expected:<COUNTED> but was:<NONE>` at 20.015 m |
 | J `HOP_FAR_LEAVE_BELOW_METERS` 45 → 50 (far band collapsed) | 2 | 2 | yes | `expected:<FAR> but was:<COUNTED>` at 47.814 m; at the estimate `expected:<[FAR_FROM_TRACK]> but was:<[]>` |
 
-{{SUITE2}}
+**Full suite on the restored-band build** (`0d02e4c`'s tree, compile log clean, exit 0, every
+XML written by this run):
+
+| Suites | Tests | Failures | Errors | Skipped |
+|---|---|---|---|---|
+| 165 | **1274** | 0 | 0 | 24 |
+
+1271 from the first run plus the three band tests (two in `PathHomeTest`, one in
+`ReturnWalkingTimeTest`); the 24 skipped are the CI allowlist's identity set exactly, by
+`(classname, name)`, nothing extra and nothing missing. The "From Album" flake did not fire.
 
 ## What the next dispatch inherits
 
