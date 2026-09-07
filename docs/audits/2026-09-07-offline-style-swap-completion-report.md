@@ -65,7 +65,13 @@ Build log: **0 compile errors**. XML fresh (0 s). **8 tests, 4 failed** — exac
 
 ### Full suite
 
-_Full-suite run in progress at the time of this commit; counts follow in the next commit._ <!-- FULL_SUITE -->
+`./gradlew testDebugUnitTest` on `7e6fbf0` (the working tree differed from it only by docs at the time of the run), `BUILD SUCCESSFUL`:
+
+| suites | tests | failures | errors | skipped |
+|---|---|---|---|---|
+| 159 | 1224 | 0 | 0 | 24 |
+
+Up from 158 / 1216 / 24 after the plate corrections: one new class, eight new cases. The 24 skips are the CI allowlist's identity set unchanged (AvailabilityScreenMapIconStackTest 19, AvailabilityScreenOfflineCacheTest 1, AvailabilityScreenTripPlanningFlowTest 2, AvailabilityScreenWaypointFlowTest 1, GenerateFungiIndexDbAsset 1). `JournalTabTest`'s "From Album" case passed on this run; not touched.
 
 ### What has no test, and why
 
