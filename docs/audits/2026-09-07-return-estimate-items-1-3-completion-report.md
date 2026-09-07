@@ -350,6 +350,44 @@ XML written by this run):
 `ReturnWalkingTimeTest`); the 24 skipped are the CI allowlist's identity set exactly, by
 `(classname, name)`, nothing extra and nothing missing. The "From Album" flake did not fire.
 
+## Device checks, pass 1 — what the coder supplied (same day)
+
+The revised pass-1 procedure (`device-checks-pass-1-revised.md`, owner's upload) asked for a
+stable debug keystore in the repo with CI signing from it, and two APKs from that keystore —
+`main` at `8eacc91` (schema 14) and the PR head (schema 15) — with the certificates confirmed
+equal before the in-place upgrade.
+
+**Diagnosis confirmed from the workflow:** `.github/workflows/ci.yml` has no signing
+configuration and `app/build.gradle.kts` declared none, so each runner minted its own
+`~/.android/debug.keystore`; two CI APKs never shared a certificate, and `adb install -r` of one
+over the other is exactly `INSTALL_FAILED_UPDATE_INCOMPATIBLE`.
+
+**Built (`5f78323`):** `app/debug.keystore` — the conventional Android debug identity
+(`androiddebugkey`, password `android`, `CN=Android Debug`), 2048-bit RSA, valid to 2054 — and a
+`signingConfigs.debug` pointing at it, applied to the debug build type only. Reasoning at the
+block: the key signs nothing that ships, its secrecy protects nothing, and committing it is the
+standard way to give a team one debug identity; the release type has no `signingConfig` and must
+never be given this one. No workflow change: CI picks the keystore up from the checkout.
+
+**The two APKs**, built here from that keystore and delivered in 26 MiB parts (the session's file
+cap is 30 MiB; a debug APK is 75.8 MB), with a reassembly note carrying each file's SHA-256:
+
+| | Source | Schema | `versionName` | Certificate SHA-256 |
+|---|---|---|---|---|
+| APK-A | `8eacc91` + only the keystore and signing config, as a local unpushed commit `8425d0c` | 14 | `1.0.453+g8425d0c8` | `cb2f6da5…c94f1626` |
+| APK-B | PR head `5f78323` | 15 | `1.0.463+g5f783237` | `cb2f6da5…c94f1626` |
+
+Both certificates read by `apksigner verify --print-certs` (build-tools 37.0.0) and equal to the
+keystore's own fingerprint from `keytool -list`. `versionCode` 453 → 463, so `-r` is an upgrade.
+**Why APK-A's version name is not `+g8eacc91`:** the build identity comes from `git describe`, and
+the keystore has to be in the tree to sign with it; the local commit that carries it is the only
+difference from `8eacc91` (the worktree's diff was those two files), and it was never pushed.
+**Why not from CI:** the workflow runs on pushes to `main` and on pull requests only, so an APK of
+`8eacc91` with the keystore would need a new branch and a PR for it, which this session does not
+push without permission. If a CI-built APK-A is wanted, that branch is `8eacc91` plus `5f78323`'s
+two files, and the owner can cut it in one cherry-pick. APK-B will also appear as PR #77's
+`app-debug-apk` artifact from the run on `5f78323`, with the same certificate.
+
 ## What the next dispatch inherits
 
 - The estimate and both its halves exist with no caller. The alert dispatch wires
