@@ -123,7 +123,12 @@ Every failure names a value only its own revert could produce; none is a stale r
 
 ## Full suite
 
-FULLSUITE
+**1178 tests, 0 failed, 24 skipped** — up from 1161 on `a2dcb21`: −4 (`OffTrackAlertTest`
+removed) +6 (`AndroidAlertDeliveryTest`) +4 (`AndroidAlertAudibilityTest`) +6
+(`AlertAudibilityWarningTest`) +3 (ViewModel warning tests) +2 (Snackbar screen tests). Skip set
+compared by (class, name) against the CI `SKIPPED_TESTS_ALLOWLIST` parsed from
+`.github/workflows/ci.yml`: byte-identical, 24 = 24, nothing skipped outside the list and nothing
+listed that did not skip. The `JournalTabTest` "From Album" flake did not fire in this run.
 
 ## What Robolectric cannot prove, said plainly
 
