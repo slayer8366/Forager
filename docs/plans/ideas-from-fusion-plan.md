@@ -226,7 +226,7 @@ budget and turnaround alert, and the report template.
 
 ---
 
-## Coder's note on filing — the replay-harness cross-reference the planner asked for
+## Coder's note on filing (in `docs/plans/`, the owner's call — a register of intent, not a dated audit) — the replay-harness cross-reference the planner asked for
 
 The planner's covering note: the replay-harness idea (§1) is time-sensitive in a way the rest is
 not, because it argues the fix-logging branch's log format should be designed for machine replay
