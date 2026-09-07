@@ -328,7 +328,18 @@ On the eighth revert: reporting the discrepancy rather than reconciling the numb
 behaviour that has caught every real problem this project has had (owner's words, kept here so
 the next runner author knows what the standard is).
 
-{{REVERTS2}}
+### Reverted-variant checks for the restored band (same runner, same discipline)
+
+Forward build first: `PathHomeTest` 9, `MovingPaceTest` 11, `ReturnWalkingTimeTest` 12, all
+green; compile log clean and XML fresh on every run; both restores byte-identical; `git status`
+clean after.
+
+| Revert (one line) | Predicted | Actual | Match | The message, which only this edit produces |
+|---|---|---|---|---|
+| I `HOP_LEAVE_BELOW_METERS` 20 → 25 (counted band collapsed to a plain threshold) | 2 | 2 | yes | the hover: `expected:<[COUNTED, COUNTED, COUNTED, COUNTED]> but was:<[COUNTED, NONE, COUNTED, NONE]>` — the flicker the ruling describes, verbatim; the edge: `expected:<COUNTED> but was:<NONE>` at 20.015 m |
+| J `HOP_FAR_LEAVE_BELOW_METERS` 45 → 50 (far band collapsed) | 2 | 2 | yes | `expected:<FAR> but was:<COUNTED>` at 47.814 m; at the estimate `expected:<[FAR_FROM_TRACK]> but was:<[]>` |
+
+{{SUITE2}}
 
 ## What the next dispatch inherits
 
