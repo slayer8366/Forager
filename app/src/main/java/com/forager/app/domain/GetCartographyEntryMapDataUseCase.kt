@@ -33,6 +33,25 @@ import com.forager.app.domain.model.Region
  * expected steady state this whole method exists to tolerate, not an exceptional one; the entry's
  * snapshotted text already reads correctly regardless (see [CartographyEntry]'s own doc comment),
  * and the map must be structurally unable to break because one reference is gone.
+ *
+ * **A kept track that resolves to zero points contributes no polyline, not an empty one** (plate
+ * pulse, owner ruling on item 6). Since the timestamp-filter dispatch, [TrackRepository.getById]
+ * can return a track whose every stored point was excluded at the read seam
+ * ([com.forager.app.domain.isNetworkProviderFix]) — `points = []`, `excludedPointCount > 0`. An
+ * empty inner list is not something to draw, and emitting it made [CartographyEntryMapData.isEmpty]
+ * report content for an entry with nothing drawable; `docs/audits/2026-09-07-cartography-plate-renderer-pulse.md`
+ * §7 records the report screen surviving that only through its second guard. The `takeIf` below
+ * and [CartographyEntryMapData.isEmpty]'s own points-based definition are deliberately *both*
+ * fixed, not either: the property must be right on its own, and this use case must not emit the
+ * shape that made it wrong.
+ *
+ * **Rule: an entry's map geometry comes from this use case and nowhere else** (plate pulse, owner
+ * ruling on item 7). [CartographyEntry.waypointDecisions] and
+ * [CartographyEntry.offlineRegionDecisions] carry coordinates in their snapshots, so a renderer
+ * *could* read them straight off the entry with no fetch — and would then have to repeat the
+ * `kept` filter this method applies, which is a bug waiting to happen the first time it is
+ * forgotten. Withheld items must be unreachable by construction, not by convention: anything that
+ * draws an entry on a map takes a [CartographyEntryMapData], and only this method builds one.
  */
 class GetCartographyEntryMapDataUseCase(
     private val trackRepository: TrackRepository,
@@ -40,7 +59,7 @@ class GetCartographyEntryMapDataUseCase(
 ) {
     suspend operator fun invoke(entry: CartographyEntry, galleryPhotos: List<GalleryPhoto>): CartographyEntryMapData {
         val trackPolylines = entry.trackDecisions.filter { it.kept }.mapNotNull { decision ->
-            trackRepository.getById(decision.trackId).getOrNull()?.points?.map { LatLng(it.lat, it.lng) }
+            trackRepository.getById(decision.trackId).getOrNull()?.points?.takeIf { it.isNotEmpty() }?.map { LatLng(it.lat, it.lng) }
         }
 
         val keptFinds = entry.findDecisions.filter { it.kept }
@@ -78,7 +97,11 @@ class GetCartographyEntryMapDataUseCase(
     }
 }
 
-/** Everything [CartographyEntryReportScreen]'s map needs, already resolved — see [GetCartographyEntryMapDataUseCase]'s own doc comment. */
+/**
+ * Everything [CartographyEntryReportScreen]'s map needs, already resolved — see
+ * [GetCartographyEntryMapDataUseCase]'s own doc comment, including the rule that this type is the
+ * only way an entry's geometry reaches a map.
+ */
 data class CartographyEntryMapData(
     val trackPolylines: List<List<LatLng>>,
     val findMarkers: List<LatLng>,
@@ -86,17 +109,38 @@ data class CartographyEntryMapData(
     val photoMarkers: List<LatLng>,
     val offlineRegionCircles: List<Region>,
 ) {
-    /** `true` when nothing here resolved to a single drawable point or line — a real, reachable state (an entry made entirely of photos with null coordinates), not an error. */
-    val isEmpty: Boolean
-        get() = trackPolylines.isEmpty() && findMarkers.isEmpty() && waypointMarkers.isEmpty() && photoMarkers.isEmpty() && offlineRegionCircles.isEmpty()
+    /**
+     * Every point that is actually *drawn as a datum of the day* — track points, finds, waypoints,
+     * photos. **Not** offline-region centres: a region is where tiles were downloaded, not where
+     * anything happened, so it is neither content (see [isEmpty]) nor a point the offline-coverage
+     * check may be asked about (a region always contains its own centre, which made every kept
+     * region trivially "cover" its entry before this existed). Defined over points, not over the
+     * outer lists, so a polyline with nothing in it counts for nothing.
+     */
+    val drawablePoints: List<LatLng>
+        get() = trackPolylines.flatten() + findMarkers + waypointMarkers + photoMarkers
 
     /**
-     * Every resolved point, flattened — what [GeoDistance.boundingRegion] fits the camera to. An
-     * offline region contributes only its centre here, not its full circle extent — a
-     * simplification: a large kept region could in principle extend past this frame's own edge.
-     * Accepted for now since the region-circle overlay itself is an open visual question the
-     * dispatch that added it explicitly deferred to the owner's own judgement after seeing it.
+     * `true` when nothing here resolved to a single drawable point — a real, reachable state (an
+     * entry made entirely of photos with null coordinates, or of tracks whose every point the read
+     * seam excluded), not an error. Plate pulse, owner rulings on items 4 and 6: a kept offline
+     * region alone is **not** content — "a green circle with nothing in it is not a day" — and an
+     * empty polyline is not content either. This is [drawablePoints] being empty, and nothing else;
+     * the previous list-based definition (`trackPolylines.isEmpty() && … && offlineRegionCircles.isEmpty()`)
+     * was wrong on both counts.
+     */
+    val isEmpty: Boolean
+        get() = drawablePoints.isEmpty()
+
+    /**
+     * What [GeoDistance.boundingRegion] fits the camera to: [drawablePoints] plus each kept offline
+     * region's centre, so a region's circle is at least partly in frame whenever it is drawn — and
+     * it is drawn only when something else resolved, since [isEmpty] gates the map. An offline
+     * region contributes only its centre here, not its full circle extent — a simplification: a
+     * large kept region could in principle extend past this frame's own edge. Accepted for now
+     * since the region-circle overlay itself is an open visual question the dispatch that added it
+     * explicitly deferred to the owner's own judgement after seeing it.
      */
     val allPoints: List<LatLng>
-        get() = trackPolylines.flatten() + findMarkers + waypointMarkers + photoMarkers + offlineRegionCircles.map { LatLng(it.lat, it.lng) }
+        get() = drawablePoints + offlineRegionCircles.map { LatLng(it.lat, it.lng) }
 }

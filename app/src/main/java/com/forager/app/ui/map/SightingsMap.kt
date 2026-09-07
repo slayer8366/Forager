@@ -191,6 +191,8 @@ fun SightingsMap(
     focusedObservationId: Long? = null,
     /** See [com.forager.app.ui.map.MapRenderMode.trackLiveLocation]'s own doc comment. */
     trackLiveLocation: Boolean = true,
+    /** See [com.forager.app.ui.map.MapRenderMode.showSearchCentre]'s own doc comment. */
+    showSearchCentre: Boolean = true,
     /** See [com.forager.app.ui.map.MapOverlayContent.keptTrackPolylines]'s own doc comment. */
     keptTrackPolylines: List<List<LatLng>> = emptyList(),
     /** See [com.forager.app.ui.map.MapOverlayContent.findMarkers]'s own doc comment. */
@@ -424,13 +426,13 @@ fun SightingsMap(
     // because MapLibre's own API separates "style ready" from "camera/property changed".
     LaunchedEffect(
         loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
-        keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles,
+        keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre,
     ) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
         refreshOverlayData(
             style, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId,
-            keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles,
+            keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre,
         )
 
         // Once the live-location "puck" is actively tracking (the default once permission is
@@ -678,8 +680,9 @@ private fun refreshOverlayData(
     findMarkers: List<LatLng>,
     photoMarkers: List<LatLng>,
     offlineRegionCircles: List<Region>,
+    showSearchCentre: Boolean,
 ) {
-    style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCenterFeatureCollection(region))
+    style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCentreOverlay(region, showSearchCentre))
     style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings, focusedObservationId))
     style.getSourceAs<GeoJsonSource>(PLANNED_TRIP_SOURCE_ID)?.setGeoJson(plannedTripsFeatureCollection(plannedTrips))
     style.getSourceAs<GeoJsonSource>(BREADCRUMB_SOURCE_ID)?.setGeoJson(breadcrumbFeatureCollection(breadcrumbPoints))
@@ -837,6 +840,18 @@ internal fun searchCenterFeatureCollection(region: Region): FeatureCollection {
     feature.addStringProperty("snippet", "Radius: ${region.radiusKm} km")
     return FeatureCollection.fromFeature(feature)
 }
+
+/**
+ * What the search-centre source actually receives: [searchCenterFeatureCollection] when
+ * [showSearchCentre] is on, an empty collection when it is off — the source and layer stay in the
+ * style either way, so a caller flipping the flag never triggers a style rebuild. See
+ * [com.forager.app.ui.map.MapRenderMode.showSearchCentre] for which callers turn it off and why.
+ * Split out from [refreshOverlayData] so the decision is testable without a [Style]
+ * (`SightingsMapOverlayDataTest`), the same boundary [searchCenterFeatureCollection]'s own doc
+ * comment describes.
+ */
+internal fun searchCentreOverlay(region: Region, showSearchCentre: Boolean): FeatureCollection =
+    if (showSearchCentre) searchCenterFeatureCollection(region) else emptyFeatureCollection()
 
 /**
  * [focusedObservationId] bakes a `"selected"` boolean into whichever feature it names, `false` on

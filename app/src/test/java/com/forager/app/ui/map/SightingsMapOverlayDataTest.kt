@@ -89,6 +89,17 @@ class SightingsMapOverlayDataTest {
     )
 
     @Test
+    fun `the search-centre source is empty when the caller turns the marker off, and unchanged when it does not`() {
+        // Plate-pulse follow-up, owner ruling on item 5: an entry map's region is a computed box
+        // midpoint, and a marker there marks a point where nothing happened.
+        assertTrue(searchCentreOverlay(region, showSearchCentre = false).features()!!.isEmpty())
+
+        val shown = searchCentreOverlay(region, showSearchCentre = true).features()!!.single()
+        assertEquals(region.lng, (shown.geometry() as Point).longitude(), 0.0)
+        assertEquals(region.lat, (shown.geometry() as Point).latitude(), 0.0)
+    }
+
+    @Test
     fun `search centre feature carries the region's own coordinates and radius`() {
         val feature = searchCenterFeatureCollection(region).features()!!.single()
         val point = feature.geometry() as Point

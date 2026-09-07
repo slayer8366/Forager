@@ -114,10 +114,13 @@ class CartographyViewModel(
                         waypointDecisions = trip.derivedTrip.waypoints.map { it.toDecision(kept = true) },
                         offlineRegionDecisions = trip.offlineRegions.map { it.toDecision(kept = true) },
                     )
-                    saveEntry(decided)
+                    // The stamped copy is the one to keep -- see SaveCartographyEntryUseCase's own
+                    // doc comment. A failed save still opens the entry as decided: the next
+                    // persist retries, and the user must not lose the day's candidates.
+                    val saved = saveEntry(decided).getOrElse { decided }
                     _uiState.update {
                         it.copy(
-                            editingEntry = decided,
+                            editingEntry = saved,
                             candidatesForEditingEntry = trip.derivedTrip,
                             candidateOfflineRegionsForEditingEntry = trip.offlineRegions,
                             isLoadingCandidates = false,
@@ -161,13 +164,21 @@ class CartographyViewModel(
                 _uiState.update { it.copy(editingEntry = entry, hasUnsavedChanges = false) }
                 return@launch
             }
-            val corrected = entry.withRecomputedTrackSnapshots(trip.derivedTrip.tracks, computeTrackStatistics)
-            if (corrected != entry) {
-                saveEntry(corrected).onFailure { error ->
+            val recomputed = entry.withRecomputedTrackSnapshots(trip.derivedTrip.tracks, computeTrackStatistics)
+            // The stamped copy when the write-back landed, the recomputed one when it did not --
+            // see SaveCartographyEntryUseCase's own doc comment for why the returned entry is the
+            // one to keep.
+            val corrected = if (recomputed != entry) {
+                saveEntry(recomputed).getOrElse { error ->
                     // Shown corrected regardless: the figure on screen must be the one the track
                     // now yields, and the next open recomputes again if this write did not land.
                     Log.w(TAG, "Couldn't write back recomputed track figures for entry '${entry.id}'.", error)
+                    recomputed
                 }
+            } else {
+                entry
+            }
+            if (corrected != entry) {
                 _uiState.update { current ->
                     current.copy(
                         entries = current.entries.map { if (it.id == corrected.id) corrected else it },
@@ -328,14 +339,19 @@ class CartographyViewModel(
         val entry = _uiState.value.editingEntry?.takeUnless { it.isDraft } ?: return
         viewModelScope.launch {
             saveEntry(entry).fold(
-                onSuccess = {
+                onSuccess = { saved ->
                     _uiState.update { state ->
                         state.copy(
-                            entries = if (state.entries.any { it.id == entry.id }) {
-                                state.entries.map { if (it.id == entry.id) entry else it }
+                            entries = if (state.entries.any { it.id == saved.id }) {
+                                state.entries.map { if (it.id == saved.id) saved else it }
                             } else {
-                                state.entries + entry
+                                state.entries + saved
                             },
+                            // Only if nothing was typed while the write was in flight: replacing
+                            // a newer editingEntry with the stamped copy of the older one would
+                            // silently drop that keystroke (SaveCartographyEntryUseCase's own doc
+                            // comment on the same race for drafts).
+                            editingEntry = if (state.editingEntry == entry) saved else state.editingEntry,
                             hasUnsavedChanges = false,
                             saveErrorMessage = null,
                         )
@@ -366,14 +382,14 @@ class CartographyViewModel(
         val demoted = entry.copy(isDraft = true)
         viewModelScope.launch {
             saveEntry(demoted).fold(
-                onSuccess = {
+                onSuccess = { saved ->
                     _uiState.update { state ->
                         state.copy(
-                            entries = state.entries.filterNot { it.id == demoted.id },
-                            draftEntries = if (state.draftEntries.any { it.id == demoted.id }) {
-                                state.draftEntries.map { if (it.id == demoted.id) demoted else it }
+                            entries = state.entries.filterNot { it.id == saved.id },
+                            draftEntries = if (state.draftEntries.any { it.id == saved.id }) {
+                                state.draftEntries.map { if (it.id == saved.id) saved else it }
                             } else {
-                                state.draftEntries + demoted
+                                state.draftEntries + saved
                             },
                             editingEntry = null,
                             candidatesForEditingEntry = null,

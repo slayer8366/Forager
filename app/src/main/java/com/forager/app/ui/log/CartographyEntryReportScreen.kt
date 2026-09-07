@@ -136,10 +136,21 @@ import kotlinx.coroutines.launch
  * **No map section at all while loading, or if nothing resolved** ([CartographyEntryMapData.isEmpty]) —
  * never an empty map frame with nothing on it. An entry made entirely of photos with no coordinates
  * is a real, reachable state, reported as "nothing to frame" rather than guessing a default location
- * (see [GeoDistance.boundingRegion]'s own doc comment). `MapRenderMode.trackLiveLocation` is `false`
- * here specifically — see that field's own doc comment for the real bug this avoids (the map seizing
- * the camera for the device's *current* location the instant permission is granted, overriding the
- * framing computed here for what is, after all, a historical place).
+ * (see [GeoDistance.boundingRegion]'s own doc comment). **"Resolved" excludes kept offline regions**
+ * (plate pulse, owner ruling on item 4): a region alone — a green circle with nothing in it — is not
+ * a day, so an entry whose only kept item is a region gets no map here, exactly like the
+ * photos-with-no-coordinates case; the circle still draws whenever anything else resolved alongside
+ * it. For the same reason [getCoveringOfflineRegion] is asked about
+ * [CartographyEntryMapData.drawablePoints], not [CartographyEntryMapData.allPoints]: a region
+ * always contains its own centre, so passing region centres made every kept region trivially
+ * "cover" its entry — coverage means the day's own data sits on the region's tiles.
+ * `MapRenderMode.trackLiveLocation` is `false` here specifically — see that field's own doc comment
+ * for the real bug this avoids (the map seizing the camera for the device's *current* location the
+ * instant permission is granted, overriding the framing computed here for what is, after all, a
+ * historical place). `MapRenderMode.showSearchCentre` is `false` here too, and separately: the
+ * region this map is framed on is a computed box midpoint, not a place the user chose, so the
+ * search-centre dot the live map draws there would mark a point where nothing happened (plate
+ * pulse, owner ruling on item 5; see that field's own doc comment for why it is its own flag).
  *
  * ## The offline-map toggle (Journal Stage 2e-i)
  *
@@ -278,7 +289,7 @@ internal fun CartographyEntryReportScreen(
     LaunchedEffect(entry.id) {
         val resolved = getMapData(entry, galleryPhotos)
         mapData = resolved
-        coveringOfflineRegion = getCoveringOfflineRegion(entry, resolved.allPoints)
+        coveringOfflineRegion = getCoveringOfflineRegion(entry, resolved.drawablePoints)
     }
 
     val isEntirelyEmpty = entry.text.isBlank() &&
@@ -362,7 +373,13 @@ internal fun CartographyEntryReportScreen(
                         offlineRegionCircles = resolvedMapData.offlineRegionCircles,
                         resetOrientationRequestId = resetOrientationRequestId,
                     ),
-                    MapRenderMode(basemap = entryMapMode.basemap, night = night, trackLiveLocation = false, useOfflineTiles = useOfflineTiles),
+                    MapRenderMode(
+                        basemap = entryMapMode.basemap,
+                        night = night,
+                        trackLiveLocation = false,
+                        useOfflineTiles = useOfflineTiles,
+                        showSearchCentre = false,
+                    ),
                     focusOverrideTarget,
                     {},
                     // Tap to enter fullscreen — the preview stays a live map either way (this file's

@@ -84,6 +84,22 @@ data class MapRenderMode(
      */
     val useOfflineTiles: Boolean = false,
     /**
+     * Whether this map draws the search-centre marker — the `searchCentre`-coloured dot at
+     * [com.forager.app.ui.map.MapSlot]'s `region` centre that the live Maps tab uses to show where
+     * the current search is anchored. `true` for every existing caller, unchanged. `false` for a
+     * map about a **historical** place ([com.forager.app.ui.log.CartographyEntryReportScreen]):
+     * there `region` is only [com.forager.app.domain.GeoDistance.boundingRegion]'s box midpoint, a
+     * point where nothing happened, and a marker there is exactly the class of thing this project
+     * has been removing (plate pulse, owner ruling on item 5). An explicit flag, deliberately not
+     * inferred from [trackLiveLocation] `== false`: that field answers a different question, and
+     * keying one behaviour on an unrelated property is the coupling that breaks silently when a
+     * third caller arrives. Bundled here for the same reason [trackLiveLocation]/[useOfflineTiles]
+     * are — [com.forager.app.ui.map.MapSlot]'s own function-type typealias is one parameter short
+     * of a real Compose compiler crash at 10 declared parameters (see [MapOverlayContent]'s own doc
+     * comment), and [MapRenderMode] exists to absorb additions like this one.
+     */
+    val showSearchCentre: Boolean = true,
+    /**
      * Extra clearance [SightingsMap]'s always-visible attribution line keeps above this map's own
      * bottom edge — fullscreen-maps dispatch, Part 2b. Zero for every existing caller: the
      * attribution sits flush above the map's bottom edge, as it always has, unless something floats
@@ -302,6 +318,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         resetOrientationRequestId = content.resetOrientationRequestId,
         focusedObservationId = content.focusedObservationId,
         trackLiveLocation = renderMode.trackLiveLocation,
+        showSearchCentre = renderMode.showSearchCentre,
         keptTrackPolylines = content.keptTrackPolylines,
         findMarkers = content.findMarkers,
         photoMarkers = content.photoMarkers,

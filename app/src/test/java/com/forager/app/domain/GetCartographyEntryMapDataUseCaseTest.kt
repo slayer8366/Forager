@@ -124,6 +124,36 @@ class GetCartographyEntryMapDataUseCaseTest {
     }
 
     @Test
+    fun `a kept track whose every stored point is excluded at the read seam contributes no polyline at all`() = runTest {
+        // Plate-pulse follow-up, owner ruling on item 6. Every point carries sub-second millis, so
+        // RoomTrackRepository's read seam excludes all of them (NetworkProviderFix.kt) and the
+        // track reads back with points = []. Before the fix this produced trackPolylines == [[]] --
+        // one polyline with nothing in it, which isEmpty then counted as content.
+        val track = Track(
+            id = "track-1",
+            name = "Stationary",
+            startedAtEpochMillis = 1_000L,
+            endedAtEpochMillis = 2_000L,
+            points = listOf(
+                TrackPoint(lat = 45.20, lng = -122.50, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = 1_250L),
+                TrackPoint(lat = 45.20, lng = -122.50, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = 1_750L),
+            ),
+        )
+        trackRepository.create(track).getOrThrow()
+        trackRepository.appendPoints(track.id, track.points).getOrThrow()
+        val entry = baseEntry.copy(
+            trackDecisions = listOf(
+                TrackDecision(trackId = "track-1", name = "Stationary", distanceMeters = 0.0, durationMillis = 1_000L, pointCount = 0, kept = true),
+            ),
+        )
+
+        val result = useCase(entry, galleryPhotos = emptyList())
+
+        assertEquals("the track resolved to zero points, so no polyline may be emitted for it", emptyList<List<LatLng>>(), result.trackPolylines)
+        assertTrue(result.isEmpty)
+    }
+
+    @Test
     fun `a withheld (not kept) track is never resolved, even if it still exists`() = runTest {
         val track = Track(id = "withheld-track", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = 2_000L, points = emptyList())
         trackRepository.create(track).getOrThrow()
