@@ -125,7 +125,29 @@ android {
         versionName = buildIdentity.name
     }
 
+    // A stable debug signing identity, committed at app/debug.keystore (return-estimate device
+    // checks, pass 1). Without it every CI runner mints its own ~/.android/debug.keystore, so two
+    // CI-built debug APKs carry different certificates and `adb install -r` of one over the other
+    // fails with INSTALL_FAILED_UPDATE_INCOMPATIBLE -- which makes an in-place upgrade, the only
+    // thing a migration test on a device tests, impossible without an uninstall that destroys the
+    // data under test. The key is the conventional Android debug identity (alias androiddebugkey,
+    // password "android", CN=Android Debug): it signs nothing that ships, its secrecy protects
+    // nothing, and committing it is the standard way to give a team one debug identity. It is
+    // debug-only by construction -- the release build type has no signingConfig here and must
+    // never be given this one; a release key is a separate, uncommitted decision.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
