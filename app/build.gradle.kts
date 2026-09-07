@@ -181,6 +181,48 @@ android {
     }
 }
 
+/**
+ * Fails the build if the release build type ever resolves to the committed debug keystore
+ * (`app/debug.keystore`) — beta-signing finding, return-estimate device checks. That key is the
+ * conventional public Android debug identity: its password and alias are printed in this very
+ * file, so anyone can sign a package as `com.forager.app` with it. Fine for a device pass where
+ * nothing survives the test; wrong for any build a tester installs and accumulates real foraging
+ * data on, because a later switch to the real release key is exactly the certificate mismatch
+ * this session spent an afternoon on (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`, recoverable only by
+ * an uninstall that destroys the tester's tracks, entries and photos) — multiplied by every
+ * tester, on people whose data has no backup or export path yet. A doc comment saying "never"
+ * is not a constraint; this is. The release build type has no `signingConfig` today (an
+ * intentional, unsigned default — a real production key is a separate, owner decision not made
+ * here), so this check passes trivially until someone assigns one; it exists for that day.
+ *
+ * Reads `android.buildTypes` at task-execution time (`doLast`), after the whole script has been
+ * evaluated, rather than the `signingConfigs`/`buildTypes` blocks above at configuration time —
+ * checking there would only catch a mistake made in this file, not one made by a later script
+ * (a product-flavor override, a variant filter) that reassigns the release signing config after
+ * this block runs. Wired as a real dependency of `assembleRelease`/`bundleRelease` below, not
+ * merely `finalizedBy`, so a release build cannot produce a debug-signed artifact even if this
+ * task is somehow skipped by name — Gradle still has to run it to reach either task.
+ */
+tasks.register("verifyReleaseNeverSignsWithDebugKeystore") {
+    doLast {
+        val debugKeystoreFile = file("debug.keystore").canonicalFile
+        val releaseSigningConfig = android.buildTypes.getByName("release").signingConfig
+        val releaseStoreFile = releaseSigningConfig?.storeFile?.canonicalFile
+        if (releaseStoreFile == debugKeystoreFile) {
+            error(
+                "The release build type resolves to app/debug.keystore -- the committed, " +
+                    "public debug signing identity. A release build carrying real user data " +
+                    "must be signed with a private production key kept outside this repo, " +
+                    "never with the debug key. See this task's own doc comment.",
+            )
+        }
+        logger.lifecycle("Verified: the release build type does not sign with the debug keystore.")
+    }
+}
+
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }
+    .configureEach { dependsOn("verifyReleaseNeverSignsWithDebugKeystore") }
+
 // The classic `kotlin-android` plugin (needed for Room's KSP compiler — see gradle.properties)
 // defaults Kotlin's own JVM target to the Gradle daemon's JDK (21 here) rather than reading
 // android.compileOptions above, which is Java-only. Left inconsistent, compileDebugKotlin and

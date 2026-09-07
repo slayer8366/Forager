@@ -388,6 +388,56 @@ push without permission. If a CI-built APK-A is wanted, that branch is `8eacc91`
 two files, and the owner can cut it in one cherry-pick. APK-B will also appear as PR #77's
 `app-debug-apk` artifact from the run on `5f78323`, with the same certificate.
 
+## Beta signing — a finding raised on the device-checks reply, not part of this dispatch
+
+The owner accepted Step 0 as delivered (matching certificates were the only requirement; a local
+build for APK-A is fine, since schema shape doesn't depend on build provenance; no CI-provenance
+branch pushed, since it buys nothing this pass needs) and raised a consequence: the same failure
+mode this session just spent an afternoon on — mismatched signing certificates forcing an
+uninstall on an in-place upgrade — lands on every beta tester if the beta and release signing
+identities differ, and multiplies against people whose journals have no backup or export path.
+Three things followed, and what was done about each:
+
+1. **Decide the beta's signing identity before the first tester installs.** An open decision for
+   the owner, not built here — this session does not mint a production signing identity on its
+   own authority, and the two live paths (one key across beta and release; two keys with testers
+   warned upfront that launch means starting over) are exactly the kind of unmade architectural
+   choice CLAUDE.md calls a stop-and-ask. Recorded here so it is not lost, not decided.
+2. **The committed debug keystore must not become that identity by default.** Built — see below.
+3. **GPX export moves up the wishlist**, since it is the only thing that makes a signing mistake
+   (or any other update-incompatible failure) survivable for a tester who already has real data.
+   Queued, not built: it is a real feature with its own design surface (format already exists at
+   `domain/GpxCodec.kt` for tracks; entries, photos and waypoints are not covered by it today),
+   and building it was not the explicit ask on this reply — the ask was the guard below. Noted
+   here as the next dispatch's most safety-relevant candidate, not started.
+
+### The build guard (built, `app/build.gradle.kts`)
+
+`verifyReleaseNeverSignsWithDebugKeystore`: reads `android.buildTypes.getByName("release").signingConfig`
+at task-execution time (after the whole script has evaluated, so a later override cannot slip
+past a configuration-time check) and fails the build if its `storeFile` resolves to the committed
+`app/debug.keystore`. Wired as a real `dependsOn` of `assembleRelease` and `bundleRelease` — not
+`finalizedBy` — so a release build cannot produce a debug-signed artifact even if someone tries to
+skip the check by name; Gradle still has to run it to reach either task. The release build type
+has no `signingConfig` today, so the guard passes trivially until a real production key is
+assigned — it exists for the day one is, correctly or by mistake.
+
+**Verified with the same discipline as a reverted-variant check**, since a build-script guard has
+no unit test of its own: the file was copied aside before editing, restored from that copy — never
+from git — and the restore confirmed byte-identical afterward.
+
+| Run | What | Result |
+|---|---|---|
+| Forward | `verifyReleaseNeverSignsWithDebugKeystore` on the guard as built | `BUILD SUCCESSFUL`, "Verified: the release build type does not sign with the debug keystore." |
+| Mistake simulated | one line added to `release {}`: `signingConfig = signingConfigs.getByName("debug")` | `BUILD FAILED`: the guard's own message, naming the file and the reason |
+| Mistake simulated | `assembleRelease` on the same one-line change | `BUILD FAILED` at the same task, before any compilation — confirms the `dependsOn` wiring actually gates the real release task, not only the standalone one |
+| Restored | file compared to the saved copy | byte-identical |
+| Forward again | `verifyReleaseNeverSignsWithDebugKeystore` on the restored file | `BUILD SUCCESSFUL` again |
+| Unaffected path | `assembleDebug` | unchanged, succeeds — the guard is wired only to `assembleRelease`/`bundleRelease` |
+
+Not yet committed to the base branch's history at the time this section was written; the next
+commit on this branch carries it.
+
 ## What the next dispatch inherits
 
 - The estimate and both its halves exist with no caller. The alert dispatch wires
