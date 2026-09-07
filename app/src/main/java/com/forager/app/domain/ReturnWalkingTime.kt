@@ -36,7 +36,7 @@ import kotlin.math.roundToLong
  * | [DegradeReason.NO_MEASURED_PACE] | the governing instrument's moving time is under the five-minute bar — the figure is from the default, slow on purpose but unmeasured |
  * | [DegradeReason.PACE_FRESHLY_MEASURED] | measured, but under fifteen minutes — the switch just moved the estimate on the day's flattest early leg |
  * | [DegradeReason.STALE_FIX] | [FixFreshness.STALE] — the hop from fix to track is unknown; the track length is not |
- * | [DegradeReason.FAR_FROM_TRACK] | the hop exceeds [HOP_DEGRADE_ABOVE_METERS] — a straight line, short by nature |
+ * | [DegradeReason.FAR_FROM_TRACK] | the hop is in [HopBand.FAR] — entered above [HOP_FAR_ENTER_ABOVE_METERS], left below [HOP_FAR_LEAVE_BELOW_METERS]; a straight line, short by nature |
  * | [DegradeReason.PATH_UNDER_MEASURED] | the read seam excluded at least [UNDER_MEASURED_EXCLUSION_FRACTION] of the stored points — a tenth of the track excluded is a bend flattened somewhere |
  * | [DegradeReason.MOSTLY_NETWORK_FIXES] | [isMostlyNetworkFixes] — the track is chords |
  * | [DegradeReason.FEW_POINTS] | fewer than [MOSTLY_NETWORK_FIXES_MIN_STORED_POINTS] surviving points — a handful of chords whatever the mode |
@@ -49,16 +49,21 @@ import kotlin.math.roundToLong
  *
  * Nothing here reads a fix's reported accuracy: on the owner's device that field is a constant
  * ([LIVE_FIX_MAX_ACCURACY_METERS]'s doc), and this estimate takes no dependency on it.
+ *
+ * [previousHopBand] is the last [Estimate]'s `path.hopBand` for this recording, [HopBand.NONE] at
+ * the start of one — the hop's hysteresis lives in the caller's hands because this function is
+ * pure; a withheld result carries no band, and the caller keeps the last one it had.
  */
 fun returnWalkingTime(
     track: Track,
     origin: Waypoint?,
     current: LatLng?,
     fixFreshness: FixFreshness,
+    previousHopBand: HopBand = HopBand.NONE,
 ): ReturnWalkingTime {
     if (current == null || fixFreshness == FixFreshness.LOST) return ReturnWalkingTime.Withheld(WithholdReason.NO_FIX)
     if (track.hasNoUsablePoints()) return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
-    val path = pathHome(track, current, origin) ?: return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
+    val path = pathHome(track, current, origin, previousHopBand) ?: return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
     val pace = movingPace(track.points)
 
     val reasons = buildSet {

@@ -63,6 +63,7 @@ class PathHomeTest {
         assertEquals(0.0, path.hopCountedMeters, 0.0)
         assertEquals(333.58524, path.totalMeters, 0.01)
         assertFalse(path.hopIsFar)
+        assertEquals(HopBand.NONE, path.hopBand)
     }
 
     @Test
@@ -89,6 +90,54 @@ class PathHomeTest {
         assertEquals(60.0453, path.hopCountedMeters, 0.01)
         assertEquals(393.63058, path.totalMeters, 0.01)
         assertTrue(path.hopIsFar)
+        assertEquals(HopBand.FAR, path.hopBand)
+    }
+
+    /**
+     * The owner's ruling restoring the band, with the case that motivated it: a walker standing
+     * near the 25 m boundary whose successive fixes land at 26, 24, 26, 24 m. With plain bands the
+     * 25 m appears and vanishes on every fix — about 28 s of walking time at 0.89 m/s; with the
+     * band it counts throughout. 0.000234° is 26.0197 m, 0.000216° is 24.0181 m.
+     */
+    @Test
+    fun `a hop hovering around 25 m stays counted once entered, rather than flickering`() {
+        val track = track(lats = listOf(45.000, 45.001, 45.002, 45.003))
+        val hops = listOf(45.003234, 45.003216, 45.003234, 45.003216)
+
+        var band = HopBand.NONE
+        val bands = hops.map { lat ->
+            val path = pathHome(track, current = LatLng(lat, LNG), origin = null, previousHopBand = band)!!
+            band = path.hopBand
+            path.hopBand to path.hopCountedMeters
+        }
+
+        assertEquals(listOf(HopBand.COUNTED, HopBand.COUNTED, HopBand.COUNTED, HopBand.COUNTED), bands.map { it.first })
+        assertEquals(26.0197, bands[0].second, 0.01)
+        assertEquals(24.0181, bands[1].second, 0.01)
+    }
+
+    @Test
+    fun `a counted hop leaves the band only below 20 m, and a far hop only below 45 m`() {
+        val track = track(lats = listOf(45.000, 45.001, 45.002, 45.003))
+        val last = 45.003
+
+        // 20.0151 m: not entered from NONE (needs > 25), but kept from COUNTED (leaves only < 20).
+        assertEquals(HopBand.NONE, pathHome(track, LatLng(last + 0.00018, LNG), null, HopBand.NONE)!!.hopBand)
+        assertEquals(HopBand.COUNTED, pathHome(track, LatLng(last + 0.00018, LNG), null, HopBand.COUNTED)!!.hopBand)
+        // 18.9032 m (0.00017°): below 20, so COUNTED leaves.
+        assertEquals(HopBand.NONE, pathHome(track, LatLng(last + 0.00017, LNG), null, HopBand.COUNTED)!!.hopBand)
+
+        // 47.8139 m (0.00043°): not far from NONE or COUNTED (needs > 50), but kept from FAR (leaves only < 45).
+        assertEquals(HopBand.COUNTED, pathHome(track, LatLng(last + 0.00043, LNG), null, HopBand.NONE)!!.hopBand)
+        assertEquals(HopBand.COUNTED, pathHome(track, LatLng(last + 0.00043, LNG), null, HopBand.COUNTED)!!.hopBand)
+        assertEquals(HopBand.FAR, pathHome(track, LatLng(last + 0.00043, LNG), null, HopBand.FAR)!!.hopBand)
+        // 44.4780 m (0.00040°): below 45, so FAR drops to COUNTED — and the hop is still counted.
+        val leftFar = pathHome(track, LatLng(last + 0.00040, LNG), null, HopBand.FAR)!!
+        assertEquals(HopBand.COUNTED, leftFar.hopBand)
+        assertEquals(44.4780, leftFar.hopCountedMeters, 0.01)
+        assertFalse(leftFar.hopIsFar)
+        // 18.9032 m from FAR: straight to NONE, two bands in one step.
+        assertEquals(HopBand.NONE, pathHome(track, LatLng(last + 0.00017, LNG), null, HopBand.FAR)!!.hopBand)
     }
 
     @Test

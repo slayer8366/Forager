@@ -254,7 +254,8 @@ behaviour on BATTERY_SAVER's 60 s intervals, where the walk's 1 Hz data says not
   above 50) with no memory between calls, and it governs where the two differ, so that is what
   was built: `hopIsFar` is a pure function of the current hop. If the flicker the band was meant
   to prevent shows up on a device, the band is a small change at `PathHome.hopIsFar` with state
-  held by the caller.
+  held by the caller. **Ruled the same day: restore it — see "Owner rulings on this report" below.
+  Restored in the follow-up commit.**
 
 ### Decided beyond scope
 
@@ -263,14 +264,14 @@ Every judgement the dispatch did not make, in the order they were made:
 1. **`LocationFix.Update.toTrackPoint()`** — the service's inline mapping moved into a domain
    function so the speed carry-through has a test without a Robolectric recording. The service's
    behaviour is unchanged.
-2. **The Doppler sample definition** — the stored speed at the point *ending* a moving interval,
+2. **The Doppler sample definition** *(endorsed, see rulings)* — the stored speed at the point *ending* a moving interval,
    duration-weighted, with the floor applied to the sample as well as to the interval; the point
    after a stop is not a sample. The dispatch says which fixes count (at or above the floor) and
    that moving time is fixes past the floor; on stored points sampled every 5–60 s a "fix's"
    moving time is its interval's, and the interval is what the stop rule already classifies. The
    alternative (every stored speed at or above the floor, unweighted) would count the post-stop
    point and would have no moving-time meaning of its own.
-3. **The bar per instrument** — Doppler governs on its own five minutes of counted intervals,
+3. **The bar per instrument** *(endorsed, see rulings)* — Doppler governs on its own five minutes of counted intervals,
    differencing on all moving intervals, else the default. The dispatch sets one bar and names two
    instruments; it does not say which governs when both qualify (Doppler, the reason the column
    exists) or when Doppler covers part of a track (differencing, until Doppler has five minutes of
@@ -287,10 +288,10 @@ Every judgement the dispatch did not make, in the order they were made:
    `intervalsExamined` but nowhere else.
 7. **`PATH_UNDER_MEASURED` at "≥ 10 %"** — the accepted table says `≥ 10 %`; the boundary is
    inclusive and tested at 7 of 68 (10.3 %) against 6 of 67 (9.0 %).
-8. **The comparison has no surface and no log line.** Domain code here does not log (`ErrorLog.kt`
-   records why), and no consumer exists yet; "report the comparison" is met by the value being on
-   the result, asserted in tests, and nowhere else. The consumer that surfaces the estimate should
-   log it — recorded at `MovingPace.comparison`.
+8. **The comparison has no surface and no log line** *(endorsed, see rulings)*. Domain code here
+   does not log (`ErrorLog.kt` records why), and no consumer exists yet; "report the comparison"
+   is met by the value being on the result, asserted in tests, and nowhere else. The consumer that
+   surfaces the estimate logs it per track — queued below, attached to the surface work.
 9. **The origin leg is added even when it is zero** (origin at the first point) — `0.0`, not
    `null`, so "has an origin" and "the leg's length" stay two facts.
 10. **The migration chains** — ten existing tests edited by one token each, as every prior bump
@@ -299,11 +300,43 @@ Every judgement the dispatch did not make, in the order they were made:
 
 ---
 
+## Owner rulings on this report (same day)
+
+1. **Hysteresis: restored.** The owner's own error — the build dispatch's plain bands overwrote
+   the accepted pre-build proposal without noticing it reversed a decision; building what governs
+   and flagging it was the right call. The flicker is real: a walker near the 25 m boundary sees
+   25 m of remaining distance appear and vanish — about 28 seconds of walking time at 0.89 m/s —
+   on a number they are checking because light is running out. The compass pattern: asymmetric,
+   enter the hop above 25 m and leave below 20; enter degraded above 50 m and leave below 45. The
+   plain bands and why they went back are recorded at `pathHome`. **Built in the follow-up commit:**
+   `HopBand` (`NONE` / `COUNTED` / `FAR`) carried on `PathHome.hopBand` and passed back as
+   `previousHopBand` to `pathHome` and `returnWalkingTime` — the function stays pure, so the
+   caller holds one recording's state and starts a new one at `NONE`; `nextHopBand` is the rule;
+   the four constants replace the two. Two tests added: the 26 / 24 / 26 / 24 m hover that stays
+   counted throughout, and every band edge (20.015 m kept from counted, 18.903 m leaves; 47.814 m
+   kept from far, 44.478 m leaves to counted and is still counted; far to omitted in one step),
+   plus the degrade reason holding through the band at the estimate. Two reverts (I, J) below.
+2. **Per-instrument bar: endorsed.** Two minutes of Doppler against six of differencing is a
+   Doppler average worse than none, and pooling would hide which instrument was thin;
+   per-instrument keeps the comparison honest, since two averages over different windows are not
+   comparable. The rejected alternative stays recorded (decided-beyond-scope 3).
+3. **Comparison logging: correct to leave it.** Logging from domain code to no consumer is how a
+   log nobody reads gets written. The first consumer logs it per track — queued below, attached to
+   the surface work, not as a loose item.
+
+On the eighth revert: reporting the discrepancy rather than reconciling the number quietly is the
+behaviour that has caught every real problem this project has had (owner's words, kept here so
+the next runner author knows what the standard is).
+
+{{REVERTS2}}
+
 ## What the next dispatch inherits
 
 - The estimate and both its halves exist with no caller. The alert dispatch wires
   `returnWalkingTime` to the track poll, supplies `FixFreshness` from the HUD's own
-  classification, and decides what "at least" looks like on screen.
-- The Doppler/differencing comparison is on every `MovingPace`; the first consumer should log it
-  per track so real-track divergence is seen.
+  classification, holds the recording's `HopBand` between polls (starting at `NONE`, kept across a
+  withheld result), and decides what "at least" looks like on screen.
+- **Attached to that surface work, not a loose item:** the first consumer logs
+  `MovingPace.comparison` per track — Doppler, differencing, interval count, moving time, ratio —
+  so real-track divergence is seen. Owner ruling 3 above.
 - The duplicate-listener count (three) and the accuracy constant are unchanged by this work.

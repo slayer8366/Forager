@@ -75,6 +75,21 @@ class ReturnWalkingTimeTest {
         assertEquals(setOf(DegradeReason.FAR_FROM_TRACK), estimate.degradeReasons)
     }
 
+    /** The band's other half at this level: a walker who was far and has come back to 47.8 m is still far, and the reason stays. */
+    @Test
+    fun `the far-from-track degrade holds through the band until the hop drops below 45 m`() {
+        val track = track(northPoints(count = 61, speed = 0.9f))
+        val at47 = LatLng(track.points.last().lat + 0.00043, LNG) // 47.8139 m
+
+        val stillFar = returnWalkingTime(track, origin = null, current = at47, fixFreshness = FixFreshness.FRESH, previousHopBand = HopBand.FAR) as ReturnWalkingTime.Estimate
+        assertEquals(setOf(DegradeReason.FAR_FROM_TRACK), stillFar.degradeReasons)
+        assertEquals(HopBand.FAR, stillFar.path.hopBand)
+
+        val fresh = returnWalkingTime(track, origin = null, current = at47, fixFreshness = FixFreshness.FRESH) as ReturnWalkingTime.Estimate
+        assertEquals(emptySet<DegradeReason>(), fresh.degradeReasons)
+        assertEquals(HopBand.COUNTED, fresh.path.hopBand)
+    }
+
     @Test
     fun `an excluded tenth of the stored points degrades the path as under-measured, and less does not`() {
         val points = northPoints(count = 61, speed = 0.9f)
