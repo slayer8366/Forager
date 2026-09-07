@@ -72,7 +72,17 @@ Two of the three elevation sites are in the held file. All wait on the owner's s
 
 ### Reverted-variant check
 
-<!-- REVERT -->
+Copies of the three files saved to the scratchpad before editing; three one-line reverts applied together, each aimed at disjoint tests; build log checked for compile errors before the XML was read (0); XML confirmed fresh (0 s).
+
+| Revert | Edit | Predicted | Observed |
+|---|---|---|---|
+| A | `formatRainfall` imperial branch prints the metric form | `UnitSystemTest` × 3 (tenths, trace floor, metric-decimals-ignored); the imperial layout case × 2 classes | all five |
+| B | the legacy-key read is skipped | the two legacy migration cases | **one** — see below |
+| C | the per-fix `Log.d` never runs | the tracker log case | that one |
+
+**50 tests, 7 failed** against 8 predicted. The miss was **"a legacy miles choice is carried forward as imperial"**, which passed with the fallback removed because imperial is also the default: the test could not tell migration from defaulting, and only the revert showed it. Strengthened to also assert the repository's own migration log line (`ShadowLog`, tag `UnitSystemPreference`), then run green forward (6/6) and again under revert B alone: **2 of 2 predicted failures**, the strengthened case failing on the missing log line and the kilometres case on the value. Restored from the saved copies; `grep REVERT`: 0 across all three files; the only working-tree difference from `b6127b2` afterwards was the strengthened test itself.
+
+This is the pattern CLAUDE.md warns about from the other side: a green test that would stay green with its behaviour removed. The revert runner found it because it reported one fewer failure than predicted and the discrepancy was chased rather than rounded.
 
 ### Full suite
 

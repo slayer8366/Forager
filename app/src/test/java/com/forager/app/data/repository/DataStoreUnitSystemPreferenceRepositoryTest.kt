@@ -20,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLog
 
 /**
  * A real round trip through Jetpack DataStore (Robolectric, not a fake) — the same discipline the
@@ -97,11 +98,21 @@ class DataStoreUnitSystemPreferenceRepositoryTest {
         assertEquals(UnitSystem.METRIC, repository().getUnitSystem().getOrThrow())
     }
 
+    /**
+     * Imperial is also the default, so the value alone cannot tell "migrated" from "defaulted" —
+     * the reverted-variant check caught exactly that (this case passed with the fallback removed).
+     * The repository logs when the legacy key is what it read; that line is the evidence here.
+     */
     @Test
-    fun `a legacy miles choice is carried forward as imperial`() = runTest {
+    fun `a legacy miles choice is carried forward as imperial, by migration and not by default`() = runTest {
         plantLegacyDistanceUnit("MILES")
 
         assertEquals(UnitSystem.IMPERIAL, repository().getUnitSystem().getOrThrow())
+        val migrationLines = ShadowLog.getLogsForTag("UnitSystemPreference").map { it.msg }
+        assertEquals(
+            listOf("No unit system stored; carrying the legacy distance unit 'MILES' forward as IMPERIAL."),
+            migrationLines,
+        )
     }
 
     @Test
