@@ -189,7 +189,23 @@ doubled-back test asserts the whole-track figure (555.975 m) against the straigh
 (111.195 m), which is the property, and would fail against any nearest-point implementation that
 measured from the nearest index. Said plainly: that test's bite is argued, not demonstrated.
 
-{{SUITE}}
+### Full suite
+
+Run on the forward build after the reverts (`1bde79a`'s tree), read from the JUnit XML, every file
+written by this run (compile log clean, exit 0):
+
+| Suites | Tests | Failures | Errors | Skipped |
+|---|---|---|---|---|
+| 165 | **1271** | 0 | 0 | 24 |
+
+The dispatch's baseline is 1237 tests, 24 skipped; this build adds 34 (1 + 1 + 1 + 2 + 7 + 11 +
+11, per the table above), and 1237 + 34 = 1271. **The 24 skipped tests are the CI allowlist's
+identity set exactly** — compared as `(classname, name)` pairs against `SKIPPED_TESTS_ALLOWLIST`
+parsed from `.github/workflows/ci.yml`: nothing skipped that is not listed, nothing listed that did
+not skip. The skip count was not touched. `JournalTabTest`'s "From Album" flake did not fire on
+this run. Device verification: blocked, no `/dev/kvm`; the migration on a real install, the tracker
+on a real `LocationManager`, and the first Doppler-versus-differencing comparison on a real track
+are the owner's.
 
 
 ---
