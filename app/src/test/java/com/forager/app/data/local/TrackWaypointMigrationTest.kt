@@ -113,7 +113,9 @@ class TrackWaypointMigrationTest {
 
             val track = Track(id = "post-migration-track", name = "Test loop", startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList())
             trackRepository.create(track).getOrThrow()
-            val point = TrackPoint(lat = 45.0, lng = -122.0, altitude = 100.0, accuracyMeters = 5f, timestampEpochMillis = 1_500L)
+            // A whole-second stamp: since the timestamp-filter dispatch the repository's read excludes any
+            // point with a fractional second as a network-provider fix, so sample data must look like GPS data.
+            val point = TrackPoint(lat = 45.0, lng = -122.0, altitude = 100.0, accuracyMeters = 5f, timestampEpochMillis = 1_000L)
             trackRepository.appendPoints(track.id, listOf(point)).getOrThrow()
             trackRepository.end(track.id, endedAtEpochMillis = 2_000L).getOrThrow()
 

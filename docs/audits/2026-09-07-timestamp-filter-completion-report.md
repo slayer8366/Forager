@@ -134,6 +134,11 @@ ordering across insertion order; 1000 points batched cheaper than one at a time)
 naming the reason. Not a silenced or weakened test; reported because the standing rule says an
 existing test that starts failing is reported, and the change is fixture data, not a claim.
 
+A third, found by the full suite rather than the targeted run: `TrackWaypointMigrationTest`'s
+post-migration usability check seeded one point at `1_500L` and asserted the whole `Track` read
+back through the real repository. Stamp moved to `1_000L`; assertion unchanged, comment added.
+Three fixtures in total, all sample timestamps, no assertion touched.
+
 ## Reverted variants
 
 Each a one-line sed on the source, the build log checked for `e:` / `compileDebugKotlin FAILED`
@@ -156,7 +161,20 @@ Every failure names a value only its own revert could produce; none is a stale r
 
 ## Full suite
 
-FULLSUITE
+First full run after the build: **1201 tests, 1 failed** — `TrackWaypointMigrationTest`'s "planned
+trips and mushroom log entries survive the 4 to 5 migration intact, and the new tables are usable",
+whose seeded sample point carried `timestampEpochMillis = 1_500L` and was read back through the real
+repository (`expected … points=[TrackPoint(… 1500)], excludedPointCount=0 but was … points=[],
+excludedPointCount=1`) — the same fixture class as the two repository tests, found only by the full
+run. Its stamp moved to `1_000L`; the assertion (the whole `Track` equality, `excludedPointCount = 0`
+included) is unchanged, with a comment naming the reason. Recorded below under "Existing tests
+changed" as the third.
+
+Second full run: **1201 tests, 0 failed, 24 skipped** (1178 + 23: 9 predicate, 3 subtitle, 5
+per-consumer, 1 seam, 1 Cartography recompute, 1 Records row, 1 Snackbar, 2 ViewModel notice). Skip
+set compared by (class, name) against the CI `SKIPPED_TESTS_ALLOWLIST` parsed from
+`.github/workflows/ci.yml`: byte-identical, 24 = 24. The `JournalTabTest` "From Album" flake did not
+fire in either run.
 
 ## Device checks the owner must walk
 
