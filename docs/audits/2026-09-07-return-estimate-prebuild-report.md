@@ -358,3 +358,11 @@ The form is decided ("at least X"). The proposed triggers, each with its signal 
 **Two things this table does not do, on purpose:** it does not stack — one trigger is enough, and the label is the same; and it does not touch the walking-time-not-arrival-time distinction, which is a labelling rule the surface must carry and this input must record at the code, per the ruling.
 
 **Stopped here.** The three proposals are the owner's to accept or move.
+
+### Owner acceptance (same day)
+
+All three proposals accepted as stated: the 50 m / 25 m off-track band, five minutes of accumulated moving time, and the per-condition degrade table including the two withhold cases. The DataStore fallback reading the legacy key is confirmed as the right call — silent continuity for a tester who chose kilometres, and the same file means no migration to get wrong. The edit to one function inside `AvailabilityScreen.kt` is fine: seams F and G are held because moving the HUD before stage two would mean moving it twice, and that reasoning does not extend to a units control; the callback rename stays the split's job.
+
+**On the revert check's finding:** the owner ranks it above the build — a test that passed with the fallback removed because imperial is also the default was asserting a coincidence, the exact pattern CLAUDE.md warns about, caught here by reading the runner's count against the prediction rather than by the runner. **It is the second time this project has found a test that could not distinguish two mechanisms** (the first: the compass-reliability revert whose "failures" belonged to a different edit — CLAUDE.md, Testing). Asserting the migration log line is the accepted fix.
+
+**Next:** the instrument walk, `adb logcat -s ForagerFix`, on the owner's device. Two things decide the speed columns: whether GNSS fixes carry `hasSpeed=true` with accuracy under about half a metre per second, and whether `hasSpeed=false` lines up with `provider=network`. The second is worth having regardless, as an independent confirmation of the timestamp rule from a different signal.
