@@ -312,3 +312,17 @@ Not run for this report — nothing changed. The dispatch's baseline "1216 tests
 - I read `AvailabilityOfflineMapsUi.kt` (its header and the picker's basemap pin) and `AvailabilityScreen.kt`'s `MapRenderMode` construction site; the dispatch holds seams F and G of that file, and I made no claim about them.
 - I treated the amendment's request to "put it in the audit trail" as satisfied by recording the finding *with the code's account of what it could have shown*, rather than recording it as established. Recording it as established would have closed the question falsely, which the dispatch's own last paragraph forbids.
 - I did not probe the worker from this sandbox; a proxied probe here says nothing about the owner's device.
+
+---
+
+## Addendum: the owner's offline screenshot, read against the code
+
+Supplied after this report was filed: a screenshot of the Maps tab in airplane mode (status-bar icon visible), the top half sharp with street names and house numbers, the bottom half blurry, with the owner's reading "this is completely offline; the area that is blurry is the cache."
+
+**Both halves are the ambient cache.** Three things in the image establish it independently of any code reading:
+
+1. **The always-visible attribution reads `© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)`** — `Basemap.OPEN_TOPO_MAP.attribution` (`Basemap.kt:161`), the raster basemap fetched from `a.tile.opentopomap.org`. The region store holds Protomaps vector tiles from the worker (§1.1) and no OpenTopoMap tile; it cannot have drawn any part of this screen.
+2. **The sharp half renders text** — a street name and dozens of house numbers. The offline style has no `glyphs`, no `sprite`, and no `text-field` in any of its 57 layers (§1.1, parsed from `offline-style.json`), by design: glyph layers crash the download (`MapLibreOfflineMapRepository.kt:58-63`). A render from the region cannot draw a single character.
+3. **The two halves are one raster style at two zooms.** Sharp where the device had fetched OpenTopoMap at high zoom while online; blurry where only coarser tiles were ever cached and MapLibre is overzooming a parent tile across the gap — the exact pattern `2026-08-28-raster-capture-path-report.md:118-122` describes for the raster ambient cache.
+
+So the sharp area is not the region; it is the cache at high zoom. The downloaded region has not yet drawn on any screen, for the reason in §"The one thing to read first". A render from the region will show shapes with no words, under a Protomaps/OpenStreetMap credit; a label anywhere on an offline map is the cache. Airplane mode plus Clear cache cannot separate the two on this build (§1.3); the §5.2 procedure can, once the swap exists.
