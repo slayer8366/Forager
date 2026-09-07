@@ -52,6 +52,16 @@ data class CartographyEntryEntity(
  * reopen, and a withheld candidate later removed from Records still needs its own name/distance/etc.
  * to render as "withheld" rather than a dangling id.
  *
+ * **One deliberate exception to "never silently change on reopen" (timestamp-filter dispatch, owner
+ * decision):** `distanceMeters`, `durationMillis` and `pointCount` are recomputed from the track on
+ * every open (`CartographyViewModel.onOpenEntry`) and written back when they differ. They cache a
+ * computation, not a choice the user made, and the cached number was wrong once the read seam
+ * started excluding network-provider fixes — showing a stale sum beside a fresh one would put two
+ * disagreeing numbers on screen on purpose. The rule stands for everything authored: `name`, `kept`,
+ * and the row's existence are never touched by this. A row whose track has since been deleted has
+ * nothing to recompute from and keeps its figure. `pointCount`'s first reader is the "no usable
+ * points" row suffix this same dispatch added.
+ *
  * **Zero `@ForeignKey`, by explicit standing rule** — see [MushroomLogEntryEntity.offlineRegionId]'s
  * own doc comment for the rationale this follows: nothing here may change as a side effect of
  * something happening to the referenced track, and any FK action would do exactly that.

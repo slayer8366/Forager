@@ -284,7 +284,7 @@ import com.forager.app.ui.theme.Bark
 import com.forager.app.ui.theme.Cream
 import com.forager.app.ui.theme.LocalForagerDarkTheme
 import com.forager.app.ui.theme.Spacing
-import com.forager.app.ui.track.TripStartWarning
+import com.forager.app.ui.track.RecordingNotice
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Month
@@ -589,7 +589,13 @@ fun AvailabilityScreen(
      * host, no action button (the copy never tells the user to change a setting). Keyed on its id so
      * the same text re-shows on a later trip. See [com.forager.app.ui.track.TrackRecordingUiState.tripStartWarning].
      */
-    tripStartWarning: TripStartWarning? = null,
+    tripStartWarning: RecordingNotice? = null,
+    /**
+     * Timestamp-filter dispatch, Item 3: the once-per-recording notice that most of the active
+     * track is being excluded as network-provider fixes — same host, same shape as
+     * [tripStartWarning]. See [com.forager.app.ui.track.TrackRecordingUiState.networkFixesNotice].
+     */
+    networkFixesNotice: RecordingNotice? = null,
     /**
      * The active track's recorded points, oldest first — see [com.forager.app.ui.map.MapSlot]'s own
      * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
@@ -949,6 +955,11 @@ fun AvailabilityScreen(
     LaunchedEffect(tripStartWarning?.id) {
         tripStartWarning?.let { warning ->
             logDraftSnackbarHostState.showSnackbar(message = warning.message, duration = SnackbarDuration.Long)
+        }
+    }
+    LaunchedEffect(networkFixesNotice?.id) {
+        networkFixesNotice?.let { notice ->
+            logDraftSnackbarHostState.showSnackbar(message = notice.message, duration = SnackbarDuration.Long)
         }
     }
     val leaveLogEntryEditingOfferingDiscard: () -> Unit = {

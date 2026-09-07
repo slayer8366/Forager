@@ -759,6 +759,71 @@ class TrackRecordingViewModelTest {
         assertTrue("expected a fresh id per recording, got ${first?.id} then ${second?.id}", first != null && second != null && second.id > first.id)
         vm.stopRecording()
     }
+
+    /**
+     * Timestamp-filter dispatch, Item 3: when the read seam is excluding most of the active track
+     * (a non-aligned GPS clock), the breadcrumb poll raises the notice once per recording — not on
+     * every poll. The stored track is replaced with what the seam would return for such a device:
+     * three survivors, twelve excluded. Literal copy. Fails with the poll's notice removed (null).
+     */
+    @Test
+    fun `the breadcrumb poll raises the network-fixes notice once per recording when most of the track is excluded`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository)
+        vm.startRecording()
+        runCurrent()
+        assertNull(vm.uiState.value.networkFixesNotice)
+
+        trackRepository.create(
+            Track(
+                id = "track-1",
+                name = null,
+                startedAtEpochMillis = 1_000L,
+                endedAtEpochMillis = null,
+                points = listOf(point(lat = 45.0, lng = -122.0, t = 1_000L), point(lat = 45.001, lng = -122.0, t = 6_000L), point(lat = 45.002, lng = -122.0, t = 11_000L)),
+                excludedPointCount = 12,
+            ),
+        )
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+
+        val first = vm.uiState.value.networkFixesNotice
+        assertEquals(
+            "Most of this track's fixes look like network fixes rather than GPS, so little or none of it is being drawn. It is still being recorded.",
+            first?.message,
+        )
+
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("the notice must not be re-issued on the next poll", first, vm.uiState.value.networkFixesNotice)
+        vm.stopRecording()
+    }
+
+    /** The evidence tracks' own proportion (8 of 17 excluded) is the rule working: no notice. */
+    @Test
+    fun `an ordinary exclusion raises no network-fixes notice`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository)
+        vm.startRecording()
+        runCurrent()
+
+        trackRepository.create(
+            Track(
+                id = "track-1",
+                name = null,
+                startedAtEpochMillis = 1_000L,
+                endedAtEpochMillis = null,
+                points = List(9) { point(lat = 45.0 + it * 0.001, lng = -122.0, t = 1_000L + it * 5_000L) },
+                excludedPointCount = 8,
+            ),
+        )
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+
+        assertNull(vm.uiState.value.networkFixesNotice)
+        vm.stopRecording()
+    }
+
 }
 
 private class NoOpLocationTracker : LocationTracker {

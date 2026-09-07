@@ -4,12 +4,17 @@ import com.forager.app.data.local.TrackDao
 import com.forager.app.data.local.TrackEntity
 import com.forager.app.data.local.TrackPointEntity
 import com.forager.app.domain.TrackRepository
+import com.forager.app.domain.excludeNetworkProviderFixes
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
 
 /**
  * Room-backed [TrackRepository]; the only place [TrackEntity]/[TrackPointEntity] and [Track]/
- * [TrackPoint] meet.
+ * [TrackPoint] meet — and therefore the one place the network-provider-fix rule runs
+ * ([com.forager.app.domain.excludeNetworkProviderFixes], timestamp-filter dispatch): every read of
+ * `track_points` passes through [toDomain] below, so no consumer can see an excluded point and no
+ * consumer has to remember to apply the rule. The rows themselves are untouched; the count of what
+ * was left out rides on [Track.excludedPointCount].
  *
  * [getById] loads a track's full point list in one call — appropriate for reading back one
  * recorded track, but [appendPoints] never round-trips through [Track]/[getById] itself: it maps
@@ -58,14 +63,20 @@ class RoomTrackRepository(
     }
 }
 
-private fun TrackEntity.toDomain(points: List<TrackPointEntity>) = Track(
-    id = id,
-    name = name,
-    startedAtEpochMillis = startedAtEpochMillis,
-    endedAtEpochMillis = endedAtEpochMillis,
-    points = points.map(TrackPointEntity::toDomain),
-    originWaypointId = originWaypointId,
-)
+private fun TrackEntity.toDomain(rows: List<TrackPointEntity>): Track {
+    val stored = rows.map(TrackPointEntity::toDomain)
+    // The read-seam rule — see NetworkProviderFix.kt. Applied here and nowhere else.
+    val kept = excludeNetworkProviderFixes(stored)
+    return Track(
+        id = id,
+        name = name,
+        startedAtEpochMillis = startedAtEpochMillis,
+        endedAtEpochMillis = endedAtEpochMillis,
+        points = kept,
+        originWaypointId = originWaypointId,
+        excludedPointCount = stored.size - kept.size,
+    )
+}
 
 private fun Track.toEntity() = TrackEntity(
     id = id,

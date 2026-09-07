@@ -87,8 +87,10 @@ class RoomTrackRepositoryTest {
     fun `appended points come back in timestamp order regardless of insertion order`() = runTest {
         repository.create(Track(id = "t1", name = null, startedAtEpochMillis = 0L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
 
-        val early = point(lat = 1.0, t = 100L)
-        val late = point(lat = 2.0, t = 200L)
+        // Whole-second stamps: since the timestamp-filter dispatch the read seam excludes any point
+        // with a fractional second as a network-provider fix, so sample data must look like GPS data.
+        val early = point(lat = 1.0, t = 100_000L)
+        val late = point(lat = 2.0, t = 200_000L)
         repository.appendPoints("t1", listOf(late)).getOrThrow()
         repository.appendPoints("t1", listOf(early)).getOrThrow()
 
@@ -139,7 +141,8 @@ class RoomTrackRepositoryTest {
         repository.create(Track(id = "batched", name = null, startedAtEpochMillis = 0L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
         repository.create(Track(id = "one-by-one", name = null, startedAtEpochMillis = 0L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
 
-        val points = (0 until 1_000).map { i -> point(lat = i.toDouble(), t = i.toLong()) }
+        // Whole-second stamps, for the same reason as the ordering test above.
+        val points = (0 until 1_000).map { i -> point(lat = i.toDouble(), t = i * 1_000L) }
 
         val batchedMillis = measureMillis {
             repository.appendPoints("batched", points).getOrThrow()
@@ -163,4 +166,27 @@ class RoomTrackRepositoryTest {
         block()
         return (System.nanoTime() - start) / 1_000_000
     }
+
+    /**
+     * Timestamp-filter dispatch: the read seam drops sub-second (network-provider) points and reports
+     * how many, while the rows themselves stay exactly as inserted. The boundary — millis exactly
+     * zero — is asserted as kept.
+     */
+    @Test
+    fun `reads exclude sub-second points, count them, and leave the stored rows untouched`() = runTest {
+        repository.create(Track(id = "t", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+        val kept0 = TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 0L)
+        val dropped = TrackPoint(lat = 45.030, lng = -122.0, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = 2_001L)
+        val kept5 = TrackPoint(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 5_000L)
+        repository.appendPoints("t", listOf(kept0, dropped, kept5)).getOrThrow()
+
+        val track = repository.getById("t").getOrThrow()!!
+        assertEquals(listOf(kept0, kept5), track.points)
+        assertEquals(1, track.excludedPointCount)
+
+        val rows = database.trackDao().getPointsForTrack("t")
+        assertEquals(listOf(0L, 2_001L, 5_000L), rows.map { it.timestampEpochMillis })
+        assertEquals(listOf(45.000, 45.030, 45.001), rows.map { it.lat })
+    }
+
 }

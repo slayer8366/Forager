@@ -46,10 +46,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.forager.app.domain.ComputeTrackStatisticsUseCase
+import com.forager.app.domain.networkFixExclusionNote
 import com.forager.app.domain.OfflineRegionSummary
 import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.DerivedTrip
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.PhotoAttachment
 import com.forager.app.domain.model.PhotoSource
@@ -474,12 +476,17 @@ private fun TracksSection(entry: CartographyEntry, candidates: DerivedTrip?, dis
     val rows = mergeDecisionRows(
         decided = entry.trackDecisions,
         decidedId = { it.trackId },
-        decidedRow = {
+        decidedRow = { decision ->
+            // Timestamp-filter dispatch, Item 3: when the day's live track is loaded, its own
+            // exclusion note; otherwise the snapshot's point count is the one thing that can say
+            // an empty track is empty rather than leave a blank entry map unexplained.
+            val liveTrack = candidates?.tracks?.firstOrNull { it.id == decision.trackId }
             DecisionRowState(
-                id = it.trackId,
-                title = it.name ?: "Recorded track",
-                subtitle = trackSubtitle(it.distanceMeters, it.durationMillis, distanceUnit),
-                state = it.state,
+                id = decision.trackId,
+                title = decision.name ?: "Recorded track",
+                subtitle = trackSubtitle(decision.distanceMeters, decision.durationMillis, distanceUnit) +
+                    trackExclusionSuffix(liveTrack, snapshotPointCount = decision.pointCount),
+                state = decision.state,
             )
         },
         candidates = candidates?.tracks.orEmpty(),
@@ -492,7 +499,7 @@ private fun TracksSection(entry: CartographyEntry, candidates: DerivedTrip?, dis
             DecisionRowState(
                 id = track.id,
                 title = track.name ?: "Recorded track",
-                subtitle = trackSubtitle(stats.distanceMeters, stats.durationMillis, distanceUnit),
+                subtitle = trackSubtitle(stats.distanceMeters, stats.durationMillis, distanceUnit) + trackExclusionSuffix(track, snapshotPointCount = null),
                 state = DecisionState.UNDECIDED,
             )
         },
@@ -625,6 +632,18 @@ private fun DecisionRow(row: DecisionRowState, onSetKept: (Boolean) -> Unit) {
 }
 
 /** Stage 2c: `internal`, not `private` — [CartographyEntryReportScreen] reuses this exact formatting for its own kept-track lines. */
+/**
+ * What a track row appends when the read seam excluded most or all of it as network-provider fixes
+ * (timestamp-filter dispatch, Item 3): the live track's own note when the track is at hand, else —
+ * on a snapshot row with no live track loaded — the one thing the snapshot can say, that it has no
+ * usable points (the recompute in `CartographyViewModel.onOpenEntry` keeps `pointCount` current, and
+ * this is that column's first reader). Empty in the ordinary case.
+ */
+internal fun trackExclusionSuffix(liveTrack: Track?, snapshotPointCount: Int?): String {
+    liveTrack?.let(::networkFixExclusionNote)?.let { return " · $it" }
+    return if (snapshotPointCount == 0) " · no usable points" else ""
+}
+
 internal fun trackSubtitle(distanceMeters: Double, durationMillis: Long, distanceUnit: DistanceUnit): String {
     val km = (distanceMeters / 1000.0).roundToInt()
     val distanceLabel = formatDistanceKm(km, distanceUnit)
