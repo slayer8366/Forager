@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.util.Log
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -193,6 +194,8 @@ fun SightingsMap(
     trackLiveLocation: Boolean = true,
     /** See [com.forager.app.ui.map.MapRenderMode.showSearchCentre]'s own doc comment. */
     showSearchCentre: Boolean = true,
+    /** See [com.forager.app.ui.map.MapRenderMode.useOfflineTiles]'s own doc comment. */
+    useOfflineTiles: Boolean = false,
     /** See [com.forager.app.ui.map.MapOverlayContent.keptTrackPolylines]'s own doc comment. */
     keptTrackPolylines: List<List<LatLng>> = emptyList(),
     /** See [com.forager.app.ui.map.MapOverlayContent.findMarkers]'s own doc comment. */
@@ -241,27 +244,26 @@ fun SightingsMap(
     val currentFocusedObservationId by rememberUpdatedState(focusedObservationId)
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     // The Style instance from the most recently completed setStyle callback. Distinct from
-    // "which Basemap is currently applied" (appliedBasemap, below) because this is what the data
+    // "which style is currently applied" (appliedStyle, below) because this is what the data
     // effect keys on: a new Style object means new (empty) sources that need their content pushed.
     var loadedStyle by remember { mutableStateOf<Style?>(null) }
     // Guards against re-running setStyle on every recomposition, mirroring the deleted osmdroid
     // applyBasemap's own name()-comparison guard and for the same reason: setStyle discards every
-    // source and layer the previous style had, so calling it when the basemap didn't actually
-    // change would flash the map to blank and rebuild everything for nothing.
-    var appliedBasemap by remember { mutableStateOf<Basemap?>(null) }
-
-    // Tracked alongside appliedBasemap for the same reason it exists: the overlay layers are built
-    // once per style load with their colours baked into the layer properties, so a palette change
-    // is only visible after those layers are rebuilt. Without this, toggling night mode would
-    // leave an already-loaded map drawing the previous palette until something else happened to
-    // reload the style.
+    // source and layer the previous style had, so calling it when nothing about the style actually
+    // changed would flash the map to blank and rebuild everything for nothing. One value holding
+    // basemap, palette and the offline flag (Stage 2e-ii) rather than the two separate
+    // appliedBasemap/appliedPalette vars it replaced — see needsStyleReload's own doc comment for
+    // the "toggle does nothing" gap two separate comparisons left open.
+    //
+    // The palette is in here for the reason the old appliedPalette existed: the overlay layers are
+    // built once per style load with their colours baked into the layer properties, so a palette
+    // change is only visible after those layers are rebuilt.
     //
     // Restyling is not free -- setStyle discards the LocationComponent state, which is why
-    // activateLiveLocationIfPermitted has to run again below. Accepted because a night-mode switch
-    // is a deliberate, roughly once-per-outing action, not something that fires on every
-    // recomposition. That is a property of the mode being chosen for the map rather than inherited
-    // from the device theme, which would have changed underneath the user.
-    var appliedPalette by remember { mutableStateOf<MapPalette?>(null) }
+    // activateLiveLocationIfPermitted has to run again below. Accepted because a basemap, palette
+    // or offline switch is a deliberate, roughly once-per-outing action, not something that fires
+    // on every recomposition.
+    var appliedStyle by remember { mutableStateOf<AppliedMapStyle?>(null) }
 
     // What the camera was last deliberately moved to by the data+camera refresh effect below —
     // *not* re-derived from mapLibreMap.cameraPosition, which changes continuously while GPS
@@ -295,6 +297,14 @@ fun SightingsMap(
     // callback fires exactly once for the life of the MapView, so there's no re-registration to
     // guard against the way applyBasemap's guard above is needed for setStyle.
     DisposableEffect(mapView) {
+        // A style that cannot be loaded — the offline style with no region covering the camera
+        // and no network, or a worker URL that moved — fails here rather than in setStyle's own
+        // callback, which simply never fires. Logged, never silently swallowed (CLAUDE.md); the
+        // message is MapLibre's own. addOnDidFailLoadingMapListener verified against the pinned
+        // 13.5.0 artifact with javap, the same way every other SDK call in this file was.
+        mapView.addOnDidFailLoadingMapListener { message ->
+            Log.w(SIGHTINGS_MAP_TAG, "MapLibre failed to load the map style: $message")
+        }
         mapView.getMapAsync { map ->
             map.addOnMapClickListener { latLng ->
                 // queryRenderedFeatures/toScreenLocation signatures confirmed via javap against the
@@ -379,12 +389,33 @@ fun SightingsMap(
         onDispose { }
     }
 
-    // Basemap swap. Keyed on (mapLibreMap, basemap) rather than driven from an AndroidView update
-    // block: setStyle is asynchronous (its callback is where the new style's sources/layers can
-    // actually be added), which the old synchronous update-block shape has no equivalent of.
-    LaunchedEffect(mapLibreMap, basemap, mapPalette) {
+    // Style swap: basemap, palette, or — Stage 2e-ii — the offline style. Keyed on the inputs
+    // rather than driven from an AndroidView update block: setStyle is asynchronous (its callback
+    // is where the new style's sources/layers can actually be added), which the old synchronous
+    // update-block shape has no equivalent of.
+    //
+    // The offline branch loads OFFLINE_STYLE_URL by URI (see MapStyleSource's own doc comment for
+    // why by URI and never fromJson), the exact string every region was downloaded against, so
+    // MapLibre's offline database can serve the style document, its TileJSON and its tiles from
+    // the store. Nothing else about the swap differs from a basemap swap: initializeOverlayLayers
+    // re-adds every overlay in the callback exactly as it does for a basemap change, and the
+    // data+camera refresh effect below re-pushes their content keyed on loadedStyle. Two things
+    // deliberately left as the user will see them (owner ruling, 2e-ii: report, do not fix):
+    // nightMode has no effect on the offline style (mapStyleSourceFor's doc comment), and the max
+    // zoom preference stays the *basemap's* (17 for OpenTopoMap) over a store that stops at zoom
+    // 15 — vector tiles overzoom cleanly, per OfflineMapRepository.MAX_ZOOM's doc comment, so the
+    // user can zoom past the data's own ceiling without a hard stop.
+    //
+    // A style that fails to load (offline with no region covering the camera, a worker URL that
+    // moved, a cold store) never reaches this callback, so appliedStyle and loadedStyle keep their
+    // previous values and the map shows MapLibre's own blank. That failure is logged by the
+    // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
+    // the user should be *told* in that state is a decision the pre-build report lists and this
+    // dispatch did not make.
+    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        if (appliedBasemap == basemap && appliedPalette == mapPalette) return@LaunchedEffect
+        val requested = AppliedMapStyle(basemap = basemap, palette = mapPalette, useOfflineTiles = useOfflineTiles)
+        if (!needsStyleReload(appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
         // activateLiveLocationIfPermitted's own doc comment on why re-activation is needed at
         // all) — null only the very first time this composable ever activates the puck;
@@ -400,14 +431,17 @@ fun SightingsMap(
             null
         }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
-        map.setStyle(Style.Builder().fromJson(styleJsonFor(basemap, night = nightMode))) { style ->
+        val builder = when (val source = mapStyleSourceFor(basemap, night = nightMode, useOfflineTiles = useOfflineTiles)) {
+            is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
+            is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
+        }
+        map.setStyle(builder) { style ->
             initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
             // needs to seed it separately.
-            appliedBasemap = basemap
-            appliedPalette = mapPalette
+            appliedStyle = requested
             loadedStyle = style
             // setStyle discards the previous style's LocationComponent state the same way it does
             // this composable's own layers (see initializeOverlayLayers' own doc comment on why
@@ -503,7 +537,7 @@ fun SightingsMap(
         // — see Basemap's doc comment on [Basemap.attribution] for why an always-drawn guarantee
         // matters for this app's USGS/ODbL credit and shouldn't quietly become tap-only.
         Text(
-            text = basemap.attribution,
+            text = mapAttributionFor(basemap, useOfflineTiles),
             style = MaterialTheme.typography.labelSmall,
             color = ComposeColor.White,
             modifier = Modifier
@@ -1088,6 +1122,7 @@ private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 private const val SEARCH_CENTER_RADIUS_PX = 8f
 private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
 
+private const val SIGHTINGS_MAP_TAG = "SightingsMap"
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
 private const val WAYPOINT_MARKER_WIDTH_DP = 22f

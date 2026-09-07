@@ -227,17 +227,16 @@ class MapLibreOfflineMapRepository(
     private fun downloadedAtEpochMillisProvider(): Long = System.currentTimeMillis()
 }
 
-/**
- * The style `OfflineTilePyramidRegionDefinition` downloads — see this file's class doc comment for
- * why it must be the glyph-stripped variant, and for why this is a real HTTPS URL rather than
- * `asset://forager_pmtiles_offline_style.json`. (That was this class's first attempt, on the theory
- * that `asset://` is a plain sequential-read scheme unrelated to the `pmtiles://asset://`
- * byte-range-read limitation PR #23's doc comment names — a reasonable-sounding distinction that
- * hardware testing proved doesn't hold: `OfflineManager`'s resource-discovery path hung at
- * `completed=0/1` against it regardless, the exact same stall class, for a reason that specific
- * theory didn't predict. Recorded here so the theory doesn't get re-tried.)
- */
-private const val OFFLINE_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/offline.json"
+// OFFLINE_STYLE_URL — the style OfflineTilePyramidRegionDefinition downloads — lives in
+// OfflineStyle.kt since Stage 2e-ii, because SightingsMap now loads the same string to render from
+// the store, and the two must be one constant by construction. Its history (why glyph-stripped;
+// why a real HTTPS URL rather than asset://forager_pmtiles_offline_style.json, which was this
+// class's first attempt on the theory that asset:// is a plain sequential-read scheme unrelated to
+// the pmtiles://asset:// byte-range-read limitation PR #23's doc comment names — a
+// reasonable-sounding distinction hardware testing proved doesn't hold: OfflineManager's
+// resource-discovery path hung at completed=0/1 against it regardless, the exact same stall class,
+// for a reason that specific theory didn't predict) is recorded there so the theory doesn't get
+// re-tried.
 private const val TAG = "MapLibreOfflineMapRepo"
 
 private fun Region.toLatLngBounds(): LatLngBounds {

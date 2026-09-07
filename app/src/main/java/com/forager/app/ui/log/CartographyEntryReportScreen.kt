@@ -164,12 +164,13 @@ import kotlinx.coroutines.launch
  * downloaded region on the device — see [com.forager.app.domain.GetCartographyEntryOfflineRegionUseCase]'s
  * own doc comment for why a withheld region must stay excluded here, not just in the text below.
  *
- * **Flipping the toggle changes nothing about what tiles this screen's map requests, in this stage.**
- * It only sets [MapRenderMode.useOfflineTiles], read by nothing yet — see that field's own doc
- * comment for why an unread field here is a deliberate seam for Stage 2e-ii, not dead code. One
- * piece of state drives both the inline switch below and the fullscreen chrome's own offline row
- * (fullscreen-maps dispatch, Part 1f) — flipping either agrees with the other by construction, not
- * by synchronization.
+ * **Flipping the toggle swaps the map's style** (Stage 2e-ii): it sets [MapRenderMode.useOfflineTiles],
+ * which [com.forager.app.ui.map.SightingsMap] reads to load the downloaded regions' own style by
+ * URI in place of the basemap — see that field's own doc comment. Every overlay is re-added in the
+ * style callback exactly as on a basemap swap, and the camera does not move. One piece of state
+ * drives both the inline switch below and the fullscreen chrome's own offline row (fullscreen-maps
+ * dispatch, Part 1f) — flipping either agrees with the other by construction, not by
+ * synchronization.
  *
  * ## Fullscreen (fullscreen-maps dispatch, Part 1)
  *
