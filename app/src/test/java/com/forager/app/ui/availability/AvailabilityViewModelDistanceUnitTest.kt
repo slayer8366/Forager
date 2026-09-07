@@ -5,7 +5,7 @@ import com.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.forager.app.domain.ComputeTripWindowsUseCase
 import com.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.forager.app.domain.DeletePlannedTripUseCase
-import com.forager.app.domain.DistanceUnitPreferenceRepository
+import com.forager.app.domain.UnitSystemPreferenceRepository
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetConditionsUseCase
 import com.forager.app.domain.GetPlannedTripsUseCase
@@ -35,6 +35,7 @@ import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
 import com.forager.app.domain.model.formatDistanceKm
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.Region
@@ -62,7 +63,7 @@ import org.junit.Test
  * The km/mi persistence fix (2026-08-27): [AvailabilityUiState.distanceUnit] used to be plain
  * Compose state in `AvailabilityScreen`, resetting to the default on any configuration change (a
  * system theme switch among them) — a real device report. This covers the two halves of the fix at
- * the ViewModel level, headless, the same [DistanceUnitPreferenceRepository] contract
+ * the ViewModel level, headless, the same [UnitSystemPreferenceRepository] contract
  * [AvailabilityViewModelLocateMeTest] mirrors for its own preference dependency: the value is
  * restored from the repository at startup (not hardcoded), and a selection both updates the UI
  * state immediately and persists through the repository, using a fake that records what it was
@@ -80,7 +81,7 @@ class AvailabilityViewModelDistanceUnitTest {
 
     private val searchCache = InMemorySearchCacheRepository()
 
-    private fun viewModel(distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository): AvailabilityViewModel {
+    private fun viewModel(distanceUnitPreferenceRepository: UnitSystemPreferenceRepository): AvailabilityViewModel {
         val plannedTripRepository = DistanceUnitInMemoryPlannedTripRepository()
         return AvailabilityViewModel(
             locationProvider = DistanceUnitUnusedLocationProvider,
@@ -101,25 +102,38 @@ class AvailabilityViewModelDistanceUnitTest {
             ),
             offlineMapRepository = DistanceUnitStubOfflineMapRepository,
             mapPreferencesRepository = DistanceUnitStubMapPreferencesRepository,
-            distanceUnitPreferenceRepository = distanceUnitPreferenceRepository,
+            unitSystemPreferenceRepository = distanceUnitPreferenceRepository,
             appThemePreferenceRepository = DistanceUnitStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(DistanceUnitStubTripPlanningWeatherProvider),
         )
     }
 
     @Test
-    fun `restores the persisted unit at startup rather than always defaulting to miles`() = runTest(dispatcher) {
-        val repository = DistanceUnitRecordingPreferenceRepository(initial = DistanceUnit.KILOMETERS)
+    fun `restores the persisted unit system at startup rather than always defaulting to imperial`() = runTest(dispatcher) {
+        val repository = DistanceUnitRecordingPreferenceRepository(initial = UnitSystem.METRIC)
 
         val vm = viewModel(repository)
         advanceUntilIdle()
 
+        assertEquals(UnitSystem.METRIC, vm.uiState.value.unitSystem)
+        assertEquals("the distance unit is derived from the system, never held separately", DistanceUnit.KILOMETERS, vm.uiState.value.distanceUnit)
+    }
+
+    @Test
+    fun `selecting a system directly updates the derived distance unit and the offline radius default`() = runTest(dispatcher) {
+        val vm = viewModel(DistanceUnitRecordingPreferenceRepository(initial = UnitSystem.IMPERIAL))
+        advanceUntilIdle()
+
+        vm.onUnitSystemSelected(UnitSystem.METRIC)
+
+        assertEquals(UnitSystem.METRIC, vm.uiState.value.unitSystem)
         assertEquals(DistanceUnit.KILOMETERS, vm.uiState.value.distanceUnit)
+        assertEquals(10, vm.uiState.value.offlineMapRadiusKm)
     }
 
     @Test
     fun `selecting a unit updates the UI state immediately`() = runTest(dispatcher) {
-        val repository = DistanceUnitRecordingPreferenceRepository(initial = DistanceUnit.MILES)
+        val repository = DistanceUnitRecordingPreferenceRepository(initial = UnitSystem.IMPERIAL)
         val vm = viewModel(repository)
         advanceUntilIdle()
 
@@ -136,12 +150,12 @@ class AvailabilityViewModelDistanceUnitTest {
      */
     @Test
     fun `the offline map radius starts at 10 km for a persisted kilometres unit and 8 km for miles`() = runTest(dispatcher) {
-        val km = viewModel(DistanceUnitRecordingPreferenceRepository(DistanceUnit.KILOMETERS))
+        val km = viewModel(DistanceUnitRecordingPreferenceRepository(UnitSystem.METRIC))
         advanceUntilIdle()
         assertEquals(10, km.uiState.value.offlineMapRadiusKm)
         assertEquals("10 km", formatDistanceKm(km.uiState.value.offlineMapRadiusKm, km.uiState.value.distanceUnit))
 
-        val mi = viewModel(DistanceUnitRecordingPreferenceRepository(DistanceUnit.MILES))
+        val mi = viewModel(DistanceUnitRecordingPreferenceRepository(UnitSystem.IMPERIAL))
         advanceUntilIdle()
         assertEquals(8, mi.uiState.value.offlineMapRadiusKm)
         assertEquals("5 mi", formatDistanceKm(mi.uiState.value.offlineMapRadiusKm, mi.uiState.value.distanceUnit))
@@ -150,7 +164,7 @@ class AvailabilityViewModelDistanceUnitTest {
     /** While untouched, switching units re-applies the per-unit default: kilometres gives 10 km, not a converted 8. */
     @Test
     fun `switching units while the radius is untouched re-applies the per-unit default`() = runTest(dispatcher) {
-        val vm = viewModel(DistanceUnitRecordingPreferenceRepository(DistanceUnit.MILES))
+        val vm = viewModel(DistanceUnitRecordingPreferenceRepository(UnitSystem.IMPERIAL))
         advanceUntilIdle()
         assertEquals(8, vm.uiState.value.offlineMapRadiusKm)
 
@@ -164,7 +178,7 @@ class AvailabilityViewModelDistanceUnitTest {
     /** Once the user has set the radius it is theirs: a later unit change never moves it. */
     @Test
     fun `a radius the user has set is never moved by a unit change`() = runTest(dispatcher) {
-        val vm = viewModel(DistanceUnitRecordingPreferenceRepository(DistanceUnit.MILES))
+        val vm = viewModel(DistanceUnitRecordingPreferenceRepository(UnitSystem.IMPERIAL))
         advanceUntilIdle()
 
         vm.onOfflineMapRadiusChanged(20)
@@ -175,27 +189,27 @@ class AvailabilityViewModelDistanceUnitTest {
 
     @Test
     fun `selecting a unit persists it through the repository, not just in memory`() = runTest(dispatcher) {
-        val repository = DistanceUnitRecordingPreferenceRepository(initial = DistanceUnit.MILES)
+        val repository = DistanceUnitRecordingPreferenceRepository(initial = UnitSystem.IMPERIAL)
         val vm = viewModel(repository)
         advanceUntilIdle()
 
         vm.onDistanceUnitSelected(DistanceUnit.KILOMETERS)
         advanceUntilIdle()
 
-        assertEquals(listOf(DistanceUnit.KILOMETERS), repository.savedUnits)
+        assertEquals(listOf(UnitSystem.METRIC), repository.savedSystems)
     }
 }
 
 /** Records every [setDistanceUnit] call rather than silently succeeding, so a test can assert persistence actually happened. */
-private class DistanceUnitRecordingPreferenceRepository(initial: DistanceUnit) : DistanceUnitPreferenceRepository {
+private class DistanceUnitRecordingPreferenceRepository(initial: UnitSystem) : UnitSystemPreferenceRepository {
     private var stored = initial
-    val savedUnits = mutableListOf<DistanceUnit>()
+    val savedSystems = mutableListOf<UnitSystem>()
 
-    override suspend fun getDistanceUnit(): Result<DistanceUnit> = Result.success(stored)
+    override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(stored)
 
-    override suspend fun setDistanceUnit(unit: DistanceUnit): Result<Unit> {
-        stored = unit
-        savedUnits += unit
+    override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> {
+        stored = system
+        savedSystems += system
         return Result.success(Unit)
     }
 }

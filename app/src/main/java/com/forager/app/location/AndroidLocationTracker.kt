@@ -9,6 +9,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
@@ -41,6 +42,23 @@ class AndroidLocationTracker(
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
+                // The return-estimate dispatch's instrument walk (owner ruling: "do the per-fix log
+                // first"). Everything the platform reports per fix that this app currently discards
+                // -- provider, Doppler speed and its accuracy, bearing -- logged so one walk with
+                // `adb logcat -s ForagerFix` answers whether this phone's GNSS fixes carry a usable
+                // speed (and whether hasSpeed() == false is the network-fix tell the pre-build
+                // report predicted). hasSpeedAccuracy()/getSpeedAccuracyMetersPerSecond() are API 26,
+                // this app's minSdk. Diagnostic; nothing reads it. Debug level so it costs nothing
+                // in a release build's logcat filter.
+                Log.d(
+                    FIX_LOG_TAG,
+                    "provider=${location.provider} " +
+                        "acc=${if (location.hasAccuracy()) location.accuracy else null} " +
+                        "hasSpeed=${location.hasSpeed()} speed=${if (location.hasSpeed()) location.speed else null} " +
+                        "hasSpeedAccuracy=${location.hasSpeedAccuracy()} " +
+                        "speedAccuracy=${if (location.hasSpeedAccuracy()) location.speedAccuracyMetersPerSecond else null} " +
+                        "hasBearing=${location.hasBearing()} time=${location.time}",
+                )
                 trySend(location.toFix())
             }
 
@@ -73,10 +91,13 @@ class AndroidLocationTracker(
         timestampEpochMillis = time,
     )
 
-    private companion object {
+    internal companion object {
         // The platform's own throttle on how often it invokes the listener at all; the real
         // sampling decision (which of these become a persisted TrackPoint) is LocationSampler's,
         // downstream — this is only a ceiling on how much raw, unfiltered work this stream does.
-        const val MIN_UPDATE_INTERVAL_MILLIS = 1_000L
+        internal const val MIN_UPDATE_INTERVAL_MILLIS = 1_000L
+
+        /** The per-fix instrument log's tag — `adb logcat -s ForagerFix`. */
+        internal const val FIX_LOG_TAG = "ForagerFix"
     }
 }

@@ -82,4 +82,37 @@ class AndroidLocationTrackerTest {
             pending.await(),
         )
     }
+
+    /**
+     * Return-estimate dispatch, the instrument walk: every fix logs what the platform reports and
+     * this app discards — provider, Doppler speed and its accuracy — so one walk with
+     * `adb logcat -s ForagerFix` answers whether this phone's GNSS fixes carry a usable speed. The
+     * fix itself is unchanged by the log (the delivered Update still carries the five fields).
+     */
+    @Test
+    fun `every fix is logged with its provider, speed and speed accuracy for the instrument walk`() = runTest {
+        assertEquals(listOf(LocationFix.PermissionDenied), tracker.fixes.toList())
+        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        val pending = async { tracker.fixes.first() }
+        advanceUntilIdle()
+
+        shadowLocationManager.simulateLocation(
+            Location(LocationManager.NETWORK_PROVIDER).apply {
+                latitude = 45.52
+                longitude = -122.68
+                accuracy = 12.5f
+                speed = 1.2f
+                speedAccuracyMetersPerSecond = 0.3f
+                time = 1_700_000_000_000L
+            },
+        )
+        shadowOf(Looper.getMainLooper()).idle()
+        pending.await()
+
+        val line = org.robolectric.shadows.ShadowLog.getLogsForTag(AndroidLocationTracker.FIX_LOG_TAG).single().msg
+        assertEquals(
+            "provider=network acc=12.5 hasSpeed=true speed=1.2 hasSpeedAccuracy=true speedAccuracy=0.3 hasBearing=false time=1700000000000",
+            line,
+        )
+    }
 }

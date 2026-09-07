@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 
 /**
  * A real round trip through Jetpack DataStore (Robolectric, not a fake) — same discipline
- * [DataStoreDistanceUnitPreferenceRepositoryTest] applies to the sibling preference this mirrors.
+ * [DataStoreUnitSystemPreferenceRepositoryTest] applies to the sibling preference this mirrors.
  * Also covers the migration [DataStoreAppThemePreferenceRepository]'s own doc comment describes:
  * real installs already have this preference stored as a plain boolean (`app_theme.dark`) from
  * before [AppThemeMode.SYSTEM_DEFAULT] existed, and a read has to fall back to that key rather than

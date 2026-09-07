@@ -217,6 +217,7 @@ import com.forager.app.domain.model.CartographyEntry
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DailyWeather
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
 import com.forager.app.domain.model.formatDistanceKm
 import com.forager.app.domain.model.formatDistanceMeters
 import com.forager.app.domain.model.FruitingLagBucket
@@ -2534,24 +2535,30 @@ private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) ->
 }
 
 /**
- * Kilometers or miles for every distance this app displays (search radius, offline-download
- * radius, recent-search cards) — see [DistanceUnit]'s own doc comment for why this is a display
- * preference only, never a change to what's actually searched or downloaded.
+ * Metric or imperial for everything this app displays with a unit — distances (search radius,
+ * offline-download radius, recent-search cards, the HUD) and, since the return-estimate dispatch,
+ * rainfall; see [UnitSystem]'s own doc comment for why this is a system rather than the distance
+ * unit it used to be, and which displays still wait on it. A display preference only, never a
+ * change to what's actually searched or downloaded ([DistanceUnit]'s own doc comment).
+ *
+ * Still parameterised by [DistanceUnit] and still calling `onDistanceUnitSelected`: the two enums
+ * are in bijection, so the existing callback carries the chosen system exactly, and this file's
+ * plumbing keeps its shape while its split is held — see `AvailabilityViewModel.onDistanceUnitSelected`.
  */
 @Composable
 private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelected: (DistanceUnit) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text("Distance Unit", style = MaterialTheme.typography.titleMedium)
-        DistanceUnit.entries.forEach { unit ->
+        Text("Units", style = MaterialTheme.typography.titleMedium)
+        UnitSystem.entries.forEach { system ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(role = Role.RadioButton) { onDistanceUnitSelected(unit) },
+                    .clickable(role = Role.RadioButton) { onDistanceUnitSelected(system.distanceUnit) },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                RadioButton(selected = unit == distanceUnit, onClick = { onDistanceUnitSelected(unit) })
-                Text(unit.label, style = MaterialTheme.typography.bodyLarge)
+                RadioButton(selected = system.distanceUnit == distanceUnit, onClick = { onDistanceUnitSelected(system.distanceUnit) })
+                Text(system.label, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }

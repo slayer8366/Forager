@@ -8,7 +8,7 @@ import com.forager.app.data.repository.DataStoreAppThemePreferenceRepository
 import com.forager.app.data.remote.INaturalistClient
 import com.forager.app.data.remote.OpenMeteoArchiveClient
 import com.forager.app.data.remote.OpenMeteoClient
-import com.forager.app.data.repository.DataStoreDistanceUnitPreferenceRepository
+import com.forager.app.data.repository.DataStoreUnitSystemPreferenceRepository
 import com.forager.app.data.repository.DataStoreMapPreferencesRepository
 import com.forager.app.data.repository.INaturalistMushroomRepository
 import com.forager.app.data.repository.LocalFungiIndexRepository
@@ -49,7 +49,7 @@ import com.forager.app.domain.DeletePlannedTripUseCase
 import com.forager.app.domain.DeleteTrackUseCase
 import com.forager.app.domain.DeleteWaypointUseCase
 import com.forager.app.domain.DetectOffTrackUseCase
-import com.forager.app.domain.DistanceUnitPreferenceRepository
+import com.forager.app.domain.UnitSystemPreferenceRepository
 import com.forager.app.domain.EndTrackUseCase
 import com.forager.app.domain.GetAvailabilityUseCase
 import com.forager.app.domain.GetCartographyDraftEntriesUseCase
@@ -180,7 +180,7 @@ class AppContainer(context: Context) {
     val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
     val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
-    val distanceUnitPreferenceRepository: DistanceUnitPreferenceRepository = DataStoreDistanceUnitPreferenceRepository(context)
+    val unitSystemPreferenceRepository: UnitSystemPreferenceRepository = DataStoreUnitSystemPreferenceRepository(context)
     val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context)
 
     val photoStore: PhotoStore = FilePhotoStore(context)

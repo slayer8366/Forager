@@ -13,6 +13,8 @@ import com.forager.app.domain.model.MgrsCoordinate
 import com.forager.app.domain.model.NoTripWindowReason
 import com.forager.app.domain.model.PlannedTrip
 import com.forager.app.domain.model.TripWindowReport
+import com.forager.app.domain.model.UnitSystem
+import com.forager.app.domain.model.formatRainfall
 import com.forager.app.domain.model.Waypoint
 import kotlin.math.abs
 import kotlin.math.cos
@@ -260,11 +262,11 @@ internal fun accuracyLabel(accuracyMeters: Int?): String =
  * Why no window was found, stated specifically with the numbers behind it — never a bare "none
  * found" (CLAUDE.md: partial or empty results are reported as such).
  */
-internal fun noTripWindowMessage(report: TripWindowReport): String = when (val reason = report.noWindowReason) {
+internal fun noTripWindowMessage(report: TripWindowReport, unitSystem: UnitSystem): String = when (val reason = report.noWindowReason) {
     is NoTripWindowReason.NoQualifyingRainEvent ->
         "No run of rain in the last ${reason.daysExamined} days totaled the " +
-            "${"%.0f".format(reason.requiredTotalMm)}mm this search treats as a soaking event — the " +
-            "wettest run reached ${"%.0f".format(reason.largestRunTotalMm)}mm."
+            "${formatRainfall(reason.requiredTotalMm, unitSystem, metricDecimals = 0)} this search treats as a soaking event — the " +
+            "wettest run reached ${formatRainfall(reason.largestRunTotalMm, unitSystem, metricDecimals = 0)}."
 
     is NoTripWindowReason.LagRangeOutsideHorizon ->
         "The most recent qualifying rain ended ${TRIP_WINDOW_DATE_FORMAT.format(reason.mostRecentEventEnd)}. " +

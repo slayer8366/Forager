@@ -27,6 +27,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.forager.app.BuildConfig
 import com.forager.app.domain.model.ConditionsSummary
 import com.forager.app.domain.model.DistanceUnit
+import com.forager.app.domain.model.UnitSystem
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.NoTripWindowReason
 import com.forager.app.domain.model.PlannedTrip
@@ -165,9 +166,9 @@ private fun sighting(index: Int) = Sighting(
 private val SEARCHED_STATE = AvailabilityUiState(
     region = REGION,
     sightings = List(12) { sighting(it) },
-    // Fixed explicitly — this file's assertions are hardcoded to "15 km" text and have nothing to
-    // do with the km/mi preference, so it must not drift with the default this field carries.
-    distanceUnit = DistanceUnit.KILOMETERS,
+    // Fixed explicitly — this file's assertions are hardcoded to "15 km" and "12.4mm" text, so it
+    // must not drift with the default this field carries; the imperial rainfall case below opts in.
+    unitSystem = UnitSystem.METRIC,
 )
 
 private val CONDITIONS = ConditionsSummary(
@@ -521,6 +522,20 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithText("2 days since last rain.").assertIsDisplayed()
     }
 
+    /**
+     * Return-estimate dispatch, Item 4: the same 12.4 mm reads as tenths of an inch under the US
+     * setting (12.4 / 25.4 = 0.488 → "0.5 in", worked by hand), and the metric string is gone.
+     */
+    @Test
+    fun `the conditions card reads rainfall in inches under the imperial setting`() {
+        setScreen(SEARCHED_STATE.copy(conditions = CONDITIONS, selectedMonth = LocalDate.now().monthValue, unitSystem = UnitSystem.IMPERIAL))
+
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("0.5 in of rain in the last 14 days").assertIsDisplayed()
+        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertDoesNotExist()
+    }
+
     /** The screen's own half of the gate: no conditions in state, no card in the tree. */
     @Test
     fun `the conditions card is absent when the state carries no conditions`() {
@@ -753,7 +768,11 @@ abstract class AvailabilityScreenLayoutTest {
         openToolsDrawer()
         composeRule.onNodeWithText("Settings").assertIsDisplayed().performClick()
 
-        composeRule.onNodeWithText("Distance Unit").assertIsDisplayed()
+        // "Units", not "Distance Unit", since the return-estimate dispatch made the preference a
+        // system (UnitSystem's own doc comment); both systems are offered by their labels.
+        composeRule.onNodeWithText("Units").assertIsDisplayed()
+        composeRule.onNodeWithText("Metric").assertIsDisplayed()
+        composeRule.onNodeWithText("Imperial (US)").assertIsDisplayed()
         composeRule.onNodeWithText("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}")
             .assertIsDisplayed()
     }
