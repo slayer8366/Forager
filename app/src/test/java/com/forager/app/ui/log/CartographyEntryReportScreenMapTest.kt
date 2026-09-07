@@ -318,9 +318,45 @@ class CartographyEntryReportScreenMapTest {
     }
 
     @Test
-    fun `offline regions reach the map's overlay content`() {
+    fun `offline regions reach the map's overlay content when something else resolved alongside them`() {
+        // A waypoint is what makes this entry georeferenced; the region rides along as a circle.
+        // (Plate-pulse follow-up, item 4: this test used to be region-only, and passed because a
+        // region centre counted as content. It no longer does -- see the next test.)
         setScreen(
-            baseEntry.copy(offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.6, lng = -122.6, radiusKm = 10, kept = true))),
+            baseEntry.copy(
+                waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -122.5, kept = true)),
+                offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.6, lng = -122.6, radiusKm = 10, kept = true)),
+            ),
+            CartographyEntryMapData(
+                trackPolylines = emptyList(),
+                findMarkers = emptyList(),
+                waypointMarkers = listOf(LatLng(45.5, -122.5)),
+                photoMarkers = emptyList(),
+                offlineRegionCircles = listOf(com.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10)),
+            ),
+        )
+
+        composeRule.onNodeWithTag(CARTOGRAPHY_MAP_TEST_TAG).assertIsDisplayed()
+        assertEquals(1, capturedContent?.offlineRegionCircles?.size)
+    }
+
+    @Test
+    fun `an entry map asks for no search-centre marker, since its region is a computed midpoint`() {
+        setScreen(baseEntry, mapDataWithWaypoint)
+
+        assertEquals(false, capturedRenderMode?.showSearchCentre)
+        // Unchanged alongside it -- the flag is its own, not inferred from this one.
+        assertEquals(false, capturedRenderMode?.trackLiveLocation)
+    }
+
+    @Test
+    fun `a kept offline region alone renders no map section`() {
+        // Owner ruling (plate pulse, item 4): a green circle with nothing in it is not a day.
+        setScreen(
+            baseEntry.copy(
+                text = "Downloaded the ridge, never walked it.",
+                offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.6, lng = -122.6, radiusKm = 10, kept = true)),
+            ),
             CartographyEntryMapData(
                 trackPolylines = emptyList(),
                 findMarkers = emptyList(),
@@ -330,7 +366,46 @@ class CartographyEntryReportScreenMapTest {
             ),
         )
 
-        composeRule.onNodeWithTag(CARTOGRAPHY_MAP_TEST_TAG).assertIsDisplayed()
-        assertEquals(1, capturedContent?.offlineRegionCircles?.size)
+        composeRule.onNodeWithTag(CARTOGRAPHY_MAP_TEST_TAG).assertDoesNotExist()
+        assertEquals(null, capturedContent)
+        composeRule.onNodeWithText("Downloaded the ridge, never walked it.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the offline coverage check is asked about the day's own points, never a region's own centre`() {
+        // Before this, allPoints (region centres included) was passed, so any kept region trivially
+        // "covered" the entry through its own centre. Coverage means the day's data sits on the
+        // region's tiles, so only drawable points may reach the check.
+        var pointsAsked: List<LatLng>? = null
+        val waypoint = LatLng(45.5, -122.5)
+        composeRule.setContent {
+            CartographyEntryReportScreen(
+                entry = baseEntry.copy(
+                    waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -122.5, kept = true)),
+                    offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.6, lng = -122.6, radiusKm = 10, kept = true)),
+                ),
+                galleryPhotos = emptyList(),
+                distanceUnit = DistanceUnit.MILES,
+                mapSlot = capturingMapSlot,
+                night = false,
+                getMapData = { _, _ ->
+                    CartographyEntryMapData(
+                        trackPolylines = emptyList(),
+                        findMarkers = emptyList(),
+                        waypointMarkers = listOf(waypoint),
+                        photoMarkers = emptyList(),
+                        offlineRegionCircles = listOf(com.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10)),
+                    )
+                },
+                getCoveringOfflineRegion = { _, points -> pointsAsked = points; null },
+                getCurrentLocation = { LocationResult.LocationUnavailable },
+                onEdit = {},
+                onDeleteEntry = {},
+                onBack = {},
+            )
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(waypoint), pointsAsked)
     }
 }

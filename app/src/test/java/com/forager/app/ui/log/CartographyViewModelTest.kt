@@ -78,8 +78,12 @@ class CartographyViewModelTest {
      */
     private var nextEntryId = 0
 
+    /** The clock [SaveCartographyEntryUseCase] stamps with — advanced by a test that asserts the stamp, so it can be told apart from [FIXED_NOW]. */
+    private var saveNow = FIXED_NOW
+
     @Before
     fun setUp() {
+        saveNow = FIXED_NOW
         Dispatchers.setMain(dispatcher)
         // A direct (synchronous, same-thread) executor for both query and transaction work — Room's
         // real executors run on genuine background threads, which advanceUntilIdle()'s *virtual*
@@ -104,7 +108,7 @@ class CartographyViewModelTest {
             getEntries = GetCartographyEntriesUseCase(cartographyEntryRepository),
             getDraftEntries = GetCartographyDraftEntriesUseCase(cartographyEntryRepository),
             createEntry = CreateCartographyEntryUseCase(cartographyEntryRepository, now = { FIXED_NOW }, idGenerator = { "entry-${nextEntryId++}" }),
-            saveEntry = SaveCartographyEntryUseCase(cartographyEntryRepository),
+            saveEntry = SaveCartographyEntryUseCase(cartographyEntryRepository, now = { saveNow }),
             getEntry = GetCartographyEntryUseCase(cartographyEntryRepository),
             commitEntry = CommitCartographyEntryUseCase(cartographyEntryRepository, now = { FIXED_NOW }),
             deleteEntry = DeleteCartographyEntryUseCase(cartographyEntryRepository),
@@ -461,10 +465,16 @@ class CartographyViewModelTest {
             viewModel.uiState.value.entries.first { it.id == entryId }.text,
         )
 
+        saveNow = FIXED_NOW + 5_000L
         viewModel.onSaveEntry()
         advanceUntilIdle()
 
         assertFalse("Save must clear the dirty flag", viewModel.uiState.value.hasUnsavedChanges)
+        // Plate-pulse follow-up, owner ruling on item 2: the save is a modification, and the
+        // modification time must say so -- on disk, in the Entries list, and on the open entry.
+        assertEquals(FIXED_NOW + 5_000L, repository.getById(entryId).getOrThrow()?.updatedAtEpochMillis)
+        assertEquals(FIXED_NOW + 5_000L, viewModel.uiState.value.entries.first { it.id == entryId }.updatedAtEpochMillis)
+        assertEquals(FIXED_NOW + 5_000L, viewModel.uiState.value.editingEntry?.updatedAtEpochMillis)
         assertEquals(
             "Save must persist the edit to the database",
             "Edited after commit.",

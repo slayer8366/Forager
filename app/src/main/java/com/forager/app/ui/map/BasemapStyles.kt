@@ -1,5 +1,9 @@
 package com.forager.app.ui.map
 
+import com.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
+import com.forager.app.map.OFFLINE_STYLE_URL
+import com.forager.app.ui.theme.MapPalette
+
 /**
  * The one place a [Basemap] becomes a MapLibre style — this project's own analog of the deleted
  * `BasemapTileSources.kt`, which did the same job for osmdroid's `ITileSource`.
@@ -88,6 +92,56 @@ internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String = ""
       ]
     }
 """.trimIndent()
+
+/**
+ * Which style document [SightingsMap] hands to `Style.Builder` — Stage 2e-ii's one decision, as a
+ * value rather than a `Style.Builder` so it can be asserted in a plain JVM test
+ * (`OfflineStyleSwapTest`), the same boundary [styleJsonFor]/`BasemapStyleTest` already draw.
+ *
+ * [Json] is the in-app raster style for a [Basemap], loaded with `fromJson`. [Uri] is a style
+ * loaded **by URL**, which is the only way MapLibre's offline database can serve it: the store
+ * keys the style document by the URL it was downloaded against (`OfflineStyle.kt`), so a `fromJson`
+ * copy of the offline style's content would never ask the store for that resource. The tiles would
+ * still be found by their own URLs, but the app would be rendering a copied style free to drift
+ * from the one the download stored.
+ */
+sealed interface MapStyleSource {
+    data class Json(val json: String) : MapStyleSource
+    data class Uri(val uri: String) : MapStyleSource
+}
+
+/**
+ * The offline style when [useOfflineTiles] is on, regardless of [basemap] and [night]; the
+ * basemap's own raster style otherwise. **Night is deliberately inert on the offline style** (owner
+ * ruling, 2e-ii: report what the user sees, do not fix): `NIGHT_RASTER_PAINT` is a raster paint
+ * block on the raster layer, and the offline style has 57 vector layers and no raster layer, so
+ * there is nothing for it to apply to. A user with Night Maps on will see the day palette of the
+ * offline style. Stated here so it is a known limitation, not a surprise.
+ */
+internal fun mapStyleSourceFor(basemap: Basemap, night: Boolean, useOfflineTiles: Boolean): MapStyleSource =
+    if (useOfflineTiles) MapStyleSource.Uri(OFFLINE_STYLE_URL) else MapStyleSource.Json(styleJsonFor(basemap, night))
+
+/**
+ * The always-visible credit for what the map is currently drawing — the offline style's own when
+ * it is showing (a licensing obligation, see [OFFLINE_STYLE_ATTRIBUTION]), the [Basemap]'s
+ * otherwise. Before 2e-ii the caption read [Basemap.attribution] unconditionally, which over
+ * offline tiles would have credited OpenTopoMap for Protomaps geometry.
+ */
+internal fun mapAttributionFor(basemap: Basemap, useOfflineTiles: Boolean): String =
+    if (useOfflineTiles) OFFLINE_STYLE_ATTRIBUTION else basemap.attribution
+
+/**
+ * Everything that, when it changes, means [SightingsMap] must call `setStyle` again — the
+ * basemap swap's guard, as a value. Before 2e-ii the guard compared basemap and palette only
+ * (`appliedBasemap == basemap && appliedPalette == mapPalette`), so an offline flag flipping on its
+ * own would never have reached `setStyle` — the one place the pre-build report said a "toggle does
+ * nothing" bug would come from (§2.2). Extracted so that gap is pinned by a test rather than by
+ * reading the effect's keys.
+ */
+internal data class AppliedMapStyle(val basemap: Basemap, val palette: MapPalette, val useOfflineTiles: Boolean)
+
+/** `true` when nothing has been applied yet, or when any part of [requested] differs from what was. */
+internal fun needsStyleReload(applied: AppliedMapStyle?, requested: AppliedMapStyle): Boolean = applied != requested
 
 /** The id every basemap's raster source/layer is added under — fixed, since a style swap replaces the whole style object anyway. */
 internal const val RASTER_SOURCE_ID = "basemap"
