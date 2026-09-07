@@ -326,3 +326,20 @@ Supplied after this report was filed: a screenshot of the Maps tab in airplane m
 3. **The two halves are one raster style at two zooms.** Sharp where the device had fetched OpenTopoMap at high zoom while online; blurry where only coarser tiles were ever cached and MapLibre is overzooming a parent tile across the gap — the exact pattern `2026-08-28-raster-capture-path-report.md:118-122` describes for the raster ambient cache.
 
 So the sharp area is not the region; it is the cache at high zoom. The downloaded region has not yet drawn on any screen, for the reason in §"The one thing to read first". A render from the region will show shapes with no words, under a Protomaps/OpenStreetMap credit; a label anywhere on an offline map is the cache. Airplane mode plus Clear cache cannot separate the two on this build (§1.3); the §5.2 procedure can, once the swap exists.
+
+---
+
+## Retraction of the amendment (owner, 2026-09-07), and the build decisions
+
+Recorded verbatim in substance, kept rather than deleted, at the owner's instruction — "a useful record of how a good test can prove nothing."
+
+**The owner's retraction.** The device pass was run on `main`. No build that loads the offline style exists; that is what 2e-ii is. The finding in §"The one thing to read first" therefore stands and the amendment was wrong. In the owner's words: "I wrote it up as confirmed because the method was sound, and I never checked whether the app could load the offline style at all. The test eliminated the network and the cache; it couldn't eliminate a premise nobody had verified." The August confirmation (§addendum above, and the 2026-08-28 reports) established that regions download and survive, not that any map renders from them.
+
+**The gate, restated as the owner adopted it.** Raster ambient tiles cannot serve a vector style, so once the swap exists any vector render offline is proof by structure, not by trusting a cache clear. The build is the precondition for its own gate; the owner ruled that circularity acceptable because the elimination makes the post-build check decisive.
+
+**Decisions, for the build that follows this report:**
+
+1. **Manual swap, on the report screen's existing toggle.** Automatic needs connectivity code that does not exist; building it to serve this would be a second feature. The offline flag joins the swap effect's keys and guard. Choose-at-first-load rejected: it would disable the toggle while the map is live.
+2. **Attribution shows the offline style's own credit when it is showing:** "Protomaps © OpenStreetMap". A licensing obligation, not a preference.
+3. **Night mode and max zoom: report what the user sees, do not fix.** An inert night toggle on the offline style is to be stated, not silently left.
+4. **The picker's pinned basemap stays.** Separate change.
