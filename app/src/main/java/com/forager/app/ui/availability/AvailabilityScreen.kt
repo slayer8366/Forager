@@ -284,6 +284,7 @@ import com.forager.app.ui.theme.Bark
 import com.forager.app.ui.theme.Cream
 import com.forager.app.ui.theme.LocalForagerDarkTheme
 import com.forager.app.ui.theme.Spacing
+import com.forager.app.ui.track.TripStartWarning
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Month
@@ -582,6 +583,13 @@ fun AvailabilityScreen(
     onToggleRecording: () -> Unit = {},
     /** Set when the most recent [onToggleRecording]-triggered start failed or was refused — shown as a one-shot Toast in [CompactMapTab], the same [LaunchedEffect]-on-a-status-field shape as its existing `locateMeStatus` Toast. */
     startRecordingErrorMessage: String? = null,
+    /**
+     * Alert-delivery dispatch, Item 3: the one-time silenced-phone warning for the recording that
+     * just started — shown once as a `SnackbarDuration.Long` Snackbar in the map Scaffold's existing
+     * host, no action button (the copy never tells the user to change a setting). Keyed on its id so
+     * the same text re-shows on a later trip. See [com.forager.app.ui.track.TrackRecordingUiState.tripStartWarning].
+     */
+    tripStartWarning: TripStartWarning? = null,
     /**
      * The active track's recorded points, oldest first — see [com.forager.app.ui.map.MapSlot]'s own
      * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
@@ -934,6 +942,15 @@ fun AvailabilityScreen(
     // wrapper, since there is no window left to show a Snackbar in by the time that fires.
     val logDraftSnackbarHostState = remember { SnackbarHostState() }
     val logDraftSnackbarScope = rememberCoroutineScope()
+    // Alert-delivery dispatch, Item 3: the trip-start audibility warning shares this host — a host
+    // is a slot, not a message — rather than adding a second surface over the map. A foreground
+    // moment by construction (the user just tapped record), so a composed effect is the right
+    // place for it, unlike the off-track alert it warns about.
+    LaunchedEffect(tripStartWarning?.id) {
+        tripStartWarning?.let { warning ->
+            logDraftSnackbarHostState.showSnackbar(message = warning.message, duration = SnackbarDuration.Long)
+        }
+    }
     val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
         val discardedId = logUiState.editingEntry?.id
         onLeaveLogEntryEditingIncidentally()
