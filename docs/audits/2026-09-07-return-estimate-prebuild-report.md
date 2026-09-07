@@ -268,11 +268,11 @@ Not run for this report — nothing changed. `main` at `bc72811` is PR #75's hea
 
 **Confirmed from the code on `bc72811`:** the five-field fix and point types and the tracker's mapping that discards speed, bearing and provider; the sampler's two-threshold rule; the statistics pass and its hysteresis; the straight-line return use case; the origin use case's three `null` cases; the 15 s poll and 20-point flush; the read seam's exclusion and its three predicates and thresholds; the off-track window's shape; `GeoDistance`'s function set; the schema version and the point entity's columns; the constructor-site counts; the seven rainfall sites, the soil-temperature site and the three elevation sites with their exact strings; the API declarations' lack of unit parameters; the domain rain thresholds; the HUD's freshness strings and the compass band. **Confirmed from the installed SDK by `javap`:** `Location.hasSpeed/getSpeed/hasSpeedAccuracy/getSpeedAccuracyMetersPerSecond/getBearing`. **Confirmed from git:** `main`'s SHA after the merge.
 
-**Inferred:** that GNSS fixes on this app's target devices report `hasSpeed() == true` and the network provider does not (platform behaviour; device only); Doppler speed accuracy at walking pace; Open-Meteo's default units (its documentation, not this repo); the implied-speed arithmetic in §2.4 (worked by hand from the mode constants); Naismith's rule as the customary elevation correction; haversine cost per evaluation (order-of-magnitude reasoning, not measured).
+**Inferred:** that GNSS fixes on this app's target devices report `hasSpeed() == true` and the network provider does not (platform behaviour; device only — **confirmed on the owner's device, 344/344, by the walk: see the addendum below**; still one device); Doppler speed accuracy at walking pace (**measured by the walk: 0.72 m/s on moving fixes**); Open-Meteo's default units (its documentation, not this repo); the implied-speed arithmetic in §2.4 (worked by hand from the mode constants); Naismith's rule as the customary elevation correction; haversine cost per evaluation (order-of-magnitude reasoning, not measured).
 
 ### What I could not determine
 
-- Whether this phone's fixes carry a usable Doppler speed — the one device question that decides §2.1's proposal. One walk with a per-fix log answers it.
+- Whether this phone's fixes carry a usable Doppler speed — the one device question that decides §2.1's proposal. One walk with a per-fix log answers it. **Answered by the walk (addendum below): populated on every GPS fix; per-fix accuracy 0.72 m/s, above the ~0.5 m/s bar §2.1 named — see the addendum for what that leaves open.**
 - Real altitude coverage on real tracks, which decides whether an elevation correction is ever worth building.
 - The geometry of the owner's actual trails (switchbacks or not), which decides how much §5's first error matters in practice.
 - Whether the sampler's first-point-after-a-stop carries a slow Doppler speed often enough to need its own handling.
@@ -303,12 +303,12 @@ Recorded the same day, after the owner read the report. Rulings are the owner's;
 1. **Position-to-track mapping: most-recent-point.** "Its error is never short, and that's the only property that matters in a safety input." To be recorded at the site, because nearest-point will look like an obvious improvement to someone later.
 2. **The off-track hop: straight line, and it triggers the degraded form beyond a threshold** (proposed below). The only thing available, and short by nature; anything past the threshold reads "at least X".
 3. **The origin's last hop: include it** when an origin waypoint exists and differs from the first surviving point. Omitting it is short.
-4. **Moving floor: 0.5 m/s**, the middle of the 0.3–0.7 m/s band §2.4 established, with the band itself recorded at the constant so a later tuner knows the bounds.
+4. **Moving floor: 0.5 m/s**, the middle of the 0.3–0.7 m/s band §2.4 established, with the band itself recorded at the constant so a later tuner knows the bounds. **The constant's comment must also carry (Action 5 of the walk findings, `2026-09-07-fix-log-walk-findings.md`):** on the owner's walk of 2026-09-07 the floor was insensitive across the whole band — 0.3, 0.5 and 0.7 m/s kept 217, 211 and 194 of 289 GPS fixes with the kept average moving by 0.01 m/s per step — because the speed histogram is bimodal (a cluster at 0.0, a cluster around 1.0, the floor in the trough); **1.0 m/s is the boundary of the safe range**: it kept 40 of 289, discarding 86 % of a real walk. One walk, one walker.
 5. **"Enough": in accumulated moving time**, not point count. Owner's instinct five minutes; the number and reasoning proposed below.
 6. **Degrade thresholds:** proposed below.
 7. **Inch precision: tenths with a trace floor**, as proposed. Built (completion report).
 8. **Units system: introduce the preference and derive distance from it.** Widening the distance preference's meaning would keep a wrong name on a growing responsibility, and this is the third miss. Built here; rainfall converted; soil temperature and elevation wait on it, reported (completion report).
-9. **Speed columns: authorised, conditional on the walk.** The per-fix log first (built, completion report). If Doppler speed is populated, build on it; the `hasSpeed() == false` tell for network fixes is worth recording either way.
+9. **Speed columns: authorised, conditional on the walk.** The per-fix log first (built, completion report). If Doppler speed is populated, build on it; the `hasSpeed() == false` tell for network fixes is worth recording either way. **Condition met (addendum below): populated on 289/289 GPS fixes, `hasSpeed=false` on 55/55 network fixes. Authorised, with one number the addendum puts to the owner before the build.**
 10. **Naismith stays reported.** The alert's margin absorbs terrain; a correction now would double-count.
 
 ### Proposal 1 — the off-track hop threshold
@@ -335,6 +335,8 @@ Three further reasons five minutes is the right order and not, say, one or fifte
 - **Below it the default is doing the honest job.** 3.2 km/h is deliberately slow; during the first five minutes nobody is near a turnaround, so the cost of the default being slow is nil and the cost of a bad early measurement is a wrong number the user might act on.
 - **At the switch the estimate can move, and five minutes bounds the move.** A typical measured walking speed on a trail is 3.6–5 km/h (general knowledge, not from this codebase); replacing 3.2 km/h with 4.5 km/h shortens the estimate by ~30 % in one step. That is a visible jump and, because the measured figure is faster, it is a jump in the short direction — which is why the switch must not happen on thin data, and why §3's "at least" should persist for a while past it (Proposal 3).
 - **With Doppler speed, five minutes is generous.** Sixty samples at ~0.3 m/s accuracy give a standard error under 0.05 m/s; one minute would already do. Five minutes is chosen for the point-differencing fallback and for BATTERY_SAVER, where it is the minimum that gives five kept pairs. One bar for every mode and both instruments, rather than a table the user cannot see.
+
+**The default-speed constant's comment must carry (Action 4 of the walk findings):** on the owner's walk of 2026-09-07 the average Doppler speed of the 211 GPS fixes at or above the 0.5 m/s floor was **0.890 m/s = 1.99 mph**, against the 2 mph default argued from foraging behaviour before any data existed. One walk, one walker — an agreement, not a calibration. The same walk turned 4.8 min of wall clock into 3.5 min of moving time, so at that stop ratio the five-minute bar needs about seven minutes of walking and a real trip, with a forager stopping at finds, longer — the default will be the figure in use far more often than the bar suggests, which is why this measurement matters.
 
 **A note the build must carry:** GPS jitter inflates a differenced path — a stationary receiver "walks" a few metres between fixes, and a moving one records a slightly longer path than the ground walked. That inflates measured speed (short direction) *and* the remaining path length (long direction), and the two partly cancel in distance ÷ speed. Doppler speed does not inflate, so with it the remaining path's inflation is uncancelled and the estimate leans long. Both are safe or neutral; recorded so nobody "corrects" one without the other.
 
@@ -366,3 +368,35 @@ All three proposals accepted as stated: the 50 m / 25 m off-track band, five min
 **On the revert check's finding:** the owner ranks it above the build — a test that passed with the fallback removed because imperial is also the default was asserting a coincidence, the exact pattern CLAUDE.md warns about, caught here by reading the runner's count against the prediction rather than by the runner. **It is the second time this project has found a test that could not distinguish two mechanisms** (the first: the compass-reliability revert whose "failures" belonged to a different edit — CLAUDE.md, Testing). Asserting the migration log line is the accepted fix.
 
 **Next:** the instrument walk, `adb logcat -s ForagerFix`, on the owner's device. Two things decide the speed columns: whether GNSS fixes carry `hasSpeed=true` with accuracy under about half a metre per second, and whether `hasSpeed=false` lines up with `provider=network`. The second is worth having regardless, as an independent confirmation of the timestamp rule from a different signal.
+
+### Walk result (same day, filed on `8eacc91`)
+
+The instrument walk was done on the owner's device with the per-fix log from PR #76; the planner's
+analysis and the coder's reproduction of every figure from the raw log are in
+`2026-09-07-fix-log-walk-findings.md`. What it settles for this report:
+
+- **The provider/`hasSpeed` correlation is confirmed, not inferred: 344/344 unique fixes, gps→`true`
+  289, network→`false` 55, zero exceptions.** The "Inferred" line above and the "could not
+  determine" bullet are amended in place to say so. The condition on ruling #9 is met and the
+  instruction to wait on the walk is withdrawn. **What is kept:** this is one device. It is not
+  established across hardware, and the beta is the place that settles that — the same standing the
+  timestamp discriminator has, which this walk confirmed again, independently, on the same 344
+  fixes (`hasSpeed` and `time % 1000 == 0` never disagree).
+- **The one thing the walk did not settle as §2.1 framed it:** §2.1's bar was an accuracy "under
+  about half a metre per second"; the device reports 0.72 m/s on every moving fix, 0.07 on nearly
+  every stopped one. Averaged over the five-minute bar that is a standard error near 0.05 m/s, which
+  is what Proposal 2 wanted; per fix it is useless. Whether the averaged reading is enough to build
+  the pace on Doppler speed, as proposed, is put to the owner in the findings file's coder's note
+  and is the first question of the Items 1–3 dispatch, not decided here.
+- **A finding the dispatch did not ask for and that outranks the one it did:** GPS horizontal
+  accuracy on this device is a constant, `3.7900925`, on all 289 GPS fixes. The live-fix gate and
+  the HUD's honest-precision formatter both read a field with no signal in it on this device; the
+  notes are on `acceptLiveFix` and `formatDistanceWithAccuracy`, and the beta trip report now asks
+  the one question a tester can answer about it. Nothing in this report's proposals reads the
+  accuracy field except Proposal 1's *reasoning* for 50 m, which stands on the gate's ceiling as a
+  number, not on any fix's reported accuracy.
+- **Unchanged by the walk, per the findings' Action 6:** the 0.5 m/s floor, the five-minute bar, and
+  the no-stop-allowance reasoning (the walk broke into 18 runs, the longest stop 28 s — stopping is
+  the normal conduct the ruling assumed). The two measurements the constants' comments must carry
+  are recorded above on ruling #4 and Proposal 2, since neither constant exists in code yet.
+
