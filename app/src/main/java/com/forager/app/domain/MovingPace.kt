@@ -175,7 +175,13 @@ data class MovingPace(
     /** Duration-weighted Doppler average over counted samples; `null` with none. */
     val dopplerSpeed: Double? get() = if (dopplerMovingMillis > 0L) dopplerWeightedSpeedSum / dopplerMovingMillis else null
 
-    /** Which instrument the bar admits — see [movingPace], "Which instrument governs". */
+    /**
+     * Which instrument the bar admits — see [movingPace], "Which instrument governs". Safe only
+     * while [MEASURED_PACE_MIN_MOVING_MILLIS] is positive: the reverted-variant check that zeroed
+     * the bar made `dopplerMovingMillis >= 0` true for a track with no Doppler sample at all, and
+     * [speedMetersPerSecond] then threw on [dopplerSpeed]. A zero bar is not a value anyone would
+     * set, so no guard — but whoever tunes the bar should know the edge is there.
+     */
     val source: PaceSource get() = when {
         dopplerMovingMillis >= MEASURED_PACE_MIN_MOVING_MILLIS -> PaceSource.DOPPLER
         movingMillis >= MEASURED_PACE_MIN_MOVING_MILLIS -> PaceSource.DIFFERENCING

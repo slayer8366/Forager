@@ -144,7 +144,53 @@ tests' comments is the arithmetic, not a description of it.
 
 **The chain edits:** ten migration tests gained one migration in their `addMigrations(...)` list.
 
-{{VERIFICATION}}
+## Verification
+
+### Reverted-variant checks
+
+Runner discipline, per CLAUDE.md: each revert is a one-line edit applied by exact string
+replacement (asserted to match once); the file is copied aside **before** the edit and restored
+**from that copy**, never from git; the gradle log is checked for compile errors before any XML is
+read, and XML older than the run's start is refused; after restoring, the file is compared byte for
+byte with the saved copy; `git status` after the last restore was clean. Every run compiled; every
+XML was fresh; every restore was identical. The same seven classes ran each time (`PathHomeTest`,
+`MovingPaceTest`, `ReturnWalkingTimeTest`, `RoomTrackRepositoryTest`, `TrackPointSpeedMigrationTest`,
+`AndroidLocationTrackerTest`, `LocationFixToTrackPointTest`; 46 tests), green on the forward build
+first (the baseline run in the same runner).
+
+| Revert (one line) | Predicted failures | Actual | Match | The failure's message, which only this edit produces |
+|---|---|---|---|---|
+| A `PathHome`: hop never omitted (`< HOP_OMIT_BELOW_METERS` → `< 0.0`) | 1 | 1 | yes | `expected:<0.0> but was:<20.015114442068285>` — the 20 m hop counted |
+| B `PathHome`: hop never far (`> HOP_DEGRADE_ABOVE_METERS` → `> Double.MAX_VALUE`) | 2 | 2 | yes | `expected:<[FAR_FROM_TRACK]> but was:<[]>` |
+| C `MovingPace`: floor removed (`< MOVING_SPEED_FLOOR…` → `< 0.0`) | 5 | 5 | yes | stability: `expected:<1.0007557…> but was:<0.555975…>` — the stop folded in; walking time `expected:<1200000> but was:<1680000>` — eight minutes of stop added; photographer `expected:<39> but was:<40>` |
+| D `MovingPace`: bar zeroed (`MEASURED_PACE_MIN_MOVING_MILLIS = 0L`) | 5 | **9** | **no — see below** | `expected:<DIFFERENCING> but was:<DOPPLER>` ×2, `expected:<DEFAULT> but was:<DOPPLER>` ×2, `NullPointerException` ×5 |
+| E `ReturnWalkingTime`: stale degrade removed (`== STALE` → `== LOST`) | 1 | 1 | yes | `expected:<[STALE_FIX]> but was:<[]>` |
+| F `RoomTrackRepository`: read maps speed to `null` | 2 | 2 | yes | the full `TrackPoint` list with `speedMetersPerSecond=null` where `0.87` / `0.96` were stored |
+| G `AndroidLocationTracker`: `speedMetersPerSecond = null` | 1 | 1 | yes | the `Update` with `speedMetersPerSecond=null` against `0.96` |
+| H `toTrackPoint()`: speed dropped | 1 | 1 | yes | the `TrackPoint` with `speedMetersPerSecond=null` against `0.96` |
+
+**Revert D did not match, and the discrepancy is mine, not the runner's.** I predicted that a
+zero bar would let differencing and Doppler qualify early, failing the five tests that assert the
+default below five minutes. What a zero bar actually does is make `dopplerMovingMillis >= 0L` true
+for *every* track, including one with no Doppler sample at all, so every track became
+Doppler-sourced and `dopplerSpeed!!` threw where no sample existed — nine failures, four on the
+source and five NPEs. **Each of the nine is a failure this edit produces and no other edit could**
+(no other revert touches `source`; the NPEs are all in `speedMetersPerSecond`'s `!!`), the build
+compiled, and the XML was fresh — so the check ran and its result is attributable; what was wrong
+was my reading of my own guard. Recorded rather than re-predicted after the fact. It says one
+thing about the code worth keeping: `source` is safe only because the real bar is positive, and a
+future edit that lowers it to zero would crash rather than degrade. Not changed here — a zero bar
+is not a value anyone would set, and a guard for it would be speculative logic — but noted at the
+constant's reader for whoever tunes it.
+
+**Not revertible in one line, and so not checked this way:** the most-recent-point rule. A
+nearest-point variant needs the track distance summed up to the nearest index, several lines; the
+doubled-back test asserts the whole-track figure (555.975 m) against the straight-line one
+(111.195 m), which is the property, and would fail against any nearest-point implementation that
+measured from the nearest index. Said plainly: that test's bite is argued, not demonstrated.
+
+{{SUITE}}
+
 
 ---
 
