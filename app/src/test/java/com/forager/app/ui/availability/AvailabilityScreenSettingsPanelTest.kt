@@ -469,6 +469,27 @@ class AvailabilityScreenSettingsPanelTest {
         assertTrue(inner?.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM) != null)
     }
 
+    /**
+     * Timestamp-filter dispatch, Item 3: a track the read seam emptied is never a silent "0 points"
+     * row — it says what happened. Literal copy. Fails with the note removed from trackSubtitle.
+     */
+    @Test
+    fun `Recorded Tracks names an emptied track instead of showing zero points`() {
+        val emptied = Track(
+            id = "track-1",
+            name = null,
+            startedAtEpochMillis = TRACK_STARTED_AT,
+            endedAtEpochMillis = TRACK_STARTED_AT + 60_000L,
+            points = emptyList(),
+            excludedPointCount = 12,
+        )
+        setScreen(tracks = listOf(emptied))
+        openRecordedTracksSubTab()
+
+        composeRule.onNodeWithText("No usable points — all 12 fixes were from the network provider").assertIsDisplayed()
+        composeRule.onAllNodesWithText("0 points", substring = true).assertCountEquals(0)
+    }
+
     /** No recording in progress, no tap yet — nothing should have started an activity. */
     @Test
     fun `Recorded Tracks starts nothing until the share action is actually tapped`() {

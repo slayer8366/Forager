@@ -7,7 +7,9 @@ import com.forager.app.domain.AlertAudibility
 import com.forager.app.domain.AlertDelivery
 import com.forager.app.domain.AlertKind
 import com.forager.app.domain.ComputeReturnToStartUseCase
+import com.forager.app.domain.NETWORK_FIXES_RECORDING_NOTICE
 import com.forager.app.domain.alertAudibilityWarning
+import com.forager.app.domain.isMostlyNetworkFixes
 import com.forager.app.domain.CreateWaypointUseCase
 import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.DeleteWaypointUseCase
@@ -143,7 +145,8 @@ class TrackRecordingViewModel(
     // second fix arriving during the origin's own async save from creating a second origin.
     private var lastGatedFix: TrackPoint? = null
     private var originCreationInFlight = false
-    private var tripStartWarningIds = 0
+    private var recordingNoticeIds = 0
+    private var networkFixesNoticeShown = false
 
     init {
         loadWaypoints()
@@ -162,6 +165,7 @@ class TrackRecordingViewModel(
                 .onSuccess { track ->
                     lastGatedFix = null
                     originCreationInFlight = false
+                    networkFixesNoticeShown = false
                     // Alert-delivery dispatch, Item 3: "the start of a trip" is here — the user
                     // just chose to rely on the app, and the screen is on because they tapped.
                     // Read once; a phone silenced later in the trip is not re-checked (Item 3.5).
@@ -172,7 +176,8 @@ class TrackRecordingViewModel(
                             startRecordingErrorMessage = null,
                             breadcrumbPoints = emptyList(),
                             originWaypoint = null,
-                            tripStartWarning = warning?.let { message -> TripStartWarning(++tripStartWarningIds, message) },
+                            tripStartWarning = warning?.let { message -> RecordingNotice(++recordingNoticeIds, message) },
+                            networkFixesNotice = null,
                         )
                     }
                     beginPolling(track.id)
@@ -272,6 +277,13 @@ class TrackRecordingViewModel(
             while (true) {
                 trackRepository.getById(trackId).onSuccess { track ->
                     _uiState.update { it.copy(breadcrumbPoints = track?.points.orEmpty()) }
+                    // Timestamp-filter dispatch, Item 3: once per recording, the moment the read
+                    // seam is seen to be excluding most of this track — see isMostlyNetworkFixes for
+                    // why the threshold also waits for ten stored points before it can fire.
+                    if (track != null && !networkFixesNoticeShown && track.isMostlyNetworkFixes()) {
+                        networkFixesNoticeShown = true
+                        _uiState.update { it.copy(networkFixesNotice = RecordingNotice(++recordingNoticeIds, NETWORK_FIXES_RECORDING_NOTICE)) }
+                    }
                 }
                 delay(POLL_INTERVAL_MILLIS)
             }

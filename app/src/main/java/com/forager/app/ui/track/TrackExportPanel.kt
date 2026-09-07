@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.forager.app.domain.model.Track
+import com.forager.app.domain.networkFixExclusionNote
 import com.forager.app.export.TrackGpxExporter
 import com.forager.app.ui.theme.Spacing
 import java.io.File
@@ -100,10 +101,21 @@ private fun TrackExportRow(track: Track) {
     }
 }
 
-private fun trackSubtitle(track: Track): String {
+/**
+ * "N points", plus — only when the read seam excluded most or all of the track as network-provider
+ * fixes (timestamp-filter dispatch, Item 3) — what it left out, so a short or empty track is never a
+ * silent one. The ordinary track, including one the rule quietly cleaned, reads exactly as before.
+ */
+internal fun trackSubtitle(track: Track): String {
     val pointCount = track.points.size
     val pointsText = if (pointCount == 1) "1 point" else "$pointCount points"
-    return if (track.endedAtEpochMillis == null) "$pointsText · recording" else pointsText
+    val note = networkFixExclusionNote(track)
+    val body = when {
+        note != null && pointCount == 0 -> note
+        note != null -> "$pointsText · $note"
+        else -> pointsText
+    }
+    return if (track.endedAtEpochMillis == null) "$body · recording" else body
 }
 
 private fun formatTrackTimestamp(track: Track): String =

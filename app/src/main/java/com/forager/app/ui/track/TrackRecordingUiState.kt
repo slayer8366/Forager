@@ -67,7 +67,7 @@ data class TrackRecordingUiState(
      * Alert-delivery dispatch, Item 3: the one-time "your phone is silenced" warning for the
      * recording that just started, or `null` when the device would deliver an alert normally. Set
      * by [TrackRecordingViewModel.startRecording] from [com.forager.app.domain.alertAudibilityWarning]
-     * and shown once as a Snackbar over the map. Carries an [TripStartWarning.id] that increments
+     * and shown once as a Snackbar over the map. Carries an [RecordingNotice.id] that increments
      * per recording so the *same* text on a later trip re-shows — the same "event, not condition"
      * shape [startRecordingErrorMessage]'s Toast uses, except that field only clears on the next
      * success and would not re-fire for an identical message.
@@ -78,10 +78,19 @@ data class TrackRecordingUiState(
      * [com.forager.app.domain.AlertDelivery], which [TrackRecordingViewModel.returnToStart] now
      * calls directly.
      */
-    val tripStartWarning: TripStartWarning? = null,
+    val tripStartWarning: RecordingNotice? = null,
+    /**
+     * Timestamp-filter dispatch, Item 3: the once-per-recording notice that the read seam is
+     * excluding most of the active track as network-provider fixes
+     * ([com.forager.app.domain.isMostlyNetworkFixes]) — the case where a device's GPS clock is not
+     * second-aligned and the map would otherwise show little or no line in silence. Set by the
+     * breadcrumb poll the first time it sees the condition, never again within the recording, and
+     * cleared on the next start. Same one-shot shape as [tripStartWarning].
+     */
+    val networkFixesNotice: RecordingNotice? = null,
 ) {
     val isRecording: Boolean get() = activeTrack != null
 }
 
-/** See [TrackRecordingUiState.tripStartWarning]. */
-data class TripStartWarning(val id: Int, val message: String)
+/** A one-shot message for the map's Snackbar host, keyed by [id] so an identical [message] re-shows — see [TrackRecordingUiState.tripStartWarning] and [TrackRecordingUiState.networkFixesNotice]. */
+data class RecordingNotice(val id: Int, val message: String)

@@ -595,6 +595,63 @@ class CartographyViewModelTest {
         val DAY: LocalDate = LocalDate.of(2026, 8, 1)
         const val FIXED_NOW = 10_000L
     }
+
+    /**
+     * Timestamp-filter dispatch, Item 2: a kept track's cached distance/duration/point count is
+     * recomputed from the track as the read seam now returns it, on open, and written back — the
+     * screen never shows the stale sum. The stale snapshot is planted directly in the database (as
+     * every pre-rule entry effectively has one) and the entry list reloaded from disk so the open
+     * path reads the planted row, not an in-memory copy. Expected figures by hand: three whole-second
+     * points at 45.000/45.001/45.002°N are two steps of 0.001° = 2 × 111.19 m = 222.39 m over
+     * 10 000 ms; the two sub-second spikes 3.3 km north are excluded before any of that is summed.
+     * Fails with the recompute removed from onOpenEntry (6789.0 stays).
+     */
+    @Test
+    fun `opening an entry recomputes a kept track's snapshot from the filtered track and writes it back`() = runTest(dispatcher) {
+        val trackRepository = RoomTrackRepository(database.trackDao())
+        val t0 = dayStartMillis()
+        val track = Track(id = "track-1", name = "Loop", startedAtEpochMillis = t0, endedAtEpochMillis = t0 + 60_000L, points = emptyList())
+        trackRepository.create(track).getOrThrow()
+        trackRepository.end(track.id, t0 + 60_000L).getOrThrow()
+        trackRepository.appendPoints(
+            track.id,
+            listOf(
+                TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = t0),
+                TrackPoint(lat = 45.030, lng = -122.0, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = t0 + 2_500L),
+                TrackPoint(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = t0 + 5_000L),
+                TrackPoint(lat = 45.030, lng = -122.0, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = t0 + 7_250L),
+                TrackPoint(lat = 45.002, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = t0 + 10_000L),
+            ),
+        ).getOrThrow()
+
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val entry = viewModel.uiState.value.editingEntry!!
+        val decision = entry.trackDecisions.single { it.trackId == "track-1" }
+
+        // Plant a stale, unfiltered-era snapshot directly and reload from disk.
+        val stale = entry.copy(trackDecisions = listOf(decision.copy(distanceMeters = 6789.0, durationMillis = 99_000L, pointCount = 5)))
+        val entryRepository = RoomCartographyEntryRepository(database.cartographyEntryDao())
+        entryRepository.save(stale).getOrThrow()
+        viewModel.onCloseEntry()
+        viewModel.loadEntries()
+        advanceUntilIdle()
+        assertEquals(6789.0, viewModel.uiState.value.draftEntries.single { it.id == entry.id }.trackDecisions.single().distanceMeters, 0.0)
+
+        viewModel.onOpenEntry(entry.id)
+        advanceUntilIdle()
+
+        val opened = viewModel.uiState.value.editingEntry!!.trackDecisions.single()
+        assertEquals(222.39, opened.distanceMeters, 0.05)
+        assertEquals(10_000L, opened.durationMillis)
+        assertEquals(3, opened.pointCount)
+        assertFalse(viewModel.uiState.value.hasUnsavedChanges)
+
+        val persisted = entryRepository.getById(entry.id).getOrThrow()!!.trackDecisions.single()
+        assertEquals(222.39, persisted.distanceMeters, 0.05)
+        assertEquals(3, persisted.pointCount)
+    }
+
 }
 
 /** Reports no regions on disk — this test file never exercises offline-region trip-report coverage, only tracks/waypoints/finds. */

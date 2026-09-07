@@ -25,6 +25,14 @@ package com.forager.app.domain.model
  * the track row ([com.forager.app.domain.TrackRepository.create]); read back through
  * [com.forager.app.domain.GetTrackOriginWaypointUseCase]. Defaults to `null` so no existing
  * constructor site changes.
+ *
+ * [excludedPointCount] — timestamp-filter dispatch (owner decision): how many stored points the
+ * read seam left out of [points] as network-provider fixes
+ * ([com.forager.app.domain.isNetworkProviderFix]). **Derived at the seam, never a column**: it is
+ * computed in the same mapping that applies the rule, so it cannot drift from the rule that
+ * produced it, and it is what lets a surface say "N more not shown" or "no usable points" rather
+ * than render a blank line in silence. `0` for a track built anywhere other than the repository
+ * read (a fake, a fresh `create`), which is also the honest value there.
  */
 data class Track(
     val id: String,
@@ -33,4 +41,5 @@ data class Track(
     val endedAtEpochMillis: Long?,
     val points: List<TrackPoint>,
     val originWaypointId: String? = null,
+    val excludedPointCount: Int = 0,
 )

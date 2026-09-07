@@ -417,6 +417,7 @@ class MainActivity : ComponentActivity() {
                     },
                     startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
                     tripStartWarning = trackUiState.tripStartWarning,
+                    networkFixesNotice = trackUiState.networkFixesNotice,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     waypoints = trackUiState.waypoints,
                     waypointsErrorMessage = trackUiState.waypointsErrorMessage,

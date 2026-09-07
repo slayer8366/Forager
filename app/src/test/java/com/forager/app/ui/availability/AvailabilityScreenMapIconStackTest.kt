@@ -103,7 +103,7 @@ import com.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
 import com.forager.app.ui.map.MAP_MODE_PICKER_TAG
 import com.forager.app.ui.map.MapSlot
 import com.forager.app.ui.theme.Spacing
-import com.forager.app.ui.track.TripStartWarning
+import com.forager.app.ui.track.RecordingNotice
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlinx.coroutines.flow.Flow
@@ -173,7 +173,9 @@ class AvailabilityScreenMapIconStackTest {
         /** Navigation-chrome dispatch: a live `State` for tests that enter *and leave* navigation in one composition; when given, it overrides [isReturning]. */
         returning: State<Boolean>? = null,
         /** Alert-delivery dispatch, Item 3: the one-time silenced-phone warning shown in the map's Snackbar host. */
-        tripStartWarning: TripStartWarning? = null,
+        tripStartWarning: RecordingNotice? = null,
+        /** Timestamp-filter dispatch, Item 3: the once-per-recording network-fixes notice, same host. */
+        networkFixesNotice: RecordingNotice? = null,
         isOffTrack: Boolean = false,
         onToggleReturning: () -> Unit = {},
         mushroomRepository: TaxonSearchRepository = IconStackEmptyRepository,
@@ -241,6 +243,7 @@ class AvailabilityScreenMapIconStackTest {
                 onLocateMe = onLocateMe,
                 isRecording = isRecording,
                 tripStartWarning = tripStartWarning,
+                networkFixesNotice = networkFixesNotice,
                 onToggleRecording = onToggleRecording,
                 returnToStart = returnToStart,
                 isReturning = returning?.value ?: isReturning,
@@ -539,7 +542,18 @@ class AvailabilityScreenMapIconStackTest {
     @Test
     fun `a trip-start warning shows once as a Snackbar over the map and a null warning shows nothing`() {
         val message = "Your phone is silenced. If you go off track, the alert may not be felt."
-        setScreen(isRecording = true, tripStartWarning = TripStartWarning(id = 1, message = message))
+        setScreen(isRecording = true, tripStartWarning = RecordingNotice(id = 1, message = message))
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText(message).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onAllNodesWithText(message).assertCountEquals(1)
+    }
+
+    /** Timestamp-filter dispatch, Item 3: the network-fixes notice shows once in the same host, by node count; literal copy. */
+    @Test
+    fun `the network-fixes notice shows once as a Snackbar over the map`() {
+        val message = "Most of this track's fixes look like network fixes rather than GPS, so little or none of it is being drawn. It is still being recorded."
+        setScreen(isRecording = true, networkFixesNotice = RecordingNotice(id = 1, message = message))
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithText(message).fetchSemanticsNodes().isNotEmpty()
         }

@@ -484,7 +484,11 @@ internal fun CartographyEntryReportScreen(
                     ReportItemsSection(
                         title = "Tracks",
                         items = entry.trackDecisions.filter { it.kept }.map {
-                            ReportItem(title = it.name ?: "Recorded track", subtitle = trackSubtitle(it.distanceMeters, it.durationMillis, distanceUnit))
+                            ReportItem(
+                                title = it.name ?: "Recorded track",
+                                // The report has no live track to hand; the snapshot's point count is what keeps an empty track from being a silent one (timestamp-filter dispatch, Item 3).
+                                subtitle = trackSubtitle(it.distanceMeters, it.durationMillis, distanceUnit) + trackExclusionSuffix(liveTrack = null, snapshotPointCount = it.pointCount),
+                            )
                         },
                     )
                     ReportItemsSection(

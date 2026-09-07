@@ -140,14 +140,45 @@ class CartographyViewModel(
      * this reload; only [CartographyUiState.candidatesForEditingEntry]/[CartographyUiState.candidateOfflineRegionsForEditingEntry]
      * (what the edit screen offers as *undecided*) come from it.
      */
+    /**
+     * Opens an entry for editing or its report. **The entry is published only after the day's trip
+     * report has loaded** (timestamp-filter dispatch, Item 2, owner decision): each track decision's
+     * cached distance/duration/point count is recomputed from the track as the read seam now returns
+     * it, written back if it changed, and the screen's first frame already shows the corrected
+     * figures — there is no window in which a stale snapshot and a fresh figure disagree on screen.
+     * The snapshot exists so an entry never silently changes on reopen (see
+     * `CartographyEntryTrackRefEntity`'s own doc comment, where this exception is recorded): a cached
+     * distance is not authored content, and the cached number was wrong. A decision whose track has
+     * since been deleted has nothing to recompute from and keeps its figure. If the trip report cannot
+     * be loaded, the entry opens uncorrected with the existing error message rather than not at all.
+     */
     fun onOpenEntry(id: String) {
         val state = _uiState.value
         val entry = state.entries.firstOrNull { it.id == id } ?: state.draftEntries.firstOrNull { it.id == id } ?: return
-        _uiState.update { it.copy(editingEntry = entry, hasUnsavedChanges = false) }
         viewModelScope.launch {
-            val trip = loadTripReport(entry.date) ?: return@launch
+            val trip = loadTripReport(entry.date)
+            if (trip == null) {
+                _uiState.update { it.copy(editingEntry = entry, hasUnsavedChanges = false) }
+                return@launch
+            }
+            val corrected = entry.withRecomputedTrackSnapshots(trip.derivedTrip.tracks, computeTrackStatistics)
+            if (corrected != entry) {
+                saveEntry(corrected).onFailure { error ->
+                    // Shown corrected regardless: the figure on screen must be the one the track
+                    // now yields, and the next open recomputes again if this write did not land.
+                    Log.w(TAG, "Couldn't write back recomputed track figures for entry '${entry.id}'.", error)
+                }
+                _uiState.update { current ->
+                    current.copy(
+                        entries = current.entries.map { if (it.id == corrected.id) corrected else it },
+                        draftEntries = current.draftEntries.map { if (it.id == corrected.id) corrected else it },
+                    )
+                }
+            }
             _uiState.update {
                 it.copy(
+                    editingEntry = corrected,
+                    hasUnsavedChanges = false,
                     candidatesForEditingEntry = trip.derivedTrip,
                     candidateOfflineRegionsForEditingEntry = trip.offlineRegions,
                     isLoadingCandidates = false,
@@ -478,6 +509,21 @@ private fun MushroomLogEntry.toDecision(kept: Boolean) = FindDecision(
     hasPhotos = photos.isNotEmpty(),
     kept = kept,
 )
+
+/**
+ * Every track decision's snapshot recomputed from [tracks] as the read seam returns them today —
+ * see [CartographyViewModel.onOpenEntry]. A decision whose track is not in [tracks] (deleted since)
+ * is returned unchanged. Pure; the caller decides whether to persist.
+ */
+internal fun CartographyEntry.withRecomputedTrackSnapshots(tracks: List<Track>, computeTrackStatistics: ComputeTrackStatisticsUseCase): CartographyEntry {
+    val byId = tracks.associateBy { it.id }
+    val recomputed = trackDecisions.map { decision ->
+        val track = byId[decision.trackId] ?: return@map decision
+        val stats = computeTrackStatistics(track.points)
+        decision.copy(distanceMeters = stats.distanceMeters, durationMillis = stats.durationMillis, pointCount = stats.totalPoints)
+    }
+    return if (recomputed == trackDecisions) this else copy(trackDecisions = recomputed)
+}
 
 private fun Track.toDecision(kept: Boolean, computeTrackStatistics: ComputeTrackStatisticsUseCase): TrackDecision {
     val stats = computeTrackStatistics(points)
