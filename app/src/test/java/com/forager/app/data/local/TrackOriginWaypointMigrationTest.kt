@@ -77,7 +77,7 @@ class TrackOriginWaypointMigrationTest {
         // Reopen the same file as the real, current ForagerDatabase — no fallbackToDestructiveMigration,
         // so a missing or wrong MIGRATION_12_13 throws rather than silently wiping the file.
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_12_13, MIGRATION_13_14)
+            .addMigrations(MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
             .build()
 
         try {

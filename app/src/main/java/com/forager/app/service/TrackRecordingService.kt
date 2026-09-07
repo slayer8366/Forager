@@ -23,6 +23,7 @@ import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationSampler
 import com.forager.app.domain.model.TrackPoint
 import com.forager.app.domain.model.TrackRecordingMode
+import com.forager.app.domain.toTrackPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -115,13 +116,7 @@ class TrackRecordingService : Service() {
                 container.locationTracker.fixes.collect { fix ->
                     when (fix) {
                         is LocationFix.Update -> {
-                            val candidate = TrackPoint(
-                                lat = fix.lat,
-                                lng = fix.lng,
-                                altitude = fix.altitude,
-                                accuracyMeters = fix.accuracyMeters,
-                                timestampEpochMillis = fix.timestampEpochMillis,
-                            )
+                            val candidate = fix.toTrackPoint()
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
                                 val shouldFlush = bufferMutex.withLock {
