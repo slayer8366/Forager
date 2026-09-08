@@ -57,18 +57,19 @@ decision … that lives only in a session transcript is not recorded"). Read aga
   (`2026-09-08-path-home-ratio-prebuild-report.md`, §C.5); the synthetic switchback joined at 12 m
   and not at 8 m. Synthetic fixtures — the real tracks have not been run.
 - This file, the pre-build report and its script are committed on both `claude/new-session-pb8ynb`
-  (the session's designated branch, cut from `main` at `8eacc91`) and, at the owner's instruction
+  (the session's designated branch, cut from `main` at `8eacc91`) and, at the planner's instruction
   of 2026-09-08, on `claude/new-session-b7z9bg` — the base the ruling names for path-home work.
 
 ---
 
-## Owner's correction and real-track results (2026-09-08 — owner's words, filed by the coder)
+## Planner's correction and real-track results (2026-09-08 — planner's words, filed by the coder)
 
-**The 30 m figure was the owner's error.** The HIGH_ACCURACY ceiling was taken for the sampler's
-gate; BALANCED at 50 m is the recording default. This weakens the argument made above for the
+**The 30 m figure was the planner's error, not the coder's** — the planner wrote the ruling
+document and took the HIGH_ACCURACY ceiling for the sampler's gate; the coder caught it. BALANCED
+at 50 m is the recording default. This weakens the argument made above for the
 window bounding ε being narrow, and the correction is part of the record.
 
-**The candidate was run on both real GPX exports, in the owner's session.** These are the owner's
+**The candidate was run on both real GPX exports, in the planner's session.** These are the planner's
 results, not reproduced in the sandbox (the exports are gitignored and were not available here):
 
 | | before (retrace) | track-network home | walking time |
@@ -81,7 +82,7 @@ within ε of the origin often enough that a near-direct route exists along point
 occupied. ε = 4 m already saturates; nothing changes up to 50 m. The ε insensitivity is stronger
 than the synthetic fixtures suggested.
 
-Two cautions on reading this, the owner's:
+Two cautions on reading this, the planner's:
 
 1. **Saturation is not a licence to raise ε.** It means the patch case is closed at the bottom of
    the range, which is the argument for keeping ε small — the full benefit arrives at 4 m and
