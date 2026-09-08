@@ -159,6 +159,25 @@ class RoomTrackRepositoryTest {
         )
     }
 
+    /**
+     * Return-estimate dispatch, Item 3: the Doppler speed columns round-trip through the entity
+     * mapping in both directions, and a point that reported neither reads back `null` in both —
+     * not `0.0`, which would read as "stopped" to the pace.
+     */
+    @Test
+    fun `a point's speed and speed accuracy round-trip, and a point without them reads back null in both`() = runTest {
+        repository.create(Track(id = "t", name = null, startedAtEpochMillis = 0L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+        val moving = TrackPoint(lat = 45.0, lng = -122.0, altitude = 300.0, accuracyMeters = 3.79f, timestampEpochMillis = 1_000L, speedMetersPerSecond = 0.87f, speedAccuracyMetersPerSecond = 0.694f)
+        val unreported = TrackPoint(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L, speedMetersPerSecond = null, speedAccuracyMetersPerSecond = null)
+        repository.appendPoints("t", listOf(moving, unreported)).getOrThrow()
+
+        val stored = repository.getById("t").getOrThrow()!!.points
+
+        assertEquals(listOf(moving, unreported), stored)
+        assertEquals(listOf(0.87f, null), stored.map { it.speedMetersPerSecond })
+        assertEquals(listOf(0.694f, null), stored.map { it.speedAccuracyMetersPerSecond })
+    }
+
     private fun point(lat: Double, t: Long) = TrackPoint(lat = lat, lng = 0.0, altitude = null, accuracyMeters = null, timestampEpochMillis = t)
 
     private inline fun measureMillis(block: () -> Unit): Long {

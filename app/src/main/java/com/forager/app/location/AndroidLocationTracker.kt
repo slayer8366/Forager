@@ -83,12 +83,17 @@ class AndroidLocationTracker(
         return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
     }
 
+    // Speed and its accuracy (return-estimate dispatch, Item 3) under the same has*() rule as
+    // altitude and accuracy: the platform says whether the value is meaningful, and "not
+    // reported" travels as null, never as a zero that would read as "stopped".
     private fun Location.toFix() = LocationFix.Update(
         lat = latitude,
         lng = longitude,
         altitude = if (hasAltitude()) altitude else null,
         accuracyMeters = if (hasAccuracy()) accuracy else null,
         timestampEpochMillis = time,
+        speedMetersPerSecond = if (hasSpeed()) speed else null,
+        speedAccuracyMetersPerSecond = if (hasSpeedAccuracy()) speedAccuracyMetersPerSecond else null,
     )
 
     internal companion object {

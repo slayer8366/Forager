@@ -19,6 +19,12 @@ class LocationSampler(private val mode: TrackRecordingMode) {
      * accuracy check) must be both [TrackRecordingMode.minIntervalMillis] old and
      * [TrackRecordingMode.minDistanceMeters] away — both thresholds, not either, so a stationary
      * period doesn't keep writing points once the interval elapses with no real movement.
+     *
+     * The accuracy rejection never fires on a GPS fix from the owner's device: that phone reports
+     * a constant `3.7900925` m on every GPS fix (instrument walk of 2026-09-07,
+     * `docs/audits/2026-09-07-fix-log-walk-findings.md`), below every mode's ceiling. It still
+     * rejects that device's network fixes, whose accuracy genuinely varies to 70 m and more. One
+     * device so far; see [LIVE_FIX_MAX_ACCURACY_METERS]'s doc for the other readers of the field.
      */
     fun shouldAccept(lastAccepted: TrackPoint?, candidate: TrackPoint): Boolean {
         val accuracy = candidate.accuracyMeters

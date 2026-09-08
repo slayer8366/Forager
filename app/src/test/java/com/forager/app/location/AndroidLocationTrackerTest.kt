@@ -84,6 +84,37 @@ class AndroidLocationTrackerTest {
     }
 
     /**
+     * Return-estimate dispatch, Item 3: a fix whose platform `hasSpeed()`/`hasSpeedAccuracy()` are
+     * true delivers both values on the Update; the network-fix test above, which sets neither,
+     * pins the other side (`null`, via the Update's defaults — the same values the fix must carry).
+     */
+    @Test
+    fun `a GPS fix with Doppler speed delivers the speed and its accuracy on the update`() = runTest {
+        assertEquals(listOf(LocationFix.PermissionDenied), tracker.fixes.toList())
+        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        shadowLocationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+        val pending = async { tracker.fixes.first() }
+        advanceUntilIdle()
+
+        shadowLocationManager.simulateLocation(
+            Location(LocationManager.GPS_PROVIDER).apply {
+                latitude = 45.52
+                longitude = -122.68
+                accuracy = 3.7900925f
+                speed = 0.96f
+                speedAccuracyMetersPerSecond = 0.6945308f
+                time = 1_788_801_910_000L
+            },
+        )
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            LocationFix.Update(lat = 45.52, lng = -122.68, altitude = null, accuracyMeters = 3.7900925f, timestampEpochMillis = 1_788_801_910_000L, speedMetersPerSecond = 0.96f, speedAccuracyMetersPerSecond = 0.6945308f),
+            pending.await(),
+        )
+    }
+
+    /**
      * Return-estimate dispatch, the instrument walk: every fix logs what the platform reports and
      * this app discards — provider, Doppler speed and its accuracy — so one walk with
      * `adb logcat -s ForagerFix` answers whether this phone's GNSS fixes carry a usable speed. The

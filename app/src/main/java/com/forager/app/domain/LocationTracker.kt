@@ -35,6 +35,12 @@ sealed interface LocationFix {
     /**
      * [altitude] and [accuracyMeters] are `null` whenever the underlying fix didn't report them,
      * same rule as [com.forager.app.domain.LocationResult.Success.altitude].
+     *
+     * [speedMetersPerSecond] and [speedAccuracyMetersPerSecond] (return-estimate dispatch, Item 3)
+     * follow the same rule against the platform's `hasSpeed()` / `hasSpeedAccuracy()`: `null` is
+     * "not reported", never a zero standing in for it. Defaults so no existing constructor site
+     * changes; the real tracker fills both. See [com.forager.app.domain.model.TrackPoint] for what
+     * the persisted copy means and who reads it.
      */
     data class Update(
         val lat: Double,
@@ -42,10 +48,29 @@ sealed interface LocationFix {
         val altitude: Double?,
         val accuracyMeters: Float?,
         val timestampEpochMillis: Long,
+        val speedMetersPerSecond: Float? = null,
+        val speedAccuracyMetersPerSecond: Float? = null,
     ) : LocationFix
 
     data object PermissionDenied : LocationFix
 }
+
+/**
+ * The fix as a candidate [com.forager.app.domain.model.TrackPoint] for [LocationSampler] — field
+ * for field, nothing computed, nothing dropped. Pulled out of `TrackRecordingService` (return-
+ * estimate dispatch, Item 3) so that the one place a fix becomes a point can be asserted on
+ * without a Robolectric recording: the speed columns exist to be read by the pace, and a mapping
+ * that silently dropped them would leave every new track looking like a pre-migration one.
+ */
+fun LocationFix.Update.toTrackPoint() = com.forager.app.domain.model.TrackPoint(
+    lat = lat,
+    lng = lng,
+    altitude = altitude,
+    accuracyMeters = accuracyMeters,
+    timestampEpochMillis = timestampEpochMillis,
+    speedMetersPerSecond = speedMetersPerSecond,
+    speedAccuracyMetersPerSecond = speedAccuracyMetersPerSecond,
+)
 
 /**
  * How old this fix is at [nowEpochMillis], in milliseconds — HUD-foundations dispatch, Item 1.

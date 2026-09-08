@@ -56,11 +56,11 @@ import com.forager.app.domain.model.GalleryPhoto
 import com.forager.app.domain.model.PhotoAttachment
 import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.formatDistanceKm
+import com.forager.app.domain.model.formatDistanceMeters
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
-import kotlin.math.roundToInt
 
 /**
  * A Cartography entry's curation-and-writing surface — Journal Stage 2b, extended by its own
@@ -644,9 +644,22 @@ internal fun trackExclusionSuffix(liveTrack: Track?, snapshotPointCount: Int?): 
     return if (snapshotPointCount == 0) " · no usable points" else ""
 }
 
+/**
+ * A track's length and duration for its row — the one formatter behind all three track-length
+ * sites (the edit screen's decided and candidate rows, the report screen's kept rows).
+ *
+ * **Why `formatDistanceMeters` and not `formatDistanceKm`** (track-distance-label dispatch): the
+ * kilometre formatter exists for offline-map download ceilings, which are whole miles and whole
+ * kilometres by construction, and its rounding is correct there. Track lengths live mostly in the
+ * range that rounding destroys. Stage 2b reused it here, and it rounded metres to whole kilometres
+ * *before* converting to whole miles — so a stored 733 m printed "1 mi", every length from 500 m to
+ * just under 2.5 km printed "1 mi", and a real 92 m, 26-point track printed **"0 mi"**: a false
+ * statement about something the user did, found on the owner's own device
+ * (`docs/audits/2026-09-07-track-distance-display-pulse.md`). The two formatters look like the
+ * same job and are not; do not reunify them.
+ */
 internal fun trackSubtitle(distanceMeters: Double, durationMillis: Long, distanceUnit: DistanceUnit): String {
-    val km = (distanceMeters / 1000.0).roundToInt()
-    val distanceLabel = formatDistanceKm(km, distanceUnit)
+    val distanceLabel = formatDistanceMeters(distanceMeters, distanceUnit)
     val totalMinutes = durationMillis / 60_000
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60

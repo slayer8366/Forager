@@ -25,6 +25,8 @@ LOCATION
 How often did you see "Last fix … ago" or "Location services unavailable"?
   never / once or twice / often — and what was overhead (open sky / trees / buildings / in a vehicle):
 While it said the fix was old, did the blue marker on the map keep moving? yes / no / didn't look
+Only if you used the arrow screen: near the target the distance reads "within … ft" (or "within … m").
+  Did that number ever change? it changed / always the same — which number: / never saw "within"
 Did the recorded track show spikes or a starburst (lines shooting out and back, or a fan while standing still)?
   no / yes — standing still or moving? what was overhead?
   (If yes, a track file helps — see the last block.)

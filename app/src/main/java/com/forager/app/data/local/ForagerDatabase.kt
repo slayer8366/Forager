@@ -113,6 +113,12 @@ import com.forager.app.BuildConfig
  * [com.forager.app.domain.model.WaypointDesignation] for why it is a field, not a name). Version
  * 14 was checked against every branch on `origin` (none above 13) before being claimed.
  *
+ * [version] 15 adds nullable `speedMetersPerSecond`/`speedAccuracyMetersPerSecond` to
+ * `track_points` via a real [MIGRATION_14_15] — the return-estimate dispatch's Doppler speed
+ * columns, authorised after the instrument walk (see [TrackPointEntity] and
+ * [com.forager.app.domain.model.TrackPoint] for the `null` rule and the reader). Version 15 was
+ * checked against every branch on `origin` (none above 14) before being claimed.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -150,7 +156,7 @@ import com.forager.app.BuildConfig
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -181,7 +187,7 @@ abstract class ForagerDatabase : RoomDatabase() {
                 "forager.db",
             ).addMigrations(
                 MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
+                MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
             )
             // Debug-only — see this class's own doc comment ("Destructive fallback, debug-only") for
             // why release must never wipe a database instead of crashing on a missing migration.

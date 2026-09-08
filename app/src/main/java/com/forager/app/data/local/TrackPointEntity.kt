@@ -21,6 +21,12 @@ import androidx.room.PrimaryKey
  * few-seconds rate: a generated 64-bit rowid costs nothing to produce and eight bytes to store,
  * against a `UUID.randomUUID()` call and a 36-byte string per point. Nothing outside this table
  * ever needs to address one point by id, so there is no round-trip cost to the simpler key.
+ *
+ * [speedMetersPerSecond] / [speedAccuracyMetersPerSecond] — nullable `REAL`, added by
+ * [MIGRATION_14_15] (return-estimate dispatch, Item 3). Every row from before version 15 holds
+ * `NULL` in both, which is the honest value: nothing was recorded. Not indexed — the only reader
+ * loads a whole track's points through `getPointsForTrack` and never filters on speed in SQL. See
+ * [com.forager.app.domain.model.TrackPoint] for the field's meaning and its `null` rule.
  */
 @Entity(tableName = "track_points", indices = [Index("trackId")])
 data class TrackPointEntity(
@@ -31,4 +37,6 @@ data class TrackPointEntity(
     val altitude: Double?,
     val accuracyMeters: Float?,
     val timestampEpochMillis: Long,
+    val speedMetersPerSecond: Float?,
+    val speedAccuracyMetersPerSecond: Float?,
 )
