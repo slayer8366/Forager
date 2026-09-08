@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Referenced from AndroidManifest.xml's android:fullBackupContent. This is the Android 11 and
+  below format; res/xml/data_extraction_rules.xml is the API 31+ one and carries the same two
+  exclusions, split across its own <cloud-backup> and <device-transfer> sections. See that file
+  for the full reasoning — this one deliberately repeats the rules rather than the argument.
+
+  The short version: auto backup stays on and the journal, photos and settings all keep backing
+  up (owner ruling, 2026-09-08); only the crash logs are excluded. Two exclusions for one
+  directory because com.forager.app.crash.CrashFileStore.forContext falls back from
+  getExternalFilesDir(null) to filesDir, so "crashes/" is a real path in both the "external" and
+  the "file" domain.
+
+  There is no <include> here on purpose: the platform treats an empty include set as "all app
+  data minus excludes", and adding one would turn this into an allowlist.
+-->
+<full-backup-content>
+    <exclude domain="external" path="crashes/" />
+    <exclude domain="file" path="crashes/" />
+</full-backup-content>

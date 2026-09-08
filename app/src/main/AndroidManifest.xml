@@ -57,9 +57,21 @@
         <package android:name="org.inaturalist.android" />
     </queries>
 
+    <!--
+      Auto backup stays on (owner ruling, 2026-09-08): this app has no account, no sync and no
+      journal export, so Google's backup is the only thing standing between a lost phone and a
+      lost journal. What it carries is narrowed instead — see res/xml/data_extraction_rules.xml
+      (API 31+, and the one that governs at targetSdk 37) and res/xml/backup_rules.xml (Android 11
+      and below). Both are declared, not just the modern one: without fullBackupContent an older
+      device falls back to the platform's default set, which is exactly what these rules exist to
+      trim. The one thing excluded is com.forager.app.crash.CrashFileStore's crash traces; the
+      journal database, the log photos and the DataStore settings all still back up.
+    -->
     <application
         android:name=".ForagerApplication"
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
