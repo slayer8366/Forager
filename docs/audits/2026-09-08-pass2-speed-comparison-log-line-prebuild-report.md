@@ -689,12 +689,18 @@ build or make the check non-reporting on this repository — red-and-ignored dec
 months nobody will remember which reds are expected. Not this dispatch's; recorded so it has a
 home.
 
-### The trip-report re-count (owner's note 3) — not verifiable from here
+### The trip-report re-count (note 3) — a coder session's number, unverifiable from any ref
 
-On every ref this session can see (`origin/main`, `origin/claude/new-session-b7z9bg` at
-`8dc10d4`, this branch) `docs/beta/trip-report.md` is 69 lines and `docs/beta/README.md` says
-"24 lines"; the 26-line, five-location-question count the owner re-derived is on a trial file
-this session does not have. Recorded as the owner's, unverified here.
+**Correction (owner, 2026-09-08): the re-count is not the owner's.** A coder session did it by
+hand from a merged trial file and reported 26 lines with five location questions; the owner only
+relayed it. On every ref this session can see (`origin/main`, `origin/claude/new-session-b7z9bg`
+at `8dc10d4`, this branch) `docs/beta/trip-report.md` is 69 lines and `docs/beta/README.md` says
+"24 lines" — so the 26 came from a **local merge trial that was never pushed**, and the number
+describes a tree nobody can inspect. That is the same shape as the problem the re-count was meant
+to solve: **a recorded count that cannot be checked against a visible file is a prediction wearing
+the clothes of a measurement.** Attributed to that session; marked unverifiable from any ref.
+**Whoever resolves the real conflict counts from the actual merged file, and does not confirm
+against 26.**
 
 ### The general form of the cheap question (owner's note 4) — recorded
 
@@ -724,3 +730,17 @@ count as before the merge, which is expected: the eight commits added no tests.
 Nothing in the board has changed since the owner wrote it: merge #77 (the owner's step), then
 the two keystore steps, then the walk. This branch stays the non-merging instrumentation branch
 the dispatch named, current with #77's head as of this check-in.
+
+### Owner rulings on this addendum (same day)
+
+- Not merging #77 was the right call: the branch is non-merging by design and the merge is an
+  owner step. Holding that line unprompted is the correct instinct.
+- Item 3 corrected as above.
+- Merging rather than rebasing when the head moved, and rerunning the full suite on the merged
+  tree, is exactly right: 1284 / 0 / 24 with an exact allowlist match on the merged tree is a
+  stronger result than on this branch alone. The eight commits arriving mid-work is the
+  serialization problem widening from the README to the branch head.
+- **No re-armed check-in.** #77 merging is the owner's step, and polling for it burns a session on
+  waiting. When #77 merges, the next dispatch starts from merged `main`.
+- **Board, unchanged:** merge #77; close #78 (done); keystore K and the in-place update test;
+  then three build dispatches; the schema-15 walk; the turnaround alert last.
