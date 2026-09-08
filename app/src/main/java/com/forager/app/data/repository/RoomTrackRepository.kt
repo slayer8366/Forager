@@ -92,6 +92,8 @@ private fun TrackPointEntity.toDomain() = TrackPoint(
     altitude = altitude,
     accuracyMeters = accuracyMeters,
     timestampEpochMillis = timestampEpochMillis,
+    speedMetersPerSecond = speedMetersPerSecond,
+    speedAccuracyMetersPerSecond = speedAccuracyMetersPerSecond,
 )
 
 private fun TrackPoint.toEntity(trackId: String) = TrackPointEntity(
@@ -101,4 +103,6 @@ private fun TrackPoint.toEntity(trackId: String) = TrackPointEntity(
     altitude = altitude,
     accuracyMeters = accuracyMeters,
     timestampEpochMillis = timestampEpochMillis,
+    speedMetersPerSecond = speedMetersPerSecond,
+    speedAccuracyMetersPerSecond = speedAccuracyMetersPerSecond,
 )

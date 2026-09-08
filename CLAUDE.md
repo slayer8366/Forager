@@ -120,6 +120,29 @@ here.
   goes through it, and any new ViewModel with a poll loop needs the same
   shape. Diagnose a stall with a thread dump of the test worker, which
   names the test that actually failed — what is lost is its message.
+- **A check that passes because it never saw the data that could fail it.**
+  Three instances in this project, and they look nothing alike until named as
+  one family. (1) The legacy-miles migration test passed with the migration
+  removed, because imperial was also the default: the check saw only the
+  answer, never the mechanism, so both branches produced it. (2) The revert
+  runner reported the previous run's failures as the revert's, because the
+  reverted build had not compiled: the check saw stale results, never the
+  build it claimed to describe. (3) The instrument-walk log parser confirmed
+  the provider/`hasSpeed` correlation at 289/289 with perfect separation —
+  on a sample that had silently dropped all 55 network fixes, because they
+  log `speed=null` and the pattern required a number. The disconfirming
+  cases were exactly the ones the parser could not read, so the check
+  passed on the only sample that could not fail it. The shape is the same
+  each time: the check and the thing it is checking are decoupled by a step
+  in between (a coincident default, a stale artifact, a lossy filter), and
+  nothing in the check's own output says so. What caught all three was the
+  same act, a count read against something outside the check — the runner's
+  tally against the prediction, `git diff --stat` a file short, 289 fixes
+  against 344 lines-worth in the log. So: before citing a check as evidence,
+  ask what sample it actually ran on and confirm that sample includes the
+  cases that could have failed it — a total that matches the source, a
+  failure message specific to this edit, a build log with no compile
+  errors. A check whose input you have not verified has not been run yet.
 
 ## Building
 

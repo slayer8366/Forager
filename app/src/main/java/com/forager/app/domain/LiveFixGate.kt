@@ -47,6 +47,23 @@ package com.forager.app.domain
  *
  * A future Kalman filter, if one is ever built, goes **behind** this gate, never in front of it: a
  * filter fed rejected fixes would smooth a bad position into a confident one.
+ *
+ * ## What the accuracy field carries on the owner's device (instrument walk, 2026-09-07)
+ *
+ * On the owner's phone every GPS-provider fix reports the same horizontal accuracy, `3.7900925`,
+ * 289 times out of 289 in a 4.8-minute walk under a 1 Hz cadence — identical to seven decimal
+ * places, not clustered. That is a placeholder, not a measurement: the field carries no signal
+ * on that device's GPS path. **So on that device this gate never rejects a GPS fix**, whatever
+ * the sky, and it is not doing for GPS the work the sections above describe. It still does real
+ * work on network-provider fixes, whose accuracy there genuinely varies (12.5–71.7 m on the
+ * same walk), which is why it stays. The same field feeds `formatDistanceWithAccuracy`'s
+ * "within" circle and `LocationSampler`'s recording ceiling, which like this gate show or keep a
+ * wrong number, and `isApproaching`'s threshold, which *decides* from it — the serious one of
+ * the four (owner's ranking), noted on its own. Confirmed on one device only; whether it is the
+ * chipset, the vendor's GNSS stack or that build is the beta's question (the trip report asks
+ * it). Do not tune this threshold, or build an uncertainty calibration on reported accuracy,
+ * until a device is known to report a varying value. Record:
+ * `docs/audits/2026-09-07-fix-log-walk-findings.md`.
  */
 const val LIVE_FIX_MAX_ACCURACY_METERS = 50f
 
