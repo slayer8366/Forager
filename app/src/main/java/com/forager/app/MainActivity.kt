@@ -436,6 +436,7 @@ class MainActivity : ComponentActivity() {
                     crashFileStore = container.crashFileStore,
                     tracks = trackUiState.tracks,
                     onTracksOpened = trackRecordingViewModel::loadTracks,
+                    getFullRecord = trackRecordingViewModel::getFullRecord,
                 )
             }
         }

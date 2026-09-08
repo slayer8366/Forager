@@ -4,6 +4,8 @@ import android.content.Context
 import com.forager.app.domain.GpxCodec
 import com.forager.app.domain.model.GpxDocument
 import com.forager.app.domain.model.Track
+import com.forager.app.domain.model.TrackPointRecord
+import com.forager.app.domain.model.Waypoint
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -22,10 +24,19 @@ import java.time.format.DateTimeFormatter
  */
 class TrackGpxExporter(private val exportDir: File) {
 
-    fun write(track: Track): File {
+    /**
+     * [fullRecord] and [waypoints] are required, not defaulted — GPX full-record export dispatch.
+     * [track] alone (the filtered read) has no way to reach a network-provider fix the read seam
+     * excluded; only a caller that separately fetched [com.forager.app.domain.TrackRepository.getFullRecord]
+     * can hand one in, and requiring the parameter here means a caller can't omit it by accident and
+     * silently ship a file the export rule was built to prevent (ruling 2: the export carries the
+     * full data set). Pass an empty list deliberately when there's genuinely nothing more to carry
+     * — that's still an honest value, not this default doing the omitting for you.
+     */
+    fun write(track: Track, fullRecord: List<TrackPointRecord>, waypoints: List<Waypoint>): File {
         exportDir.mkdirs()
         val file = File(exportDir, fileNameFor(track))
-        file.writeText(GpxCodec.encode(GpxDocument(track = track, waypoints = emptyList())))
+        file.writeText(GpxCodec.encode(GpxDocument(track = track, waypoints = waypoints, fullRecord = fullRecord)))
         return file
     }
 

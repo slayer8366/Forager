@@ -34,9 +34,17 @@ name, and it appears on both.
 trimmed as boilerplate later:** together they identify the phone's GNSS chipset family, which is the
 variable behind the app's network-fix rule (a GPS fix's timestamp is second-aligned on the owner's
 device and is a property of the chipset, not a guarantee — see `NetworkProviderFix.kt`). A report of
-a track drawn short or empty means nothing without knowing which family produced it. The magnet
-question exists for the compass: a phone on a magnetic car mount is a permanent distortion and would
-explain "Compass unreliable" reports that have nothing to do with power lines.
+a track drawn short or empty used to mean nothing without knowing which family produced it, and the
+tester's prose ("spikes or a starburst", "track drawn short") was the only instrument for checking
+the rule on hardware other than the owner's. It no longer is: the GPX file the trip report's last
+block already asks for now carries every stored point, kept or excluded, tagged with the verdict the
+rule gave it (`<trk><extensions>` — see `NetworkProviderFix.kt` and
+`docs/audits/2026-09-08-gpx-export-full-record-completion-report.md`), so a track file settles what
+the rule did on that device directly rather than through a description of the symptom. The device
+make and model still matter — they're what turns one tester's file into a data point about a
+chipset family, not just about one phone. The magnet question exists for the compass: a phone on a
+magnetic car mount is a permanent distortion and would explain "Compass unreliable" reports that
+have nothing to do with power lines.
 
 **Why the trip report asks whether the "within …" number changes, and why that line is the
 highest-value one it now carries:** on the owner's phone every GPS fix reports the same horizontal

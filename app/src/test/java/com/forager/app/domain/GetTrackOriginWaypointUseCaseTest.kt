@@ -2,6 +2,7 @@ package com.forager.app.domain
 
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.Waypoint
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -56,6 +57,8 @@ internal class InMemoryTracks(vararg initial: Track) : TrackRepository {
 
     override suspend fun getAll(): Result<List<Track>> = Result.success(tracks.values.toList())
     override suspend fun getById(id: String): Result<Track?> = Result.success(tracks[id])
+    override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> =
+        Result.success((tracks[id]?.points ?: emptyList()).map { TrackPointRecord(it, kept = !it.isNetworkProviderFix()) })
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
         Result.success(emptyList())
     override suspend fun create(track: Track): Result<Unit> = Result.success(Unit).also { tracks[track.id] = track }

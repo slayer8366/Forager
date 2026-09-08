@@ -3,8 +3,11 @@ package com.forager.app.domain
 import com.forager.app.domain.model.GpxDocument
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.WaypointDesignation
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -72,5 +75,63 @@ class GpxCodecTest {
 
         assertNull(decoded.track)
         assertTrue(decoded.waypoints.isEmpty())
+    }
+
+    /**
+     * GPX full-record export dispatch, format B1 (owner ruling): the raw sequence in
+     * `<trk><extensions>`, full millisecond timestamp and every optional field, each point's
+     * kept/excluded verdict intact, and the block's own authoritative declaration present.
+     */
+    @Test
+    fun `the full record round-trips through encode and decode with every field and verdict intact`() {
+        val track = Track(id = "ignored-on-decode", name = "Loop", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 11_000L, points = listOf(TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)))
+        val fullRecord = listOf(
+            TrackPointRecord(
+                point = TrackPoint(lat = 45.000, lng = -122.0, altitude = 97.5, accuracyMeters = 8f, timestampEpochMillis = 1_000L, speedMetersPerSecond = 1.2f, speedAccuracyMetersPerSecond = 0.3f),
+                kept = true,
+            ),
+            TrackPointRecord(
+                point = TrackPoint(lat = 45.030, lng = -122.0, altitude = 111.6, accuracyMeters = 20f, timestampEpochMillis = 3_500L),
+                kept = false,
+            ),
+        )
+
+        val encoded = GpxCodec.encode(GpxDocument(track = track, waypoints = emptyList(), fullRecord = fullRecord))
+        assertTrue("the block must declare itself authoritative in-band, not in a comment", encoded.contains("authoritative=\"true\""))
+        val decoded = GpxCodec.decode(encoded)
+
+        assertEquals(fullRecord, decoded.fullRecord)
+    }
+
+    @Test
+    fun `an empty full record encodes no extensions block and decodes back to empty`() {
+        val track = Track(id = "t", name = null, startedAtEpochMillis = 0L, endedAtEpochMillis = null, points = emptyList())
+
+        val encoded = GpxCodec.encode(GpxDocument(track = track, waypoints = emptyList()))
+        assertFalse(encoded.contains("<extensions>"))
+        assertTrue(GpxCodec.decode(encoded).fullRecord.isEmpty())
+    }
+
+    /** GPX has no element for [Waypoint.trackId]/[Waypoint.designation] — carried in the same `forager:` extension the full record uses, and round-trips the same way. */
+    @Test
+    fun `a waypoint's track link and designation round-trip through the forager extension`() {
+        val waypoint = Waypoint(id = "ignored", lat = 45.1, lng = -122.1, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+
+        val decoded = GpxCodec.decode(GpxCodec.encode(GpxDocument(track = null, waypoints = listOf(waypoint))))
+
+        assertEquals("t1", decoded.waypoints.single().trackId)
+        assertEquals(WaypointDesignation.ORIGIN, decoded.waypoints.single().designation)
+    }
+
+    @Test
+    fun `an ordinary waypoint with no track link encodes no extensions block`() {
+        val waypoint = Waypoint(id = "ignored", lat = 45.1, lng = -122.1, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L)
+
+        val encoded = GpxCodec.encode(GpxDocument(track = null, waypoints = listOf(waypoint)))
+
+        assertFalse(encoded.contains("<extensions>"))
+        val decoded = GpxCodec.decode(encoded).waypoints.single()
+        assertNull(decoded.trackId)
+        assertNull(decoded.designation)
     }
 }
