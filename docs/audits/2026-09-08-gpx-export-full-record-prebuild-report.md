@@ -543,8 +543,11 @@ Done in this commit: a "did the track look shorter than your walk" question adde
 report's location block (`docs/beta/trip-report.md`), with its rationale and its never-cut status
 recorded in `docs/beta/README.md`. Note for whoever merges: PR #77 edits the same README region
 (its "within …" question, the line count, and the never-cut item); the merge will conflict on the
-count line and the never-cut sentence, and the resolution is 26 lines and five location questions,
-both questions kept.
+count line and the never-cut sentence. **Resolve by keeping both questions and re-counting the
+block's lines and the location questions from the merged file** — do not carry a number written
+here into a file marked never-cut. Any count this addendum could give is a prediction about a
+merge that has not happened; if #77's README region changes before it lands, a recorded number
+applied mechanically would be wrong exactly where being wrong matters most.
 
 Not done, and worth a line in the build dispatch: `NetworkProviderFix.kt`'s doc comment already
 states the limit ("a property of a device's GNSS stack, not a guarantee"); when the export lands,
