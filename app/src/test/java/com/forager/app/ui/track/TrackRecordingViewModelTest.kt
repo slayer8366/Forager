@@ -14,6 +14,7 @@ import com.forager.app.domain.GetTracksUseCase
 import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.PaceLog
 import com.forager.app.domain.RingerMode
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.TrackRepository
@@ -116,6 +117,7 @@ class TrackRecordingViewModelTest {
         locationTracker: LocationTracker = NoOpLocationTracker(),
         offTrackAlertClock: CurrentTimeProvider = fixedTime,
         alertAudibility: AlertAudibility = FakeAlertAudibility(AUDIBLE),
+        paceLog: PaceLog = PaceLog { },
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
@@ -131,6 +133,7 @@ class TrackRecordingViewModelTest {
         alertDelivery = alertDelivery,
         alertAudibility = alertAudibility,
         currentTime = offTrackAlertClock,
+        paceLog = paceLog,
         zone = ZoneOffset.UTC,
     ).also(createdViewModels::add)
 
@@ -212,6 +215,58 @@ class TrackRecordingViewModelTest {
         // If the poll job weren't actually cancelled, this would hang forever the same way an
         // unguarded advanceUntilIdle() would with it still running.
         advanceUntilIdle()
+    }
+
+    /**
+     * Pass 2 instrumentation: the pace record reaches the sink from the poll — one per poll, the
+     * active mode, this recording's own call counter, and the points the poll itself read. The
+     * first line is asserted whole: with no points every field is deterministic and the line is
+     * the empty-track case of `PaceLogRecordTest` exactly. The second is asserted on the fields
+     * this test's inputs decide (its geometry is `MovingPaceTest`'s 21-point bar-length track), not
+     * by re-running the formatter — that would derive the expectation from the code under test.
+     */
+    @Test
+    fun `each poll records the pace to the sink with the active mode and a per-recording call counter`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val records = mutableListOf<String>()
+        val vm = viewModel(trackRepository, paceLog = { records += it })
+
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        assertEquals(
+            listOf(
+                "v=1 track=track-1 call=1 at=1000 mode=HIGH_ACCURACY points=0 stored=0 excluded=0 first=null last=null wallMs=null " +
+                    "examined=0 moving=0 movingMs=0 movingM=0.0 diffAll=null dopplerMs=0 dopplerM=0.0 doppler=null diffSame=null ratio=null " +
+                    "counted=0 nullSpeed=0 belowFloor=0 dopplerBar=false diffBar=false source=DEFAULT floor=0.5 barMs=300000",
+            ),
+            records,
+        )
+
+        trackRepository.appendPoints("track-1", (0 until 21).map { i -> point(lat = 45.0 + i * 0.000135, t = 1_700_000_000_000L + i * 15_000L) })
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+
+        assertEquals(2, records.size)
+        val second = records[1].split(' ').associate { it.substringBefore('=') to it.substringAfter('=') }
+        assertEquals("track-1", second["track"])
+        assertEquals("2", second["call"])
+        assertEquals("HIGH_ACCURACY", second["mode"])
+        assertEquals("21", second["points"])
+        assertEquals("20", second["moving"])
+        assertEquals("300000", second["movingMs"])
+        assertEquals("true", second["diffBar"])
+        assertEquals("false", second["dopplerBar"])
+        assertEquals("DIFFERENCING", second["source"])
+
+        // A new recording starts its counter over.
+        vm.stopRecording()
+        runCurrent()
+        vm.startRecording(TrackRecordingMode.BALANCED)
+        runCurrent()
+        assertEquals(3, records.size)
+        assertTrue(records[2], records[2].contains(" call=1 ") && records[2].contains(" mode=BALANCED "))
+
+        vm.stopRecording()
     }
 
     @Test

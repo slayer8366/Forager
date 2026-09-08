@@ -24,6 +24,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.forager.app.domain.ErrorLog
+import com.forager.app.domain.PACE_LOG_TAG
+import com.forager.app.domain.PaceLog
 import com.forager.app.domain.model.AppThemeMode
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.TrackRecordingMode
@@ -44,6 +46,13 @@ class MainActivity : ComponentActivity() {
      * [AvailabilityViewModel]/[TrackRecordingViewModel] don't call [Log] directly.
      */
     private val androidErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
+
+    /**
+     * The real [PaceLog]: one `Log.d` line per pace evaluation under [PACE_LOG_TAG], for
+     * `adb logcat -s ForagerPace` — Pass 2 instrumentation. Debug level, like `ForagerFix`, so it
+     * costs nothing in a release build's logcat filter.
+     */
+    private val androidPaceLog = PaceLog { line -> Log.d(PACE_LOG_TAG, line) }
 
     private val viewModel: AvailabilityViewModel by viewModels {
         viewModelFactory {
@@ -133,6 +142,7 @@ class MainActivity : ComponentActivity() {
                     container.alertDelivery,
                     container.alertAudibility,
                     androidErrorLog,
+                    paceLog = androidPaceLog,
                     getWaypointReferenceCount = { id -> container.getEntryReferenceCountUseCase.forWaypoint(id).getOrDefault(0) },
                 )
             }
