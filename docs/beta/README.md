@@ -38,10 +38,13 @@ fixes carry milliseconds, the same rule throws away good fixes, and the symptom 
 blank: it is a track that looks fine and is simply shorter than the ground walked, with corners cut
 where the missing points were. Nothing in the app can see that; only the walker can, by comparing
 the drawn track with the walk they remember. The line is joined to the device report's make and
-model, which is what turns "shorter" into "shorter on this chipset family". Once the export carries
-every stored point with its kept/excluded verdict (the GPX full-record dispatch), the tester's file
-answers it directly: excluded points along a stretch the tester walked are the rule being wrong on
-that hardware. Until then the question is the only instrument.
+model, which is what turns "shorter" into "shorter on this chipset family". The export now
+carries every stored point with its kept/excluded verdict (the GPX full-record dispatch, landed
+2026-09-08 — see the paragraph below and
+`docs/audits/2026-09-08-gpx-export-full-record-completion-report.md`), so a tester's file answers
+this directly: excluded points along a stretch the tester walked are the rule being wrong on that
+hardware. The question stays in the template regardless — a tester who noticed a short-looking
+track is exactly the signal that makes a track file worth asking for.
 
 **Why the device report asks for make and model *and* Android version, and why neither should be
 trimmed as boilerplate later:** together they identify the phone's GNSS chipset family, which is the
