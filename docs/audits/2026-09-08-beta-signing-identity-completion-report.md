@@ -144,7 +144,36 @@ SHA-256 and prints it in keytool's colon-separated form, so the three fingerprin
 the guard's, apksigner's — are the same string and can be compared by eye. Still a real
 `dependsOn` of `assembleRelease` and `bundleRelease`.
 
-{{VERIFICATION}}
+## Verification (sandbox; a throwaway key, never committed)
+
+A throwaway keystore was generated in the session's scratch directory (`keytool`, alias
+`throwaway`, 30-day validity, `SHA256: 29:14:8B:05:…:4A:F5`) purely to exercise the pass case; it
+is not the beta identity, it is not in the repository, and it dies with the session. A copy of
+the committed debug keystore was placed at a second path for the fingerprint case. Each run is a
+separate Gradle invocation with the identity supplied, or not, through the environment or the
+properties file exactly as a real build would; exit codes and messages read from the logs.
+
+| # | Configuration | Command | Predicted | Actual |
+|---|---|---|---|---|
+| V1a | nothing | `verifyReleaseNeverSignsWithDebugKeystore` | fail, "no signing identity" | exit 1: "The release build type has no signing identity … set FORAGER_SIGNING_STORE_FILE, … (or the four keys in signing.properties …)" |
+| V1b | nothing | `assembleDebug` | succeed, unaffected | exit 0 |
+| V2 | `FORAGER_SIGNING_STORE_FILE` only | `help` (any task) | configuration fails naming the missing three | exit 1: "half-configured: missing FORAGER_SIGNING_STORE_PASSWORD / storePassword, FORAGER_SIGNING_KEY_ALIAS / keyAlias, FORAGER_SIGNING_KEY_PASSWORD / keyPassword" |
+| V3 | `app/debug.keystore` by path, its alias and password | guard | fail, path and fingerprint | exit 1: "resolves to the committed, public debug signing identity (…/app/debug.keystore, certificate SHA-256 CB:2F:6D:A5:…:16:26)" |
+| V4 | a **copy** of the debug keystore at another path | guard | fail on fingerprint alone — the case the old path check passed | exit 1: same message, naming the copy's path and the same `CB:2F:…:16:26` |
+| V5a | throwaway via the four environment variables | guard | pass, printing the fingerprint | exit 0: "Verified: the release build type signs with 'release' (…/throwaway-beta.jks, alias 'throwaway'), certificate SHA-256 29:14:8B:05:EB:3B:EA:ED:2E:4A:17:BA:06:01:35:E8:C9:92:43:DC:7E:78:DD:44:F0:16:B1:27:9C:19:4A:F5 -- not the debug identity." |
+| V5b | same | `assembleRelease` | a signed release APK | exit 0; `app-release.apk` (68.1 MB); `apksigner verify --print-certs`: `CN=Throwaway verification key`, `SHA-256 29148b05eb3b…9c194af5`; `versionName='1.0.470+g377c495e'` |
+| V6 | throwaway via `signing.properties` at the root, **relative** `storeFile`, keystore copied beside it | guard; `git status` with both present | pass; neither file appears | exit 0; `git status --short` empty with both present, empty after removal |
+| V7 | nothing | `testDebugUnitTest` (full suite) | unchanged | exit 0: **166 suites, 1277 tests, 0 failures, 0 errors, 24 skipped**, the skip set the CI allowlist's identity set |
+
+**Three sources, one string:** keytool's `SHA256:` on the throwaway keystore, the guard's
+`certificate SHA-256` line, and apksigner's `SHA-256 digest` on the artifact are the same 32
+bytes (keytool and the guard in colon-separated upper case, apksigner in bare lower-case hex).
+That equality is what step 4 asks the owner to check on the real key, and the build now prints
+the middle one on every release so the check is a glance, not a computation.
+
+**Not verified, said plainly:** anything on a device; the real keystore (does not exist yet, and
+will never exist here); `bundleRelease` beyond its `dependsOn` wiring (the same guard task, not
+run separately — the same identity resolution feeds both).
 
 ---
 
