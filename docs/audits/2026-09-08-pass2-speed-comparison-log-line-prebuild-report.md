@@ -646,3 +646,81 @@ the rulings; the sandbox's lack of an SDK was an environment fact, not a premise
    first tester installs, and move GPX export up as the thing that makes a signing mistake
    survivable (item 2, the guard, is built) — since nothing in this session's own record names two
    keystore steps. If that reading is wrong, the board's third entry needs its referent stated.
+
+---
+
+## Addendum 3: the owner's two notes, the merged base, and the check-in (2026-09-08, 02:15 UTC)
+
+**Scope of what this session did and did not do.** The merge of #77, its cancelled run, and the
+trip-report re-count ("26 with five location questions") the owner's notes refer to are another
+session's work; nothing here claims them. What this session could verify from the API and the
+repository is below; what it could not is said so.
+
+### The cancelled runs, stated precisely (owner's note 1)
+
+On `claude/new-session-b7z9bg` the CI workflow has four **cancelled** runs and they are all the
+same shape — superseded by a push before the test step finished, so **no verdict was produced**:
+
+| Run | Head | Conclusion | Superseded by |
+|---|---|---|---|
+| #374 | `f6ca6b0` | cancelled | #375, 49 s later |
+| #375 | `cae134f` | cancelled | #376 (`c914a30`, **success**) |
+| #380 | `28793d7` | cancelled | #381, 25 s later |
+| #381 | `2dc4921` (a merge commit) | cancelled | #382 |
+
+**#382 on `8dc10d4` — PR #77's head at this check-in — is `success`** (`Build, test, publish
+APK`, started 00:47:15 UTC, completed 00:51:35 UTC). That is the fact that makes the cancelled
+runs harmless: the green run is on the exact head that would merge, and a cancelled run on a
+superseded head is not a verdict on anything that ships. The owner's reading — a cancelled test
+step is the failure family's shape, a check that produced no verdict but sits in the history
+looking like one — is recorded here so that six weeks from now the run list is read against this
+table, not on its own.
+
+### The Cloudflare worker check (owner's note 2) — a queue item
+
+`Workers Builds: forager-pmtiles` is **failure** on #77's head (`8dc10d4`, started and completed
+at 00:47:12 UTC, the same second) and was **failure** on #78's head (`bd5429e`, likewise
+instantaneous, 21:44:24 UTC on 2026-09-07). #78 touched only `app/build.gradle.kts` and
+`app/debug.keystore`, nothing under the worker, so the check is red independently of the diff.
+**Not a required check**, by inference from the API: #77's `mergeable_state` is `unstable`
+(failing *non-required* checks) rather than `blocked`; this is GitHub's documented meaning of the
+two states, not something the check itself says. **Queued, not done:** either fix the worker
+build or make the check non-reporting on this repository — red-and-ignored decays, and in a few
+months nobody will remember which reds are expected. Not this dispatch's; recorded so it has a
+home.
+
+### The trip-report re-count (owner's note 3) — not verifiable from here
+
+On every ref this session can see (`origin/main`, `origin/claude/new-session-b7z9bg` at
+`8dc10d4`, this branch) `docs/beta/trip-report.md` is 69 lines and `docs/beta/README.md` says
+"24 lines"; the 26-line, five-location-question count the owner re-derived is on a trial file
+this session does not have. Recorded as the owner's, unverified here.
+
+### The general form of the cheap question (owner's note 4) — recorded
+
+Added to the CLAUDE.md family entry under instance (4), commit `7fae413`: **check reachability
+before measuring behaviour** — three of the four instances would have been closed by it, and it
+costs one grep.
+
+### The base moved under this branch, and was merged again
+
+PR #77's head moved from `c914a30` to `8dc10d4` while this session worked (eight commits by two
+other sessions: the beta signing identity, the path-home documents, and the CLAUDE.md entry that
+names `docs/audits/README.md` a serialization point). Merged into this branch as `da59097` — a
+merge, never a rebase; the one conflict was again two rows appended to the audits README, and
+**every row was kept** (theirs first, this report's last). The full suite on the merged tree:
+**1284 tests, 0 failures, 0 errors, 24 skipped, the 24 the allowlist's identity set** — the same
+count as before the merge, which is expected: the eight commits added no tests.
+
+### Check-in result (scheduled at the owner's request; fired 01:53 UTC, read 02:12 UTC)
+
+| Question | Answer from the API and the repository |
+|---|---|
+| Has #77 merged? | **No.** Open, `merged: false`, head `8dc10d4`, base `main` at `8eacc91`. |
+| CI on that head? | **Green**: run #382, `success`, completed 00:51:35 UTC. Not cancelled. |
+| Cloudflare check? | Still red, instantaneous, not required (above). |
+| Has `main` moved past `8eacc91`? | **No.** This branch already contains `origin/main`; nothing to merge in. |
+
+Nothing in the board has changed since the owner wrote it: merge #77 (the owner's step), then
+the two keystore steps, then the walk. This branch stays the non-merging instrumentation branch
+the dispatch named, current with #77's head as of this check-in.
