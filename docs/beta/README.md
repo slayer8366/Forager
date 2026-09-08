@@ -65,9 +65,11 @@ device report's make and model, which is what makes the answer usable.
 
 ## Why it is the length it is
 
-The trip report has 26 lines including its gate lines (the 22 it was written at, plus the two-line
-"within …" question and the two-line "shorter than the walk" question — re-counted from the merged
-template, not carried from either branch); four of its six blocks open with a line that
+The trip report asks 24 questions including its gate lines (the 22 it was written at, plus the
+"within …" question and the "shorter than the walk" question), five of them in the location block —
+each question counted once however it wraps, re-counted from this merged template on 2026-09-08. An
+earlier figure of 26 counted the two new questions' wrapped lines and is superseded, not confirmed.
+Four of its six blocks open with a line that
 lets a tester skip the rest of the block ("never navigated back", "skip if you didn't use them",
 "no crash", "no spikes"). A plain walk with recording on answers roughly thirteen short lines, most
 of them one word. A trip where everything happened answers all of them, and that tester has

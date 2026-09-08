@@ -143,6 +143,26 @@ here.
   cases that could have failed it — a total that matches the source, a
   failure message specific to this edit, a build log with no compile
   errors. A check whose input you have not verified has not been run yet.
+  (4) The same family one level up — a check on a value where the question
+  was reachability. Pass 1 of the return-estimate device checks was built to
+  tell whether point differencing had ever run as primary on real data, by
+  comparing a recomputed track snapshot against the stored one; a session
+  went into refining that comparison (which could not discriminate anyway:
+  both tracks recompute to their stored values by construction). The cheap
+  question closed it in one grep: `returnWalkingTime` has no production
+  caller, so the path had never run and could not have, and the check was
+  designed to detect something unreachable. The distinguishing feature of
+  this instance is that no value could ever have carried the answer — the
+  first three checked a value through a lossy step; this one checked a
+  value for a fact about the *caller*. So: before designing a check for
+  whether a path ran, `git grep` its callers and confirm it is reachable
+  from production code. "Who calls this?" is asked before "what did it
+  produce?", and a path with no caller has an answer before any data does.
+  The general form (owner, 2026-09-08): **check reachability before
+  measuring behaviour.** Three of the four instances above would have been
+  closed by it — the migration test never reached the migration, the
+  revert runner never reached the reverted build, Pass 1 never reached the
+  pace — and it costs one grep.
 - **The cheap question — who calls this? — closes more of that family than
   any amount of careful measurement downstream.** Three pre-build reports on
   2026-09-07/08 (track distance, path home, GPX full record), written for
@@ -153,9 +173,11 @@ here.
   vs inferred, could not determine, premises that were wrong, decided beyond
   scope — forcing the question "who actually calls this, and what does it
   actually read?" to be answered from the code rather than assumed from the
-  dispatch. Those are the fourth and fifth instances of the family above, and
-  the pattern across all five is that the check and the thing it checks were
-  decoupled by a step nobody had traced. So: a pre-build report traces every
+  dispatch. Those are further instances of the family above, beside the
+  reachability check written up as (4) — one of the three was that same
+  no-caller finding, seen from its pre-build report — and the pattern across
+  all of them is that the check and the thing it checks were decoupled by a
+  step nobody had traced. So: a pre-build report traces every
   claimed path to its caller and every claimed figure to its reader, and
   states which are unverified, before it prices anything.
 
