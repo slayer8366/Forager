@@ -25,6 +25,18 @@ fun relativeBearingDegrees(bearingDegrees: Double, headingDegrees: Float): Float
  * 10 m and a poor one at 40 m, each honest to what the device actually knows. With no accuracy
  * reported there is no basis for the word at all, so it is never shown — an explicit unknown, not
  * a guessed constant.
+ *
+ * **On the owner's device this is a decision made from a field with no signal in it.** The
+ * instrument walk of 2026-09-07 (`docs/audits/2026-09-07-fix-log-walk-findings.md`) found every
+ * GPS fix on that phone reporting the same accuracy, `3.7900925` m, 289 of 289 — a placeholder,
+ * not a measurement — so "Approaching" there fires at a fixed 7.58 m, whatever the sky, and the
+ * "honest to what the device actually knows" reasoning above holds only on hardware that reports
+ * a varying value. This is the serious reader of that field (owner's ranking): the gate and the
+ * two formatters *display* a wrong number, this function *decides* from one — it also withholds
+ * the needle, through the same threshold — and a decision is what a constant can silently
+ * mis-make. One device so far; the beta trip report asks whether the "within" number ever
+ * changes on other phones. Until a device is known to report real accuracy, do not build on this
+ * threshold as if it tracked fix quality, and do not tune the multiplier against that device.
  */
 fun isApproaching(distanceMeters: Double, accuracyMeters: Float?): Boolean {
     if (accuracyMeters == null) return false

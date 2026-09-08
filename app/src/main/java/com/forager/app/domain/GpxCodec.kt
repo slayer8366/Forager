@@ -59,6 +59,16 @@ object GpxCodec {
         append("  </wpt>\n")
     }
 
+    /**
+     * **No caller in the app yet** (track-distance-display pulse, 2026-09-07). The [Track] this
+     * builds carries the file's points exactly as written — it has not been through
+     * `RoomTrackRepository`'s read mapping, so the network-provider-fix rule
+     * ([excludeNetworkProviderFixes]) has not run on it and [Track.excludedPointCount] is `0`
+     * regardless. **If import is ever wired, the decoded track must be persisted and read back
+     * through the repository before any consumer sees it** — handed to a consumer directly, it is
+     * the one `Track` in the app that bypasses the filtered seam every distance, plate and estimate
+     * depends on. Recorded here, where the bypass would start; nothing wired.
+     */
     fun decode(xml: String): GpxDocument {
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
         val root = builder.parse(xml.byteInputStream()).documentElement
