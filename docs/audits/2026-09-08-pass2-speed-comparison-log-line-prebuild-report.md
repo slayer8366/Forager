@@ -609,3 +609,40 @@ with the reason); the point builder duplicated into `PaceLogRecordTest` rather t
 the per-poll guard `active != null` (a poll can run after `stopRecording` clears the active track
 in the same tick — no record for a recording that has ended). **Premises wrong:** none found in
 the rulings; the sandbox's lack of an SDK was an environment fact, not a premise.
+
+---
+
+## Addendum 2: owner rulings on the completion (2026-09-08)
+
+1. **The `null`-on-empty deviation is right, and it is the more important of the two things
+   flagged.** A zero standing in for a timestamp is a fabricated value a replay would consume as
+   real; `null` on an empty point list is the honest output. That it cost three predicted test
+   failures (revert A) to get there is the check working.
+2. **PR #78: closed, not merged** — done this session, with a comment stating why
+   (`https://github.com/slayer8366/Forager/pull/78#issuecomment-5577369808`). #77 contains the
+   same keystore plus the guard plus the release signing config; #78 shipping first would put the
+   debug keystore on `main` with nothing preventing a release from being signed with it —
+   precisely the state `verifyReleaseNeverSignsWithDebugKeystore` exists to prevent, and precisely
+   the window the addendum's "should not stay separated for long" pointed at. Once #77 lands, #78 is
+   empty; closing it as superseded rather than racing it also collapses the edit risk, since only
+   one copy ever merges.
+3. **The revert-runner discipline is noted as closing the hole in the family's second recorded
+   instance** (the runner that printed stale results): restore from a saved copy, check the build
+   log for compile errors, confirm the forward change present after each. Predicted-failure counts
+   matching exactly is what makes the tests informative rather than decorative.
+4. **The walk: the Doppler trio staying `null` on the reference track is expected and is to be
+   stated so a future reader does not read it as instrument failure.** All 221 stored speeds are
+   null because they predate the columns; the first walk on a schema-15 build is the first data
+   that can populate them — the real first test of the comparison, not a repeat. **Placed** in
+   `docs/beta/README.md` as an owner's reading note beside the other two, not in the 24-line
+   tester form: a tester never sees a log line, the form's length and cut order are governed by
+   that README, and the reader who meets `doppler=null` is whoever reads the log. If the owner
+   meant the tester form, it is one gated line and the README's line count moves by one — a
+   decision for the owner, offered rather than taken.
+5. **Board, as ruled:** merge #77 (the owner's step — not taken here; this branch is the
+   non-merging instrumentation branch the dispatch named and is not a PR), close #78 (done), then
+   the two keystore steps, then the walk. *Inferred:* "the two keystore steps" are the Items 1–3
+   completion report's beta-signing items 1 and 3 — decide the beta's signing identity before the
+   first tester installs, and move GPX export up as the thing that makes a signing mistake
+   survivable (item 2, the guard, is built) — since nothing in this session's own record names two
+   keystore steps. If that reading is wrong, the board's third entry needs its referent stated.
