@@ -50,6 +50,18 @@ that decides whether this is one phone or the platform; "it changed" is just as 
 gated on the arrow screen because that is the only surface that prints it, and it is joined to the
 device report's make and model, which is what makes the answer usable.
 
+**What a `ForagerPace` log line shows, and what is not an instrument failure (owner's reading
+note, not tester text — testers never see a log line):** from the Pass 2 instrumentation
+(`docs/audits/2026-09-08-pass2-speed-comparison-log-line-prebuild-report.md`) each recording
+writes one line per 15 s under `adb logcat -s ForagerPace`. On any track recorded before schema 15
+— the reference track `3aec7001-…` included, all 221 of its stored rows — `doppler=null
+diffSame=null ratio=null` and `counted=0` are the **expected** output: those rows predate the
+speed columns, so there is no Doppler sample to average. That is not the instrument failing. The
+first walk on a schema-15 build is the first data that can populate them, which makes it the real
+first test of the Doppler-versus-differencing comparison, not a repeat of anything; on it, `call`
+climbs by one per line, `diffBar` turns true once `movingMs` reaches 300 000, and `dopplerBar` only
+once `dopplerMs` does.
+
 ## Why it is the length it is
 
 The trip report has 24 lines including its gate lines (the 22 it was written at, plus the two-line
