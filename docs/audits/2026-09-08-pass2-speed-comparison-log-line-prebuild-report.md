@@ -547,3 +547,65 @@ only if either copy is edited before the other lands. Options, not a decision: m
 for long — it is what makes the committed key safe to have.
 
 ### What was then built (same day) — see the completion section below
+
+---
+
+## Completion: what was built (2026-09-08, on the merged branch)
+
+**Base:** `claude/new-session-3x1aba` after merging `c914a30` (PR #77's head) — so every file
+below sits on the pace code it instruments. **Built:** `9ad0395` (work-in-progress push, tests
+not yet run) and the commit carrying this section (verification).
+
+| Piece | Where | What |
+|---|---|---|
+| The sink | `domain/PaceLog.kt` (new) | `fun interface PaceLog { fun record(line: String) }` in `ErrorLog`'s shape, and `PACE_LOG_TAG = "ForagerPace"`. Its own interface, not a second method on `ErrorLog`: a `Throwable`-taking warning and a debug-level data record share nothing but the word. |
+| The record | `domain/PaceLogRecord.kt` (new) | `MovingPace.toLogRecord(track, call, atEpochMillis, mode)` — §D's line, 29 keys in fixed order, `v=1` first. Doubles by `Double.toString()` so a replay reproduces every numeric field exactly. The literal `null` on seven declared fields and nowhere else: `first`/`last`/`wallMs` with no points (**a change from §D's draft, which printed `0` — a zero standing in for a timestamp is the fabricated value CLAUDE.md forbids**), `diffAll` with no moving interval, and the `doppler`/`diffSame`/`ratio` trio together until a counted sample exists. Both bar booleans, and `source` (ruling 2). `MovingPace.kt` itself is untouched. |
+| The one call | `ui/track/TrackRecordingViewModel.kt`, `beginPolling` | After the poll's own `getById` succeeds with a non-null track and a recording is active: `paceLog.record(movingPace(track.points).toLogRecord(track, ++paceCall, currentTime.nowEpochMillis(), active.mode))`. `paceCall` is reset to 0 in `startRecording`, nowhere else. New constructor parameter `paceLog: PaceLog = PaceLog { }` after `currentTime`, defaulted so no existing construction site changes. |
+| Production wiring | `MainActivity.kt` | `androidPaceLog = PaceLog { line -> Log.d(PACE_LOG_TAG, line) }`, passed by name. `adb logcat -s ForagerPace`. |
+| Untouched, per the dispatch | — | which instrument governs; the predicate, the floor, the bar; `ForagerFix`; the three collectors; every existing test's body; the skip allowlist. |
+
+### Tests
+
+| Class | Cases | What they pin |
+|---|---|---|
+| `PaceLogRecordTest` (new) | 6 | A pre-migration track (21 north points, 3 excluded): every key in order, every field, the trio `null`, `stored=24`, `diffBar=true`/`dopplerBar=false`, `source=DIFFERENCING`. Doppler on every point: the trio printed, `ratio` ≈ 0.89932, both bars, `source=DOPPLER`. **Partial coverage** (40 differencing intervals, 10 Doppler): `diffBar=true`, `dopplerBar=false`, `source=DIFFERENCING`, `counted=10`/`nullSpeed=30` — the disagreement case, the reason both booleans are printed. A ten-minute stop: `examined=21`, `moving=20`, `wallMs=900000` against `movingMs=300000`. The empty track: `null` on the timestamps and every average, `source=DEFAULT`. One line, no free text, `null` only on declared fields. Every case checks the three parser identities. Numeric tokens are parsed and compared to `MovingPaceTest`'s hand-worked values, never re-formatted from the pace. The point builder is a copy of `MovingPaceTest`'s private one, not a widening of it. |
+| `TrackRecordingViewModelTest` (one added, through `runRecordingTest`) | 1 | The first poll's line asserted whole (`points=0 … source=DEFAULT`, `call=1`, `at=1000`, `mode=HIGH_ACCURACY`); after 21 points and one poll interval, `call=2`, `points=21`, `moving=20`, `diffBar=true`, `dopplerBar=false`, `source=DIFFERENCING`; stop and restart in `BALANCED` → `call=1`, `mode=BALANCED`. The fixture gained one defaulted parameter; no existing test body changed. |
+
+### Reverted-variant checks (the runner saved a copy before editing and restored from it, checked the build log for compile errors before reading results, and confirmed the forward change present after each restore — `git diff --stat HEAD` empty)
+
+| Revert | One-line edit | Predicted | Observed |
+|---|---|---|---|
+| A — the trio printed as `0.0` instead of `null` (the walk's parser failure in miniature) | `comparison?.X.toString()` → `(comparison?.X ?: 0.0).toString()`, three fields | 3: the two `PaceLogRecordTest` cases that assert `doppler=null`, and the ViewModel test's whole-line first record | **3 of 50, exactly those**, each `expected:<[null]> but was:<[0.0]>` — a message only this edit produces |
+| B — the poll no longer records | the `paceLog.record(...)` call replaced by `paceCall += 1` | 1: the new ViewModel test | **1 of 50, exactly that**, `expected:<[v=1 track=track-1 call=1 …]> but was:<[]>` |
+
+The "one line, no free text, `null` only on declared fields" case stays green under revert A by
+design — fewer `null`s cannot fail it — which is why the two value-asserting cases exist.
+
+### Full suite
+
+`./gradlew testDebugUnitTest` on the merged branch, Android SDK installed by
+`scripts/setup-android-sdk.sh` (the sandbox had none; `SDK location not found` was the first
+run's whole output): **1284 tests, 0 failures, 0 errors, 24 skipped.** `c914a30`'s own count is
+1277; 1277 + 6 + 1 = 1284. **The 24 skips are the CI allowlist's identity set exactly** —
+compared as `(classname, name)` pairs against `SKIPPED_TESTS_ALLOWLIST` parsed from
+`.github/workflows/ci.yml`: no unallowed skip, no stale entry. Skip count untouched.
+
+**Device verification: none, and none claimed.** No `/dev/kvm`. The first real `ForagerPace`
+line — and the first real Doppler-versus-differencing comparison, and the first time point
+differencing runs in production at all — is the owner's walk. What to expect on it: on a
+schema-15 build every line's `call` climbs by one per 15 s, `points` climbs as flushes land (every
+other poll at most), `diffBar` turns true once `movingMs` reaches 300 000, and `dopplerBar` only
+once `dopplerMs` does; on the reference track the Doppler trio is `null` throughout.
+
+### Required disclosure (completion)
+
+**Confirmed:** every test result above from the JUnit XML, not the console; the revert runner's
+restore from its saved copy and the clean `git diff --stat HEAD` after both reverts; the allowlist
+identity by set difference in both directions. **Inferred:** nothing about device behaviour.
+**Could not determine:** what a real line looks like — the whole point of the instrument.
+**Decided beyond scope:** `first`/`last`/`wallMs` as `null` rather than `0` with no points (above,
+with the reason); the point builder duplicated into `PaceLogRecordTest` rather than
+`MovingPaceTest`'s private one made shared (touching a test file the dispatch did not name);
+the per-poll guard `active != null` (a poll can run after `stopRecording` clears the active track
+in the same tick — no record for a recording that has ended). **Premises wrong:** none found in
+the rulings; the sandbox's lack of an SDK was an environment fact, not a premise.
