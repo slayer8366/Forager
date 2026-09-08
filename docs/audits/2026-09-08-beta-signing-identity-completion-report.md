@@ -84,18 +84,34 @@ signed with a replacement. Before the first build is signed with it, store **bot
 the password in two places** that do not fail together (a password manager plus an offline copy
 is the usual pair). The file is small; the password is the part people lose.
 
-**A question raised, not acted on: Play App Signing.** If the app is ever distributed through
-Google Play with Play App Signing enrolled, Google holds the *app signing key* and the key the
-owner holds becomes an *upload key* — a different object, replaceable through Google's process
-if lost, while the app signing key is Google's to keep. That changes the recovery story above
-materially (a lost upload key is recoverable; a lost app signing key is Google's problem, not the
-owner's) and changes what "the identity" means for sideloaded beta builds versus Play builds:
-a sideloaded APK signed with the upload key and a Play-delivered APK signed with the app signing
-key are different identities, and a tester who sideloaded the beta cannot update to the Play
-release in place. Whether the beta goes through Play, and whether to enrol, is the owner's
-decision and is not made or assumed here — the build supports one identity from one keystore,
-which is right for a sideloaded beta and for a Play release without App Signing, and is the
-upload identity if App Signing is later enrolled.
+**Play App Signing — resolved by the owner, same day (supersedes the open question this report
+first raised here).** The owner's position, citing Android Developers documentation (not
+independently verified in this sandbox): Play App Signing is required for any app distributing
+through Google Play that was created after August 2021, so a new app cannot opt out — **but at
+enrolment the developer may choose the app signing key instead of accepting a Google-generated
+one**, by uploading an existing key through the PEPK tool and generating a separate upload key
+for submissions. So the continuity path exists and does not force the Play-versus-sideload
+decision before the first tester installs:
+
+1. Generate keystore **K** now (the command above). Sideload the beta signed with K.
+2. If the app later goes to Play, **enrol with K as the app signing key**, not a Google-generated
+   one. Play re-signs releases with K.
+3. Testers' sideloaded installs update in place to the Play release. No uninstall, no data loss.
+
+What this changes: the hard deadline the dispatch flagged is gone — Play-versus-sideload need not
+be decided before the beta, as long as K is kept and the enrolment is done with K. And **K is more
+critical, not less**: it now has to survive until Play enrolment, and losing it forecloses the
+upgrade path permanently rather than only breaking local builds. The two-places rule above was
+already the recommendation; this is the reason it is not optional.
+
+**The trap, recorded here because it happens once, inside the Play Console, months from now, when
+this reasoning is gone:** the default enrolment flow offers a Google-generated app signing key and
+recommends it — the right choice for most apps and **wrong for this one**. Accepting it silently
+forfeits every tester's data, because the sideloaded beta (signed with K) and the Play release
+(signed with Google's key) would be different identities. At enrolment: *choose to upload your own
+key, upload K via PEPK, and generate a separate upload key.* The same warning sits in
+`app/build.gradle.kts` beside `resolveSigningIdentity()`, where whoever configures the identity
+will read it.
 
 ---
 
@@ -227,7 +243,7 @@ with nothing configured.
 
 **Could not determine:** whether the owner's device ever held a non-debug build from outside this
 repository — no build from this repository could have; anything on a device (no `/dev/kvm`);
-whether the owner intends Play distribution or Play App Signing (raised, not assumed).
+whether the owner intends Play distribution (still open, and — per the owner's same-day ruling on Play App Signing above — no longer a decision the beta has to wait for).
 
 **Premises in this dispatch that were wrong:** one refinement rather than an error — the dispatch
 calls `app/debug.keystore` "the conventional public Android debug identity"; it is a keystore

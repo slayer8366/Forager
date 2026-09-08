@@ -131,6 +131,18 @@ val buildIdentity = resolveBuildIdentity()
  * which the guard also refuses. **A half-configured identity fails at configuration time**, before
  * any task runs: some of the four set and some not is a typo in the one place a typo strands every
  * future install, so it names the missing ones and stops.
+ *
+ * **If this app ever goes to Google Play** (owner's ruling, 2026-09-08, recorded here because the
+ * moment it matters is a one-time choice in the Play Console long after this was written): Play
+ * App Signing is required for a new app, and the enrolment flow **offers a Google-generated app
+ * signing key by default and recommends it — that is wrong for this app.** Accepting it makes the
+ * Play release a different identity from the sideloaded beta, and every tester's install can then
+ * only be replaced by an uninstall that destroys their journal. At enrolment, *choose to upload
+ * your own key*: upload this keystore's key through the PEPK tool as the app signing key, and
+ * generate a separate upload key for submissions. Then Play re-signs with the same identity the
+ * beta carried and sideloaded installs update in place. This is also why the keystore has to
+ * survive until enrolment: losing it forecloses that path permanently. Full reasoning and the
+ * owner's cited documentation: `docs/audits/2026-09-08-beta-signing-identity-completion-report.md`.
  */
 class SigningIdentity(val storeFile: File, val storePassword: String, val keyAlias: String, val keyPassword: String)
 
