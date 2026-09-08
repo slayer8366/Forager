@@ -158,6 +158,11 @@ here.
   whether a path ran, `git grep` its callers and confirm it is reachable
   from production code. "Who calls this?" is asked before "what did it
   produce?", and a path with no caller has an answer before any data does.
+  The general form (owner, 2026-09-08): **check reachability before
+  measuring behaviour.** Three of the four instances above would have been
+  closed by it — the migration test never reached the migration, the
+  revert runner never reached the reverted build, Pass 1 never reached the
+  pace — and it costs one grep.
 
 ## Building
 
