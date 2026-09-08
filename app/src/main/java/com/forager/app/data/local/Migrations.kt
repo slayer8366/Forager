@@ -885,3 +885,50 @@ val MIGRATION_13_14: Migration = object : Migration(13, 14) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_waypoints_trackId` ON `waypoints` (`trackId`)")
     }
 }
+
+/**
+ * Adds nullable `speedMetersPerSecond` and `speedAccuracyMetersPerSecond` to `track_points` —
+ * return-estimate dispatch, Item 3: the platform's Doppler speed and its accuracy, persisted so
+ * the pace can rest on a measurement that does not inherit position error. Authorised by the owner
+ * after the instrument walk showed speed populated on 289 of 289 GPS fixes and absent on 55 of 55
+ * network fixes on one device (`docs/audits/2026-09-07-fix-log-walk-findings.md`). Every existing
+ * row gets `NULL` in both: nothing before this version recorded a speed, and `NULL` is the value
+ * the reader ([com.forager.app.domain.movingPace]) treats as "use point differencing", not as
+ * zero. Nullable is not a convenience — see [TrackPointEntity].
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_12_13]
+ * records: [TrackPointEntity] is declared directly by every `LegacyForagerDatabaseVn` fixture from
+ * version 5 on, so their generated tables already carry both columns and an `ADD COLUMN` would fail
+ * against them; the explicit source column list below ignores the leaked columns. `id` is copied
+ * so existing rowids survive (`INTEGER PRIMARY KEY AUTOINCREMENT`, as Room declares it, keeps
+ * accepting explicit values), and the one index is recreated because `DROP TABLE` takes it. Verified
+ * by running every existing migration test with this appended to its chain, plus
+ * `TrackPointSpeedMigrationTest` from a real version-14 file.
+ */
+val MIGRATION_14_15: Migration = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `track_points_new` (
+            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            `trackId` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `altitude` REAL,
+            `accuracyMeters` REAL,
+            `timestampEpochMillis` INTEGER NOT NULL,
+            `speedMetersPerSecond` REAL,
+            `speedAccuracyMetersPerSecond` REAL)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `track_points_new` (`id`, `trackId`, `lat`, `lng`, `altitude`, `accuracyMeters`, `timestampEpochMillis`, `speedMetersPerSecond`, `speedAccuracyMetersPerSecond`)
+            SELECT `id`, `trackId`, `lat`, `lng`, `altitude`, `accuracyMeters`, `timestampEpochMillis`, NULL, NULL FROM `track_points`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `track_points`")
+        db.execSQL("ALTER TABLE `track_points_new` RENAME TO `track_points`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_track_points_trackId` ON `track_points` (`trackId`)")
+    }
+}

@@ -102,6 +102,16 @@ fun formatDistanceMeters(distanceMeters: Double, unit: DistanceUnit): String = w
  *
  * The `≈` glyph and the `within` wording are the owner's; a `~` was considered and rejected as
  * reading like a typo at `titleMedium`.
+ *
+ * **The accuracy this reads is a constant on the owner's device** (instrument walk, 2026-09-07):
+ * every GPS fix there reports `3.7900925` m, so the "within" circle drawn here is a fixed
+ * "within 12 ft" / "within 4 m" and the `≈` step is always the finest one — the displayed
+ * precision is not tracking real fix quality on that hardware, only on its network fixes, whose
+ * accuracy genuinely varies. The function is right for what the platform gives it; the honesty
+ * it was built for depends on the field meaning something, and on that one device it does not.
+ * One device so far; the beta trip report asks whether the "within" number ever changes. See
+ * [com.forager.app.domain.LIVE_FIX_MAX_ACCURACY_METERS]'s doc for the other readers of the same
+ * field and `docs/audits/2026-09-07-fix-log-walk-findings.md` for the data.
  */
 fun formatDistanceWithAccuracy(distanceMeters: Double, accuracyMeters: Float?, unit: DistanceUnit): String {
     if (accuracyMeters == null) return formatDistanceMeters(distanceMeters, unit)
