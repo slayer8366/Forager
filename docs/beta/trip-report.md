@@ -28,6 +28,8 @@ While it said the fix was old, did the blue marker on the map keep moving? yes /
 Did the recorded track show spikes or a starburst (lines shooting out and back, or a fan while standing still)?
   no / yes — standing still or moving? what was overhead?
   (If yes, a track file helps — see the last block.)
+Did the recorded track look SHORTER than your walk — corners cut, stretches missing, a distance that
+  seemed low? no / yes — roughly how much was missing: / didn't compare  (If yes, a track file helps.)
 
 COMPASS
 Did "Compass unreliable" ever appear? no / yes — what was near you (vehicle, fence, power line, building, the phone's own case or mount):

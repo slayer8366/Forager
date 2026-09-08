@@ -182,3 +182,17 @@ protection — stand as the open decisions, and one more from reading the code: 
 interval rule compares consecutive *stored* timestamps, so a source-side exclusion of network
 fixes would also change which GPS fixes the sampler accepts (a rejected network fix no longer
 becomes `lastAccepted`); a read-seam exclusion would not. That difference belongs in the dispatch.
+
+---
+
+## Terminology note (added 2026-09-08, owner's request, from the GPX full-record pre-build report)
+
+"Sub-second" throughout this document and the handoff wording that preceded it means the
+**fractional-millisecond part of a point's stored timestamp** (`timestampEpochMillis % 1000 != 0`),
+not a sub-second *sampling interval*. The sampler's tightest interval floor is 5 000 ms
+(`TrackRecordingMode.HIGH_ACCURACY`), so no two stored points are ever under a second apart, and a
+reading of the earlier record as claiming sub-second intervals was rightly refuted on that ground.
+That refutation was wrong only in implying the record was mistaken: it was ambiguous. The predicate
+the app now runs (`NetworkProviderFix.kt:40`) keys on exactly the millisecond field this document
+describes, and on nothing else — not on accuracy, not on any interval. Recorded here, where the term
+first appears, so the two readings cannot be confused again.

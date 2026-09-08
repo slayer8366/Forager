@@ -495,3 +495,59 @@ milliseconds when non-zero (executed); the GPX 1.1 `<extensions>` placements (fe
 In-app display stays filtered; the export carries the full data set; the rendered `<trk>` is the
 filtered path with the raw points riding as data. All from the owner, 2026-09-07. Only section B's
 mechanism was open, and this report closes it with a recommendation pending the two asks above.
+
+---
+
+## Addendum — owner's response, 2026-09-08
+
+Recorded verbatim in substance so the build dispatch starts from rulings, not from this report's
+recommendations.
+
+### The two corrections, acknowledged
+
+- **Truncation.** The owner filed whole-second truncation as a data-destroying defect to fix
+  regardless; it is not a defect. `Instant.toString()` emits milliseconds when non-zero, and the
+  exported stamps are whole-second because only whole-second points survive the seam. The
+  disclosure section caught it. Nothing in the encoder changes on that account; the fixed
+  three-decimal form in the block (B.0) stands as a format choice, not a fix.
+- **"Sub-second."** The predicate keying on the timestamp resolves the confounding the planner
+  could not. It also partly rehabilitates the original handoff wording: "sub-second" meant the
+  fractional-millisecond field, not a sampling interval. The refutation that no sub-second
+  *intervals* exist was right, and wrong to imply the record was simply mistaken — it was
+  ambiguous. Fixed in the record as ambiguity, not error: a terminology note is appended to
+  `2026-09-06-timestamp-discriminator-findings.md`, where the term first appears.
+
+### Rulings
+
+| Question | Ruling |
+|---|---|
+| Base branch (A.3) | **Wait for PR #77.** A format without the speed fields means a second format revision once they land, and the replay harness is the reason the format exists. The beta signing dispatch may add commits; where those land relative to #77 is to be decided first. |
+| Waypoints (C.1) | **Include them.** The annotated track is the harness's first replay case because its waypoints are labelled ground truth for activity state; an export that drops them cannot serve that purpose, which is most of the justification for B1. |
+| Placement (B.2) | **`<trk><extensions>` over `<metadata><extensions>` — accepted** as an improvement on the planner's recommendation. |
+
+Section B is therefore closed: B1, inside `<trk><extensions>`, authority declared in-band, with
+the track's waypoints as `<wpt>` elements carrying `id`, `trackId` and `designation` in their own
+`<extensions>`.
+
+### A hazard the owner named, and the instrument for it
+
+`excludeNetworkProviderFixes` keys on fractional milliseconds as a **proxy for provider, not
+provider itself**. It has held across five data sets on one device. If another device's GPS fixes
+land on non-whole milliseconds, the rule silently discards good fixes, and the symptom is a track
+that looks fine and is simply shorter — the same failure family, one device deep. The B1 export is
+what makes the predicate testable on real hardware variety: tester files will carry every stored
+point with its verdict, so excluded points along a stretch the tester walked are the rule being
+wrong on that hardware.
+
+Done in this commit: a "did the track look shorter than your walk" question added to the trip
+report's location block (`docs/beta/trip-report.md`), with its rationale and its never-cut status
+recorded in `docs/beta/README.md`. Note for whoever merges: PR #77 edits the same README region
+(its "within …" question, the line count, and the never-cut item); the merge will conflict on the
+count line and the never-cut sentence, and the resolution is 26 lines and five location questions,
+both questions kept.
+
+Not done, and worth a line in the build dispatch: `NetworkProviderFix.kt`'s doc comment already
+states the limit ("a property of a device's GNSS stack, not a guarantee"); when the export lands,
+that comment should point at the export as the instrument that checks it, and the beta README's
+"until then the question is the only instrument" sentence should be updated to say the file now
+is.
