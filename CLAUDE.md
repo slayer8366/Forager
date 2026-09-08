@@ -120,6 +120,29 @@ here.
   goes through it, and any new ViewModel with a poll loop needs the same
   shape. Diagnose a stall with a thread dump of the test worker, which
   names the test that actually failed — what is lost is its message.
+- **A check that passes because it never saw the data that could fail it.**
+  Three instances in this project, and they look nothing alike until named as
+  one family. (1) The legacy-miles migration test passed with the migration
+  removed, because imperial was also the default: the check saw only the
+  answer, never the mechanism, so both branches produced it. (2) The revert
+  runner reported the previous run's failures as the revert's, because the
+  reverted build had not compiled: the check saw stale results, never the
+  build it claimed to describe. (3) The instrument-walk log parser confirmed
+  the provider/`hasSpeed` correlation at 289/289 with perfect separation —
+  on a sample that had silently dropped all 55 network fixes, because they
+  log `speed=null` and the pattern required a number. The disconfirming
+  cases were exactly the ones the parser could not read, so the check
+  passed on the only sample that could not fail it. The shape is the same
+  each time: the check and the thing it is checking are decoupled by a step
+  in between (a coincident default, a stale artifact, a lossy filter), and
+  nothing in the check's own output says so. What caught all three was the
+  same act, a count read against something outside the check — the runner's
+  tally against the prediction, `git diff --stat` a file short, 289 fixes
+  against 344 lines-worth in the log. So: before citing a check as evidence,
+  ask what sample it actually ran on and confirm that sample includes the
+  cases that could have failed it — a total that matches the source, a
+  failure message specific to this edit, a build log with no compile
+  errors. A check whose input you have not verified has not been run yet.
 
 ## Building
 
@@ -179,6 +202,18 @@ here.
   as much as code: an audit, a review, a design decision, or a handoff note
   that lives only in a session transcript is not recorded — `docs/audits/`
   exists for exactly this reason.
+- **`docs/audits/README.md` is a serialization point.** Every dispatch appends a
+  row to the one index, so two coder sessions running in parallel on one
+  branch are guaranteed to conflict there even when nothing else they touch
+  overlaps — which is exactly what happened on 2026-09-08, when the beta-signing
+  session and the path-home sessions landed within minutes of each other and
+  every push after the first was rejected until merged. Running dispatches as
+  separate sessions was the right call for keeping one report's premises from
+  bleeding into another; it was wrong about the merge cost. Either sequence the
+  dispatches that touch the index, or split it so each session appends to its
+  own fragment. When the conflict does happen: merge (never rebase — the
+  push-before-you-tidy rule above), and **keep every row** — there is no case
+  in which dropping an index row is the right resolution.
 - **Verify your base branch before you start.** Confirm what your branch is
   cut from and that the base is current before writing code — don't assume
   `main` is up to date. This project has had `main` sit multiple phases
