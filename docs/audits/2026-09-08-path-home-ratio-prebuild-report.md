@@ -133,7 +133,7 @@ as-is). None of this is a cost question.
 (`:303-326`): for each live `LocationFix.Update`, if the active mode's `LocationSampler.shouldAccept(lastAccepted = null, candidate)`
 passes, and `originWaypoint == null` and no creation is in flight, `createOriginWaypoint` (`:329-356`)
 persists a waypoint at that fix's lat/lng and points the track at it. The guard is only re-armed on
-a *write failure* (`:349-354`). `originWaypoint` is set to `null` only in `startRecording` (`:178`).
+a *write failure* (`:351-356`). `originWaypoint` is set to `null` only in `startRecording` (`:178`).
 There is no refinement, no re-seeding on a better fix, and no restore path in the ViewModel (the
 only `ActiveTrack(...)` construction is at `:175`; whether the foreground service survives process
 death was not read). The dispatch's capture matches: origin coordinates = first stored point,
