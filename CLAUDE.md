@@ -222,6 +222,18 @@ here.
   as much as code: an audit, a review, a design decision, or a handoff note
   that lives only in a session transcript is not recorded — `docs/audits/`
   exists for exactly this reason.
+- **`docs/audits/README.md` is a serialization point.** Every dispatch appends a
+  row to the one index, so two coder sessions running in parallel on one
+  branch are guaranteed to conflict there even when nothing else they touch
+  overlaps — which is exactly what happened on 2026-09-08, when the beta-signing
+  session and the path-home sessions landed within minutes of each other and
+  every push after the first was rejected until merged. Running dispatches as
+  separate sessions was the right call for keeping one report's premises from
+  bleeding into another; it was wrong about the merge cost. Either sequence the
+  dispatches that touch the index, or split it so each session appends to its
+  own fragment. When the conflict does happen: merge (never rebase — the
+  push-before-you-tidy rule above), and **keep every row** — there is no case
+  in which dropping an index row is the right resolution.
 - **Verify your base branch before you start.** Confirm what your branch is
   cut from and that the base is current before writing code — don't assume
   `main` is up to date. This project has had `main` sit multiple phases

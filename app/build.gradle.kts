@@ -1,3 +1,6 @@
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.util.Properties
 import java.util.zip.ZipFile
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -105,6 +108,73 @@ fun resolveBuildIdentity(): BuildIdentity {
 }
 
 val buildIdentity = resolveBuildIdentity()
+
+/**
+ * The beta-and-release signing identity — dedicated-beta-signing-identity dispatch (owner
+ * decision): testers keep their data across the beta-to-release transition, so the beta build and
+ * the release build carry one identity, and it is not the committed debug key.
+ *
+ * **Never a literal, never in the repository.** The four values come from environment variables
+ * (`FORAGER_SIGNING_STORE_FILE`, `FORAGER_SIGNING_STORE_PASSWORD`, `FORAGER_SIGNING_KEY_ALIAS`,
+ * `FORAGER_SIGNING_KEY_PASSWORD`), else from an untracked `signing.properties` at the repository
+ * root (keys `storeFile`, `storePassword`, `keyAlias`, `keyPassword`; a relative `storeFile` is
+ * resolved against the root). `.gitignore` covers the properties file and every `*.jks` /
+ * `*.keystore` except `app/debug.keystore`. The owner generates and holds the keystore; CI has no
+ * copy and signs nothing but debug.
+ *
+ * **When nothing is configured** — every CI runner, every checkout without the secret — this is
+ * `null`, the release build type gets **no** signing config, and `assembleRelease` /
+ * `bundleRelease` fail at [verifyReleaseNeverSignsWithDebugKeystore] with a message that says
+ * what to set. Debug builds and the test suite are untouched: the identity is only ever read, never
+ * required, until a release artifact is asked for. There is deliberately no fallback to the debug
+ * identity — that is the regression the guard exists to prevent — and no fallback to unsigned,
+ * which the guard also refuses. **A half-configured identity fails at configuration time**, before
+ * any task runs: some of the four set and some not is a typo in the one place a typo strands every
+ * future install, so it names the missing ones and stops.
+ *
+ * **If this app ever goes to Google Play** (owner's ruling, 2026-09-08, recorded here because the
+ * moment it matters is a one-time choice in the Play Console long after this was written): Play
+ * App Signing is required for a new app, and the enrolment flow **offers a Google-generated app
+ * signing key by default and recommends it — that is wrong for this app.** Accepting it makes the
+ * Play release a different identity from the sideloaded beta, and every tester's install can then
+ * only be replaced by an uninstall that destroys their journal. At enrolment, *choose to upload
+ * your own key*: upload this keystore's key through the PEPK tool as the app signing key, and
+ * generate a separate upload key for submissions. Then Play re-signs with the same identity the
+ * beta carried and sideloaded installs update in place. This is also why the keystore has to
+ * survive until enrolment: losing it forecloses that path permanently. Full reasoning and the
+ * owner's cited documentation: `docs/audits/2026-09-08-beta-signing-identity-completion-report.md`.
+ */
+class SigningIdentity(val storeFile: File, val storePassword: String, val keyAlias: String, val keyPassword: String)
+
+fun resolveSigningIdentity(): SigningIdentity? {
+    val propertiesFile = rootProject.file("signing.properties")
+    val properties = Properties().apply { if (propertiesFile.exists()) propertiesFile.inputStream().use { load(it) } }
+    fun read(environmentVariable: String, propertyKey: String): String? =
+        providers.environmentVariable(environmentVariable).orNull?.takeIf { it.isNotBlank() }
+            ?: properties.getProperty(propertyKey)?.takeIf { it.isNotBlank() }
+    val storeFile = read("FORAGER_SIGNING_STORE_FILE", "storeFile")
+    val storePassword = read("FORAGER_SIGNING_STORE_PASSWORD", "storePassword")
+    val keyAlias = read("FORAGER_SIGNING_KEY_ALIAS", "keyAlias")
+    val keyPassword = read("FORAGER_SIGNING_KEY_PASSWORD", "keyPassword")
+    val missing = listOfNotNull(
+        "FORAGER_SIGNING_STORE_FILE / storeFile".takeIf { storeFile == null },
+        "FORAGER_SIGNING_STORE_PASSWORD / storePassword".takeIf { storePassword == null },
+        "FORAGER_SIGNING_KEY_ALIAS / keyAlias".takeIf { keyAlias == null },
+        "FORAGER_SIGNING_KEY_PASSWORD / keyPassword".takeIf { keyPassword == null },
+    )
+    if (missing.size == 4) return null
+    if (missing.isNotEmpty()) {
+        error(
+            "The signing identity is half-configured: missing ${missing.joinToString(", ")}. " +
+                "Set all four (environment variables, or keys in signing.properties at the repository " +
+                "root) or none -- a partially set identity is the one place a typo strands every future install.",
+        )
+    }
+    val resolvedStoreFile = File(storeFile!!).let { if (it.isAbsolute) it else rootProject.file(storeFile) }
+    return SigningIdentity(resolvedStoreFile, storePassword!!, keyAlias!!, keyPassword!!)
+}
+
+val signingIdentity = resolveSigningIdentity()
 buildIdentity.provisionalReason?.let { reason ->
     logger.warn("WARNING: provisional build identity — $reason.")
     logger.warn(
@@ -142,6 +212,16 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // The beta-and-release identity, present only where the secret is -- see
+        // resolveSigningIdentity() above for the sources and what "absent" means.
+        signingIdentity?.let { identity ->
+            create("release") {
+                storeFile = identity.storeFile
+                storePassword = identity.storePassword
+                keyAlias = identity.keyAlias
+                keyPassword = identity.keyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -151,6 +231,9 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // null when no identity is configured: the guard below then fails assembleRelease with
+            // a message naming what to set. Never the debug config, never silently unsigned.
+            signingConfig = signingIdentity?.let { signingConfigs.getByName("release") }
         }
     }
 
@@ -182,41 +265,94 @@ android {
 }
 
 /**
- * Fails the build if the release build type ever resolves to the committed debug keystore
- * (`app/debug.keystore`) — beta-signing finding, return-estimate device checks. That key is the
- * conventional public Android debug identity: its password and alias are printed in this very
- * file, so anyone can sign a package as `com.forager.app` with it. Fine for a device pass where
- * nothing survives the test; wrong for any build a tester installs and accumulates real foraging
- * data on, because a later switch to the real release key is exactly the certificate mismatch
- * this session spent an afternoon on (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`, recoverable only by
- * an uninstall that destroys the tester's tracks, entries and photos) — multiplied by every
- * tester, on people whose data has no backup or export path yet. A doc comment saying "never"
- * is not a constraint; this is. The release build type has no `signingConfig` today (an
- * intentional, unsigned default — a real production key is a separate, owner decision not made
- * here), so this check passes trivially until someone assigns one; it exists for that day.
+ * The SHA-256 fingerprint of the certificate in the committed `app/debug.keystore`, as
+ * `keytool -list -v -keystore app/debug.keystore -storepass android` prints it. **An independent
+ * constant, recorded from keytool's own output** (dedicated-beta-signing-identity dispatch: "do
+ * not derive the guard's expected value from the signing code it checks") — not computed from
+ * the file at build time, so a swapped debug keystore cannot move the goalposts with it. If the
+ * debug keystore is ever regenerated, this line changes with it, from keytool, by hand.
+ */
+val DEBUG_KEYSTORE_CERTIFICATE_SHA256 =
+    "CB:2F:6D:A5:02:C3:FE:7B:EA:8D:B7:47:41:4B:ED:47:CB:C8:35:09:44:CF:82:91:E9:B0:98:06:C9:4F:16:26"
+
+/** The SHA-256 fingerprint of [alias]'s certificate in [storeFile], in keytool's colon-separated upper-case form. */
+fun certificateSha256(storeFile: File, storePassword: String, alias: String): String {
+    val keyStore = listOf("PKCS12", "JKS").firstNotNullOfOrNull { type ->
+        runCatching {
+            KeyStore.getInstance(type).also { store -> storeFile.inputStream().use { store.load(it, storePassword.toCharArray()) } }
+        }.getOrNull()
+    } ?: error("Could not open keystore ${storeFile} as PKCS12 or JKS with the configured store password.")
+    val certificate = keyStore.getCertificate(alias)
+        ?: error("Keystore ${storeFile} has no certificate under alias '$alias'.")
+    return MessageDigest.getInstance("SHA-256").digest(certificate.encoded).joinToString(":") { "%02X".format(it) }
+}
+
+/**
+ * Fails a release build that is not signed with a real, private identity — beta-signing finding
+ * on the return-estimate device checks, extended by the dedicated-beta-signing-identity dispatch.
+ *
+ * **Why:** Android refuses to update an installed app with a package signed by a different
+ * identity (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`), and the only way forward is an uninstall that
+ * destroys the app's data. This session lived through that once, on one device, with an operator
+ * who knew what had happened. A tester who installed a build signed with the committed debug key
+ * (`app/debug.keystore` — its alias and password are printed in this file, so anyone can sign a
+ * package as `com.forager.app` with it) and later received a build signed with the real key would
+ * lose every track, entry and photo, with no export path and no backup — multiplied by the cohort.
+ * A doc comment saying "never" is not a constraint; this is.
+ *
+ * **Three refusals, one pass:**
+ * - **No signing config on the release build type** (nothing configured — see
+ *   [resolveSigningIdentity]): fails, naming the four values to set. An unsigned release, or one
+ *   AGP would sign with whatever it finds, is not a release.
+ * - **The committed debug keystore, by path** (`app/debug.keystore`): fails.
+ * - **The committed debug keystore's certificate, by fingerprint** — the store file is opened and
+ *   its certificate hashed and compared to [DEBUG_KEYSTORE_CERTIFICATE_SHA256], so a *copy* of the
+ *   debug keystore under another name or path fails too. The path check alone would pass it.
+ * - Any other identity whose store file exists and opens: **passes**, and the certificate's
+ *   fingerprint is printed so the owner can compare it to `apksigner verify --print-certs` on the
+ *   artifact and to `keytool -list -v` on the keystore they hold.
  *
  * Reads `android.buildTypes` at task-execution time (`doLast`), after the whole script has been
- * evaluated, rather than the `signingConfigs`/`buildTypes` blocks above at configuration time —
- * checking there would only catch a mistake made in this file, not one made by a later script
- * (a product-flavor override, a variant filter) that reassigns the release signing config after
- * this block runs. Wired as a real dependency of `assembleRelease`/`bundleRelease` below, not
- * merely `finalizedBy`, so a release build cannot produce a debug-signed artifact even if this
- * task is somehow skipped by name — Gradle still has to run it to reach either task.
+ * evaluated, rather than the blocks above at configuration time — checking there would only catch
+ * a mistake made in this file, not one made by a later script (a product-flavor override, a
+ * variant filter) that reassigns the release signing config after this block runs. Wired as a
+ * real dependency of `assembleRelease`/`bundleRelease` below, not merely `finalizedBy`, so a
+ * release build cannot produce a wrongly-signed artifact even if this task is somehow skipped by
+ * name — Gradle still has to run it to reach either task.
  */
 tasks.register("verifyReleaseNeverSignsWithDebugKeystore") {
     doLast {
-        val debugKeystoreFile = file("debug.keystore").canonicalFile
         val releaseSigningConfig = android.buildTypes.getByName("release").signingConfig
-        val releaseStoreFile = releaseSigningConfig?.storeFile?.canonicalFile
-        if (releaseStoreFile == debugKeystoreFile) {
+            ?: error(
+                "The release build type has no signing identity. A release is never built unsigned " +
+                    "and never with the debug key: set FORAGER_SIGNING_STORE_FILE, " +
+                    "FORAGER_SIGNING_STORE_PASSWORD, FORAGER_SIGNING_KEY_ALIAS and " +
+                    "FORAGER_SIGNING_KEY_PASSWORD (or the four keys in signing.properties at the " +
+                    "repository root) to the beta/release keystore the owner holds. See " +
+                    "resolveSigningIdentity() in app/build.gradle.kts.",
+            )
+        val storeFile = releaseSigningConfig.storeFile
+            ?: error("The release signing config '${releaseSigningConfig.name}' has no store file.")
+        if (!storeFile.isFile) error("The release signing keystore does not exist: ${storeFile.absolutePath}")
+        val storePassword = releaseSigningConfig.storePassword
+            ?: error("The release signing config '${releaseSigningConfig.name}' has no store password.")
+        val keyAlias = releaseSigningConfig.keyAlias
+            ?: error("The release signing config '${releaseSigningConfig.name}' has no key alias.")
+
+        val debugKeystoreFile = file("debug.keystore").canonicalFile
+        val fingerprint = certificateSha256(storeFile, storePassword, keyAlias)
+        if (storeFile.canonicalFile == debugKeystoreFile || fingerprint == DEBUG_KEYSTORE_CERTIFICATE_SHA256) {
             error(
-                "The release build type resolves to app/debug.keystore -- the committed, " +
-                    "public debug signing identity. A release build carrying real user data " +
-                    "must be signed with a private production key kept outside this repo, " +
-                    "never with the debug key. See this task's own doc comment.",
+                "The release build type resolves to the committed, public debug signing identity " +
+                    "(${storeFile.absolutePath}, certificate SHA-256 $fingerprint). A release build " +
+                    "carrying real user data must be signed with the private beta/release key the " +
+                    "owner holds, never with the debug key. See this task's own doc comment.",
             )
         }
-        logger.lifecycle("Verified: the release build type does not sign with the debug keystore.")
+        logger.lifecycle(
+            "Verified: the release build type signs with '${releaseSigningConfig.name}' " +
+                "(${storeFile.absolutePath}, alias '$keyAlias'), certificate SHA-256 $fingerprint -- not the debug identity.",
+        )
     }
 }
 
