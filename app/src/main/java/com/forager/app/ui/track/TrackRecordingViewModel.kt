@@ -20,6 +20,9 @@ import com.forager.app.domain.GetWaypointsUseCase
 import com.forager.app.domain.LocationSampler
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
+import com.forager.app.domain.PaceLog
+import com.forager.app.domain.movingPace
+import com.forager.app.domain.toLogRecord
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.SystemCurrentTimeProvider
 import com.forager.app.domain.TrackRepository
@@ -111,6 +114,12 @@ class TrackRecordingViewModel(
     /** Injected so a test can fix the off-track alert cooldown's clock — see [returnToStart]'s own doc comment. */
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /**
+     * Pass 2 instrumentation: where each poll's pace record goes — see [PaceLog] for why this is
+     * its own sink and [beginPolling] for the one call. Defaults to discarding, like [errorLog],
+     * so no existing test changes; `MainActivity` wires the `Log.d`-backed one.
+     */
+    private val paceLog: PaceLog = PaceLog { },
+    /**
      * How many Cartography entries currently keep a reference to a waypoint — Journal Stage 2b's
      * 4b deletion warning. A plain suspend function rather than threading the whole
      * `CartographyEntryRepository`/`GetEntryReferenceCountUseCase` in: this ViewModel needs exactly
@@ -148,6 +157,10 @@ class TrackRecordingViewModel(
     private var recordingNoticeIds = 0
     private var networkFixesNoticeShown = false
 
+    // Pass 2 instrumentation: the pace record's per-recording call counter (`call=` in the line),
+    // from 1 on the first poll of each recording — reset in startRecording(), never elsewhere.
+    private var paceCall = 0
+
     init {
         loadWaypoints()
         loadTracks()
@@ -166,6 +179,7 @@ class TrackRecordingViewModel(
                     lastGatedFix = null
                     originCreationInFlight = false
                     networkFixesNoticeShown = false
+                    paceCall = 0
                     // Alert-delivery dispatch, Item 3: "the start of a trip" is here — the user
                     // just chose to rely on the app, and the screen is on because they tapped.
                     // Read once; a phone silenced later in the trip is not re-checked (Item 3.5).
@@ -277,6 +291,17 @@ class TrackRecordingViewModel(
             while (true) {
                 trackRepository.getById(trackId).onSuccess { track ->
                     _uiState.update { it.copy(breadcrumbPoints = track?.points.orEmpty()) }
+                    // Pass 2 instrumentation (owner ruling, 2026-09-08): the pace alone, from this
+                    // poll, once per poll — not the estimate, which stays without a caller until
+                    // the path-home ruling. The points are this poll's own read through the
+                    // filtered seam, so the record describes exactly the list the pace saw. The
+                    // per-poll cadence is deliberate: a single end-of-track line would collapse the
+                    // bar crossings (`dopplerBar`/`diffBar` turning true at some `call`) that the
+                    // comparison exists to surface, and replay needs the sequence.
+                    val active = uiState.value.activeTrack
+                    if (track != null && active != null) {
+                        paceLog.record(movingPace(track.points).toLogRecord(track, ++paceCall, currentTime.nowEpochMillis(), active.mode))
+                    }
                     // Timestamp-filter dispatch, Item 3: once per recording, the moment the read
                     // seam is seen to be excluding most of this track — see isMostlyNetworkFixes for
                     // why the threshold also waits for ten stored points before it can fire.

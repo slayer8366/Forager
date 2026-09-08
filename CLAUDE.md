@@ -143,6 +143,21 @@ here.
   cases that could have failed it — a total that matches the source, a
   failure message specific to this edit, a build log with no compile
   errors. A check whose input you have not verified has not been run yet.
+  (4) The same family one level up — a check on a value where the question
+  was reachability. Pass 1 of the return-estimate device checks was built to
+  tell whether point differencing had ever run as primary on real data, by
+  comparing a recomputed track snapshot against the stored one; a session
+  went into refining that comparison (which could not discriminate anyway:
+  both tracks recompute to their stored values by construction). The cheap
+  question closed it in one grep: `returnWalkingTime` has no production
+  caller, so the path had never run and could not have, and the check was
+  designed to detect something unreachable. The distinguishing feature of
+  this instance is that no value could ever have carried the answer — the
+  first three checked a value through a lossy step; this one checked a
+  value for a fact about the *caller*. So: before designing a check for
+  whether a path ran, `git grep` its callers and confirm it is reachable
+  from production code. "Who calls this?" is asked before "what did it
+  produce?", and a path with no caller has an answer before any data does.
 
 ## Building
 

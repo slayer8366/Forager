@@ -491,3 +491,59 @@ stale draft rather than a later ruling; the ~480-lines-per-two-hours figure (15 
   for the branch question — a report that lives only in a session transcript is not recorded
   (CLAUDE.md, push before you tidy), and a docs-only commit on a `main`-based branch collides with
   nothing. The build must not follow it there.
+
+---
+
+## Addendum: owner rulings (2026-09-08), and what followed
+
+### Rulings
+
+1. **The no-call-site finding is the fourth recorded instance of the CLAUDE.md family**, one
+   level up from the other three: Pass 1 was designed to detect whether point differencing had
+   run on real data, when `returnWalkingTime` has no production caller and the answer was
+   available from the code the whole time — a value was checked where the question was the
+   caller. Distinguishing feature: the cheap question, "who calls this?", would have closed it
+   immediately. Recorded in CLAUDE.md (Testing) as instance (4). **Point differencing has never
+   run in production.** Not "could not tell": has not.
+2. **The contradiction in the dispatch is the owner's, and traceable.** Earlier in that session
+   the dispatch briefly carried a "kept separate" ruling the owner did not write and could not
+   account for; the disclosure was overwritten but the body kept the field, so the copy the coder
+   read said both. The actual ruling: **the passes merge, the field is in scope, build it.** Any
+   copy of that dispatch not from the owner's session is suspect. (`source=` is in the record.)
+3. **Branch: `c914a30`.** The pinned branch was cut from `main` and had no pace code. Done by
+   merging `origin/claude/new-session-b7z9bg` (`c914a30`) into `claude/new-session-3x1aba` —
+   a merge commit, not a rewrite, so the pushed report commit is kept as pushed (CLAUDE.md: history
+   on a remote is editable, unpushed work is not; a merge risks neither). The only conflict was two
+   rows appended to `docs/audits/README.md`; both kept, this report's last.
+4. **Per-poll records.** Replay needs the sequence, and one-per-recording collapses exactly the
+   disagreement cases — the two bar booleans — that the comparison exists to surface.
+5. **The pace alone, from the 15 s poll.** Wiring the full estimate would put a production caller
+   on `returnWalkingTime`, which is product work that prejudges the path-home ruling. Instrument
+   the pace; leave the estimate unreachable until path-home comes back.
+6. **The accuracy finding carries forward.** The sampler gates at 30 m on write, which is why the
+   capture could not separate accuracy from timestamp. The seam predicate reads only the
+   timestamp, so the proxy-for-provider concern the owner raised on the GPX report stands, and the
+   30 m write gate does not protect against it: a device whose GPS clock carries milliseconds
+   loses its GPS points at read regardless of their accuracy, and a network fix under the
+   ceiling is stored regardless of its clock. Neither gate is a provider test; only a stored
+   provider column would be (the pre-build report's "third column the same reasoning would
+   justify", not this dispatch's to add).
+
+### The beta-signing commits, relative to #77 — facts for the decision, which is the owner's
+
+The owner asked that where these land be decided before two branches diverge. What exists:
+
+| Where | Commit(s) | Content |
+|---|---|---|
+| PR #77 (`claude/new-session-b7z9bg`), and now this branch by the merge | `5f78323` "Stable debug signing identity for CI and device checks" | `app/build.gradle.kts` +22 (the `signingConfigs` block and `debug { signingConfig = … }`), `app/debug.keystore` (2 666 bytes) |
+| PR #77, and now this branch | `495725b` "Build guard: release must never sign with the committed debug keystore" | `app/build.gradle.kts` +42 (`verifyReleaseNeverSignsWithDebugKeystore`), the completion report's beta-signing section, a README row |
+| PR #78 (`claude/apk-a-signed-8eacc91`, open against `main`) | `bd5429e` | **exactly `5f78323`'s content on `8eacc91`**: the same 22-line `build.gradle.kts` hunk, and `app/debug.keystore` **byte-identical** to #77's (`git diff` between the two refs on that path is empty). The guard is **not** in #78. |
+
+So the two branches carry one identical change and one that only #77 has. Git will merge the
+identical hunk and the identical binary cleanly whichever lands first; the divergence risk is
+only if either copy is edited before the other lands. Options, not a decision: merge #78 first
+(the device-check APK's identity on `main` now, schema 14), then #77 brings the guard; or merge
+#77 and close #78 as contained. Either way the guard should not be separated from the keystore
+for long — it is what makes the committed key safe to have.
+
+### What was then built (same day) — see the completion section below
