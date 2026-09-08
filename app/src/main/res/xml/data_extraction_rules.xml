@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Referenced from AndroidManifest.xml's android:dataExtractionRules. Governs on API 31+;
+  res/xml/backup_rules.xml covers Android 11 and below via android:fullBackupContent, with the
+  same two exclusions. Both exist on purpose: shipping only this one would leave older devices
+  on the platform default set.
+
+  Auto backup stays ON (owner ruling, 2026-09-08). The journal database, the log photos and the
+  DataStore settings all remain in the backup set — a tester who loses their phone has no other
+  way back to their journal, since this app has no account, no sync and no export beyond a
+  per-track GPX share. Only the crash logs come out.
+
+  Why crash logs and nothing else: they are diagnostic artefacts with no value to somebody
+  restoring a phone, and the one item in the default set that has no business sitting in a
+  user's personal Drive. See docs/audits/2026-09-08-data-inventory-for-privacy-policy.md §5, §6.2.
+
+  Two exclusions for one directory, not a typo. com.forager.app.crash.CrashFileStore.forContext
+  builds its directory as `File(context.getExternalFilesDir(null) ?: context.filesDir, "crashes")`
+  — an elvis, so the crash log lands in app-external storage normally and in internal filesDir
+  whenever getExternalFilesDir(null) returns null (no external volume mounted). Both are real
+  destinations for the same artefact, so both are excluded; a rule covering only the first would
+  silently miss every crash written on a device in that state. The domain names come from the
+  platform's own mapping, not from a guess: FullBackup.java's getDirectoryForCriteriaDomain maps
+  "external" to `context.getExternalFilesDir(null)` (android-37.0 source, line 521) and "file" to
+  filesDir.
+
+  Exclude-only is deliberate and is not the same as "back up nothing": the platform's own
+  contract is that an empty include set means "the entirety of app data minus excludes"
+  (FullBackup.java, maybeParseAndGetCanonicalIncludePaths' doc comment). Adding an <include>
+  here would flip that to an allowlist and silently drop everything not named.
+
+  Both sections are filled in, and neither inherits from the other: <cloud-backup> governs the
+  Google Drive backup, <device-transfer> governs a device-to-device phone migration. A rule
+  written only under <cloud-backup> leaves the crash logs in the D2D transfer set.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="external" path="crashes/" />
+        <exclude domain="file" path="crashes/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="external" path="crashes/" />
+        <exclude domain="file" path="crashes/" />
+    </device-transfer>
+</data-extraction-rules>
