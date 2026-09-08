@@ -30,6 +30,19 @@ Two templates rather than one because the device questions asked on every trip i
 before", which is useless as data. The handle is the join: the tester picks it, it need not be a
 name, and it appears on both.
 
+**Why the trip report asks whether the track looked shorter than the walk (added 2026-09-08,
+after the GPX full-record pre-build report):** the app keeps a track point only when its timestamp
+lands on a whole second (`NetworkProviderFix.kt`). That is a proxy for "this fix came from GPS, not
+the network provider" — it has held across five data sets, all from one phone. On a phone whose GPS
+fixes carry milliseconds, the same rule throws away good fixes, and the symptom is not a spike or a
+blank: it is a track that looks fine and is simply shorter than the ground walked, with corners cut
+where the missing points were. Nothing in the app can see that; only the walker can, by comparing
+the drawn track with the walk they remember. The line is joined to the device report's make and
+model, which is what turns "shorter" into "shorter on this chipset family". Once the export carries
+every stored point with its kept/excluded verdict (the GPX full-record dispatch), the tester's file
+answers it directly: excluded points along a stretch the tester walked are the rule being wrong on
+that hardware. Until then the question is the only instrument.
+
 **Why the device report asks for make and model *and* Android version, and why neither should be
 trimmed as boilerplate later:** together they identify the phone's GNSS chipset family, which is the
 variable behind the app's network-fix rule (a GPS fix's timestamp is second-aligned on the owner's
@@ -52,8 +65,9 @@ device report's make and model, which is what makes the answer usable.
 
 ## Why it is the length it is
 
-The trip report has 24 lines including its gate lines (the 22 it was written at, plus the two-line
-"within …" question); four of its six blocks open with a line that
+The trip report has 26 lines including its gate lines (the 22 it was written at, plus the two-line
+"within …" question and the two-line "shorter than the walk" question — re-counted from the merged
+template, not carried from either branch); four of its six blocks open with a line that
 lets a tester skip the rest of the block ("never navigated back", "skip if you didn't use them",
 "no crash", "no spikes"). A plain walk with recording on answers roughly thirteen short lines, most
 of them one word. A trip where everything happened answers all of them, and that tester has
@@ -68,10 +82,12 @@ priorities:
    time you use offline maps" mini-report. Most trips download nothing.
 2. **Second cut:** fold the two compass questions into one line with two blanks.
 3. **Never cut:** the battery block (the fields the owner asked for by name, and the "nothing
-   noticeable" line that makes silence into data) and the four location questions — the fourth,
-   the "within …" line, added after the walk that found the accuracy constant, because the beta is
-   the only thing that can say whether other phones do the same. They are the reason the template
-   exists. Below about ten lines the report stops answering the questions that motivated it.
+   noticeable" line that makes silence into data) and the five location questions — the fourth,
+   "within …" line, added after the walk that found the accuracy constant, because the beta is
+   the only thing that can say whether other phones do the same, and the fifth, "shorter than the
+   walk", the one that can catch the network-fix rule discarding good fixes on a phone unlike the
+   owner's, which no test in the repository can. They are the reason the template exists. Below
+   about ten lines the report stops answering the questions that motivated it.
 
 ## What "no" means here
 

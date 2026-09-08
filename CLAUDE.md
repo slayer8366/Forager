@@ -143,6 +143,21 @@ here.
   cases that could have failed it — a total that matches the source, a
   failure message specific to this edit, a build log with no compile
   errors. A check whose input you have not verified has not been run yet.
+- **The cheap question — who calls this? — closes more of that family than
+  any amount of careful measurement downstream.** Three pre-build reports on
+  2026-09-07/08 (track distance, path home, GPX full record), written for
+  different dispatches by different sessions, each found the same class of
+  problem before a line was built: a path with no caller, a check that could
+  not fail, a figure readable only by coincidence. What caught all three was
+  the report-before-building rule and the four disclosure sections — confirmed
+  vs inferred, could not determine, premises that were wrong, decided beyond
+  scope — forcing the question "who actually calls this, and what does it
+  actually read?" to be answered from the code rather than assumed from the
+  dispatch. Those are the fourth and fifth instances of the family above, and
+  the pattern across all five is that the check and the thing it checks were
+  decoupled by a step nobody had traced. So: a pre-build report traces every
+  claimed path to its caller and every claimed figure to its reader, and
+  states which are unverified, before it prices anything.
 
 ## Building
 
