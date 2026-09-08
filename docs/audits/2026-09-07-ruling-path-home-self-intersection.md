@@ -56,8 +56,49 @@ decision … that lives only in a session transcript is not recorded"). Read aga
 - The pre-build report's closure test was insensitive to ε across 8–20 m on the synthetic patch
   (`2026-09-08-path-home-ratio-prebuild-report.md`, §C.5); the synthetic switchback joined at 12 m
   and not at 8 m. Synthetic fixtures — the real tracks have not been run.
-- This file and the pre-build report are committed on `claude/new-session-pb8ynb` (the session's
-  designated branch, cut from `main` at `8eacc91`), not on `claude/new-session-b7z9bg`. The
-  ruling names the latter as the base for all path-home work; the two documents will need to
-  reach that branch (or `main` after PR #77 merges) before the build dispatch cites them from its
-  own tree.
+- This file, the pre-build report and its script are committed on both `claude/new-session-pb8ynb`
+  (the session's designated branch, cut from `main` at `8eacc91`) and, at the owner's instruction
+  of 2026-09-08, on `claude/new-session-b7z9bg` — the base the ruling names for path-home work.
+
+---
+
+## Owner's correction and real-track results (2026-09-08 — owner's words, filed by the coder)
+
+**The 30 m figure was the owner's error.** The HIGH_ACCURACY ceiling was taken for the sampler's
+gate; BALANCED at 50 m is the recording default. This weakens the argument made above for the
+window bounding ε being narrow, and the correction is part of the record.
+
+**The candidate was run on both real GPX exports, in the owner's session.** These are the owner's
+results, not reproduced in the sandbox (the exports are gitignored and were not available here):
+
+| | before (retrace) | track-network home | walking time |
+|---|---|---|---|
+| Track A | 733.0 m | **6.4 m** at every ε from 4 m up | 13.7 min → 0.1 min |
+| Track B | 92.0 m | **3.0 m** at every ε from 4 m up | — |
+
+Both land on the straight-line distance exactly, because at these densities the walker passed
+within ε of the origin often enough that a near-direct route exists along points actually
+occupied. ε = 4 m already saturates; nothing changes up to 50 m. The ε insensitivity is stronger
+than the synthetic fixtures suggested.
+
+Two cautions on reading this, the owner's:
+
+1. **Saturation is not a licence to raise ε.** It means the patch case is closed at the bottom of
+   the range, which is the argument for keeping ε small — the full benefit arrives at 4 m and
+   every metre above that is unwalked ground bought for nothing. The synthetic switchback that
+   needed 12 m is the case that argues upward, and it is the one that should set the floor, not
+   these two tracks.
+2. **These tracks cannot test the disqualifying case.** Both are patches. Neither exercises the
+   loop, the return leg, or a genuinely distant walker — the cases where a too-large ε would send
+   someone across unwalked ground. The candidate is confirmed to fix what it was designed to fix;
+   it is not confirmed safe.
+
+**Cost, to be priced before building:** the join scan is O(n²) — 8,911 pairs on 135 points. A
+four-hour recording is thousands of points. Coder's notes on that, unverified estimates, not
+measurements: (a) the intended caller is the 15 s track poll, not every fix (Items 1–3 completion
+report, "What the next dispatch inherits"), which bounds evaluations at four a minute; (b) a
+four-hour HIGH_ACCURACY track is at most 2,880 points (5 s floor), 4.1 M pairs per full scan;
+(c) points only append, so closures need checking only for the new points against the existing
+ones, O(n) per point with a grid hash and O(n) per poll without one — the full O(n²) scan is
+never required after the first poll if the graph is kept. Which of these the build uses is the
+coder's call and must be measured on a device, not asserted.
