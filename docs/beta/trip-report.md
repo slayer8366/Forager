@@ -7,8 +7,10 @@ first line says you can. See `README.md` for how this reaches the owner and why 
 ```
 FORAGER BETA — TRIP REPORT
 
-Forager sends nothing anywhere. Everything below is typed by you and sent by you.
-Please don't tell us where you were. Describe the ground and the sky instead
+Your tracks, journal entries and photos stay on your phone — Forager has no account and
+no sync. What it does send, while you have signal, is the area you search or look at, to
+iNaturalist, Open-Meteo and the map tile servers. Everything below is typed by you and
+sent by you. Please don't tell us where you were. Describe the ground and the sky instead
 ("dense fir canopy", "open ridge", "car park").
 "No" and "didn't notice" are answers we need. They are not wasted lines.
 

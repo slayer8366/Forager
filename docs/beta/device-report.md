@@ -7,7 +7,9 @@ reports to this one.
 ```
 FORAGER BETA — ABOUT MY DEVICE (send once)
 
-Forager sends nothing anywhere. Everything below is typed by you and sent by you.
+Your tracks, journal entries and photos stay on your phone — Forager has no account and
+no sync. While online it does ask the map and species servers about the area you are
+looking at. Everything below is typed by you and sent by you.
 
 Your handle (any name you choose; it just joins your trip reports to this):
 Phone make and model:
