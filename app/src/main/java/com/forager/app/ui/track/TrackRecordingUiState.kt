@@ -1,5 +1,6 @@
 package com.forager.app.ui.track
 
+import com.forager.app.domain.PathHome
 import com.forager.app.domain.model.ReturnToStartInfo
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
@@ -56,6 +57,19 @@ data class TrackRecordingUiState(
      * [com.forager.app.domain.model.Track.originWaypointId].
      */
     val originWaypoint: Waypoint? = null,
+    /**
+     * Path-home join dispatch: the walk back to the origin along the recorded track, joined to
+     * itself ([com.forager.app.domain.pathHome]) — the first and only production reader of that
+     * function. Computed by [TrackRecordingViewModel]'s 15 s breadcrumb poll (the caller the
+     * return-estimate work always intended), from the last accuracy-gated fix to the polled
+     * track, **only while [isReturning]** — the HUD is its one surface, so nothing is computed
+     * for a walker who has not turned round; `null` otherwise, before the first gated fix, and
+     * whenever the track has no usable points. Its `hopBand` is the hysteresis carried between
+     * polls; a new return starts at [com.forager.app.domain.HopBand.NONE]. The HUD shows
+     * [com.forager.app.domain.PathHome.totalMeters] as one number; the walking time built on the
+     * same value ([com.forager.app.domain.returnWalkingTime]) still has no caller, on purpose.
+     */
+    val pathHome: PathHome? = null,
     /**
      * Every recorded track, newest-started first — the Settings "Recorded Tracks" export surface's
      * only data source. Loaded on init and refreshed whenever that panel is opened (see
