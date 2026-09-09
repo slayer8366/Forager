@@ -127,7 +127,15 @@ what makes it bite, and R1 confirms it does.
 
 ## 4. Test results
 
-Full suite on this Windows host, at the merge head:
+**CI (Linux), run `34368884708` at `77afc12`: 167 suites / 1309 tests / 0 failures / 0 errors /
+24 skipped — green.** The job's own skip gate matches `SKIPPED_TESTS_ALLOWLIST` by identity in both
+directions and fails the build on either mismatch, so a green run positively confirms the skip set
+was neither added to nor left stale.
+
+This closes the reconciliation the Windows figures could only assert: the dispatch's baseline of
+1303 plus this change's 6 new tests is 1309, and CI reports 1309.
+
+Full suite on this Windows host, at the same tree:
 
 **1309 tests / 10 failures / 0 errors / 24 skipped / 167 suite files.**
 
@@ -234,10 +242,11 @@ attributes will actually reach a tester's file rather than a path nothing runs.
   the file instead of always minting a fresh one, so importing a file this app exported would
   re-create waypoints carrying their original ids. That is the correct round-trip behaviour and it
   collides with nothing today, but it is an insert-collision question the day import exists.
-- **No device and no CI observation from this session.** The figures in §4 are this Windows host's.
-  The dispatch's `1303 / 0 / 0 / 24 / 167` baseline is CI/Linux; it was neither reproduced nor
-  contradicted here, only reconciled against by count. Nothing about the shipped file was checked on
-  hardware, and no exported GPX from a real device was read.
+- **No device check.** CI was observed after all (§7.5) and is green, so the Linux figures are
+  measured rather than inferred. What remains undetermined is anything hardware-side: no exported
+  GPX from a real phone was read, and the non-second-aligned GNSS clock this whole export exists to
+  detect is still unobserved. The new attributes are what would make such a file legible when one
+  finally arrives; they are not evidence that one has.
 - **`Workers Builds: forager-pmtiles`** — reported, not chased, per §6 of the dispatch. Not observed
   from this session at all; see "checks that did not fire" below.
 
@@ -288,10 +297,17 @@ attributes will actually reach a tester's file rather than a path nothing runs.
 - **Did the push land?** Yes — established by `git ls-remote`, not by local history and not by a
   commit message. `refs/heads/claude/gpx-rule-provenance-and-waypoint-id` was confirmed at the pushed
   SHA after each push.
-- **Checks that did not fire.** No CI check was observed from this session at all — the branch was
-  pushed and the PR opened, but nothing waited on or read a check result. So `Workers Builds:
-  forager-pmtiles` (expected red on every PR head), the Android CI job, and any status on this PR are
-  all **unobserved**, not green and not red. `JournalTabTest` did **not** flake in this session's full
-  suite run: it passed, which per §6 of the dispatch is itself a sample about the rate and is reported
-  for that reason. No device check ran. No lint or static-analysis tool ran, because the project
-  configures none (no ktlint, detekt, spotless or `.editorconfig` in the tree).
+- **Checks that fired, and checks that did not.**
+  - **CI / "Build, test, publish APK": success** at `77afc12` (run `34368884708`). Figures in §4.
+  - **`Workers Builds: forager-pmtiles`: fail**, as §6 of the dispatch predicts for every PR head.
+    Zero elapsed time, dashboard-side, uncorrelated with this change. Reported, not chased — the
+    build log lives in Cloudflare's dashboard and was not read.
+  - **An earlier CI run, `34368690983` at `2838471`, was `cancelled`** — superseded when the
+    correction commit pushed. Recorded because "cancelled" is not "passed": the only CI evidence
+    here is the later run.
+  - **`JournalTabTest` did not flake** in either the local full suite or the CI run. Per §6 that
+    green run is itself a sample about the rate and is reported for that reason, not omitted.
+  - **Did not fire at all:** no device check (no hardware in this session), and no lint or
+    static-analysis step, because the project configures none — no ktlint, detekt, spotless or
+    `.editorconfig` anywhere in the tree. Line lengths in this change follow the surrounding code
+    rather than a tool.
