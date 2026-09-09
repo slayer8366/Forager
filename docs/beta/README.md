@@ -9,15 +9,54 @@ truth for the text the owner sends out.
 **The template is a block of plain text.** The owner copies the block out of the file below and
 pastes it into the invitation on whatever channel they already use with the tester; the tester
 answers inline in their messaging app and sends it back the same way. Nobody is asked to open
-GitHub, edit a file, or create an account. This file and the templates are the canonical text —
-edit them here, send the block from here.
+GitHub or edit a file. Joining the test itself does need a Google account — see the next section.
+This file and the templates are the canonical text — edit them here, send the block from here.
 
-## Before anything else: what the app does not do
+## Joining the test
 
-Forager has no account and no telemetry, works fully offline, and strips location metadata from
-stored photos. **It sends nothing anywhere.** Every field in these reports is something a person
-chooses to type and send. The templates never ask where a tester was — foragers mark spots they do
-not want found — and ask for terrain and sky instead: "dense fir canopy", "open ridge", "car park".
+The beta is a **Google Play closed test and nothing else**: there is no APK to sideload. Three
+things follow that the informal version did not need, and all three are Google's rules for closed
+testing rather than the owner's preference.
+
+1. **A Google account.** The owner needs the address on it to put you on the tester list; Play will
+   not show you the app otherwise. It is the only identifier the beta requires, and Google holds
+   it, not the app.
+2. **Clicking the opt-in link.** Being on the list does nothing by itself. The owner sends a link;
+   you open it signed in to that account and accept, and only then can you install Forager.
+3. **Staying opted in.** Google counts *continuous* opt-in days per tester, and a closed test has
+   to hold enough testers opted in continuously for fourteen days before the app can be promoted to
+   production. Opting out restarts that tester's count at zero.
+
+So leaving early is the one thing here that actually costs the project something. Uninstalling the
+app is not leaving — the opt-in is what counts, and installing, walking once and letting it sit
+there is a perfectly good way to be a tester. If you want out, say so and opt out; that is fine,
+and it is more useful than going quiet.
+
+## Before anything else: what leaves the phone and what does not
+
+Forager has no account, no sign-in, no sync and no telemetry. Your tracks, your journal entries and
+your photos are written to the phone's own storage, and the app never uploads them.
+
+What does leave the phone, whenever it has signal, is the ground you are asking about. A species or
+weather lookup sends the coordinates it is searching on to iNaturalist and to Open-Meteo
+(`INaturalistApi.kt`, `OpenMeteoApi.kt`, `OpenMeteoArchiveApi.kt`), and the map fetches its tiles
+from OpenStreetMap, OpenTopoMap, USGS and a Cloudflare Worker this project runs — a tile request is
+a `z/x/y` square, which is the patch of ground on your screen (`Basemap.kt`, `OfflineStyle.kt`).
+Those requests carry no name and no account, because there is none, but they carry a place and your
+IP address, and the servers answering them can log both. A downloaded offline region removes the
+tile half while you are inside it; nothing removes the search half except not searching.
+
+Two more honest details. Forager does not itself strip location metadata from the photo it stores:
+a gallery import is redacted by Android on Android 10 and up, but a photo taken inside Forager is
+written straight into the app's own folder by the camera app, where that redaction does not apply
+(`FilePhotoStore.kt`, `CameraCaptureFiles.kt`). And the app allows Android's own backup, so a phone
+with Google backup switched on may copy Forager's data to **your** Google account — the phone doing
+that, not the app.
+
+The templates never ask where a tester was — foragers mark spots they do not want found — and ask
+for terrain and sky instead: "dense fir canopy", "open ridge", "car park". Every field in them is
+something a person chooses to type and send. `docs/legal/privacy-policy.md` is the long form of
+this section and the URL Play's Data safety declaration points at.
 
 ## The two templates
 
