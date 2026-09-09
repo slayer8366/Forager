@@ -6,6 +6,9 @@
 analysis, the run count and the decision rule to be committed before the first suite executes, and
 this document's own commit SHA is the checkable evidence that they were.
 
+**Two amendments to the dispatch are recorded here, both before any data: §A is a blocker on the
+design, and §D.3 corrects what §0 and §3 say a null result means.**
+
 **One finding blocks the design as dispatched.** It is §A below. The comparison cannot be run on
 this host as written, and the fix is the owner's call. What *is* pre-registered here and starts
 immediately is the cheap probe that decides between the two remaining methods.
@@ -159,7 +162,42 @@ invocation, single fork.
 
 Phase 0 changes no file. It is the present arm by construction — `git status` clean at `14cc6f3`.
 
-### D.3 What is deliberately NOT pre-registered yet
+
+### D.3 PRE-REGISTERED: what each outcome means, given the drain history
+
+Owner ruling, 2026-09-09, on reading §B: the dispatch's §0 and §3 are **amended**, and the amendment
+is recorded here *before the data* because it changes what a null result means.
+
+**§0 as dispatched is wrong on one point.** It frames the open question as whether #82's test
+interferes. That is **answered, and the answer is yes**: `drainBeforeTeardown`'s KDoc records 2 of 3
+runs failing with the test present and undrained, against 5 of 5 green without it. The drain was the
+response to that finding, it landed, and the flake continued. So the live question is not "does this
+test interfere" but:
+
+> **Does the *drained* test still interfere?**
+
+**§3 as dispatched is therefore too weak about the null.** It says a null exonerates one candidate
+and leaves the hypothesis untouched. Against the drain history the null says more than that. Fixed
+in advance, the three outcomes and their readings:
+
+| outcome | reading, fixed before data |
+|---|---|
+| **substituted clean, present red** at a separable rate | the drained test **still** interferes. The drain reduced the rate but did not close it. Implicates the test's behaviour — **still not a mechanism**, per the standing line in the Windows note. |
+| **both arms red** at similar rates | **the drain worked**, and the flake that remains has a *different* source among the other 166 suites. This is a stronger and more useful result than a bare null: it does not say "the test was never involved" — the undrained comparison already showed it was — it says the fix for that involvement held and the search must move on. |
+| **both arms clean** | **no measurement**, not exoneration. Reported as open, with the draws added to the tally. |
+
+The misreading §3 exists to forbid — "so it isn't interference after all" — remains forbidden, and is
+now *doubly* wrong: the hypothesis is interference within a fixed order, and the one candidate that
+has ever been tested by manipulation was shown to interfere before it was drained.
+
+### D.4 Follow-up, recorded and deliberately not taken
+
+`workflow_dispatch` on `ci.yml` is the right mechanism for this and for every future flake
+investigation — arms get runs on demand, with no PR at all. Owner ruling: **right mechanism, wrong
+time.** It is a CI configuration change needing its own PR to `main`, outside this dispatch's
+"measurement and one document" scope. Recorded here as a follow-up so it is not re-derived from
+scratch next time.
+### D.5 What is deliberately NOT pre-registered yet
 
 The 30-per-arm decision rule. It is stated in the dispatch (~10 failures/arm at 1-in-3, ~3 at
 1-in-10) and I am not restating it as pre-registered until the environment is settled, because the
