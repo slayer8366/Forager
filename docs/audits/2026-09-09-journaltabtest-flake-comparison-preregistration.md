@@ -6,8 +6,9 @@
 analysis, the run count and the decision rule to be committed before the first suite executes, and
 this document's own commit SHA is the checkable evidence that they were.
 
-**Two amendments to the dispatch are recorded here, both before any data: §A is a blocker on the
-design, and §D.3 corrects what §0 and §3 say a null result means.**
+**Three amendments to the dispatch are recorded here, all before any arm run: §A is a blocker on
+the design, §D.3 corrects what §0 and §3 say a null result means, and §D.5 shows the dispatched run
+count is calibrated to a rate this project no longer believes.**
 
 **One finding blocks the design as dispatched.** It is §A below. The comparison cannot be run on
 this host as written, and the fix is the owner's call. What *is* pre-registered here and starts
@@ -197,29 +198,84 @@ investigation — arms get runs on demand, with no PR at all. Owner ruling: **ri
 time.** It is a CI configuration change needing its own PR to `main`, outside this dispatch's
 "measurement and one document" scope. Recorded here as a follow-up so it is not re-derived from
 scratch next time.
-### D.5 What is deliberately NOT pre-registered yet
+### D.5 PRE-REGISTERED: the comparison's decision rule, stated against the narrowed question
 
-The 30-per-arm decision rule. It is stated in the dispatch (~10 failures/arm at 1-in-3, ~3 at
-1-in-10) and I am not restating it as pre-registered until the environment is settled, because the
-expected counts depend on which environment the rate is measured in. Restating it now would be
-pre-registering an analysis for an experiment whose design is still open — the appearance of the
-guard without the substance.
+Written after §D.3 narrowed the question, and **before the first arm run**, because a decision rule
+inherited from the old framing would be testing something nobody is asking any more. The question
+this rule answers is **"does the *drained* test still interfere?"** — not "does this test
+interfere," which `drainBeforeTeardown`'s KDoc already answered yes.
 
+**The statistic.** A 2×2 table, arm × (red, green), where red is §D.1's measure. Two-sided Fisher
+exact, α = 0.05, fixed now. Both arms' full counts are reported whatever the test says.
+
+**The readings**, which are §D.3's table made numeric:
+
+| result | reading |
+|---|---|
+| present arm's red rate exceeds substituted, Fisher p < 0.05 | the **drained** test still interferes. Behaviour, not mechanism. |
+| both arms red, p ≥ 0.05 | **the drain worked**; the remaining flake has another source among the other 166 suites. |
+| both arms 0 red | **no measurement**, not exoneration. |
+| any other combination, p ≥ 0.05 | **open / underpowered.** A legitimate result, and the dispatch's §2 requires it be reportable as one. |
+
+**No optional stopping.** Every planned run in both arms executes regardless of the running counts.
+Every run is reported with its ordinal and result, greens included.
+
+#### The power problem — the dispatch's 30 per arm is calibrated to a rate we no longer believe
+
+§2 sizes the experiment at "1-in-3 expect ~10 failures per arm; 1-in-10 expect ~3." The best current
+estimate of the present arm's rate is **§C's 2 in 15 ≈ 0.133**, and at that rate 30 per arm cannot
+separate the arms even if the substituted arm is *perfectly* clean.
+
+Fisher two-sided p for r reds all falling in one arm, n = 30 per arm:
+
+| r | p (two-sided) |
+|---|---|
+| 3 | 0.237 |
+| 4 | 0.112 |
+| 5 | 0.052 |
+| 6 | **0.024** |
+
+So **r ≥ 6 reds** in the present arm is needed to clear α = 0.05. But at p = 0.133 with n = 30 the
+expected count is 4.0, and `P(X ≥ 6) ≈ 0.20` for `X ~ Binomial(30, 0.133)`.
+
+> **Power at the dispatch's own n is about 20 %.** Even if the drained test still interferes and
+> accounts for the entire flake, roughly four times in five this experiment returns "open."
+
+Reaching ~80 % power needs the expected red count around 8–9, i.e. **n ≈ 65 per arm** (~130 CI runs,
+~6 h with the arms in parallel). Intermediate: n = 45 gives ~45 % power.
+
+This is the same family as a check that cannot fail, one level up — **an experiment that cannot
+separate.** Sixty CI runs returning a foregone "open" would look like a result and would consume the
+appetite for ever running it properly.
+
+**n is therefore the one parameter left open, and it is the owner's call.** Everything else in this
+section is fixed. The chosen n is committed here before the first arm run; no arm run happens until
+it is.
 ---
 
-## E. Stop-and-ask: how the substituted arm gets its CI draws
+## E. RESOLVED: how the substituted arm gets its CI draws
 
-Only if Phase 0 comes back 0/10. The options, priced:
+**Owner ruling, 2026-09-09.** §1's "never pushed as a proposed change" meant *never proposed as the
+fix* — the placeholder must not end up looking like a candidate patch. A **draft PR titled as an
+experiment arm, never marked ready, closed when the runs are done, is not a proposed change.**
 
-1. **A draft PR per arm, titled as an experiment, closed when done.** Two refs → arms run in
-   parallel → ~2 h 45 m total, ~60 runs. Costs: two PRs that look like proposals in the repo's
-   history, and 60 APK artifacts. Free on a public repo.
-2. **One experiment PR, arms pushed in sequence.** One PR instead of two; ~5 h 30 m, and the arms
-   are no longer interleaved, so environment drift hits them unequally — the thing §2's interleaving
-   requirement exists to prevent.
-3. **Add `workflow_dispatch` to `ci.yml` first.** Cleanest mechanism, but needs its own PR to `main`
-   and is outside this dispatch's scope.
-4. **Accept that the comparison cannot be run now** and report Phase 0 as the whole result.
+Chosen: **a draft PR per arm.** Two refs means two concurrency groups, so the arms run in parallel
+and are genuinely interleaved against the same environment drift — the requirement §2 makes and the
+one the owner least wanted to give up. Titles carry `(do not merge)` so nothing in the history reads
+as a proposal.
 
-I have no recommendation to smuggle in here: §1's "never pushed as a proposed change" is the
-owner's line and only the owner can say whether a labelled, never-merged experiment PR crosses it.
+Both arms branch from this document's commit, **not** from `main`. If arm A were `main` itself the
+two arms would differ in the test body *and* in carrying a docs delta — two variables again, which
+is the exact mistake §1 exists to prevent. Identical base, one file different, suite still 1309.
+
+`workflow_dispatch` on `ci.yml` is recorded as a follow-up and deliberately not taken — see §D.4.
+
+**Still open, and the only thing still open: `n` per arm (§D.5).** No arm run happens before it is
+chosen and committed.
+
+### Base drift during the experiment
+
+PR runs build the **merge ref**, so if `main` moves mid-experiment both arms silently change base.
+The arms stay comparable to each other, but the experiment stops describing the tree it claims to.
+`main` is recorded at `14cc6f3` at the start; it is re-read at the end, and if it moved, the report
+says so and states which draws fall on each side.
