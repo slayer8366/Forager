@@ -1,6 +1,6 @@
 # Forager — privacy policy
 
-**Last updated: 2026-09-09.** Applies to the Forager Android app (package `com.forager.app`),
+**Last updated: 2026-09-09.** Applies to the Forager Android app (package `com.zynergylabs.forager.app`),
 including its Google Play closed test.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
@@ -129,7 +129,13 @@ capture's EXIF.
 
 - **Location** (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `FOREGROUND_SERVICE_LOCATION`) —
   showing your position, recording a track, navigating back, and the coordinates a species or
-  weather lookup searches on.
+  weather lookup searches on. Location is not confined to recording: `AvailabilityViewModel.init`
+  subscribes to live fixes at a one-second floor for the ViewModel's lifetime on every tab, and
+  `AvailabilityScreen` fires locate-me once per launch, so fixes flow whenever the app is open.
+  `ACCESS_BACKGROUND_LOCATION` is **not** declared (`app/src/main/AndroidManifest.xml`). A recording
+  continues with the screen off because it runs as a foreground service with an ongoing
+  notification, not because the app holds background location access. Outside those two states —
+  app open, or a recording running in the foreground service — the app receives no location at all.
 - **Camera** — taking a photo for a journal entry.
 - **`ACCESS_MEDIA_LOCATION`** — reading the capture date and coordinate of a photo you import, so a
   find can be dated and placed. Read separately from the stored copy's bytes.
