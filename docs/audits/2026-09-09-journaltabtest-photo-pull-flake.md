@@ -173,8 +173,22 @@ reported broken on-device, which is a reason to treat this test as valuable rath
 the entry`, this document's subject. That is the first sighting on a `push` to `main` rather than
 on a PR head, and it is why the flake's priority changed: it is no longer only a PR-gate nuisance.
 
-**This is a bisect hazard, and the note is the whole mitigation.** `4236e6b` sits between two
-green commits with no change to this test on either side:
+**This is a bisect hazard, and the note is the whole mitigation. The hazard is a *condition*, not a
+SHA.** `4236e6b` is the known instance, not the definition — writing it as one SHA means the next
+red commit on `main` needs a new row before anyone is warned, which is precisely when nobody will
+write one.
+
+> **Treat a red commit on `main` as a known-flake red, not a regression, when all of these hold:**
+> 1. its **only** failure is `JournalTabTest > From Album on the edit form opens the picker and
+>    pulls the selected photo into the entry` (`JournalTabTest.kt:374`);
+> 2. **no change to that test, its fixture, or the photo-pull path** appears on either side of it;
+> 3. the skip count is the allowlist's 24 and nothing else in the run failed.
+>
+> Re-run the class **alone** before calling anything a regression — it has passed 14/14 alone every
+> time it has been tried. A commit meeting this condition is a red that carries no information
+> about the change it sits on.
+
+The known instance, with its green neighbours:
 
 | commit | run | result |
 |---|---|---|
@@ -182,12 +196,10 @@ green commits with no change to this test on either side:
 | **`4236e6b`** | `34326689055` | **red — this flake, 1 failure** |
 | `2c3c0f9` | `34363668930` | green — 1303/0/0/24, 167 suites |
 
-**Anyone bisecting through `4236e6b` and finding it red should treat it as a known-flake red, not
-a real regression** — nothing about that commit (PR #83, an audits-index catch-up) touches
-`JournalTabTest` or the photo-pull path. Re-run the test alone, as §6's own rule says, before
-calling anything a regression. There is deliberately no code change here: the commit is on `main`
-and stays there, and a note that survives is worth more than a history rewrite that CLAUDE.md
-forbids anyway.
+Nothing about `4236e6b` (PR #83, an audits-index catch-up) touches `JournalTabTest` or the
+photo-pull path, so it satisfies clause 2 as well as clause 1. There is deliberately no code change
+here: the commit is on `main` and stays there, and a note that survives is worth more than a history
+rewrite that CLAUDE.md forbids anyway.
 
 **The run tally, greens included.** A failure rate built only from the failures is not an
 estimate — the failures are the runs that get noticed and written down, so a tally without its
@@ -204,15 +216,67 @@ denominator is biased high. Every full-suite run known to carry PR #82's
 | 6 | CI, PR #86 merge ref | pass |
 | 7 | CI, `main`@`2c3c0f9` | pass |
 | 8 | CI, PR #87 head (this note's own run) | pass |
+| 9 | CI, PR #87 head `e0e553c`, run `34366721592` | pass |
+| 10 | CI, `main` @ `becb826`, run `34367340693` | pass |
+| 11 | CI, PR #88 `77afc12`, run `34368884708` | pass |
+| 12 | CI, PR #88 `deab086`, run `34369687261` | pass |
+| 13 | CI, PR #88 `f57bbb5`, run `34370339757` | pass |
+| 14 | CI, PR #88 `0d9fc0d`, run `34373669264` | pass |
+| 15 | CI, `main` @ `14cc6f3`, run `34374667868` | pass |
 
-**2 failures in 8.** That does **not** separate a 1-in-3 rate from a 1-in-10 one, and it must not
+Run `34368690983` is **excluded, not counted**: it was `cancelled` when a later push superseded it.
+A cancelled run neither passed nor failed, and entering it on either side would be an invented
+observation. Draws 1–8 are as first recorded; 9–15 were enumerated from `gh run list` on
+2026-09-09.
+
+**2 failures in 15** as of the comparison dispatch — superseded below. That does **not** separate a 1-in-3 rate from a 1-in-10 one, and it must not
 be read as settling the rate — the interval it supports is wide, and the count is small on both
 sides. It is a prompt to run more, which is exactly what the queued present-versus-excluded
 dispatch is for. Recorded here so the next session inherits the denominator rather than the reds
 alone.
 
 **Run 8 is this note's own CI run, and that is the point, not a curiosity.** The tally was written
-at 2 in 7 and was stale before the branch recording it could merge — every full suite is a draw,
-including the ones nobody thinks of as an experiment. So the denominator here is a floor, not a
+at 2 in 7 and was stale before the branch recording it could merge — and it has now happened twice
+more: 2 in 8 was stale by the time the comparison dispatch was drafted (2 in 10), and that figure
+was itself five draws behind by the time the dispatch was executed (2 in 15), because PR #88's own
+five CI runs were draws — every full suite is one, including the runs nobody thinks of as an
+experiment. So the denominator here is a floor, not a
 total: any full-suite run on a tree carrying PR #82's `TrackRecordingServiceTest` is a sample, and
 a session that has one in hand should add it rather than assume the recorded figure is current.
+
+---
+
+## Amendment, 2026-09-09 (third) — 65 controlled draws carrying the test, and the tally that follows
+
+The controlled comparison ran
+(`2026-09-09-journaltabtest-flake-comparison-preregistration.md`, §K). Its **arm A** is 65 CI
+full-suite draws on a tree carrying PR #82's `TrackRecordingServiceTest` unmodified — i.e. 65 more
+draws of exactly what this tally counts.
+
+**Arm A: 4 reds in 65.** Added to the CI draws already recorded (draws 2–15, 2 reds in 14):
+
+> **CI, carrying the test: 6 failures in 79 draws — 7.6 %.**
+> **Local Windows, carrying the test: 0 failures in 12 draws** (draw 1, one from PR #88's session,
+> and Phase 0's ten).
+
+The floor framing holds and the floor moved a long way. The earlier 2-in-15 (13 %) was a small-sample
+estimate whose interval comfortably included the 6 % the present arm actually shows, and **sizing the
+comparison against 13 % is why it ran at 21 % power instead of 91 %** — recorded in §K.3 of the
+pre-registration as its own lesson.
+
+**What the comparison established, and what it did not:**
+
+- **The flake occurs with #82's test inert.** Arm B — same class, same method name, same position,
+  body replaced by a no-op — produced a red, at the same position 140 of 167, as the only failing
+  test in the run. **That test is not necessary for the flake.** An existence proof; it needs no
+  p-value.
+- **Fisher two-sided p = 0.365** on 4/65 against 1/65. Not separable — but at the observed rate the
+  design had ~21 % power, so this cell was reachable regardless. **It does not show the drained test
+  contributes nothing**, and must not be read that way.
+- **Position 140 of 167 in every red, in both arms.** The fixed-order finding holds, and the
+  substitution demonstrably did not move `JournalTabTest`.
+
+**Where the search goes next:** interference within a fixed order remains the hypothesis, with one
+candidate now excluded as *necessary* and 166 other suites untested. The predecessors of position 140
+are the obvious next place to look, which is what this note's own "pair the predecessors with
+`JournalTabTest` and reproduce" discriminator already said.
