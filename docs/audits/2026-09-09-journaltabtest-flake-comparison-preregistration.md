@@ -361,3 +361,39 @@ the same JUnit XML the local phase used. Each draw is scored by downloading that
 applying the identical detector, which was validated in three directions before Phase 0 (RED on the
 target failing, green on a clean class, green when a *different* test in the same class fails).
 Reading "FAILED" out of the CI console log would have been a proxy and is not used.
+
+---
+
+## H. Harness limit hit at 50, and the top-up decision — made before any outcome was read
+
+**GitHub Actions caps `run_attempt` at 50 per workflow run.** Both arms drove one run each with
+`gh run rerun`, and both stopped dead at the same ordinal: draws 1–50 scored normally, draws 51–65
+returned `conclusion=startup_failure` with no `unit-test-report` artifact. A further `gh run rerun`
+does not move `run_attempt` off 50. Not a transient, not rate-limiting, and not asymmetric — the two
+arms failed at the *same ordinal* at *different wall-clock times*, which is the signature of a
+per-run cap rather than a quota or an outage.
+
+**The harness counted them as `NOT-COUNTED` rather than as draws, which is the behaviour that
+matters.** A run with no artifact was never scored green — scoring an unscored run as a pass would
+have silently deflated the red rate in both arms. 15 lost in arm A and 11 in arm B at the moment
+this was noticed; both reach 15 once each harness runs out its loop.
+
+**Decision, taken with zero outcome data read: top both arms up to the pre-registered n = 65 scored
+draws.** The mechanism is an **empty commit** (`git commit --allow-empty`) pushed identically to
+both arm branches: it changes each branch's SHA — creating a fresh run with a fresh attempt counter
+— while leaving the **tree byte-identical**, so nothing about the code, the suite, the test count or
+the class order differs between a pre-top-up draw and a post-top-up one. The same empty commit goes
+on both arms, so the arms remain identical to each other in everything but the test body.
+
+Why top up rather than settle for 50: n = 65 was the owner's explicit choice over 45 and 30, on the
+reasoning that below it "open" is the predicted outcome rather than a finding. n = 50 is not
+disastrous — at p ≈ 0.14 the threshold is still r ≥ 6 (Fisher two-sided: r = 5 → 0.056, r = 6 →
+0.027) and power is ≈ 72 % against ≈ 80 % at 65 — but silently accepting 50 because the harness hit
+a limit is exactly the kind of drift this document exists to prevent. **The cost of honouring the
+pre-registration is about 70 minutes; the cost of not honouring it is that the number in the report
+is no longer the number that was agreed.**
+
+**This decision could not have been influenced by the results, because no result had been read when
+it was taken** — the only fields consulted were the count of scored draws, the count of
+`NOT-COUNTED` entries, the `NOT-COUNTED` reason strings, and `run_attempt`. None of those contains a
+red/green outcome. This commit precedes the first read of either arm's outcomes.
