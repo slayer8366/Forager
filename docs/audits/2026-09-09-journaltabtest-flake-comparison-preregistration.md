@@ -329,3 +329,35 @@ deterministic one. It does not touch this experiment — the background failures
 *arms*, never enter §D.1's measure, and `JournalTabTest` is not among them — but a local run showing
 nine would previously have looked like a change rather than a normal draw. Reported here; not fixed,
 not silenced, and no skip-list touched.
+
+---
+
+## G. PRE-REGISTERED before the first arm run: n = 65 per arm, and what it is not powered for
+
+**Owner ruling, 2026-09-09: n = 65 per arm**, 130 CI runs, arms in parallel, ~6 h. The reasoning is
+§D.5's: below this, "open" is the *predicted* outcome rather than a finding, and spending 60 CI runs
+to produce a foregone result would burn the appetite for ever running it properly.
+
+**The limit, written down before the data — this is the part a null must be read against.**
+
+n = 65 reaches ~80 % power for **one specific contrast**: the present arm at ~0.14 against a
+substituted arm at ~0, i.e. **the drained test explaining essentially all of the remaining flake**.
+
+It is *not* powered for a partial effect. If the drained test explains only part — say the rate goes
+0.14 → 0.07 rather than 0.14 → 0 — the expected counts are about 9 and 5 out of 65, Fisher two-sided
+lands around p ≈ 0.4, and **this design still returns "open."**
+
+> **Therefore: a null at n = 65 rules out "the drained test explains essentially all of the
+> remaining flake." It rules out nothing weaker. It must never be read as "the drained test
+> contributes nothing."**
+
+That is not an argument for sizing up. The honest ceiling is what the appetite supports, and 65 is
+it. The point of writing it here is that the ceiling is stated *before* the data, so the null this
+design is most likely to produce cannot later be inflated into a stronger claim than it carries.
+
+**Measurement on CI is faithful to §D.1, not a proxy.** The `unit-test-report` artifact uploads
+`app/build/test-results/testDebugUnitTest/` on `if: always()`, so every run — red or green — yields
+the same JUnit XML the local phase used. Each draw is scored by downloading that artifact and
+applying the identical detector, which was validated in three directions before Phase 0 (RED on the
+target failing, green on a clean class, green when a *different* test in the same class fails).
+Reading "FAILED" out of the CI console log would have been a proxy and is not used.
