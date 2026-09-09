@@ -48,10 +48,11 @@ note could not take.
 ## Why it is worth a row rather than being left alone
 
 Owner's ruling, 2026-09-09: fix it or make it non-reporting, do not leave it. The reasoning is the
-same as for the `JournalTabTest` flake — a signal that is permanently red regardless of the change
-trains reviewers to skip the check list, at which point a real failure arrives in a list nobody
-reads. Two unexplained red signals is a pattern, not two coincidences. Not beta-blocking, and
-recorded here so it is not re-diagnosed from scratch.
+same as for the `JournalTabTest` flake — its companion note,
+`2026-09-09-journaltabtest-flake-suite-only.md`. A signal that goes red without reference to the
+change under review trains reviewers to skip the check list, at which point a real failure arrives
+in a list nobody reads. Two unexplained red signals is a pattern, not two coincidences. Not
+beta-blocking, and recorded here so it is not re-diagnosed from scratch.
 
 ## What cannot be done from here
 
