@@ -119,55 +119,17 @@ class TrackRecordingServiceTest {
      */
     @Test
     fun `the ongoing notification's stop action ends the recorded track`() {
-        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-        disableLocationProviders()
-        val trackId = "track-stopped-from-the-shade"
-        runBlocking {
-            trackRepository.create(
-                Track(id = trackId, name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList()),
-            ).getOrThrow()
-        }
-
-        val controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(trackId))
-        val service = controller.create().get()
-        controller.startCommand(0, 1)
-
-        val notification = shadowOf(service).lastForegroundNotification
-        assertNotNull("the service must be in the foreground before there is a notification to act on", notification)
-        val stopAction = notification.actions.orEmpty().singleOrNull {
-            it.title?.toString() == context.getString(com.forager.app.R.string.track_recording_notification_stop_action)
-        }
-        assertNotNull(
-            "the ongoing notification must carry a 'Stop recording' action — it is the only way to " +
-                "end a recording whose Activity has been destroyed",
-            stopAction,
-        )
-
-        // The Intent the platform itself would deliver on a tap, not one this test composed.
-        val shadowPendingIntent = shadowOf(stopAction!!.actionIntent)
-        assertTrue("the stop action must address the service, not an Activity that may not exist", shadowPendingIntent.isServiceIntent)
-        val deliveredIntent = shadowPendingIntent.savedIntent
-        assertEquals(TrackRecordingService.ACTION_STOP, deliveredIntent.action)
-        assertEquals(TrackRecordingService::class.java.name, deliveredIntent.component?.className)
-
-        controller.withIntent(deliveredIntent).startCommand(0, 2)
-
-        assertNotNull(
-            "the track must be ended after the notification's own stop Intent reaches onStartCommand",
-            awaitEndedAt(trackId),
-        )
-        // The other half of "handled honestly": the service does not linger in the foreground with
-        // its track already closed. Asserted after the row, so this never masks a missing end —
-        // and waiting for it is also what guarantees stopRecording()'s coroutine has run to
-        // completion before destroy(), rather than being cancelled mid-flight by scope.cancel()
-        // and leaving work on Dispatchers.Default for the next test class's sandbox to inherit
-        // (the failure mode this class's doc comment records).
-        assertTrue(
-            "the service must stop itself once the notification's stop has ended the track",
-            awaitStoppedBySelf(service),
-        )
-        controller.destroy()
-        drainBeforeTeardown()
+        // EXPERIMENT ARM B — SUBSTITUTED. NEVER TO BE MERGED.
+        //
+        // Same class, same method name, same position in the class and in the suite, so the test
+        // count stays 1309 and the fixed class order is unchanged. Only what this test *does*
+        // differs from arm A, not that it *exists* — deleting it would have moved JournalTabTest's
+        // position, which is the one variable under study.
+        //
+        // Genuinely inert: no service, no controller, no file, no coroutine, no fixture, no
+        // assertion. setUp() still runs and is itself inert (it fetches the Application context and
+        // the container's repository, and there is no @After in this class), so nothing in this
+        // arm can produce the interference being tested for.
     }
 
     /**
