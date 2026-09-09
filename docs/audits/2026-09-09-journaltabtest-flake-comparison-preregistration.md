@@ -627,3 +627,69 @@ structure is identical across arms by construction.
    under any scheduling.
 
 **No draw falls on the far side of the drift**, and had one, it could not have been affected.
+
+---
+
+## L. The lesson, stated for the record — a *checked* design resting on an *unchecked* number
+
+Owner's framing, 2026-09-09, and it is joint rather than either party's.
+
+This experiment audited: the outcome measure, the detector (in three directions, before any run),
+artifact preservation, the threshold, the test's size, its power, the decision rule, the seed and
+attempt-counter independence, base drift, the arms' base identity, the suite count, the class
+position, and the loss of unscored draws. **Every audited component was correct.**
+
+And the whole thing was sized on `p ≈ 0.14`, taken from fifteen draws, without anyone once writing
+down that the interval around 2-in-15 comfortably includes 0.06.
+
+> **Not an unchecked design. A checked design resting on an unchecked number.**
+
+That is the family's newest door and the only one nobody was watching. The generalisation, beside
+"check reachability before measuring behaviour" and "confirm the sample includes the cases that
+could have failed the check":
+
+> **An input to a power calculation is an input to a check. Check it the way you would check any
+> other input — and if it is itself an estimate, carry its interval, not its point.**
+
+### L.1 What cell 2 does and does not license
+
+§D.3's cell 2 fired: both arms red, p ≥ 0.05, "the drain worked." **It cannot be read as "the
+drained test contributes nothing."** At the observed rate the design had ~21 % power, so that cell
+was reachable whatever the truth was, and 4-versus-1 is consistent with a substantial partial effect.
+
+§G's ceiling — *"a null rules out 'explains essentially all' and rules out nothing weaker"* — did
+exactly the job it was written for. **The ceiling was simply lower than the number written on it:**
+it was stated as a limit at 80–91 % power and it was actually a limit at 21 %.
+
+### L.2 The corrected rate, and the warning that must travel with it
+
+**CI, carrying the test: 6 failures in 79 draws — point estimate 7.6 %.** This supersedes 2-in-15 as
+the input to any future sizing, and it is a genuine improvement: 79 draws instead of 15.
+
+**It carries the identical warning.** Wilson 95 % interval: **2.4 % – 14.8 %.** Sizing on 7.6 % as
+if it were known repeats this dispatch's error at a smaller scale.
+
+| sizing assumption | n per arm for ~80 % power (threshold r ≥ 6) |
+|---|---|
+| point estimate, 0.076 | ≈ 118 |
+| lower bound, 0.024 | ≈ 375 |
+
+At 65 draws per arm and GitHub's 50-re-run cap, ≈118 per arm is two runs per arm; ≈375 is not
+practical by this method at all.
+
+**Which is the argument for not sizing another rate comparison.** The next step named by this note's
+own discriminator — pair position 140's predecessors with `JournalTabTest` and reproduce — is a
+**targeted reproduction, not a rate estimate**, so it does not inherit this interval and does not
+need a power calculation built on it. Cheaper and better aimed.
+
+### L.3 Where the search stands
+
+Interference within a fixed order remains the hypothesis. Better targeted than before:
+
+- class order is fixed and `JournalTabTest` sits at **position 140 of 167**, confirmed in all five
+  reds across both arms;
+- **one candidate is excluded as *necessary***, though not as *contributing*;
+- 166 suites remain untested, and the predecessors of position 140 are the obvious next place.
+
+**Not urgent, and it blocks nothing.** Recruiting is unaffected; the pre-beta queue is the two policy
+TODOs, the Data safety form, and one full trip on the signed build.
