@@ -145,8 +145,11 @@ Full suite on this Windows host, at the merge head:
   `IllegalArgumentException: Failed to find configured root that contains
   C:\Users\metal\AppData\Local\Temp\robol…` — a FileProvider root/path problem on this host, thrown
   before any file content is read, so it cannot be reached by a change that alters only what the file
-  contains. The full message is recorded here because the existing Windows-only note lists that
-  message as something it did not have.
+  contains. That message matches `docs/audits/2026-09-09-windows-only-test-failures.md:216-220`
+  verbatim — **correcting this report's own first draft and the commit message that carried it**,
+  which said the message was information that note lacked. It is not; the note already has it. What
+  is new is only that it was measured on *this* tree rather than carried over as a pattern, which is
+  what rules out this change as the cause.
 - **Nothing was silenced, quarantined, ignored, or weakened**, and no allowlist was touched.
 - Two `TrackGpxExporterTest` tests did go red mid-task and were *changed*: they assert the exporter's
   output equals `GpxCodec.encode` of a document the test builds, and the forward change makes the
