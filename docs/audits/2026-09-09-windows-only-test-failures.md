@@ -196,3 +196,33 @@ not spend beta time on it.** Knowing that the nine failures never reach migratio
 decision safer, not weaker — the failing tests are not telling us anything about the shipped
 database. Nothing was skipped, ignored, weakened or added to any allowlist by this amendment
 either; it is documentation only.
+
+---
+
+## Merge note, 2026-09-09 — a second amendment folded in here
+
+This file was written twice, independently, from the same base note: once on
+`claude/backup-and-signing-notes` (the amendment above) and once on
+`claude/audit-index-catchup`, which reached `main` as PR #83. Merging integration into `main`
+produced an add/add conflict between them. **The amendment above was kept in full** — it is the
+better of the two, and one of its findings is absent from the other: that a
+`SQLiteCantOpenDatabaseException` means those nine tests die before any `Migration` body runs, so
+"nine migration tests fail" is not a signal about the migrations.
+
+Everything in the PR #83 version is already stated above, except these two items, preserved here so
+the merge drops nothing:
+
+**The tenth failure's message verbatim**, as the concrete form of the "failed to find configured
+root" shape named above — a Windows backslash path that FileProvider's configured roots do not
+match:
+
+```
+Failed to find configured root that contains C:\Users\metal\AppData\Local\Temp\
+robolectric-AvailabilityScreenSettingsPanelTest_..._for_a_GPX_file<digits>\
+com.forager.app-dataDir\cache
+```
+
+**A standing instruction from the owner (2026-09-09): do not upgrade this note's claim.** The
+pattern is confirmed host-specific — the same commits are clean on Linux CI. The *mechanism* is
+not proven, and neither amendment proves it. A later session must not read either one as having
+established the cause. Confirming a pattern is not proving a mechanism.
