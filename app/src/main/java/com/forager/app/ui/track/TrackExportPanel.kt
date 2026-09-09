@@ -2,6 +2,7 @@ package com.forager.app.ui.track
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.forager.app.domain.model.Track
+import com.forager.app.domain.model.TrackPointRecord
+import com.forager.app.domain.model.Waypoint
 import com.forager.app.domain.networkFixExclusionNote
 import com.forager.app.export.TrackGpxExporter
 import com.forager.app.ui.theme.Spacing
@@ -52,7 +55,18 @@ import kotlinx.coroutines.withContext
  * tapping another tab, not by a back affordance embedded in the content.
  */
 @Composable
-internal fun TrackExportList(tracks: List<Track>, modifier: Modifier = Modifier) {
+internal fun TrackExportList(
+    tracks: List<Track>,
+    /** All saved waypoints — filtered per track (by [Waypoint.trackId]) at the row that needs it. Defaults empty so a caller not exercising export (most existing screen tests) is unaffected. */
+    waypoints: List<Waypoint> = emptyList(),
+    /**
+     * GPX full-record export dispatch: the unfiltered read for the file's `<extensions>` block —
+     * see [com.forager.app.ui.track.TrackRecordingViewModel.getFullRecord]. Defaults to reporting
+     * an empty record, same reasoning as [waypoints]; `MainActivity` wires the real one.
+     */
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
+    modifier: Modifier = Modifier,
+) {
     if (tracks.isEmpty()) {
         Text(
             "No recorded tracks yet.",
@@ -68,12 +82,16 @@ internal fun TrackExportList(tracks: List<Track>, modifier: Modifier = Modifier)
             .padding(horizontal = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        tracks.forEach { track -> TrackExportRow(track = track) }
+        tracks.forEach { track -> TrackExportRow(track = track, waypoints = waypoints, getFullRecord = getFullRecord) }
     }
 }
 
 @Composable
-private fun TrackExportRow(track: Track) {
+private fun TrackExportRow(
+    track: Track,
+    waypoints: List<Waypoint>,
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     Row(
@@ -93,7 +111,10 @@ private fun TrackExportRow(track: Track) {
         // a sighted tester can find it visually — see this dispatch's item 2 for the bug that shape
         // of assertion hid for an entire release.
         IconButton(
-            onClick = { scope.launch { exportAndShareTrack(context, track) } },
+            onClick = {
+                val trackWaypoints = waypoints.filter { it.trackId == track.id }
+                scope.launch { exportAndShareTrack(context, track, trackWaypoints, getFullRecord) }
+            },
             modifier = Modifier.testTag("share-track-${track.id}"),
         ) {
             Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${formatTrackTimestamp(track)}")
@@ -123,9 +144,25 @@ private fun formatTrackTimestamp(track: Track): String =
 
 private val DISPLAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a")
 
-/** Writes [track] to a GPX file (disk I/O off the composing thread) and hands it to the share sheet. */
-private suspend fun exportAndShareTrack(context: Context, track: Track) {
-    val file = withContext(Dispatchers.IO) { TrackGpxExporter.forContext(context).write(track) }
+/**
+ * Writes [track] to a GPX file (disk I/O off the composing thread) and hands it to the share
+ * sheet. [waypoints] must already be filtered to this track. [getFullRecord]'s failure is logged,
+ * not swallowed (CLAUDE.md: a failure is reported, never silent) — but doesn't block the share
+ * itself: the filtered `<trkseg>` the app already displayed is still worth getting out, even
+ * without the raw `<extensions>` record this dispatch adds.
+ */
+private suspend fun exportAndShareTrack(
+    context: Context,
+    track: Track,
+    waypoints: List<Waypoint>,
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+) {
+    val fullRecord = getFullRecord(track.id)
+        .onFailure { error -> Log.w("TrackExportPanel", "Couldn't load track ${track.id}'s full record; exporting without it.", error) }
+        .getOrDefault(emptyList())
+    val file = withContext(Dispatchers.IO) {
+        TrackGpxExporter.forContext(context).write(track, fullRecord = fullRecord, waypoints = waypoints)
+    }
     context.startActivity(Intent.createChooser(shareGpxIntent(context, file), "Share track"))
 }
 

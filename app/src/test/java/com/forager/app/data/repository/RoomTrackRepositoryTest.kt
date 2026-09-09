@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.forager.app.data.local.ForagerDatabase
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -206,6 +207,38 @@ class RoomTrackRepositoryTest {
         val rows = database.trackDao().getPointsForTrack("t")
         assertEquals(listOf(0L, 2_001L, 5_000L), rows.map { it.timestampEpochMillis })
         assertEquals(listOf(45.000, 45.030, 45.001), rows.map { it.lat })
+    }
+
+    /**
+     * GPX full-record export dispatch, Item 1: [getFullRecord] is the one read that does **not**
+     * apply the network-provider-fix rule — every stored row comes back, each carrying the same
+     * verdict [getById] uses to decide what to exclude, so the two can never disagree about which
+     * points the rule would drop.
+     */
+    @Test
+    fun `getFullRecord returns every stored point with its verdict, unlike getById's filtered read`() = runTest {
+        repository.create(Track(id = "t", name = null, startedAtEpochMillis = 0L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+        val kept0 = TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 0L)
+        val dropped = TrackPoint(lat = 45.030, lng = -122.0, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = 2_001L)
+        val kept5 = TrackPoint(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 5_000L)
+        repository.appendPoints("t", listOf(kept0, dropped, kept5)).getOrThrow()
+
+        val fullRecord = repository.getFullRecord("t").getOrThrow()
+
+        assertEquals(
+            listOf(TrackPointRecord(kept0, kept = true), TrackPointRecord(dropped, kept = false), TrackPointRecord(kept5, kept = true)),
+            fullRecord,
+        )
+        // getById's own filtered read must still agree with which of these the verdict marks kept.
+        assertEquals(listOf(kept0, kept5), repository.getById("t").getOrThrow()!!.points)
+    }
+
+    @Test
+    fun `getFullRecord on a track with no stored points, or no such track, is an empty list not a failure`() = runTest {
+        repository.create(Track(id = "t", name = null, startedAtEpochMillis = 0L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+
+        assertTrue(repository.getFullRecord("t").getOrThrow().isEmpty())
+        assertTrue(repository.getFullRecord("no-such-track").getOrThrow().isEmpty())
     }
 
 }

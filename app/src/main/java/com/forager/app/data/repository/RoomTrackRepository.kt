@@ -5,8 +5,10 @@ import com.forager.app.data.local.TrackEntity
 import com.forager.app.data.local.TrackPointEntity
 import com.forager.app.domain.TrackRepository
 import com.forager.app.domain.excludeNetworkProviderFixes
+import com.forager.app.domain.isNetworkProviderFix
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
 
 /**
  * Room-backed [TrackRepository]; the only place [TrackEntity]/[TrackPointEntity] and [Track]/
@@ -21,6 +23,11 @@ import com.forager.app.domain.model.TrackPoint
  * straight from the domain [TrackPoint]s handed in to entities and batch-inserts them, so a
  * recording session's per-fix write cost is one `INSERT` batch, not a read-modify-write of the
  * whole track on every sampled point.
+ *
+ * [getFullRecord] is the one deliberate exception to "every read passes through [toDomain]" —
+ * GPX full-record export dispatch. It reads the same `track_points` rows but skips
+ * [excludeNetworkProviderFixes] entirely, attaching the verdict per point instead of dropping the
+ * excluded ones. Its only caller is the GPX exporter.
  */
 class RoomTrackRepository(
     private val dao: TrackDao,
@@ -33,6 +40,13 @@ class RoomTrackRepository(
     override suspend fun getById(id: String): Result<Track?> = runCatchingCancellable {
         val entity = dao.getTrackById(id) ?: return@runCatchingCancellable null
         entity.toDomain(dao.getPointsForTrack(id))
+    }
+
+    override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> = runCatchingCancellable {
+        dao.getPointsForTrack(id).map { entity ->
+            val point = entity.toDomain()
+            TrackPointRecord(point = point, kept = !point.isNetworkProviderFix())
+        }
     }
 
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =

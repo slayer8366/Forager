@@ -17,8 +17,10 @@ import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.RingerMode
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.TrackRepository
+import com.forager.app.domain.isNetworkProviderFix
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.domain.model.WaypointDesignation
 import java.time.ZoneOffset
@@ -229,6 +231,60 @@ class TrackRecordingViewModelTest {
 
         assertEquals(listOf(45.0), vm.uiState.value.breadcrumbPoints.map { it.lat })
 
+        vm.stopRecording()
+    }
+
+    /**
+     * Path-home join dispatch, through the real entry points: the poll computes
+     * [TrackRecordingUiState.pathHome] only while returning, from the last gated fix, and it is
+     * the *joined* distance — the PathHomeTest double-back (north three legs, back two) reads one
+     * leg, 111.195 m, with one join, not the five-leg sum. `startReturn()` restarts the poll so the
+     * value is there at once; a later poll over the walker's arrival at the origin reads 0 (the
+     * estimate decreased — the defect being fixed, seen from the ViewModel); `stopReturn()` clears
+     * it. The origin waypoint is created from the first gated fix, at the first point, so the
+     * origin's leg is zero and the total is the track figure alone.
+     */
+    @Test
+    fun `path home is computed by the poll while returning, over the joined track, and cleared when the return stops`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(trackRepository, locationTracker = FakeLocationTracker(fixes))
+
+        vm.startRecording()
+        runCurrent()
+        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 1_000L))
+        runCurrent()
+        assertEquals(45.000, vm.uiState.value.originWaypoint!!.lat, 0.0)
+        trackRepository.appendPoints(
+            "track-1",
+            listOf(45.000, 45.001, 45.002, 45.003, 45.002, 45.001).mapIndexed { i, lat -> point(lat = lat, t = 1_000L + i * 15_000L) },
+        )
+        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 76_000L))
+        runCurrent()
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(6, vm.uiState.value.breadcrumbPoints.size)
+        assertNull("nothing is computed for a walker who has not turned round", vm.uiState.value.pathHome)
+
+        vm.startReturn()
+        runCurrent()
+        val returning = vm.uiState.value.pathHome!!
+        assertEquals(111.19508, returning.trackMeters, 0.01)
+        assertEquals(1, returning.joinsOnRoute)
+        assertEquals(0.0, returning.hopMeters, 0.001)
+        assertEquals(0.0, returning.originLegMeters!!, 0.0)
+        assertEquals(111.19508, returning.totalMeters, 0.01)
+
+        // The walker reaches the origin: the next poll reads zero — lower than before.
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.000, t = 91_000L)))
+        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 91_000L))
+        runCurrent()
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(0.0, vm.uiState.value.pathHome!!.totalMeters, 0.001)
+
+        vm.stopReturn()
+        assertNull(vm.uiState.value.pathHome)
         vm.stopRecording()
     }
 
@@ -839,6 +895,8 @@ private class InMemoryTrackRepository : TrackRepository {
 
     override suspend fun getAll(): Result<List<Track>> = Result.success(tracks.values.toList())
     override suspend fun getById(id: String): Result<Track?> = Result.success(tracks[id])
+    override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> =
+        Result.success((tracks[id]?.points ?: emptyList()).map { TrackPointRecord(it, kept = !it.isNetworkProviderFix()) })
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
         Result.success(
             tracks.values.filter { track ->
@@ -880,6 +938,7 @@ private class InMemoryTrackRepository : TrackRepository {
 private class FailingTrackRepository : TrackRepository {
     override suspend fun getAll(): Result<List<Track>> = Result.success(emptyList())
     override suspend fun getById(id: String): Result<Track?> = Result.success(null)
+    override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> = Result.success(emptyList())
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
         Result.success(emptyList())
     override suspend fun create(track: Track): Result<Unit> = Result.failure(RuntimeException("boom"))

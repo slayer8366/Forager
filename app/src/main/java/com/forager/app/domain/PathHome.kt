@@ -69,11 +69,28 @@ import com.forager.app.domain.model.Waypoint
  * [returnWalkingTime] degrades the estimate when the exclusion is large. This function takes a
  * [Track], not a bare point list, so a caller cannot hand it points by any other route.
  *
+ * ## The track is joined to itself (owner ruling, 2026-09-07)
+ *
+ * [trackMeters] is **not** the sum of the legs. That sum never decreases during a recording —
+ * points only append — so on a plain out-and-back it read the whole trip while the walker stood
+ * beside the car, and on a patch worked for twenty minutes it read 733 m for a 6 m walk. The
+ * owner ruled the track-network candidate inside the retrace ruling: the track is joined to
+ * itself wherever it passes within ε ([SELF_JOIN_EPSILON_METERS]) of itself, and the distance is
+ * the shortest route home along the joined track ([joinedTrackHome]). Every edge of that route
+ * is either a leg between consecutive stored points or a join between two points the walker
+ * actually occupied, so the route never crosses more than ε of unwalked ground, and only where
+ * the walker already stood within ε of it. The most-recent-point rule above is unchanged: the
+ * hop still lands on the last stored point, and it is the *track* that is joined, at points,
+ * never the walker projected onto a segment. See the ε constant's own doc for the ruling's
+ * condition on it and why every request to raise it reopens the ruling. [PathHome.joinsOnRoute]
+ * says how many joins the route crossed; zero means the plain retrace.
+ *
  * ## Cost
  *
- * One haversine per consecutive pair, plus two: a few thousand points is well under a millisecond,
- * and this is recomputed on the 15 s track poll, not per fix. Points only ever append during a
- * recording, so the running sum could be kept incrementally; not done until a caller needs it.
+ * The join scan and the shortest-route search — see [joinedTrackHome], "Cost": linear-ish in the
+ * point count with a grid hash, measured in the join dispatch's completion report. Recomputed on
+ * the 15 s track poll, not per fix. Points only ever append during a recording, so the graph
+ * could be kept incrementally; not done until a measurement says it is needed.
  *
  * `null` when the track has no usable points: there is no path to measure, and a straight-line
  * substitute would be exactly the confidently-short number this exists to avoid.
@@ -82,24 +99,19 @@ fun pathHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand: 
     val points = track.points
     if (points.isEmpty()) return null
 
-    var trackMeters = 0.0
-    for (i in 1 until points.size) {
-        trackMeters += GeoDistance.metersBetween(
-            LatLng(points[i - 1].lat, points[i - 1].lng),
-            LatLng(points[i].lat, points[i].lng),
-        )
-    }
+    val joined = joinedTrackHome(points)
     val mostRecent = points.last()
     val hopMeters = GeoDistance.metersBetween(current, LatLng(mostRecent.lat, mostRecent.lng))
     val first = points.first()
     val originLegMeters = origin?.let { GeoDistance.metersBetween(LatLng(first.lat, first.lng), LatLng(it.lat, it.lng)) }
 
     return PathHome(
-        trackMeters = trackMeters,
+        trackMeters = joined.meters,
         hopMeters = hopMeters,
         hopBand = nextHopBand(previousHopBand, hopMeters),
         originLegMeters = originLegMeters,
         pointCount = points.size,
+        joinsOnRoute = joined.joinsOnRoute,
     )
 }
 
@@ -126,7 +138,7 @@ enum class HopBand { NONE, COUNTED, FAR }
 
 /** See [pathHome]. Every distance in metres. */
 data class PathHome(
-    /** Along the recorded points, most recent back to first. */
+    /** Along the recorded points, most recent back to first, by the shortest route through the self-joined track — see [pathHome], "The track is joined to itself". */
     val trackMeters: Double,
     /** Straight line from the current position to the most recent point, as measured — before the band rule. */
     val hopMeters: Double,
@@ -135,6 +147,8 @@ data class PathHome(
     /** First stored point back to the origin waypoint; `null` when the track has no origin (nothing omitted then — the path simply ends at the first point). */
     val originLegMeters: Double?,
     val pointCount: Int,
+    /** How many self-joins the route home crosses ([JoinedTrackHome.joinsOnRoute]); zero means the plain retrace. */
+    val joinsOnRoute: Int = 0,
 ) {
     /** The hop as counted: nothing in [HopBand.NONE], otherwise as measured. */
     val hopCountedMeters: Double get() = if (hopBand == HopBand.NONE) 0.0 else hopMeters

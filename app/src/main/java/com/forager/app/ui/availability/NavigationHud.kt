@@ -41,6 +41,7 @@ import com.forager.app.domain.isApproaching
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.formatDistanceMeters
 import com.forager.app.domain.model.formatDistanceWithAccuracy
 import com.forager.app.domain.relativeBearingDegrees
 import com.forager.app.ui.map.TrueHeadingReading
@@ -148,6 +149,13 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   age is shown — "Approaching · last fix 45 s ago" when both hold, since neither fact replaces
  *   the other; past 5 min the distance and needle are withheld and only the age remains. A
  *   one-second ticker inside this leaf keeps the age moving; it recomposes this panel only.
+ * - **Path home** (path-home join dispatch): while returning, the status line's otherwise-empty
+ *   state carries one more short string — "Path home 350 m", the walk back along the recorded
+ *   track joined to itself ([com.forager.app.domain.pathHome], via
+ *   [com.forager.app.ui.track.TrackRecordingUiState.pathHome]). One number, no time, no mode
+ *   toggle: the distance slot keeps the straight line, which is what the needle and "Approaching"
+ *   are about; this line says how far the *walk* is. It yields to every message the line already
+ *   carried — stale, lost, approaching — see [navigationReadout].
  * - **No origin waypoint** (a track whose first gated fix never came): says so. Nothing is
  *   substituted.
  * - **Elevation and coordinates** come from the same fix, through the same [coordinatesStripText]
@@ -170,6 +178,8 @@ internal fun NavigationHud(
     onToggleCoordinateFormat: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
+    /** See `AvailabilityScreen`'s own `pathHomeMeters` doc comment, and [navigationReadout] for where it shows. */
+    pathHomeMeters: Double? = null,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -182,7 +192,7 @@ internal fun NavigationHud(
         }
     }
     val isDarkTheme = LocalForagerDarkTheme.current
-    val readout = navigationReadout(reading, liveFix, target, distanceUnit, now, showDecimalDegrees)
+    val readout = navigationReadout(reading, liveFix, target, distanceUnit, now, showDecimalDegrees, pathHomeMeters)
 
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         // A plain Box with a background, deliberately opaque to touches only where its content
@@ -321,6 +331,7 @@ internal fun navigationReadout(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     showDecimalDegrees: Boolean = false,
+    pathHomeMeters: Double? = null,
 ): NavigationHudReadout {
     val headingDegrees = (heading as? TrueHeadingReading.Available)?.degrees
     val headingText = when (heading) {
@@ -386,10 +397,18 @@ internal fun navigationReadout(
         // a number the user cannot orient to is withheld, the distance slot carries the one number.
         else -> ""
     }
+    // Path-home join dispatch: the one more short string this line can carry (pre-build report,
+    // §E) — the walk back along the track, joined to itself, as one number. Only in the state
+    // where the line was empty: a stale or lost fix already owns the line with a message the
+    // walker needs more, and an approaching walker is metres from the origin, where a second
+    // small number beside "within 4 m" is the "9 ft · 9 ft" duplicate the owner struck. Plain
+    // formatting, not the accuracy-aware kind: this is a sum over many stored points, not one
+    // fix's radius. Never "arrived", never a time — the walking time has no caller, on purpose.
+    val pathHomeText = pathHomeMeters?.let { "Path home ${formatDistanceMeters(it, distanceUnit)}" }
     val statusText = when (freshness) {
         FixFreshness.LOST -> "No fix for ${formatFixAge(age)}"
         FixFreshness.STALE -> if (approaching) "Approaching · last fix ${formatFixAge(age)} ago" else "Last fix ${formatFixAge(age)} ago"
-        FixFreshness.FRESH -> if (approaching) "Approaching" else ""
+        FixFreshness.FRESH -> if (approaching) "Approaching" else pathHomeText.orEmpty()
     }
     return NavigationHudReadout(
         headingText = headingText,

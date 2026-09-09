@@ -4,6 +4,8 @@ import com.forager.app.domain.GpxCodec
 import com.forager.app.domain.model.GpxDocument
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
+import com.forager.app.domain.model.Waypoint
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -35,13 +37,14 @@ class TrackGpxExporterTest {
             TrackPoint(lat = 45.001, lng = -122.0, altitude = 101.0, accuracyMeters = 5f, timestampEpochMillis = 1_756_414_415_000L),
         ),
     )
+    private val fullRecord = track.points.map { TrackPointRecord(it, kept = true) }
 
     @Test
     fun `write creates the export directory if it does not exist yet, and returns a file that exists`() {
         val exportDir = tempFolder.newFolder("cache").resolve("tracks")
         val exporter = TrackGpxExporter(exportDir)
 
-        val file = exporter.write(track)
+        val file = exporter.write(track, fullRecord = fullRecord, waypoints = emptyList())
 
         assertTrue(exportDir.isDirectory)
         assertTrue(file.exists())
@@ -51,7 +54,7 @@ class TrackGpxExporterTest {
     fun `the filename is derived from the track's own start time, not the export time`() {
         val exporter = TrackGpxExporter(tempFolder.newFolder("tracks"))
 
-        val file = exporter.write(track)
+        val file = exporter.write(track, fullRecord = fullRecord, waypoints = emptyList())
 
         val expectedTimestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")
             .format(Instant.ofEpochMilli(track.startedAtEpochMillis).atZone(ZoneId.systemDefault()))
@@ -62,12 +65,13 @@ class TrackGpxExporterTest {
     fun `exporting the same track twice overwrites the same file rather than creating a second one`() {
         val exporter = TrackGpxExporter(tempFolder.newFolder("tracks"))
 
-        val first = exporter.write(track)
+        val first = exporter.write(track, fullRecord = fullRecord, waypoints = emptyList())
         // Read before the second write: first and second are two File handles to the identical
         // path, so reading first *after* overwriting would just read the second write's content
         // back, making the two sides of the comparison below trivially equal either way.
         val firstContent = first.readText()
-        val second = exporter.write(track.copy(points = track.points + track.points))
+        val doubled = track.copy(points = track.points + track.points)
+        val second = exporter.write(doubled, fullRecord = doubled.points.map { TrackPointRecord(it, kept = true) }, waypoints = emptyList())
 
         assertEquals(first.absolutePath, second.absolutePath)
         assertTrue("expected the second write's extra point to be reflected", second.readText().count { it == '\n' } > firstContent.count { it == '\n' })
@@ -77,10 +81,23 @@ class TrackGpxExporterTest {
     fun `the written file's content is exactly what GpxCodec encode produces for this track`() {
         val exporter = TrackGpxExporter(tempFolder.newFolder("tracks"))
 
-        val file = exporter.write(track)
+        val file = exporter.write(track, fullRecord = fullRecord, waypoints = emptyList())
 
         assertEquals(
-            GpxCodec.encode(GpxDocument(track = track, waypoints = emptyList())),
+            GpxCodec.encode(GpxDocument(track = track, waypoints = emptyList(), fullRecord = fullRecord)),
+            file.readText(),
+        )
+    }
+
+    @Test
+    fun `waypoints handed to write reach the file, same as GpxCodec encode would produce`() {
+        val exporter = TrackGpxExporter(tempFolder.newFolder("tracks"))
+        val waypoints = listOf(Waypoint(id = "w1", lat = 45.5, lng = -122.5, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 1_756_414_400_000L))
+
+        val file = exporter.write(track, fullRecord = fullRecord, waypoints = waypoints)
+
+        assertEquals(
+            GpxCodec.encode(GpxDocument(track = track, waypoints = waypoints, fullRecord = fullRecord)),
             file.readText(),
         )
     }

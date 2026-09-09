@@ -29,6 +29,7 @@ import com.forager.app.domain.model.MushroomLogEntry
 import com.forager.app.domain.model.PhotoSource
 import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Track
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.Waypoint
 import com.forager.app.photo.CameraCaptureFiles
 import com.forager.app.ui.availability.AvailabilityUiState
@@ -192,6 +193,8 @@ internal fun JournalTab(
     onDeleteOfflineRegion: (Long) -> Unit,
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
+    /** GPX full-record export dispatch — see [com.forager.app.ui.track.TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     waypoints: List<Waypoint>,
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
@@ -463,6 +466,7 @@ internal fun JournalTab(
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
                 tracks = tracks,
                 onTracksOpened = onTracksOpened,
+                getFullRecord = getFullRecord,
                 findsContent = findsSection,
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
                 findsEditingInProgress = findsSectionHasBackStack,

@@ -236,6 +236,7 @@ import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.Track
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.domain.model.Waypoint
@@ -648,6 +649,13 @@ fun AvailabilityScreen(
      */
     navigationTarget: Waypoint? = null,
     /**
+     * Path-home join dispatch: the walk back to [navigationTarget] along the recorded track joined
+     * to itself, in metres ([com.forager.app.ui.track.TrackRecordingUiState.pathHome]'s
+     * `totalMeters`), or `null` when there is none — not returning, no gated fix yet, no usable
+     * points. The HUD's status line carries it as one number; see [navigationReadout].
+     */
+    pathHomeMeters: Double? = null,
+    /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
@@ -668,6 +676,14 @@ fun AvailabilityScreen(
     tracks: List<Track> = emptyList(),
     /** Refreshes [tracks] — called whenever the export panel opens, mirroring [onOfflineMapsOpened]'s own "reload on open" shape. */
     onTracksOpened: () -> Unit = {},
+    /**
+     * GPX full-record export dispatch: the unfiltered read for a shared track's `<extensions>`
+     * block — see [com.forager.app.ui.track.TrackExportList]'s own doc comment. Empty by default,
+     * same [tracks]/[waypoints] shape above; the real function is
+     * [com.forager.app.ui.track.TrackRecordingViewModel.getFullRecord], threaded in by
+     * `MainActivity`.
+     */
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
@@ -1133,6 +1149,7 @@ fun AvailabilityScreen(
                     onDeleteOfflineRegion = onDeleteOfflineRegion,
                     tracks = tracks,
                     onTracksOpened = onTracksOpened,
+                    getFullRecord = getFullRecord,
                     waypoints = waypoints,
                     waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
@@ -1694,6 +1711,7 @@ fun AvailabilityScreen(
                             compassProvider = compassProvider,
                             computeTrueHeading = computeTrueHeading,
                             navigationTarget = navigationTarget,
+                            pathHomeMeters = pathHomeMeters,
                             currentTime = currentTime,
                             taxonFilter = mapTaxonFilter,
                             onClearTaxonFilter = onClearMapTaxonFilter,
@@ -1854,6 +1872,7 @@ fun AvailabilityScreen(
                             onDeleteOfflineRegion = onDeleteOfflineRegion,
                             tracks = tracks,
                             onTracksOpened = onTracksOpened,
+                            getFullRecord = getFullRecord,
                             waypoints = waypoints,
                             waypointsErrorMessage = waypointsErrorMessage,
                             onDeleteWaypoint = onDeleteWaypoint,
@@ -3033,6 +3052,8 @@ private fun CompactMapTab(
     computeTrueHeading: ComputeTrueHeadingUseCase,
     /** See [AvailabilityScreen]'s own `navigationTarget` doc comment. */
     navigationTarget: Waypoint?,
+    /** See [AvailabilityScreen]'s own `pathHomeMeters` doc comment. */
+    pathHomeMeters: Double?,
     /** The HUD's fix-age clock — [AvailabilityScreen]'s own `currentTime`, so a test can pin an old fix as stale. */
     currentTime: CurrentTimeProvider,
     /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
@@ -3781,6 +3802,7 @@ private fun CompactMapTab(
                         liveFix = uiState.liveFix,
                         target = navigationTarget,
                         distanceUnit = uiState.distanceUnit,
+                        pathHomeMeters = pathHomeMeters,
                         currentTime = currentTime,
                         showDecimalDegrees = showDecimalDegrees,
                         onToggleCoordinateFormat = onToggleCoordinateFormat,

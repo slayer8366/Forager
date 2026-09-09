@@ -36,6 +36,14 @@ import com.forager.app.domain.model.TrackPoint
  * would exclude most or all of a track — which is why [isMostlyNetworkFixes] and
  * [hasNoUsablePoints] exist and why the surfaces that read them never stay silent about it. Four
  * tracks, one phone; the earlier radios-off ~40 m excursion is not explained by this rule.
+ *
+ * **The instrument for checking this against other hardware** is the GPX full-record export
+ * (dispatch, format B1): [com.forager.app.domain.TrackRepository.getFullRecord] carries every
+ * stored point, tagged with the verdict this predicate gives it, out to a tester's GPX file where
+ * it can be read against whatever device actually recorded it — the only way a non-second-aligned
+ * GNSS clock elsewhere would ever surface. Superseded as the beta's own instrument for this rule:
+ * the trip-report question `docs/beta/trip-report.md` asks (see that file and its README) is no
+ * longer the only one.
  */
 fun TrackPoint.isNetworkProviderFix(): Boolean = timestampEpochMillis % 1_000L != 0L
 

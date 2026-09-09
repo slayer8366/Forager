@@ -18,6 +18,7 @@ import com.forager.app.domain.CurrentTimeProvider
 import com.forager.app.domain.model.DistanceUnit
 import com.forager.app.domain.model.LatLng
 import com.forager.app.domain.model.Track
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.Waypoint
 import com.forager.app.ui.availability.AvailabilityUiState
 import com.forager.app.ui.availability.OfflineMapsPanel
@@ -91,6 +92,8 @@ internal fun RecordsTab(
     onDeleteOfflineRegion: (Long) -> Unit,
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
+    /** GPX full-record export dispatch — see [TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     findsContent: @Composable ColumnScope.() -> Unit,
     onFindsTabLeft: () -> Unit = {},
     /**
@@ -196,7 +199,12 @@ internal fun RecordsTab(
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
             )
 
-            RecordsSubTab.RECORDED_TRACKS -> TrackExportList(tracks = tracks, modifier = Modifier.weight(1f))
+            RecordsSubTab.RECORDED_TRACKS -> TrackExportList(
+                tracks = tracks,
+                waypoints = waypoints,
+                getFullRecord = getFullRecord,
+                modifier = Modifier.weight(1f),
+            )
 
             // Column, not Box: the relocated find-editing composables (CentrePinLocationPicker,
             // LogEntryDetailScreen, etc.) each pass themselves Modifier.weight(1f), which only
