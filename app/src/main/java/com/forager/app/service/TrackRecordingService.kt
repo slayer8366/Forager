@@ -180,11 +180,38 @@ class TrackRecordingService : Service() {
         manager.createNotificationChannel(channel)
     }
 
+    /**
+     * The ongoing notification, with a **Stop recording** action beside the tap-to-open intent.
+     *
+     * The action exists because tapping the notification body was, until it was added, the only
+     * affordance a recording had once the Activity went away — and it opens an app that cannot see
+     * this service. [com.forager.app.ui.track.TrackRecordingUiState.isRecording] is derived purely
+     * from [com.forager.app.ui.track.TrackRecordingUiState.activeTrack], an in-memory field that
+     * `TrackRecordingViewModel`'s `init` does not repopulate from storage, so an Activity destroyed
+     * mid-recording comes back reporting "not recording" while this service is still running and
+     * still holding GPS. With no action here, nothing short of force-stopping the app could end
+     * that recording. The shade is therefore the one control that must work regardless of what the
+     * UI believes, and it addresses this service directly ([PendingIntent.getService]) rather than
+     * routing through `MainActivity` — the Activity is exactly the thing that may not exist.
+     *
+     * [ACTION_STOP] is the same action `MainActivity`'s `LaunchedEffect(trackUiState.activeTrack)`
+     * sends, so a stop from here takes the identical path: [stopRecording] flushes the buffer, ends
+     * the track through `endTrackUseCase`, and calls `stopSelf()`. No new stop path was added.
+     *
+     * [PendingIntent.FLAG_IMMUTABLE] on both, as the platform requires from API 31 and this file
+     * already did for the content intent. Distinct request codes so the two are never conflated.
+     */
     private fun buildNotification(): Notification {
         val openAppIntent = PendingIntent.getActivity(
             this,
-            0,
+            REQUEST_CODE_OPEN_APP,
             Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE,
+        )
+        val stopIntent = PendingIntent.getService(
+            this,
+            REQUEST_CODE_STOP,
+            Intent(this, TrackRecordingService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -192,6 +219,11 @@ class TrackRecordingService : Service() {
             .setContentText(getString(R.string.track_recording_notification_text))
             .setSmallIcon(R.drawable.ic_track_recording)
             .setContentIntent(openAppIntent)
+            .addAction(
+                R.drawable.ic_track_recording,
+                getString(R.string.track_recording_notification_stop_action),
+                stopIntent,
+            )
             .setOngoing(true)
             .build()
     }
@@ -239,6 +271,12 @@ class TrackRecordingService : Service() {
         private const val TAG = "TrackRecordingService"
         private const val CHANNEL_ID = "track_recording"
         private const val NOTIFICATION_ID = 1001
+
+        // Distinct per PendingIntent so neither can be handed the other's Intent by the platform's
+        // (requestCode, filterEquals(Intent)) identity rule. They already differ by target type
+        // (activity vs service); the codes make that independent of it.
+        private const val REQUEST_CODE_OPEN_APP = 0
+        private const val REQUEST_CODE_STOP = 1
 
         // Whichever comes first flushes the buffer: this many points accepted, or this much time
         // elapsed — the same "don't let irreplaceable field data sit unwritten for too long if the
