@@ -82,18 +82,29 @@ the map inside it makes no tile requests at all. Searching still does.
 The map tile endpoint above is operated by the developer of this app, on Cloudflare's platform,
 serving tiles out of a Cloudflare R2 bucket.
 
-**It logs requests.** The Worker's own code writes no log lines of its own (`server/pmtiles-worker/src/`),
-but Cloudflare, as the host, records request metadata for the requests it serves — the requested
-URL, which for a tile request is the map square being viewed, together with the IP address that
-asked, the time, and the user agent. This is stated plainly because a tile log is a record of where
-someone was looking at the map, and that is worth knowing before you use it.
+**We keep no request logs.** The Worker's own code writes no log lines
+(`server/pmtiles-worker/src/`), and Workers Logs is explicitly disabled rather than left to the
+platform default: `wrangler.toml` sets `[observability] enabled = false`. Verified in the Cloudflare
+dashboard on 2026-09-09, where the Worker's Logs tab reported observability disabled.
 
-The logs are not linked to any account, because the app has none. They are not sold, not shared
-with anyone else, and not used for advertising or profiling.
+The setting is pinned deliberately. Cloudflare documents `observability.enabled` as defaulting to
+`true` for newly created Workers, so an absent block would have left this claim resting on a default
+that can move.
 
-**TODO — the Worker's actual log retention period is not recorded anywhere in this repository and
-has not been determined. Fill in the retention period Cloudflare applies to this account before
-this policy is published.** Do not guess a number here.
+No per-request log is available to us by any other route either. Logpush and Logpull are
+Enterprise-only, Workers Trace Events Logpush requires the Workers Paid plan, and the zone-level
+`httpRequestsAdaptive` dataset that retains 7 days on the Free plan covers `zynergy-labs.com`, not
+`*.workers.dev`. Workers metrics show aggregate request counts, not individual requests.
+
+Cloudflare, as the host, processes these requests under its own privacy policy. **No retention
+figure is published here, because no setting of ours produces one.** That is the answer to the
+retention question rather than a number, and it is the only accurate one available while Cloudflare
+documents no figure for host-level records. This section previously carried an open question asking for a
+retention figure, with an instruction not to guess one. The resolution turned out to be that no
+figure applies.
+
+Nothing about these requests is linked to any account, because the app has none. Nothing is sold,
+shared with anyone else, or used for advertising or profiling.
 
 ## Photos and location metadata
 
@@ -139,10 +150,14 @@ what is described above.
 
 ## Changes
 
-Material changes to this policy will change the date at the top. The current version always lives
-at this file's path in the app's public repository.
+Material changes to this policy will change the date at the top.
+
+This file is the source of truth: it carries the citations back to the code. The user-facing version
+published for the Play listing is generated from it and lives at <https://zynergy-labs.com/privacy>.
+If the two ever disagree, this file is correct and the page needs regenerating.
 
 ## Contact
 
-**TODO — contact email address for privacy questions. Play requires one on the Data safety form and
-in this policy; it has not been decided and must not be invented here.**
+privacy@zynergy-labs.com
+
+Verified as receiving mail on 2026-09-09.
