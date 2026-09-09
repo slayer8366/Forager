@@ -17,6 +17,12 @@ for what follows: everything below reasons from the *categories*, because the me
 that would normally identify the cause — are not in hand. `app/src/test/java/com/forager/app/data/
 local/` holds eleven `*MigrationTest.kt` classes; which nine of them failed is unknown here.
 
+> **AMENDMENT, 2026-09-09 (backup-ruling docs dispatch).** The names and messages *are* now in
+> hand, and they change what this note can claim. See "**Amendment: the failure messages**" at the
+> end — the paragraph above is left standing because it was true when written, and because the
+> reasoning that follows it was built on the gap it describes. Read the amendment before acting on
+> the middle of this note.
+
 ## What was verified, and by whom
 
 | Claim | Host | Result | Verified by |
@@ -41,6 +47,16 @@ not a file or URI error. So it is recorded as a flake and **not** as a Linux ins
 Windows failure — but a reader who later gets the Windows failure messages should check whether the
 Windows FileProvider failure is this same test, because if it is, "does not reproduce on Linux"
 becomes "reproduces on Linux about one run in three" and this note's decision would need revisiting.
+
+> **Answered by the amendment at the end of this note (2026-09-09):** it is **not** the same test.
+> The Windows FileProvider failure is `AvailabilityScreenSettingsPanelTest > tapping a track's
+> share action starts a real ACTION_SEND chooser for a GPX file`, failing with
+> `java.lang.IllegalArgumentException` at `FileProvider.java:911`. So this note's decision does not
+> need revisiting on that ground. The `JournalTabTest` flake is a separate, Linux-reproducing,
+> full-suite-only problem, and it now has its own note:
+> `docs/audits/2026-09-09-journaltabtest-photo-pull-flake.md`. That note also corrects the "flake,
+> did not reproduce" reading above — by the time it was written this was the third sighting on the
+> third distinct tree, and it is unexplained rather than dismissed.
 
 ## The inference — INFERRED, NOT PROVEN
 
@@ -95,3 +111,88 @@ reverse — accepting a diagnosis whose sample was never inspected.
 **Explicitly not decided:** whether the failures are worth fixing *after* the beta. If the owner
 wants Windows to be a supported development host, this needs the failure messages first; that is a
 post-beta dispatch, and its first step is capturing the Windows run's output, not reading code.
+
+---
+
+# Amendment: the failure messages, 2026-09-09
+
+Added by the backup-ruling docs dispatch, after the messages this note said it did not have turned
+out to be recorded on another branch. Nothing above was deleted; this section says which of it
+still stands.
+
+**Source.** `docs/audits/2026-09-08-path-home-monotonicity-amendment-completion-report.md` (on this
+tree; written by the `claude/path-home-join` session, which ran the suite **on the owner's Windows
+machine**). Its "Ten pre-existing failures" list names all ten tests and both messages. The
+identification of that run with the ten failures this note describes rests on the same host, the
+same count, and the same 9-migration/1-FileProvider split, plus the planner's relay saying so — it
+was not re-run here, and no run log from the owner's machine was read directly.
+
+## Now ESTABLISHED
+
+**The nine Room migration failures are `android.database.sqlite.SQLiteCantOpenDatabaseException`.**
+That is a filesystem-level error: the database file never opened. **So those nine tests are not
+exercising migration logic at all when they fail** — they die before any `Migration` body runs.
+Whatever this is, it is not a defect in a migration, and a reader should stop treating "nine
+migration tests fail" as a signal about the migrations.
+
+**Which nine.** `CartographyEntryMigrationTest`, `DayScopedIndexMigrationTest`,
+`MushroomLogDraftMigrationTest`, `MushroomLogEntryMigrationTest`, `OfflineRegionMigrationTest`,
+`TrackOriginWaypointMigrationTest`, `TrackPointSpeedMigrationTest`, `TrackWaypointMigrationTest`,
+`WaypointDesignationMigrationTest`. The note above said this was unknown; it is now known, and it
+means **two of the eleven classes passed on that host**: `LogPhotoMigrationTest` and
+`MushroomLogMigrationTest`.
+
+**The tenth failure is not `JournalTabTest`.** It is `AvailabilityScreenSettingsPanelTest > tapping
+a track's share action starts a real ACTION_SEND chooser for a GPX file`, failing with
+`java.lang.IllegalArgumentException` at `FileProvider.java:911` — the "failed to find configured
+root" shape. That closes the open question flagged earlier in this note.
+
+## Still INFERRED — why the open fails on that host
+
+The messages say *what* failed, not *why*. "Windows path handling under Robolectric" remains the
+hypothesis and remains unproven; a `SQLiteCantOpenDatabaseException` is equally consistent with a
+permissions problem, a missing parent directory, a path too long for the host, and a file the host
+refuses to reopen. None of those has been distinguished. The three things listed above as needed to
+promote it (real stack traces, a Windows reproduction, a mechanism traced to a line) are still all
+needed — a message is not a mechanism.
+
+## Two observations from this tree that a future investigation should start from
+
+Both were read off the eleven test classes in `app/src/test/java/com/forager/app/data/local/` on
+this tree. Both are **hypothesis-generating, not established**, and the second especially is the
+kind of correlation CLAUDE.md warns about — recorded so it can be checked cheaply, not believed.
+
+1. **The two passing classes are structurally identical to the nine failing ones.** Every one of
+   the eleven has the same `setUp`/`tearDown`: `getDatabasePath(TEST_DB_NAME)` then `dbFile.delete()`
+   (compare `MushroomLogMigrationTest.kt` and `LogPhotoMigrationTest.kt`, both passing, against
+   `CartographyEntryMigrationTest.kt`, failing — same four lines). So "these tests touch real files
+   and those don't" cannot be the discriminator: all eleven touch real files the same way. Each
+   class also uses its **own** distinct `TEST_DB_NAME` (eleven different `.db` names), so
+   contention over one shared file is ruled out as well.
+
+2. **The pass/fail split separates perfectly by database file-name length.** Passing:
+   `log-photo-migration-test.db` (27 characters), `mushroom-log-migration-test.db` (30). Failing:
+   every one of the other nine, at 32-39 characters, with the shortest failing name
+   (`offline-region-migration-test.db` and `track-waypoint-migration-test.db`, 32) longer than the
+   longest passing one. The two passers being exactly the two shortest names has about a 1-in-55
+   chance under a random split of 9 failures among 11 classes, and alphabetical execution order
+   does **not** separate them (the two passers sit third and sixth alphabetically, interleaved with
+   failures), so order is not an obvious confound. That is consistent with a total path length
+   limit on the Windows host — Robolectric's temp root plus the file name against `MAX_PATH` — and
+   it predicts a cheap, decisive test.
+
+**The one cheap next step, before any code is read:** get the *full* exception text from the
+Windows run, including the path in the message, and measure that path's length. If it lands near
+260 characters, this is a host path-length limit and the remedy is a shorter Robolectric temp root
+(e.g. `-Drobolectric.dependency.dir` / a shorter Gradle build dir) or shorter `TEST_DB_NAME`
+values — not a change to any migration. If the path is short, hypothesis 2 is dead and the
+permission/handle explanations are what is left. Either way this costs one message paste and no
+investigation.
+
+## What this amendment does NOT change
+
+The decision above stands unchanged: **CI/Linux is the authority, this is not a beta blocker, do
+not spend beta time on it.** Knowing that the nine failures never reach migration code makes that
+decision safer, not weaker — the failing tests are not telling us anything about the shipped
+database. Nothing was skipped, ignored, weakened or added to any allowlist by this amendment
+either; it is documentation only.

@@ -36,11 +36,19 @@ Stored in the app's own private storage, readable by no other app:
 
 None of this is transmitted by the app. It is deleted when you uninstall the app or clear its data.
 
-**One exception you should know about:** the app's manifest sets `android:allowBackup="true"` and
-declares no backup-exclusion rules (`app/src/main/AndroidManifest.xml`). Android's own backup
-system may therefore copy the app's data to **your** Google account, if you have device backup
-turned on. That is your phone's backup of your own data to your own account; the developer has no
-access to it. Turning off backup for Forager in Android's settings stops it.
+**Android's own backup is switched off for this app.** The manifest sets
+`android:allowBackup="false"` (`app/src/main/AndroidManifest.xml`), which turns off both Android
+Auto Backup and the device-to-device transfer that runs during a new phone's setup. Your phone
+therefore does not copy Forager's data to your Google account, and does not hand it to another
+device on your behalf. This is a permanent decision, not a setting for the closed test: moving your
+data belongs to the app rather than to the operating system. The design is an export you trigger
+inside Forager, writing a single file that goes only where you send it — a cable, Bluetooth, a
+folder or cloud drive you pick — and an import that reads that file and rebuilds tracks, entries,
+waypoints and photos from it. Nothing sends that file anywhere on its own.
+
+**That export and import are not built yet**, and this policy will not describe them as if they
+were. As of the date at the top of this document, data recorded in Forager stays on the device that
+recorded it until you have an app version that can export it.
 
 ## What is transmitted, to whom, and why
 
