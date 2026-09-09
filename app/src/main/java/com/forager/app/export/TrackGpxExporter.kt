@@ -2,6 +2,7 @@ package com.forager.app.export
 
 import android.content.Context
 import com.forager.app.domain.GpxCodec
+import com.forager.app.domain.NETWORK_FIX_EXCLUSION_RULES
 import com.forager.app.domain.model.GpxDocument
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPointRecord
@@ -32,11 +33,29 @@ class TrackGpxExporter(private val exportDir: File) {
      * silently ship a file the export rule was built to prevent (ruling 2: the export carries the
      * full data set). Pass an empty list deliberately when there's genuinely nothing more to carry
      * — that's still an honest value, not this default doing the omitting for you.
+     *
+     * [GpxDocument.exclusionRules] is not a parameter: which rules the read seam applies is a
+     * property of this build, not of the caller, so it is stamped here from
+     * [NETWORK_FIX_EXCLUSION_RULES] rather than threaded down through the UI, where a screen
+     * could get it wrong or omit it (GPX
+     * rule-provenance dispatch, 2026-09-09). The same constant is what
+     * [com.forager.app.data.repository.RoomTrackRepository.getFullRecord] names per excluded
+     * point, so if the two ever drift the file says so — the block declares a rule set that its
+     * own points do not name.
      */
     fun write(track: Track, fullRecord: List<TrackPointRecord>, waypoints: List<Waypoint>): File {
         exportDir.mkdirs()
         val file = File(exportDir, fileNameFor(track))
-        file.writeText(GpxCodec.encode(GpxDocument(track = track, waypoints = waypoints, fullRecord = fullRecord)))
+        file.writeText(
+            GpxCodec.encode(
+                GpxDocument(
+                    track = track,
+                    waypoints = waypoints,
+                    fullRecord = fullRecord,
+                    exclusionRules = NETWORK_FIX_EXCLUSION_RULES,
+                ),
+            ),
+        )
         return file
     }
 

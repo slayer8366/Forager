@@ -193,6 +193,60 @@ class NetworkFixExclusionPerConsumerTest {
         assertDiskUnchanged()
     }
 
+    /**
+     * GPX rule-provenance dispatch (owner ruling, 2026-09-09), through the same real chain as the
+     * test above — [RoomTrackRepository.getFullRecord] into [TrackGpxExporter.write], no hand-built
+     * record and no hand-built document — because the two attributes are written at two different
+     * places (the exporter stamps the rule set; the repository names each excluded point's rule)
+     * and only the file they both land in can show that they agree.
+     *
+     * Why the record-level `rule` is the load-bearing half: it is what makes a file's **kept**
+     * points unambiguous. `excludedByRule` alone would still leave every kept point in an old file
+     * meaning "passed whatever rules were running then", with no way to say how many that was.
+     *
+     * The literals here are written out by hand, not read from [com.forager.app.domain.NETWORK_FIX_EXCLUSION_RULES] — a
+     * test that takes its expectation from the code under test passes for any value that code holds.
+     */
+    @Test
+    fun `the exported file names the rule set in force and the rule that excluded each point`() = runTest(dispatcher) {
+        seedTrack()
+        val waypointRepository = RoomWaypointRepository(database.waypointDao())
+        val origin = Waypoint(
+            id = "w-origin",
+            lat = whole1.lat,
+            lng = whole1.lng,
+            altitude = null,
+            name = "Start",
+            note = "",
+            createdAtEpochMillis = whole1.timestampEpochMillis,
+            trackId = "t1",
+            designation = WaypointDesignation.ORIGIN,
+        )
+        waypointRepository.save(origin).getOrThrow()
+        val track = GetTracksUseCase(trackRepository)().getOrThrow().single()
+        val fullRecord = trackRepository.getFullRecord("t1").getOrThrow()
+        val dir = File(ApplicationProvider.getApplicationContext<Application>().cacheDir, "gpx-rule-test").apply { mkdirs() }
+
+        val gpx = TrackGpxExporter(dir).write(track, fullRecord = fullRecord, waypoints = listOf(origin)).readText()
+
+        val recordBlockTag = gpx.substringAfter("<forager:fullRecord").substringBefore(">")
+        assertTrue("the record block must name the rule set in force, got:$recordBlockTag", recordBlockTag.contains("rule=\"timestampMillisNonZero\""))
+
+        val points = Regex("<forager:point [^>]*/>").findAll(gpx).map { it.value }.toList()
+        assertEquals(5, points.size)
+        val excluded = points.filter { it.contains("kept=\"false\"") }
+        val kept = points.filter { it.contains("kept=\"true\"") }
+        assertEquals(2, excluded.size)
+        assertEquals(3, kept.size)
+        assertTrue("every excluded point names the rule that caught it", excluded.all { it.contains("excludedByRule=\"timestampMillisNonZero\"") })
+        assertTrue("a kept point passed everything, so there is no rule to name", kept.none { it.contains("excludedByRule") })
+
+        // The waypoint's own id — present in the store all along, absent from the file until now.
+        assertTrue("the waypoint's id must reach the file", gpx.contains("id=\"w-origin\""))
+
+        assertDiskUnchanged()
+    }
+
     @Test
     fun `the derived trip, the entry map, and trip-report coverage all see the survivors`() = runTest(dispatcher) {
         seedTrack()

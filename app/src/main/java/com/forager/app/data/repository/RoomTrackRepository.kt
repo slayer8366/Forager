@@ -3,6 +3,7 @@ package com.forager.app.data.repository
 import com.forager.app.data.local.TrackDao
 import com.forager.app.data.local.TrackEntity
 import com.forager.app.data.local.TrackPointEntity
+import com.forager.app.domain.TIMESTAMP_MILLIS_NON_ZERO_RULE
 import com.forager.app.domain.TrackRepository
 import com.forager.app.domain.excludeNetworkProviderFixes
 import com.forager.app.domain.isNetworkProviderFix
@@ -27,7 +28,9 @@ import com.forager.app.domain.model.TrackPointRecord
  * [getFullRecord] is the one deliberate exception to "every read passes through [toDomain]" —
  * GPX full-record export dispatch. It reads the same `track_points` rows but skips
  * [excludeNetworkProviderFixes] entirely, attaching the verdict per point instead of dropping the
- * excluded ones. Its only caller is the GPX exporter.
+ * excluded ones, and naming the rule that caught each excluded one
+ * ([TIMESTAMP_MILLIS_NON_ZERO_RULE]) so an exported file can say which rule produced a verdict
+ * rather than only that one did. Its only caller is the GPX exporter.
  */
 class RoomTrackRepository(
     private val dao: TrackDao,
@@ -45,7 +48,11 @@ class RoomTrackRepository(
     override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> = runCatchingCancellable {
         dao.getPointsForTrack(id).map { entity ->
             val point = entity.toDomain()
-            TrackPointRecord(point = point, kept = !point.isNetworkProviderFix())
+            if (point.isNetworkProviderFix()) {
+                TrackPointRecord(point = point, kept = false, excludedByRule = TIMESTAMP_MILLIS_NON_ZERO_RULE)
+            } else {
+                TrackPointRecord(point = point, kept = true)
+            }
         }
     }
 
