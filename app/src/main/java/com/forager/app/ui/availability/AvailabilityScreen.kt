@@ -236,6 +236,7 @@ import com.forager.app.domain.model.Sighting
 import com.forager.app.domain.model.TaxonFilter
 import com.forager.app.domain.model.TaxonSearchResult
 import com.forager.app.domain.model.Track
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.TripWindow
 import com.forager.app.domain.model.TripWindowReport
 import com.forager.app.domain.model.Waypoint
@@ -668,6 +669,14 @@ fun AvailabilityScreen(
     tracks: List<Track> = emptyList(),
     /** Refreshes [tracks] — called whenever the export panel opens, mirroring [onOfflineMapsOpened]'s own "reload on open" shape. */
     onTracksOpened: () -> Unit = {},
+    /**
+     * GPX full-record export dispatch: the unfiltered read for a shared track's `<extensions>`
+     * block — see [com.forager.app.ui.track.TrackExportList]'s own doc comment. Empty by default,
+     * same [tracks]/[waypoints] shape above; the real function is
+     * [com.forager.app.ui.track.TrackRecordingViewModel.getFullRecord], threaded in by
+     * `MainActivity`.
+     */
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
@@ -1133,6 +1142,7 @@ fun AvailabilityScreen(
                     onDeleteOfflineRegion = onDeleteOfflineRegion,
                     tracks = tracks,
                     onTracksOpened = onTracksOpened,
+                    getFullRecord = getFullRecord,
                     waypoints = waypoints,
                     waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
@@ -1854,6 +1864,7 @@ fun AvailabilityScreen(
                             onDeleteOfflineRegion = onDeleteOfflineRegion,
                             tracks = tracks,
                             onTracksOpened = onTracksOpened,
+                            getFullRecord = getFullRecord,
                             waypoints = waypoints,
                             waypointsErrorMessage = waypointsErrorMessage,
                             onDeleteWaypoint = onDeleteWaypoint,

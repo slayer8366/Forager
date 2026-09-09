@@ -29,6 +29,8 @@ import com.forager.app.domain.model.Region
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackDecision
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.Waypoint
+import com.forager.app.domain.model.WaypointDesignation
 import com.forager.app.export.TrackGpxExporter
 import com.forager.app.ui.track.TrackRecordingViewModel
 import com.forager.app.ui.track.trackSubtitle
@@ -133,19 +135,61 @@ class NetworkFixExclusionPerConsumerTest {
         assertDiskUnchanged()
     }
 
+    /**
+     * Re-scoped by the GPX full-record export dispatch (CLAUDE.md stop-and-ask A: this is the test
+     * the dispatch's report identified as needing to go red once excluded points ride in the file —
+     * confirmed here by the diff against the test this replaced, not silenced). `<trkseg>` is still
+     * exactly the survivors, unchanged from before this dispatch — ruling 1 (in-app display, and
+     * what `<trkseg>` renders, stays filtered). What's new is `<trk><extensions>`: the full raw
+     * five-point sequence, including the two network fixes `<trkseg>` still excludes, each carrying
+     * the same verdict [com.forager.app.domain.isNetworkProviderFix] would give it — format B1
+     * (owner ruling), exercised through the real repository read
+     * ([RoomTrackRepository.getFullRecord]), not a hand-built fixture.
+     */
     @Test
-    fun `GPX export writes the survivors only - a future export can no longer show a sub-second point`() = runTest(dispatcher) {
+    fun `GPX export writes the survivors to trkseg, and the full raw record with verdicts to extensions`() = runTest(dispatcher) {
         seedTrack()
+        val waypointRepository = RoomWaypointRepository(database.waypointDao())
+        val origin = Waypoint(
+            id = "w-origin",
+            lat = whole1.lat,
+            lng = whole1.lng,
+            altitude = null,
+            name = "Start",
+            note = "",
+            createdAtEpochMillis = whole1.timestampEpochMillis,
+            trackId = "t1",
+            designation = WaypointDesignation.ORIGIN,
+        )
+        waypointRepository.save(origin).getOrThrow()
         val track = GetTracksUseCase(trackRepository)().getOrThrow().single()
+        val fullRecord = trackRepository.getFullRecord("t1").getOrThrow()
         val dir = File(ApplicationProvider.getApplicationContext<Application>().cacheDir, "gpx-test").apply { mkdirs() }
 
-        val gpx = TrackGpxExporter(dir).write(track).readText()
+        val gpx = TrackGpxExporter(dir).write(track, fullRecord = fullRecord, waypoints = listOf(origin)).readText()
 
-        assertEquals(3, Regex("<trkpt ").findAll(gpx).count())
-        assertFalse("the network fixes' latitude must not be exported", gpx.contains("45.03"))
-        assertFalse(gpx.contains(".500Z"))
-        assertFalse(gpx.contains(".250Z"))
-        assertTrue(gpx.contains("1970-01-01T00:00:01Z") && gpx.contains("1970-01-01T00:00:11Z"))
+        // <trkseg>: exactly the survivors, exactly as before this dispatch.
+        val trkseg = gpx.substringAfter("<trkseg>").substringBefore("</trkseg>")
+        assertEquals(3, Regex("<trkpt ").findAll(trkseg).count())
+        assertFalse("the network fixes' latitude must not appear in trkseg", trkseg.contains("45.03"))
+        assertFalse(trkseg.contains(".500Z"))
+        assertFalse(trkseg.contains(".250Z"))
+        assertTrue(trkseg.contains("1970-01-01T00:00:01Z") && trkseg.contains("1970-01-01T00:00:11Z"))
+
+        // <trk><extensions>: the full raw sequence, all five stored points, with a verdict each.
+        val extensions = gpx.substringAfter("<extensions>").substringBefore("</extensions>")
+        assertTrue(gpx.contains("authoritative=\"true\""))
+        assertEquals(5, Regex("<forager:point ").findAll(extensions).count())
+        assertTrue("the raw record must still carry the network fixes' latitude", extensions.contains("45.03"))
+        assertEquals(2, Regex("kept=\"false\"").findAll(extensions).count())
+        assertEquals(3, Regex("kept=\"true\"").findAll(extensions).count())
+        assertTrue(extensions.contains("timeEpochMillis=\"3500\""))
+        assertTrue(extensions.contains("timeEpochMillis=\"8250\""))
+
+        // <wpt><extensions>: what standard GPX has no element for.
+        assertTrue(gpx.contains("trackId=\"t1\""))
+        assertTrue(gpx.contains("designation=\"ORIGIN\""))
+
         assertDiskUnchanged()
     }
 

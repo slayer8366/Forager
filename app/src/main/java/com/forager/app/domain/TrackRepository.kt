@@ -2,6 +2,7 @@ package com.forager.app.domain
 
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
 
 /**
  * Owned abstraction over track persistence — the same pattern as [MushroomLogRepository]. Domain
@@ -17,6 +18,17 @@ interface TrackRepository {
     suspend fun getAll(): Result<List<Track>>
 
     suspend fun getById(id: String): Result<Track?>
+
+    /**
+     * Every stored point for the track with id [id], in stored order, at full precision (the exact
+     * millisecond timestamp, [TrackPoint.accuracyMeters], both speed columns) with each point's
+     * network-provider-fix verdict attached — see [TrackPointRecord]. GPX full-record export
+     * dispatch: unlike [getById]/[getAll]/[getForDay], this does **not** apply
+     * [com.forager.app.domain.excludeNetworkProviderFixes] — no display consumer may call this;
+     * they keep going through the filtered reads above (ruling: in-app display stays filtered, the
+     * export carries the full data set). Empty if no such track exists or it has no stored points.
+     */
+    suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>>
 
     /**
      * Every track overlapping one local day — Journal Stage 2a's derived-trip read. Half-open range

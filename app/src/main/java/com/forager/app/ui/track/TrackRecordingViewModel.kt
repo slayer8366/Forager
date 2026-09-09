@@ -27,6 +27,7 @@ import com.forager.app.domain.autoWaypointName
 import com.forager.app.domain.model.ReturnToStartInfo
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.domain.model.Waypoint
 import com.forager.app.domain.model.WaypointDesignation
@@ -393,6 +394,13 @@ class TrackRecordingViewModel(
                 .onFailure { error -> errorLog.w(TAG, "Couldn't load tracks.", error) }
         }
     }
+
+    /**
+     * The unfiltered read path for GPX export — see [TrackRepository.getFullRecord]'s own doc
+     * comment. A plain passthrough, not cached in [uiState]: unlike [loadTracks], this is called
+     * once per share tap, right before the exporter writes the file, not kept live.
+     */
+    suspend fun getFullRecord(trackId: String): Result<List<TrackPointRecord>> = trackRepository.getFullRecord(trackId)
 
     fun addWaypoint(lat: Double, lng: Double, name: String, note: String = "") {
         viewModelScope.launch {

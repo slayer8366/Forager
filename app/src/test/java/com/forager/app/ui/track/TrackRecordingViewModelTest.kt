@@ -17,8 +17,10 @@ import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.RingerMode
 import com.forager.app.domain.StartTrackUseCase
 import com.forager.app.domain.TrackRepository
+import com.forager.app.domain.isNetworkProviderFix
 import com.forager.app.domain.model.Track
 import com.forager.app.domain.model.TrackPoint
+import com.forager.app.domain.model.TrackPointRecord
 import com.forager.app.domain.model.TrackRecordingMode
 import com.forager.app.domain.model.WaypointDesignation
 import java.time.ZoneOffset
@@ -839,6 +841,8 @@ private class InMemoryTrackRepository : TrackRepository {
 
     override suspend fun getAll(): Result<List<Track>> = Result.success(tracks.values.toList())
     override suspend fun getById(id: String): Result<Track?> = Result.success(tracks[id])
+    override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> =
+        Result.success((tracks[id]?.points ?: emptyList()).map { TrackPointRecord(it, kept = !it.isNetworkProviderFix()) })
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
         Result.success(
             tracks.values.filter { track ->
@@ -880,6 +884,7 @@ private class InMemoryTrackRepository : TrackRepository {
 private class FailingTrackRepository : TrackRepository {
     override suspend fun getAll(): Result<List<Track>> = Result.success(emptyList())
     override suspend fun getById(id: String): Result<Track?> = Result.success(null)
+    override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> = Result.success(emptyList())
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
         Result.success(emptyList())
     override suspend fun create(track: Track): Result<Unit> = Result.failure(RuntimeException("boom"))
