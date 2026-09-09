@@ -29,17 +29,31 @@ and this one starting. Its diffstat is exactly the seven paths the dispatch name
 untracked files were deliberately left untracked. Nothing was lost and nothing extra was swept in.
 No further commit of that work was needed or made.
 
-**What had *not* happened is the push.** `git ls-remote --heads origin claude/path-home-join`
-returned nothing: the branch had never existed on the remote, and both `ef46f1a` and `9a1fae7`
-were local-only, despite `9a1fae7`'s message stating the work was being committed "so the only copy
-of that work is on a remote". It was not on a remote. This is exactly the pitfall CLAUDE.md lists
-first, one step further along than the dispatch thought.
+**What had *not* landed is the push.** `git ls-remote --heads origin claude/path-home-join`
+returned nothing: the branch did not exist on the remote, and both `ef46f1a` and `9a1fae7` were
+local-only.
 
-Pushing initially failed: the repository's credential helper is `manager` (Git Credential Manager,
-GUI-prompting) and this session is non-interactive, so `git push` blocked on a prompt that could
-not be answered and was killed by timeout twice; `gh` was not logged in either. The owner then
-granted credentials access and the push succeeded. **The branch is now on the remote**, and every
-commit described in this report is pushed.
+**The cause was an environment constraint, not a discipline failure, and the distinction matters.**
+The owner confirms the push *was* attempted by the earlier session and could not land because that
+session had no remote credentials at the time. This session reproduced the same constraint
+independently: the repository's credential helper is `manager` (Git Credential Manager,
+GUI-prompting), so in a non-interactive window `git push` blocks on a prompt that cannot be
+answered and is killed by timeout — which happened here twice, before the owner granted credentials
+access, after which the push succeeded immediately.
+
+An earlier revision of this section wrote the gap up as though `9a1fae7`'s commit message — which
+says the work was being committed "so the only copy of that work is on a remote" — had been an
+unchecked claim, and pointed at CLAUDE.md's first-listed pitfall. **That was wrong and is
+withdrawn.** It inferred a failure mode from an outcome without knowing the cause, which is itself
+the error this project's standing notes warn about. Nothing here is a new instance of the named
+family in `CLAUDE.md`; that count stands at four and this report does not add to it.
+
+**What does survive is a verification note, and it is smaller.** A push can fail without the
+session being able to tell you it failed. So **remote state is established with `git ls-remote`,
+never inferred from local history or from what a commit message says was intended.** That is the
+only reason the gap was found here.
+
+**The branch is now on the remote**, and every commit described in this report is pushed.
 
 ---
 
@@ -337,8 +351,20 @@ environment problem rather than a code defect.
 
 - **The expected working state.** The dispatch expected `ef46f1a` plus seven dirty files; the commit
   had already been made as `9a1fae7`. Benign, and reported before anything was committed (§0).
-- **"`ef46f1a` is unpushed"** understated it: the *branch* was unpushed, and so was `9a1fae7`. The
-  push it treated as a formality was the one step that had actually not happened.
+- **"`ef46f1a` is unpushed"** understated it: the *branch* was unpushed, and so was `9a1fae7`.
+  Not a fault in the dispatch's reasoning — the earlier session had attempted the push, and the
+  dispatch could not have known it failed for want of credentials. But it shows the general point
+  below: the one step the dispatch treated as costless was the one blocked by a capability the
+  window did not have.
+
+- **A dispatch should state what capabilities it assumes, rather than treating any step as a
+  formality.** This session's capabilities *changed mid-run*: it began with no remote credentials
+  (two `git push` attempts died on the GUI credential prompt) and gained them partway through when
+  the owner granted access. `gh` auth did **not** arrive with them, so `git push` works and
+  `gh pr create` still does not — which is why the PR at the end of the filing could not be opened.
+  Repo access arriving mid-session does not imply the rest. A future dispatch that ends in "push"
+  or "open a PR" should say what it assumes is available, so a window that lacks it reports the gap
+  at the start instead of at the end.
 - **"the lateral offset at which the join stops firing"** names the loosest of three distinct
   criteria. Answering it literally would have reported 8.66–9.68 m and missed the 6.06 m figure that
   is the one the point-to-segment decision should turn on. Reported both rather than only one.
