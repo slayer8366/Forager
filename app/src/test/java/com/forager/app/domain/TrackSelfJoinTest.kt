@@ -161,6 +161,162 @@ class TrackSelfJoinTest {
         }
     }
 
+    // ── Monotonicity where the return leg is *not* made of the outbound points ─────────────
+
+    /**
+     * **The ε neither existing monotonicity test exercises.** The test above builds its return leg
+     * from the outbound points verbatim — `d + d.dropLast(1).reversed()` — and so does
+     * `PathHomeTest`'s. Exact duplicates join at any ε at all, including zero
+     * ([MIN_CELL_METERS]'s own comment says so), so **both of those tests pass at ε = 0** and
+     * neither is evidence that ε does anything. They are not wrong and they stay: they bite on the
+     * defect the dispatch named. The gap is that they were the only monotonicity coverage, and a
+     * real return leg never re-occupies a stored point exactly, in any mode.
+     *
+     * This fixture is that realistic case: the walker comes back on a leg
+     * [RETURN_LATERAL_METERS] m to one side ([returnBeside]), with the returning points **half a
+     * spacing out of phase** with the outbound ones — so the nearest stored point is
+     * `hypot(lateral, spacing/2)` away, the worst along-track alignment rather than the flattering
+     * one. The return leg stops short of the origin by construction; a walker's last fix is not
+     * the car, so the way home ends at a few metres, not at zero.
+     *
+     * **The spacings, and what they stand for.** `HIGH_ACCURACY` gates on 5 s *and* 5 m
+     * (`TrackRecordingMode` line 27, enforced by `LocationSampler.isFarEnough`), so realised
+     * spacing is `max(5 m, speed × 5 s)`. **That is an inference from the two thresholds, not a
+     * measurement** — no track recorded at a known pace was available. On that inference the three
+     * fixtured spacings stand for: **5 m**, 1 m/s and below, where the distance floor governs (the
+     * one real track available, 733 m over 135 points at ~5.4 m, is slow patch work and sits
+     * here); **7 m**, an ordinary walking 1.4 m/s, where the 5 s interval governs; **10 m**, a
+     * brisk 2 m/s.
+     *
+     * **Both sides of ε are pinned, and the pair is the evidence.** At ε = 0 the fixture must not
+     * collapse — no pair joins, the way home is the full sum of the legs (checked against
+     * [retrace], computed in this file independently of the production scan) and it *rises* at
+     * every returning point, the defect reproduced. At ε = [SELF_JOIN_EPSILON_METERS] it must fall
+     * at every returning point, through a join. A revert check was deliberately not used to
+     * establish this: a parameter the function already exposes is better evidence and carries none
+     * of the stale-artifact hazard CLAUDE.md records twice for that tool.
+     */
+    @Test
+    fun `a return leg beside the outbound one falls at every point at 10 m and rises at every point at 0 m`() {
+        for ((spacing, pace) in HIGH_ACCURACY_SPACINGS) {
+            val track = returnBeside(spacingMeters = spacing, lateralMeters = RETURN_LATERAL_METERS)
+            assertEquals("$spacing m ($pace)", 2 * OUTBOUND_POINTS - 1, track.size)
+
+            // ε = 0 — nothing joins, so the way home is the whole walk and only grows.
+            assertEquals(
+                "at ε = 0 nothing may join at $spacing m spacing ($pace)",
+                0, joinedTrackHome(track, epsilonMeters = 0.0).joinEdgeCount,
+            )
+            assertEquals(
+                "at ε = 0 the way home is the full leg sum at $spacing m spacing ($pace)",
+                retrace(track), joinedTrackHome(track, epsilonMeters = 0.0).meters, 1e-6,
+            )
+            var atZero = joinedTrackHome(track.take(OUTBOUND_POINTS), epsilonMeters = 0.0).meters
+            for (index in OUTBOUND_POINTS until track.size) {
+                val now = joinedTrackHome(track.take(index + 1), epsilonMeters = 0.0).meters
+                assertTrue(
+                    "at ε = 0 the way home must RISE at returning point $index ($spacing m, $pace): $atZero → $now",
+                    now > atZero,
+                )
+                atZero = now
+            }
+
+            // ε = 10 — every returning point joins the outbound leg beside it and the way home falls.
+            var previous = joinedTrackHome(track.take(OUTBOUND_POINTS)).meters
+            for (index in OUTBOUND_POINTS until track.size) {
+                val now = joinedTrackHome(track.take(index + 1))
+                assertTrue(
+                    "at ε = 10 the way home must FALL at returning point $index ($spacing m, $pace): $previous → ${now.meters}",
+                    now.meters < previous,
+                )
+                assertTrue(
+                    "the route must cross a join at returning point $index ($spacing m, $pace)",
+                    now.joinsOnRoute > 0,
+                )
+                previous = now.meters
+            }
+        }
+    }
+
+    /**
+     * **The lateral-offset measurement — printed for the completion report, not asserted into
+     * silence.** How far to one side the return leg can drift before the join stops firing at
+     * ε = 10 m, per spacing. This is the number the deferred point-to-segment question turns on; it
+     * replaces an inference from two enum thresholds with a measurement, and a test that merely
+     * went green would have consumed it rather than reported it.
+     *
+     * **Three criteria, because they give three different numbers and only the strictest is the
+     * safety-relevant one.** Per spacing and phasing, the largest lateral offset (to 5 mm, by
+     * bisection) at which:
+     * - `join` — every returning point still has *some* non-consecutive outbound point within ε.
+     *   This is the literal reading of "the join stops firing", and it is the loosest: it is the
+     *   nearest-stored-point bound, `hypot(lateral, spacing/2) <= ε`. Measured against this file's
+     *   own [haversine], independently of the production scan.
+     * - `after` — the way home falls at every returning point *after* the first: the steady state,
+     *   once the walker is properly under way back.
+     * - `turn` — the way home falls at every returning point *including the first*: the turnaround,
+     *   the moment the walker turns round and the number must start coming down.
+     *
+     * Two phasings, because the answer depends on where the returning fixes land between the
+     * outbound ones: **worst**, half a spacing out of phase, nearest stored point
+     * `hypot(lateral, spacing/2)` away; **best**, in phase, nearest stored point exactly `lateral`
+     * away. Real walking falls between them, and a safety input should be read against the worst
+     * column.
+     *
+     * **`turn` is `none` for the whole best-phased column, and that is geometry rather than a
+     * defect.** In phase, the first returning fix sits at the *same along-track position* as the
+     * last outbound one, so the walker has made no progress home and no offset — not even zero —
+     * can make the estimate fall there. Reported as an explicit "none" rather than a number.
+     *
+     * **One `none` in the table is a knife-edge, not an absence.** Best-phased `join` at 10 m
+     * spacing is `sqrt(ε² − spacing²) = 0` exactly: in phase at that spacing the nearest
+     * non-consecutive outbound point is one full 10 m spacing back, which equals ε, so whether it
+     * joins at zero offset is decided by the last bit of the haversine. It reads `none` here. The
+     * other `none`s — best-phased `turn` — are the geometric fact above and are absences.
+     *
+     * Located by bisection, which assumes each property is monotone in the offset — it is, by
+     * construction: the fixture's join distances rise strictly with the offset and nothing else
+     * about the track changes. Both ends of every bracket are confirmed, so each printed number is
+     * a checked value and not just the last thing a loop happened to hold.
+     */
+    @Test
+    fun `measured lateral offset at which the join stops firing at 10 m - printed for the report`() {
+        for ((spacing, pace) in HIGH_ACCURACY_SPACINGS) {
+            for ((phasing, halfPhase) in listOf("worst" to true, "best " to false)) {
+                val join = largestHoldingOffset(spacing, halfPhase, ::everyReturningPointHasAJoin)
+                val after = largestHoldingOffset(spacing, halfPhase, ::fallsAfterTheTurnaround)
+                val turn = largestHoldingOffset(spacing, halfPhase, ::fallsAtEveryReturningPoint)
+                println(
+                    "PATH-HOME-JOIN offset spacing=${"%4.1f".format(spacing)} m phasing=$phasing " +
+                        "join<=${format(join)} after<=${format(after)} turn<=${format(turn)} " +
+                        "(pace: $pace)",
+                )
+            }
+        }
+    }
+
+    /** `none` when the property never held, so an unmeasurable case reads as unsupported rather than as a plausible number. */
+    private fun format(offsetMeters: Double?) = offsetMeters?.let { "${"%5.2f".format(it)} m" } ?: " none "
+
+    /**
+     * The largest lateral offset at which [holds] still holds for a [returnBeside] track at
+     * [spacing], bracketed to 5 mm; `null` when it does not hold even head-on at zero offset. Both
+     * ends of the bracket are asserted, so the returned figure is checked rather than assumed.
+     */
+    private fun largestHoldingOffset(spacing: Double, halfPhase: Boolean, holds: (List<TrackPoint>) -> Boolean): Double? {
+        var low = 0.0
+        var high = 20.0
+        if (!holds(returnBeside(spacing, low, halfPhase))) return null
+        assertTrue("$spacing m, halfPhase=$halfPhase: the sweep's far end must fail, or the bracket is meaningless", !holds(returnBeside(spacing, high, halfPhase)))
+        while (high - low > 0.005) {
+            val mid = (low + high) / 2
+            if (holds(returnBeside(spacing, mid, halfPhase))) low = mid else high = mid
+        }
+        assertTrue("$spacing m, halfPhase=$halfPhase: the bracket's holding end must hold", holds(returnBeside(spacing, low, halfPhase)))
+        assertTrue("$spacing m, halfPhase=$halfPhase: the bracket's failing end must fail", !holds(returnBeside(spacing, high, halfPhase)))
+        return low
+    }
+
     // ── The patch: what the ruling was asked for ───────────────────────────────────────────
 
     /**
@@ -332,6 +488,48 @@ class TrackSelfJoinTest {
         return xy.map { (x, y) -> xy(x, y) }
     }
 
+    /**
+     * Out due north from the origin at [spacingMeters] for [OUTBOUND_POINTS] points, then back on a
+     * leg [lateralMeters] east of it, one point short of the origin. [halfPhase] puts the returning
+     * points half a spacing out of phase with the outbound ones — the worst along-track alignment,
+     * nearest stored point `hypot(lateral, spacing/2)` away; in phase they are `lateral` away.
+     * Unlike [distantWalker]'s reversed tail, no returning point is ever a stored outbound point,
+     * so nothing here joins at ε = 0.
+     */
+    private fun returnBeside(spacingMeters: Double, lateralMeters: Double, halfPhase: Boolean = true): List<TrackPoint> {
+        val phase = if (halfPhase) 0.5 else 0.0
+        val far = (OUTBOUND_POINTS - 1) * spacingMeters
+        val outbound = (0 until OUTBOUND_POINTS).map { xy(0.0, it * spacingMeters) }
+        val back = (0 until OUTBOUND_POINTS - 1).map { xy(lateralMeters, far - (it + phase) * spacingMeters) }
+        return outbound + back
+    }
+
+    /** The way home at ε = [SELF_JOIN_EPSILON_METERS] strictly falls at every returning point of a [returnBeside] track, the turnaround included. */
+    private fun fallsAtEveryReturningPoint(track: List<TrackPoint>) = fallsFrom(track, OUTBOUND_POINTS)
+
+    /** As [fallsAtEveryReturningPoint], but with the turnaround point excluded — the steady state of the return leg. */
+    private fun fallsAfterTheTurnaround(track: List<TrackPoint>) = fallsFrom(track, OUTBOUND_POINTS + 1)
+
+    private fun fallsFrom(track: List<TrackPoint>, firstIndex: Int): Boolean {
+        var previous = joinedTrackHome(track.take(firstIndex)).meters
+        for (index in firstIndex until track.size) {
+            val now = joinedTrackHome(track.take(index + 1)).meters
+            if (now >= previous) return false
+            previous = now
+        }
+        return true
+    }
+
+    /**
+     * Every returning point has at least one non-consecutive outbound point within ε — "the join
+     * fires at all", tested with this file's own [haversine] rather than through the production
+     * scan, so the measurement is independent of the code it is measuring.
+     */
+    private fun everyReturningPointHasAJoin(track: List<TrackPoint>): Boolean =
+        (OUTBOUND_POINTS until track.size).all { i ->
+            (0 until OUTBOUND_POINTS).any { j -> j < i - 1 && haversine(track[i], track[j]) <= SELF_JOIN_EPSILON_METERS }
+        }
+
     private fun hairpin(offsetEast: Double): List<TrackPoint> = buildList {
         for (i in 0 until 20) add(xy(0.0, i * 5.5))
         for (i in 1 until 20) add(xy(offsetEast, 104.5 - i * 5.5))
@@ -433,6 +631,25 @@ class TrackSelfJoinTest {
     }
 
     private companion object {
+        /** Points on the outbound leg of a [returnBeside] track; the return leg has one fewer. */
+        const val OUTBOUND_POINTS = 60
+
+        /**
+         * The lateral offset of the realistic return leg. A walker retracing a path does not
+         * re-occupy their own fixes: this is a few metres to one side, of the order of the only
+         * GPS accuracy figure this project has (a constant 3.79 m placeholder on the one device
+         * measured — see [SELF_JOIN_EPSILON_METERS]'s doc, which is why it is a placeholder and not
+         * a measurement of real fix noise).
+         */
+        const val RETURN_LATERAL_METERS = 3.0
+
+        /** Realised `HIGH_ACCURACY` spacings and the pace each stands for — see the monotonicity test's doc for the inference. */
+        val HIGH_ACCURACY_SPACINGS = listOf(
+            5.0 to "1 m/s and below, the 5 m distance floor governing",
+            7.0 to "1.4 m/s, ordinary walking, the 5 s interval governing",
+            10.0 to "2 m/s, brisk",
+        )
+
         const val LAT0 = 45.0
         const val LNG0 = -122.0
         const val EARTH_RADIUS = 6_371_008.8

@@ -54,10 +54,17 @@ const val SELF_JOIN_EPSILON_METERS = 10.0
  * ε-sized cells over a local flat projection and compared only with points in its own and the
  * eight neighbouring cells, so the scan is linear in the point count for any track a walker can
  * record (it degrades toward n² only when thousands of points share one ε cell, which the
- * sampler's distance floor prevents). The cell is 1 % wider than ε so the projection's own error
- * can never drop a pair the exact haversine test would accept; every candidate pair is then
- * tested with [GeoDistance.metersBetween], so the projection decides only *which* pairs are
- * looked at, never whether they join. The shortest route is Dijkstra with a binary heap over
+ * sampler's distance floor prevents). The cell is 1 % wider than ε, **which keeps the projection
+ * from dropping a pair the exact haversine test would accept for as long as the projection's own
+ * error stays inside that 1 %.** It is a local equirectangular projection about the track's *first
+ * point*, so its error grows with distance from that point: the 1 % holds over roughly tens of
+ * kilometres of latitude span at mid-latitudes, which covers any walk this app records. That is
+ * the claim, and it is conditional — an earlier revision of this comment said the projection "can
+ * never" drop such a pair, which is not true of an arbitrary span. **Nothing tests the condition:**
+ * the grid-versus-naive property test in `TrackSelfJoinTest` runs in a 150 m box, so it pins the
+ * two scans against each other but cannot exercise the drift this paragraph is about. Every
+ * candidate pair is then tested with [GeoDistance.metersBetween], so the projection decides only
+ * *which* pairs are looked at, never whether they join. The shortest route is Dijkstra with a binary heap over
  * n nodes and n − 1 + joins edges, stopping when the first point is settled. Measured figures are
  * in the dispatch's completion report; recomputed from scratch per call (the function is pure —
  * points only append during a recording, so an incremental graph is possible, but not built
