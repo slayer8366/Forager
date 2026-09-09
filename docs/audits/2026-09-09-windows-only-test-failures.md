@@ -226,3 +226,44 @@ com.forager.app-dataDir\cache
 pattern is confirmed host-specific — the same commits are clean on Linux CI. The *mechanism* is
 not proven, and neither amendment proves it. A later session must not read either one as having
 established the cause. Confirming a pattern is not proving a mechanism.
+
+---
+
+## Amendment, 2026-09-09 (second) — the length boundary is now visible in the *behaviour*, and the check this note predicted is not available
+
+Found incidentally by Phase 0 of the `JournalTabTest` comparison
+(`2026-09-09-journaltabtest-flake-comparison-preregistration.md`), which ran ten consecutive local
+full-suite runs and recorded every one.
+
+**1. The check this note named as decisive cannot be run as specified.** It predicted "measure the
+path length in the real exception text." The exception carries **no path**: the message is
+`android.database.sqlite.SQLiteCantOpenDatabaseException: unable to open database file (code 14
+SQLITE_CANTOPEN)`, and no drive-letter path appears anywhere in the JUnit XML, message or stack.
+Recorded so the next session does not spend time looking for it.
+
+**2. But the boundary showed itself another way — the failing set is not fixed, and *which* classes
+flip is the signal.** Across ten runs the count was 10, 10, 10, 10, 10, 10, **9**, **9**, 10, **9**,
+and the class that survived was not the same one each time. Cross-referencing every migration test
+against its own database filename length:
+
+| db filename length | classes | outcome over 10 runs |
+|---|---|---|
+| 27 | `LogPhotoMigrationTest` | **passed 10/10** |
+| 30 | `MushroomLogMigrationTest` | **passed 10/10** |
+| **32** | `OfflineRegionMigrationTest`, `TrackWaypointMigrationTest` | **intermittent — 3 passes in 20 class-runs** |
+| 34–39 | the other seven | **failed 70/70 class-runs** |
+
+**The two intermittent classes are exactly the two at the boundary, and nothing above or below it
+ever flipped.** That is the signature a `MAX_PATH` ceiling produces when the run's randomized
+Robolectric temp-directory name varies in length between runs: the same filename lands on either
+side of 260 depending on its prefix, so only names sitting within the prefix's own variation flip.
+A clean deterministic split — the earlier "27/30 pass, 32–39 fail" — is *weaker* evidence for the
+length hypothesis than this is, because a deterministic split is equally consistent with any
+per-class difference.
+
+**3. Still inferred, not proven, and this note's standing instruction not to upgrade the claim is
+unchanged.** No path was measured; a boundary in behaviour is not a boundary in bytes. What would
+prove it is one instrumented print of `context.getDatabasePath(name)` from inside a migration test,
+on a run where the 32-length class passes and one where it fails — a **test change**, belonging to
+this investigation and explicitly not made by the flake dispatch that noticed it (§6: report, do not
+fix). Nothing here was skipped, ignored, weakened, or allowlisted.
