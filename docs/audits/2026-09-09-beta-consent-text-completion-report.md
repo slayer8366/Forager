@@ -57,7 +57,12 @@ Every claim below was read in the source on this branch's base commit, not infer
   README documents `/us/{z}/{x}/{y}.mvt` as the live tile endpoint. So the Worker sees `z/x/y` for
   both live offline-style rendering and every region download.
 - **The Worker writes no log of its own.** `grep -n "console\." server/pmtiles-worker/src/*.ts`
-  returns nothing, and `wrangler.toml` configures no `logpush` or `observability` block. What the
+  returns nothing. `wrangler.toml` configured no `observability` block when this was written, which
+  was read here as meaning no logs were kept. That inference was unsafe: Cloudflare documents
+  `observability.enabled` as defaulting to `true` for newly created Workers, so an absent block
+  means "whatever the platform default is", not "off". Checked in the dashboard on 2026-09-09: the
+  Worker's Logs tab reported observability disabled, so the conclusion held. `[observability]
+  enabled = false` is now set explicitly so it no longer rests on a default. What the
   policy states, therefore, is that *Cloudflare* records request metadata as the host — not that the
   Worker code does.
 - **Photo EXIF.** `FilePhotoStore.kt:78-80` copies bytes from
@@ -144,6 +149,13 @@ not need the one claim that is false to carry it.
 - `grep -rn "sends nothing anywhere" docs/` returns nothing after the edit.
 - `grep -rn "strips location metadata" docs/` returns nothing after the edit.
 - `grep -rn "create an account" docs/beta/` returns nothing after the edit.
+- `scripts/verify-policy-permissions.sh` reconciles the policy against the manifest in both
+  directions and fails loudly on a mismatch. It exists because two defects that shipped in this
+  policy were mechanically detectable and were not mechanically detected: a sentence claiming
+  background location kept a recording alive, while `ACCESS_BACKGROUND_LOCATION` appears nowhere in
+  `app/src/main/AndroidManifest.xml`, and a stale `applicationId`. Check 4 fails on `main` at the
+  time of writing, correctly, because the policy names `com.zynergylabs.forager.app` while
+  `app/build.gradle.kts` still builds `com.forager.app`; it clears when the rename merges.
 - Every host named in `docs/legal/privacy-policy.md` appears as a literal in the source at the line
   cited beside it; no host is named in the policy that is not in the source. The complete set of
   `https?://` literals in `app/src/main` and `server/pmtiles-worker/src` was enumerated
