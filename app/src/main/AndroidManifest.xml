@@ -58,33 +58,58 @@
     </queries>
 
     <!--
-      android:allowBackup="false" is a BETA-SCOPED decision (finding B4, 2026-09-09) and MUST be
-      revisited before a production release — see
-      docs/audits/2026-09-09-allow-backup-and-play-signing-notes.md.
+      android:allowBackup="false" is a STANDING decision (owner's ruling, 2026-09-09). It is NOT
+      beta-scoped, and it is not to be flipped back before production. Android Auto Backup and
+      device-to-device transfer are off permanently; restore is handled by an in-app export/import
+      the project builds itself. Recorded in
+      docs/audits/2026-09-09-backup-ruling-superseded-alternatives.md; the earlier report
+      docs/audits/2026-09-09-allow-backup-and-play-signing-notes.md is the history of how this was
+      first decided, and its "beta-scoped, MUST be revisited before production" framing is
+      superseded by this comment, not by an edit to that report (audits are historical records).
 
-      Why off for the beta: with allowBackup="true" and neither android:dataExtractionRules nor
-      android:fullBackupContent declared (res/xml/ holds only file_paths.xml), Android Auto Backup
-      and device-to-device transfer copy everything under the app's data directory by default —
-      including the live Room database and the photo files. A Room database is copied while it may
-      be mid-write, and restoring a torn SQLite snapshot (twelve migrations of history; app/schemas/
-      holds 4.json–15.json) onto a fresh install is a known corruption path. The field journal that
-      would corrupt is exactly the data this closed beta exists to collect, so the downside of a bad
-      restore is worse than the downside of no restore.
+      Why Android's own backup is off — the reasoning that still holds from the first decision:
+      with allowBackup="true" and neither android:dataExtractionRules nor android:fullBackupContent
+      declared (res/xml/ holds only file_paths.xml), Android Auto Backup and device-to-device
+      transfer copy everything under the app's data directory by default — including the live Room
+      database and the photo files. A Room database is copied while it may be mid-write, and
+      restoring a torn SQLite snapshot (twelve migrations of history; app/schemas/ holds
+      4.json-15.json) onto a fresh install is a known corruption path. The field journal that would
+      corrupt is exactly the data this app exists to hold.
 
-      Alternative rejected: keep allowBackup="true" and write android:dataExtractionRules (API 31+)
-      plus android:fullBackupContent (API 30 and below) that exclude the database directory and the
-      photo directory. That is the right long-term answer — it keeps settings backed up while
-      leaving the fragile data out — but it is two rule files that have to be correct across two
-      backup APIs and two transports (cloud backup and D2D transfer), verified against real restore
-      behaviour that nothing in this repo's Robolectric suite can exercise. That is more code to get
-      right than a 14-day closed test needs, and testers are not relying on restore during it.
+      Why the app owns restore rather than the OS (owner's reasoning, 2026-09-09): Google sells
+      cloud backup as a service. An app that exports its own data keeps that value with the app,
+      and that is part of what justifies charging for it. The export stays local unless the user
+      chooses to move it.
 
-      Consequence, accepted: a tester who changes device or reinstalls loses their journal
-      outright, and this also turns off the device-to-device transfer that
-      docs/plans/journal-trips-and-offline-regions.md (the "Leak paths" list) intended to keep —
-      that plan's line "Excluding both would silently lose years of field notes on a phone upgrade"
-      is the cost being taken on here, knowingly and only for the beta. GPX export covers tracks and
-      waypoints, not the journal, so it is not a substitute.
+      What is actually given up, stated precisely so it is not overstated later: only the
+      OS-mediated seamless transfer — the flow that repopulates apps during new-device setup,
+      before the app has run. Every deliberate move still works and none of it runs through Auto
+      Backup: an exported file over a cable, Bluetooth, Wi-Fi Direct, or a cloud folder the user
+      picks. Restore is reading a file and writing rows; the app owns its schema and can rebuild
+      tracks, journal entries, waypoints and photos as completely as Auto Backup would. The only
+      asymmetry is triggering, not capability — Auto Backup costs the user zero steps because the
+      OS hands the data over during setup, while the app's version needs one deliberate step (open
+      the app, point at a file). That is a first-run design question, not a limitation.
+
+      NOT YET BUILT: the in-app export/import does not exist in this tree (2026-09-09). Nothing
+      user-facing may describe it as available until it does — see docs/beta/README.md and
+      docs/legal/privacy-policy.md, which both say so explicitly.
+
+      Two earlier planner rulings are SUPERSEDED — not violated. Recorded here so a later session
+      does not re-derive them and think they are new:
+        1. "Keep backup on, add exclusion rules for crash logs only." Superseded: it predates the
+           restore-corruption argument above, which is about the database and the photos, not the
+           crash logs.
+        2. "Keep the rules file, add the database and the photo directory to the exclusions."
+           Withdrawn before the owner ruled: excluding the database and the photo directory
+           excludes essentially all user data, so it reaches the same end state as
+           allowBackup="false" while adding two config files, two domains each, and several ways
+           for a rule to be silently inert.
+
+      Consequence recorded by the first decision and still true: this also turns off the
+      device-to-device transfer that docs/plans/journal-trips-and-offline-regions.md (the "Leak
+      paths" list) intended to keep. GPX export covers tracks and waypoints, not the journal, so it
+      is not the in-app export described above and is not a substitute for it.
     -->
     <application
         android:name=".ForagerApplication"

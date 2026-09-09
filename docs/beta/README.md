@@ -49,9 +49,18 @@ tile half while you are inside it; nothing removes the search half except not se
 Two more honest details. Forager does not itself strip location metadata from the photo it stores:
 a gallery import is redacted by Android on Android 10 and up, but a photo taken inside Forager is
 written straight into the app's own folder by the camera app, where that redaction does not apply
-(`FilePhotoStore.kt`, `CameraCaptureFiles.kt`). And the app allows Android's own backup, so a phone
-with Google backup switched on may copy Forager's data to **your** Google account — the phone doing
-that, not the app.
+(`FilePhotoStore.kt`, `CameraCaptureFiles.kt`).
+
+And Android's own backup is switched off for Forager (`android:allowBackup="false"`,
+`app/src/main/AndroidManifest.xml`), permanently and on purpose. Nothing your phone does copies
+Forager's tracks, entries or photos to a Google account, and nothing hands them across during a new
+phone's setup — not the app, and not the operating system either. Moving your own data is the app's
+job rather than Android's: the design is an export you tap in Forager, which writes one file that
+goes exactly where you send it and nowhere else — a cable, Bluetooth, a folder you choose — and an
+import that reads that file back and rebuilds tracks, entries, waypoints and photos from it.
+**That export and import are not in the build you are testing** — they are the plan, not a feature
+of this APK, and this page will not pretend otherwise. So for the length of this test, what you
+record stays on the phone that recorded it.
 
 The templates never ask where a tester was — foragers mark spots they do not want found — and ask
 for terrain and sky instead: "dense fir canopy", "open ridge", "car park". Every field in them is
