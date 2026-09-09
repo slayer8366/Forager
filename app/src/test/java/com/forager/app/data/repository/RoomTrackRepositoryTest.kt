@@ -225,8 +225,14 @@ class RoomTrackRepositoryTest {
 
         val fullRecord = repository.getFullRecord("t").getOrThrow()
 
+        // The rule identifier is the literal the GPX file carries, written out by hand: an expectation
+        // read from the constant under test would pass for whatever value that constant happened to hold.
         assertEquals(
-            listOf(TrackPointRecord(kept0, kept = true), TrackPointRecord(dropped, kept = false), TrackPointRecord(kept5, kept = true)),
+            listOf(
+                TrackPointRecord(kept0, kept = true),
+                TrackPointRecord(dropped, kept = false, excludedByRule = "timestampMillisNonZero"),
+                TrackPointRecord(kept5, kept = true),
+            ),
             fullRecord,
         )
         // getById's own filtered read must still agree with which of these the verdict marks kept.

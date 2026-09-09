@@ -123,15 +123,134 @@ class GpxCodecTest {
         assertEquals(WaypointDesignation.ORIGIN, decoded.waypoints.single().designation)
     }
 
+    /**
+     * The `<extensions>` block used to be omitted entirely for a waypoint with no track link. It no
+     * longer can be: [Waypoint.id] is never absent, so it is always written (GPX rule-provenance
+     * dispatch, 2026-09-09, §3). What this still pins is the part that did not change — `trackId`
+     * and `designation` are each omitted rather than written empty, and decode reports `null`.
+     */
     @Test
-    fun `an ordinary waypoint with no track link encodes no extensions block`() {
-        val waypoint = Waypoint(id = "ignored", lat = 45.1, lng = -122.1, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L)
+    fun `an ordinary waypoint with no track link carries only its id in the extensions block`() {
+        val waypoint = Waypoint(id = "wp-ordinary", lat = 45.1, lng = -122.1, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L)
 
         val encoded = GpxCodec.encode(GpxDocument(track = null, waypoints = listOf(waypoint)))
 
-        assertFalse(encoded.contains("<extensions>"))
+        assertEquals(" id=\"wp-ordinary\"", encoded.substringAfter("<forager:waypoint").substringBefore("/>"))
         val decoded = GpxCodec.decode(encoded).waypoints.single()
+        assertEquals("wp-ordinary", decoded.id)
         assertNull(decoded.trackId)
         assertNull(decoded.designation)
+    }
+
+    /**
+     * [Waypoint.id] round-trips — GPX rule-provenance dispatch §3. The data was always present and
+     * simply was not exported, so a waypoint in an exported file could not be matched back to the
+     * row it came from, nor to itself in a second export of the same trip.
+     */
+    @Test
+    fun `a waypoint's id survives the round trip rather than being regenerated`() {
+        val waypoint = Waypoint(id = "b3f1 & <odd> \"quoted\"", lat = 45.1, lng = -122.1, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+
+        val decoded = GpxCodec.decode(GpxCodec.encode(GpxDocument(track = null, waypoints = listOf(waypoint)))).waypoints.single()
+
+        assertEquals("b3f1 & <odd> \"quoted\"", decoded.id)
+        assertEquals("t1", decoded.trackId)
+        assertEquals(WaypointDesignation.ORIGIN, decoded.designation)
+    }
+
+    /** A file from outside this app carries no id to restore — a fresh one, never a blank string. */
+    @Test
+    fun `a waypoint from a file with no forager extension gets a fresh id, not an empty one`() {
+        val foreign = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <gpx version="1.1" creator="Elsewhere" xmlns="http://www.topografix.com/GPX/1/1">
+              <wpt lat="45.1" lon="-122.1"><name>Somewhere</name></wpt>
+            </gpx>
+        """.trimIndent()
+
+        val decoded = GpxCodec.decode(foreign).waypoints.single()
+
+        assertTrue("an id is fabricated only where the file carries none", decoded.id.isNotBlank())
+        assertEquals("Somewhere", decoded.name)
+    }
+
+    /**
+     * GPX rule-provenance dispatch §2 (owner ruling, 2026-09-09): the rule set in force on the
+     * record block, and the rule that caught each excluded point on the point itself. The literal
+     * `timestampMillisNonZero` is written out here by hand rather than read from
+     * [NETWORK_FIX_EXCLUSION_RULES] — an expectation read from the thing under test passes for
+     * whatever value that thing happens to hold.
+     */
+    @Test
+    fun `the full record declares its rule set and names the rule on excluded points only`() {
+        val track = Track(id = "t", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = 3_500L, points = emptyList())
+        val fullRecord = listOf(
+            TrackPointRecord(point = TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L), kept = true),
+            TrackPointRecord(
+                point = TrackPoint(lat = 45.030, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 3_500L),
+                kept = false,
+                excludedByRule = "timestampMillisNonZero",
+            ),
+        )
+
+        val encoded = GpxCodec.encode(
+            GpxDocument(track = track, waypoints = emptyList(), fullRecord = fullRecord, exclusionRules = listOf("timestampMillisNonZero")),
+        )
+
+        val recordBlockTag = encoded.substringAfter("<forager:fullRecord").substringBefore(">")
+        assertTrue("the block must declare the rule set in force, got:$recordBlockTag", recordBlockTag.contains("rule=\"timestampMillisNonZero\""))
+        val points = Regex("<forager:point [^>]*/>").findAll(encoded).map { it.value }.toList()
+        assertEquals(2, points.size)
+        assertTrue(points[0].contains("kept=\"true\""))
+        assertFalse("a kept point passed everything and has no rule to name", points[0].contains("excludedByRule"))
+        assertTrue(points[1].contains("excludedByRule=\"timestampMillisNonZero\""))
+
+        val decoded = GpxCodec.decode(encoded)
+        assertEquals(listOf("timestampMillisNonZero"), decoded.exclusionRules)
+        assertEquals(fullRecord, decoded.fullRecord)
+    }
+
+    /**
+     * The case §1 of that dispatch exists to make legible: a file this app wrote **before** `rule`
+     * existed. Which rule excluded its points is genuinely unrecoverable, so decode reports no
+     * declared rule set and no per-point rule rather than filling in this build's. The verdict
+     * survives; the fabrication does not happen.
+     */
+    @Test
+    fun `a full record written before the rule attribute decodes with no rules, not this build's`() {
+        val olderFile = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <gpx version="1.1" creator="Forager" xmlns="http://www.topografix.com/GPX/1/1" xmlns:forager="https://forager.app/gpx/1">
+              <trk>
+                <extensions>
+                  <forager:fullRecord authoritative="true" trksegDerivedFromFullRecord="true" pointCount="1">
+                    <forager:point lat="45.030" lon="-122.0" timeEpochMillis="3500" kept="false"/>
+                  </forager:fullRecord>
+                </extensions>
+                <trkseg></trkseg>
+              </trk>
+            </gpx>
+        """.trimIndent()
+
+        val decoded = GpxCodec.decode(olderFile)
+
+        assertEquals(emptyList<String>(), decoded.exclusionRules)
+        val record = decoded.fullRecord.single()
+        assertFalse("the verdict itself is still readable", record.kept)
+        assertNull("which rule produced it is not, and must not be guessed", record.excludedByRule)
+    }
+
+    /** A document declaring no rule set writes no attribute — not an empty one reading as "no rules ran". */
+    @Test
+    fun `a document with no declared rule set writes no rule attribute at all`() {
+        val track = Track(id = "t", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList())
+        val fullRecord = listOf(
+            TrackPointRecord(point = TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L), kept = true),
+        )
+
+        val encoded = GpxCodec.encode(GpxDocument(track = track, waypoints = emptyList(), fullRecord = fullRecord))
+
+        assertFalse(encoded.substringAfter("<forager:fullRecord").substringBefore(">").contains("rule="))
+        assertTrue(GpxCodec.decode(encoded).exclusionRules.isEmpty())
     }
 }

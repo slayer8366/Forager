@@ -17,4 +17,16 @@ data class GpxDocument(
     val track: Track?,
     val waypoints: List<Waypoint>,
     val fullRecord: List<TrackPointRecord> = emptyList(),
+    /**
+     * The exclusion rule set in force when [fullRecord]'s verdicts were produced — GPX
+     * rule-provenance dispatch (owner ruling, 2026-09-09), written on the record block as its
+     * `rule` attribute. Empty means **this document declares no rule set**, which is a real and
+     * different state from declaring one: it is what [com.forager.app.domain.GpxCodec.decode]
+     * produces for a file that carries no `rule` attribute, and defaulting it to this build's live
+     * set instead would quietly stamp today's provenance onto a file written before provenance
+     * existed. So it defaults to empty and the one production producer,
+     * [com.forager.app.export.TrackGpxExporter.write], sets it explicitly from
+     * [com.forager.app.domain.NETWORK_FIX_EXCLUSION_RULES].
+     */
+    val exclusionRules: List<String> = emptyList(),
 )

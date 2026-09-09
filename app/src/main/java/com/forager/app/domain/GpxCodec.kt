@@ -58,7 +58,7 @@ object GpxCodec {
         document.track?.let { track ->
             append("  <trk>\n")
             track.name?.let { append("    <name>${escapeXml(it)}</name>\n") }
-            if (document.fullRecord.isNotEmpty()) append(encodeFullRecord(document.fullRecord))
+            if (document.fullRecord.isNotEmpty()) append(encodeFullRecord(document.fullRecord, document.exclusionRules))
             append("    <trkseg>\n")
             track.points.forEach { point -> append(encodeTrackPoint(point)) }
             append("    </trkseg>\n")
@@ -74,13 +74,24 @@ object GpxCodec {
      * trkseg*`) — checked against the schema, not assumed — so this scopes the raw record to its
      * own track, which a future multi-track file will need. `pointCount` on `forager:fullRecord`
      * lets a parser sanity-check it read every point without counting child nodes itself.
+     *
+     * `rule` names the exclusion rule set in force when the file was written — GPX rule-provenance
+     * dispatch (owner ruling, 2026-09-09). It belongs here, on the block, and not only on the
+     * points a rule caught: a **kept** point in a file that declares one rule set is a different
+     * claim from a kept point in a file that declares two, and nothing on the point itself can
+     * distinguish them. Space-separated, the XML `NMTOKENS` idiom, so today's single rule is
+     * written as the bare literal a reader would expect and a second one appends without changing
+     * the shape. Omitted entirely when [GpxDocument.exclusionRules] is empty: a document that
+     * declares no rule set writes no attribute, rather than an empty one reading as "no rules ran".
      */
-    private fun encodeFullRecord(records: List<TrackPointRecord>): String = buildString {
+    private fun encodeFullRecord(records: List<TrackPointRecord>, exclusionRules: List<String>): String = buildString {
         append("    <extensions>\n")
         append(
             "      <forager:fullRecord authoritative=\"true\" trksegDerivedFromFullRecord=\"true\" " +
-                "pointCount=\"${records.size}\">\n",
+                "pointCount=\"${records.size}\"",
         )
+        if (exclusionRules.isNotEmpty()) append(" rule=\"${escapeXml(exclusionRules.joinToString(" "))}\"")
+        append(">\n")
         records.forEach { record -> append(encodeFullRecordPoint(record)) }
         append("      </forager:fullRecord>\n")
         append("    </extensions>\n")
@@ -91,6 +102,14 @@ object GpxCodec {
      * timezone round-trip to lose precision through — full millisecond precision is the entire
      * reason this element exists (unlike the display `<trkpt><time>`, which [encodeTrackPoint]
      * leaves exactly as before). Stable numeric attribute names throughout, no free prose.
+     *
+     * `excludedByRule` names the rule that caught this point — GPX rule-provenance dispatch
+     * (owner ruling, 2026-09-09). Written only where there is a rule to name, so a kept point
+     * carries no such attribute and `kept="false"` with none means a producer that recorded no
+     * provenance (see [TrackPointRecord.excludedByRule]) rather than a point nothing excluded. It
+     * is deliberately not derived from `kept` and the block's `rule` set: with a second rule in
+     * force that derivation would name the wrong one, and naming the wrong rule is worse than the
+     * ambiguity this attribute exists to end.
      */
     private fun encodeFullRecordPoint(record: TrackPointRecord): String = buildString {
         val point = record.point
@@ -103,6 +122,7 @@ object GpxCodec {
         point.speedMetersPerSecond?.let { append(" speedMetersPerSecond=\"$it\"") }
         point.speedAccuracyMetersPerSecond?.let { append(" speedAccuracyMetersPerSecond=\"$it\"") }
         append(" kept=\"${record.kept}\"")
+        record.excludedByRule?.let { append(" excludedByRule=\"${escapeXml(it)}\"") }
         append("/>\n")
     }
 
@@ -114,10 +134,16 @@ object GpxCodec {
     }
 
     /**
-     * [Waypoint.trackId] and [Waypoint.designation] have no standard GPX element — carried in a
-     * `<wpt><extensions>` `forager:waypoint`, the same namespace [encodeFullRecord] uses. Omitted
-     * entirely when both are `null` (an ordinary, not-track-related waypoint), matching this file's
-     * existing omit-when-absent pattern for `<ele>`/`<desc>`.
+     * [Waypoint.id], [Waypoint.trackId] and [Waypoint.designation] have no standard GPX element —
+     * `wptType` fixes its child list and allows no identifier attribute — so all three ride in a
+     * `<wpt><extensions>` `forager:waypoint`, the same namespace [encodeFullRecord] uses.
+     *
+     * [Waypoint.id] is written on every waypoint, which is why this block is no longer omitted for
+     * an ordinary, not-track-related one the way it was when `trackId`/`designation` were its only
+     * contents (GPX rule-provenance dispatch, 2026-09-09): an id every waypoint has cannot follow
+     * the omit-when-absent pattern, and a waypoint exported without it is one no later export,
+     * report or bug can be matched back to the row it came from. `trackId` and `designation` keep
+     * that pattern individually — each still absent rather than empty when it is `null`.
      */
     private fun encodeWaypoint(waypoint: Waypoint): String = buildString {
         append("  <wpt lat=\"${waypoint.lat}\" lon=\"${waypoint.lng}\">\n")
@@ -125,14 +151,12 @@ object GpxCodec {
         append("    <time>${Instant.ofEpochMilli(waypoint.createdAtEpochMillis)}</time>\n")
         append("    <name>${escapeXml(waypoint.name)}</name>\n")
         if (waypoint.note.isNotBlank()) append("    <desc>${escapeXml(waypoint.note)}</desc>\n")
-        if (waypoint.trackId != null || waypoint.designation != null) {
-            append("    <extensions>\n")
-            append("      <forager:waypoint")
-            waypoint.trackId?.let { append(" trackId=\"${escapeXml(it)}\"") }
-            waypoint.designation?.let { append(" designation=\"${it.name}\"") }
-            append("/>\n")
-            append("    </extensions>\n")
-        }
+        append("    <extensions>\n")
+        append("      <forager:waypoint id=\"${escapeXml(waypoint.id)}\"")
+        waypoint.trackId?.let { append(" trackId=\"${escapeXml(it)}\"") }
+        waypoint.designation?.let { append(" designation=\"${it.name}\"") }
+        append("/>\n")
+        append("    </extensions>\n")
         append("  </wpt>\n")
     }
 
@@ -154,21 +178,33 @@ object GpxCodec {
                 points = points,
             )
         }
-        val fullRecord = trkElement?.let { trk -> decodeFullRecord(trk) }.orEmpty()
+        val fullRecordElement = trkElement?.getElementsByTagName("forager:fullRecord")?.item(0) as? Element
 
         val waypoints = root.getElementsByTagName("wpt").let { nodeList ->
             (0 until nodeList.length).mapNotNull { i -> decodeWaypoint(nodeList.item(i) as Element) }
         }
 
-        return GpxDocument(track = track, waypoints = waypoints, fullRecord = fullRecord)
+        return GpxDocument(
+            track = track,
+            waypoints = waypoints,
+            fullRecord = fullRecordElement?.let { decodeFullRecord(it) }.orEmpty(),
+            exclusionRules = fullRecordElement?.let { decodeExclusionRules(it) }.orEmpty(),
+        )
     }
 
-    private fun decodeFullRecord(trkElement: Element): List<TrackPointRecord> {
-        val fullRecordElement = trkElement.getElementsByTagName("forager:fullRecord").item(0) as? Element
-            ?: return emptyList()
+    private fun decodeFullRecord(fullRecordElement: Element): List<TrackPointRecord> {
         val pointNodes = fullRecordElement.getElementsByTagName("forager:point")
         return (0 until pointNodes.length).mapNotNull { i -> decodeFullRecordPoint(pointNodes.item(i) as Element) }
     }
+
+    /**
+     * The rule set **the file itself declares**, never the one this build applies: a file written
+     * before `rule` existed decodes to an empty list, which is the honest answer to "which rules
+     * produced these verdicts?" and the reason [GpxDocument.exclusionRules] does not default to
+     * [NETWORK_FIX_EXCLUSION_RULES]. Space-separated, matching what [encodeFullRecord] writes.
+     */
+    private fun decodeExclusionRules(fullRecordElement: Element): List<String> =
+        fullRecordElement.getAttribute("rule").split(' ').filter { it.isNotBlank() }
 
     private fun decodeFullRecordPoint(element: Element): TrackPointRecord? {
         val lat = element.getAttribute("lat").toDoubleOrNull() ?: return null
@@ -186,6 +222,7 @@ object GpxCodec {
                 speedAccuracyMetersPerSecond = element.getAttribute("speedAccuracyMetersPerSecond").toFloatOrNull(),
             ),
             kept = kept,
+            excludedByRule = element.getAttribute("excludedByRule").ifBlank { null },
         )
     }
 
@@ -215,7 +252,9 @@ object GpxCodec {
         val designation = extension?.getAttribute("designation")?.ifBlank { null }
             ?.let { runCatching { WaypointDesignation.valueOf(it) }.getOrNull() }
         return Waypoint(
-            id = UUID.randomUUID().toString(),
+            // A GPX file from elsewhere, or one this app wrote before the id was exported, carries
+            // no id to restore — a fresh one, exactly as every decoded waypoint got before this.
+            id = extension?.getAttribute("id")?.ifBlank { null } ?: UUID.randomUUID().toString(),
             lat = lat,
             lng = lng,
             altitude = altitude,

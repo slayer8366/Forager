@@ -77,6 +77,14 @@ class TrackGpxExporterTest {
         assertTrue("expected the second write's extra point to be reflected", second.readText().count { it == '\n' } > firstContent.count { it == '\n' })
     }
 
+    /**
+     * The document the exporter builds is the codec's input verbatim, plus one thing the caller does
+     * not supply: [exclusionRules], stamped by [TrackGpxExporter.write] itself because which rules
+     * the read seam applies is a property of the build, not of the caller (GPX rule-provenance
+     * dispatch, 2026-09-09). Spelled out as a literal on the expected side, and asserted directly
+     * against the file text as well — a delegation test alone would stay green if the constant and
+     * the file moved together to any value at all.
+     */
     @Test
     fun `the written file's content is exactly what GpxCodec encode produces for this track`() {
         val exporter = TrackGpxExporter(tempFolder.newFolder("tracks"))
@@ -84,9 +92,12 @@ class TrackGpxExporterTest {
         val file = exporter.write(track, fullRecord = fullRecord, waypoints = emptyList())
 
         assertEquals(
-            GpxCodec.encode(GpxDocument(track = track, waypoints = emptyList(), fullRecord = fullRecord)),
+            GpxCodec.encode(
+                GpxDocument(track = track, waypoints = emptyList(), fullRecord = fullRecord, exclusionRules = listOf("timestampMillisNonZero")),
+            ),
             file.readText(),
         )
+        assertTrue("the file itself must declare the rule set in force", file.readText().contains("rule=\"timestampMillisNonZero\""))
     }
 
     @Test
@@ -97,8 +108,11 @@ class TrackGpxExporterTest {
         val file = exporter.write(track, fullRecord = fullRecord, waypoints = waypoints)
 
         assertEquals(
-            GpxCodec.encode(GpxDocument(track = track, waypoints = waypoints, fullRecord = fullRecord)),
+            GpxCodec.encode(
+                GpxDocument(track = track, waypoints = waypoints, fullRecord = fullRecord, exclusionRules = listOf("timestampMillisNonZero")),
+            ),
             file.readText(),
         )
+        assertTrue("the waypoint's own id must reach the file", file.readText().contains("id=\"w1\""))
     }
 }

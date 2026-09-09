@@ -47,6 +47,33 @@ import com.forager.app.domain.model.TrackPoint
  */
 fun TrackPoint.isNetworkProviderFix(): Boolean = timestampEpochMillis % 1_000L != 0L
 
+/**
+ * The identifier [isNetworkProviderFix] is named by, in a GPX full record's `rule` provenance
+ * attributes — GPX rule-provenance dispatch (owner ruling, 2026-09-09). A stable literal, not
+ * display copy and not derived from anything: once a file carrying it is on a tester's phone the
+ * value can never be restated, so renaming this constant would silently re-point every exported
+ * file's provenance at a rule that no longer means what the file meant. Read only by
+ * [NETWORK_FIX_EXCLUSION_RULES] and, per excluded point, by
+ * [com.forager.app.data.repository.RoomTrackRepository.getFullRecord].
+ */
+const val TIMESTAMP_MILLIS_NON_ZERO_RULE: String = "timestampMillisNonZero"
+
+/**
+ * The exclusion rule set this build's read seam applies, in force for every full record it
+ * produces — one rule today. [com.forager.app.domain.GpxCodec] writes it on the record block so a
+ * file states which rules ran, not only which points they caught: without it, a file's **kept**
+ * points are the ambiguous ones the day a second rule ships (a point kept under one rule and a
+ * point kept under two are different claims, and no per-point attribute can distinguish them after
+ * the fact). Provenance cannot be added to a file retroactively, which is why this lands before the
+ * first tester walks rather than when a second rule actually arrives.
+ *
+ * A second rule is added here **and** at whatever seam applies it, together: this list is the
+ * declaration, [com.forager.app.domain.model.TrackPointRecord.excludedByRule] is what each point actually met, and a file whose
+ * points name a rule this list omits is self-evidently inconsistent — which is the property that
+ * makes the two attributes worth carrying separately rather than deriving one from the other.
+ */
+val NETWORK_FIX_EXCLUSION_RULES: List<String> = listOf(TIMESTAMP_MILLIS_NON_ZERO_RULE)
+
 /** Every stored point that is not a network-provider fix, in stored order. */
 fun excludeNetworkProviderFixes(points: List<TrackPoint>): List<TrackPoint> = points.filterNot { it.isNetworkProviderFix() }
 
