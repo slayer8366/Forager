@@ -197,6 +197,15 @@ class GpxCodecTest {
             GpxDocument(track = track, waypoints = emptyList(), fullRecord = fullRecord, exclusionRules = listOf("timestampMillisNonZero")),
         )
 
+        // The namespace URI, written out by hand. Nothing else in the suite pins it, and an
+        // expectation read from FORAGER_NAMESPACE would pass for any value — including the
+        // uncontrolled domain this moved off.
+        assertTrue(
+            "the forager vocabulary must be bound to the controlled domain",
+            encoded.contains("xmlns:forager=\"https://zynergy-labs.com/forager/gpx/1\""),
+        )
+        assertFalse("no exported file may carry the uncontrolled domain", encoded.contains("forager.app"))
+
         val recordBlockTag = encoded.substringAfter("<forager:fullRecord").substringBefore(">")
         assertTrue("the block must declare the rule set in force, got:$recordBlockTag", recordBlockTag.contains("rule=\"timestampMillisNonZero\""))
         val points = Regex("<forager:point [^>]*/>").findAll(encoded).map { it.value }.toList()

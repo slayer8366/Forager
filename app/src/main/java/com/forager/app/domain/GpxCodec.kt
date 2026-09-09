@@ -47,7 +47,23 @@ import org.w3c.dom.Element
  */
 object GpxCodec {
 
-    private const val FORAGER_NAMESPACE = "https://forager.app/gpx/1"
+    /**
+     * The `forager:` vocabulary's identifier. A namespace URI is an **identifier, not a fetchable
+     * document** — nothing resolves it and nothing needs to — but it is a permanent string in every
+     * exported file, and **a file already on a tester's phone can never be re-stamped**. That is the
+     * same argument that made `rule` provenance a beta gate, applied to the domain: it must name a
+     * domain this project controls, and the window to choose closes the moment a tester exports.
+     *
+     * Moved off `https://forager.app/gpx/1` (a domain registered to someone else) before the first
+     * export, 2026-09-09. The `/1` is the schema version and **stays `/1`** — the format did not
+     * change, only the identifier's domain, so this is not a version bump and `schema="1"` remains
+     * absent per the format's ratification.
+     *
+     * Read at exactly one site, the `xmlns:forager` declaration below. [decode] never matches on it:
+     * the parser is not namespace-aware and every lookup is `getElementsByTagName`, which matches the
+     * qualified name — so the decoder keys on the `forager:` **prefix**, not on this URI.
+     */
+    private const val FORAGER_NAMESPACE = "https://zynergy-labs.com/forager/gpx/1"
 
     fun encode(document: GpxDocument): String = buildString {
         append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
