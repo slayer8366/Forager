@@ -203,9 +203,16 @@ denominator is biased high. Every full-suite run known to carry PR #82's
 | 5 | CI, `main`@`4236e6b` | **fail** |
 | 6 | CI, PR #86 merge ref | pass |
 | 7 | CI, `main`@`2c3c0f9` | pass |
+| 8 | CI, PR #87 head (this note's own run) | pass |
 
-**2 failures in 7.** That does **not** separate a 1-in-3 rate from a 1-in-10 one, and it must not
+**2 failures in 8.** That does **not** separate a 1-in-3 rate from a 1-in-10 one, and it must not
 be read as settling the rate — the interval it supports is wide, and the count is small on both
 sides. It is a prompt to run more, which is exactly what the queued present-versus-excluded
 dispatch is for. Recorded here so the next session inherits the denominator rather than the reds
 alone.
+
+**Run 8 is this note's own CI run, and that is the point, not a curiosity.** The tally was written
+at 2 in 7 and was stale before the branch recording it could merge — every full suite is a draw,
+including the ones nobody thinks of as an experiment. So the denominator here is a floor, not a
+total: any full-suite run on a tree carrying PR #82's `TrackRecordingServiceTest` is a sample, and
+a session that has one in hand should add it rather than assume the recorded figure is current.
