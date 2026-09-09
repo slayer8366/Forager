@@ -132,17 +132,43 @@ val buildIdentity = resolveBuildIdentity()
  * any task runs: some of the four set and some not is a typo in the one place a typo strands every
  * future install, so it names the missing ones and stops.
  *
- * **If this app ever goes to Google Play** (owner's ruling, 2026-09-08, recorded here because the
- * moment it matters is a one-time choice in the Play Console long after this was written): Play
- * App Signing is required for a new app, and the enrolment flow **offers a Google-generated app
- * signing key by default and recommends it — that is wrong for this app.** Accepting it makes the
- * Play release a different identity from the sideloaded beta, and every tester's install can then
- * only be replaced by an uninstall that destroys their journal. At enrolment, *choose to upload
- * your own key*: upload this keystore's key through the PEPK tool as the app signing key, and
- * generate a separate upload key for submissions. Then Play re-signs with the same identity the
- * beta carried and sideloaded installs update in place. This is also why the keystore has to
- * survive until enrolment: losing it forecloses that path permanently. Full reasoning and the
- * owner's cited documentation: `docs/audits/2026-09-08-beta-signing-identity-completion-report.md`.
+ * **Play App Signing enrolment — an OPEN OWNER DECISION, not settled here.** Recorded in this file
+ * because the moment it matters is a one-time, irreversible choice in the Play Console long after
+ * this was written.
+ *
+ * *What changed.* The 2026-09-08 ruling recorded here previously said: never accept Google's
+ * generated app signing key, always upload this keystore's key through the PEPK tool, because a
+ * Google-generated key would make the Play release a different signing identity from the
+ * **sideloaded** beta, and every tester's sideloaded install could then only be replaced by an
+ * uninstall that destroys their journal. **As of the owner's ruling of 2026-09-09, distribution is
+ * Play closed testing only — no sideloading.** There are therefore no sideloaded installs whose
+ * update path needs preserving, and that argument — which was the whole of the reasoning for
+ * PEPK — no longer applies. It is not that the conclusion was refuted; its premise was withdrawn.
+ *
+ * *The trade-off that actually remains*, stated so the owner can decide at enrolment:
+ *
+ * - **Accept Google's generated app signing key.** Google holds the app signing key; the owner
+ *   never has a copy and therefore cannot lose it. This keystore then serves as the *upload* key,
+ *   and an upload key that is lost or compromised can be reset by Play support — a recoverable
+ *   failure. The cost: the app's Play identity is held by Google and cannot be taken off Play, so
+ *   distributing a build outside Play later (sideload, another store) means a different signing
+ *   identity and, for anyone who ever installs both, an uninstall to switch.
+ * - **Upload your own key via PEPK.** The owner owns the app signing key, so the identity is
+ *   portable — the same identity can sign builds distributed off Play. The cost: losing that
+ *   keystore is permanent and unrecoverable; Play cannot reissue an app signing key the owner
+ *   supplied, and no future update to the existing app listing can be signed.
+ *
+ * The choice is between *unloseable but not portable* and *portable but unrecoverable if lost*.
+ * Nothing in the beta forces either one. Decide it at enrolment, and record the ruling here.
+ *
+ * *Either way, back up the keystore.* This keystore is the upload key under both options, so losing
+ * it still blocks submissions — the difference is only whether that block is resettable by Play
+ * (Google-generated app signing key) or terminal (PEPK). "It doesn't matter now" is not a
+ * consequence of the sideloading ruling.
+ *
+ * Background and the owner's cited documentation for the superseded 2026-09-08 reasoning:
+ * `docs/audits/2026-09-08-beta-signing-identity-completion-report.md`. The premise withdrawal is
+ * recorded in `docs/audits/2026-09-09-allow-backup-and-play-signing-notes.md`.
  */
 class SigningIdentity(val storeFile: File, val storePassword: String, val keyAlias: String, val keyPassword: String)
 

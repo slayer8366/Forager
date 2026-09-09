@@ -57,9 +57,38 @@
         <package android:name="org.inaturalist.android" />
     </queries>
 
+    <!--
+      android:allowBackup="false" is a BETA-SCOPED decision (finding B4, 2026-09-09) and MUST be
+      revisited before a production release — see
+      docs/audits/2026-09-09-allow-backup-and-play-signing-notes.md.
+
+      Why off for the beta: with allowBackup="true" and neither android:dataExtractionRules nor
+      android:fullBackupContent declared (res/xml/ holds only file_paths.xml), Android Auto Backup
+      and device-to-device transfer copy everything under the app's data directory by default —
+      including the live Room database and the photo files. A Room database is copied while it may
+      be mid-write, and restoring a torn SQLite snapshot (twelve migrations of history; app/schemas/
+      holds 4.json–15.json) onto a fresh install is a known corruption path. The field journal that
+      would corrupt is exactly the data this closed beta exists to collect, so the downside of a bad
+      restore is worse than the downside of no restore.
+
+      Alternative rejected: keep allowBackup="true" and write android:dataExtractionRules (API 31+)
+      plus android:fullBackupContent (API 30 and below) that exclude the database directory and the
+      photo directory. That is the right long-term answer — it keeps settings backed up while
+      leaving the fragile data out — but it is two rule files that have to be correct across two
+      backup APIs and two transports (cloud backup and D2D transfer), verified against real restore
+      behaviour that nothing in this repo's Robolectric suite can exercise. That is more code to get
+      right than a 14-day closed test needs, and testers are not relying on restore during it.
+
+      Consequence, accepted: a tester who changes device or reinstalls loses their journal
+      outright, and this also turns off the device-to-device transfer that
+      docs/plans/journal-trips-and-offline-regions.md (the "Leak paths" list) intended to keep —
+      that plan's line "Excluding both would silently lose years of field notes on a phone upgrade"
+      is the cost being taken on here, knowingly and only for the beta. GPX export covers tracks and
+      waypoints, not the journal, so it is not a substitute.
+    -->
     <application
         android:name=".ForagerApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
