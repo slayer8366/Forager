@@ -397,3 +397,76 @@ is no longer the number that was agreed.**
 it was taken** — the only fields consulted were the count of scored draws, the count of
 `NOT-COUNTED` entries, the `NOT-COUNTED` reason strings, and `run_attempt`. None of those contains a
 red/green outcome. This commit precedes the first read of either arm's outcomes.
+
+---
+
+## I. Corrections to §H, and the independence check — all still blind
+
+### I.1 The limit is "50 re-runs", documented, not an inferred cap on `run_attempt`
+
+GitHub added it in a changelog dated **2026-04-10**: a workflow is limited to **50 re-runs**, the
+limit counts both full re-runs and re-runs of a subset of jobs, and exceeding it produces a **failed
+check suite with an annotation saying the limit was hit**. That last clause is exactly what was
+observed — a failed check suite with no job execution, which surfaces as `startup_failure` with no
+artifact. §H called it "a cap of 50 on `run_attempt`"; **cite it as 50 re-runs.**
+
+**An off-by-one this session cannot resolve, stated rather than smoothed over.** The documented limit
+nominally permits `run_attempt` to reach **51**, since the initial run is not a re-run. Observed:
+`run_attempt` stopped at **50** on both arms. Draw *i* was scored from attempt *i*, so 50 scored
+draws = the original run plus 49 successful re-runs, and the 50th re-run request was refused. Either
+GitHub counts the original toward the 50, or one re-run request failed silently earlier in each arm.
+**The two arms agreeing exactly makes a silent per-arm failure less likely than the accounting
+explanation, but neither was confirmed.** It does not touch the decision or any count: draws are
+scored from artifacts, not from attempt numbers.
+
+### I.2 The sanctioned route exists
+
+The limits table lists this one as **increasable by support ticket**. The empty-commit workaround is
+sound and was used, but anyone planning more runs at this scale should raise the limit rather than
+manufacture fresh runs.
+
+### I.3 Settling for 50 would have changed the test's *size*, not only its power
+
+§H argued the top-up on power alone (≈72 % against ≈80 %). That undersells it. Holding the threshold
+at r ≥ 6 while n falls also moves α, because six reds out of fifty is a stricter bar under the null
+than six out of sixty-five:
+
+| n per arm | α at r ≥ 6 (Fisher two-sided) | α at r = 5 | power at p ≈ 0.14 |
+|---|---|---|---|
+| 65 | 0.0277 | 0.0577 | ≈ 80 % |
+| 50 | 0.0267 | 0.0563 | ≈ 72 % |
+
+The threshold itself is stable — r ≥ 6 in both, since r = 5 clears 0.05 in neither — so the
+*decision rule* survives, but **the test reported would have had a different size and a different
+power from the one pre-registered.** That is the stronger form of the argument. The size shift is
+small (0.0277 → 0.0267) and is stated as small rather than inflated; the power shift is the material
+one.
+
+### I.4 Independence of the topped-up draws — checked, and clean
+
+**The risk:** the new runs restart `run_attempt` at 1. If any draw input derived from `run_attempt`,
+the run ID, or a seed built off either, new draws 1–15 would *replicate* old draws 1–15 rather than
+sample independently — invisible in the artifact, and silently duplicating outcomes in both arms.
+
+**Checked in the workflow and the build, while still blind. Nothing derives from either:**
+
+- no `run_attempt`, `run_id` or `run_number` anywhere in `.github/workflows/ci.yml` (the single
+  "seed" match is prose inside a comment string, `"seeded at the region center"`);
+- no `seed`, `shuffle`, `random`, `forkEvery` or `maxParallelForks` in `app/build.gradle.kts`,
+  `build.gradle.kts` or `gradle.properties`;
+- the test step is a bare `./gradlew --stacktrace testDebugUnitTest` with no seed or ordering env.
+
+So the outcome can only come from genuine nondeterminism — thread scheduling, timing, GC, runner
+variation — and the topped-up draws sample independently.
+
+### I.5 PRE-REGISTERED, before unblinding: a within-arm heterogeneity check
+
+The draws no longer come from a single run. A cold Robolectric cache (`~/.m2/repository/org/robolectric`
+is restored per run) or a shifted runner image could move the rate between the two blocks.
+
+**Fixed now: within each arm, compare the red rate in draws 1–50 against draws 51–65**, reported
+with both counts whatever it shows. It is a diagnostic, not a gate — the block structure is
+identical across arms, so the between-arm comparison in §D.5 stands regardless of what it finds.
+
+Registering it *now* is the whole point: run after unblinding, it stops being a diagnostic and
+becomes a choice about which subgroup to look at.
