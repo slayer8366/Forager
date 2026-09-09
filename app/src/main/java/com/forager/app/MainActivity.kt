@@ -433,6 +433,7 @@ class MainActivity : ComponentActivity() {
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigationTarget = trackUiState.originWaypoint,
+                    pathHomeMeters = trackUiState.pathHome?.totalMeters,
                     crashFileStore = container.crashFileStore,
                     tracks = trackUiState.tracks,
                     onTracksOpened = trackRecordingViewModel::loadTracks,

@@ -31,7 +31,7 @@ object GeoDistance {
      * IUGG mean Earth radius. A sphere, not the WGS-84 ellipsoid: the error is under ~0.5%,
      * which is far below the precision anything in this app claims.
      */
-    private const val EARTH_MEAN_RADIUS_METERS = 6_371_008.8
+    internal const val EARTH_MEAN_RADIUS_METERS = 6_371_008.8
 
     /** Haversine great-circle distance between [a] and [b], in metres. */
     fun metersBetween(a: LatLng, b: LatLng): Double {

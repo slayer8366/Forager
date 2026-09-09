@@ -17,7 +17,10 @@ import com.forager.app.domain.DetectOffTrackUseCase
 import com.forager.app.domain.ErrorLog
 import com.forager.app.domain.GetTracksUseCase
 import com.forager.app.domain.GetWaypointsUseCase
+import com.forager.app.domain.HopBand
 import com.forager.app.domain.LocationSampler
+import com.forager.app.domain.model.LatLng
+import com.forager.app.domain.pathHome
 import com.forager.app.domain.LocationFix
 import com.forager.app.domain.LocationTracker
 import com.forager.app.domain.StartTrackUseCase
@@ -177,6 +180,7 @@ class TrackRecordingViewModel(
                             startRecordingErrorMessage = null,
                             breadcrumbPoints = emptyList(),
                             originWaypoint = null,
+                            pathHome = null,
                             tripStartWarning = warning?.let { message -> RecordingNotice(++recordingNoticeIds, message) },
                             networkFixesNotice = null,
                         )
@@ -229,7 +233,7 @@ class TrackRecordingViewModel(
         lastGatedFix = null
         originCreationInFlight = false
         _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null)
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, pathHome = null)
         }
         if (endingTrack != null && endFix != null) {
             viewModelScope.launch {
@@ -260,16 +264,21 @@ class TrackRecordingViewModel(
      * A no-op while nothing is recording — there is nothing to return to yet.
      */
     fun startReturn() {
-        if (!uiState.value.isRecording) return
+        val active = uiState.value.activeTrack ?: return
         recentReturnDistancesMeters.clear()
         _uiState.update { it.copy(isReturning = true, isOffTrack = false) }
+        // Path-home join dispatch: the poll is what computes TrackRecordingUiState.pathHome, and
+        // only while returning — restarted here so the HUD's first path-home reading arrives with
+        // the HUD rather than up to 15 s after it. Restarting also re-reads the breadcrumbs, which
+        // is harmless, and the network-fixes notice is guarded by its own once-per-recording flag.
+        beginPolling(active.trackId)
     }
 
     /** Clears returning/off-track state without touching the recording itself — see [startReturn]. */
     fun stopReturn() {
         recentReturnDistancesMeters.clear()
         lastOffTrackAlertAtMillis = null
-        _uiState.update { it.copy(isReturning = false, isOffTrack = false) }
+        _uiState.update { it.copy(isReturning = false, isOffTrack = false, pathHome = null) }
     }
 
     private fun beginPolling(trackId: String) {
@@ -285,10 +294,36 @@ class TrackRecordingViewModel(
                         networkFixesNoticeShown = true
                         _uiState.update { it.copy(networkFixesNotice = RecordingNotice(++recordingNoticeIds, NETWORK_FIXES_RECORDING_NOTICE)) }
                     }
+                    updatePathHome(track)
                 }
                 delay(POLL_INTERVAL_MILLIS)
             }
         }
+    }
+
+    /**
+     * Path-home join dispatch: [TrackRecordingUiState.pathHome] from this poll's [track] and the
+     * last accuracy-gated fix, while returning; `null` otherwise. The hop band is carried from the
+     * previous reading (hysteresis — see [pathHome], "The hop"); a reading that was withheld, or a
+     * return that has not started, carries none, so a new return begins at [HopBand.NONE].
+     *
+     * Runs on this poll's own coroutine — the main dispatcher. Measured on a desktop JVM at the
+     * four-hour HIGH_ACCURACY cap (2,880 points, dense patch at the end) the computation is about
+     * 19 ms per poll; a device figure does not exist yet (join dispatch completion report). If a
+     * device measurement says that is a visible stall every 15 s, the move to a background
+     * dispatcher or an incremental graph is the recorded next step, not done here on an estimate.
+     * The gated fix, not any fix: the same accuracy rule that seeds the origin, so the hop is
+     * measured from a position the mode's own ceiling admits.
+     */
+    private fun updatePathHome(track: Track?) {
+        val state = uiState.value
+        val current = lastGatedFix
+        val next = if (track != null && state.isReturning && current != null) {
+            pathHome(track, LatLng(current.lat, current.lng), state.originWaypoint, state.pathHome?.hopBand ?: HopBand.NONE)
+        } else {
+            null
+        }
+        _uiState.update { it.copy(pathHome = next) }
     }
 
     /**

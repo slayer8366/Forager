@@ -36,20 +36,74 @@ class PathHomeTest {
     }
 
     /**
-     * The owner's ruling and the reason for it: after a double-back the walker stands 111.195 m
-     * from the start, and a nearest-point projection would say so — the short answer. The most
-     * recent point is where the track actually is, five legs from the start.
+     * Two owner rulings at once. **Self-join (2026-09-07):** after a double-back over their own
+     * points the walker stands exactly where they stood before, so the track is joined there at
+     * 0 m and the way home is the ground still ahead — one leg, 111.195 m. Until the join dispatch
+     * this test asserted 555.975 m, five legs: the plain sum of the legs, which counted the two
+     * legs just walked back over and could never decrease during a recording (the monotonicity
+     * defect; see the test below). **Most-recent-point:** the walker is still mapped onto the last
+     * stored point, never projected onto a segment — the join is between stored points, at ε.
      */
     @Test
-    fun `a doubled-back track measures the walked path from the most recent point, never the nearest one`() {
+    fun `a doubled-back track is joined at the points the walker re-occupied and reads the ground still ahead`() {
         // North three legs, back south two: the walker is on the second point, which is also the last.
         val track = track(lats = listOf(45.000, 45.001, 45.002, 45.003, 45.002, 45.001))
 
         val path = pathHome(track, current = LatLng(45.001, LNG), origin = null)!!
 
-        assertEquals(555.97540, path.trackMeters, 0.01)
-        assertEquals(555.97540, path.totalMeters, 0.01)
-        assertTrue("the walked path must exceed the straight line back (111.195 m)", path.totalMeters > 111.2)
+        assertEquals(111.19508, path.trackMeters, 0.01)
+        assertEquals(111.19508, path.totalMeters, 0.01)
+        assertEquals(1, path.joinsOnRoute)
+    }
+
+    /**
+     * The join's boundary at this level, both sides. Out three legs north, then back south down a
+     * parallel leg: offset 0.0002° of longitude (15.72 m at 45° N, above ε) the legs are not
+     * joined and the path is the full retrace — 5 × 111.19508 + the 15.7238 m crossing =
+     * 571.699 m; offset 0.0001° (7.8625 m, within ε) the walker's last point joins the outbound
+     * point beside it and the path is that join plus one leg, 119.058 m. One degree of longitude
+     * at latitude φ is 111 195.08 × cos φ: 78 626.2 m at 45.001°, 78 625.5 m at 45.003°.
+     */
+    @Test
+    fun `parallel legs 15 m apart are not joined - 8 m apart they are`() {
+        val outbound = listOf(45.000, 45.001, 45.002, 45.003).map { it to LNG }
+
+        val apart = trackAt(outbound + listOf(45.003, 45.002, 45.001).map { it to LNG + 0.0002 })
+        val pathApart = pathHome(apart, current = LatLng(45.001, LNG + 0.0002), origin = null)!!
+        assertEquals(571.699, pathApart.trackMeters, 0.01)
+        assertEquals(0, pathApart.joinsOnRoute)
+
+        val near = trackAt(outbound + listOf(45.003, 45.002, 45.001).map { it to LNG + 0.0001 })
+        val pathNear = pathHome(near, current = LatLng(45.001, LNG + 0.0001), origin = null)!!
+        assertEquals(119.058, pathNear.trackMeters, 0.01)
+        assertEquals(1, pathNear.joinsOnRoute)
+    }
+
+    /**
+     * **The defect being fixed, as the test that would have failed before.** Out four legs north,
+     * then back over the same points one at a time: the estimate must *fall* as the walker
+     * returns — 444.78, 333.59, 222.39, 111.20, 0 m — and it is 0 beside the car. The plain sum
+     * read 444.78, 555.98, 667.17, 778.37, 889.56 m over the same five polls: never down, and
+     * 889.56 m at the origin (the report's "6.8 km standing beside the car" in miniature).
+     */
+    @Test
+    fun `the estimate decreases at every point of the return leg and is zero at the origin`() {
+        val outbound = listOf(45.000, 45.001, 45.002, 45.003, 45.004)
+        val returning = listOf(45.003, 45.002, 45.001, 45.000)
+
+        val readings = returning.indices.map { i ->
+            val lats = outbound + returning.take(i + 1)
+            pathHome(track(lats), current = LatLng(lats.last(), LNG), origin = null)!!.totalMeters
+        }
+
+        assertEquals(444.78032, pathHome(track(outbound), current = LatLng(45.004, LNG), origin = null)!!.totalMeters, 0.01)
+        assertEquals(333.58524, readings[0], 0.01)
+        assertEquals(222.39016, readings[1], 0.01)
+        assertEquals(111.19508, readings[2], 0.01)
+        assertEquals(0.0, readings[3], 0.001)
+        for (i in 1 until readings.size) {
+            assertTrue("reading $i must be below reading ${i - 1}: ${readings[i - 1]} → ${readings[i]}", readings[i] < readings[i - 1])
+        }
     }
 
     @Test
@@ -168,12 +222,14 @@ class PathHomeTest {
         assertEquals(1, single.pointCount)
     }
 
-    private fun track(lats: List<Double>, originWaypointId: String? = null) = Track(
+    private fun track(lats: List<Double>, originWaypointId: String? = null) = trackAt(lats.map { it to LNG }, originWaypointId)
+
+    private fun trackAt(latLngs: List<Pair<Double, Double>>, originWaypointId: String? = null) = Track(
         id = "t",
         name = null,
         startedAtEpochMillis = 0L,
         endedAtEpochMillis = null,
-        points = lats.mapIndexed { i, lat -> TrackPoint(lat = lat, lng = LNG, altitude = null, accuracyMeters = null, timestampEpochMillis = i * 15_000L) },
+        points = latLngs.mapIndexed { i, (lat, lng) -> TrackPoint(lat = lat, lng = lng, altitude = null, accuracyMeters = null, timestampEpochMillis = i * 15_000L) },
         originWaypointId = originWaypointId,
     )
 

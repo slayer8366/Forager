@@ -29,7 +29,30 @@ class NavigationHudReadoutTest {
         unit: DistanceUnit = DistanceUnit.MILES,
         now: Long = t + 1_000L,
         showDecimalDegrees: Boolean = false,
-    ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees)
+        pathHomeMeters: Double? = null,
+    ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees, pathHomeMeters)
+
+    // ── Path-home join dispatch: the one more short string, and what it yields to ──────────
+
+    @Test
+    fun `path home fills the status line's empty state as one number in the display unit`() {
+        assertEquals("Path home 0.9 mi", readout(pathHomeMeters = 1_500.0).statusText)
+        assertEquals("Path home 1.5 km", readout(pathHomeMeters = 1_500.0, unit = DistanceUnit.KILOMETERS).statusText)
+        // Below a quarter mile the unit is feet: 350 m is 1148.3 ft.
+        assertEquals("Path home 1148 ft", readout(pathHomeMeters = 350.0).statusText)
+        assertEquals("Path home 350 m", readout(pathHomeMeters = 350.0, unit = DistanceUnit.KILOMETERS).statusText)
+        // The distance slot is untouched: still the straight line.
+        assertEquals("0.7 mi", readout(pathHomeMeters = 1_500.0).distanceText)
+    }
+
+    @Test
+    fun `path home yields to approaching, to a stale fix and to a lost fix`() {
+        val close = north.copy(lat = 45.52009)
+        assertEquals("Approaching", readout(target = close, pathHomeMeters = 12.0).statusText)
+        assertEquals("Last fix 45 s ago", readout(now = t + 45_000L, pathHomeMeters = 1_500.0).statusText)
+        assertEquals("No fix for 6 min", readout(now = t + 6L * 60L * 1_000L, pathHomeMeters = 1_500.0).statusText)
+        assertEquals("", readout(pathHomeMeters = null).statusText)
+    }
 
     @Test
     fun `facing north-east with the target due north - turn 315, distance 0 point 7 miles, nothing else to say`() {
