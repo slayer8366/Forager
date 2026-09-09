@@ -279,3 +279,53 @@ PR runs build the **merge ref**, so if `main` moves mid-experiment both arms sil
 The arms stay comparable to each other, but the experiment stops describing the tree it claims to.
 `main` is recorded at `14cc6f3` at the start; it is re-read at the end, and if it moved, the report
 says so and states which draws fall on each side.
+
+---
+
+## F. Phase 0 result — 10 local present-arm runs, all green
+
+Executed against `14cc6f3`'s code, pre-registration `0f33c04`, started 16:30:38Z, finished
+16:51:00Z. The code under test was unmodified `main`; this branch's only delta is documentation.
+
+| run | JournalTabTest photo-pull | suites | tests | background failures |
+|---|---|---|---|---|
+| 1 | green | 167 | 1309 | 10 |
+| 2 | green | 167 | 1309 | 10 |
+| 3 | green | 167 | 1309 | 10 |
+| 4 | green | 167 | 1309 | 10 |
+| 5 | green | 167 | 1309 | 10 |
+| 6 | green | 167 | 1309 | 10 |
+| 7 | green | 167 | 1309 | **9** |
+| 8 | green | 167 | 1309 | **9** |
+| 9 | green | 167 | 1309 | 10 |
+| 10 | green | 167 | 1309 | **9** |
+
+**0 reds in 10.** All ten ran; no optional stopping. No artifacts to preserve, since there was no
+red. The greens are reported because a tally built only from failures has no denominator.
+
+**Per §D.2's rule, fixed before the data: local observation is NOT demonstrated, and that is not the
+same as "this host cannot see it."** Counting every local draw known — the note's draw 1, PR #88's
+session run, and these ten — local now stands at **0 in 12**, against CI's **2 in 14**.
+
+And 0-in-12 does *not* establish that the host is immune. At CI's own rate of 2/14 ≈ 0.143, twelve
+local runs come back clean with probability 0.857¹² ≈ **0.155** — about one time in six. A Fisher
+exact on local-versus-CI (0/12 against 2/14) gives p ≈ 0.56: **the environment difference is not
+statistically established either.** It rests on the flake note's direct claim and on every observed
+red carrying `hostname="vm"`, not on these counts. Recorded so nobody later cites "0 in 12" as proof
+of a host effect.
+
+The comparison moves to CI, as pre-registered.
+
+### An unrelated finding, reported not fixed (§6)
+
+**The "ten known Windows failures" is not a fixed set of ten.** Three of the ten runs produced
+**nine**, and not the same nine: runs 7 and 10 saw `TrackWaypointMigrationTest` pass, run 8 saw
+`OfflineRegionMigrationTest` pass. So the Room-migration failures are themselves intermittent —
+9 or 10 out of a pool of ten, with which one survives varying per run.
+
+That contradicts the standing description of this baseline as a constant set, and it is consistent
+with `SQLiteCantOpenDatabaseException` being a filesystem/timing condition rather than a
+deterministic one. It does not touch this experiment — the background failures are constant across
+*arms*, never enter §D.1's measure, and `JournalTabTest` is not among them — but a local run showing
+nine would previously have looked like a change rather than a normal draw. Reported here; not fixed,
+not silenced, and no skip-list touched.
