@@ -135,6 +135,11 @@ was neither added to nor left stale.
 This closes the reconciliation the Windows figures could only assert: the dispatch's baseline of
 1303 plus this change's 6 new tests is 1309, and CI reports 1309.
 
+Re-run green with identical figures at `deab086` (run `34369687261`), the PR head as of this line.
+The docs-only commit that adds this sentence will itself trigger a further run, whose result is by
+construction not in this document — the code under test has not changed since `77afc12`, and two
+independent runs over it agree.
+
 Full suite on this Windows host, at the same tree:
 
 **1309 tests / 10 failures / 0 errors / 24 skipped / 167 suite files.**
