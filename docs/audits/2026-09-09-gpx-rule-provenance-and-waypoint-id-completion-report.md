@@ -214,6 +214,24 @@ The merge was clean — no conflict arose, because this branch had not yet appen
 the merge was taken. That ordering was deliberate: merge first, then append, so there is no conflict
 to resolve and therefore no opportunity to drop a row while resolving one.
 
+**Owner ruling on this merge, 2026-09-09.** §5's `Nothing pre-authorized` and `Merge, never rebase`
+answer two different questions — the first is merge authority over *this PR into `main`*, the second
+is how to handle *base drift*. An earlier dispatch in this project states the drift rule outright: if
+`main` moves before you push, merge it in. So this merge was the coder's to take, and taking it did
+not need to be raised.
+
+The line for when it *does* need raising is not "a merge happened" but **whether resolving the drift
+requires deciding something**:
+
+- **Merge and continue** when the incoming commits are uncontested and the resolution is mechanical
+  — this case, `becb826` carrying PR #87 alone, one audit doc and one index row, no code.
+- **Stop and ask** when resolving means choosing. The case that set the line: the PR #86 coder halted
+  because `main`'s side had deliberately dropped an index row belonging to a contested ruling, so
+  "keep every row" and "take main's side" pointed opposite ways. That is a content judgment.
+
+Recorded here because it was ambiguous enough to cost a round trip, and the owner is separating the
+two clauses in future dispatches so it does not recur.
+
 ---
 
 ## 7. Disclosure
@@ -294,8 +312,9 @@ attributes will actually reach a tester's file rather than a path nothing runs.
   GPX alternative, but it is the one place the change is larger than §3's own description of it.
 - Retargeting the existing `an ordinary waypoint with no track link encodes no extensions block` test
   rather than deleting it.
-- Merging `origin/main` into this branch before appending the index row (§6). §5 says merge, never
-  rebase; when to merge was not ruled on.
+- The **ordering** of the base-drift merge against the index row — merge first, append second (§6).
+  Taking the merge at all was not a choice: base drift is the coder's to merge in (§6). Doing it
+  before appending was, and it is what removed the conflict entirely.
 
 ### 7.5 The two specific requirements
 
