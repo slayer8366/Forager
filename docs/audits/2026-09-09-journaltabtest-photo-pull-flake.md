@@ -162,3 +162,57 @@ less coverage is the owner's decision, not a session's convenience. The assertio
 real user-visible claim — that a photo picked from the album actually appears on the entry — and
 `docs/audits/2026-08-31-session-handoff.md:58-64` records that the same behaviour was separately
 reported broken on-device, which is a reason to treat this test as valuable rather than noisy.
+
+---
+
+## Amendment, 2026-09-09 — `main` carries a known-flake red at `4236e6b`, and the run tally
+
+**`main`'s own tip went red on this flake.** CI run `34326689055` on `4236e6b`
+(`Merge pull request #83`): 1278 tests, **1 failed**, 24 skipped — the single failure being
+`JournalTabTest > From Album on the edit form opens the picker and pulls the selected photo into
+the entry`, this document's subject. That is the first sighting on a `push` to `main` rather than
+on a PR head, and it is why the flake's priority changed: it is no longer only a PR-gate nuisance.
+
+**This is a bisect hazard, and the note is the whole mitigation.** `4236e6b` sits between two
+green commits with no change to this test on either side:
+
+| commit | run | result |
+|---|---|---|
+| `7b3064e` | `34310967484` | green |
+| **`4236e6b`** | `34326689055` | **red — this flake, 1 failure** |
+| `2c3c0f9` | `34363668930` | green — 1303/0/0/24, 167 suites |
+
+**Anyone bisecting through `4236e6b` and finding it red should treat it as a known-flake red, not
+a real regression** — nothing about that commit (PR #83, an audits-index catch-up) touches
+`JournalTabTest` or the photo-pull path. Re-run the test alone, as §6's own rule says, before
+calling anything a regression. There is deliberately no code change here: the commit is on `main`
+and stays there, and a note that survives is worth more than a history rewrite that CLAUDE.md
+forbids anyway.
+
+**The run tally, greens included.** A failure rate built only from the failures is not an
+estimate — the failures are the runs that get noticed and written down, so a tally without its
+denominator is biased high. Every full-suite run known to carry PR #82's
+`TrackRecordingServiceTest` case:
+
+| # | where | result |
+|---|---|---|
+| 1 | local Windows | pass |
+| 2 | CI, PR #82 head | pass |
+| 3 | CI, PR #83 head | **fail** |
+| 4 | CI, PR #83 re-run | pass |
+| 5 | CI, `main`@`4236e6b` | **fail** |
+| 6 | CI, PR #86 merge ref | pass |
+| 7 | CI, `main`@`2c3c0f9` | pass |
+| 8 | CI, PR #87 head (this note's own run) | pass |
+
+**2 failures in 8.** That does **not** separate a 1-in-3 rate from a 1-in-10 one, and it must not
+be read as settling the rate — the interval it supports is wide, and the count is small on both
+sides. It is a prompt to run more, which is exactly what the queued present-versus-excluded
+dispatch is for. Recorded here so the next session inherits the denominator rather than the reds
+alone.
+
+**Run 8 is this note's own CI run, and that is the point, not a curiosity.** The tally was written
+at 2 in 7 and was stale before the branch recording it could merge — every full suite is a draw,
+including the ones nobody thinks of as an experiment. So the denominator here is a floor, not a
+total: any full-suite run on a tree carrying PR #82's `TrackRecordingServiceTest` is a sample, and
+a session that has one in hand should add it rather than assume the recorded figure is current.
