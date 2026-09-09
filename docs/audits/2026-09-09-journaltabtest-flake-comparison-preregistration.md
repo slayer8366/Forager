@@ -536,3 +536,94 @@ remaining flake" and for nothing weaker.
 
 Recomputing a rate after seeing red counts is the subgroup hazard in different clothes. Every figure
 here is combinatorial or binomial arithmetic over n and r only; **no arm outcome has been read.**
+
+---
+
+# K. RESULT — 65 scored draws per arm, 0 lost
+
+| arm | RED | green | n | rate |
+|---|---|---|---|---|
+| **A — present** (test as on `main`) | **4** | 61 | 65 | 0.0615 |
+| **B — substituted** (body inert) | **1** | 64 | 65 | 0.0154 |
+
+**Two-sided Fisher exact: p = 0.365.** Conditional on the 5 total reds, P(k = 4) = 0.1537, and the
+outcomes at least as extreme are k ∈ {0, 1, 4, 5}: 0.0289 + 0.1537 + 0.1537 + 0.0289.
+
+Every red: `totalFailures=1` — `JournalTabTest`'s photo-pull assertion was the *only* failing test in
+the run — and `JournalTabTest` at **position 140 of 167** in all five, in both arms.
+
+Individual reds: arm A at draws 5, 38, 48 (block 1) and 55 (block 2); arm B at draw 62 (block 2).
+
+### K.1 The pre-registered reading, applied
+
+§D.3's table, cell 2 — **both arms red, p ≥ 0.05**: *"the drain worked, and the flake that remains
+has a different source among the other 166 suites."* That is the reading the rule returns, and it is
+recorded as the rule's output.
+
+### K.2 The finding that does not depend on the statistic at all
+
+**Arm B produced a red with the test body inert.** No service, no controller, no coroutine, no
+assertion — and `JournalTabTest`'s photo-pull assertion still failed, at the same position, as the
+only failure in the run.
+
+That single observation is an **existence proof**, and it needs no p-value, no power calculation and
+no rate estimate: **PR #82's drained test is not *necessary* for the flake.** It is the most robust
+thing this experiment produced and it survives every caveat below.
+
+### K.3 The caveat that binds hardest — the design's power rested on a rate that was too high
+
+n = 65 was sized against p ≈ 0.14, taken from the historical 2-in-15. **The observed present-arm
+rate is 4/65 = 0.0615**, and pooled across both arms 5/130 = 0.0385.
+
+| | rate assumed | achieved power (threshold r ≥ 6) |
+|---|---|---|
+| when n was chosen | 0.14 | **0.907** |
+| as actually observed | 0.0615 | **0.210** |
+
+**The experiment ran at ~21 % power, not ~91 %.** It reached the "not separable" cell in a design
+that, at the true rate, could not have separated the arms even if the drained test explained
+everything.
+
+This is the same family as every other trap in this project's `CLAUDE.md`, arriving by a new door:
+not too small an n, but **an n sized on an unverified input.** The 2-in-15 estimate carried an
+interval wide enough to include 0.06, and nothing in the sizing acknowledged that the rate itself was
+an estimate from 15 draws. **Check the input to a power calculation the way you would check the
+input to any other check.**
+
+### K.4 What is therefore established, and what is not
+
+- **Established:** the flake occurs with #82's test inert. It is not necessary for the flake.
+- **Established:** `JournalTabTest` sits at position 140 of 167 in every red, in *both* arms — so the
+  substitution preserved its position, which is the design requirement §1 demanded, confirmed rather
+  than assumed.
+- **NOT established:** that the drained test contributes nothing. 4 versus 1 is entirely consistent
+  with a substantial partial effect, and §G pre-registered that this design cannot detect one. At
+  21 % power that limit binds far harder than when it was written.
+- **NOT established:** any mechanism. Confirming a pattern is not proving a mechanism — the standing
+  line in the Windows note, unchanged.
+
+### K.5 The pre-registered heterogeneity check (§I.5)
+
+| arm | draws 1–50 | draws 51–65 |
+|---|---|---|
+| A — present | 3/50 = 0.060 | 1/15 = 0.067 |
+| B — substituted | 0/50 = 0.000 | 1/15 = 0.067 |
+
+No evidence of a block effect in arm A. Arm B's single red falls in block 2, but **one red in total
+carries no information about heterogeneity** — with 1 red in 65 draws, the chance it lands in the
+15-draw block is 15/65 = 0.23 under perfect homogeneity. Reported because it was registered, and
+read as uninformative rather than as a signal. The between-arm comparison is unaffected: the block
+structure is identical across arms by construction.
+
+### K.6 Base drift — recorded, and inert for two independent reasons
+
+`main` moved from `14cc6f3` to `faf2c73` ("Pin Workers observability off in `wrangler.toml`") at
+**22:16:03Z**, during the experiment.
+
+1. **Timing.** Every one of the 130 draws *started* before it landed. The latest was arm A's
+   attempt 15 at 22:15:15Z — 48 seconds ahead of the drift.
+2. **Content.** `settings.gradle.kts` declares `include(":app")` and nothing else. `server/` is not a
+   Gradle module, so `server/pmtiles-worker/wrangler.toml` cannot enter the Android unit-test suite
+   under any scheduling.
+
+**No draw falls on the far side of the drift**, and had one, it could not have been affected.

@@ -229,7 +229,7 @@ A cancelled run neither passed nor failed, and entering it on either side would 
 observation. Draws 1–8 are as first recorded; 9–15 were enumerated from `gh run list` on
 2026-09-09.
 
-**2 failures in 15.** That does **not** separate a 1-in-3 rate from a 1-in-10 one, and it must not
+**2 failures in 15** as of the comparison dispatch — superseded below. That does **not** separate a 1-in-3 rate from a 1-in-10 one, and it must not
 be read as settling the rate — the interval it supports is wide, and the count is small on both
 sides. It is a prompt to run more, which is exactly what the queued present-versus-excluded
 dispatch is for. Recorded here so the next session inherits the denominator rather than the reds
@@ -243,3 +243,40 @@ five CI runs were draws — every full suite is one, including the runs nobody t
 experiment. So the denominator here is a floor, not a
 total: any full-suite run on a tree carrying PR #82's `TrackRecordingServiceTest` is a sample, and
 a session that has one in hand should add it rather than assume the recorded figure is current.
+
+---
+
+## Amendment, 2026-09-09 (third) — 65 controlled draws carrying the test, and the tally that follows
+
+The controlled comparison ran
+(`2026-09-09-journaltabtest-flake-comparison-preregistration.md`, §K). Its **arm A** is 65 CI
+full-suite draws on a tree carrying PR #82's `TrackRecordingServiceTest` unmodified — i.e. 65 more
+draws of exactly what this tally counts.
+
+**Arm A: 4 reds in 65.** Added to the CI draws already recorded (draws 2–15, 2 reds in 14):
+
+> **CI, carrying the test: 6 failures in 79 draws — 7.6 %.**
+> **Local Windows, carrying the test: 0 failures in 12 draws** (draw 1, one from PR #88's session,
+> and Phase 0's ten).
+
+The floor framing holds and the floor moved a long way. The earlier 2-in-15 (13 %) was a small-sample
+estimate whose interval comfortably included the 6 % the present arm actually shows, and **sizing the
+comparison against 13 % is why it ran at 21 % power instead of 91 %** — recorded in §K.3 of the
+pre-registration as its own lesson.
+
+**What the comparison established, and what it did not:**
+
+- **The flake occurs with #82's test inert.** Arm B — same class, same method name, same position,
+  body replaced by a no-op — produced a red, at the same position 140 of 167, as the only failing
+  test in the run. **That test is not necessary for the flake.** An existence proof; it needs no
+  p-value.
+- **Fisher two-sided p = 0.365** on 4/65 against 1/65. Not separable — but at the observed rate the
+  design had ~21 % power, so this cell was reachable regardless. **It does not show the drained test
+  contributes nothing**, and must not be read that way.
+- **Position 140 of 167 in every red, in both arms.** The fixed-order finding holds, and the
+  substitution demonstrably did not move `JournalTabTest`.
+
+**Where the search goes next:** interference within a fixed order remains the hypothesis, with one
+candidate now excluded as *necessary* and 166 other suites untested. The predecessors of position 140
+are the obvious next place to look, which is what this note's own "pair the predecessors with
+`JournalTabTest` and reproduce" discriminator already said.
