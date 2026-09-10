@@ -1,5 +1,11 @@
 # Report — Workstream L4b-R: Standalone Drafts Correction
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** L4b-R — correction to Workstream L4b (Planner, 2026-08-25)
 **Branch:** `claude/l4b-persisted-drafts` @ (this commit) — continues directly from L4b's own commit
 `f824e4c`, no new branch (nothing from L4b shipped/merged, so there is one history to amend, not two).
@@ -21,7 +27,7 @@ than accepting as a tradeoff:
 L4b-R's fix is structural, not a patch: a draft is now a **separate row**, linked to the committed
 entry it drafts (when there is one) via a nullable `draftOfEntryId` parent pointer. The committed
 row is never touched during an edit session — it stays visible with its last-saved values in
-`entries` throughout — and only [`commitDraft`](../../../app/src/main/java/com/forager/app/data/local/MushroomLogDao.kt)'s
+`entries` throughout — and only [`commitDraft`](../../../app/src/main/java/com/zynergylabs/forager/app/data/local/MushroomLogDao.kt)'s
 one transaction ever writes the edited content onto it, on Save.
 
 ---
@@ -113,12 +119,12 @@ prompt attempt of any kind — exactly the owner's clarification.
 
 ```
 $ grep -rn "getAllEntries()" app/src/main/java
-app/src/main/java/com/forager/app/data/repository/RoomMushroomLogRepository.kt:59:        dao.getAllEntries().map { entity ->
-app/src/main/java/com/forager/app/data/local/MushroomLogDao.kt:27:    abstract suspend fun getAllEntries(): List<MushroomLogEntryEntity>
+app/src/main/java/com/zynergylabs/forager/app/data/repository/RoomMushroomLogRepository.kt:59:        dao.getAllEntries().map { entity ->
+app/src/main/java/com/zynergylabs/forager/app/data/local/MushroomLogDao.kt:27:    abstract suspend fun getAllEntries(): List<MushroomLogEntryEntity>
 
 $ grep -rn "\.getAll()" app/src/main/java | grep -i mushroom
-app/src/main/java/com/forager/app/domain/GetDraftEntriesUseCase.kt:26:    suspend operator fun invoke(): Result<List<MushroomLogEntry>> = repository.getAll().map { entries ->
-app/src/main/java/com/forager/app/domain/GetMushroomLogEntriesUseCase.kt:23:    suspend operator fun invoke(): Result<List<MushroomLogEntry>> = repository.getAll().map { entries ->
+app/src/main/java/com/zynergylabs/forager/app/domain/GetDraftEntriesUseCase.kt:26:    suspend operator fun invoke(): Result<List<MushroomLogEntry>> = repository.getAll().map { entries ->
+app/src/main/java/com/zynergylabs/forager/app/domain/GetMushroomLogEntriesUseCase.kt:23:    suspend operator fun invoke(): Result<List<MushroomLogEntry>> = repository.getAll().map { entries ->
 ```
 
 Unchanged from L4b v1's own audit conclusion, re-verified for L4b-R's shape: exactly one raw,
@@ -135,12 +141,12 @@ call site each, both inside `MushroomLogDao.commitDraft` itself or its one calle
 
 ```
 $ grep -rn "\.commitDraft(" app/src/main/java
-app/src/main/java/com/forager/app/data/repository/RoomMushroomLogRepository.kt:81:        dao.commitDraft(committedEntity = committed.toEntity(), draftId = draftId)
-app/src/main/java/com/forager/app/domain/CommitDraftEntryUseCase.kt:19:        return repository.commitDraft(draftId = draft.id, committed = committed).map { committed }
+app/src/main/java/com/zynergylabs/forager/app/data/repository/RoomMushroomLogRepository.kt:81:        dao.commitDraft(committedEntity = committed.toEntity(), draftId = draftId)
+app/src/main/java/com/zynergylabs/forager/app/domain/CommitDraftEntryUseCase.kt:19:        return repository.commitDraft(draftId = draft.id, committed = committed).map { committed }
 
 $ grep -rn "getCrossRefsForEntry(" app/src/main/java
-app/src/main/java/com/forager/app/data/local/MushroomLogDao.kt:37:    abstract suspend fun getCrossRefsForEntry(entryId: String): List<LogEntryPhotoCrossRef>
-app/src/main/java/com/forager/app/data/local/MushroomLogDao.kt:89:            getCrossRefsForEntry(draftId).forEach { crossRef ->
+app/src/main/java/com/zynergylabs/forager/app/data/local/MushroomLogDao.kt:37:    abstract suspend fun getCrossRefsForEntry(entryId: String): List<LogEntryPhotoCrossRef>
+app/src/main/java/com/zynergylabs/forager/app/data/local/MushroomLogDao.kt:89:            getCrossRefsForEntry(draftId).forEach { crossRef ->
 ```
 
 No query returns drafts where they shouldn't, and drafts do not appear in the entry list, gallery

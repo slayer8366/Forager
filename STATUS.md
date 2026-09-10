@@ -1,5 +1,11 @@
 # Forager — Status Audit
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-08-28
 **Scope:** Full repository, read-only. No code changes were made to produce this document.
 **Base checked:** `main` at `d432660` (2026-08-27), the branch this session started from; cross-checked
@@ -29,7 +35,7 @@ checked in this pass, it's marked unverified rather than asserted.
   Protomaps PMTiles extract in Cloudflare R2. Deployed independently of the app's own CI.
 
 **Entry points:**
-- `ForagerApplication` (`app/src/main/java/com/forager/app/ForagerApplication.kt`) — owns the one
+- `ForagerApplication` (`app/src/main/java/com/zynergylabs/forager/app/ForagerApplication.kt`) — owns the one
   `AppContainer` for the process's lifetime.
 - `MainActivity` (`.../MainActivity.kt`) — the app's only Activity. A single Compose tree wires
   three ViewModels (`AvailabilityViewModel`, `MushroomLogViewModel`, `TrackRecordingViewModel`),
@@ -43,7 +49,7 @@ checked in this pass, it's marked unverified rather than asserted.
 
 **Layering** (verified by reading the files, not just the README's own description of them):
 `domain/` is pure Kotlin with zero Android imports (confirmed: no `android.*` import in any file
-under `app/src/main/java/com/forager/app/domain/`), making it unit-testable headless. Every
+under `app/src/main/java/com/zynergylabs/forager/app/domain/`), making it unit-testable headless. Every
 external integration is wrapped behind an owned interface implemented in exactly one adjacent
 package — `location/` (Android location APIs), `map/` (MapLibre's `OfflineManager`), `photo/`
 (`ActivityResultContracts`/`FileProvider`), `sensor/` (`SensorManager`), `data/remote` + `data/repository`
@@ -172,7 +178,7 @@ later, separate PRs (#39, #42).
 zero matches. Whatever debt this codebase carries is structural or a stated future-phase gap, not
 marked-and-abandoned code.
 
-- **`AvailabilityScreen.kt` is 5,109 lines** (`app/src/main/java/com/forager/app/ui/availability/AvailabilityScreen.kt`,
+- **`AvailabilityScreen.kt` is 5,109 lines** (`app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreen.kt`,
   measured directly). The project's own `docs/plans/understory-design-system.md` already names
   splitting this file as the prerequisite for a scoped-but-undispatched "layout phase"
   (`docs/plans/README.md` row for Understory, current as of the 2026-08-26 correction pass). It was
@@ -184,7 +190,7 @@ marked-and-abandoned code.
   nothing exercises two of the three, so nothing would catch a break until a future track-history
   screen tries to use them.
 - **`fallbackToDestructiveMigration(true)` is still active on `main`**
-  (`app/src/main/java/com/forager/app/data/local/ForagerDatabase.kt:112`, confirmed by reading the
+  (`app/src/main/java/com/zynergylabs/forager/app/data/local/ForagerDatabase.kt:112`, confirmed by reading the
   current file). Any device that reaches a schema jump Room has no registered migration for gets
   its local database **silently wiped**, no log, no warning — a real conflict with CLAUDE.md's own
   "no silently swallowed failure" rule. This was found and flagged by the project's own most recent
@@ -299,7 +305,7 @@ surprise — flagged here only because "does it build clean" has to account for 
   (`app/build.gradle.kts:39-105`) — it's a property of this session's clone depth, not a real build
   defect; CI's own `fetch-depth: 0` avoids it (`.github/workflows/ci.yml:56`).
 - Several test files trigger `This declaration needs opt-in ... @kotlinx.coroutines.ExperimentalCoroutinesApi`
-  warnings (e.g. `app/src/test/java/com/forager/app/ui/track/TrackRecordingViewModelTest.kt`, ~30
+  warnings (e.g. `app/src/test/java/com/zynergylabs/forager/app/ui/track/TrackRecordingViewModelTest.kt`, ~30
   occurrences) and a handful use the now-deprecated `createComposeRule()` overload instead of the v2
   API (`PhotoGalleryScreenTest.kt:34`, `CentrePinLocationPickerTest.kt:41`, `MotionTokensTest.kt:39`).
   Non-blocking, real, and not present in the project's own `gradle.properties` doc-comment list of

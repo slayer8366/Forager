@@ -1,5 +1,11 @@
 # Completion report — consolidate the outstanding docs branches into one PR
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** "Consolidate the outstanding docs branches into one PR" (written 2026-09-07; build,
 docs only, two stop-and-ask points). **Date:** 2026-09-08. **Branch:**
 `claude/consolidate-docs-2026-09-08`, cut from `main` at `cb16932` (the PR #77 merge).
@@ -14,7 +20,7 @@ docs only, two stop-and-ask points). **Date:** 2026-09-08. **Branch:**
 | `claude/new-session-3x1aba` | `ab0033f` | `8dc10d4` (contains all of #77's content through two merges of `b7z9bg`; not the `main` merge commit itself) | No — linear commits plus two merges | `CLAUDE.md`, 5 files under `app/`, 3 files under `docs/` |
 
 Every file outside `docs/`, `CLAUDE.md` and the index is on `3x1aba` and nowhere else:
-`app/src/main/java/com/forager/app/MainActivity.kt` (M), `domain/PaceLog.kt` (A),
+`app/src/main/java/com/zynergylabs/forager/app/MainActivity.kt` (M), `domain/PaceLog.kt` (A),
 `domain/PaceLogRecord.kt` (A), `ui/track/TrackRecordingViewModel.kt` (M), and the two tests
 `domain/PaceLogRecordTest.kt` (A), `ui/track/TrackRecordingViewModelTest.kt` (M). `3x1aba` is
 confirmed the only branch carrying production code.

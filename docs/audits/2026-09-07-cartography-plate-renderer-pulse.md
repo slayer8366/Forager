@@ -1,5 +1,11 @@
 # Pulse: what a Cartography plate can actually draw
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Type:** read-only survey (owner-directed pulse). **Nothing built; no product code, no tests, no dependency, no gradle change.**
 **Date:** 2026-09-07. **Base:** `main` at `0ca2f55fe4f49a33aee296d95ee3004ebde231ca` — the merge of PR #73 (timestamp filter), confirmed with `git fetch origin main` at the start of this session; `main` had moved through a merge and a revert of PR #74 earlier the same day and this SHA is after both. Branch `claude/new-session-b7z9bg` was already at this SHA; this report is its only commit.
 
@@ -25,7 +31,7 @@ Every claim names a file and location on `0ca2f55`, or is marked inferred. The s
 
 ### The type, in full
 
-`app/src/main/java/com/forager/app/domain/GetCartographyEntryMapDataUseCase.kt:81-107`:
+`app/src/main/java/com/zynergylabs/forager/app/domain/GetCartographyEntryMapDataUseCase.kt:81-107`:
 
 ```kotlin
 /** Everything [CartographyEntryReportScreen]'s map needs, already resolved — see [GetCartographyEntryMapDataUseCase]'s own doc comment. */

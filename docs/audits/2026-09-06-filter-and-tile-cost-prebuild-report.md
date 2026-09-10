@@ -1,5 +1,11 @@
 # Pre-build report: GPS spike filter at the read seam, and the stale tile ceiling
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** "Two data corrections: GPS spikes in recorded tracks, and a stale tile ceiling"
 (planner, owner-directed). **Base confirmed:** `main` at `909c8ea` (the merge of PR #69), branch
 `claude/new-session-102gri` restarted from it. **Baseline suite on that base, this session:** 1155
@@ -18,7 +24,7 @@ Every claim below names a file and line on `909c8ea` or is marked as inferred.
 ### A1.0 The seam premise, re-verified
 
 The pulse's load-bearing premise holds. Every read of `track_points` goes through one query,
-`TrackDao.getPointsForTrack` (`app/src/main/java/com/forager/app/data/local/TrackDao.kt:47`), and
+`TrackDao.getPointsForTrack` (`app/src/main/java/com/zynergylabs/forager/app/data/local/TrackDao.kt:47`), and
 its only callers are the three read methods of `RoomTrackRepository` — `getAll` (`:25`), `getById`
 (`:30`), `getForDay` (`:36`) — which all pass the result through the single private mapping
 `TrackEntity.toDomain(points)` (`RoomTrackRepository.kt:61`). A grep of `app/src/main` for
@@ -131,7 +137,7 @@ changing; nothing animates, re-measures or re-fits the map.
 
 ### A1.2 Structure, so rule two joins without rework
 
-A domain object `TrackReadFilter` (`app/src/main/java/com/forager/app/domain/`, no Android
+A domain object `TrackReadFilter` (`app/src/main/java/com/zynergylabs/forager/app/domain/`, no Android
 imports) holding an ordered `List<TrackPointRule>`, where a rule is `fun interface TrackPointRule {
 fun apply(points: List<TrackPoint>): List<TrackPoint> }`. `TrackReadFilter.apply(points)` folds the
 rules in order. Rule one is `SpikeRule` (name to be settled in the build), and the filter's list

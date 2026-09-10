@@ -1,5 +1,11 @@
 # L4b Scoping Pulse — Response
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Pulse:** L4b Scoping (Persisted Drafts and Save/Cancel), from Planner, 2026-08-22
 **Branch:** `claude/task-hwj91a` @ `0e2198bd7efde1bf62811713931f743accf1d8a8` — confirmed via
 `git rev-parse HEAD`, matches the pulse's stated context exactly.
@@ -17,10 +23,10 @@ on point for the pulse's closing warning. Reporting them first rather than buryi
 
 **1. The "five write sites" claim is stale, and it's stale in two places, not one.** The pulse
 itself repeats it ("The G1 report mentioned a 'five-write-site clearing rule'... list every one").
-`grep -n "saveErrorMessage = null" app/src/main/java/com/forager/app/ui/log/MushroomLogViewModel.kt`
+`grep -n "saveErrorMessage = null" app/src/main/java/com/zynergylabs/forager/app/ui/log/MushroomLogViewModel.kt`
 returns **seven** matches, at lines 119, 144, 167, 185, 206, 220, and 242 — one per write-site
 success path (§1's table below maps each line to its method). The claim originates in
-`app/src/test/java/com/forager/app/ui/log/MushroomLogViewModelTest.kt:108-114`'s own doc comment
+`app/src/test/java/com/zynergylabs/forager/app/ui/log/MushroomLogViewModelTest.kt:108-114`'s own doc comment
 ("`saveErrorMessage` is set by five different write sites (start/save/delete/add photo/remove
 photo)"), and `MushroomLogViewModel.onSaveErrorDismissed`'s own doc comment
 (`MushroomLogViewModel.kt:255-260`) still says "the five write sites above." Both were true when
@@ -294,7 +300,7 @@ returns exactly one file, `SightingsMap.kt`. Read directly: `SightingsMap.kt:200
 `LifecycleEventObserver` reacting to `ON_RESUME`/`ON_PAUSE`, forwarding to `mapView.onResume()`/
 `mapView.onPause()` — this is MapLibre's own required lifecycle forwarding, scoped to that one
 composable's `MapView`, not an app- or Activity-level hook usable elsewhere. Separately,
-`grep -n "onStop\|onPause\|onCreate" app/src/main/java/com/forager/app/MainActivity.kt` shows only
+`grep -n "onStop\|onPause\|onCreate" app/src/main/java/com/zynergylabs/forager/app/MainActivity.kt` shows only
 `onCreate` (`MainActivity.kt:159-160`) — no `onStop`/`onPause` override exists at the Activity
 level anywhere in this app. **So: backgrounding-triggered save would be new infrastructure at the
 Activity/app level, but the `DisposableEffect` + `LocalLifecycleOwner` + `LifecycleEventObserver`
@@ -306,7 +312,7 @@ reporting this as the closest available structural answer, not a recommendation 
 **Where would each of the three exits actually be detected, given the current structure:**
 
 - **Save / Cancel** — both are explicit user taps on new UI (a Save/Cancel affordance doesn't exist
-  anywhere in this codebase today; `grep -rn "\"Save\"\|\"Cancel\"" app/src/main/java/com/forager/app/ui/log`
+  anywhere in this codebase today; `grep -rn "\"Save\"\|\"Cancel\"" app/src/main/java/com/zynergylabs/forager/app/ui/log`
   was not run as part of this pulse, but no such button appears anywhere in
   `LogEntryDetailScreen.kt`'s current button row, which today only has Camera/Gallery/From
   Album/Change Location). These would be new buttons wired to new ViewModel methods; nothing about

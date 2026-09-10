@@ -1,5 +1,11 @@
 # Pre-build report: exclude network-provider fixes from recorded tracks, by the clock they carry
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** "Exclude network-provider fixes from recorded tracks, by the clock they carry"
 (planner, owner-directed; replaces Part A of the two-data-corrections dispatch, which stays held).
 **Base confirmed: `main` at `49b65c7`.** The branch `claude/new-session-102gri` is off that SHA and
@@ -54,7 +60,7 @@ follow:
 
 ### 1.2 Where the predicate lives — proposal
 
-`app/src/main/java/com/forager/app/domain/NetworkProviderFix.kt` (name to settle), pure Kotlin, no
+`app/src/main/java/com/zynergylabs/forager/app/domain/NetworkProviderFix.kt` (name to settle), pure Kotlin, no
 Android imports:
 
 ```kotlin

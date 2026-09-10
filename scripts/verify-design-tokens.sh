@@ -21,7 +21,7 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
-UI=app/src/main/java/com/forager/app/ui
+UI=app/src/main/java/com/zynergylabs/forager/app/ui
 THEME=$UI/theme
 failed=0
 

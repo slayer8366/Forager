@@ -1,5 +1,11 @@
 # DISPATCH-REPORT.md
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Completion report for the four-item tester-build dispatch (`Dispatch — tester build for the OMS
 field test`). Branch `claude/new-session-vue2za`. All four items implemented; nothing pushed —
 this report and the diff live only in this session's local working tree until told otherwise.
@@ -23,18 +29,18 @@ precedent: no `MainActivityTest` exists for anything else in `MainActivity.kt` e
 **Where it lives:** Settings → "Recorded Tracks" (new entry row, both the compact bottom-nav
 Settings tab and the medium/expanded drawer's Settings panel — `SettingsContent` is the one shared
 composable both host). No new screen: it mirrors the Settings "Crash Logs" row/panel
-(`com.forager.app.ui.crash.CrashLogPanel`) exactly — list, tap to share — since that was the only
+(`com.zynergylabs.forager.app.ui.crash.CrashLogPanel`) exactly — list, tap to share — since that was the only
 existing "list this app's own records, hand one to another app" pattern anywhere in the tree.
 
 **New files:**
-- `app/src/main/java/com/forager/app/export/TrackGpxExporter.kt` — writes a `Track` to a GPX file
+- `app/src/main/java/com/zynergylabs/forager/app/export/TrackGpxExporter.kt` — writes a `Track` to a GPX file
   under `context.cacheDir/tracks/`, filename `forager-track-<yyyy-MM-dd-HHmmss>.gpx` derived from
   **the track's own `startedAtEpochMillis`**, not the moment of export — two tracks from the same
   trip get two distinct, stable names regardless of when either is shared, and re-exporting the
   same track overwrites rather than accumulating duplicates.
-- `app/src/main/java/com/forager/app/ui/track/TrackExportPanel.kt` — the list/share UI, plus
+- `app/src/main/java/com/zynergylabs/forager/app/ui/track/TrackExportPanel.kt` — the list/share UI, plus
   `shareGpxIntent(context, file)` split out as its own testable function (mirrors
-  `com.forager.app.ui.availability.directionsIntent`/`launchDirections`'s existing split).
+  `com.zynergylabs.forager.app.ui.availability.directionsIntent`/`launchDirections`'s existing split).
 
 **Wiring:** `TrackRecordingViewModel` gained a `GetTracksUseCase` dependency (already existed in
 `AppContainer`, called from nowhere before this) and a `loadTracks()` method, called on init and
@@ -144,7 +150,7 @@ Gaia, using numbers this project has already validated (unit-tested `LocationSam
 **Adaptive behavior — considered, not built, and here is why:** the dispatch's own framing
 ("stationary points, that's where the battery goes") attributes the cost to *generating* redundant
 points. In this architecture that isn't quite where the cost actually is:
-`AndroidLocationTracker.fixes` (`app/src/main/java/com/forager/app/location/AndroidLocationTracker.kt:80`)
+`AndroidLocationTracker.fixes` (`app/src/main/java/com/zynergylabs/forager/app/location/AndroidLocationTracker.kt:80`)
 requests raw fixes from the OS at a **fixed 1-second interval regardless of `TrackRecordingMode`** —
 `LocationSampler` only decides which of those fixes get *written*, so a write-side stationary
 detector would reduce Room writes (already cheap) without touching the actual GPS-radio draw. A

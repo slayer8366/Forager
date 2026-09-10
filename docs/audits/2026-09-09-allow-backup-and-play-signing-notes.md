@@ -1,5 +1,11 @@
 # Completion report: `allowBackup` off for the beta, and the Play App Signing comment reopened
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-09-09. **Dispatch:** B4+ from the planner. **Base:** `699efa3` (the PR #79 docs
 consolidation merge, `main`'s head at dispatch time). **Branch:** `claude/backup-and-signing-notes`,
 built in an isolated worktree at `/home/claude/wt-b4` — the shared checkout at `/home/claude/forager`
@@ -133,7 +139,7 @@ Three full-suite runs were made, and the first one is reported honestly rather t
 | 3 | `allowBackup="false"` (change restored) | 166 | 1277 | 0 | 0 | 24 |
 
 Run 1's single failure was
-`com.forager.app.ui.log.JournalTabTest > From Album on the edit form opens the picker and pulls the
+`com.zynergylabs.forager.app.ui.log.JournalTabTest > From Album on the edit form opens the picker and pulls the
 selected photo into the entry`, `java.lang.AssertionError: Assert failed: The component with
 ContentDescription = 'Log photo' (ignoreCase: false) is not displayed!` at `JournalTabTest.kt:374`.
 It was **not** taken on trust as "a known flake": the class was re-run alone (14 tests, 0 failures),

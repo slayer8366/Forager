@@ -9,6 +9,6 @@
 # fails loudly while a placeholder remains. Not wired into .github/workflows/ci.yml: that
 # pipeline gates every PR in this repo, and a stray placeholder here shouldn't block unrelated
 # changes from merging.
-/app/src/main/java/com/forager/app/ui/motion/** @slayer8366
+/app/src/main/java/com/zynergylabs/forager/app/ui/motion/** @slayer8366
 /docs/motion-spec.md @slayer8366
 /docs/adr/0001-motion-precedence.md @slayer8366

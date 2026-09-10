@@ -153,6 +153,27 @@ jobs:
             echo "| commit count | \`$expected_code\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Fails the build on any occurrence of the retired reverse-DNS package root, which asserted
+      # control of a domain this project does not own (owner ruling, 2026-09-09, on legal grounds).
+      #
+      # The exposure is the domain claim, not the word "Forager": the app is still called Forager,
+      # and the Play listing, privacy policy and GPX namespace URI are all correct and unaffected.
+      # Only the literal reverse-DNS string is forbidden.
+      #
+      # This step spells the term once, deliberately. That is the enforcement mechanism, not a
+      # leftover -- a pattern contrived to avoid spelling it would be weaker enforcement, and the
+      # trade is the owner's to make. `git grep` is scoped to tracked files at this commit; it does
+      # not and cannot police history, which is why the repository migration exists as a separate
+      # step. Self-exclusion by pathspec, so the gate does not match its own definition.
+      - name: Forbidden package term
+        run: |
+          if git grep -n -e 'com\.forager\.app' -e 'com/forager/app' -- . ':(exclude).github/workflows/ci.yml'; then
+            echo "::error::Forbidden package term found in the tree (see matches above)."
+            echo "The retired reverse-DNS root must not appear. Owner ruling, 2026-09-09."
+            exit 1
+          fi
+          echo "OK: the retired package root appears nowhere in the tracked tree."
+
       - name: Run the unit tests
         run: ./gradlew --stacktrace testDebugUnitTest
 
@@ -230,15 +251,15 @@ jobs:
           # investigation includes removing its three entries entirely, not just shrinking them.
           SKIPPED_TESTS_ALLOWLIST = {
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "tapping the control pill's return-to-vehicle button calls onToggleReturning",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "a real touch at each trailhead control's own screen coordinates reaches that control",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "a real touch at each trailhead control's own screen coordinates reaches that "
                   "control while not returning",
               ),
@@ -250,54 +271,54 @@ jobs:
               # docs/audits/2026-09-06-navigation-chrome-prebuild-report.md. Not a silenced test:
               # there is no arm left for it to touch beside.)
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "the add button opens the same plan-or-log chooser the long-press gesture used "
                   "to, then the centre-pin picker, seeded at the region center",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "tapping an observation dot shows its species name and observed date",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "a real touch on the advanced search dropdown's Set on map button reaches it and "
                   "opens the centre-pin picker over the real map",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "tapping outside the search dropdown closes it",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "tapping the bubble's close icon dismisses it without navigating anywhere",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "the locate-me icon calls onLocateMe, not onUseCurrentLocation",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "fullscreen hides the top strip and bottom nav but keeps the map mounted",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "View on iNaturalist launches the observation's web page and dismisses the bubble",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "tapping the coordinates segment reveals labeled decimal degrees, and tapping "
                   "again returns to MGRS",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "a real touch in the gap above the control pill still reaches the map",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "tapping the map while fullscreen restores chrome",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest",
                   "tapping a recent search reports that entry and closes the dropdown",
               ),
               # See docs/audits/2026-08-31-search-bar-overlay-stub-pan-not-registering.md -- closing
@@ -307,38 +328,38 @@ jobs:
               # case" section) -- this allowlist entry covers only its harness-side symptom here,
               # not that bug.
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest",
                   "choosing Log a find calls onStartLogEntry with the picked location instead of "
                   "planning a trip",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest",
                   "choosing Plan a trip, panning to a location, and confirming saves a planned trip "
                   "at that location",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest",
                   "choosing Drop a waypoint, panning to a location, and confirming a name drops a "
                   "waypoint at that location",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "dismissing the bubble via its close icon does not let a later pan bring it back",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "after a 90 degree map rotation the observation bubble sits below the tapped dot",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "tapping elsewhere on the map dismisses the observation bubble",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "a pan while the bubble is still showing keeps it glued to its marker",
               ),
               (
-                  "com.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
+                  "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",
                   "at bearing zero the observation bubble sits above the tapped dot",
               ),
               # Not a bug-investigation entry like the ones above. GenerateFungiIndexDbAsset.generate
@@ -348,7 +369,7 @@ jobs:
               # (app/build.gradle.kts), so an ordinary testDebugUnitTest run always reports it
               # skipped, by design, permanently -- there is no fix that makes this entry go away.
               (
-                  "com.forager.app.tools.GenerateFungiIndexDbAsset",
+                  "com.zynergylabs.forager.app.tools.GenerateFungiIndexDbAsset",
                   "generate",
               ),
           }

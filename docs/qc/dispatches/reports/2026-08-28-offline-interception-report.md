@@ -1,5 +1,11 @@
 # Report — do offline tile reads pass through anything interceptable?
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-08-28. Investigation only, no app behavior changed, no transform built. Verified
 against the actual MapLibre Native source at the exact commit the pinned 13.5.0 AAR was built from
 (`a666f02633c1d03bd793dc214cbb2dbcacf8d74e` — confirmed two independent ways: the short hash
@@ -202,7 +208,7 @@ vector) was in play.
    is now **completely blank** — black background, only the red sighting-location pin, no tiles at
    all.
 
-**Mechanism, confirmed from source — `app/src/main/java/com/forager/app/map/MapLibreStorage.kt:40-59`,
+**Mechanism, confirmed from source — `app/src/main/java/com/zynergylabs/forager/app/map/MapLibreStorage.kt:40-59`,
 `ensureMapLibreStorageOutsideCache()`:**
 
 ```kotlin

@@ -1,5 +1,11 @@
 # Pulse: light budget and turnaround alert — what exists, what does not, and what it would cost
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Type:** read-only survey (owner-directed pulse). **Nothing built; no product code, no tests, no dependency, no gradle change.**
 **Date:** 2026-09-06. **Base:** `main` at `41ce4e1412a3fae52089c7c1fe0a0cc6e98f818f` — the merge of PR #68 (location accuracy), confirmed to contain the gate (`domain/LiveFixGate.kt`) and the formatter. Branch `claude/new-session-102gri` restarted from it; this report is its only commit.
 
@@ -33,7 +39,7 @@ Of the feature's four inputs, **three have no implementation**:
 
 Its own doc comment records why altitude rather than times (`:18-30`): one evaluation, no "which day's sunset?" near midnight, **no timezone handling at all** ("the input is an instant and a position"), and no polar special case. `NIGHT_ALTITUDE_DEGREES = -6.0` is civil twilight (`:52`). Accuracy claim (`:32-35`): better than a tenth of a degree, which moves a threshold crossing by seconds.
 
-**It has no production caller.** `grep -rn "CivilTwilight\." app/src/main` finds only its own file; the only reference in the tree is `app/src/test/java/com/forager/app/domain/CivilTwilightTest.kt`. The map's night mode it was written for moved to a Settings checkbox ("Replaces the map's earlier civil-twilight-automatic/long-press-hold control", `MapPreferencesRepository.kt:36`, `AvailabilityScreen.kt:761`). So: a tested, offline solar-position function exists and is dead in production.
+**It has no production caller.** `grep -rn "CivilTwilight\." app/src/main` finds only its own file; the only reference in the tree is `app/src/test/java/com/zynergylabs/forager/app/domain/CivilTwilightTest.kt`. The map's night mode it was written for moved to a Settings checkbox ("Replaces the map's earlier civil-twilight-automatic/long-press-hold control", `MapPreferencesRepository.kt:36`, `AvailabilityScreen.kt:761`). So: a tested, offline solar-position function exists and is dead in production.
 
 **What a sunset *time* would cost on top of it:** a root-find of `sunAltitudeDegrees(t) = threshold` over the coming hours (bisection over a bounded interval; the function is smooth and monotone between solar noon and midnight), plus the polar cases the doc comment warns about — no crossing today, or the sun never rising. That is a small standard algorithm reusing the existing function, **not a dependency**. NOAA's published sunrise/sunset formulas are an alternative direct computation of the same order of size. No library is needed; none is named because none is recommended.
 

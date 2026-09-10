@@ -1,5 +1,11 @@
 # Completion report — GPX namespace URI to a controlled domain
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** GPX namespace URI to a controlled domain (2026-09-09).
 **Base:** `main` @ `28bcc3b` — four commits past the dispatch's `14cc6f3`, which §3's "or later"
 permits. Branch `claude/gpx-namespace-domain`.
@@ -169,15 +175,15 @@ written, and `scripts/verify-policy-permissions.sh` **check 4 was failing on `ma
 the beta-consent report records it as "correctly" failing and says it "clears when the rename
 merges." It now clears.
 
-**It was never dead prose.** `com.forager.app` is the live `namespace` for **433 source files** and
+**It was never dead prose.** `com.zynergylabs.forager.app` is the live `namespace` for **433 source files** and
 was the live `applicationId`. Renaming it wholesale would have broken the app.
 
 ## 8.2 One line, and `namespace` deliberately does not move
 
 | | before | after |
 |---|---|---|
-| `applicationId` — Play's permanent public identity | `com.forager.app` | **`com.zynergylabs.forager.app`** |
-| `namespace` — Kotlin package root, R/BuildConfig | `com.forager.app` | **unchanged** |
+| `applicationId` — Play's permanent public identity | `com.zynergylabs.forager.app` | **`com.zynergylabs.forager.app`** |
+| `namespace` — Kotlin package root, R/BuildConfig | `com.zynergylabs.forager.app` | **unchanged** |
 
 They may differ, and here they deliberately do. Moving `namespace` renames 433 files' package
 declarations and every import, **and would rewrite every class name in CI's
@@ -205,7 +211,7 @@ Reverting the one line and re-running `verify-policy-permissions.sh`:
 
 ```
 FAILED (4): package name mismatch.
-      app/build.gradle.kts applicationId: com.forager.app
+      app/build.gradle.kts applicationId: com.zynergylabs.forager.app
       docs/legal/privacy-policy.md says:  com.zynergylabs.forager.app
 ```
 

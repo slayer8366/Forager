@@ -1,5 +1,11 @@
 # Findings: the `JournalTabTest` photo-pull flake — both halves of the boundary
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-09-09. **Dispatch:** backup-ruling docs (task e). **Status:** a findings note. No
 test was changed, skipped, ignored, weakened or added to any allowlist by it; this note is
 documentation only. Its whole purpose is to write down two claims that are easy to collapse into
@@ -16,7 +22,7 @@ one-off.
 
 ## The test
 
-`com.forager.app.ui.log.JournalTabTest > From Album on the edit form opens the picker and pulls the
+`com.zynergylabs.forager.app.ui.log.JournalTabTest > From Album on the edit form opens the picker and pulls the
 selected photo into the entry`.
 
 Failure, identical every sighting where the message was recorded:
@@ -36,7 +42,7 @@ picker returns to the edit form, not the `waitUntil` above it.
 | 4 | `claude/backup-ruling-docs` (this dispatch — **documentation and one comment block, no code and no test changes**), cut from `claude/integration-2026-09-09` | This note; full suite 167 suites / 1303 tests / **1 failure** / 0 errors / 24 skipped | `JournalTabTest.kt:374`, message character-for-character identical; class re-run alone immediately after: 14 tests, 0 failures |
 
 Sighting 4 matters beyond adding to the count: this tree carries the `drainBeforeTeardown()` fix
-(`app/src/test/java/com/forager/app/service/TrackRecordingServiceTest.kt:170,183`, present here via
+(`app/src/test/java/com/zynergylabs/forager/app/service/TrackRecordingServiceTest.kt:170,183`, present here via
 the merge of #82) **and the flake fired anyway**. That is direct evidence the drain did not close
 it — a stronger statement than anything in "half two" below, which was written before this run.
 What it does *not* say is that the drain is useless: the drain addresses one specific leak out of
@@ -116,12 +122,12 @@ Every XML in the run carries `hostname="vm"`, consistent with one worker.
 
 | Position | Class | Started | Duration |
 |---|---|---|---|
-| 136 | `com.forager.app.ui.log.CartographyViewModelTest` | 07:16:36.827Z | 1.723 s |
-| 137 | `com.forager.app.ui.log.DecodedPhotoTest` | 07:16:38.566Z | 0.506 s |
-| 138 | `com.forager.app.ui.log.FindsGalleryScreenTest` | 07:16:39.082Z | 0.698 s |
-| **139** | **`com.forager.app.ui.log.JournalTabTest`** | **07:16:39.800Z** | **2.405 s (1 failure)** |
+| 136 | `com.zynergylabs.forager.app.ui.log.CartographyViewModelTest` | 07:16:36.827Z | 1.723 s |
+| 137 | `com.zynergylabs.forager.app.ui.log.DecodedPhotoTest` | 07:16:38.566Z | 0.506 s |
+| 138 | `com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest` | 07:16:39.082Z | 0.698 s |
+| **139** | **`com.zynergylabs.forager.app.ui.log.JournalTabTest`** | **07:16:39.800Z** | **2.405 s (1 failure)** |
 
-`com.forager.app.service.TrackRecordingServiceTest` — the class whose leak
+`com.zynergylabs.forager.app.service.TrackRecordingServiceTest` — the class whose leak
 `drainBeforeTeardown()` addresses — ran at position 101, 07:15:08.504Z, about 91 seconds and 38
 classes earlier.
 

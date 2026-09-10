@@ -1,5 +1,11 @@
 # Pulse — Layout phase (5S), second draft: correction-notice and §2S rebuild verified against the tree
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-08-28. Read-only verification, no code changes. Checks the second "Layout phase — 5S
 applied to the UI" draft's specific factual claims — the Correction Notice, the rebuilt §2S tables, and
 Q5 of its "Decisions needed" list — against the current tree and `docs/plans/map-redesign.md` in full.
@@ -38,7 +44,7 @@ All four corrected claims hold. Nothing in the Correction Notice needs a further
 | `showCloseButton` on `drawerSheetContent`, always `false`, one call site | Confirmed verbatim — the code's own comment at that exact call site (`AvailabilityScreen.kt:664-668`) says so explicitly: *"This has exactly one call site — the `PermanentNavigationDrawer` medium+ windows get... `showCloseButton` is therefore always `false` in practice today; it is not dead code removed here only because that is a separate cleanup this pulse's own dispatch did not ask for."* |
 | Search "reachable from one of six tabs — the largest placement defect" | Confirmed against `map-redesign.md`'s Phase 2 section verbatim: *"search is only reachable from the Maps tab — there is no quick-search affordance from List/Seasonal/Journal/Settings."* |
 | Off-track alert: "detection built, unwired... currently posts nothing" | **Confirmed, with one precision correction.** `DetectOffTrackUseCase` is not literally unwired — it's called from `TrackRecordingViewModel` (line 259) and does drive `TrackRecordingUiState.isOffTrack`. But tracing every consumer of `isOffTrack` in the UI layer finds exactly one: `AvailabilityScreen.kt:3920` tints the return-to-vehicle icon's color to `MaterialTheme.colorScheme.error` — a passive Compose color change, visible only if the app is open, foregrounded, and on the Maps tab. `TrackRecordingService.kt`'s notification builder (`buildNotification()`) has zero reference to `isOffTrack` anywhere. So: the detection *is* wired into app state, but nothing wired to it can reach the user in the Return-phase body state the draft's own reasoning column names ("must work with the screen off") — the practical conclusion "posts nothing" is exactly right, just for a slightly different reason than "unwired" suggests. |
-| Crash log panel exists as a distinct surface | Confirmed: `app/src/main/java/com/forager/app/ui/crash/CrashLogPanel.kt` is a real file. |
+| Crash log panel exists as a distinct surface | Confirmed: `app/src/main/java/com/zynergylabs/forager/app/ui/crash/CrashLogPanel.kt` is a real file. |
 
 Nothing checked came back wrong. The rebuild is accurate.
 

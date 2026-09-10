@@ -1,5 +1,11 @@
 # Coder task: map redesign
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Planning doc from the EGD planner session — a task spec for the coder, not a
 replacement for the repo's real `CLAUDE.md`, whose standing principles govern
 everything below.
@@ -89,7 +95,7 @@ before this task starts — read them fresh.)
   sites, but do reuse the underlying `LocationProvider`/`AndroidLocationProvider`.
 - There is **no compass or device-sensor code anywhere in the app** —
   checked (`grep -ri "compass|sensormanager|orientation|bearing"` across
-  `app/src/main/java/com/forager/app`, only unrelated matches: Material's
+  `app/src/main/java/com/zynergylabs/forager/app`, only unrelated matches: Material's
   `tonalElevation`, doc-comment uses of the word "bearing"). This is new,
   not a restyle.
 - Settings, Trip Planner, and the existing species/region search panel live

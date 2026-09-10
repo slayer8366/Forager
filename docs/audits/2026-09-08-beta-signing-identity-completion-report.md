@@ -1,5 +1,11 @@
 # Completion report — Dedicated beta signing identity
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** `dispatch-beta-signing-identity.md` (owner's upload, decision made: a dedicated beta
 keystore, one identity across beta and release, testers keep their data). **Base:** PR #77 at
 `c914a30`; built on PR #77. **No keystore was generated here, no secret enters the repository, no
@@ -208,7 +214,7 @@ any doc-only commit will do), both signed with the new key:
    `apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk` — its
    `SHA-256 digest` must equal the `<fp>` the guard printed and the `SHA256:` line from
    `keytool -list -v` on the keystore. Three sources, one string. Record it.
-3. **Install #1** on a device with no Forager installed (`adb uninstall com.forager.app` first if
+3. **Install #1** on a device with no Forager installed (`adb uninstall com.zynergylabs.forager.app` first if
    a debug build is there — this is the one time an uninstall is expected, since the debug and
    release identities differ by design). Record a track, drop a waypoint, make an entry with a
    photo. Note the counts.

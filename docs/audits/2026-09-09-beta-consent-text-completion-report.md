@@ -1,5 +1,11 @@
 # Completion report: the beta consent text, and a privacy policy for Play
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Dispatch B0. **Documentation only: no Kotlin, no tests, no build files touched.** The subject is the
 text a beta tester reads before opting in, which was inaccurate in two independent ways, plus the
 privacy policy Play's Data safety declaration needs a URL for.
@@ -155,7 +161,7 @@ not need the one claim that is false to carry it.
   background location kept a recording alive, while `ACCESS_BACKGROUND_LOCATION` appears nowhere in
   `app/src/main/AndroidManifest.xml`, and a stale `applicationId`. Check 4 fails on `main` at the
   time of writing, correctly, because the policy names `com.zynergylabs.forager.app` while
-  `app/build.gradle.kts` still builds `com.forager.app`; it clears when the rename merges.
+  `app/build.gradle.kts` still builds `com.zynergylabs.forager.app`; it clears when the rename merges.
 - Every host named in `docs/legal/privacy-policy.md` appears as a literal in the source at the line
   cited beside it; no host is named in the policy that is not in the source. The complete set of
   `https?://` literals in `app/src/main` and `server/pmtiles-worker/src` was enumerated

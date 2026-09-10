@@ -1,5 +1,11 @@
 # Findings: ten test failures that appear only on the owner's Windows machine
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-09-09. **Dispatch:** B4+ (task 3), written by the coder session from evidence the
 planner supplied plus this session's own run. **Status:** a findings note, not an audit of the
 tests themselves. Nothing was changed to make anything pass; no test was skipped, ignored or
@@ -14,7 +20,7 @@ The owner ran the JVM unit-test suite on their Windows machine and got **ten fai
 
 The individual test names and failure messages were **not** relayed to this session. That matters
 for what follows: everything below reasons from the *categories*, because the messages — the thing
-that would normally identify the cause — are not in hand. `app/src/test/java/com/forager/app/data/
+that would normally identify the cause — are not in hand. `app/src/test/java/com/zynergylabs/forager/app/data/
 local/` holds eleven `*MigrationTest.kt` classes; which nine of them failed is unknown here.
 
 > **AMENDMENT, 2026-09-09 (backup-ruling docs dispatch).** The names and messages *are* now in
@@ -65,12 +71,12 @@ Both failing categories are the ones that touch **real files and real temp direc
 - The migration tests build a real on-disk SQLite file and delete it around each test —
   e.g. `MushroomLogMigrationTest.setUp` does
   `ApplicationProvider.getApplicationContext<Application>().getDatabasePath(TEST_DB_NAME)` and then
-  `dbFile.delete()` (`app/src/test/java/com/forager/app/data/local/MushroomLogMigrationTest.kt`,
+  `dbFile.delete()` (`app/src/test/java/com/zynergylabs/forager/app/data/local/MushroomLogMigrationTest.kt`,
   `setUp`/`tearDown`). Robolectric supplies that path from a temp directory it creates.
 - The FileProvider path resolves a `content://` URI for a file under `filesDir/captures/` through
   `androidx.core.content.FileProvider` and `res/xml/file_paths.xml`
-  (`com.forager.app.photo.CameraCaptureFiles`; the test classes that construct it are the six under
-  `app/src/test/java/com/forager/app/ui/log/`).
+  (`com.zynergylabs.forager.app.photo.CameraCaptureFiles`; the test classes that construct it are the six under
+  `app/src/test/java/com/zynergylabs/forager/app/ui/log/`).
 
 So the hypothesis is **Windows path handling under Robolectric** — path separators, drive letters,
 path length, or a file lock that prevents the delete/reopen these tests do (Windows refuses to
@@ -158,7 +164,7 @@ needed — a message is not a mechanism.
 
 ## Two observations from this tree that a future investigation should start from
 
-Both were read off the eleven test classes in `app/src/test/java/com/forager/app/data/local/` on
+Both were read off the eleven test classes in `app/src/test/java/com/zynergylabs/forager/app/data/local/` on
 this tree. Both are **hypothesis-generating, not established**, and the second especially is the
 kind of correlation CLAUDE.md warns about — recorded so it can be checked cheaply, not believed.
 
@@ -219,7 +225,7 @@ match:
 ```
 Failed to find configured root that contains C:\Users\metal\AppData\Local\Temp\
 robolectric-AvailabilityScreenSettingsPanelTest_..._for_a_GPX_file<digits>\
-com.forager.app-dataDir\cache
+com.zynergylabs.forager.app-dataDir\cache
 ```
 
 **A standing instruction from the owner (2026-09-09): do not upgrade this note's claim.** The
