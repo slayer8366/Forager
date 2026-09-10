@@ -98,6 +98,12 @@ class TrackGpxExporterTest {
             file.readText(),
         )
         assertTrue("the file itself must declare the rule set in force", file.readText().contains("rule=\"timestampMillisNonZero\""))
+        // The namespace a tester's actual file carries, hand-written: this is the production path,
+        // and the URI is permanent in every file it writes.
+        assertTrue(
+            "the written file must bind the forager vocabulary to the controlled domain",
+            file.readText().contains("xmlns:forager=\"https://zynergy-labs.com/forager/gpx/1\""),
+        )
     }
 
     @Test

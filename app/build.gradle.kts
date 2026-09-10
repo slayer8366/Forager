@@ -210,11 +210,34 @@ buildIdentity.provisionalReason?.let { reason ->
 }
 
 android {
+    // `namespace` is the Kotlin/Java package root and the R/BuildConfig package — an internal
+    // compile-time name. `applicationId` is the app's permanent public identity on Play. They are
+    // allowed to differ and here they deliberately do.
+    //
+    // The namespace stays `com.forager.app` because moving it renames 433 source files' package
+    // declarations and every import, and would also rewrite every class name in CI's
+    // SKIPPED_TESTS_ALLOWLIST — a set this repo requires stay byte-identical in both directions.
+    // All of that for a compile-time name no user, store listing or policy ever sees. If it is ever
+    // moved, that is a mechanical refactor on its own, not a rider on an identity change.
     namespace = "com.forager.app"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.forager.app"
+        // The identity Play records permanently. **It cannot be changed after the first upload** —
+        // a different applicationId is a different app, with a different listing and no upgrade
+        // path for anyone who installed the old one. Nothing has been uploaded yet, which is the
+        // only reason this could be corrected at all; the window closes at the first Play upload,
+        // the same shape of deadline as the GPX namespace URI and `rule` provenance.
+        //
+        // `com.forager.app` claimed a domain this project does not control. `docs/legal/privacy-
+        // policy.md` has named `com.zynergylabs.forager.app` since it was written, and
+        // `scripts/verify-policy-permissions.sh` check 4 has been failing against this line on
+        // purpose, waiting for it.
+        //
+        // The FileProvider authority follows automatically and needs no edit: the manifest declares
+        // `${applicationId}.fileprovider` and the three call sites use
+        // `"${context.packageName}.fileprovider"`, and `packageName` is the applicationId at runtime.
+        applicationId = "com.zynergylabs.forager.app"
         minSdk = 26
         targetSdk = 37
         versionCode = buildIdentity.code
@@ -322,7 +345,7 @@ fun certificateSha256(storeFile: File, storePassword: String, alias: String): St
  * destroys the app's data. This session lived through that once, on one device, with an operator
  * who knew what had happened. A tester who installed a build signed with the committed debug key
  * (`app/debug.keystore` — its alias and password are printed in this file, so anyone can sign a
- * package as `com.forager.app` with it) and later received a build signed with the real key would
+ * package as `com.zynergylabs.forager.app` with it) and later received a build signed with the real key would
  * lose every track, entry and photo, with no export path and no backup — multiplied by the cohort.
  * A doc comment saying "never" is not a constraint; this is.
  *
