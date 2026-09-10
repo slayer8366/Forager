@@ -261,13 +261,31 @@ here.
   merges cannot detect, since a schema version, a migration number, a port
   assignment, a feature flag, or any other globally-unique claim can have
   two branches each individually correct, merge without conflict, and still
-  produce a broken result. As of this writing that specific collision is
-  still unresolved, with 51 commits of drift between the two. Where a
+  produce a broken result. **That instance is now resolved** (audited 2026-09-10): `main` took Phase 1a's
+  track/waypoint shape as v5 (`93c18b2`, 2026-08-20), and PR #26's offline-region
+  work was renumbered up into `MIGRATION_5_6` (`6530d7a`, 2026-08-24). The
+  alternative — keep offline-regions at v5 and renumber the track work instead —
+  was rejected because the track shape had been on `main` for four days by then,
+  so moving it would have invalidated a version `main` had already published. The
+  "51 commits of drift" figure was wrong: re-derived it is 10 and 1 between the two
+  branches, and neither is an ancestor of `main`, which is 487 ahead of both. The
+  rule outlives the instance. Where a
   change asserts a globally-unique value, check it against the base's
   current state, not the state you started from. If a dispatch names a
   branch and the session defaults to a different one, that is a
   stop-and-ask, not something to resolve alone — say which two disagree and
-  wait.
+  wait. **A version-number audit on 2026-09-10 found every globally
+  unique number already in one sequence**
+  (`docs/audits/2026-09-10-version-number-normalization-report.md`): `ForagerDatabase`
+  at version 15, twelve migrations forming an unbroken 3-to-15 chain with all twelve
+  registered in the production builder, and twelve exported schemas under the current
+  fully-qualified name. **No floor was kept**, because the owner confirmed on
+  2026-09-10 that no build has ever reached a device and nothing has ever been
+  uploaded to Play. One trap that audit turned up: `versionCode` is **derived** —
+  `git rev-list --count HEAD` — so it appears nowhere in the tree as a literal and a
+  search for a number will not find it. It is still a globally unique claim, and it
+  is still the one a mistake locks users out with, since Android refuses to install a
+  lower one over a higher.
 - **Room for data that relates; DataStore for flat settings.** The deciding
   question is what the data will be queried for, not what it looks like
   today: if a value will be referenced by, joined to, or filtered against

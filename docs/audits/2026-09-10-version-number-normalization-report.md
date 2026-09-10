@@ -1,9 +1,15 @@
-# Stage 1 audit: version-number normalization
+# Version-number normalization: Stage 1 audit and Stage 2 outcome
 
 **Date:** 2026-09-10. **Dispatch:** Phase 0, normalize version numbers (revision 3).
 **Base:** `main` at `bddbb2a`, tracking `origin/main` — 0 behind, 0 ahead, re-derived with
-`rev-list --left-right --count`. **No code was changed.** Precondition for
+`rev-list --left-right --count`. **No code was changed, in either stage.** Precondition for
 `species-cards-dispatch-v2.md` blocker B1.
+
+> **Deviation from §7.3, stated rather than done quietly.** The dispatch asks for a separate Stage 2
+> completion report with its own index row. The owner's ruling reduced Stage 2 to records only —
+> nothing to revert — so a second document would have restated this one and added a row saying so.
+> Stage 2's outcome is §7 below, and the single index row covers both stages. If a separate report is
+> wanted, say so and it costs one commit.
 
 ---
 
@@ -17,7 +23,7 @@ that matches what is here.
 
 | Rule the dispatch cites | In the governing copy? |
 |---|---|
-| Retired package root — never paste it, write the placeholder | **Absent.** That section was removed on 2026-09-10 when the owner rescinded the forbidden-term rule. The dispatch says its rules come from forager-bak's copy; this is one that did not survive. |
+| Retired package root — never paste it, write the placeholder | **Absent.** That section was removed on 2026-09-10 when the owner rescinded the forbidden-term rule. The dispatch says its rules come from an older copy; this is one that did not survive. |
 | Push before you tidy | Present, Known pitfalls. Unchanged. |
 | The audits index is a serialization point, keep every row | Present — and **contradicted by the change committed alongside this report**, which deletes two index rows on the owner's explicit ruling. Disclosed, not reconciled. |
 | Reachability before behaviour | Present, Known pitfalls item (4). Unchanged. |
@@ -59,7 +65,7 @@ its filename, and each carries a distinct `identityHash`.
 **Gap: versions 1 and 2 have neither an exported schema nor a migration path.** The lowest migration
 is 3 to 4 and the lowest schema is `4.json`. A device holding v1 or v2 has no route forward: the
 release path throws, and the debug path would wipe. `ForagerDatabaseDestructiveFallbackTest` asserts
-exactly this pair of behaviours and passes. Whether any device holds v1 or v2 is an owner input.
+exactly this pair of behaviours and passes. The owner confirmed on 2026-09-10 that no device holds any version, so this is latent rather than live.
 
 ## 2. The collision — resolved, and `CLAUDE.md` is wrong about it twice
 
@@ -89,36 +95,36 @@ later adds its `createdAtEpochMillis` index.
 The passage describes a live hazard that was closed roughly 487 commits ago. §7.3 already requires
 correcting it in Stage 2.
 
-## 3. Numbers moved during the forager-bak period
+## 3. Numbers that moved, and the one that is derived
 
-| Number | Canonical | Introduced | Where it is now | Seen outside the repo | Proposed action |
+| Number | Canonical | Current | Moved? | Seen outside the repo | Action |
 |---|---|---|---|---|---|
-| `ForagerDatabase.version` | 15 | 15, unchanged | both | not applicable | **none, nothing moved** |
-| Migrations 3_4 to 14_15 | 12, unbroken | unchanged | both | not applicable | **none** |
-| Exported schema files | 4 to 15 | unchanged | both | not applicable | **none** |
-| `FungiIndexDatabase.version` | 1 | unchanged | both | not applicable | **none** |
-| **`versionCode`** | commit count | **563 to 575** | here | **unknown, see §6.2** | **none, it rose** |
+| `ForagerDatabase.version` | 15 | 15 | no | never | **none** |
+| Migrations 3_4 to 14_15 | 12, unbroken | 12, unbroken | no | never | **none** |
+| Exported schema files | 4 to 15 | 4 to 15 | no | never | **none** |
+| `FungiIndexDatabase.version` | 1 | 1 | no | never | **none** |
+| **`versionCode`** | commit count | **575** | rose, 563 to 575 | never | **none, it rose** |
 
-**Nothing touched Room during that period.** The only code commit was the lifecycle gate `5967dd5`,
-which changed a ViewModel and an Activity. The database, its migrations and its schemas are
-byte-identical across the whole period.
+**Nothing has touched Room recently at all.** The database, its twelve migrations and its twelve
+exported schemas are byte-identical to their state at `443f1fa`. The only code commit since was the
+lifecycle gate `5967dd5`, which changed a ViewModel and an Activity.
 
-**`versionCode` is the one number that moved, and it moved in the safe direction.** Because it is the
-commit count it is a function of history shape, not a literal anyone edited:
+**`versionCode` is the one number that moved, and it is the one nobody can find by searching.**
+It is not a literal: `app/build.gradle.kts:72` computes it as `git rev-list --count HEAD`, so it is a
+function of history shape rather than a value anyone edits. It reads **575** now against **563** at
+`443f1fa` — it has only ever risen, which is the safe direction and the only direction Android will
+accept.
 
-| Tree | `rev-list --count` |
-|---|---|
-| `443f1fa`, before | 563 |
-| `main` now | **575** |
-| forager-bak main | **8** |
-| forager-bak root | 1 |
+**The owner confirmed on 2026-09-10 that no build has ever been installed on a device and nothing
+has ever been uploaded to Play, including drafts.** That settles the whole class of risk this
+dispatch was written around: there is no floor to respect, no device holding an unreachable version,
+and no data anywhere that a migration could destroy. Every "seen outside the repo" cell above is
+**never**, not unknown.
 
-The work came back by **merging** rather than replaying, so `main` kept its 563 commits and gained 12.
-Had it been cherry-picked onto the short-rooted tree, `versionCode` would have collapsed from 563 to
-about 8 — and by §1 item 3, no device on a 563 build could ever have updated again, with Play
-rejecting the reused low codes. **That outcome was avoided incidentally, not by design.** No migration
-dispatch identified `versionCode` as a derived number at risk, because it does not appear in the tree
-as a number.
+The finding worth keeping past this dispatch is the shape of it. A derived number is a globally
+unique claim that no grep will turn up, so the base-branch rule in `CLAUDE.md` — check a
+globally-unique value against the base's current state — has a blind spot exactly where the value is
+computed rather than written. That is now recorded there.
 
 **Documents citing these numbers:** `ForagerDatabase.kt:40`, a comment naming `room.schemaLocation`
 and "only version 4 onward"; and `CLAUDE.md`'s collision passage covered in §2. No audit report states
@@ -183,12 +189,14 @@ myself.
 
 ### 6.2 Could not determine
 
-- **Every §6 owner input.** Which builds were installed on a device and which repository each came
-  from; which `versionCode` values Play has seen, including drafts and closed-test releases; whether
-  any installed device holds data worth keeping. None is answerable from the repository. Until they
-  are answered the "seen outside the repo" column in §3 stays **unknown**, and no renumbering decision
-  can be made.
-- Whether any device holds v1 or v2, the two versions with no migration path.
+**Nothing material remains open.** The §6 owner inputs were answered on 2026-09-10, after the audit
+body above was written and before this section was finalised: **no build has ever been installed on
+a device, and nothing has ever been uploaded to Play, drafts included.** That answer converts every
+"seen outside the repo" cell in §3 from unknown to **never**, removes the v1/v2 question entirely
+(no device holds any version), and means no floor constrains any future number.
+
+One item stays inferred rather than undetermined: that the 11 Windows failures are host-specific.
+See §6.1.
 
 ### 6.3 Premises that were wrong
 
@@ -196,9 +204,9 @@ myself.
 2. **`CLAUDE.md`'s "51 commits of drift"** — actually 10 / 1 between the two branches.
 3. **`CLAUDE.md`'s "still unresolved"** — resolved; `main` carries one v5 and `offline_regions` moved
    to v6.
-4. **The dispatch's framing that the forager-bak period moved a number.** For Room, nothing moved. The
-   only number that moved was `versionCode`, which no dispatch named because it is derived rather than
-   written down anywhere.
+4. **The dispatch's central framing, that the period under audit moved a number needing correction.**
+   For Room, nothing moved. The only number that moved was `versionCode`, which no dispatch named
+   because it is derived rather than written down anywhere.
 5. **§4.4's premise** that a migration test might silently pass by failing to find a schema file. No
    test reads a schema file at all.
 
@@ -206,15 +214,29 @@ myself.
 
 **Empty.** No code changed, no number changed, no test touched.
 
-## 7. Stop
+## 7. Outcome
 
-Per §4.6 this stops here for the owner's ruling.
+**The owner ruled on 2026-09-10: no build ever reached a device, and nothing ever went to Play.**
+That is the §5 table's first row, the clean case — "revert every moved number to canonical" — and
+**there is nothing to revert.** Room never moved, and `versionCode` only rose. No floor was kept,
+because none exists.
 
-On the evidence, the §5 table's **first row** is the one that applies — "no device and no Play upload
-ever saw a forager-bak number" — and in that case the prescribed action, "revert every moved number to
-canonical", has nothing to revert. Room never moved, and `versionCode` rose rather than fell. That
-reading depends entirely on the §6 owner inputs, which is why it is offered as the likely outcome
-rather than acted on.
+Stage 2 is therefore records only, and is committed alongside this report: `CLAUDE.md`'s collision
+passage corrected to say the instance is resolved, how, by which commits, and which alternative was
+rejected and why; plus the standing note that `versionCode` is derived and so invisible to the search
+a reader would naturally run.
 
-Two items may need work regardless of how the ruling goes, and neither originates in this dispatch:
-the **v1/v2 gap** in §1, and the **unread exported schemas** in §4.
+**Current versions, stated for the species-card dispatch to take its migration number from:**
+`ForagerDatabase` is at **15**, so the next migration is `MIGRATION_15_16` and the next database
+version is **16**. `FungiIndexDatabase` is at **1** and does not export schemas.
+
+**Blocker B1 is closed** on the numbering question.
+
+Two items outlive this dispatch and are *not* closed by the ruling, because neither depends on what
+a device holds:
+
+- **Nothing reads `app/schemas/`.** Twelve exported schemas are generated, committed, and never
+  asserted against; `MigrationTestHelper` appears in zero files. Whether to add schema-driven
+  migration tests is a decision of its own, and is not made here.
+- **Versions 1 and 2 have no migration path.** Harmless while no device holds them — which is now
+  established — but it is a real gap the moment a build ships from an older tree.
