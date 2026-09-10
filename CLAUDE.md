@@ -365,3 +365,46 @@ off-line; nothing in this repository should reproduce it.
   depends on real system-bar insets, say so in the fix and in what gets
   reported back — a passing suite is not evidence there, and treating it as
   such is exactly what let this one ship twice.
+- **A derived figure carried across a boundary keeps its authority and
+  loses its provenance.** A number, an interval, or a categorical claim is
+  correct about the thing it was derived from and stops being correct the
+  moment it is quoted about something larger, and nothing in the quoting
+  marks the difference: the figure looks exactly as authoritative in its
+  second home as in its first. Four instances inside one investigation, all
+  found in a single reading pass on 2026-09-10, and none of them careless.
+  (1) **"Pre-existing."** The `JournalTabTest` photo-pull flake is called
+  pre-existing in `6d99a98`, `2876df0` and `DISPATCH-REPORT.md:11`, and
+  nothing precedes the first of the three. The word meant "not caused by my
+  diff" and was read as "older than this investigation," which is what made
+  the origin look unfindable; the failing assertion turned out to be 38
+  hours older than the first record of it, introduced whole by `0e2198b`.
+  (2) **"Every sighting is CI."**
+  `2026-09-09-journaltabtest-flake-comparison-preregistration.md:37`, built
+  by reading a two-column tally (CI, local-Windows) as exhaustive when five
+  reds across four sessions were container `./gradlew` runs that the table
+  never had a column for. `hostname="vm"` was cited in support, and that
+  attribute describes a Gradle worker JVM, not GitHub Actions. The claim
+  would have ruled out the cheapest probe available. (3) **A Wilson
+  interval.** 2.4% to 14.8% is computed correctly for 4/65 in that
+  document's §K and attached to 6/79 in its §L.2, then carried into a
+  dispatch. For 6/79 it is 3.5% to 15.6%. Sizing off the wrong lower bound
+  roughly doubles every derived n. (4) **A corrected heuristic reappearing
+  after its own correction.** §J.5 of that same document identifies
+  `n ≈ 9/p` as the crude rule behind its original power error and replaces
+  it with an exact binomial; §L.2, four sections later, is `9/p` again
+  (118 = 9/0.076, 375 = 9/0.024) relabelled "~80% power," when the exact
+  figures are 103 and 328 and the stated n's carry about 89%. **A
+  correction does not propagate forward through its own document on its
+  own.** The rule: when citing a figure, an interval, or a categorical
+  claim from another document, or from another section of the one you are
+  writing, either re-derive it or quote its scope alongside it, and say
+  which you did. Where the claim is that something never happens, name the
+  sample it was checked against; "all of them" is a claim about a table's
+  columns unless the columns were confirmed exhaustive. The check that
+  catches this is not scepticism, it is counting, and it does work: the
+  stop-action session had every licence to dismiss its own two reds and
+  wrote instead, "It would have been easy, and wrong, to call this
+  pre-existing. What ruled it out was counting"
+  (`2026-09-09-recording-notification-stop-action-completion-report.md:217`).
+  This is the same failure that produced the 294-artifact count and the
+  `verify-policy-permissions.sh` tripwire.
