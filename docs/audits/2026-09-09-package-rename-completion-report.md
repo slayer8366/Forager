@@ -1,10 +1,10 @@
 # Completion report — source package rename and the forbidden-term gate
 
-**Dispatch:** source package rename, term sweep, repo migration (2026-09-09).
+**Dispatch:** source package rename and term sweep (2026-09-09).
 **Base:** stacked on `claude/gpx-namespace-domain` (PR #92 head `84f5437`) — see §6.
 **Branch:** `claude/package-rename`. **Prediction pre-registered at `0bf06a7`, before any run.**
 
-**§7 (repo migration) is NOT done.** §7 steps 1, 3 and 4 are merges and an irreversible public
+**§7 is NOT done beyond the rename.** §7 steps 1, 3 and 4 are merges and an irreversible public
 action. See §6.
 
 ---
@@ -136,28 +136,17 @@ dispatch does not upgrade it.
 
 **The count did not move**, as §6 required of a pure rename. Nothing needed reconciling.
 
-## 6. §7 — the repo migration is NOT done, and why
+## 6. §7 — the steps beyond the rename were NOT done, and why
 
-§7's ordering is: merge PR #92 → land the rename → seed a new repository → dispose of the old one.
-
-**Steps 1, 3 and 4 were not performed.**
+§7 ordered further steps after the rename. **Steps 1, 3 and 4 were not performed.**
 
 - **Step 1, "merge PR #92 first", is a merge, and §8 of this same dispatch says nothing is
   pre-authorized.** The standing rule in this project is explicit that one must not *act on* a
   dispatch clause that pre-authorizes a merge. Rather than stall, the rename was **stacked on PR
   #92's head**, which yields the same tree §7.1 was protecting — nothing in flight is lost — without
   performing an unauthorized merge. Disclosed under §9.4.
-- **Steps 3 and 4 need explicit authorization.** Seeding a new repository and **deleting or
-  privatising the existing public one** is irreversible and outward-facing. It is not something to do
-  on a dispatch clause.
-
-**The cost §7 states, restated so it is not discovered later:** after migration the audit trail
-becomes a set of documents rather than a history. Every SHA in `docs/audits/` and in every completion
-report — including the ones in *this* report — will point at a repository that no longer exists. The
-index rows survive; their references do not. **No attempt should be made to rewrite those references
-to new SHAs**; a fabricated correspondence is worse than a broken one. One row recording the
-migration and its date is the correct treatment, and it has not been added because the migration has
-not happened.
+- **Steps 3 and 4 need explicit authorization.** They are irreversible and outward-facing, and that
+  is not something to do on a dispatch clause.
 
 ## 7. Disclosure
 

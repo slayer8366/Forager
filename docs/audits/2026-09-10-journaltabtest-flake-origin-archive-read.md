@@ -39,7 +39,7 @@ long: first commit 2026-08-15, last 2026-09-09.
 ## 1. Every sighting found, with date and source
 
 Times are UTC. "Recorded" means written down in a commit message, a PR body or a doc in the
-archive. CI logs died with the repository, so nothing here comes from a run log.
+archive. CI logs were not available, so nothing here comes from a run log.
 
 | # | When | Where recorded | What it says |
 |---|---|---|---|

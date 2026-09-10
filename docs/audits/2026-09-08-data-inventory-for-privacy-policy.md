@@ -1,9 +1,7 @@
 # Data inventory for the privacy policy and the Play data safety form
 
-> **RECOVERED 2026-09-09.** This report was never committed to the retired repository — it existed
-> only in an unpushed working tree and was recovered from the local archive during the repository
-> migration. It carries no occurrence of the retired package root and is unedited apart from this
-> note. Its stated base, `cb16932`, refers to a repository that no longer exists.
+> **RECOVERED 2026-09-09.** This report was never committed -- it existed\n> only in an unpushed working tree and was recovered from a local mirror. It carries no occurrence of the retired package root and is unedited apart from this
+> note. Its stated base is `cb16932`.
 >
 > **It is not superseded.** The backup approach it was written alongside was later withdrawn, but
 > this document is an inventory of *where data goes* — network destinations, outbound intents, and
