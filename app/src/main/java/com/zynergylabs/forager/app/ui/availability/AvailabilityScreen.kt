@@ -1,0 +1,5232 @@
+package com.zynergylabs.forager.app.ui.availability
+
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.PermanentDrawerSheet
+import androidx.compose.material3.PermanentNavigationDrawer
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.zynergylabs.forager.app.BuildConfig
+import com.zynergylabs.forager.app.crash.CrashFileStore
+import com.zynergylabs.forager.app.domain.CachedSearchSummary
+import com.zynergylabs.forager.app.domain.CartographyEntryMapData
+import com.zynergylabs.forager.app.domain.CompassProvider
+import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
+import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.ForagingSelection
+import com.zynergylabs.forager.app.domain.ForagingWeatherGuidance
+import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
+import com.zynergylabs.forager.app.domain.LocationResult
+import com.zynergylabs.forager.app.domain.MgrsConverter
+import com.zynergylabs.forager.app.domain.OfflineMapRepository
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
+import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
+import com.zynergylabs.forager.app.domain.isOfflineRegionStale
+import com.zynergylabs.forager.app.domain.model.AppThemeMode
+import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
+import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.ConditionsSummary
+import com.zynergylabs.forager.app.domain.model.DailyWeather
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatDistanceKm
+import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
+import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
+import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.LogPhoto
+import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
+import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import com.zynergylabs.forager.app.domain.model.NoTripWindowReason
+import com.zynergylabs.forager.app.domain.model.PhotoSource
+import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
+import com.zynergylabs.forager.app.domain.model.Sighting
+import com.zynergylabs.forager.app.domain.model.TaxonFilter
+import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
+import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.model.TrackPointRecord
+import com.zynergylabs.forager.app.domain.model.TripWindow
+import com.zynergylabs.forager.app.domain.model.TripWindowReport
+import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.photo.CameraCaptureFiles
+import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
+import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
+import com.zynergylabs.forager.app.ui.adaptive.WindowWidthClass
+import com.zynergylabs.forager.app.ui.adaptive.currentWindowWidthClass
+import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
+import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
+import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.log.JournalTab
+import com.zynergylabs.forager.app.ui.log.LogPanel
+import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
+import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
+import com.zynergylabs.forager.app.ui.log.PhotoGalleryScreen
+import com.zynergylabs.forager.app.ui.map.Basemap
+import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
+import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
+import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
+import com.zynergylabs.forager.app.ui.map.MapBarIconButton
+import com.zynergylabs.forager.app.ui.map.MapFloatingIconButton
+import com.zynergylabs.forager.app.ui.map.MapIconBar
+import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
+import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
+import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
+import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
+import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
+import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
+import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
+import com.zynergylabs.forager.app.ui.map.MapMode
+import com.zynergylabs.forager.app.ui.map.MapModePicker
+import com.zynergylabs.forager.app.ui.map.MapOverlayContent
+import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
+import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
+import com.zynergylabs.forager.app.ui.map.SightingsMapSlot
+import com.zynergylabs.forager.app.ui.map.mapIconBarRecordAccent
+import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
+import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.map.MapRenderMode
+import com.zynergylabs.forager.app.ui.theme.Bark
+import com.zynergylabs.forager.app.ui.theme.Cream
+import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
+import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.track.RecordingNotice
+import java.time.Instant
+import java.time.LocalDate
+import java.time.Month
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.min
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlinx.coroutines.delay
+
+private enum class ResultsTab(val label: String) {
+    LIST("List"),
+    MAP("Maps"),
+    SEASONAL("Seasonal"),
+}
+
+/**
+ * The compact bottom nav's five destinations, in trip order left to right — Pre-trip surfaces
+ * (List, Seasonal) then the surface the user is actually in (Maps, a true centre — depends on
+ * this being an odd count; a sixth destination would break the centring), then Post-trip and rare
+ * (Journal, Tools). [ResultsTab] itself stays a 3-way enum, unchanged, since the medium/expanded
+ * window's tab row still switches only between List/Maps/Seasonal, kept in sync with this enum's
+ * own `selectedTab` (see [AvailabilityScreen]'s `ForagerBottomNav` call site) whenever the tapped
+ * destination is one of those three.
+ *
+ * **Album is not a destination here any more.** It folds into [JOURNAL] as a third top tab
+ * alongside Log/Drafts (see [LogGalleryScreen]'s own doc comment) — Album and log entries share a
+ * phase and a frequency (per-find capture at the specimen, Post-trip review at home), so they
+ * belong in one destination rather than two separate ones that only existed apart because they
+ * were built apart.
+ *
+ * **[TOOLS] does not behave like the other four.** Tapping it never sets `compactTab` to
+ * [TOOLS] — see [ForagerBottomNav]'s own call site — it opens [CompactToolsDrawerContent] as an
+ * overlay instead, over whatever tab was already showing, the same drawer the removed MapIconBar
+ * search icon used to open (that icon is gone — see `MapIconBar`'s own doc comment — this tab is
+ * its replacement entry point, not a new destination alongside it). "Tools" is deliberately a
+ * catch-all for things used but not wanted in the immediate way — per-trip and rare items that are
+ * not destinations in their own right (trip planner, waypoints, and now Settings
+ * too — see that composable's own doc comment). Search itself — basic species/category search,
+ * Recent Searches, and Advanced Search — is **not** part of that list any more: it moved out into
+ * [SearchDropdown], reached from [ActiveSearchSummary] up top rather than from this drawer, exactly
+ * so it would not read as one more Tools entry. That inclusion rule is what the next addition here
+ * has to argue against becoming a junk drawer.
+ */
+private enum class CompactTab(val label: String) {
+    LIST("List"),
+    SEASONAL("Seasonal"),
+    MAP("Maps"),
+    JOURNAL("Journal"),
+    TOOLS("Tools"),
+}
+
+/** The compact bottom nav's icon per destination — see [ForagerBottomNav]. */
+private fun CompactTab.icon(): ImageVector = when (this) {
+    CompactTab.LIST -> Icons.AutoMirrored.Filled.List
+    CompactTab.SEASONAL -> Icons.Filled.WbSunny
+    CompactTab.MAP -> Icons.Filled.Map
+    CompactTab.JOURNAL -> Icons.Filled.MenuBook
+    // Same icon Settings itself used before this dispatch folded it into Tools' own drawer — no
+    // "tools/build" icon exists in this app's icon set (only the core Material icons module is a
+    // dependency, not the extended one a wrench/handyman glyph would need), and Settings is still
+    // genuinely part of what this destination opens.
+    CompactTab.TOOLS -> Icons.Filled.Settings
+}
+
+/**
+ * The medium/expanded window's drawer panels — see [AvailabilityScreen]'s doc comment on
+ * `drawerPanel` for how they're switched between. [Settings] and [Log] are both reached from
+ * sticky entries at the bottom of [Search] (see [SettingsEntryRow]/`MushroomLogEntryRow`).
+ * Closing the drawer entirely resets all the way back to [Search] regardless of which panel was
+ * showing.
+ *
+ * **No longer holds [OfflineMaps] or `Tracks`.** Journal restructure Stage 1 moved both into the
+ * Journal's own Records tab ([RecordsTab] in `ui/log/`) — [Settings] now goes straight to
+ * [CrashLogs] as its only remaining submenu.
+ *
+ * [Log] additionally opens directly — bypassing [Search] — from the map's "Log a find" option
+ * (chosen from [ThreeWayActionDialog], then placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]);
+ * see [MapTab]'s `onLogFindHere` call site in [AvailabilityScreen].
+ *
+ * **Compact windows no longer use this at all.** [Log] moved to the bottom nav
+ * ([CompactTab.JOURNAL] — see [ForagerBottomNav]'s doc comment); [Settings] is reached one level
+ * deeper still, from a sticky entry at the bottom of the compact drawer's own content (see
+ * [CompactToolsDrawerContent]'s `showSettings` state, which hosts [CompactSettingsTab] the same
+ * way this enum's own [Settings] does here). That compact drawer is now [CompactTab.TOOLS]'s
+ * destination (map/navigation redesign dispatch B) rather than search-only, so unlike [Search]
+ * above it is not the drawer's single fixed content — [Settings] there is a nested state within
+ * it, not a sibling reached by closing and reopening. This enum, [drawerSheetContent], and the
+ * `PermanentNavigationDrawer` it feeds stay exactly as they were before any of that — untouched,
+ * medium/expanded-only — see docs/plans/map-redesign.md's "Scope decision" section.
+ */
+private enum class DrawerPanel {
+    Search,
+    Settings,
+    CrashLogs,
+    Log,
+    // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
+    // top-level destination — see PhotoGalleryScreen's own doc comment. No longer a
+    // both-window-classes destination as of map/navigation redesign dispatch B: the compact side
+    // folded into LogGalleryScreen's own Album tab (reached via CompactTab.JOURNAL) rather than
+    // keeping a standalone compact counterpart.
+    PhotoGallery,
+}
+
+/** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
+private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
+
+/**
+ * Map-first layout: the results (map or ranked list) own the content area, and everything set far
+ * less than once per search — location, radius, month, the foraging-areas layer, and trip
+ * planning — lives in a navigation drawer behind the app bar's tune icon, as two independently
+ * collapsible sections; see [SearchControls]. Species/category, the one control used on nearly
+ * every search, lives in the app bar itself; see [AvailabilitySearchTopBar].
+ *
+ * **Why the rest is still in a drawer.** The controls used to be stacked above the results in one
+ * unscrolled [Column]. A Column measures its non-weighted children in order against the height
+ * still unclaimed, so the eight-odd wrap-content controls took the viewport and whatever came
+ * after them — the tab row, the conditions card, the map — was measured against what was left,
+ * which on a ~780dp-tall screen is zero. Nothing scrolled, because the Column had no
+ * `verticalScroll`, so the starved children were simply unreachable. Making that Column
+ * scrollable was the other option and was rejected: a scrollable parent passes an infinite
+ * height constraint down, which a map cannot be measured against at all, so the map would still
+ * have needed a hard-coded height and would still not have been the primary thing on screen.
+ *
+ * The drawer is what makes the real fix possible: with most controls gone, the content area has
+ * a small, bounded set of wrap-content siblings above the results (the top bar, the summary
+ * strip, the tab row), and the results take the rest via [Modifier.weight], which is a definite
+ * bounded height rather than a remainder.
+ *
+ * **The app bar is the one exception**, and the one place a change here can still reintroduce the
+ * squeeze this file's whole layout exists to avoid — see [AvailabilitySearchTopBar]'s own doc
+ * comment for why it's a fixed two-row bar rather than a single Material3 row, and
+ * [AvailabilityScreenLayoutTest] for the measurement that verifies it hasn't.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AvailabilityScreen(
+    uiState: AvailabilityUiState,
+    onUseCurrentLocation: () -> Unit,
+    onManualLatChanged: (String) -> Unit,
+    onManualLngChanged: (String) -> Unit,
+    onSearchManualCoordinates: () -> Unit,
+    onRadiusChanged: (Int) -> Unit,
+    onMonthSelected: (Int) -> Unit,
+    onMapTabSelected: () -> Unit,
+    onSeasonalTabSelected: () -> Unit,
+    onTaxonSearchQueryChanged: (String) -> Unit,
+    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
+    onDismissTaxonSuggestions: () -> Unit,
+    onReopenTaxonSuggestions: () -> Unit,
+    /** Called when a date and name are confirmed for a trip pin placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]. */
+    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
+    onDeletePlannedTrip: (String) -> Unit,
+    /**
+     * Called when one of the recent searches is tapped; see [RecentSearchesSection]. Reached from
+     * the medium/expanded drawer's own [DrawerPanel.Search] panel, or from [SearchDropdown] on
+     * compact windows.
+     */
+    onRecentSearchSelected: (CachedSearchSummary) -> Unit,
+    /**
+     * Where "now" comes from for the relative times this screen renders — the offline banner's
+     * "saved 3 hours ago" and the recent-searches picker's "cached 2 days ago".
+     *
+     * Injected rather than read off [System.currentTimeMillis] at the two call sites, and it is
+     * the reason [CurrentTimeProvider] exists: a Robolectric test asserts the banner's actual
+     * rendered text is on screen, and text derived from the real wall clock is not something a
+     * test can name. Defaults to the real clock the same way [mapSlot] defaults to the real map,
+     * so this stays optional for callers that render neither.
+     */
+    currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
+    /** Set by panning the picker map to the centre pin and confirming, in the Offline Maps submenu — see `OfflineMapsPanel`. */
+    onOfflineMapLatChanged: (String) -> Unit,
+    onOfflineMapLngChanged: (String) -> Unit,
+    onOfflineMapRadiusChanged: (Int) -> Unit,
+    onOfflineMapNameChanged: (String) -> Unit,
+    onOfflineMapsOpened: () -> Unit,
+    onDownloadOfflineMaps: () -> Unit,
+    onDeleteOfflineRegion: (Long) -> Unit,
+    /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
+    onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
+    onThemeModeChanged: (AppThemeMode) -> Unit,
+    /**
+     * The Maps tab entered or left fullscreen by a user action — persisted across restarts, see
+     * [AvailabilityUiState.persistedMapFullscreen]. Called only from the three user-driven
+     * mutation sites (the icon bar's toggle, system back, leaving the Maps tab), never from an
+     * effect on the flag — see `isMapFullscreen`'s own doc comment for why. Defaulted so callers
+     * that don't persist (tests) need not care.
+     */
+    onMapFullscreenChanged: (Boolean) -> Unit = {},
+    /**
+     * The mushroom log drawer destination's own state — see [com.zynergylabs.forager.app.ui.log.LogPanel].
+     * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
+     * to do with the log don't need to pass log-specific state and callbacks just to compile.
+     */
+    logUiState: MushroomLogUiState = MushroomLogUiState(),
+    cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
+    /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
+    onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
+    onOpenLogEntry: (String) -> Unit = {},
+    onCloseLogEntry: () -> Unit = {},
+    onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
+    /** Begins editing the currently-open (committed) entry — see [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onStartEditingEntry]'s own doc comment. A no-op if it's already a draft. */
+    onStartEditingLogEntry: () -> Unit = {},
+    /**
+     * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
+     * ViewModel operation ([com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onOpenEntryForEditing]),
+     * not [onOpenLogEntry] and [onStartEditingLogEntry] chained here. [LogPanel]'s own entry list
+     * is the one caller (see that composable's own doc comment on why its "no report step" shape
+     * needs this instead of the two-callback chain [JournalTab] still uses).
+     */
+    onOpenLogEntryForEditing: (String) -> Unit = {},
+    /** Save — commits the currently-open entry. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
+    onSaveLogEntry: () -> Unit = {},
+    /** Cancel — the only exit that discards anything. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onCancelEditing]'s own doc comment. */
+    onCancelLogEntryEditing: () -> Unit = {},
+    /** Leaving without answering — tab switch, backgrounding, back — persists the draft without committing. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onLeaveEditingIncidentally]'s own doc comment. */
+    onLeaveLogEntryEditingIncidentally: () -> Unit = {},
+    /** Discards a draft by id outright — the compact scaffold's "Discard" Snackbar action target, since by the time it's tapped [logUiState].editingEntry is already null. Same operation as [onDeleteLogEntry]. */
+    onDiscardLogDraft: (String) -> Unit = {},
+    onAddLogPhoto: (PhotoSource) -> Unit = {},
+    onRemoveLogPhoto: (LogPhoto) -> Unit = {},
+    onPullLogPhoto: (LogPhoto) -> Unit = {},
+    onDeleteLogEntry: (String) -> Unit = {},
+    onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
+    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — [PhotoGalleryScreen]'s own buttons, both Album surfaces (Cartography's tab and [DrawerPanel.PhotoGallery]). */
+    onAddGalleryPhoto: (PhotoSource) -> Unit = {},
+    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
+    onSaveLogErrorDismissed: () -> Unit = {},
+    /** Journal Stage 2b's new authored entity — see [com.zynergylabs.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
+    cartographyUiState: CartographyUiState = CartographyUiState(),
+    onOpenCartographyEntry: (String) -> Unit = {},
+    onStartCartographyEntry: (LocalDate) -> Unit = {},
+    onCloseCartographyEntry: () -> Unit = {},
+    onCartographyTextChanged: (String) -> Unit = {},
+    onCartographyTagsChanged: (List<String>) -> Unit = {},
+    onSetFindDecision: (String, Boolean) -> Unit = { _, _ -> },
+    onSetTrackDecision: (String, Boolean) -> Unit = { _, _ -> },
+    onSetWaypointDecision: (String, Boolean) -> Unit = { _, _ -> },
+    onSetOfflineRegionDecision: (Long, Boolean) -> Unit = { _, _ -> },
+    onToggleKeptPhoto: (String) -> Unit = {},
+    /** Entry-photo-acquisition dispatch, Item 2. See [CartographyScreen]'s own doc comment on this same parameter. */
+    onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit = {},
+    onFinishCartographyEntry: () -> Unit = {},
+    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. Threaded straight through to CartographyScreen, whose own lifecycle observer also uses it for the backgrounding-return prompt's Commit option (pending-edit-and-fixes dispatch, Item 1). */
+    onSaveCartographyEntry: () -> Unit = {},
+    /** The leave-prompt's Discard option — device-check patch, Item 1. */
+    onDiscardCartographyEntryChanges: () -> Unit = {},
+    /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See CartographyScreen's own lifecycle-observer doc comment. */
+    onSaveCartographyEntryAsDraft: () -> Unit = {},
+    onDeleteCartographyEntry: (String) -> Unit = {},
+    /**
+     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
+     * composable's doc comment. Defaulted to always report nothing resolved, same reasoning as
+     * [logUiState]: the many existing tests of this screen that never open a Cartography entry
+     * don't need to pass a real resolver just to compile.
+     */
+    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = { _, _ ->
+        CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+    },
+    /**
+     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i —
+     * see that composable's doc comment. Defaulted for the same reason [getCartographyEntryMapData]
+     * is: the many existing tests of this screen that never open a Cartography entry don't need a
+     * real resolver just to compile.
+     */
+    getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = { _, _ -> null },
+    /**
+     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own fullscreen recenter button —
+     * fullscreen-maps dispatch, see that composable's own doc comment, "Fullscreen." Defaulted for
+     * the same reason [getCartographyEntryMapData] is.
+     */
+    getCartographyEntryCurrentLocation: suspend () -> LocationResult = { LocationResult.LocationUnavailable },
+    /**
+     * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
+     * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
+     * Activity (see `MainActivity`'s `pendingLocationAction`) rather than requesting it here.
+     */
+    onLocateMe: () -> Unit = {},
+    /**
+     * Whether a track is currently being recorded, and [MapIconBar]'s start/stop toggle for it —
+     * that bar's 5th row (fullscreen, orientation-reset, GPS/locate-me, map mode, **record**,
+     * return-to-vehicle, search, add), not the compass/elevation/MGRS strip: record and
+     * return-to-vehicle moved out of the strip and into the icon bar on 2026-08-26 (see
+     * `map-redesign.md`'s "Icon stack: superseded from 5 to a 7-icon stopgap" section), and the
+     * bar itself grew from floating circles to one panel bar the same session (see [MapIconBar]'s
+     * own doc comment for the current 8-row shape). **Corrected 2026-08-28** — this comment
+     * previously described the pre-2026-08-26 placement. See `MainActivity`'s `LaunchedEffect` on
+     * [isRecording] for what actually starts/stops [com.zynergylabs.forager.app.service.TrackRecordingService].
+     */
+    isRecording: Boolean = false,
+    onToggleRecording: () -> Unit = {},
+    /** Set when the most recent [onToggleRecording]-triggered start failed or was refused — shown as a one-shot Toast in [CompactMapTab], the same [LaunchedEffect]-on-a-status-field shape as its existing `locateMeStatus` Toast. */
+    startRecordingErrorMessage: String? = null,
+    /**
+     * Alert-delivery dispatch, Item 3: the one-time silenced-phone warning for the recording that
+     * just started — shown once as a `SnackbarDuration.Long` Snackbar in the map Scaffold's existing
+     * host, no action button (the copy never tells the user to change a setting). Keyed on its id so
+     * the same text re-shows on a later trip. See [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.tripStartWarning].
+     */
+    tripStartWarning: RecordingNotice? = null,
+    /**
+     * Timestamp-filter dispatch, Item 3: the once-per-recording notice that most of the active
+     * track is being excluded as network-provider fixes — same host, same shape as
+     * [tripStartWarning]. See [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.networkFixesNotice].
+     */
+    networkFixesNotice: RecordingNotice? = null,
+    /**
+     * The active track's recorded points, oldest first — see [com.zynergylabs.forager.app.ui.map.MapSlot]'s own
+     * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
+     */
+    breadcrumbPoints: List<LatLng> = emptyList(),
+    /**
+     * Saved waypoints — independent of any track recording, per [Waypoint]'s own doc comment.
+     * Rendered as pins on the map ([com.zynergylabs.forager.app.ui.map.MapSlot]) and listed, with delete, in
+     * the Tools drawer's "Waypoints" section ([WaypointsSection]).
+     */
+    waypoints: List<Waypoint> = emptyList(),
+    /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
+    waypointsErrorMessage: String? = null,
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in [WaypointsSection]'s own confirm dialog. */
+    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    /** Called with the placed location and the confirmed name when "Drop a waypoint" is chosen from [ThreeWayActionDialog] — see [WaypointNameDialog]. */
+    onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
+    onDeleteWaypoint: (String) -> Unit = {},
+    /**
+     * Bearing/distance/elevation difference back to the active track's start point, from the
+     * device's current position — `null` whenever nothing is being recorded, no fix has come in
+     * yet, or no breadcrumb has landed to compute a start from. See [ReturnToStartInfo]'s own doc
+     * comment for why there's no ETA, and [CompassElevationStripContent] for where this renders.
+     */
+    returnToStart: ReturnToStartInfo? = null,
+    /** Whether the walker has said they're heading back — see [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.startReturn]'s own doc comment. */
+    isReturning: Boolean = false,
+    /** Set once [isReturning] and the live distance back has been trending up rather than down — see `DetectOffTrackUseCase`. */
+    isOffTrack: Boolean = false,
+    onToggleReturning: () -> Unit = {},
+    /**
+     * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
+     * so no production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
+     */
+    compassProvider: CompassProvider = AndroidCompassProvider(LocalContext.current),
+    /**
+     * Navigation HUD stage one: what turns [compassProvider]'s magnetic heading into a true one
+     * (see [rememberTrueHeading]). Defaults to the real declination model so no production caller
+     * *has* to pass it, same pattern as [compassProvider]; `MainActivity` passes the container's
+     * own instance, and a test passes one over a fake [com.zynergylabs.forager.app.domain.DeclinationProvider]
+     * to pin the sign.
+     */
+    computeTrueHeading: ComputeTrueHeadingUseCase = remember { ComputeTrueHeadingUseCase(AndroidDeclinationProvider()) },
+    /**
+     * Navigation HUD stage one's target — the active track's origin waypoint
+     * ([com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.originWaypoint]), `null` when there is
+     * none. Threaded separately from [waypoints] because it decides which of them the *map* draws
+     * ([mapVisibleWaypoints]) as well as what the HUD points at.
+     */
+    navigationTarget: Waypoint? = null,
+    /**
+     * Path-home join dispatch: the walk back to [navigationTarget] along the recorded track joined
+     * to itself, in metres ([com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.pathHome]'s
+     * `totalMeters`), or `null` when there is none — not returning, no gated fix yet, no usable
+     * points. The HUD's status line carries it as one number; see [navigationReadout].
+     */
+    pathHomeMeters: Double? = null,
+    /**
+     * What fills the map's box. Defaults to the real map, so no production caller passes it; see
+     * [MapSlot] for why the map is reached through a slot rather than named directly here.
+     */
+    mapSlot: MapSlot = SightingsMapSlot,
+    /**
+     * The Settings tab's crash-log diagnostic surface — see [CrashLogPanel]. Defaults to the real
+     * on-device store, same [mapSlot]/[cameraCaptureFiles]/[compassProvider] pattern above.
+     */
+    crashFileStore: CrashFileStore = CrashFileStore.forContext(LocalContext.current),
+    /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
+    onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
+    /**
+     * Every recorded track, for the Settings "Recorded Tracks" export panel — see
+     * [com.zynergylabs.forager.app.ui.track.TrackExportPanel]'s own doc comment. Empty by default, same
+     * [breadcrumbPoints]/[waypoints] shape above: the real list is [trackUiState.tracks][com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.tracks],
+     * threaded in by `MainActivity`.
+     */
+    tracks: List<Track> = emptyList(),
+    /** Refreshes [tracks] — called whenever the export panel opens, mirroring [onOfflineMapsOpened]'s own "reload on open" shape. */
+    onTracksOpened: () -> Unit = {},
+    /**
+     * GPX full-record export dispatch: the unfiltered read for a shared track's `<extensions>`
+     * block — see [com.zynergylabs.forager.app.ui.track.TrackExportList]'s own doc comment. Empty by default,
+     * same [tracks]/[waypoints] shape above; the real function is
+     * [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.getFullRecord], threaded in by
+     * `MainActivity`.
+     */
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
+) {
+    // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
+    var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
+
+    // The compact bottom nav's own 5-way selection — see [CompactTab]'s doc comment for why this
+    // is separate from selectedTab rather than extending ResultsTab itself (which the medium/
+    // expanded window's tab row also reads and must stay 3-way). Kept in sync with selectedTab
+    // below whenever the tapped destination is one of the three they share, so onMapTabSelected/
+    // onSeasonalTabSelected's LaunchedEffect keeps firing correctly and a later resize to a wider
+    // window lands on the same List/Maps/Seasonal tab compact was just showing.
+    var compactTab by remember { mutableStateOf(CompactTab.MAP) }
+
+    // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
+    // flight, reported up from whichever of JournalTab/LogPanel is composed via
+    // onPhotoAcquisitionInFlightChanged (see LogEntryDetailScreen's own doc comment on that
+    // parameter). Read by this screen's own ON_STOP hook below, to suppress the "user backgrounded
+    // the app" incidental-exit heuristic while the backgrounding is this app's own doing.
+    var logPhotoAcquisitionInFlight by remember { mutableStateOf(false) }
+
+    // "View on Map" on a List-tab species row: which taxon (if any) the map tabs should limit
+    // their sightings to. Lives here, alongside selectedTab/compactTab, because both the List and
+    // Map tabs read and clear it and neither is an ancestor of the other in either window-class
+    // layout (CombinedResultsPane and compactMainScaffold each show only one at a time, but both
+    // are built from this same function's state). Null means "no filter" — the ordinary, every
+    // sighting view.
+    var mapTaxonFilter by remember { mutableStateOf<Long?>(null) }
+
+    // Sets the filter and jumps to whichever map surface the current window class actually shows —
+    // both selectedTab and compactTab are updated unconditionally rather than branching on
+    // windowWidthClass here, since only the one the active layout reads has any effect; see
+    // CompactTab's own doc comment for why the two are kept as separate state instead of one.
+    val onViewSpeciesOnMap: (Long) -> Unit = { taxonId ->
+        mapTaxonFilter = taxonId
+        compactTab = CompactTab.MAP
+        selectedTab = ResultsTab.MAP
+    }
+
+    val onClearMapTaxonFilter: () -> Unit = {
+        mapTaxonFilter = null
+    }
+
+    // THE navigation predicate — defined once, here, and nowhere else (navigation-chrome dispatch,
+    // item 1). Everything that means "a navigation mode is active" reads this: the HUD's presence,
+    // the compass strip's absence, and which waypoints the map shows. Stage one has exactly one
+    // mode, the return leg, so this is isReturning; stage two's target picker ORs its own state
+    // into this one line, and the strip, the HUD and the map cannot drift apart because none of
+    // them was ever written against isReturning directly.
+    val isNavigating = isReturning
+    // Navigation HUD stage one's display rules, applied once here so the compact map and the
+    // wide-layout MapTab agree — see mapVisibleWaypoints. Records keeps the full list.
+    val mapWaypoints = remember(waypoints, isNavigating, navigationTarget) {
+        mapVisibleWaypoints(waypoints, isNavigating = isNavigating, target = navigationTarget)
+    }
+
+    // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
+    // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
+    // this — see CompactMapTab's call site. Compact-only: WindowWidthClass.MEDIUM/EXPANDED never
+    // render the icon stack that can set it, so it stays false there. Only reachable while on the
+    // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
+    // selectedTab != MAP cannot happen in practice.
+    var isMapFullscreen by remember { mutableStateOf(false) }
+    // Persisted across restarts (persist-fullscreen dispatch — see
+    // MapPreferencesRepository.getMapFullscreen for the precedent and its reasoning). The loaded
+    // value is applied exactly once, when it first arrives, and only if it arrived at all (a
+    // failed read leaves it null and the screen starts as it always did). Two load-bearing
+    // choices here:
+    //
+    // 1. Writes happen at the three user-driven mutation sites (the toggle below, the fullscreen
+    //    BackHandler, the tab handler's exit) — never from a LaunchedEffect on isMapFullscreen.
+    //    Such an effect would fire on first composition with the default `false` and write it
+    //    before the DataStore read lands, clobbering a persisted `true`: a data-loss bug that
+    //    would present as "the feature doesn't work" and be hard to trace.
+    // 2. The read is asynchronous, so the first frame composes with `false`; when a persisted
+    //    `true` lands the search bar, nav and cluster slide away rather than starting hidden.
+    //    Chosen, not overlooked (owner's call): the alternatives were gating the map's first
+    //    composition on a disk read, or recreating the map once loaded, which would re-fit it —
+    //    the very thing the "nothing may re-fit the map" rule exists to protect. A DataStore
+    //    first read is a few milliseconds, typically before any tile has appeared.
+    var hasAppliedPersistedMapFullscreen by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.persistedMapFullscreen) {
+        val persisted = uiState.persistedMapFullscreen
+        if (persisted != null && !hasAppliedPersistedMapFullscreen) {
+            hasAppliedPersistedMapFullscreen = true
+            isMapFullscreen = persisted
+        }
+    }
+    // The icon cluster's position, held here rather than in CompactMapTab so it survives leaving
+    // and returning to the Map tab — see MapIconClusterPositionState's own doc comment.
+    val mapIconClusterPosition = rememberMapIconClusterPositionState()
+
+    // Local remembered state, alongside selectedTab and for the same reason: which basemap is under
+    // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
+    // no domain type depends on it — it is purely what the tiles look like. Putting it in
+    // AvailabilityUiState would make the ViewModel the authority on a decision it has no part in.
+    // One MapMode value, not the earlier two-piece service+mode split — see MapMode's own doc
+    // comment for what that split used to buy and why it no longer applies.
+    //
+    // The cost, stated rather than hidden: like selectedTab, this resets to its default on process
+    // death. Persisting it needs somewhere to persist *to*, and adding a Room table or a DataStore
+    // for one small piece of display-only state is the speculative build CLAUDE.md warns against.
+    var mapMode by remember { mutableStateOf(MapMode.DEFAULT) }
+    val basemap = mapMode.basemap
+
+    // Night mode: Settings' "Night Maps" checkbox, a direct persistent preference
+    // (uiState.nightModeMaps, backed by MapPreferencesRepository.getNightModeMaps/setNightModeMaps)
+    // rather than derived from time of day. Replaces this map's earlier civil-twilight-automatic/
+    // long-press-hold control (MapNightMode) per the project owner's own request to move night
+    // mode to a plain Settings checkbox instead.
+    val isNightMode = uiState.nightModeMaps
+    val mapRenderMode = MapRenderMode(basemap = basemap, night = isNightMode)
+    // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
+    // comment. mapMode above is still session-local; see the observation in that same doc comment.
+    val distanceUnit = uiState.distanceUnit
+    var drawerPanel by remember { mutableStateOf(DrawerPanel.Search) }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val context = LocalContext.current
+
+    // The authority for "should the drawer be open" — not drawerState.isOpen. DrawerState is an
+    // animated slide-in/out; its currentValue only settles to Open/Closed once that animation
+    // finishes, so routing back-press decisions off it left a real window, mid-animation, where a
+    // rapid open-then-back could still read as closed and fall through to the exit-warning
+    // handler below instead of the close-drawer one — a real bug, not a hypothetical, reported
+    // against the previous version. isDrawerOpen flips the instant an open/close is requested,
+    // synchronously, so both BackHandlers below always route correctly on the very next press no
+    // matter where the slide animation currently is. The LaunchedEffect drives the actual
+    // animated drawer as a side effect of this flag, and Compose's animateTo cancels and reverses
+    // cleanly if the flag flips again before a prior animation finished, so rapid open/close
+    // toggling stays responsive rather than queuing up stale animations.
+    // Read once here, reused below and inside compactMainScaffold's own showQuickSearch handling —
+    // both close points need the same "actually dismiss the IME" fix, not just clear this
+    // composable's own idea of which panel is showing. Neither call was made anywhere in this app
+    // before this fix (grepped the whole tree) — closing a panel that held focus (the drawer's own
+    // search fields, the quick-search species field) unmounts the focused TextField, which doesn't
+    // reliably hide the IME on every device/OEM on its own; a stray back press or drawer-close could
+    // leave a device's keyboard visibly "stuck" over whatever's shown next.
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var isDrawerOpen by remember { mutableStateOf(false) }
+
+    // Stage 2d's routing fix: a one-shot request into whichever of LogPanel/JournalTab is about to
+    // show, set by both onLogFindHere closures below alongside their existing drawerPanel/compactTab
+    // switch — see JournalTab's own doc comment, "The map '+' routing bug," for why this exists and
+    // why it stays a single-purpose token rather than a shared navigation type. One instance covers
+    // both window classes: only whichever of LogPanel/JournalTab is actually composed reads it.
+    var pendingJournalDestination by remember { mutableStateOf<PendingJournalDestination?>(null) }
+    LaunchedEffect(isDrawerOpen) {
+        if (isDrawerOpen) {
+            drawerState.open()
+        } else {
+            drawerState.close()
+            // Reset to the Search panel on every close — scrim tap, back button, or a search action
+            // that closes the drawer itself — rather than leaving Settings showing the next time the
+            // drawer opens. A minor, easily-revisited default: see this task's own notes.
+            drawerPanel = DrawerPanel.Search
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+        }
+    }
+
+    LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth, uiState.taxonFilter) {
+        if (selectedTab == ResultsTab.MAP) onMapTabSelected()
+        if (selectedTab == ResultsTab.SEASONAL) onSeasonalTabSelected()
+    }
+
+    // System back navigates one step toward "home" — the Maps tab, chrome visible, drawer closed
+    // — before falling through to the exit-confirmation handler at the bottom, rather than exiting
+    // from wherever the user happens to be. Nested UI further down the tree (a Journal entry, the
+    // Settings offline-maps submenu, the map's own add-action tile) unwinds itself first via its
+    // own local BackHandler — see JournalTab's, CompactSettingsTab's, and CompactMapTab's — since
+    // Compose's OnBackPressedDispatcher tries the most-recently-composed enabled callback first, so
+    // a nested composable's own handler naturally takes priority over these four.
+    //
+    // Each condition below explicitly excludes the states "more nested" than it, so at most one is
+    // ever enabled at once — declaration order isn't what decides precedence, in case that ever
+    // stops being true. Verified end to end (not just reasoned about) in
+    // AvailabilityScreenBackNavigationTest, including the case only compact width can reach where
+    // isDrawerOpen and isMapFullscreen are both true (the drawer's own Search entry point is still
+    // reachable while fullscreen — see MapIconBar). Corrected 2026-08-28: named MapIconStack here
+    // before that composable was renamed. Navigation-chrome amendment: a fifth step, navigation,
+    // sits between "return to the Maps tab" and the exit handler — see its own comment below.
+    //
+    // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are compact-only state
+    // that a medium/expanded window never changes away from its own defaults (isDrawerOpen stays
+    // false there; a PermanentNavigationDrawer is never "closed"), so none of this fires on that
+    // width class.
+    BackHandler(enabled = isDrawerOpen) {
+        isDrawerOpen = false
+    }
+    BackHandler(enabled = !isDrawerOpen && isMapFullscreen) {
+        isMapFullscreen = false
+        onMapFullscreenChanged(false)
+    }
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP) {
+        compactTab = CompactTab.MAP
+        // Keeps the shared ResultsTab-driven state in sync, same as ForagerBottomNav's own tap
+        // handler does — see compactTab's own doc comment for why the two exist side by side.
+        selectedTab = ResultsTab.MAP
+    }
+
+    // Navigation is the last thing backed out of before the app closes, and backing out of it
+    // asks first (navigation-chrome amendment, owner-directed, found on device). This handler is
+    // enabled only once everything nested is unwound — dropdown, drawer, fullscreen, other tab —
+    // so a back press while navigating in fullscreen exits fullscreen and does not touch the
+    // navigation; the next press asks. Stage one had this in CompactMapTab's own handler with no
+    // exclusions, which — being the deepest registered — exited navigation BEFORE fullscreen, the
+    // drawer or the dropdown unwound: a user in fullscreen lost the return leg to a press they
+    // expected to exit fullscreen. That inversion was the bug this replaces.
+    //
+    // THIS HANDLER PRODUCES A LOOP ON PURPOSE. Back raises the prompt; back dismisses it; back
+    // raises it again. Back can never exit navigation, and — because this handler is enabled
+    // whenever the exit handler below would otherwise be — back can no longer close the app from
+    // this screen while navigating. Home and the app switcher still work, so nobody is trapped.
+    // The reason, in the owner's words: backing out can kill a process a person is relying on.
+    // Someone navigating out of the woods must not lose it to a stray press. The user decides when
+    // to exit — the HUD's ✕ and the control pill's toggle are the only exits, both deliberate
+    // presses, and neither asks. Do not "fix" the loop; do not let a second press confirm (that
+    // would be the accidental exit with one extra step: the second press cancels); do not remove
+    // this handler without another that consumes back here, or a stray press falls through to
+    // the exit handler and drops the user out of the app while a track is recording.
+    //
+    // Toggle, not raise-only: on a device the open AlertDialog is its own window and consumes
+    // back itself (onDismissRequest → keep navigating), so this handler only ever sees the
+    // raising press there. Under Robolectric, onBackPressedDispatcher.onBackPressed() reaches the
+    // Activity, not the dialog window, so the tests' second press lands here — the toggle makes
+    // that path end in the same place. The tests therefore exercise THIS toggle path, not the
+    // dialog window's own dismiss; the guarantee (back never exits) holds by either route, but
+    // the dialog's own back handling is device-only coverage.
+    var showExitNavigationPrompt by remember { mutableStateOf(false) }
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && isNavigating) {
+        showExitNavigationPrompt = !showExitNavigationPrompt
+    }
+    // If navigation ends by any other route while the prompt is up (the recording stopping under
+    // it, say), the prompt has nothing left to ask about.
+    LaunchedEffect(isNavigating) {
+        if (!isNavigating) showExitNavigationPrompt = false
+    }
+    if (showExitNavigationPrompt) {
+        ExitNavigationPrompt(
+            onExit = {
+                showExitNavigationPrompt = false
+                onToggleReturning()
+            },
+            onKeepNavigating = { showExitNavigationPrompt = false },
+        )
+    }
+
+    // "Home": drawer closed, chrome visible, Maps tab selected, not navigating. A second back
+    // press within the window actually exits; a lone press just warns. This is a single-Activity
+    // app with nothing else back could sensibly navigate to once nothing is nested, so an
+    // un-warned single back press (which a pan gesture can graze) would otherwise dump the user
+    // straight out. Never reached while navigating — the handler above holds that state, by
+    // design (see its comment); this exclusion is what makes the two mutually exclusive, the same
+    // way the tab and fullscreen handlers exclude the states nested inside them.
+    var backPressedOnce by remember { mutableStateOf(false) }
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && !isNavigating) {
+        if (backPressedOnce) {
+            (context as? Activity)?.finish()
+        } else {
+            backPressedOnce = true
+            Toast.makeText(context, "Tap Back Button Again to Exit", Toast.LENGTH_SHORT).show()
+        }
+    }
+    LaunchedEffect(backPressedOnce) {
+        if (backPressedOnce) {
+            delay(DOUBLE_BACK_EXIT_WINDOW_MS)
+            backPressedOnce = false
+        }
+    }
+
+    val windowWidthClass = currentWindowWidthClass()
+
+    // Workstream L4b-R2: the one wrapped "leaving without answering" callback, hoisted here (rather
+    // than declared separately inside compactMainScaffold and again wherever the drawer's own
+    // LogPanel needed it) so "every in-app exit offers a discard action" stays one fact about one
+    // callback shared by every caller — the compact bottom nav's JournalTab, its own tab-switch
+    // handler, and DrawerPanel.Log's LogPanel below — rather than N independently-maintained copies.
+    // Backgrounding is the deliberate, sole exception: see compactMainScaffold's own
+    // DisposableEffect, which calls the *raw* onLeaveLogEntryEditingIncidentally directly, never this
+    // wrapper, since there is no window left to show a Snackbar in by the time that fires.
+    val logDraftSnackbarHostState = remember { SnackbarHostState() }
+    val logDraftSnackbarScope = rememberCoroutineScope()
+    // Alert-delivery dispatch, Item 3: the trip-start audibility warning shares this host — a host
+    // is a slot, not a message — rather than adding a second surface over the map. A foreground
+    // moment by construction (the user just tapped record), so a composed effect is the right
+    // place for it, unlike the off-track alert it warns about.
+    LaunchedEffect(tripStartWarning?.id) {
+        tripStartWarning?.let { warning ->
+            logDraftSnackbarHostState.showSnackbar(message = warning.message, duration = SnackbarDuration.Long)
+        }
+    }
+    LaunchedEffect(networkFixesNotice?.id) {
+        networkFixesNotice?.let { notice ->
+            logDraftSnackbarHostState.showSnackbar(message = notice.message, duration = SnackbarDuration.Long)
+        }
+    }
+    val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
+        val discardedId = logUiState.editingEntry?.id
+        onLeaveLogEntryEditingIncidentally()
+        if (discardedId != null) {
+            logDraftSnackbarScope.launch {
+                val result = logDraftSnackbarHostState.showSnackbar(
+                    message = "Saved to Drafts",
+                    actionLabel = "Discard",
+                    duration = SnackbarDuration.Short,
+                )
+                if (result == SnackbarResult.ActionPerformed) onDiscardLogDraft(discardedId)
+            }
+        }
+    }
+
+    // Workstream L4c pre-work: corrects this comment's own claim, found stale by the L4 close-out
+    // pulse (2026-08-25). This has exactly one call site — the `PermanentNavigationDrawer` medium+
+    // windows get, below — not the compact `ModalNavigationDrawer`, which renders
+    // `CompactToolsDrawerContent` instead, a separate composable. [showCloseButton] is therefore
+    // always `false` in practice today; it is not dead code removed here only because that is a
+    // separate cleanup this pulse's own dispatch did not ask for, not because it still does
+    // anything.
+    //
+    // A local composable lambda rather than a top-level one so it closes over this function's ~25
+    // params and local state directly instead of re-threading all of it through an explicit
+    // parameter list a second time. ColumnScope receiver, not a plain function type: the drawer
+    // sheet that hosts this hands it a ColumnScope (that's what lets the `Modifier.weight(1f)`
+    // calls inside resolve at all), and a lambda assigned to a receiver-typed val keeps that
+    // receiver rather than losing it.
+    val drawerSheetContent: @Composable ColumnScope.(showCloseButton: Boolean) -> Unit = { showCloseButton ->
+        when (drawerPanel) {
+            DrawerPanel.Search -> {
+                if (showCloseButton) {
+                    // The one visible way to close this drawer other than tapping the scrim:
+                    // gestures are off (see gesturesEnabled below), and the scrim alone is
+                    // undiscoverable.
+                    DrawerHeader(onClose = { isDrawerOpen = false })
+                }
+                SearchControls(
+                    // The controls take whatever height is left over so the settings entry
+                    // row stays pinned to the bottom of the sheet rather than sitting past
+                    // the end of the controls' own scroll, where nobody would find it.
+                    modifier = Modifier.weight(1f),
+                    uiState = uiState,
+                    distanceUnit = distanceUnit,
+                    onUseCurrentLocation = {
+                        isDrawerOpen = false
+                        onUseCurrentLocation()
+                    },
+                    onManualLatChanged = onManualLatChanged,
+                    onManualLngChanged = onManualLngChanged,
+                    onSearchManualCoordinates = {
+                        isDrawerOpen = false
+                        onSearchManualCoordinates()
+                    },
+                    onRadiusChanged = onRadiusChanged,
+                    onMonthSelected = onMonthSelected,
+                    onDeletePlannedTrip = onDeletePlannedTrip,
+                    onRecentSearchSelected = { summary ->
+                        // Closed for the same reason searching from this drawer closes it:
+                        // the tap starts a search, and the results are behind the sheet.
+                        isDrawerOpen = false
+                        onRecentSearchSelected(summary)
+                    },
+                    currentTime = currentTime,
+                )
+                // Sticky footer rows: the log is the newer of the two pre-existing ones, placed
+                // above Settings so it isn't the last thing in the sheet — see
+                // MushroomLogEntryRow. The photo gallery (Workstream G2) joins right below it,
+                // the other mushroom-log-area destination.
+                MushroomLogEntryRow(onClick = { drawerPanel = DrawerPanel.Log })
+                PhotoGalleryEntryRow(onClick = { drawerPanel = DrawerPanel.PhotoGallery })
+                // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
+                // moved to the bottom of the Settings panel below.
+                SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
+            }
+
+            DrawerPanel.Settings -> {
+                SettingsHeader(onBack = { drawerPanel = DrawerPanel.Search })
+                SettingsContent(
+                    modifier = Modifier.weight(1f),
+                    distanceUnit = distanceUnit,
+                    onDistanceUnitSelected = onDistanceUnitSelected,
+                    themeMode = uiState.themeMode,
+                    onThemeModeChanged = onThemeModeChanged,
+                    nightModeMaps = uiState.nightModeMaps,
+                    onNightModeMapsChanged = onNightModeMapsChanged,
+                    onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
+                )
+                BuildIdentityFooter()
+            }
+
+            DrawerPanel.CrashLogs -> {
+                // Back returns to Settings, one level up — not all the way to Search.
+                CrashLogPanel(
+                    modifier = Modifier.weight(1f),
+                    files = crashFileStore.list(),
+                    onBack = { drawerPanel = DrawerPanel.Settings },
+                )
+            }
+
+            DrawerPanel.Log -> {
+                LogPanel(
+                    modifier = Modifier.weight(1f),
+                    uiState = logUiState,
+                    cameraCaptureFiles = cameraCaptureFiles,
+                    mapSlot = mapSlot,
+                    region = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
+                    basemap = basemap,
+                    night = isNightMode,
+                    onOpenEntryForEditing = onOpenLogEntryForEditing,
+                    onCloseEntry = onCloseLogEntry,
+                    onEntryChanged = onLogEntryChanged,
+                    onSaveEntry = onSaveLogEntry,
+                    onCancelEditing = onCancelLogEntryEditing,
+                    // Workstream L4b-R2: shares the same wrapped callback as the compact bottom
+                    // nav's JournalTab — see this function's own top-level construction of
+                    // leaveLogEntryEditingOfferingDiscard for why one callback, not a
+                    // window-class-specific copy. The PermanentNavigationDrawer's own drawer sheet
+                    // (below) hosts the Snackbar this shows.
+                    onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
+                    onPhotoAcquisitionInFlightChanged = { inFlight -> logPhotoAcquisitionInFlight = inFlight },
+                    onAddPhoto = onAddLogPhoto,
+                    onRemovePhoto = onRemoveLogPhoto,
+                    onPullPhoto = onPullLogPhoto,
+                    onDeleteEntry = onDeleteLogEntry,
+                    onBackToSearch = { drawerPanel = DrawerPanel.Search },
+                    onSaveErrorDismissed = onSaveLogErrorDismissed,
+                    galleryPhotos = logUiState.galleryPhotos,
+                    isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
+                    onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                    onAddGalleryPhoto = onAddGalleryPhoto,
+                    galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                    galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+                    cartographyUiState = cartographyUiState,
+                    onOpenCartographyEntry = onOpenCartographyEntry,
+                    onStartCartographyEntry = onStartCartographyEntry,
+                    onCloseCartographyEntry = onCloseCartographyEntry,
+                    onCartographyTextChanged = onCartographyTextChanged,
+                    onCartographyTagsChanged = onCartographyTagsChanged,
+                    onSetFindDecision = onSetFindDecision,
+                    onSetTrackDecision = onSetTrackDecision,
+                    onSetWaypointDecision = onSetWaypointDecision,
+                    onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+                    onToggleKeptPhoto = onToggleKeptPhoto,
+                    onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
+                    onFinishCartographyEntry = onFinishCartographyEntry,
+                    onSaveCartographyEntry = onSaveCartographyEntry,
+                    onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
+                    onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+                    onDeleteCartographyEntry = onDeleteCartographyEntry,
+                    getCartographyEntryMapData = getCartographyEntryMapData,
+                    getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
+                    getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
+                    // Journal restructure Stage 1: the Records tab's three submenus — see
+                    // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
+                    // reads its offline-map-specific fields off; distanceUnit/currentTime are the
+                    // same values SearchControls/CompactSettingsTab already used for it.
+                    availabilityUiState = uiState,
+                    distanceUnit = distanceUnit,
+                    currentTime = currentTime,
+                    onOfflineMapLatChanged = onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = onOfflineMapNameChanged,
+                    onOfflineMapsOpened = onOfflineMapsOpened,
+                    onDownloadOfflineMaps = onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = onDeleteOfflineRegion,
+                    tracks = tracks,
+                    onTracksOpened = onTracksOpened,
+                    getFullRecord = getFullRecord,
+                    waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
+                    onDeleteWaypoint = onDeleteWaypoint,
+                    waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                    pendingDestination = pendingJournalDestination,
+                    onPendingDestinationConsumed = { pendingJournalDestination = null },
+                )
+            }
+
+            DrawerPanel.PhotoGallery -> {
+                // Back returns all the way to Search, same as DrawerPanel.Log — there's no
+                // intermediate panel between this and Search the way Settings has OfflineMaps.
+                PhotoGalleryHeader(onBack = { drawerPanel = DrawerPanel.Search })
+                PhotoGalleryScreen(
+                    modifier = Modifier.weight(1f),
+                    photos = logUiState.galleryPhotos,
+                    isLoading = logUiState.isLoadingGalleryPhotos,
+                    onDeletePhoto = onDeleteGalleryPhoto,
+                    cameraCaptureFiles = cameraCaptureFiles,
+                    onAddGalleryPhoto = onAddGalleryPhoto,
+                    loadErrorMessage = logUiState.galleryLoadErrorMessage,
+                )
+            }
+        }
+    }
+
+    // The Scaffold + tab content for MEDIUM/EXPANDED windows only — shared with drawerSheetContent
+    // for the same reason: it closes over this function's state rather than re-threading it.
+    // COMPACT windows use [compactMainScaffold] below instead, a separate composable rather than a
+    // conditional threaded through this one, per CLAUDE.md — the map redesign (full-bleed map,
+    // bottom nav, icon stack, fullscreen toggle) is compact-only (see docs/plans/map-redesign.md's
+    // "Scope decision" section), and this scaffold is what stays byte-for-byte what MEDIUM/EXPANDED
+    // already had before that redesign, untouched by any of it.
+    val mainScaffold: @Composable () -> Unit = {
+        Scaffold(
+            topBar = {
+                AvailabilitySearchTopBar(
+                    uiState = uiState,
+                    onOpenDrawer = {
+                        // Dismissed here, not just left to whatever state the drawer's own
+                        // content happens to leave it in: the suggestion popup is anchored to
+                        // this bar and the drawer opens as an overlay above it, so without this
+                        // the popup stayed visible underneath/behind the drawer instead of
+                        // collapsing along with it.
+                        onDismissTaxonSuggestions()
+                        // Medium+ windows show the drawer's panel permanently (see
+                        // PermanentNavigationDrawer below) — there is nothing to open, so this
+                        // icon instead jumps the always-visible panel back to Search, the same
+                        // "get back to search options" job it does on compact.
+                        drawerPanel = DrawerPanel.Search
+                    },
+                    onUseCurrentLocation = onUseCurrentLocation,
+                    onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                )
+            },
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // Scaffold's padding carries the system bar insets, so nothing here is laid
+                    // out under the status or navigation bar.
+                    .padding(padding),
+            ) {
+                ActiveSearchSummary(uiState, distanceUnit, onReopenTaxonSuggestions = onReopenTaxonSuggestions)
+                SearchNotice(uiState)
+
+                SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
+                    ResultsTab.entries.forEach { tab ->
+                        Tab(
+                            selected = selectedTab == tab,
+                            onClick = { selectedTab = tab },
+                            text = { Text(tab.label) },
+                        )
+                    }
+                }
+
+                val onLogFindHere: (LatLng) -> Unit = { location ->
+                    drawerPanel = DrawerPanel.Log
+                    isDrawerOpen = true
+                    // Stage 2d: lands LogPanel on Records -> Finds for the entry onStartLogEntry is
+                    // about to create — see JournalTab's own doc comment, "The map '+' routing bug."
+                    pendingJournalDestination = PendingJournalDestination.EDIT_NEW_FIND
+                    onStartLogEntry(location, LocalDate.now())
+                }
+
+                // weight(1f) states the intent: the results get whatever is left after the
+                // wrap-content siblings above, and Compose measures weighted children last, so
+                // that height is definite and bounded instead of a remainder that can reach zero.
+                //
+                // MEDIUM/EXPANDED windows reveal List and Map together in [CombinedResultsPane] —
+                // the M3 "reveal" pattern: a wider window shows list and detail/map side by side
+                // rather than making the user switch between them. Seasonal isn't part of that
+                // pairing (it's not a view onto the same sightings), so it stays its own tab.
+                when (selectedTab) {
+                    ResultsTab.LIST, ResultsTab.MAP -> CombinedResultsPane(
+                        uiState = uiState,
+                        currentTime = currentTime,
+                        distanceUnit = distanceUnit,
+                        mapSlot = mapSlot,
+                        renderMode = mapRenderMode,
+                        mapMode = mapMode,
+                        onMapModeSelected = { mapMode = it },
+                        onPlaceTripPin = onPlaceTripPin,
+                        onLogFindHere = onLogFindHere,
+                        breadcrumbPoints = breadcrumbPoints,
+                        waypoints = mapWaypoints,
+                        onDropWaypoint = onDropWaypoint,
+                        taxonFilter = mapTaxonFilter,
+                        onClearTaxonFilter = onClearMapTaxonFilter,
+                        onViewOnMap = onViewSpeciesOnMap,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+
+    // The compact-only Scaffold: full-bleed map, bottom nav instead of a top tab row, and — while
+    // the Maps tab's fullscreen icon is toggled on — the top app bar and bottom nav both hidden,
+    // leaving only the map and its floating icon stack. See docs/plans/map-redesign.md decisions
+    // #2, #4, #5.
+    //
+    // No top app bar at all any more: the species/category search bar that used to live there has
+    // moved twice since — first into the Tools drawer (per the project owner's own framing at the
+    // time, "the whole side panel is the search feature"), then out again into [SearchDropdown]
+    // alongside Recent Searches (dispatch C's own owner call, "move recent searches, and species
+    // search... into the new search drawer" — see [SearchDropdown]'s own doc comment for the
+    // resulting shape). [ActiveSearchSummary] is what remains visible up top: a read-only "what am
+    // I currently searching" strip whose own tap opens [SearchDropdown] (`onToggleSearch`) — not a
+    // second way to reopen the species suggestion popup, which is why `onReopenTaxonSuggestions` is
+    // a no-op here.
+    val compactMainScaffold: @Composable () -> Unit = {
+        // SearchDropdown, under ActiveSearchSummary — see that composable's own onToggleSearch doc
+        // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
+        // display decision the ViewModel has no part in, same reasoning as mapMode/drawerPanel above.
+        var showSearchDropdown by remember { mutableStateOf(false) }
+        // Same measured clearance [CompactMapTab] already computes for its own compass strip (see
+        // that composable's own compassStripClearance doc comment) — recomputed here rather than
+        // threaded through as a parameter, since it depends only on MaterialTheme.typography and
+        // this scaffold's own LocalDensity, not on anything CompactMapTab measures live. Used below
+        // to keep SearchDropdown's own opaque panel starting below the strip rather than painting
+        // over it, on the Map tab specifically — the project owner's own direct ask: "have the
+        // search window extend just below the compass strip to avoid overlaying it so people can
+        // still track it if needed."
+        val searchDropdownCompassStripTextMeasurer = rememberTextMeasurer()
+        val searchDropdownCompassStripLabelStyle = MaterialTheme.typography.labelMedium
+        val searchDropdownCompassStripDensity = LocalDensity.current
+        val compassStripClearance = remember(searchDropdownCompassStripLabelStyle, searchDropdownCompassStripDensity) {
+            with(searchDropdownCompassStripDensity) {
+                searchDropdownCompassStripTextMeasurer.measure("Mg", searchDropdownCompassStripLabelStyle).size.height.toDp()
+            }
+        }
+        // SearchEntryBar's own real rendered height, on the Map tab where it now composes as an
+        // overlay above the map (this scaffold's own CompactMapTab call site below) rather than
+        // in normal document flow — CompactMapTab needs it as a top inset so the compass strip,
+        // the observation bubble's own minY, and the taxon-filter chip's top padding all shift
+        // down to sit below the bar instead of underneath it. Derived the same one-time-
+        // measurement way as compassStripClearance itself (fieldHeight there is exactly
+        // compassStripClearance * 2 — see SearchEntryBar's own fieldHeight doc comment) plus the
+        // bar's own fixed vertical padding and divider, matching its real Column structure
+        // exactly. A plain derived Dp, not a live re-measurement: CompactMapTab's own
+        // compassStripClearance doc comment documents a confirmed, bisected regression from
+        // reading a real onGloballyPositioned height back through state for this exact class of
+        // positioning — this stays a one-time text-measurement-derived constant instead, the
+        // proven-safe shape that doc comment prescribes.
+        val searchBarHeight = compassStripClearance * 2 + Spacing.xs * 3 + DividerDefaults.Thickness
+        // Fullscreen-fixes dispatch, Item 2 ("slide the chrome away instead of cutting it") —
+        // animated rather than the raw if/else this used to be, so CompassElevationStrip (and the
+        // observation bubble/TaxonMapFilterChip below it, both of which also read CompactMapTab's
+        // own topInset) slides smoothly into the space SearchEntryBar vacates instead of jumping
+        // there the instant fullscreen toggles. Purely a Dp value driving Modifier.padding on Box
+        // children of CompactMapTab's own fillMaxSize() Box — animating it has no bearing on that
+        // Box's own size, the same "pure overlay" reasoning confirmed for SearchEntryBar's and
+        // ForagerBottomNav's own slides below. Same MotionTokens.panelMotionSpec() this file
+        // already uses for AddActionTile's own slide+fade, so the three move in visual lockstep.
+        // coerceAtLeast(0.dp): panelMotionSpec() is a spring spec that accepts mild overshoot by
+        // design (that spec's own doc comment) — animating toward 0.dp, it transiently swings
+        // negative, and every consumer of this value below applies it as Modifier.padding(top =
+        // ...), which throws IllegalArgumentException for a negative Dp. Confirmed, not guessed:
+        // this crashed AvailabilityScreenMapIconStackTest's own new fullscreen-toggle test on the
+        // very first run, uncoerced.
+        val animatedTopInset by animateDpAsState(
+            targetValue = if (isMapFullscreen) 0.dp else searchBarHeight,
+            animationSpec = MotionTokens.panelMotionSpec(),
+            label = "mapTopInset",
+        )
+        val safeAnimatedTopInset = animatedTopInset.coerceAtLeast(0.dp)
+        // "Set on map" (SearchDropdown's own Advanced Search section, dispatch C item 2) hands off to the exact same
+        // pan-to-centre-pin-plus-confirm flow every other pin placement in this app uses
+        // (CentrePinLocationPickerOverlay) rather than a second picker — see CompactMapTab's own
+        // pendingAction-driven overlay for the established shape this mirrors. Lifted to this
+        // scaffold's own scope, not into CompactMapTab, because the trigger (the dropdown) lives up
+        // here and can be tapped from any bottom-nav tab, not just while already on Maps.
+        var pickingSearchLocationOnMap by remember { mutableStateOf(false) }
+        // Nested inside this scaffold, so Compose's OnBackPressedDispatcher tries it before the
+        // four home-chain handlers above (isDrawerOpen/isMapFullscreen/compactTab/exit-confirmation)
+        // — the same "innermost enabled handler wins" precedence those four already rely on for
+        // JournalTab/CompactSettingsTab/CompactMapTab. Genuinely missing before this fix: back
+        // pressed while this panel was open (species field focused, keyboard up) fell straight
+        // through to whichever of those four was enabled instead of just closing this panel first.
+        BackHandler(enabled = showSearchDropdown) {
+            showSearchDropdown = false
+        }
+        // Same "actually hide the IME" fix as isDrawerOpen's own LaunchedEffect above — this panel
+        // holds the manual-coordinate TextFields, so it's exactly as prone to a stuck keyboard on
+        // close (the BackHandler above, or collapsing the bar again) as the drawer's own fields are.
+        LaunchedEffect(showSearchDropdown) {
+            if (!showSearchDropdown) {
+                focusManager.clearFocus(force = true)
+                keyboardController?.hide()
+            }
+        }
+
+        // Pings the device's live location once, as soon as the compact Maps experience is shown,
+        // so the map opens already centred on it rather than waiting for an explicit locate-me tap
+        // — see CompactMapTab's own doc comment on the pre-search display region this feeds. Fires
+        // once per this scaffold's own composition lifetime (i.e. once per app open on a compact
+        // window), not once per Maps-tab visit, since it's hoisted here rather than into
+        // CompactMapTab itself, which enters and leaves composition on every bottom-nav switch.
+        LaunchedEffect(Unit) { onLocateMe() }
+
+        // Workstream L4b-R: backgrounding the app while a log entry is open is "leaving without
+        // answering" — persists the draft, never commits (see MushroomLogViewModel's own doc
+        // comment on the three exits). Deliberately calls the *raw* callback, never the
+        // Snackbar-offering wrapper below: the home button (or any other way of backgrounding)
+        // blows straight through any in-app prompt with no window to show one at all, so this
+        // defaults straight to "saved to Drafts," silently, with no discard offer attempted.
+        // Mirrors SightingsMap's own DisposableEffect(lifecycleOwner)/LifecycleEventObserver
+        // pattern — the one existing precedent in this codebase for hooking ON_STOP/ON_PAUSE, since
+        // neither MainActivity nor this composable had any lifecycle observer before this.
+        // rememberUpdatedState keeps the observer (registered once per lifecycleOwner) reading the
+        // *current* tab/entry state and callback rather than whatever was current the moment it was
+        // registered.
+        val lifecycleOwner = LocalLifecycleOwner.current
+        val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveLogEntryEditingIncidentally)
+        val latestIsJournalEditing by rememberUpdatedState(compactTab == CompactTab.JOURNAL && logUiState.editingEntry != null)
+        // Device-check patch, Items 2/3: suppresses this same incidental-exit call while the open
+        // find's own camera/gallery round-trip is this app's own doing, not the user backgrounding
+        // it — see PhotoAcquisitionLaunchers.isAcquisitionInFlight's own doc comment for the full
+        // trace of why conflating the two was silently closing the find (and losing the photo with
+        // it) on every camera capture.
+        val latestPhotoAcquisitionInFlight by rememberUpdatedState(logPhotoAcquisitionInFlight)
+
+        // Search-focus-and-hide dispatch, Item 2's own hide condition (SearchEntryBar call sites
+        // below) — "any entry open" (view or edit), not "specifically editing": from here,
+        // CartographyEntryMode/JournalEntryMode (which distinguish the two) are local state one
+        // level down in CartographyScreen.kt/JournalTab.kt, invisible at this scope. Owner decision:
+        // hiding while merely viewing is acceptable rather than lifting that mode into shared state.
+        val isEditingJournalEntry = logUiState.editingEntry != null || cartographyUiState.editingEntry != null
+        // Search-focus-and-hide dispatch, Item 1: tried and deliberately NOT built here. The natural
+        // generalization of the established LaunchedEffect(showSearchDropdown) pattern just above
+        // — LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus(force = true) }, firing on
+        // every transition rather than one direction — was built, and it made both currently-failing
+        // tests fail differently, not pass: the "Advanced search" dropdown still opened (confirmed via
+        // composeRule.onRoot().printToLog()/onAllNodesWithText node counts, not guessed), because
+        // clearing focus at the exact recomposition where Item 2's hide condition also flips SearchEntryBar
+        // back into existence left it as the only focusable candidate with nothing else claiming
+        // focus — which is exactly the precondition this codebase's own default-focus-assignment
+        // behavior needs to reclaim it right back. Removing the effect and keeping only Item 2's own
+        // hide condition (SearchEntryBar not composed at all while `isEditingJournalEntry`, so there
+        // is no candidate to reclaim) turned both tests green with no clearFocus() call anywhere in
+        // this file. CartographyScreen's own ON_RESUME clearFocus() (that composable's own doc
+        // comment) stays — it fires while an edit screen is still open, not into this same
+        // hide/remount race, and full-suite verification found no regression from keeping it. The
+        // "entering a fresh edit" direction of Item 1 (as opposed to "returned to") was never
+        // exercised by any test either way and is not built — see this dispatch's own report for the
+        // reasoning on leaving it out rather than guessing at a shape that avoids the same race.
+        // Pending-edit-and-fixes dispatch, Item 1: this observer no longer touches Cartography at
+        // all — it used to call onSaveCartographyEntry here on a dirty committed entry, silently
+        // committing an edit the user never approved just because the app backgrounded. Backgrounding
+        // is not consent to save (owner decision): CartographyScreen now owns its own lifecycle
+        // observer for exactly this, holding the pending edit in ViewModel memory on ON_STOP (no
+        // call at all) and prompting Continue editing/Commit/Save as draft on ON_RESUME instead — see
+        // that composable's own doc comment for the full reasoning, including why it's self-contained
+        // there rather than threaded through here.
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP) {
+                    if (latestIsJournalEditing && !latestPhotoAcquisitionInFlight) latestOnLeaveEditingIncidentally()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+
+        // Workstream L4b-R2: every *in-app* incidental exit (back arrow inside the edit form, the
+        // journal tab's own BackHandler, switching to another bottom-nav tab, and — via the shared
+        // leaveLogEntryEditingOfferingDiscard/logDraftSnackbarHostState this function hoisted to its
+        // own top level — DrawerPanel.Log's LogPanel too) shares this one wrapped callback, so the
+        // same Snackbar covers every one of them from a single place rather than a
+        // window-class-specific copy per host. Backgrounding above is the deliberate exception (see
+        // that effect's own comment on why). The exit itself is never blocked on this:
+        // onLeaveLogEntryEditingIncidentally() already ran, and the Snackbar only offers an undo: a
+        // dismissed or ignored one leaves the draft exactly where that call already put it (owner
+        // decision, 2026-08-25: Gmail-drafts-style).
+        val onBottomNavTabSelected: (CompactTab) -> Unit = { tab ->
+            // Workstream L4b: switching away from Journal while an entry is open is
+            // "leaving without answering" — the same incidental-exit auto-save as
+            // the edit form's own back arrow or the app backgrounding (see
+            // MushroomLogViewModel's own doc comment on the three exits). Checked
+            // before compactTab actually changes, so this only fires on a genuine
+            // tab switch, never on tapping the already-selected Journal tab again.
+            // Also correct for Tools, below, since that never sets compactTab at
+            // all — tab != CompactTab.JOURNAL is still true when tab is TOOLS.
+            if (compactTab == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
+                leaveLogEntryEditingOfferingDiscard()
+            }
+            if (tab == CompactTab.TOOLS) {
+                // CompactTab.TOOLS's own doc comment: opens the drawer as an
+                // overlay over whatever tab is already showing, rather than
+                // becoming compactTab itself — the same drawer the removed
+                // MapIconBar search icon used to open (see that composable's own
+                // doc comment), including the same "dismiss any open taxon
+                // suggestion popup first" step openSearchDrawer used to do.
+                onDismissTaxonSuggestions()
+                isDrawerOpen = true
+            } else {
+                // Fullscreen-fixes dispatch, Item 1: now that the bottom nav floats over the map
+                // (reachable) instead of disappearing while fullscreen, tapping any other tab from
+                // it is a real, newly-reachable path that must not leave isMapFullscreen stuck true
+                // for a tab that isn't Map — the invariant this file's own fullscreen-scoped code
+                // relies on ("isMapFullscreen can only be true while compactTab == MAP") no longer
+                // holds by construction (the bar being unreachable) once the bar is reachable during
+                // fullscreen, so it has to be enforced explicitly here instead.
+                // Still exits fullscreen — not an exception to CLAUDE.md's "UX defaults" rule,
+                // see the note recorded beside it: the nav is off screen in fullscreen, so this
+                // path is unreachable from there in practice; it holds the invariant, and
+                // persists the exit when it does fire.
+                if (tab != CompactTab.MAP && isMapFullscreen) {
+                    isMapFullscreen = false
+                    onMapFullscreenChanged(false)
+                }
+                compactTab = tab
+                // Keep the shared ResultsTab-driven state in sync for the three
+                // destinations both it and CompactTab describe — see compactTab's
+                // own doc comment for why.
+                when (tab) {
+                    CompactTab.LIST -> selectedTab = ResultsTab.LIST
+                    CompactTab.MAP -> selectedTab = ResultsTab.MAP
+                    CompactTab.SEASONAL -> selectedTab = ResultsTab.SEASONAL
+                    CompactTab.JOURNAL -> Unit
+                    CompactTab.TOOLS -> Unit // unreachable — handled above
+                }
+            }
+        }
+        // ForagerBottomNav's own real measured height, in px, hoisted here rather than kept local
+        // to CompactMapTab (which composes the Map tab's own instance) — fullscreen-fixes dispatch
+        // ("still shifting"). A flat 80.dp constant was tried here first and undershoots this bar's
+        // own real rendered height by exactly the system navigation-bar inset, since Material3's
+        // NavigationBar applies NavigationBarDefaults.windowInsets internally (confirmed against
+        // AndroidX's own NavigationBar.kt) — invisible under Robolectric, which reports zero window
+        // insets (see CLAUDE.md's own "Known pitfalls"), so a test measuring this constant's own
+        // value could never catch the mismatch. A measured height can't drift from what's actually
+        // drawn, the same reasoning mapIconClusterHeightPx already established in this file — read back
+        // via bottomNavHeight below, needed in two places: the search-dropdown dismiss scrim and
+        // its own SearchDropdown panel both need this same band excluded (their own doc comments).
+        var bottomNavHeightPx by remember { mutableStateOf(0f) }
+        val bottomNavDensity = LocalDensity.current
+        val bottomNavHeight = with(bottomNavDensity) { bottomNavHeightPx.toDp() }
+        // Fullscreen-slide-out-fixes dispatch, Item 2: attribution's bottomInset must follow the
+        // nav off screen, not hold the gap the nav used to occupy. bottomNavHeight above is a
+        // *size* measurement (coordinates.size.height at the nav's own call site) — a slide is a
+        // translation, so that size never changes during it, and once the nav's exit settles and
+        // AnimatedVisibility disposes it, onGloballyPositioned stops firing and bottomNavHeightPx
+        // simply keeps its last value forever. The inset does NOT animate for free; it needs this.
+        //
+        // Fullscreen target is 0 — the true bottom edge, level with MapLibre's own logo, the
+        // dispatch's literal wording. A first version targeted the real system navigation-bar
+        // inset instead (keeping the caption above the gesture pill, on the reasoning that the
+        // nav's measured height already includes that inset); on device that read as the caption
+        // still holding a band of empty map above the bottom, and the owner reversed it. Under
+        // Robolectric the two were indistinguishable anyway (that inset is 0 there) — device-only
+        // by construction; no test here claims to verify the on-screen result.
+        //
+        // navigationMotionSpec(), the spec the nav's own slide uses (its own call site in
+        // CompactMapTab) — the dispatch named panelMotionSpec() for it, which the nav doesn't use;
+        // the intent ("the same spec, so the two cannot drift out of sync") is what's honoured.
+        // Same distance (the nav's own height) and same spring from the same trigger, so the two
+        // curves match — one animation drives the nav's translation, this one drives the inset.
+        // coerceAtLeast(0.dp): a spatial spring overshoots, and a negative Dp fed to
+        // Modifier.padding throws — the exact crash animatedTopInset below already hit once.
+        val animatedAttributionBottomInset by animateDpAsState(
+            targetValue = if (isMapFullscreen) 0.dp else bottomNavHeight,
+            animationSpec = MotionTokens.navigationMotionSpec(),
+            label = "attributionBottomInset",
+        )
+        val safeAttributionBottomInset = animatedAttributionBottomInset.coerceAtLeast(0.dp)
+        Scaffold(
+            snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
+            // Fullscreen-fixes dispatch ("still shifting"): Material3's own Scaffold falls back to
+            // this value's own bottom inset for its reported content padding whenever bottomBar
+            // composes no content (`bottomBarHeight?.toDp() ?: insets.calculateBottomPadding()`,
+            // confirmed against AndroidX's own Scaffold.kt, not assumed) — exactly the Map tab's own
+            // case now, in both fullscreen states. That fallback exists so content isn't drawn
+            // under the real system navigation bar when nothing else protects it — correct in
+            // general, but redundant here specifically: ForagerBottomNav's own instance inside
+            // CompactMapTab's Box already protects itself the identical way (Material3's
+            // NavigationBar applies NavigationBarDefaults.windowInsets internally, confirmed against
+            // AndroidX's own NavigationBar.kt), the same as the bottomBar-hosted instance the other
+            // three tabs still use. Left in place, Scaffold's own fallback shrinks CompactMapTab's
+            // Box above the real inset strip a second time, leaving that strip permanently
+            // undrawn — on-device only, since Robolectric reports zero window insets and never
+            // exercises this fallback at all (CLAUDE.md's own "Known pitfalls" now records this).
+            // Excluding only the bottom side, only for the Map tab, hands that strip back to the
+            // embedded nav's own self-consumed inset instead of double-reserving it.
+            contentWindowInsets = if (compactTab == CompactTab.MAP) {
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+            } else {
+                WindowInsets.safeDrawing
+            },
+            bottomBar = {
+                // Fullscreen-fixes dispatch, Item 1 (third design, replacing two earlier attempts
+                // that both failed AvailabilityScreenLayoutTest's own measured-height assertion —
+                // see that test's own doc comment for the concrete numbers). The Map tab's own nav
+                // no longer lives in this slot at all, in either fullscreen state: it renders as an
+                // always-present overlay inside CompactMapTab's own content Box instead (that
+                // composable's own doc comment). So this slot renders nothing while compactTab is
+                // MAP, and the ordinary opaque bar otherwise — its own reported height then depends
+                // only on compactTab, which the fullscreen toggle never changes, so Scaffold's own
+                // content padding is stable across that toggle by construction, not by a padding
+                // trick applied after the fact.
+                if (compactTab != CompactTab.MAP) {
+                    ForagerBottomNav(
+                        selectedTab = compactTab,
+                        isDrawerOpen = isDrawerOpen,
+                        onTabSelected = onBottomNavTabSelected,
+                    )
+                }
+            },
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // Scaffold's padding carries the system bar insets, so nothing here is laid
+                    // out under the status or navigation bar. No isMapFullscreen special-casing
+                    // needed any more — bottomBar's own reported height already never changes for
+                    // the Map tab (nothing renders there in either state), so the weight(1f) Box
+                    // below always gets the full remaining height on that tab, fullscreen or not.
+                    .padding(padding),
+            ) {
+                // Map tab only: SearchEntryBar moves into CompactMapTab's own searchBarSlot
+                // instead (that call site's own doc comment), composed as a real overlay inside
+                // the SAME Box that hosts the map, so its 80% fill reveals map imagery through it
+                // the same as the compass strip and the two map-chrome pills — the owner's own
+                // direct call, scoped to the Map tab specifically so the other three tabs
+                // (List/Seasonal/Journal, none of which have anything worth showing through a
+                // translucent bar) keep this bar as ordinary opaque-backed chrome, unchanged.
+                // Search-focus-and-hide dispatch, Item 2 — owner decision, framed as a design change
+                // ("searching has nothing to do with editing an entry"), but this hide condition is
+                // what actually closes the dropdown-scrim-blocks-taps defect too: see
+                // `isEditingJournalEntry`'s own doc comment above for why Item 1's own fix (clearing
+                // focus explicitly) was tried first and made things worse, not better. Hidden via
+                // composition (an `if`, not an opacity/size-zero modifier) — "hide, do not remove"
+                // means the feature stays intact everywhere else, not that this specific instance
+                // keeps its state while invisible; an unmounted composable can't be the thing silently
+                // holding onto stale focus. The moment this bar *remounts*, right as an edit screen
+                // closes, was flagged as an unexercised race before this was built — now exercised and
+                // ruled out by `AvailabilityScreenBackNavigationTest`'s own "backgrounding and
+                // resuming mid-edit, then closing normally..." test.
+                if (!isMapFullscreen && compactTab != CompactTab.MAP && !isEditingJournalEntry) {
+                    SearchEntryBar(
+                        uiState = uiState,
+                        distanceUnit = distanceUnit,
+                        onUseCurrentLocation = {
+                            showSearchDropdown = false
+                            onUseCurrentLocation()
+                        },
+                        onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                        onTaxonSearchResultSelected = { result ->
+                            onTaxonSearchResultSelected(result)
+                            showSearchDropdown = false
+                        },
+                        onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                        onFieldFocused = { showSearchDropdown = true },
+                    )
+                    SearchNotice(uiState)
+                }
+
+                // Switches to the Journal tab and starts the entry there — the gallery's own edit
+                // form ([JournalTab]'s `editingEntry` branch) is what shows it next, the same
+                // "just-created entry opens for editing" behavior the drawer used to give this
+                // exact call. No drawer to open any more; Journal is a bottom-nav destination now.
+                val onLogFindHere: (LatLng) -> Unit = { location ->
+                    compactTab = CompactTab.JOURNAL
+                    // Stage 2d: lands JournalTab on Records -> Finds, editing, for the entry
+                    // onStartLogEntry is about to create — see JournalTab's own doc comment, "The
+                    // map '+' routing bug." Before this fix, compactTab alone left JournalTab's own
+                    // selectedTopTab at its CARTOGRAPHY default, landing on Cartography instead.
+                    pendingJournalDestination = PendingJournalDestination.EDIT_NEW_FIND
+                    onStartLogEntry(location, LocalDate.now())
+                }
+
+                // A Box, not a plain weighted child, as of map/navigation redesign dispatch C: this
+                // is now also where AdvancedSearchDropdown floats over whatever tab content shows
+                // below it, composed after that content so it draws on top by composition order
+                // alone (AdvancedSearchDropdown's own doc comment). weight(1f) here (unchanged from
+                // before this dispatch) states the intent: this gets whatever is left after the
+                // wrap-content siblings above (empty in fullscreen, so the map then gets the entire
+                // padded area) — see mainScaffold's own doc comment on this same pattern. Each branch
+                // below now fills this Box (fillMaxSize()) rather than carrying its own weight(1f),
+                // since a Box — unlike the Column this used to be a direct child of — doesn't
+                // distribute weight among its children.
+                BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    when (compactTab) {
+                        CompactTab.LIST -> ListTab(
+                            uiState = uiState,
+                            currentTime = currentTime,
+                            distanceUnit = distanceUnit,
+                            onViewOnMap = onViewSpeciesOnMap,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        CompactTab.MAP -> CompactMapTab(
+                            uiState = uiState,
+                            mapSlot = mapSlot,
+                            clusterPosition = mapIconClusterPosition,
+                            // Attribution must rise above the floating bottom nav while the nav
+                            // is there — fullscreen-fixes dispatch, Item 1 (third design) — and
+                            // follow it off screen while it isn't: safeAttributionBottomInset
+                            // (declared alongside bottomNavHeight above, own doc comment there)
+                            // animates between the nav's real measured height and the system
+                            // navigation-bar inset in lockstep with the nav's own slide. Safe to
+                            // change every animation frame: SightingsMapSlot destructures this
+                            // field at the boundary and the only consumer is the attribution
+                            // Text's own padding — no map effect keys on it or on renderMode as a
+                            // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
+                            // re-measures or re-fits the map.
+                            renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset),
+                            mapMode = mapMode,
+                            onMapModeSelected = { mapMode = it },
+                            isNightMode = isNightMode,
+                            onPlaceTripPin = onPlaceTripPin,
+                            // Opens straight to the log's edit form for the new entry, bypassing
+                            // Search — see DrawerPanel's own doc comment on why Log is reachable
+                            // both ways.
+                            onLogFindHere = onLogFindHere,
+                            isFullscreen = isMapFullscreen,
+                            onToggleFullscreen = {
+                                isMapFullscreen = !isMapFullscreen
+                                onMapFullscreenChanged(isMapFullscreen)
+                            },
+                            isDrawerOpen = isDrawerOpen,
+                            onBottomNavTabSelected = onBottomNavTabSelected,
+                            onBottomNavHeightMeasured = { bottomNavHeightPx = it },
+                            onLocateMe = onLocateMe,
+                            isRecording = isRecording,
+                            onToggleRecording = onToggleRecording,
+                            startRecordingErrorMessage = startRecordingErrorMessage,
+                            breadcrumbPoints = breadcrumbPoints,
+                            waypoints = mapWaypoints,
+                            onDropWaypoint = onDropWaypoint,
+                            returnToStart = returnToStart,
+                            isReturning = isReturning,
+                            isNavigating = isNavigating,
+                            isOffTrack = isOffTrack,
+                            onToggleReturning = onToggleReturning,
+                            compassProvider = compassProvider,
+                            computeTrueHeading = computeTrueHeading,
+                            navigationTarget = navigationTarget,
+                            pathHomeMeters = pathHomeMeters,
+                            currentTime = currentTime,
+                            taxonFilter = mapTaxonFilter,
+                            onClearTaxonFilter = onClearMapTaxonFilter,
+                            // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
+                            // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
+                            // pickingSearchLocationOnMap doc comment.
+                            pickingSearchLocation = pickingSearchLocationOnMap,
+                            onSearchLocationPicked = { location ->
+                                onManualLatChanged("%.4f".format(location.lat))
+                                onManualLngChanged("%.4f".format(location.lng))
+                                onSearchManualCoordinates()
+                                pickingSearchLocationOnMap = false
+                            },
+                            onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                            // SearchEntryBar now overlays this tab directly (see searchBarSlot's
+                            // own doc comment below) rather than sitting above it in document
+                            // flow, so the strip/bubble/filter-chip positioning CompactMapTab
+                            // derives from compassStripClearance needs to start below the bar, not
+                            // at this Box's own true top edge. animatedTopInset (declared above,
+                            // own doc comment there — fullscreen-fixes dispatch, Item 2) animates
+                            // this down to 0.dp rather than jumping there the instant fullscreen
+                            // toggles: searchBarSlot below now slides its own content off-screen
+                            // instead of unmounting it outright, and the strip/bubble/chip need to
+                            // slide into the space it vacates in the same motion, not jump ahead of
+                            // it.
+                            topInset = safeAnimatedTopInset,
+                            // Passed as a slot, not composed at this call site directly, so it
+                            // renders inside CompactMapTab's own Box — see that parameter's own
+                            // doc comment for why this specific nesting is load-bearing, not
+                            // cosmetic. Empty while isEditingJournalEntry, unconditionally —
+                            // matches the bar's own old `!isEditingJournalEntry` gate from when it
+                            // lived in this scaffold's outer Column, now reproduced here since the
+                            // slot is CompactMapTab's to show or not. This is a real, device-
+                            // confirmed bug fix (the search field silently regaining focus after
+                            // backgrounding, opening its dropdown over the user's Journal entry) —
+                            // an instant, unconditional unmount, deliberately NOT animated, since
+                            // an animated exit would leave the field mounted (and re-focusable) for
+                            // the duration of the slide, reopening the exact race this closes.
+                            // isMapFullscreen, by contrast, drives an AnimatedVisibility inside the
+                            // branch below rather than a second unmount condition here — fullscreen-
+                            // fixes dispatch, Item 2: "slide the chrome away instead of cutting it."
+                            // SearchEntryBar composes as a translucent overlay directly inside
+                            // CompactMapTab's own Box (this same doc comment's own next paragraph),
+                            // never a layout sibling whose position or presence participates in
+                            // measuring the map — confirmed by reading every modifier in the chain,
+                            // not assumed — so sliding it is a pure translation with zero effect on
+                            // the map's own measurement, the same as the already-passing "fullscreen
+                            // does not change the map's own measured height" test already covers.
+                            searchBarSlot = if (isEditingJournalEntry) {
+                                {}
+                            } else {
+                                {
+                                    // Fullscreen-slide-out-fixes dispatch, Item 1: the slide distance
+                                    // is the bar's own height PLUS the real status-bar inset, not
+                                    // fullHeight alone. This bar's top edge is the content area's
+                                    // top, which is the status bar's *bottom* edge (the Scaffold
+                                    // consumes the top inset as padding on the Map tab — see its
+                                    // contentWindowInsets), so a translation of exactly fullHeight
+                                    // lands the bar's bottom at the status bar's bottom: its entire
+                                    // travel and end position is the status-bar band, nothing clips
+                                    // it, and edge-to-edge makes that band transparent — confirmed on
+                                    // device as the bar's text drawn over the clock. Device-only by
+                                    // construction: Robolectric reports this inset as 0, so this is
+                                    // a no-op in every test here and deliberately has none.
+                                    val statusBarTopPx = WindowInsets.statusBars.getTop(LocalDensity.current)
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = !isMapFullscreen,
+                                        enter = slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
+                                        exit = slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
+                                    ) {
+                                    Column {
+                                        SearchEntryBar(
+                                            uiState = uiState,
+                                            distanceUnit = distanceUnit,
+                                            onUseCurrentLocation = {
+                                                showSearchDropdown = false
+                                                onUseCurrentLocation()
+                                            },
+                                            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                                            onTaxonSearchResultSelected = { result ->
+                                                onTaxonSearchResultSelected(result)
+                                                showSearchDropdown = false
+                                            },
+                                            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                                            onFieldFocused = { showSearchDropdown = true },
+                                        )
+                                        SearchNotice(uiState)
+                                    }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
+                        CompactTab.JOURNAL -> JournalTab(
+                            uiState = logUiState,
+                            cameraCaptureFiles = cameraCaptureFiles,
+                            mapSlot = mapSlot,
+                            pickerRegion = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
+                            basemap = basemap,
+                            night = isNightMode,
+                            onOpenEntry = onOpenLogEntry,
+                            onCloseEntry = onCloseLogEntry,
+                            onStartEntry = onStartLogEntry,
+                            onEntryChanged = onLogEntryChanged,
+                            onStartEditingEntry = onStartEditingLogEntry,
+                            onSaveEntry = onSaveLogEntry,
+                            onCancelEditing = onCancelLogEntryEditing,
+                            onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
+                            onPhotoAcquisitionInFlightChanged = { inFlight -> logPhotoAcquisitionInFlight = inFlight },
+                            onAddPhoto = onAddLogPhoto,
+                            onRemovePhoto = onRemoveLogPhoto,
+                            onPullPhoto = onPullLogPhoto,
+                            onDeleteEntry = onDeleteLogEntry,
+                            onSaveErrorDismissed = onSaveLogErrorDismissed,
+                            // Album folded into this tab as a third top tab (Log/Drafts/Album) — see
+                            // LogGalleryScreen's own doc comment. Threaded through unchanged from
+                            // where CompactTab.PHOTOS used to read them directly.
+                            galleryPhotos = logUiState.galleryPhotos,
+                            isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
+                            onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+                            onAddGalleryPhoto = onAddGalleryPhoto,
+                            galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
+                            galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+                            // Journal Stage 2b: Cartography's own Entries/Drafts/Album — see
+                            // CartographyScreen's own doc comment.
+                            cartographyUiState = cartographyUiState,
+                            onOpenCartographyEntry = onOpenCartographyEntry,
+                            onStartCartographyEntry = onStartCartographyEntry,
+                            onCloseCartographyEntry = onCloseCartographyEntry,
+                            onCartographyTextChanged = onCartographyTextChanged,
+                            onCartographyTagsChanged = onCartographyTagsChanged,
+                            onSetFindDecision = onSetFindDecision,
+                            onSetTrackDecision = onSetTrackDecision,
+                            onSetWaypointDecision = onSetWaypointDecision,
+                            onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+                            onToggleKeptPhoto = onToggleKeptPhoto,
+                            onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
+                            onFinishCartographyEntry = onFinishCartographyEntry,
+                            onSaveCartographyEntry = onSaveCartographyEntry,
+                            onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
+                            onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+                            onDeleteCartographyEntry = onDeleteCartographyEntry,
+                            getCartographyEntryMapData = getCartographyEntryMapData,
+                            getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
+                            getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
+                            // Journal restructure Stage 1: the Records tab's three submenus — see
+                            // RecordsTab's own doc comment.
+                            availabilityUiState = uiState,
+                            distanceUnit = distanceUnit,
+                            currentTime = currentTime,
+                            onOfflineMapLatChanged = onOfflineMapLatChanged,
+                            onOfflineMapLngChanged = onOfflineMapLngChanged,
+                            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                            onOfflineMapNameChanged = onOfflineMapNameChanged,
+                            onOfflineMapsOpened = onOfflineMapsOpened,
+                            onDownloadOfflineMaps = onDownloadOfflineMaps,
+                            onDeleteOfflineRegion = onDeleteOfflineRegion,
+                            tracks = tracks,
+                            onTracksOpened = onTracksOpened,
+                            getFullRecord = getFullRecord,
+                            waypoints = waypoints,
+                            waypointsErrorMessage = waypointsErrorMessage,
+                            onDeleteWaypoint = onDeleteWaypoint,
+                            waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                            pendingDestination = pendingJournalDestination,
+                            onPendingDestinationConsumed = { pendingJournalDestination = null },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
+                        // see that entry's own doc comment. Kept as a real branch (not an else) so
+                        // this stays an exhaustive, honest `when` rather than one that silently
+                        // compiles around a case the compiler can't see is impossible.
+                        CompactTab.TOOLS -> Unit
+                    }
+
+                    if (!isMapFullscreen) {
+                        // Dismiss-elsewhere scrim for SearchEntryBar's own "tap to focus, dismiss
+                        // elsewhere" model (map/navigation redesign dispatch D): while the dropdown
+                        // is open, SearchDropdown's own bounds only cover its own (bounded, scrolled)
+                        // content height, not the full remaining area below SearchEntryBar — a tap
+                        // on visible tab content past that edge would otherwise reach the tab
+                        // underneath (panning the map, tapping a sighting dot) with no way to close
+                        // the panel except the back button. This is a real, intentional interception
+                        // — the opposite of Understory rule 1's "nothing here swallows a touch meant
+                        // for the map," which is about the *collapsed* state, not an actively open
+                        // modal panel — present only while showSearchDropdown is true, composed
+                        // before SearchDropdown so that panel's own controls still win the tap they
+                        // sit on (composition-order-is-hit-test-order, the same rule this file's
+                        // other overlapping surfaces already rely on).
+                        if (showSearchDropdown) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    // Map tab only: excludes SearchEntryBar's own band from the
+                                    // scrim's bounds entirely, top edge down. That bar now composes
+                                    // inside CompactMapTab's own searchBarSlot (that call site's own
+                                    // doc comment — needed for its 80% fill to actually blend with
+                                    // the map, an interop-nesting requirement, not a cosmetic one),
+                                    // which puts it earlier in this Box's composition order than
+                                    // this scrim — composition-order-is-hit-test-order would
+                                    // otherwise mean the scrim wins every tap on the bar while the
+                                    // dropdown is open, breaking "type in the bar while the dropdown
+                                    // is still showing." Excluding the region outright, rather than
+                                    // reordering composition, keeps the scrim's own intercept of the
+                                    // map underneath it intact (composed before CompactMapTab would
+                                    // let the map's own pan gesture win those same taps instead).
+                                    //
+                                    // Same reasoning, bottom edge up, for the bottom nav — fullscreen-
+                                    // fixes dispatch, Item 1 (third design). Before that dispatch,
+                                    // the nav always lived in Scaffold's own bottomBar slot, a
+                                    // separate composition subtree this scrim's fillMaxSize() never
+                                    // reached, so the nav stayed tappable regardless of this dropdown
+                                    // on every tab, Map included. Now that the Map tab's own nav
+                                    // instance composes inside CompactMapTab's own Box (a descendant
+                                    // of this same weight(1f) Box the scrim also fills), leaving this
+                                    // unexcluded would silently swallow every tap on it while the
+                                    // dropdown is open — confirmed, reproducible: this is exactly
+                                    // what AvailabilityScreenMapIconStackTest's own bottom-nav tests
+                                    // caught (map-slot still present after "tapping" List/Seasonal/
+                                    // Tools, because the tap never reached the nav's own onClick at
+                                    // all — though this scrim turned out not to be the actual
+                                    // culprit there; see the SearchDropdown AnimatedVisibility's own
+                                    // heightIn doc comment below for what was). bottomNavHeight
+                                    // (that hoisted var's own doc comment explains why it's a live
+                                    // measurement, not a fixed constant) applies only on the Map
+                                    // tab, where the nav lives in this Box; every other tab keeps it
+                                    // in bottomBar again, so this is a no-op there.
+                                    .padding(
+                                        top = if (compactTab == CompactTab.MAP) searchBarHeight else 0.dp,
+                                        bottom = if (compactTab == CompactTab.MAP) bottomNavHeight else 0.dp,
+                                    )
+                                    .testTag(SEARCH_DROPDOWN_SCRIM_TAG)
+                                    .pointerInput(Unit) {
+                                        detectTapGestures { showSearchDropdown = false }
+                                    },
+                            )
+                        }
+                        // Fully qualified: an implicit ColumnScope receiver is still in scope from
+                        // the outer Column this Box sits inside, which makes the bare name resolve
+                        // to ColumnScope's own AnimatedVisibility overload instead of this top-level
+                        // one — Kotlin then refuses it ("cannot be called with an implicit
+                        // receiver") since a BoxScope, not a ColumnScope, is this call's real one.
+                        // fullscreen-fixes dispatch, Item 1 (third design): fed into heightIn below.
+                        val searchDropdownTopOffset = if (compactTab == CompactTab.MAP) searchBarHeight + compassStripClearance else 0.dp
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = showSearchDropdown,
+                            enter = expandVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
+                            exit = shrinkVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeOut(animationSpec = MotionTokens.panelMotionSpec()),
+                            // Starts below the compass strip rather than painting over it — Map tab
+                            // only, since the strip only exists inside CompactMapTab; every other
+                            // tab keeps the panel flush against the top like before. No extra gap
+                            // beyond the strip's own measured height: the owner's own direct call
+                            // ("bar, strip, drawer... each meeting the next without a break") — an
+                            // earlier version added Spacing.sm here on top of compassStripClearance,
+                            // which read as a seam between the strip and this panel rather than one
+                            // continuous piece of chrome. searchBarHeight added on top of that, Map
+                            // tab only: SearchEntryBar now overlays the map above the strip on this
+                            // tab (see this scaffold's own searchBarHeight doc comment), so the
+                            // drawer needs to start below both, not just the strip.
+                            //
+                            // heightIn(max=...) — fullscreen-fixes dispatch, Item 1 (third design):
+                            // this panel's own SearchDropdown has a verticalScroll expecting a
+                            // bounded parent, but nothing here previously bounded it — a latent
+                            // overflow, harmless before this dispatch because the weight(1f) Box
+                            // this sits in never held anything sensitive in the overflow region.
+                            // Now that the Map tab's own bottom nav lives inside that same Box (see
+                            // CompactMapTab's own doc comment), an unbounded panel here — expanded
+                            // via "Enter coordinates manually," exactly what
+                            // AvailabilityScreenMapIconStackTest's own searchAReferenceRegion()
+                            // helper does — measured tall enough to physically reach into the nav's
+                            // own screen band and, being composed after it, won every tap there:
+                            // confirmed via that test's own bounds queries (SearchDropdown's own
+                            // reported bounds genuinely overlapped the nav's), not assumed. Capped
+                            // to what's actually left below this panel's own top offset, minus the
+                            // nav's own band on the Map tab, so it scrolls instead of overflowing.
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(top = searchDropdownTopOffset)
+                                .heightIn(
+                                    max = maxHeight - searchDropdownTopOffset -
+                                        (if (compactTab == CompactTab.MAP) bottomNavHeight else 0.dp),
+                                ),
+                        ) {
+                            SearchDropdown(
+                                uiState = uiState,
+                                distanceUnit = distanceUnit,
+                                onRecentSearchSelected = { summary ->
+                                    showSearchDropdown = false
+                                    onRecentSearchSelected(summary)
+                                },
+                                currentTime = currentTime,
+                                onManualLatChanged = onManualLatChanged,
+                                onManualLngChanged = onManualLngChanged,
+                                onSearchManualCoordinates = {
+                                    showSearchDropdown = false
+                                    onSearchManualCoordinates()
+                                },
+                                onRadiusChanged = onRadiusChanged,
+                                onMonthSelected = onMonthSelected,
+                                onUseCurrentLocation = {
+                                    showSearchDropdown = false
+                                    onUseCurrentLocation()
+                                },
+                                onSetOnMap = {
+                                    showSearchDropdown = false
+                                    compactTab = CompactTab.MAP
+                                    selectedTab = ResultsTab.MAP
+                                    pickingSearchLocationOnMap = true
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (windowWidthClass == WindowWidthClass.COMPACT) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
+            // pannable map, and a horizontal drag there means "pan", not "open the drawer". The
+            // app-bar icon is the way in. Swipe-to-close still works — Material3 enables the drag
+            // whenever the drawer is open regardless of this flag.
+            gesturesEnabled = false,
+            drawerContent = {
+                ModalDrawerSheet {
+                    CompactToolsDrawerContent(
+                        uiState = uiState,
+                        distanceUnit = distanceUnit,
+                        onDistanceUnitSelected = onDistanceUnitSelected,
+                        onClose = { isDrawerOpen = false },
+                        onDeletePlannedTrip = onDeletePlannedTrip,
+                        currentTime = currentTime,
+                        isNightMode = isNightMode,
+                        onNightModeMapsChanged = onNightModeMapsChanged,
+                        themeMode = uiState.themeMode,
+                        onThemeModeChanged = onThemeModeChanged,
+                        crashFileStore = crashFileStore,
+                    )
+                }
+            },
+            content = compactMainScaffold,
+        )
+    } else {
+        // M3's "swapped" adaptive pattern: the same drawer panel, but always on screen and never
+        // covering the content — see drawerSheetContent's own doc comment for what's shared.
+        // PERMANENT_DRAWER_WIDTH keeps the panel's text at a readable line length rather than
+        // stretching it as the window grows past the medium breakpoint.
+        PermanentNavigationDrawer(
+            drawerContent = {
+                PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
+                    // Workstream L4b-R2: the drawer sheet is DrawerPanel.Log's own visual area, so
+                    // its discard-offer Snackbar docks here — at the bottom of this sheet — rather
+                    // than in mainScaffold's Scaffold, which is the search/results pane beside it,
+                    // not where the edit session the Snackbar is about actually lives.
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            drawerSheetContent(false)
+                        }
+                        SnackbarHost(
+                            logDraftSnackbarHostState,
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                        )
+                    }
+                }
+            },
+            content = mainScaffold,
+        )
+    }
+}
+
+/**
+ * Replaces the compact-only top [SecondaryTabRow] — decision #4 in `docs/plans/map-redesign.md`,
+ * back down to [CompactTab]'s **5** destinations as of this dispatch: List, Seasonal, Maps,
+ * Journal, Tools. **Corrected twice now**: this comment said "5" before Album was added as its own
+ * destination (2026-08-28 correction), then needed correcting again to "6" once Album actually
+ * landed, and is "5" again for real now that Album folded into Journal and Settings folded into
+ * Tools — re-derived directly against [CompactTab.entries] rather than trusted from either prior
+ * count, per this project's own repeated history of exactly this drift.
+ *
+ * [selectedTab] is [AvailabilityScreen]'s own `compactTab`, with one exception: [CompactTab.TOOLS]
+ * never actually becomes the selected `compactTab` (see that entry's own doc comment — tapping it
+ * opens a drawer instead), so [isDrawerOpen] stands in for its own highlight specifically. Every
+ * other entry highlights the ordinary way.
+ *
+ * **Two call sites, never both for the same tab at once** (fullscreen-fixes dispatch, Item 1, third
+ * design): `compactMainScaffold`'s own `bottomBar` slot renders this, unconditionally opaque, for
+ * every tab except Map; the Map tab's own instance lives inside `CompactMapTab`'s own content `Box`
+ * instead, `selectedTab` hardcoded to [CompactTab.MAP] there — see that composable's own doc
+ * comment for why the nav can't stay in `bottomBar` for that one tab.
+ *
+ * Its own real rendered height (not a fixed constant) is measured, not guessed — see
+ * `compactMainScaffold`'s own `bottomNavHeightPx` doc comment for why a flat Material3 spec value
+ * (80dp) undershoots this on a real device by exactly the system navigation-bar inset, invisible
+ * under Robolectric (CLAUDE.md's own "Known pitfalls").
+ */
+@Composable
+private fun ForagerBottomNav(
+    selectedTab: CompactTab,
+    isDrawerOpen: Boolean,
+    onTabSelected: (CompactTab) -> Unit,
+    modifier: Modifier = Modifier,
+    /**
+     * Opaque by default — the three docked, `bottomBar`-hosted instances. The Map tab's own
+     * overlay instance (inside `CompactMapTab`'s Box, floating over the map) passes 80%, the
+     * standing chrome-over-the-map treatment this file's own map-chrome family uses everywhere
+     * else — restored on the owner's own call after a screenshot. History, so it isn't flipped a
+     * third time without knowing: fullscreen-maps Part 2a first floated it at 80% *while
+     * fullscreen*; the fullscreen-fixes dispatch made it slide fully off-screen in fullscreen and
+     * went opaque, reasoning it was never both visible and over the map at once; this restores
+     * translucency for the non-fullscreen state, where it *is* always over the map.
+     */
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+) {
+    NavigationBar(
+        containerColor = containerColor,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    ) {
+        CompactTab.entries.forEach { tab ->
+            NavigationBarItem(
+                selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
+                onClick = { onTabSelected(tab) },
+                icon = { Icon(tab.icon(), contentDescription = null) },
+                label = { Text(tab.label) },
+                // Colored entirely from MaterialTheme.colorScheme rather than the fixed Bark/
+                // Color.White an earlier revision used — that hardcoding was a real bug, not a
+                // style choice: it left this bar the same dark brown regardless of system light/
+                // dark theme, while every other surface in the app (and this same bar's own
+                // active-tab color, already colorScheme.primary) switched with it.
+                // NavigationBarItemDefaults.colors' own defaults already give the unselected/
+                // indicator roles sensible theme-following values, so this only overrides
+                // selectedIconColor/selectedTextColor to keep the app's own forest green
+                // (colorScheme.primary — ForestGreen in light theme, MossGreen in dark, per that
+                // theme's own doc comment) as the active-tab accent, matching this file's other
+                // hand-picked accents rather than leaving it at M3's default secondary-container
+                // tint.
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                ),
+            )
+        }
+    }
+}
+
+/**
+ * Width of the always-visible drawer panel on medium+ windows — see [PermanentNavigationDrawer]'s
+ * call site in [AvailabilityScreen]. 360dp is M3's standard navigation-drawer width and keeps this
+ * panel's text (species chips, radius slider, trip list) around a comfortable line length rather
+ * than stretching to fill whatever the window happens to be.
+ */
+private val PERMANENT_DRAWER_WIDTH = 360.dp
+
+/**
+ * List and Map shown together rather than tab-switched — the M3 "reveal" pattern for medium+
+ * windows (see [AvailabilityScreen]'s call site). [ListTab] keeps a fixed, readable width so it
+ * doesn't stretch as the window grows; [MapTab] takes the rest, same as it does full-bleed at
+ * compact width.
+ */
+@Composable
+private fun CombinedResultsPane(
+    uiState: AvailabilityUiState,
+    currentTime: CurrentTimeProvider,
+    distanceUnit: DistanceUnit,
+    mapSlot: MapSlot,
+    renderMode: MapRenderMode,
+    mapMode: MapMode,
+    onMapModeSelected: (MapMode) -> Unit,
+    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
+    onLogFindHere: (LatLng) -> Unit,
+    breadcrumbPoints: List<LatLng>,
+    waypoints: List<Waypoint>,
+    onDropWaypoint: (LatLng, String) -> Unit,
+    /** See [AvailabilityScreen]'s own `mapTaxonFilter`/`onViewSpeciesOnMap` — threaded to both tabs here. */
+    taxonFilter: Long?,
+    onClearTaxonFilter: () -> Unit,
+    onViewOnMap: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier.fillMaxHeight()) {
+        ListTab(
+            uiState = uiState,
+            currentTime = currentTime,
+            distanceUnit = distanceUnit,
+            onViewOnMap = onViewOnMap,
+            modifier = Modifier.width(COMBINED_PANE_LIST_WIDTH).fillMaxHeight(),
+        )
+        VerticalDivider()
+        MapTab(
+            uiState = uiState,
+            mapSlot = mapSlot,
+            renderMode = renderMode,
+            mapMode = mapMode,
+            onMapModeSelected = onMapModeSelected,
+            onPlaceTripPin = onPlaceTripPin,
+            onLogFindHere = onLogFindHere,
+            breadcrumbPoints = breadcrumbPoints,
+            waypoints = waypoints,
+            onDropWaypoint = onDropWaypoint,
+            taxonFilter = taxonFilter,
+            onClearTaxonFilter = onClearTaxonFilter,
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+        )
+    }
+}
+
+/** Same readable-width reasoning as [PERMANENT_DRAWER_WIDTH]; see [CombinedResultsPane]. */
+private val COMBINED_PANE_LIST_WIDTH = 360.dp
+
+/**
+ * Which build this is, at the bottom of the drawer.
+ *
+ * Debug APKs get handed to a tester several times a session and, before this, the app had no way
+ * to say which one was running: two different builds both reported "1.0". The versionCode is here
+ * because that is the number Android compares when deciding whether an install replaces or
+ * no-ops, and the versionName because it carries the commit sha that names the exact build. A
+ * versionName starting with "UNVERSIONED" means the build could not derive its identity from git
+ * — see resolveBuildIdentity in app/build.gradle.kts — and its versionCode is not trustworthy.
+ */
+@Composable
+private fun BuildIdentityFooter() {
+    HorizontalDivider()
+    Text(
+        text = "Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.VERSION_NAME}",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            // The drawer sheet sits outside Scaffold's own automatic system-bar inset handling
+            // (see AvailabilityScreen's enableEdgeToEdge() call in MainActivity), so this, the
+            // bottom-most content in the sheet, needs its own bottom inset explicitly — otherwise
+            // it would sit partly behind the now-transparent gesture/nav bar.
+            .navigationBarsPadding()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+    )
+}
+
+/**
+ * A visible close affordance at the top of the drawer sheet.
+ *
+ * Gestures are deliberately disabled on this drawer (see the comment on `gesturesEnabled = false`
+ * in [AvailabilityScreen]) because the content behind it is a pannable map, so a swipe there has
+ * to mean "pan", not "close". That leaves tapping the scrim as the only other way out, which is
+ * easy to miss — this gives the drawer its own explicit, discoverable close control.
+ *
+ * The whole bar is the tap target, not just an icon: a bare [IconButton] here is a 48dp target in
+ * the corner of an otherwise-empty full-width row, which is easy to miss the same way the scrim
+ * tap was. Widening the target to the whole row is a bigger, easier-to-hit close affordance for
+ * exactly the same action.
+ *
+ * No visible icon on it, on purpose: the app bar's tune icon that opens this drawer sits at the
+ * same height as this row, so the row's position alone reads as "tap here to undo what the tune
+ * icon did" without needing its own marker — an X here was one more thing competing for attention
+ * at the top of a sheet whose whole point is fewer things demanding a look. [Role.Button] and the
+ * `contentDescription` below keep it a real, labelled action for TalkBack even with nothing drawn.
+ */
+@Composable
+private fun DrawerHeader(onClose: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onClose)
+            .semantics { contentDescription = "Close search options" },
+    ) {}
+}
+
+/**
+ * The Search panel's sticky-footer entry into the mushroom log, right above [SettingsEntryRow] —
+ * see [DrawerPanel]'s doc comment for the two sticky rows this drawer now has. No
+ * `navigationBarsPadding()` here: [SettingsEntryRow] below is still the last row in the sheet and
+ * carries that inset, so both rows don't independently pad for the same nav-bar gap.
+ */
+@Composable
+private fun MushroomLogEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.MenuBook, contentDescription = null)
+        Text("Mushroom Log", style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
+ * The Search panel's sticky-footer entry into Settings — the exact slot [BuildIdentityFooter] used
+ * to occupy, same divider-plus-navigation-bar-padding treatment, so the footer's move to the bottom
+ * of the Settings panel doesn't leave this slot looking or behaving any differently to a user who
+ * never opens Settings at all.
+ *
+ * Unlike [DrawerHeader], this one is a real, visible, labelled row: it isn't undoing anything the
+ * app bar already drew (there is no "Settings" icon anywhere else on screen this could echo), so it
+ * has to carry its own label to be discoverable at all.
+ */
+@Composable
+private fun SettingsEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .navigationBarsPadding()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Settings, contentDescription = null)
+        Text("Settings", style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
+ * The Search panel's sticky-footer entry into the photo gallery (Workstream G2) — same shape as
+ * [MushroomLogEntryRow] right above it, since both are entries into mushroom-log-area
+ * destinations. No `navigationBarsPadding()` here for the same reason [MushroomLogEntryRow] has
+ * none: [SettingsEntryRow] below is still the last row in the sheet and carries that inset.
+ */
+@Composable
+private fun PhotoGalleryEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
+        Text("Photo Gallery", style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
+ * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
+ * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
+ * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
+ */
+@Composable
+private fun SettingsHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onBack)
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
+        Text("Settings", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/** [DrawerPanel.PhotoGallery]'s header — mirrors [SettingsHeader]'s back-arrow-plus-title shape exactly, for the same reason: there's nothing else on screen suggesting how to get back to Search. */
+@Composable
+private fun PhotoGalleryHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onBack)
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
+        Text("Photo Gallery", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/**
+ * Settings' body, reached by tapping the Settings entry at the bottom of [CompactToolsDrawerContent]
+ * (the compact "Tools" drawer, map/navigation redesign dispatch B) — [SettingsContent] hosted as a
+ * `showSettings`-gated state within that drawer instead of a drawer panel of its own. Reuses
+ * [SettingsContent]/[BuildIdentityFooter] unmodified — only the navigation host around them changed,
+ * from a drawer panel switch to a nested-state one. No header for the main Settings state, unlike
+ * the drawer panel's [SettingsHeader]: there is nothing to go "back" to here via an in-content
+ * affordance — [CompactToolsDrawerContent]'s own `BackHandler` unwinds `showSettings` back to the
+ * rest of the Tools drawer, the same most-recently-composed-callback-wins pattern [JournalTab]'s
+ * nested states use.
+ *
+ * **Was** [CompactTab.SETTINGS]'s body — a standalone sixth bottom-nav destination — before dispatch
+ * B collapsed the bottom nav to five destinations and folded Settings one level deeper, behind Tools.
+ *
+ * Journal restructure Stage 1 moved Offline Maps and Recorded Tracks out of Settings entirely, into
+ * the Journal's Records tab — see [com.zynergylabs.forager.app.ui.log.RecordsTab]. This tab's own `showOfflineMaps`/
+ * `showTracks` submenu state is gone with them; only [showCrashLogs] remains.
+ */
+@Composable
+private fun CompactSettingsTab(
+    distanceUnit: DistanceUnit,
+    onDistanceUnitSelected: (DistanceUnit) -> Unit,
+    /** Night mode for the map, and Settings' own checkbox value. */
+    isNightMode: Boolean,
+    onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit,
+    crashFileStore: CrashFileStore,
+    modifier: Modifier = Modifier,
+) {
+    var showCrashLogs by remember { mutableStateOf(false) }
+
+    // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
+    // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
+    BackHandler(enabled = showCrashLogs) {
+        showCrashLogs = false
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        when {
+            showCrashLogs -> {
+                CrashLogPanel(
+                    modifier = Modifier.weight(1f),
+                    files = crashFileStore.list(),
+                    onBack = { showCrashLogs = false },
+                )
+            }
+
+            else -> {
+                SettingsContent(
+                    modifier = Modifier.weight(1f),
+                    distanceUnit = distanceUnit,
+                    onDistanceUnitSelected = onDistanceUnitSelected,
+                    nightModeMaps = isNightMode,
+                    onNightModeMapsChanged = onNightModeMapsChanged,
+                    themeMode = themeMode,
+                    onThemeModeChanged = onThemeModeChanged,
+                    onOpenCrashLogs = { showCrashLogs = true },
+                )
+                BuildIdentityFooter()
+            }
+        }
+    }
+}
+
+/**
+ * The Settings panel's body: [DistanceUnitSection], theme, night maps, and Crash Logs.
+ *
+ * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
+ * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
+ * pinned Street/Topographical to OpenStreetMap and added Satellite (USGS) as a third, always-on
+ * option reachable only from the map's own [MapModePicker]. See [MapMode]'s own doc comment for the
+ * full account of what this removed and why.
+ *
+ * **No longer has Offline Maps or Recorded Tracks entries.** Journal restructure Stage 1 moved
+ * both into the Journal's own Records tab ([RecordsTab] in `ui/log/`) — see that composable's own
+ * doc comment. `CrashLogs` stays here since it isn't a Records concept.
+ *
+ * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
+ * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
+ */
+@Composable
+private fun SettingsContent(
+    modifier: Modifier = Modifier,
+    distanceUnit: DistanceUnit,
+    onDistanceUnitSelected: (DistanceUnit) -> Unit,
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit,
+    nightModeMaps: Boolean,
+    onNightModeMapsChanged: (Boolean) -> Unit,
+    onOpenCrashLogs: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        DistanceUnitSection(distanceUnit = distanceUnit, onDistanceUnitSelected = onDistanceUnitSelected)
+        HorizontalDivider()
+        ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
+        NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
+        HorizontalDivider()
+        CrashLogsEntryRow(onClick = onOpenCrashLogs)
+    }
+}
+
+/**
+ * The app's own theme — a direct, persistent preference ([AvailabilityUiState.themeMode]), a
+ * three-way choice rather than a single on/off checkbox now that [AppThemeMode.SYSTEM_DEFAULT]
+ * exists alongside the two explicit choices this setting started as
+ * ([AppThemeMode.LIGHT]/[AppThemeMode.DARK]) — only [AppThemeMode.SYSTEM_DEFAULT] is derived from
+ * the device's own theme ([androidx.compose.foundation.isSystemInDarkTheme], resolved in
+ * `MainActivity`); [AppThemeMode.LIGHT]/[AppThemeMode.DARK] stay direct choices independent of it.
+ * Same radio-group shape as [DistanceUnitSection] above, for the same reason: more than two mutually
+ * exclusive choices reads as a choice, not a toggle. [NightModeMapsSection] sits directly beneath
+ * this one: that checkbox controls only the map's own basemap styling, independent of this app-wide
+ * choice — see [AvailabilityUiState.nightModeMaps]'s own doc comment, and
+ * [com.zynergylabs.forager.app.domain.AppThemePreferenceRepository]'s own doc comment for why that independence
+ * held even once this setting grew a third option.
+ */
+@Composable
+private fun ThemeModeSection(themeMode: AppThemeMode, onThemeModeSelected: (AppThemeMode) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text("Night Mode", style = MaterialTheme.typography.titleMedium)
+        AppThemeMode.entries.forEach { mode ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.RadioButton) { onThemeModeSelected(mode) },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                RadioButton(selected = mode == themeMode, onClick = { onThemeModeSelected(mode) })
+                Text(mode.label, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+}
+
+/**
+ * Whether the map renders in night mode — a direct, persistent preference
+ * ([AvailabilityUiState.nightModeMaps]), not derived from time of day. Replaces the map's earlier
+ * civil-twilight-automatic/long-press-hold control per the project owner's own request to move
+ * this to a plain Settings checkbox instead. Sits directly beneath [ThemeModeSection] — see that
+ * composable's own doc comment.
+ */
+@Composable
+private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Text("Night Maps", style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/**
+ * Metric or imperial for everything this app displays with a unit — distances (search radius,
+ * offline-download radius, recent-search cards, the HUD) and, since the return-estimate dispatch,
+ * rainfall; see [UnitSystem]'s own doc comment for why this is a system rather than the distance
+ * unit it used to be, and which displays still wait on it. A display preference only, never a
+ * change to what's actually searched or downloaded ([DistanceUnit]'s own doc comment).
+ *
+ * Still parameterised by [DistanceUnit] and still calling `onDistanceUnitSelected`: the two enums
+ * are in bijection, so the existing callback carries the chosen system exactly, and this file's
+ * plumbing keeps its shape while its split is held — see `AvailabilityViewModel.onDistanceUnitSelected`.
+ */
+@Composable
+private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelected: (DistanceUnit) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text("Units", style = MaterialTheme.typography.titleMedium)
+        UnitSystem.entries.forEach { system ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.RadioButton) { onDistanceUnitSelected(system.distanceUnit) },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                RadioButton(selected = system.distanceUnit == distanceUnit, onClick = { onDistanceUnitSelected(system.distanceUnit) })
+                Text(system.label, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+}
+
+/**
+ * The quick-fire icon overlaid on the map's own top-right corner — not the app bar, not Settings —
+ * because which [MapMode] the map is in is a during-the-walk decision made often, unlike anything
+ * that used to live in Settings (deleted; see [MapMode]'s own doc comment for what superseded it).
+ * A tap opens [MapModePicker] rather than instantly cycling modes, now that there are three to
+ * choose from instead of two — "toggle the two" stopped being the whole rule once Satellite joined
+ * Street/Topographical.
+ */
+@Composable
+private fun MapModeToggle(mapMode: MapMode, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    // size(MIN_TOUCH_TARGET) rather than sizing this off the icon-plus-padding it draws: the icon
+    // is 24dp and Spacing.sm padding is 8dp a side, which wrapped to a 40dp circle — under M3's
+    // 48x48dp minimum touch target, a real miss found by auditing this file's tap targets against
+    // that rule, not a hypothetical one.
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 3.dp,
+        shadowElevation = 2.dp,
+        modifier = modifier.size(MIN_TOUCH_TARGET),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.Layers,
+                contentDescription = "Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.",
+            )
+        }
+    }
+}
+
+/**
+ * The compact "Tools" drawer's entire content. Named for what it actually holds, not what it used
+ * to: the composable itself and this file's own doc comments called it the "search drawer" through
+ * two rounds of the map/navigation redesign — first because "the whole side panel is the search
+ * feature" (the project owner's own original framing, when species search and Recent Searches both
+ * lived here), then again once dispatch C moved both out into [SearchDropdown] over the map (see
+ * that composable's own doc comment). The owner's own later call, on seeing that move land: stop
+ * calling this the search drawer at all, "so it doesn't get lumped together in the future by some
+ * ambitious planner" — species search is gone from here for good, and the name should say so. Two
+ * things live here now, none of them search:
+ *
+ * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner only. Waypoints moved
+ *    out (Journal restructure Stage 1) into the Journal's own Records tab.
+ * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
+ *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
+ *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
+ *    the same "drill in, own back step" shape [CompactSettingsTab] already uses for its own
+ *    CrashLogs submenu.
+ *
+ * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
+ * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
+ */
+@Composable
+private fun CompactToolsDrawerContent(
+    uiState: AvailabilityUiState,
+    distanceUnit: DistanceUnit,
+    onDistanceUnitSelected: (DistanceUnit) -> Unit,
+    onClose: () -> Unit,
+    onDeletePlannedTrip: (String) -> Unit,
+    currentTime: CurrentTimeProvider,
+    isNightMode: Boolean,
+    onNightModeMapsChanged: (Boolean) -> Unit,
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit,
+    crashFileStore: CrashFileStore,
+) {
+    // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
+    // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
+    // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
+    // own expand state), so its own BackHandler below takes priority over the top-level
+    // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
+    // AvailabilityScreen's own top-level BackHandler chain already documents.
+    var showSettings by remember { mutableStateOf(false) }
+    BackHandler(enabled = showSettings) {
+        showSettings = false
+    }
+
+    if (showSettings) {
+        CompactSettingsTab(
+            distanceUnit = distanceUnit,
+            onDistanceUnitSelected = onDistanceUnitSelected,
+            isNightMode = isNightMode,
+            onNightModeMapsChanged = onNightModeMapsChanged,
+            themeMode = themeMode,
+            onThemeModeChanged = onThemeModeChanged,
+            crashFileStore = crashFileStore,
+            modifier = Modifier.fillMaxSize(),
+        )
+        return
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        DrawerHeader(onClose = onClose)
+        SearchControls(
+            modifier = Modifier.weight(1f),
+            uiState = uiState,
+            distanceUnit = distanceUnit,
+            onDeletePlannedTrip = onDeletePlannedTrip,
+            currentTime = currentTime,
+            // See SearchControls' own doc comment on these params: species search, Recent
+            // searches, and Advanced search all now live in SearchDropdown, over the map, not here.
+            includeAdvancedSearch = false,
+            includeRecentSearches = false,
+        )
+        SettingsEntryRow(onClick = { showSettings = true })
+    }
+}
+
+/**
+ * The map tab: the map itself takes the whole content area apart from the foraging-areas toggle
+ * and detail below it, which are bounded so they can't repeat the starvation this layout exists
+ * to fix.
+ *
+ * Which of the three-way menu's options is currently mid-pick, between the menu closing and the
+ * centre-pin picker confirming — see [MapTab]/[CompactMapTab]'s own doc comments. There is no
+ * "none, but the picker is still showing" state: the picker overlay's own visibility is driven by
+ * this being non-null, not a separate flag, so the two can never disagree about whether a pick is
+ * in progress.
+ */
+private enum class PendingMapAction { PLAN_TRIP, LOG_FIND, DROP_WAYPOINT }
+
+/**
+ * Owns the location-placing flow: [MapSlot] only reports where the camera currently is (see its
+ * own doc comment on [MapSlot.onCameraIdle]), so the pending action and what it turns into both
+ * live here, next to the only place that location can come from. The three-way menu's own button
+ * offers three outcomes — plan a trip ([TripDatePickerDialog], turning it into a saved
+ * [PlannedTrip]), log a find ([onLogFindHere], which opens the mushroom log's drawer destination
+ * — see `docs/plans/mushroom-log.md`'s Navigation section for why this reuses the same entry point
+ * rather than adding a second one), or drop a waypoint ([WaypointNameDialog]) — so
+ * [ThreeWayActionDialog] asks which before any of the three runs, and only *then* does
+ * [CentrePinLocationPicker] ask where: a button press carries no location the way a long-press
+ * gesture used to, so which comes first had to invert. [defaultTripName] is computed from the trip
+ * count already in state, here rather than inside the dialog, so the dialog stays a dumb presenter
+ * of whatever default it's handed.
+ */
+@Composable
+private fun MapTab(
+    uiState: AvailabilityUiState,
+    mapSlot: MapSlot,
+    renderMode: MapRenderMode,
+    mapMode: MapMode,
+    onMapModeSelected: (MapMode) -> Unit,
+    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
+    onLogFindHere: (LatLng) -> Unit,
+    breadcrumbPoints: List<LatLng>,
+    waypoints: List<Waypoint>,
+    onDropWaypoint: (LatLng, String) -> Unit,
+    /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
+    taxonFilter: Long?,
+    onClearTaxonFilter: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showActionMenu by remember { mutableStateOf(false) }
+    var showMapModePicker by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
+    var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
+    var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
+
+    when {
+        !uiState.hasSearched -> MapMessage(
+            "Choose a region in search options to see mapped sightings.",
+            modifier = modifier,
+        )
+
+        uiState.isLoadingSightings -> Column(
+            modifier = modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            CircularProgressIndicator()
+        }
+
+        uiState.sightingsErrorMessage != null -> MapMessage(
+            uiState.sightingsErrorMessage,
+            modifier = modifier,
+            color = MaterialTheme.colorScheme.error,
+        )
+
+        else -> {
+            val region = uiState.region
+            if (region != null) {
+                var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
+                var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
+                var tappedSightingScreenPosition by remember { mutableStateOf(Offset.Zero) }
+                var tappedSightingBearingDeg by remember { mutableStateOf(0f) }
+                val context = LocalContext.current
+                Column(modifier = modifier.fillMaxWidth()) {
+                    // "View on Map" from a List-tab row: limits the map to one species' sightings
+                    // rather than every mapped one. Filtered against uiState.sightings itself
+                    // (what the map actually draws), not against uiState.forecast's own
+                    // observationCount — the two can legitimately disagree (the forecast is a
+                    // separate historical query; the map only shows what actually loaded for this
+                    // region), so the count in mapTaxonFilterLabel below is what's really on screen.
+                    val filteredSightings = if (taxonFilter != null) {
+                        uiState.sightings.filter { it.taxonId == taxonFilter }
+                    } else {
+                        uiState.sightings
+                    }
+                    val mapTaxonFilterLabel = taxonFilter?.let { id ->
+                        val name = uiState.forecast?.entries?.firstOrNull { it.species.taxonId == id }?.species
+                            ?.let { it.commonName ?: it.scientificName }
+                            ?: filteredSightings.firstOrNull()?.let { it.commonName ?: it.scientificName }
+                            ?: "this species"
+                        "$name (${filteredSightings.size})"
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        mapSlot(
+                            region,
+                            MapOverlayContent(
+                                sightings = filteredSightings,
+                                plannedTrips = uiState.plannedTrips,
+                                breadcrumbPoints = breadcrumbPoints,
+                                waypoints = waypoints,
+                                focusedObservationId = tappedSighting?.observationId,
+                            ),
+                            renderMode,
+                            null,
+                            {},
+                            // A plain tap elsewhere on the map is what dismisses the bubble below —
+                            // see ObservationBubble's own doc comment for why this replaced a modal
+                            // AlertDialog. Harmless to clear when nothing is showing.
+                            { tappedSighting = null },
+                            { sighting, screenPosition, bearingDeg ->
+                                tappedSighting = sighting
+                                tappedSightingScreenPosition = screenPosition
+                                tappedSightingBearingDeg = bearingDeg
+                            },
+                            { location -> cameraCenter = location },
+                            Modifier.fillMaxSize(),
+                        )
+                        tappedSighting?.let { sighting ->
+                            AnchoredAtScreenPoint(
+                                anchorPx = tappedSightingScreenPosition,
+                                bearingDeg = tappedSightingBearingDeg,
+                                modifier = Modifier.fillMaxSize(),
+                            ) { arrowAngleDeg ->
+                                ObservationBubble(
+                                    sighting = sighting,
+                                    onViewOnINaturalist = {
+                                        launchINaturalistObservation(context, sighting.observationId)
+                                        tappedSighting = null
+                                    },
+                                    onDismiss = { tappedSighting = null },
+                                    arrowAngleDeg = arrowAngleDeg,
+                                )
+                            }
+                        }
+                        mapTaxonFilterLabel?.let { label ->
+                            TaxonMapFilterChip(
+                                label = label,
+                                onClear = onClearTaxonFilter,
+                                modifier = Modifier.align(Alignment.TopCenter).padding(Spacing.sm),
+                            )
+                        }
+                        MapModeToggle(
+                            mapMode = mapMode,
+                            onClick = { showMapModePicker = true },
+                            modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
+                        )
+                        MapModePicker(
+                            visible = showMapModePicker,
+                            mapMode = mapMode,
+                            onModeSelected = onMapModeSelected,
+                            onDismiss = { showMapModePicker = false },
+                        )
+                        // MEDIUM/EXPANDED's own trigger for the three-way menu — CompactMapTab has
+                        // MapIconBar's own add row to repurpose for this; this window class has no
+                        // icon bar at all, so this is new here rather than reused. Same icon, same
+                        // content description, same corner as the compact bar's own add row, for
+                        // the same button to mean the same thing on every layout that has one — see
+                        // this file's doc comment on why medium/expanded needed a button added
+                        // rather than an existing one converted.
+                        MapFloatingIconButton(
+                            icon = Icons.Filled.Add,
+                            contentDescription = "Plan a trip or log a find here",
+                            onClick = { showActionMenu = true },
+                            filled = true,
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.sm),
+                        )
+                        if (pendingAction != null) {
+                            CentrePinLocationPickerOverlay(
+                                onConfirm = {
+                                    when (pendingAction) {
+                                        PendingMapAction.PLAN_TRIP -> pendingTripLocation = cameraCenter
+                                        PendingMapAction.LOG_FIND -> onLogFindHere(cameraCenter)
+                                        PendingMapAction.DROP_WAYPOINT -> pendingWaypointLocation = cameraCenter
+                                        null -> Unit
+                                    }
+                                    pendingAction = null
+                                },
+                                onCancel = { pendingAction = null },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // CentrePinLocationPickerOverlay is a plain overlay, not a real Dialog — unlike
+    // ThreeWayActionDialog below (an AlertDialog, which already handles system back for free) —
+    // so unlike this composable's menu, its own picker phase needs an explicit BackHandler or
+    // system back would fall straight through it.
+    BackHandler(enabled = pendingAction != null) {
+        pendingAction = null
+    }
+
+    if (showActionMenu) {
+        ThreeWayActionDialog(
+            onPlanTrip = {
+                showActionMenu = false
+                pendingAction = PendingMapAction.PLAN_TRIP
+            },
+            onLogFind = {
+                showActionMenu = false
+                pendingAction = PendingMapAction.LOG_FIND
+            },
+            onDropWaypoint = {
+                showActionMenu = false
+                pendingAction = PendingMapAction.DROP_WAYPOINT
+            },
+            onDismiss = { showActionMenu = false },
+        )
+    }
+
+    pendingTripLocation?.let { location ->
+        TripDatePickerDialog(
+            defaultName = defaultTripName(uiState.plannedTrips.size),
+            onConfirm = { date, name ->
+                onPlaceTripPin(location, date, name)
+                pendingTripLocation = null
+            },
+            onDismiss = { pendingTripLocation = null },
+        )
+    }
+
+    pendingWaypointLocation?.let { location ->
+        WaypointNameDialog(
+            defaultName = defaultWaypointName(waypoints.size),
+            onConfirm = { name ->
+                onDropWaypoint(location, name)
+                pendingWaypointLocation = null
+            },
+            onDismiss = { pendingWaypointLocation = null },
+        )
+    }
+}
+
+/** Translucent background for [CompassElevationStripContent] and [SearchDropdown]'s own panel — dark-theme value. Was 0.78, one alpha step off the app's settled 80% map-chrome opacity ([MapIconStackButtonColorDark]'s own value); the map/navigation search-UI redo dispatch names 80% as the one value all map chrome shares, so this now matches rather than carrying its own near-miss. */
+internal val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.8f)
+
+/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
+internal val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.8f)
+
+
+/**
+ * The icon cluster's position on the compact Map tab, as one holder so it can live *above*
+ * [CompactMapTab] — in `compactMainScaffold`, which persists across tab changes — rather than in
+ * the tab's own `remember`s, which are disposed with it on every tab switch. Direct owner request:
+ * "switching between tabs resets the icon position; have it remember positions when switching in
+ * and out of maps." That reversed the icon-bar-position-memory dispatch's working rule that
+ * nothing survives a tab change, and the owner then made the general principle explicit —
+ * CLAUDE.md, "UX defaults": user-set state survives navigating away and back by default, and an
+ * unrequested reset is a bug unless the exception is stated for the case. Still session-only —
+ * nothing here is persisted across app restarts, which is a separate per-case decision.
+ *
+ * Holds the cluster's user-set state: [userChosenOffsetPx] (the single source of truth, written
+ * only by drags), [displayedOffsetPx] (the Animatable that is always the clamp of it under the
+ * bounds in force — kept too, so returning to the tab does not glide in from zero),
+ * [isOnLeftSide], and [isMinimized] (the fullscreen-fixes dispatch's "minimising resets when the
+ * user leaves the Map tab" was a planner rule with no owner exception behind it, so the default
+ * applies). The cluster's measurements (heights, the bar's centre) are not here — they are re-measured
+ * on every mount and mean nothing across one. On return, the tab's bounds-change effect re-clamps
+ * the memory under the bounds then in force (the tab change also exited fullscreen), so a position
+ * chosen low in fullscreen comes back above the nav, and re-entering fullscreen glides it down
+ * again — the same behaviour a fullscreen exit already has, now also across a tab change.
+ */
+private class MapIconClusterPositionState {
+    var userChosenOffsetPx by mutableStateOf(0f)
+    val displayedOffsetPx = Animatable(0f)
+    var isOnLeftSide by mutableStateOf(false)
+    var isMinimized by mutableStateOf(false)
+}
+
+@Composable
+private fun rememberMapIconClusterPositionState(): MapIconClusterPositionState = remember { MapIconClusterPositionState() }
+
+/**
+ * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
+ * the map fills the entire content area, with the top compass/elevation strip and the right-edge
+ * icon stack drawn over it.
+ *
+ * Scoped to `WindowWidthClass.COMPACT` only; `MEDIUM`/`EXPANDED` keep using the unmodified [MapTab]
+ * inside [CombinedResultsPane] — see the plan doc's "Scope decision" section for why this is a
+ * separate composable rather than a conditional threaded through [MapTab] itself.
+ *
+ * Owns the location-placing flow exactly as [MapTab] does — see that composable's doc comment for
+ * the mechanics [PendingMapAction] drives; [TripDatePickerDialog]/[defaultTripName] are shared,
+ * unmodified, but the "what would you like to do here" chooser itself is [AddActionTile] here
+ * rather than [MapTab]'s [ThreeWayActionDialog] — see that composable's own doc comment for why.
+ * The icon stack's add (+) button reuses this exact same flow — it sets [showActionMenu] directly,
+ * the identical trigger the map's own dedicated button sets on [MapTab], rather than a parallel
+ * dialog/handler — so the two entry points can never drift apart. Unlike before this rework, it no
+ * longer needs to hand the flow a starting location itself: [CentrePinLocationPicker]'s own camera
+ * tracking supplies that once a choice is made, the same as every other site.
+ */
+@Composable
+private fun CompactMapTab(
+    uiState: AvailabilityUiState,
+    mapSlot: MapSlot,
+    renderMode: MapRenderMode,
+    isNightMode: Boolean,
+    /**
+     * The icon cluster's position — vertical memory, displayed offset, side — held by the caller
+     * so it survives leaving and returning to this tab. See [MapIconClusterPositionState]. The
+     * default keeps any other caller self-contained.
+     */
+    clusterPosition: MapIconClusterPositionState = rememberMapIconClusterPositionState(),
+    mapMode: MapMode,
+    onMapModeSelected: (MapMode) -> Unit,
+    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
+    onLogFindHere: (LatLng) -> Unit,
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
+    /**
+     * Fullscreen-fixes dispatch, Item 1 (third design) — this tab now hosts [ForagerBottomNav]
+     * itself, inside its own content [Box] below, rather than the shared [Scaffold]'s `bottomBar`
+     * slot ([compactMainScaffold]'s own `bottomBar` doc comment explains why: that slot's reported
+     * height must never depend on [isFullscreen], and the only way to guarantee that is for the Map
+     * tab's nav not to live there at all). [isDrawerOpen] and [onBottomNavTabSelected] are exactly
+     * the two inputs [ForagerBottomNav] needs beyond its own `selectedTab` — hardcoded to
+     * [CompactTab.MAP] at this composable's own call to it below, since that's the only tab this
+     * composable is ever shown for. [onBottomNavHeightMeasured] reports the nav's own real measured
+     * height back up to [compactMainScaffold]'s own scope — see that scope's own `bottomNavHeightPx`
+     * doc comment for why this needs to be a real measurement, not a fixed constant, and why the
+     * value is needed a second time there (the search-dropdown dismiss scrim and its own
+     * `SearchDropdown` panel), which is why this tab doesn't just keep the measurement as private
+     * local state the way [mapIconClusterHeightPx] below does.
+     */
+    isDrawerOpen: Boolean,
+    onBottomNavTabSelected: (CompactTab) -> Unit,
+    onBottomNavHeightMeasured: (Float) -> Unit,
+    onLocateMe: () -> Unit,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
+    startRecordingErrorMessage: String?,
+    breadcrumbPoints: List<LatLng>,
+    waypoints: List<Waypoint>,
+    onDropWaypoint: (LatLng, String) -> Unit,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    /**
+     * Whether *any* navigation mode is active — [AvailabilityScreen]'s one `isNavigating`, see its
+     * doc comment. Gates the HUD's presence and the compass strip's absence together, so heading,
+     * elevation and coordinates are on screen exactly once in either state. Distinct from
+     * [isReturning], which is one such mode (the only one in stage one) and still drives the
+     * control pill's lit return toggle and the off-track heuristic.
+     */
+    isNavigating: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
+    compassProvider: CompassProvider,
+    /** See [AvailabilityScreen]'s own `computeTrueHeading` doc comment. */
+    computeTrueHeading: ComputeTrueHeadingUseCase,
+    /** See [AvailabilityScreen]'s own `navigationTarget` doc comment. */
+    navigationTarget: Waypoint?,
+    /** See [AvailabilityScreen]'s own `pathHomeMeters` doc comment. */
+    pathHomeMeters: Double?,
+    /** The HUD's fix-age clock — [AvailabilityScreen]'s own `currentTime`, so a test can pin an old fix as stale. */
+    currentTime: CurrentTimeProvider,
+    /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
+    taxonFilter: Long?,
+    onClearTaxonFilter: () -> Unit,
+    /**
+     * True while [AdvancedSearchDropdown]'s "Set on map" is active — a [compactMainScaffold]-owned
+     * state, not local to this tab, since the dropdown that triggers it lives above the bottom-nav
+     * switch and can be reached from any tab. Shows [CentrePinLocationPickerOverlay] over this same
+     * map the same way [pendingAction] already does, rather than a second picker.
+     */
+    pickingSearchLocation: Boolean = false,
+    onSearchLocationPicked: (LatLng) -> Unit = {},
+    onCancelSearchLocationPick: () -> Unit = {},
+    /**
+     * Extra top clearance beyond the compass strip's own row, for chrome this tab doesn't know
+     * about that now floats above it — SearchEntryBar, on the compact scaffold's own Map tab (see
+     * that call site's own doc comment). Defaults to 0.dp rather than being required: this
+     * composable has exactly one call site today, but the strip/bubble/filter-chip positioning
+     * below already treats "how much is above me" as a real, named input
+     * ([compassStripClearance]) rather than assuming 0 — this parameter extends that same
+     * assumption to cover chrome composed outside this function entirely, instead of baking a
+     * second, undocumented assumption in above it.
+     */
+    topInset: Dp = 0.dp,
+    /**
+     * SearchEntryBar (plus its SearchNotice), composed as a slot inside this composable's own
+     * Box rather than passed up and rendered at the call site — a deliberate, load-bearing
+     * placement, not a style choice: this bar's own 80%-alpha fill needs to blend against real
+     * map imagery to read as translucent chrome the way the compass strip and the two
+     * TrailheadControls pills already do, and both of those live in this exact Box, as direct
+     * siblings of [mapSlot]'s own [AndroidView][androidx.compose.ui.viewinterop.AndroidView]
+     * content. Composing the bar even one level further out (a sibling of this whole composable's
+     * own call, in [compactMainScaffold]'s outer `Box` instead) was tried first and shipped
+     * fully opaque on a real device despite an identical `Surface`/color/alpha to the strip and
+     * pills, and despite its own geometry measuring correctly positioned above the map — Compose's
+     * alpha-blending coordination with an embedded native `View` (this map is `AndroidView`-hosted)
+     * appears to be scoped to the immediate composition that hosts it, not just correct z-order
+     * anywhere in the tree above it. Defaults to an empty slot: this composable has exactly one
+     * call site today (compactMainScaffold's own Map tab branch), which supplies the bar; nothing
+     * else needs to know this parameter exists.
+     */
+    searchBarSlot: @Composable () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    var showActionMenu by remember { mutableStateOf(false) }
+    var showMapModePicker by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
+    var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
+    var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
+    var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
+    var tappedSightingScreenPosition by remember { mutableStateOf(Offset.Zero) }
+    var tappedSightingBearingDeg by remember { mutableStateOf(0f) }
+    // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
+    // existing onLocateMe() call below, not instead of it: that call still drives the compass
+    // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
+    var resumeTrackingRequestId by remember { mutableStateOf(0) }
+    // See MapOverlayContent.resetOrientationRequestId's own doc comment.
+    var resetOrientationRequestId by remember { mutableStateOf(0) }
+    // Icon-bar-unify-container dispatch: MapIconBar's own vertical centre, in px relative to the
+    // top of the cluster container it now sits in (measured on the bar via boundsInParent(), so
+    // it tracks whatever the bar's real height and position in the container are). This replaces
+    // mapIconBarBottomPx — the bar's bottom edge that TrailheadControls used to offset itself by —
+    // rather than redefining it: that value's one consumer became the container Column's own
+    // spacing, so the measurement itself went away. What remains is everything that used to
+    // *assume* the bar's centre sat at this Box's centre plus the drag offset — the two panels'
+    // row anchors and both handles' mid-height placement — which is true of the *container* now,
+    // not the bar, and would silently be ~60dp off otherwise. Combined with mapIconClusterHeightPx
+    // as (centreInCluster − clusterHeight / 2), the bar's centre relative to the container's.
+    var mapIconBarCentreInClusterPx by remember { mutableStateOf(0f) }
+    // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking handle to
+    // restore it") — independent of isMapFullscreen by design (that item's own "do not tie it to
+    // isMapFullscreen" instruction). Held in clusterPosition (see MapIconClusterPositionState) so
+    // it survives leaving and returning to the Map tab: that dispatch's own "minimising resets
+    // when the user leaves the Map tab" was a planner rule, and the owner's standing UX default
+    // (CLAUDE.md, "UX defaults") is that user-set state survives a tab change unless an exception
+    // is stated explicitly for the case — none has been for this.
+    var isMapIconBarMinimized by clusterPosition::isMinimized
+    // Direct owner request (not part of the fullscreen-fixes dispatch): the icon bar can be
+    // dragged up/down to reposition it, and snaps to the left or right edge — for left-handed
+    // users who want it within thumb reach on that side. Held in clusterPosition (see
+    // MapIconClusterPositionState) so it survives a tab change, per the owner's later ask; still
+    // session-only — not persisted to DataStore (CLAUDE.md's Room/DataStore split would put a
+    // "last-used side" preference there, since it's a flat, unrelated toggle). Worth revisiting
+    // if the owner wants that choice to survive an app restart.
+    var isMapIconBarOnLeftSide by clusterPosition::isOnLeftSide
+    // Icon-bar-position-memory dispatch: the bar's vertical position is two values that derive
+    // one from the other, never two that can drift. mapIconBarUserChosenOffsetPx is the single
+    // source of truth — the offset the user last dragged the bar (or its restore handle) to, and
+    // the only thing a drag writes. mapIconBarDisplayedOffsetPx is what's actually drawn: always
+    // clampMapIconBarVerticalOffset(userChosen) under the bounds *currently* in force, snapped to
+    // the finger during a drag and animated (navigationMotionSpec(), the nav's own slide spec, so
+    // the bar's move and the nav's arrival stay in step rather than crossing) whenever the bounds
+    // themselves change — leaving fullscreen brings the nav back over the bar's bottom band and
+    // pushes the bar up out of its way; re-entering removes that bound and the bar glides back to
+    // where the user had put it, because the push never touched the memory. A drag in either
+    // state replaces the memory, so it only ever holds a position the user chose. The previous
+    // shape (one offset, overwritten in place by an instant re-clamp) was exactly the one-way
+    // correction the owner found on device. The spring's few pixels of overshoot at a bound are
+    // accepted, not clamped away: every other slide here uses the same spec and accepts the same.
+    // Both live in clusterPosition (see MapIconClusterPositionState) so they survive leaving and
+    // returning to this tab — the owner's later ask, reversing the earlier "nothing survives a
+    // tab change" ruling for the position. Session-only still.
+    var mapIconBarUserChosenOffsetPx by clusterPosition::userChosenOffsetPx
+    val mapIconBarDisplayedOffsetPx = clusterPosition.displayedOffsetPx
+    val mapIconBarOffsetScope = rememberCoroutineScope()
+    // Horizontal drag distance accumulated only during an in-progress drag gesture — read once, at
+    // gesture end, to decide whether to flip isMapIconBarOnLeftSide, then reset to 0 regardless of
+    // whether the side actually flipped. This keeps the bar's own resting modifier exactly
+    // Alignment.CenterStart/CenterEnd with no leftover offset once a drag finishes, rather than a
+    // real-time "follows the finger, then snaps back" visual (a smaller, later polish, not this
+    // request's own ask).
+    var mapIconBarHorizontalDragPx by remember { mutableStateOf(0f) }
+    // This tab's own content Box's real measured height, in px — what mapIconBarDisplayedOffsetPx is
+    // clamped against below, so a drag can't carry the bar (or its restore handle) fully off
+    // screen. Set via onGloballyPositioned on that Box itself, a few lines down.
+    var mapContentBoxHeightPx by remember { mutableStateOf(0f) }
+    // A drag distance past this point (either direction) commits the bar to the opposite side —
+    // deliberately more than a light brush, since a small accidental sideways slip while actually
+    // trying to reposition vertically should not also relocate the whole bar to the other side of
+    // the screen.
+    val mapIconBarSideSnapThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
+    // Keeps at least one full touch target's worth of the bar/handle on screen at either vertical
+    // extreme of a drag — reuses MIN_TOUCH_TARGET (MapChrome.kt) rather than inventing a second
+    // margin constant for the same "don't let a control go fully off-screen" idea.
+    val mapIconBarVerticalDragMarginPx = with(LocalDensity.current) { MIN_TOUCH_TARGET.toPx() }
+    // Icon-bar-unify-container dispatch: the real measured height, in px, of the cluster container
+    // that holds MapIconBar and ControlPill together — what both drag clamps below
+    // use to know where the cluster's top and bottom edges currently sit, since
+    // Alignment.CenterEnd/CenterStart centres the container vertically before
+    // mapIconBarDisplayedOffsetPx is applied. Measured on the container's own Surface, never
+    // derived from what's inside it: this is the third time the same shape of bug appeared on
+    // this surface — "fully on screen" was insufficient because the nav overlays the bar, then
+    // "the bar is in bounds" was insufficient because the pills extend past it (on device: the
+    // record pill hanging off the bottom in fullscreen, the directions pill left sitting on the
+    // nav after exiting). Each time the measured object was smaller than the thing that had to
+    // stay reachable. Measuring the container makes the bound correct by construction, and
+    // anything added to the cluster later inherits it instead of becoming a fourth instance
+    // (the since-removed DistanceArm was inside it too, and the drag range shrank by its height
+    // while returning — the same mechanism will cover whatever stage two adds). Written by the
+    // container only (icon-bar-
+    // position-memory dispatch's ruling, carried over): the restore handle is bounded by the
+    // cluster's own range, not its own 48dp, so it can never sit where the cluster could not.
+    // Keeps its last value while minimised, which is what the handle's drag is clamped against.
+    var mapIconClusterHeightPx by remember { mutableStateOf(0f) }
+    // Expanded-panels dispatch: this tab's own ForagerBottomNav overlay's real measured height, in
+    // px — kept here (as well as reported up via onBottomNavHeightMeasured) because the drag
+    // clamp's downward bound needs it: that nav is composed *after* MapIconBar in this tab's Box
+    // (drawn over it, hit-tested first — see its own call-site comment for why that ordering is
+    // load-bearing), so "the bar's bottom edge is on screen" is not enough for its lower rows to
+    // be tappable outside fullscreen; they have to stay above the nav's own top edge. Read as 0
+    // while fullscreen, where the nav has slid off entirely.
+    var mapBottomNavHeightPx by remember { mutableStateOf(0f) }
+
+    // AddActionTile and CentrePinLocationPickerOverlay are both plain overlays, not real Dialogs,
+    // so — unlike TripDatePickerDialog below, an M3 DatePickerDialog whose own Dialog window
+    // already handles system back for free — this needs its own BackHandler or system back would
+    // fall straight through either, same reasoning as AvailabilityScreen's own top-level "unwind
+    // before falling through" chain. One pop at a time: the picker phase first if it's showing,
+    // the menu only once the picker's already closed. pickingSearchLocation joins the same picker
+    // tier as pendingAction (both show the identical CentrePinLocationPickerOverlay, just for a
+    // different caller) rather than a third priority level of its own.
+    // Navigation is deliberately NOT here any more (navigation-chrome amendment). Stage one had
+    // `|| isReturning` in this condition with `else -> onToggleReturning()`, and because this is
+    // the deepest registered handler it exited navigation before fullscreen, the drawer or the
+    // search dropdown unwound — see AvailabilityScreen's own back chain, where navigation now sits
+    // as the last step before exit and raises a prompt rather than exiting.
+    BackHandler(enabled = pendingAction != null || pickingSearchLocation || showActionMenu) {
+        when {
+            pendingAction != null -> pendingAction = null
+            pickingSearchLocation -> onCancelSearchLocationPick()
+            else -> showActionMenu = false
+        }
+    }
+
+    val context = LocalContext.current
+    LaunchedEffect(uiState.locateMeStatus) {
+        when (uiState.locateMeStatus) {
+            LocateMeStatus.PermissionDenied ->
+                Toast.makeText(context, "Location permission denied. Can't center on your position.", Toast.LENGTH_SHORT).show()
+            LocateMeStatus.Unavailable ->
+                Toast.makeText(context, "Couldn't determine your location.", Toast.LENGTH_SHORT).show()
+            else -> Unit
+        }
+    }
+    // Same one-shot-per-transition shape as the locateMeStatus effect above: a refused/failed
+    // startRecording() is an event ("the action you just took didn't happen"), not a persistent
+    // condition — the field only clears on the next successful startRecording() (see
+    // TrackRecordingViewModel), so a banner would outlive the moment it's relevant.
+    LaunchedEffect(startRecordingErrorMessage) {
+        startRecordingErrorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+    }
+
+    when {
+        uiState.isLoadingSightings -> Column(
+            modifier = modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            CircularProgressIndicator()
+        }
+
+        uiState.sightingsErrorMessage != null -> MapMessage(
+            uiState.sightingsErrorMessage,
+            modifier = modifier,
+            color = MaterialTheme.colorScheme.error,
+        )
+
+        else -> {
+            // The map's own viewport, never null — unlike uiState.region (only set once a real
+            // search has run), so the map always has *something* to show rather than the earlier
+            // revision's "choose a region" placeholder: the real search region once one exists,
+            // otherwise the device's live location once locate-me above resolves one, otherwise a
+            // fixed fallback while that's still pending. The project owner's own framing: the Maps
+            // tab should already be showing a real map, centred on the user, the moment the app
+            // opens — not a message asking them to search first.
+            val located = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location
+            val displayRegion = uiState.region
+                ?: located?.let { Region(lat = it.lat, lng = it.lng, radiusKm = JOURNAL_PICKER_DEFAULT_REGION.radiusKm) }
+                ?: JOURNAL_PICKER_DEFAULT_REGION
+
+            // The GPS/locate-me pan target for a search that's already run — remember(uiState.region),
+            // not just remember, so a brand new search (a different region) drops any earlier
+            // locate-me override rather than keeping the map stuck on a now-stale GPS fix; see
+            // MapSlot's focusOverride doc comment for why this is independent of region itself.
+            // Pre-search, displayRegion already tracks locate-me directly (see above), so this stays
+            // null rather than doubly panning the same fix through two different mechanisms.
+            var focusOverride by remember(uiState.region) { mutableStateOf<LatLng?>(null) }
+            LaunchedEffect(uiState.locateMeStatus) {
+                val status = uiState.locateMeStatus
+                if (uiState.region != null && status is LocateMeStatus.Located) focusOverride = status.location
+            }
+
+            // Sightings/planned trips are only real once a search has actually run — before that,
+            // displayRegion is a viewport with nothing plotted on it yet, not a stand-in search.
+            val hasSearched = uiState.region != null
+            // "View on Map" from a List-tab row — see MapTab's own doc comment on the identical
+            // filteredSightings/mapTaxonFilterLabel pair for why this filters uiState.sightings
+            // itself rather than trusting uiState.forecast's own observationCount.
+            val filteredSightings = when {
+                !hasSearched -> emptyList()
+                taxonFilter != null -> uiState.sightings.filter { it.taxonId == taxonFilter }
+                else -> uiState.sightings
+            }
+            val mapTaxonFilterLabel = taxonFilter?.let { id ->
+                val name = uiState.forecast?.entries?.firstOrNull { it.species.taxonId == id }?.species
+                    ?.let { it.commonName ?: it.scientificName }
+                    ?: filteredSightings.firstOrNull()?.let { it.commonName ?: it.scientificName }
+                    ?: "this species"
+                "$name (${filteredSightings.size})"
+            }
+
+            var cameraCenter by remember(displayRegion) { mutableStateOf(LatLng(displayRegion.lat, displayRegion.lng)) }
+            // A real clearance for "below the compass strip," derived from the strip's own actual
+            // type style rather than a hardcoded touch-target constant (Part A item 1 of this
+            // dispatch un-pinned the strip's height back to wrapping its text content, so a fixed
+            // 48dp guess would now be too generous). Measured once via rememberTextMeasurer — the
+            // same approach the since-removed DistanceArm used for its widest-string width — rather than
+            // read back from the strip's real onGloballyPositioned layout: a state value written
+            // during layout and read here to construct AnchoredAtScreenPoint's own minY argument
+            // was tried and is a confirmed, reproducible regression — AvailabilityScreenMapIconStackTest's
+            // own "tapping elsewhere on the map dismisses the observation bubble" test went from
+            // passing to reliably failing on exactly that change (bisected line by line), corrupting
+            // mapSlot(...)'s own onTap wiring one frame later for reasons this investigation could
+            // not fully pin down inside Compose's own recomposition-scope internals. A remembered,
+            // one-time measurement carries no such risk: it never changes after first composition,
+            // so nothing here ever triggers a later recomposition.
+            // Navigation HUD stage one: the ONE true-north heading both the compass strip and the
+            // HUD read. Passed down as the State object; its .value is read only inside those two
+            // leaves — reading it here would recompose this whole tab at sensor rate. See
+            // rememberTrueHeading's own doc comment before touching this.
+            val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.liveFix)
+            // MGRS by default, the labelled decimal pair on tap — hoisted here from the strip's
+            // own leaf (navigation-chrome dispatch) because the strip and the HUD now take turns
+            // showing the coordinates: a format chosen while navigating must still be the format
+            // the strip shows on exit (CLAUDE.md, UX defaults — user-set state that resets on its
+            // own is a bug). Local state, not AvailabilityUiState: purely which of two always-
+            // computable representations of the same fix to display, nothing the ViewModel or a
+            // future session needs. Still resets when this tab unmounts, as it did before.
+            var showDecimalDegrees by remember { mutableStateOf(false) }
+            val onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees }
+            val compassStripTextMeasurer = rememberTextMeasurer()
+            val compassStripLabelStyle = MaterialTheme.typography.labelMedium
+            val compassStripDensity = LocalDensity.current
+            val compassStripClearance = remember(compassStripLabelStyle, compassStripDensity) {
+                with(compassStripDensity) {
+                    compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
+                }
+            }
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+                    // Feeds mapIconBarDisplayedOffsetPx's own clamp below — see that variable's own
+                    // doc comment.
+                    .onGloballyPositioned { coordinates ->
+                        mapContentBoxHeightPx = coordinates.size.height.toFloat()
+                    },
+            ) {
+                mapSlot(
+                    displayRegion,
+                    MapOverlayContent(
+                        sightings = filteredSightings,
+                        plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList(),
+                        breadcrumbPoints = breadcrumbPoints,
+                        waypoints = waypoints,
+                        resumeTrackingRequestId = resumeTrackingRequestId,
+                        resetOrientationRequestId = resetOrientationRequestId,
+                        focusedObservationId = tappedSighting?.observationId,
+                    ),
+                    renderMode,
+                    focusOverride,
+                    {},
+                    // Tapping the map restores chrome while fullscreen — decision #5 — AND, now,
+                    // dismisses the observation bubble below regardless of fullscreen state (a plain
+                    // tap elsewhere on the map is its whole dismiss gesture, see ObservationBubble's
+                    // own doc comment). Harmless to clear when nothing is showing.
+                    {
+                        if (isFullscreen) onToggleFullscreen()
+                        tappedSighting = null
+                    },
+                    { sighting, screenPosition, bearingDeg ->
+                        tappedSighting = sighting
+                        tappedSightingScreenPosition = screenPosition
+                        tappedSightingBearingDeg = bearingDeg
+                    },
+                    { location -> cameraCenter = location },
+                    Modifier.fillMaxSize(),
+                )
+                // Composed right after mapSlot — see searchBarSlot's own doc comment for why this
+                // exact nesting (a direct sibling of the map's own AndroidView content, inside
+                // this Box) is what makes its translucency actually work.
+                searchBarSlot()
+                tappedSighting?.let { sighting ->
+                    // minY = compassStripClearance, a real measurement of the strip's own type
+                    // style — not a hardcoded touch-target constant and not 0 — the strip is
+                    // composed after this in the same Box (deliberately, so its own controls win
+                    // any overlap — see CompactMapTab's own doc comment above MapIconBar), and is
+                    // full-width/flush against the map's top edge. A marker tapped near the map's
+                    // own top edge would otherwise anchor a bubble underneath that strip's band: its
+                    // own taps (including the close icon's) would never reach this composable,
+                    // silently swallowed by the strip's own Surface the exact way CLAUDE.md's
+                    // "Known pitfalls" already documents for this app's map overlays — the same
+                    // class of miss that entry warns visual review alone won't catch, this time
+                    // guarded against directly rather than only caught by this bubble's own
+                    // close-icon interaction test. See compassStripClearance's own doc comment for
+                    // why it is a one-time text measurement rather than the strip's real measured
+                    // layout height.
+                    AnchoredAtScreenPoint(
+                        anchorPx = tappedSightingScreenPosition,
+                        bearingDeg = tappedSightingBearingDeg,
+                        minY = topInset + compassStripClearance,
+                        modifier = Modifier.fillMaxSize(),
+                    ) { arrowAngleDeg ->
+                        ObservationBubble(
+                            sighting = sighting,
+                            onViewOnINaturalist = {
+                                launchINaturalistObservation(context, sighting.observationId)
+                                tappedSighting = null
+                            },
+                            onDismiss = { tappedSighting = null },
+                            arrowAngleDeg = arrowAngleDeg,
+                        )
+                    }
+                }
+                // MapIconBar composed *before* CompassElevationStrip now, not after — field-test
+                // dispatch item 2 gave the strip a real touch target at its own far right edge, the
+                // same horizontal column MapIconBar's CenterEnd alignment already claims.
+                // MapIconBar's Surface intercepts touches across its full bounds (see this
+                // composable's own CLAUDE.md-documented precedent), and on a short enough viewport
+                // its vertically-centered row stack reaches all the way up into the compass strip's
+                // own row — confirmed directly by AvailabilityScreenMapIconStackTest's own
+                // touch-interaction test on a w360dp-h640dp viewport, not assumed from visual review
+                // alone (the exact class of miss that same file's own history warns visual review
+                // alone won't catch). Composition order is paint AND hit-test order for overlapping
+                // siblings in a Box, so moving this earlier guarantees the strip's own control wins
+                // any overlap on every screen size, not just typical ones — a small cosmetic cost
+                // (the strip's opaque background could cover a sliver of one icon bar row on a
+                // screen too short for MapIconBar's own rows to fit at all — already a degraded
+                // state before this change) traded for a control that always actually works. Still
+                // true after MapIconBar's own return-to-vehicle row was removed (see that
+                // composable's own doc comment) — the overlap this guards against is with the bar's
+                // Surface as a whole, not specifically with that one row.
+                // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking
+                // handle to restore it"). MapIconBar and TrailheadControls hide/show together,
+                // gated on isMapIconBarMinimized rather than isMapFullscreen — that item's own "do
+                // not tie it to isMapFullscreen" instruction, and the owner's own "Minimise means
+                // the chrome goes away, not that it fragments." Since the icon-bar-unify-container
+                // dispatch they are one cluster container, so hiding together is by construction
+                // rather than two gates that happen to agree.
+                //
+                // MapIconBarMinimizeHandle is composed as a later sibling of that container (at the
+                // bar's own vertical centre — "mid-height" — via mapIconBarCentreShiftOffset below,
+                // and moving with it) rather than nested inside it: Surface clips to its shape and
+                // the handle's mark straddles the container's outer edge by design, and there is no
+                // on-screen room to place a full 48dp touch target beside the bar without
+                // overlapping it (the bar's own Spacing.sm edge inset is far narrower than that),
+                // so the handle deliberately overlaps the bar's own outermost sliver, attached to
+                // its edge the way the owner described. Composed after the container (and so
+                // painted and hit-tested on top of it) so it wins that overlap, the same
+                // composition-order-is-hit-test-order convention this file already uses for
+                // the container itself against CompassElevationStrip (see this block's own comment
+                // above).
+                //
+                // Direct owner request, layered on top of the above: the cluster (and its two
+                // handles) can be dragged to reposition vertically and snaps to either screen edge
+                // — see isMapIconBarOnLeftSide/mapIconBarUserChosenOffsetPx's own doc comments
+                // above. mapIconBarSideAlignment/mapIconBarPositionOffset are shared by the
+                // container and whichever handle is currently showing so they always move and
+                // land on the same side together, as one unit. detectDragGesturesAfterLongPress,
+                // not a plain drag detector or Modifier.draggable: a quick tap must keep reaching
+                // Surface's own onClick (minimize/restore) unambiguously, and the long-press
+                // threshold is what lets a tap and a drag share the same control with no gesture
+                // conflict, a well-established Compose combination for exactly this pairing.
+                // TrailheadControls follows the same side flip because it is laid out inside the
+                // container, and nothing inside it needs mirroring (the since-removed DistanceArm
+                // extended downward, side-agnostic by construction, for the same reason).
+                val mapIconBarSideAlignment = if (isMapIconBarOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
+                val mapIconBarPositionOffset = Modifier.offset {
+                    IntOffset(mapIconBarHorizontalDragPx.roundToInt(), mapIconBarDisplayedOffsetPx.value.roundToInt())
+                }
+                // Icon-bar-drag-refinements dispatch, Item 4: the bar cannot be dragged up far
+                // enough to rise above where SearchDropdown itself starts. compactMainScaffold's
+                // own searchDropdownTopOffset (a different, outer composable scope, not reachable
+                // from here) is searchBarHeight + compassStripClearance; topInset (this composable's
+                // own parameter, ≈ searchBarHeight — see that parameter's own doc comment) plus this
+                // exact scope's own compassStripClearance above equal the same value, reachable
+                // here without new plumbing — and already the established way this file computes
+                // "how far below the top the search chrome reaches" (see the taxon filter chip's
+                // own topInset + compassStripClearance padding a little further down).
+                val dropdownTopPx = with(compassStripDensity) { (topInset + compassStripClearance).toPx() }
+                // Stale-clamp-bound dispatch (owner finding on device): every input to the clamp
+                // below must be *live state*, never a plain value closed over. mapIconBarDragModifier's
+                // pointerInput(Unit) block is started lazily on the first pointer event and never
+                // restarted (its key is Unit, and a changed lambda instance does not restart it),
+                // so the drag callback keeps the closure from the user's *first drag* for the life
+                // of the handle. isFullscreen (a plain Boolean parameter) and dropdownTopPx (a
+                // plain Float) were captured that way: whichever fullscreen state existed at the
+                // first drag bounded every later drag — a first drag in fullscreen let later drags
+                // outside it pass under the nav; a first drag outside it capped later fullscreen
+                // drags at the nav's former top — while the LaunchedEffect below, re-run per
+                // recomposition, always read the fresh values and corrected the position, which
+                // the next drag then undid. Reproduced under Robolectric (enter fullscreen, drag
+                // low, exit, drag low: 640dp vs the nav's 560dp top) before this fix. The nav's
+                // height does not vary by theme; the theme the owner noticed was a different
+                // first-drag order after the tab change a theme switch goes through. Every other
+                // clamp input is already a MutableState delegate, read live. rememberUpdatedState
+                // is the standard shape for a long-lived gesture block reading composition values —
+                // one clamp, derived live, used by the drag path and the effect alike; no path
+                // holds its own copy, and nothing re-runs the effect more often to paper over it.
+                val currentIsFullscreen by rememberUpdatedState(isFullscreen)
+                val currentDropdownTopPx by rememberUpdatedState(dropdownTopPx)
+                // See the comment on the LaunchedEffect below for both bounds' derivations.
+                fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
+                    // The lowest edge the bar may reach: this Box's own bottom in fullscreen, the
+                    // nav's own top edge otherwise (mapBottomNavHeightPx's own doc comment).
+                    val bottomBoundPx = mapContentBoxHeightPx - (if (currentIsFullscreen) 0f else mapBottomNavHeightPx)
+                    val fallbackDownwardOffsetPx = (bottomBoundPx - mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
+                    val maxDownwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
+                        (bottomBoundPx - (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2f).coerceAtLeast(0f)
+                    } else {
+                        fallbackDownwardOffsetPx
+                    }
+                    // Upward (negative) bound: the bar's own top edge, once centered then shifted
+                    // by the offset, is (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2 + offset —
+                    // solved for the smallest offset that keeps that top edge at or below
+                    // dropdownTopPx, so the bar can't rise into the dropdown's own space
+                    // (icon-bar-drag-refinements dispatch, Item 4).
+                    val maxUpwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
+                        (currentDropdownTopPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f)
+                            .coerceIn(-fallbackDownwardOffsetPx, 0f)
+                    } else {
+                        -fallbackDownwardOffsetPx
+                    }
+                    return offsetPx.coerceIn(maxUpwardOffsetPx, maxOf(maxUpwardOffsetPx, maxDownwardOffsetPx))
+                }
+                // Expanded-panels dispatch: where MapModePicker and AddActionTile below anchor —
+                // the bar's live position, not its default one. Both panels align to the same
+                // edge the bar is on (mapIconBarSideAlignment) and are inset from it by the bar's
+                // own MAP_ICON_BAR_EDGE_INSET, so a panel's outer edge lands exactly on the bar's
+                // outer edge on either side (the same overlap the old fixed CenterEnd/-Spacing.sm
+                // pair produced on the right, now mirrored on the left with a positive inset).
+                // The vertical term is the bar's own drag offset (the same px
+                // mapIconBarPositionOffset applies to the bar), converted to dp for
+                // DpOffset; each caller adds its own row's mapIconBarRowAnchorOffset on top. The
+                // horizontal drag px is included too — it is always zero once a drag ends, and no
+                // panel can open mid-drag (the finger is on the handle), so this is parity with
+                // mapIconBarPositionOffset rather than a visible effect.
+                val mapIconBarPanelAnchorOffset = with(compassStripDensity) {
+                    DpOffset(
+                        x = (if (isMapIconBarOnLeftSide) MAP_ICON_BAR_EDGE_INSET else -MAP_ICON_BAR_EDGE_INSET) +
+                            mapIconBarHorizontalDragPx.toDp(),
+                        // Plus the bar's own centre relative to the container's — see
+                        // mapIconBarCentreInClusterPx's own doc comment: the container is what's
+                        // centred here now, the bar sits in its top part.
+                        y = (mapIconBarDisplayedOffsetPx.value + mapIconBarCentreInClusterPx - mapIconClusterHeightPx / 2f).toDp(),
+                    )
+                }
+                val mapIconBarDragModifier = Modifier.pointerInput(Unit) {
+                    detectDragGesturesAfterLongPress(
+                        onDragEnd = {
+                            when {
+                                mapIconBarHorizontalDragPx <= -mapIconBarSideSnapThresholdPx -> isMapIconBarOnLeftSide = true
+                                mapIconBarHorizontalDragPx >= mapIconBarSideSnapThresholdPx -> isMapIconBarOnLeftSide = false
+                            }
+                            mapIconBarHorizontalDragPx = 0f
+                        },
+                        onDragCancel = { mapIconBarHorizontalDragPx = 0f },
+                    ) { change, dragAmount ->
+                        change.consume()
+                        mapIconBarHorizontalDragPx += dragAmount.x
+                        // The finger is the source of truth during a drag: the clamped position
+                        // becomes the memory and is drawn immediately (snapTo, which also cancels
+                        // any bounds-change glide still in flight) — see
+                        // mapIconBarUserChosenOffsetPx's own doc comment.
+                        val draggedToPx = clampMapIconBarVerticalOffset(mapIconBarDisplayedOffsetPx.value + dragAmount.y)
+                        mapIconBarUserChosenOffsetPx = draggedToPx
+                        mapIconBarOffsetScope.launch { mapIconBarDisplayedOffsetPx.snapTo(draggedToPx) }
+                    }
+                }
+                // Expanded-panels dispatch (sweep finding, owner-approved "fix the clamp"): the
+                // bar's own measured top and bottom edges both stay on screen now, not just "at
+                // least one touch target's worth of it". The old downward bound (bar centre no
+                // further than MIN_TOUCH_TARGET above the Box's bottom) let the bar's last two
+                // rows — layers and add, the very rows MapModePicker and AddActionTile anchor
+                // to — leave the screen at the bottom of the drag range, which would have carried
+                // both panels off with them once they followed the bar. Symmetric with Item 4's
+                // own upward bound: the bar's bottom edge, once centered then shifted by the
+                // offset, is (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2 + offset — solved
+                // for the largest offset that keeps it at or above the lowest reachable edge
+                // (the nav's top outside fullscreen, this Box's bottom in it — the nav is drawn
+                // over this bar, so "on screen" alone would still leave the bottom rows under
+                // it, untappable; a decision taken beyond the approved "keep the bottom edge on
+                // screen", reported as such). Falls back to the old margin-based bound before
+                // mapIconClusterHeightPx has its first real measurement, same as the upward bound
+                // always did. Re-applied (the LaunchedEffect below) whenever a bound's input
+                // changes, not only during a drag: a bar dragged to the very bottom while
+                // fullscreen would otherwise end up under the nav once fullscreen is exited — the
+                // same untappable-rows outcome this fix exists to rule out, just reached by a
+                // different route. (The other route this used to catch — the restore handle
+                // dragged lower than the bar may sit — no longer exists: the handle is bounded by
+                // the bar's own measured height now, see mapIconClusterHeightPx's own doc comment.)
+                //
+                // Icon-bar-position-memory dispatch: the target is always the clamp of the
+                // *user-chosen* offset, never of the displayed one, and the move is animated on
+                // the nav's own spec — so the push-up on leaving fullscreen and the glide back on
+                // re-entry read as one behaviour, and the memory survives the push untouched. See
+                // mapIconBarUserChosenOffsetPx's own doc comment. Not keyed on the memory itself:
+                // a drag snaps the displayed value directly and is never animated.
+                val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
+                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen) {
+                    val targetPx = clampMapIconBarVerticalOffset(mapIconBarUserChosenOffsetPx)
+                    if (targetPx != mapIconBarDisplayedOffsetPx.value) {
+                        mapIconBarDisplayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
+                    }
+                }
+                // Owner request (alongside the fullscreen-slide-out-fixes dispatch): minimising
+                // slides this cluster off whichever edge it's on, and the restore handle slides in
+                // from that same edge, instead of the instant cut this used to be — "like the rest
+                // of the UI," i.e. the same AnimatedVisibility slide SearchEntryBar and
+                // ForagerBottomNav use for fullscreen. navigationMotionSpec(), the nav's own slide
+                // spec — this is navigation chrome, not a panel. Pure translations of Box
+                // children, no effect on this Box's own size, same reasoning as those two slides.
+                //
+                // Icon-bar-unify-container dispatch: what used to be three wrappers (bar, minimize
+                // handle, TrailheadControls, each aligned separately and each trusting the others
+                // to land in the right place) is now one wrapper around one filled container —
+                // MapIconBar and TrailheadControls in a Column, the gap between them the Column's
+                // own spacing rather than an offset from a measured bottom edge. The container is
+                // what gets measured (mapIconClusterHeightPx), dragged, clamped and minimised, so
+                // the bound is right by construction. The minimize handle is a *sibling* of the
+                // container, not a child: Surface clips to its shape, and the handle's visible
+                // mark straddles the container's outer edge by design, so inside it half the mark
+                // would vanish. Both handles sit at the bar's own mid-height, not the container's
+                // (mapIconBarCentreShiftOffset below), which is what "mid-height of the icon bar"
+                // has always meant; the restore handle uses the last-measured values since the
+                // bar is unmounted while minimised. The cluster, not the bar, is what's centred
+                // at rest — so the bar sits ~60dp higher by default than it did as a lone
+                // centred object. Owner's call: a default derived from the container is honest,
+                // and correcting it back to preserve the old look would reintroduce exactly the
+                // bar-specific arithmetic the container exists to remove.
+                val mapIconBarSlideOffset: (Int) -> Int = { fullWidth -> if (isMapIconBarOnLeftSide) -fullWidth else fullWidth }
+                val mapIconBarCentreShiftOffset = Modifier.offset {
+                    IntOffset(0, (mapIconBarCentreInClusterPx - mapIconClusterHeightPx / 2f).roundToInt())
+                }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isMapIconBarMinimized,
+                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
+                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
+                    modifier = Modifier
+                        .align(mapIconBarSideAlignment)
+                        .then(mapIconBarPositionOffset)
+                        .then(mapIconBarCentreShiftOffset),
+                ) {
+                    MapIconBarRestoreHandle(
+                        onRestore = { isMapIconBarMinimized = false },
+                        onLeftSide = isMapIconBarOnLeftSide,
+                        // Reports nothing into mapIconClusterHeightPx — its drag is clamped to
+                        // the cluster's own range, see that variable's doc comment.
+                        modifier = Modifier.then(mapIconBarDragModifier),
+                    )
+                }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !isMapIconBarMinimized,
+                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
+                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
+                    modifier = Modifier
+                        .align(mapIconBarSideAlignment)
+                        .then(mapIconBarPositionOffset),
+                ) {
+                    Box {
+                        Surface(
+                            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+                            // The lighter of the two layered fills — see
+                            // MAP_ICON_CLUSTER_CONTAINER_ALPHA's own doc comment for the
+                            // compositing arithmetic and the values chosen.
+                            color = mapIconClusterContainerColor(),
+                            shadowElevation = 2.dp,
+                            border = BorderStroke(1.dp, mapIconStackBorderColor()),
+                            modifier = Modifier
+                                .padding(MAP_ICON_BAR_EDGE_INSET)
+                                // Feeds both drag clamps above — see mapIconClusterHeightPx's own
+                                // doc comment. Measured on the container, never on its contents.
+                                .onGloballyPositioned { coordinates ->
+                                    mapIconClusterHeightPx = coordinates.size.height.toFloat()
+                                }
+                                .testTag(MAP_ICON_CLUSTER_TAG),
+                        ) {
+                            Column(
+                                horizontalAlignment = if (isMapIconBarOnLeftSide) Alignment.Start else Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
+                            ) {
+                                MapIconBar(
+                                    isFullscreen = isFullscreen,
+                                    onToggleFullscreen = onToggleFullscreen,
+                                    onLocateMe = {
+                                        resumeTrackingRequestId++
+                                        onLocateMe()
+                                    },
+                                    onResetOrientation = { resetOrientationRequestId++ },
+                                    mapMode = mapMode,
+                                    onOpenMapModePicker = { showMapModePicker = true },
+                                    isNightMode = isNightMode,
+                                    onAdd = {
+                                        // No location to grab any more — the button just opens
+                                        // the menu; the location comes from
+                                        // CentrePinLocationPickerOverlay's own camera tracking
+                                        // once a choice is made. See this function's own doc
+                                        // comment.
+                                        showActionMenu = true
+                                    },
+                                    fillColor = mapIconClusterChildColor(),
+                                    // Feeds the panels' and handles' anchors — see
+                                    // mapIconBarCentreInClusterPx's own doc comment.
+                                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                                        mapIconBarCentreInClusterPx = coordinates.boundsInParent().center.y
+                                    },
+                                )
+                                // Composed whenever MapIconBar is (regardless of isRecording —
+                                // record start/stop must stay reachable before the first
+                                // recording starts, the same as it was as an always-enabled
+                                // MapIconBar row before this dispatch; isRecording flows in as a
+                                // plain parameter, see TrailheadControls' own doc comment, not a
+                                // presence check, so a tester never sees this pill appear from
+                                // nowhere the first time they hit record). Inside the container
+                                // rather than gated separately: it minimises, slides, drags and
+                                // clamps with the bar because it is laid out with it.
+                                TrailheadControls(
+                                    isRecording = isRecording,
+                                    onToggleRecording = onToggleRecording,
+                                    returnToStart = returnToStart,
+                                    isReturning = isReturning,
+                                    isOffTrack = isOffTrack,
+                                    onToggleReturning = onToggleReturning,
+                                    distanceUnit = uiState.distanceUnit,
+                                    onLeftSide = isMapIconBarOnLeftSide,
+                                )
+                            }
+                        }
+                        MapIconBarMinimizeHandle(
+                            onMinimize = { isMapIconBarMinimized = true },
+                            onLeftSide = isMapIconBarOnLeftSide,
+                            modifier = Modifier
+                                .align(mapIconBarSideAlignment)
+                                .then(mapIconBarCentreShiftOffset)
+                                .then(mapIconBarDragModifier),
+                        )
+                    }
+                }
+                // Not composed at all while navigating (navigation-chrome dispatch, item 1) — the
+                // HUD below carries the heading, elevation and coordinates then, and on device
+                // both showing meant the heading appeared three times. Removed from composition
+                // rather than made invisible: this strip's leaf is what reads the heading State
+                // at sensor rate, and an invisible strip would still be recomposing at 16 Hz
+                // alongside the HUD doing the same work. Gated on isNavigating, never isReturning,
+                // so stage two's picker cannot bring it back by accident — see AvailabilityScreen's
+                // own isNavigating doc comment.
+                if (!isNavigating) {
+                    CompassElevationStrip(
+                        heading = trueHeading,
+                        elevationMeters = uiState.liveAltitudeMeters,
+                        location = uiState.liveLocation,
+                        showDecimalDegrees = showDecimalDegrees,
+                        onToggleCoordinateFormat = onToggleCoordinateFormat,
+                        // Full width, "just below" SearchEntryBar rather than a narrow floating pill
+                        // with margins on both sides, per the project owner's own redesign call — topInset
+                        // is how that clearance reaches here now that the bar composes as a real overlay
+                        // in the same Box as this tab's own content (compactMainScaffold's own call
+                        // site) instead of a sibling Column entry above it; 0.dp (this parameter's own
+                        // default) reproduces the old flush-against-the-map-top behavior exactly.
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .padding(top = topInset),
+                    )
+                }
+
+                // Below the compass strip (topInset + compassStripClearance as top padding), same
+                // reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts
+                // touches across its full width, so a chip placed underneath it would have its own
+                // "Show all species" tap silently swallowed the same way a bubble anchored there
+                // would. topInset itself (see this composable's own doc comment) clears whatever
+                // chrome floats above the strip too — SearchEntryBar, on the Map tab.
+                mapTaxonFilterLabel?.let { label ->
+                    TaxonMapFilterChip(
+                        label = label,
+                        onClear = onClearTaxonFilter,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = topInset + compassStripClearance + Spacing.sm),
+                    )
+                }
+
+                // Navigation HUD stage one. Composed after the cluster (so its own exit wins any
+                // overlap with a cluster dragged up to its upward bound) and before the nav
+                // below (so the nav keeps winning its own band) — see NavigationHud's own doc
+                // comment for the full mounting reasoning. Gated on the same isNavigating that
+                // removes the compass strip above, so the two are never on screen together; in
+                // stage one that is the return mode (TrackRecordingViewModel.startReturn). Top
+                // padding is topInset alone — with the strip gone there is nothing above this
+                // panel but the search bar, whose fullscreen slide it follows the way the strip
+                // does; compassStripClearance stays in the taxon chip's and bubble's paths only
+                // because those still clear the strip while not navigating. Never touches mapSlot.
+                if (isNavigating) {
+                    NavigationHud(
+                        heading = trueHeading,
+                        liveFix = uiState.liveFix,
+                        target = navigationTarget,
+                        distanceUnit = uiState.distanceUnit,
+                        pathHomeMeters = pathHomeMeters,
+                        currentTime = currentTime,
+                        showDecimalDegrees = showDecimalDegrees,
+                        onToggleCoordinateFormat = onToggleCoordinateFormat,
+                        onExit = onToggleReturning,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .padding(top = topInset),
+                    )
+                }
+
+                // Fullscreen-fixes dispatch, Item 1 (third design). Composed here — after the
+                // ambient chrome above (MapIconBar/CompassElevationStrip/TrailheadControls/
+                // TaxonMapFilterChip, none of which reach this bar's own bottom band) but *before*
+                // the modal overlays below (AddActionTile/MapModePicker/CentrePinLocationPickerOverlay)
+                // — deliberately, not composed last: this Box now extends the full screen height in
+                // both fullscreen states (CompactMapTab's own doc comment), so those modals'
+                // fillMaxSize() content now reaches all the way down into this bar's own screen
+                // region too. Composing this nav after them (drawn on top, hit-tested first) was
+                // tried first and is a confirmed, reproducible regression — it silently swallowed
+                // CentrePinLocationPickerOverlay's own "OK" confirm tap, caught by
+                // AvailabilityScreenTripPlanningFlowTest's own trip-planning-flow tests going from
+                // passing to reliably failing (not flaky) on exactly that ordering, the same class
+                // of miss CLAUDE.md's own "Known pitfalls" already documents twice over for chrome
+                // composed over a map. selectedTab is hardcoded to CompactTab.MAP — this composable
+                // is only ever shown for that tab, so there's nothing else it could mean here. The
+                // other three tabs still render this same composable, unconditionally opaque, from
+                // compactMainScaffold's own bottomBar slot instead (that call site's own doc
+                // comment) — this overlay and that one are the two places ForagerBottomNav renders,
+                // never both for the same tab at once.
+                //
+                // Slides down and off the bottom edge while fullscreen — fullscreen-fixes dispatch,
+                // Item 2 ("slide the chrome away instead of cutting it"), a deliberate change from
+                // the crossfade-to-80%-opacity this bar used before: fullscreen is exited via
+                // MapIconBar's own fullscreen control, never via this nav, so the nav is not the
+                // way out and can safely leave the screen entirely. 80% opacity outside fullscreen
+                // (the owner's own call, from a screenshot): it floats over the map whenever it's
+                // on screen at all, so the standing 80%-over-the-map rule applies to it the same as
+                // to every other piece of map chrome here — see the containerColor parameter's
+                // own doc comment for the two prior flips of this exact value. A pure Box-child overlay,
+                // same confirmed-safe reasoning as SearchEntryBar's own slide above — animating it
+                // has no bearing on this Box's own size.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !isFullscreen,
+                    enter = slideInVertically(animationSpec = MotionTokens.navigationMotionSpec()) { fullHeight -> fullHeight },
+                    exit = slideOutVertically(animationSpec = MotionTokens.navigationMotionSpec()) { fullHeight -> fullHeight },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                ) {
+                    ForagerBottomNav(
+                        selectedTab = CompactTab.MAP,
+                        // 80%, the standing opacity for chrome over the map — see this bar's own
+                        // containerColor doc comment.
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
+                        isDrawerOpen = isDrawerOpen,
+                        onTabSelected = onBottomNavTabSelected,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { coordinates ->
+                                mapBottomNavHeightPx = coordinates.size.height.toFloat()
+                                onBottomNavHeightMeasured(coordinates.size.height.toFloat())
+                            },
+                    )
+                }
+
+                // Inside this Box, not alongside it, so it can align near the add button's own
+                // corner of the icon stack above — see AddActionTile's doc comment for why this
+                // reads as opening "from" that button rather than as a centered system dialog.
+                AddActionTile(
+                    visible = showActionMenu,
+                    onPlanTrip = {
+                        showActionMenu = false
+                        pendingAction = PendingMapAction.PLAN_TRIP
+                    },
+                    onLogFind = {
+                        showActionMenu = false
+                        pendingAction = PendingMapAction.LOG_FIND
+                    },
+                    onDropWaypoint = {
+                        showActionMenu = false
+                        pendingAction = PendingMapAction.DROP_WAYPOINT
+                    },
+                    onDismiss = { showActionMenu = false },
+                    modifier = Modifier.fillMaxSize(),
+                    // Expanded-panels dispatch: anchored to the bar's live side and drag offset
+                    // (see mapIconBarPanelAnchorOffset above), plus this panel's own row.
+                    anchor = mapIconBarSideAlignment,
+                    anchorOffset = DpOffset(
+                        x = mapIconBarPanelAnchorOffset.x,
+                        y = mapIconBarPanelAnchorOffset.y + ADD_TILE_ANCHOR_OFFSET,
+                    ),
+                    growsFrom = if (isMapIconBarOnLeftSide) Alignment.BottomStart else Alignment.BottomEnd,
+                )
+
+                MapModePicker(
+                    visible = showMapModePicker,
+                    mapMode = mapMode,
+                    onModeSelected = onMapModeSelected,
+                    onDismiss = { showMapModePicker = false },
+                    // Expanded-panels dispatch: same live anchoring as AddActionTile above — the
+                    // bar's side and drag offset (mapIconBarPanelAnchorOffset), plus this panel's
+                    // own row. MapModePicker itself is unchanged (shared with the Cartography
+                    // entry map); only what this caller feeds it moved from static to live.
+                    anchor = mapIconBarSideAlignment,
+                    anchorOffset = DpOffset(
+                        x = mapIconBarPanelAnchorOffset.x,
+                        y = mapIconBarPanelAnchorOffset.y + MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET,
+                    ),
+                )
+
+                // Owner finding on device: the OK/Cancel row sat under the app's nav (and under
+                // Android's own navigation bar in fullscreen), because this Box spans the full
+                // screen height. Outside fullscreen the nav's real measured height — which already
+                // includes the system bar it consumes (CLAUDE.md, "Robolectric reports zero window
+                // insets") — is what's underneath; in fullscreen the nav has slid away and only
+                // the system navigation bar is. The fullscreen half is device-only by
+                // construction: Robolectric reports that inset as zero.
+                val centrePinConfirmBottomInset = if (isFullscreen) {
+                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                } else {
+                    with(LocalDensity.current) { mapBottomNavHeightPx.toDp() }
+                }
+                if (pendingAction != null) {
+                    CentrePinLocationPickerOverlay(
+                        onConfirm = {
+                            when (pendingAction) {
+                                PendingMapAction.PLAN_TRIP -> pendingTripLocation = cameraCenter
+                                PendingMapAction.LOG_FIND -> onLogFindHere(cameraCenter)
+                                PendingMapAction.DROP_WAYPOINT -> pendingWaypointLocation = cameraCenter
+                                null -> Unit
+                            }
+                            pendingAction = null
+                        },
+                        onCancel = { pendingAction = null },
+                        modifier = Modifier.fillMaxSize(),
+                        bottomInset = centrePinConfirmBottomInset,
+                    )
+                } else if (pickingSearchLocation) {
+                    // AdvancedSearchDropdown's own "Set on map" — same overlay, same already-shown
+                    // map, same cameraCenter this tab already tracks via onCameraIdle; see this
+                    // param's own doc comment for why it isn't a second picker.
+                    CentrePinLocationPickerOverlay(
+                        onConfirm = { onSearchLocationPicked(cameraCenter) },
+                        onCancel = onCancelSearchLocationPick,
+                        modifier = Modifier.fillMaxSize(),
+                        bottomInset = centrePinConfirmBottomInset,
+                    )
+                }
+            }
+        }
+    }
+
+    pendingTripLocation?.let { location ->
+        TripDatePickerDialog(
+            defaultName = defaultTripName(uiState.plannedTrips.size),
+            onConfirm = { date, name ->
+                onPlaceTripPin(location, date, name)
+                pendingTripLocation = null
+            },
+            onDismiss = { pendingTripLocation = null },
+        )
+    }
+
+    pendingWaypointLocation?.let { location ->
+        WaypointNameDialog(
+            defaultName = defaultWaypointName(waypoints.size),
+            onConfirm = { name ->
+                onDropWaypoint(location, name)
+                pendingWaypointLocation = null
+            },
+            onDismiss = { pendingWaypointLocation = null },
+        )
+    }
+}
+
+/**
+ * Gap between [MapIconBar]'s bottom edge and [ControlPill]'s top edge — matches [MapIconBar]'s own
+ * `Spacing.sm` inset from the screen edge, so the pill reads as continuing the same margin rather
+ * than sitting at an arbitrarily different distance. Icon-bar-unify-container dispatch: now the
+ * cluster container Column's own `spacedBy`, no longer an offset from a measured bottom edge —
+ * the gap was structural (produced by `Modifier.offset`, not padding in a shared parent), and
+ * unifying the container is what changed how it is expressed. It is filled by the container at
+ * [com.zynergylabs.forager.app.ui.map.MAP_ICON_CLUSTER_CONTAINER_ALPHA] and no longer passes touches to the
+ * map, which is intentional; the two `@Ignore`d gap-touch tests in
+ * `AvailabilityScreenMapIconStackTest` now carry a false premise on top of the Robolectric reason
+ * they were parked for, and are left for the owner's own separate look.
+ */
+private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
+
+/** The compass strip's heading text — one of the two places a heading can appear, never both at once (the strip hides while the HUD shows). */
+internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"
+
+/** The compass strip's whole content while there is no fix — one message, [NO_FIX_MESSAGE], in place of three fragments. */
+internal const val COMPASS_STRIP_NO_FIX_TAG = "compass-strip-no-fix"
+
+/** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
+internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
+
+/**
+ * The two Trailhead/Return controls — record start/stop and return-to-vehicle — anchored together
+ * below [MapIconBar], per this dispatch's own Part B: they used to be split across a
+ * [MapIconBar] row and a duplicate compass-strip readout; now they share one home.
+ *
+ * **Icon-bar-unify-container dispatch: laid out inside the cluster container's own Column, directly
+ * below [MapIconBar], no anchoring of its own.** It used to offset itself by the bar's measured
+ * bottom edge (`mapIconBarBottomPx`, from [CompactMapTab]'s `onGloballyPositioned` on the bar's
+ * wrapper) — measured rather than derived from the bar's row count, which changed twice in quick
+ * succession at the time. That measurement is gone: the Column's `spacedBy` is the gap now, and
+ * the cluster container is what gets measured, dragged, clamped and minimised, so this pill is in
+ * bounds because it is inside the thing that is bounded. On device before this change the record
+ * pill hung off the bottom in fullscreen while the bar sat legally, and the directions pill was
+ * left sitting on the nav after exiting — the bar was in bounds, the pills extended past it.
+ *
+ * **Icon-bar-drag-refinements dispatch, Items 2-3: [onLeftSide] follows [MapIconBar]'s own side.**
+ * [ControlPill] stays pinned to the container's outer edge on whichever side (the Column's
+ * `horizontalAlignment`). It hides and restores with the bar when minimised — by construction now.
+ *
+ * **The distance arm is gone (navigation-chrome dispatch, item 3).** `DistanceArm` used to extend
+ * downward from [ControlPill] while returning, showing the return distance; navigation HUD stage
+ * one then made the HUD visible on exactly the condition the arm rendered on, so the two were
+ * always on screen together showing the same number ("0 ft beside 0 ft", on device). Confirmed
+ * before removal: no state showed the arm without the HUD — both keyed on the one `isReturning`,
+ * both in this tab's map Box — while the reverse (HUD without arm, cluster minimised) did exist.
+ * The return row's `contentDescription` still carries the full bearing/distance/elevation
+ * sentence, so the TalkBack path is unchanged; the visible distance is the HUD's. This Column is
+ * kept rather than inlining the pill: it is the cluster's named "Trailhead/Return controls" slot,
+ * and stage two's picker entry is expected to land here.
+ *
+ * `isRecording` is passed through as a plain parameter, not a presence check gating whether this
+ * composable runs at all — record start/stop must stay reachable before the first recording
+ * starts, the same as when it was an always-enabled [MapIconBar] row.
+ */
+@Composable
+private fun TrailheadControls(
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
+    /** For the return row's `contentDescription` sentence — the same [formatDistanceMeters] the HUD's visible distance uses. */
+    distanceUnit: DistanceUnit,
+    onLeftSide: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (onLeftSide) Alignment.Start else Alignment.End,
+    ) {
+        ControlPill(
+            isRecording = isRecording,
+            onToggleRecording = onToggleRecording,
+            returnToStart = returnToStart,
+            isReturning = isReturning,
+            isOffTrack = isOffTrack,
+            onToggleReturning = onToggleReturning,
+            distanceUnit = distanceUnit,
+        )
+    }
+}
+
+/**
+ * The vertical control pill at the bottom right, below [MapIconBar] — record start/stop and
+ * return-to-vehicle, the two Trailhead/Return controls, sharing one home per this dispatch's own
+ * Part B rather than split across a [MapIconBar] row and a duplicate compass-strip readout.
+ *
+ * Same visual language as [MapIconBar] on purpose — same [MAP_ICON_BAR_CORNER_RADIUS] stadium
+ * shape, same theme-aware surface/border colors, same [MapBarIconButton] rows — so this reads as a
+ * sibling of the bar, not a new kind of floating control. Both rows carry over unchanged from
+ * [MapIconBar]'s own former record/return-to-vehicle rows, including their accents
+ * ([mapIconBarRecordAccent]) and the return row's disabled-while-not-recording treatment.
+ */
+@Composable
+private fun ControlPill(
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
+    returnToStart: ReturnToStartInfo?,
+    isReturning: Boolean,
+    isOffTrack: Boolean,
+    onToggleReturning: () -> Unit,
+    distanceUnit: DistanceUnit,
+    modifier: Modifier = Modifier,
+) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    Surface(
+        shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+        // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc comment.
+        color = mapIconClusterChildColor(),
+        contentColor = if (isDarkTheme) Color.White else Bark,
+        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
+        modifier = modifier.testTag("control-pill"),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = Spacing.xs),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            MapBarIconButton(
+                icon = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
+                contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
+                onClick = onToggleRecording,
+                filled = isRecording,
+                fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
+                fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
+                modifier = Modifier.testTag("control-pill-record"),
+            )
+            MapBarIconButton(
+                icon = Icons.Filled.Directions,
+                contentDescription = returnToStartStripText(isRecording, returnToStart, distanceUnit)
+                    .ifBlank { "Return to vehicle — start recording first" },
+                onClick = onToggleReturning,
+                enabled = isRecording,
+                activeColor = when {
+                    isOffTrack -> MaterialTheme.colorScheme.error
+                    isReturning -> MaterialTheme.colorScheme.primary
+                    else -> null
+                },
+                modifier = Modifier.testTag("control-pill-return-to-vehicle"),
+            )
+        }
+    }
+}
+
+/**
+ * Decisions #7-8: compass heading + GPS elevation folded into one bar at the top of the map — a
+ * compass-tape-style heading readout, not a separate elevation/speed stats pill (that would be
+ * tied to active track recording, out of scope here — see the plan doc's decision #9). The MGRS
+ * grid reference on its own line below extends this same strip rather than becoming a separate
+ * "navigator screen" — position and heading are the one thing a field navigator needs together at
+ * a glance, and [MgrsConverter] already exists ([PlannedTripRow] uses it the same way).
+ *
+ * A thin wrapper around [CompassElevationStripContent] that does the one impure thing (collecting
+ * [compassProvider]'s [Flow][kotlinx.coroutines.flow.Flow]) so that content composable stays a pure
+ * function of primitive values — directly testable without a real sensor, per the plan doc's test
+ * requirements, and so heading ticks recompose only this small leaf rather than the whole map tab
+ * (which would otherwise fight the user's own pan/zoom on every sensor update).
+ */
+@Composable
+private fun CompassElevationStrip(
+    /**
+     * **True north, as of navigation HUD stage one** — the one smoothed, declination-corrected
+     * reading the HUD reads too ([rememberTrueHeading]), so the strip and the HUD can never
+     * disagree. This strip used to rotate the raw magnetic value, which differs from the HUD's
+     * true-north bearings by local declination — about 15° in the Pacific Northwest, a fixed
+     * offset that no averaging removes. Do not move it back to magnetic: a needle and a readout on
+     * the same screen that disagree by 15° is the exact failure the foundations work exists to
+     * prevent. Read as a [State] here, in this leaf, and nowhere above — see
+     * [rememberTrueHeading]'s own doc comment.
+     */
+    heading: State<TrueHeadingReading>,
+    elevationMeters: Double?,
+    location: LatLng?,
+    /** The MGRS/decimal choice, hoisted to [CompactMapTab] and shared with [NavigationHud] — see that call site. */
+    showDecimalDegrees: Boolean,
+    onToggleCoordinateFormat: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val reading by heading
+    CompassElevationStripContent(
+        heading = reading,
+        elevationMeters = elevationMeters,
+        location = location,
+        showDecimalDegrees = showDecimalDegrees,
+        onToggleCoordinateFormat = onToggleCoordinateFormat,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Heading, elevation, and coordinates only — one centered line. Pure readout, per this dispatch's
+ * Part A item 3: the return-to-vehicle readout field-test dispatch item 2 added here is removed,
+ * not merely hidden — it moved into [ControlPill] instead, alongside record start/stop, so the two
+ * Trailhead/Return controls live in one place rather than split between this strip and
+ * [MapIconBar]. **Corrected 2026-08-28**: named `MapIconStack` here before that composable was
+ * renamed. **Navigation-chrome dispatch**: not composed while navigating (see the call site); the
+ * MGRS/decimal toggle state is hoisted and shared with [NavigationHud]; and with no fix the whole
+ * strip is one statement, [NO_FIX_MESSAGE], not three fragments.
+ *
+ * Two causes, two messages, and the third combination folds into the first: **no fix** (whatever
+ * the sensor says) is [NO_FIX_MESSAGE] alone; **no sensor with a fix** is "Compass unavailable"
+ * with elevation and coordinates still shown. Keyed on [location], not on
+ * [TrueHeadingReading.NeedsFix] — `rememberTrueHeading` reports [TrueHeadingReading.NoSensor]
+ * before it checks for a fix, so keying on the heading would leave a phone with no magnetometer
+ * and no fix showing three fragments again.
+ */
+@Composable
+private fun CompassElevationStripContent(
+    heading: TrueHeadingReading,
+    elevationMeters: Double?,
+    location: LatLng?,
+    showDecimalDegrees: Boolean,
+    onToggleCoordinateFormat: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
+    // input for the area it occupies, which — now that this strip is full-width — swallowed the
+    // map's own pan/tap gestures underneath it (the same failure class IntrinsicSize.Max fixed
+    // for the narrow pill, but that fix meant shrinking the strip back down, which isn't an option
+    // now that full width is the point). A Box with no pointer/click handling of its own doesn't
+    // intercept anything, so the map keeps receiving touches everywhere except this strip's own
+    // real interactive child (the coordinates segment below).
+    //
+    // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
+    // comment for why the two axes are kept separate rather than one steering the other.
+    val isDarkTheme = LocalForagerDarkTheme.current
+    CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
+        Box(
+            modifier = modifier
+                // No heightIn(min = ...) any more — Part A item 1's revert. The 48dp touch-target
+                // floor field-test dispatch item 2 pinned here existed only to give the strip's own
+                // return-to-vehicle IconButton a real touch target; that control moved out to
+                // ControlPill (Part B), so this strip wraps its Row's natural text-content height
+                // again, the same as before that dispatch.
+                .background(
+                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    shape = RectangleShape,
+                )
+                // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
+                // AnchoredAtScreenPoint's minY and the taxon filter chip's top padding both need to
+                // clear it, and now that it wraps content instead of sitting at a fixed 48dp, a
+                // measured value is the only one that stays correct as font scale or content change
+                // it. Also still what this composable's own regression test targets directly.
+                .testTag("compass-elevation-strip"),
+        ) {
+            Row(
+                // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
+                // hardware-caught bug an unbounded-height descendant caused here previously; nothing
+                // in this Row asks for available height any more, but the fillMaxWidth-not-fillMaxSize
+                // choice stays deliberate rather than reverting to whichever one happens to still work.
+                modifier = Modifier
+                    // A little horizontal padding again, unlike the zero this Row held right before
+                    // Part A: that zero relied on two MIN_TOUCH_TARGET end boxes (this icon's, and
+                    // the return-to-vehicle control's) to supply real whitespace at both edges by
+                    // themselves. The return-to-vehicle box is gone (moved to ControlPill) and this
+                    // icon's own box no longer holds itself to a 48dp touch target (it isn't one —
+                    // see below), so nothing is left to keep the text off the strip's own edges
+                    // without this. Re-added once, in the direction opposite the three prior trims
+                    // Part A item 4 warns about, and explained rather than blindly re-trimmed.
+                    .padding(horizontal = Spacing.sm)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Fixed-width slot, not inline in the text group below — a hardware report found the
+                // compass needle visibly drifting left/right as the heading/elevation/coordinates
+                // text next to it changed length, because it used to be the first child of that
+                // centered group rather than its own fixed slot; this box's position never depends on
+                // any text's width. Sized to its own content (no explicit .size()), not
+                // MIN_TOUCH_TARGET: Part A item 2's revert — this icon is decorative (no click
+                // affordance of its own), so pinning it to a 48dp touch-target box only existed to
+                // match the return-to-vehicle control's box that shared this Row; that control is
+                // gone, and holding this box at 48dp anyway would defeat item 1's height revert by
+                // becoming the Row's own tallest child in the vehicle box's place.
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.Navigation,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .rotate((heading as? TrueHeadingReading.Available)?.degrees ?: 0f),
+                    )
+                }
+                if (location == null) {
+                    // One statement across the strip — see this composable's own doc comment. Not
+                    // tappable: there is no coordinate pair to toggle, and nothing to fabricate one
+                    // from. The Row's remaining width, so it centres where the three segments did.
+                    Text(
+                        text = NO_FIX_MESSAGE,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(COMPASS_STRIP_NO_FIX_TAG),
+                    )
+                } else {
+                    // Heading, elevation, and coordinates, taking whatever width is left after the fixed
+                    // compass-icon box above — this group used to share its weight(1f) budget with that
+                    // icon's inline width, which is exactly the width the coordinates segment's own
+                    // ellipsis was giving up first on a narrow screen (a hardware report: "cut off for no
+                    // reason" — there was room, it just wasn't reaching this Text). Pulling the icon out
+                    // of this Row's own measurement entirely is the fix, not a wider budget. Only one
+                    // fixed sibling now (Part A item 3 removed the strip's own return-to-vehicle box),
+                    // so this group's own available width is wider still than when that box also took a
+                    // share. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
+                    // safety net for a screen too narrow for all three fields regardless, not
+                    // horizontalScroll — see this composable's own doc comment above for why
+                    // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                    ) {
+                        Text(
+                            // With a fix, the heading has two real states and one transient: a value,
+                            // no sensor, or NeedsFix for the frame or two between the fix landing and
+                            // the next sensor emission (rememberTrueHeading restarts its producer on
+                            // that transition). The transient shows a dash, the same as the HUD — the
+                            // "needs a fix" wording is gone, replaced by NO_FIX_MESSAGE above.
+                            text = when (heading) {
+                                is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
+                                TrueHeadingReading.NoSensor -> "Compass unavailable"
+                                // Present but not to be trusted (compass-reliability dispatch).
+                                // Names no cause: the status cannot tell a truck from a poorly
+                                // calibrated sensor, and the remedies differ — telling someone to
+                                // calibrate beside a truck is wrong advice confidently given.
+                                TrueHeadingReading.Unreliable -> "Compass unreliable"
+                                TrueHeadingReading.NeedsFix -> "—"
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                        )
+                        Text("·", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            // Meters, matching this app's existing metric convention (radiusKm) rather
+                            // than introducing feet — nothing else in the app displays imperial units.
+                            text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                        )
+                        Text("·", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            text = coordinatesStripText(location, showDecimalDegrees),
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .clickable(onClick = onToggleCoordinateFormat),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The return-to-vehicle line's text — blank while not recording (nothing to return to), a status
+ * message once recording starts but before the first breadcrumb lands (bearing/distance need a
+ * start point), then bearing, distance, and elevation difference once [info] is real. Now
+ * [ControlPill]'s own `contentDescription` for its return-to-vehicle row (this used to also feed
+ * the compass strip's own visible readout via `ReturnToVehicleStripControl`, removed in this
+ * dispatch's Part A — see [CompassElevationStripContent]'s own doc comment).
+ * [ReturnToStartInfo]'s own doc comment covers why there's no ETA here.
+ */
+internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInfo?, distanceUnit: DistanceUnit): String {
+    if (!isRecording) return ""
+    if (info == null) return "Recording — waiting for a fix to compute the way back"
+    val elevationText = info.elevationDifferenceMeters?.let {
+        "${if (it >= 0) "+" else ""}${it.roundToInt()} m"
+    } ?: "elevation diff. unavailable"
+    val bearing = info.bearingDegrees.roundToInt()
+    return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · ${formatDistanceMeters(info.distanceMeters, distanceUnit)} · $elevationText"
+}
+
+/** The exit-navigation prompt's buttons, for the back-navigation tests. */
+internal const val EXIT_NAVIGATION_PROMPT_TAG = "exit-navigation-prompt"
+internal const val EXIT_NAVIGATION_PROMPT_EXIT_TAG = "exit-navigation-prompt-exit"
+internal const val EXIT_NAVIGATION_PROMPT_KEEP_TAG = "exit-navigation-prompt-keep"
+
+/**
+ * What system back raises while navigating, instead of exiting — see the back chain in
+ * [AvailabilityScreen] for why back can only ever raise and dismiss this. Same [AlertDialog]
+ * shape as [ThreeWayActionDialog] and the Cartography editor's leave prompt, not a new dialog
+ * style. Wording is the owner's: exiting navigation is not stopping the recording, and the text
+ * says so, because a user who thinks "Exit" ends the track will keep navigating when they meant
+ * to stop, or the reverse. Dismissing by any route — the Keep button, a tap outside, the dialog
+ * window's own back — keeps navigating; only the Exit button calls [onExit].
+ */
+@Composable
+private fun ExitNavigationPrompt(
+    onExit: () -> Unit,
+    onKeepNavigating: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onKeepNavigating,
+        title = { Text("Exit navigation?") },
+        text = { Text("Your track will keep recording.") },
+        confirmButton = {
+            TextButton(onClick = onExit, modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_EXIT_TAG)) { Text("Exit") }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeepNavigating, modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_KEEP_TAG)) { Text("Keep navigating") }
+        },
+        modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_TAG),
+    )
+}
+
+/**
+ * What the three-way menu button means — asked before any of [TripDatePickerDialog],
+ * `onLogFindHere`, or [WaypointNameDialog] run, and before [CentrePinLocationPicker] even shows;
+ * see [MapTab]'s own doc comment. Named for what it asks, not for the gesture that used to trigger
+ * it — nothing here is long-press-specific any more, see decision 5 in
+ * `docs/plans/pr26-rework.md`'s Workstream L.
+ */
+@Composable
+private fun ThreeWayActionDialog(
+    onPlanTrip: () -> Unit,
+    onLogFind: () -> Unit,
+    onDropWaypoint: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("What would you like to do here?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                TextButton(onClick = onPlanTrip, modifier = Modifier.fillMaxWidth()) { Text("Plan a trip") }
+                TextButton(onClick = onLogFind, modifier = Modifier.fillMaxWidth()) { Text("Log a find") }
+                TextButton(onClick = onDropWaypoint, modifier = Modifier.fillMaxWidth()) { Text("Drop a waypoint") }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+/**
+ * [CompactMapTab]'s own version of the same three-way chooser [ThreeWayActionDialog] shows on
+ * medium/expanded windows — same three choices, same shared [PendingMapAction] state, but
+ * presented as a small tile that grows out of the add button's own corner of the icon bar rather
+ * than [AlertDialog]'s centered scale-in, per the project owner's own description of how it should
+ * open. Compact-only: the medium/expanded window's own add button (added alongside this rework —
+ * see [MapTab]'s doc comment) has no icon bar for a tile to grow out of, so [MapTab] keeps the
+ * plain dialog instead.
+ *
+ * **Real [AssistChip]s, short labels, no title row.** The original had a "Add..." title plus four
+ * full-width [TextButton]s (three choices, and its own "Cancel") — a real hardware-reported
+ * problem, not a style preference: a full-width button is as wide as its longest label, which made
+ * the whole tile noticeably wider than the icon bar it grows out of. Short labels ("Trip"/
+ * "Find"/"Waypoint") in a [Row] instead of a [Column] let the tile's own width shrink to what three
+ * short buttons actually need, rather than the longest of three sentences. No separate "Cancel"
+ * button either — the scrim below already dismisses on a tap outside, and a fourth wide row would
+ * undo the same fit this rewrite exists for.
+ *
+ * **[AssistChip], not the filled Material [Button] this tile used at first.** A solid
+ * `colorScheme.primary`-filled button is its own large block of colour, and three of them side by
+ * side visually crowded out the tile's own theme-aware card fill entirely — from the project
+ * owner's own side-by-side comparison against [MapModePicker], whose unselected [FilterChip]s stay
+ * outlined and let that same card fill read clearly instead. [AssistChip] is the semantically
+ * correct match, not [FilterChip] borrowed wholesale: these three rows perform an action each and
+ * share no "currently selected" state the way [MapModePicker]'s three modes do, so nothing here is
+ * ever passed a `selected` value.
+ *
+ * Same theme-aware, 80%-opacity fill as [MapIconBar]
+ * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) rather than a plain
+ * [MaterialTheme.colorScheme.surface] — one visual language for every control floating over the
+ * map, the same reasoning [MapModePicker] gives for the same choice.
+ *
+ * A scrim (its own [AnimatedVisibility], faded independently of the tile) makes the map behind it
+ * unmistakably unavailable to tap while a choice is pending — the same modal intent the dialog it
+ * replaces had, just without borrowing [AlertDialog]'s fixed presentation. The scrim carries no
+ * visible label of its own (unlike the three buttons beside it), so it is addressed in tests by
+ * [ADD_ACTION_TILE_SCRIM_TAG] rather than text.
+ *
+ * [anchor]/[anchorOffset] mirror [MapModePicker]'s own pair exactly (expanded-panels dispatch):
+ * this used to hardcode `CenterEnd` / `-Spacing.sm` / [ADD_TILE_ANCHOR_OFFSET] internally, which
+ * was fine while [MapIconBar] could only ever sit at its default right-centre position, and
+ * silently wrong once the bar became draggable — the tile kept opening at the bar's *old*
+ * position. The single caller now feeds the bar's live side and drag offset. [growsFrom] is the
+ * corner the tile grows out of / shrinks back into, the add row's own corner of the bar: bottom-
+ * end on the right, bottom-start once the bar is snapped to the left — passed explicitly rather
+ * than derived from [anchor] here, so the caller's intent is visible at the call site.
+ */
+@Composable
+private fun AddActionTile(
+    visible: Boolean,
+    onPlanTrip: () -> Unit,
+    onLogFind: () -> Unit,
+    onDropWaypoint: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    anchor: Alignment = Alignment.CenterEnd,
+    anchorOffset: DpOffset = DpOffset(x = -MAP_ICON_BAR_EDGE_INSET, y = ADD_TILE_ANCHOR_OFFSET),
+    growsFrom: Alignment = Alignment.BottomEnd,
+) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    Box(modifier = modifier) {
+        // docs/motion-spec.md §2 "Panels and navigation": panels accept mild spring overshoot as
+        // a taste call, per docs/adr/0002-motion-scheme-adoption.md. Passing MotionTokens's spec
+        // explicitly here removes any dependence on AnimatedVisibility's own default spec.
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
+            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(ADD_ACTION_TILE_SCRIM_TAG)
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onDismiss,
+                    ),
+            )
+        }
+
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()) +
+                expandIn(
+                    animationSpec = MotionTokens.panelMotionSpec(),
+                    expandFrom = growsFrom,
+                ),
+            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()) +
+                shrinkOut(
+                    animationSpec = MotionTokens.panelMotionSpec(),
+                    shrinkTowards = growsFrom,
+                ),
+            modifier = Modifier
+                .align(anchor)
+                .offset(x = anchorOffset.x, y = anchorOffset.y),
+        ) {
+            Surface(
+                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG),
+                shape = RoundedCornerShape(Spacing.md),
+                shadowElevation = 4.dp,
+                color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                contentColor = if (isDarkTheme) Color.White else Bark,
+                border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    AssistChip(onClick = onPlanTrip, label = { Text("Trip") })
+                    AssistChip(onClick = onLogFind, label = { Text("Find") })
+                    AssistChip(onClick = onDropWaypoint, label = { Text("Waypoint") })
+                }
+            }
+        }
+    }
+}
+
+/** See [AddActionTile]'s own doc comment — its scrim has no visible label, so tests address it by tag. */
+internal const val ADD_ACTION_TILE_SCRIM_TAG = "add-action-tile-scrim"
+
+/**
+ * [AddActionTile]'s own panel `Surface` — what the expanded-panels dispatch's tests measure its
+ * real edges by. Its chips are not a usable proxy for those edges: under Robolectric's near-zero-
+ * width fonts each chip measures under 48dp wide, so Material's `minimumInteractiveComponentSize`
+ * wrapper pads it out and the chip's own semantics bounds stop short of the panel's edge by a
+ * font-dependent margin (measured: ~5.5–7dp) that a real device would not show.
+ */
+internal const val ADD_ACTION_TILE_TAG = "add-action-tile"
+
+/**
+ * [MapIconBar]'s add row is its 5th (last) of 5 — see [mapIconBarRowAnchorOffset], promoted into
+ * `MapChrome.kt` (fullscreen-fixes dispatch, Item 2) so the Cartography entry map's own
+ * `MapModePicker` call can use the same row-anchor arithmetic this file's calls already did.
+ */
+private val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 5)
+
+/** [MapIconBar]'s layers ("Map Mode") row is its 4th of 5 — see [mapIconBarRowAnchorOffset]. */
+private val MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)
+
+/**
+ * Confirms a date and name for a trip pin placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker].
+ *
+ * The date is restricted to today-or-later — planning a trip in the past makes no sense, per the
+ * user's own framing of this feature. [SavePlannedTripUseCase][com.zynergylabs.forager.app.domain.SavePlannedTripUseCase]
+ * enforces the same floor independently; this is the UI convenience, not the invariant itself.
+ *
+ * The name field starts pre-filled with [defaultTripName] and stays freely editable; the confirm
+ * button disables on a blank name so the "name is never blank" invariant
+ * ([PlannedTrip.name][com.zynergylabs.forager.app.domain.model.PlannedTrip.name]) can't be violated from this
+ * dialog, mirroring `SavePlannedTripUseCase`'s own `require` for the same reason the date floor is
+ * mirrored there.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TripDatePickerDialog(
+    defaultName: String,
+    onConfirm: (LocalDate, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    // DatePicker works in UTC-midnight epoch millis regardless of device time zone, so both the
+    // floor and the confirmed selection are converted through UTC to stay consistent with it.
+    val todayUtcMillis = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = todayUtcMillis,
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis >= todayUtcMillis
+        },
+    )
+    var name by remember { mutableStateOf(defaultName) }
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                // Guards the "name is never blank" invariant from this dialog — see this
+                // function's own doc comment.
+                enabled = name.isNotBlank(),
+                onClick = {
+                    val selectedMillis = datePickerState.selectedDateMillis ?: return@TextButton
+                    val date = Instant.ofEpochMilli(selectedMillis).atZone(ZoneOffset.UTC).toLocalDate()
+                    onConfirm(date, name)
+                },
+            ) { Text("Plan trip") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) {
+        Column {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Trip name") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg),
+            )
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+/**
+ * Confirms a name for a waypoint placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker] —
+ * [TripDatePickerDialog] without the date, since a waypoint has none ([Waypoint] carries no target date, unlike
+ * [PlannedTrip]). Same blank-name guard, mirroring
+ * [CreateWaypointUseCase][com.zynergylabs.forager.app.domain.CreateWaypointUseCase]'s own `require`.
+ */
+@Composable
+private fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf(defaultName) }
+    // usePlatformDefaultWidth = false, matching M3's own DatePickerDialog default rather than
+    // AlertDialog's (true): an AlertDialog/plain Dialog with an OutlinedTextField as its sole
+    // focusable content, reached through the compact scaffold (ModalNavigationDrawer plus its own
+    // BackHandlers), never settles under this Robolectric test setup — real, reproduced
+    // AppNotIdleException, isolated by removing pieces one at a time (the text field alone is fine;
+    // AddActionTile -> this dialog alone is fine; TripDatePickerDialog's own text field, reached
+    // through this exact same scaffold, is fine). The one structural difference from
+    // TripDatePickerDialog left once AlertDialog vs. plain Dialog was ruled out is this property.
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            shape = RoundedCornerShape(Spacing.md),
+            shadowElevation = 4.dp,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier.padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Text("Name this waypoint", style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Waypoint name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(enabled = name.isNotBlank(), onClick = { onConfirm(name) }) { Text("Drop waypoint") }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The Trip Planner drawer section's content: the planned-trips list (see [PlannedTripsList])
+ * above the existing rain-driven trip windows, gated on a search the same way [MapTab] is —
+ * before any region is chosen there is no rainfall history to plan from, so this says that rather
+ * than rendering an empty [TripWindowsCard]. The planned-trips list has no such gate: it lists
+ * absolute map points the user placed, independent of any search.
+ */
+@Composable
+internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTrip: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        PlannedTripsList(plannedTrips = uiState.plannedTrips, onDeletePlannedTrip = onDeletePlannedTrip)
+        HorizontalDivider()
+        if (uiState.hasSearched) {
+            TripWindowsCard(uiState = uiState)
+        } else {
+            Text(
+                "Choose a region in search options to see rain-driven trip windows.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+/**
+ * The list of trips the user has placed on the map, sorted by
+ * [GetPlannedTripsUseCase][com.zynergylabs.forager.app.domain.GetPlannedTripsUseCase] with any dated today
+ * already moved to the front — this composable renders that order, it doesn't recompute it.
+ */
+@Composable
+private fun PlannedTripsList(plannedTrips: List<PlannedTrip>, onDeletePlannedTrip: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text("Planned Trips", style = MaterialTheme.typography.titleSmall)
+        if (plannedTrips.isEmpty()) {
+            Text(
+                "No trips planned yet. Tap the add button on the map to plan one.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            val today = LocalDate.now()
+            plannedTrips.forEach { trip ->
+                PlannedTripRow(
+                    trip = trip,
+                    isToday = trip.date == today,
+                    onDelete = { onDeletePlannedTrip(trip.id) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One planned trip: its user-chosen [PlannedTrip.name] as the primary identifying text (more
+ * prominent than the coordinates below it, per the user's own framing — the name is what a
+ * person recognizes a trip by, the coordinates are supporting detail), its MGRS grid reference
+ * (the format asked for on this screen; see [MgrsConverter]) with decimal degrees kept alongside
+ * since some readers still want them and MGRS can't cover every point (see
+ * [MgrsCoordinate.Unsupported]), a "Directions" action that hands the location to whatever
+ * navigation app is installed (see [launchDirections]), and delete.
+ */
+@Composable
+private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> Unit) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = if (isToday) {
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        } else {
+            CardDefaults.cardColors()
+        },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.md),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                if (isToday) {
+                    Text(
+                        "Today",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Text(trip.name, style = MaterialTheme.typography.titleSmall)
+                Text(TRIP_WINDOW_DATE_FORMAT.format(trip.date), style = MaterialTheme.typography.bodyMedium)
+                when (val mgrs = MgrsConverter.convert(trip.location)) {
+                    is MgrsCoordinate.Grid -> Text(mgrs.value, style = MaterialTheme.typography.bodySmall)
+                    // No line at all rather than a wrong or truncated one — see MgrsCoordinate's
+                    // own doc comment. The decimal-degrees line below still locates the trip.
+                    is MgrsCoordinate.Unsupported -> Unit
+                }
+                Text(
+                    "${"%.4f".format(trip.location.lat)}, ${"%.4f".format(trip.location.lng)}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            IconButton(onClick = { launchDirections(context, trip) }) {
+                Icon(Icons.Filled.Directions, contentDescription = "Directions to ${trip.name}")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Filled.Delete, contentDescription = "Remove planned trip for ${trip.date}")
+            }
+        }
+    }
+}
+
+/**
+ * The saved-waypoints drawer section — same "list plus delete" shape as [PlannedTripsList], the
+ * one existing precedent for a user-placed-point list in this drawer. Unlike planned trips,
+ * waypoints have no date to sort by, so they're shown newest-first (the order
+ * [com.zynergylabs.forager.app.domain.GetWaypointsUseCase] already returns — see that use case for why).
+ *
+ * [errorMessage] takes priority over the list, same branch order [TripWindowsCard] uses for
+ * [AvailabilityUiState.tripWindowsErrorMessage] — a failed load/add/remove is belief-changing (the
+ * list on screen may not be what's actually saved), so it replaces the list rather than sitting
+ * beside it.
+ *
+ * Scrolls itself ([Modifier.verticalScroll]) rather than depending on a scrollable caller — same
+ * reasoning as [OfflineMapsPanel]'s own outer `Column`. Journal restructure Stage 1 moved this out
+ * of the Tools drawer's `SearchControls`, which supplied that scroll, into [com.zynergylabs.forager.app.ui.log.RecordsTab]'s
+ * flat `Column(fillMaxSize())`, which does not — this is now `WaypointsSection`'s only caller.
+ */
+@Composable
+internal fun WaypointsSection(
+    waypoints: List<Waypoint>,
+    errorMessage: String?,
+    onDeleteWaypoint: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in the confirm dialog below. */
+    entryReferenceCounts: Map<String, Int> = emptyMap(),
+) {
+    // Journal Stage 2b, 4b: this section had no delete confirmation at all before — every other
+    // per-row delete in this drawer (OfflineRegionsSection, PlannedTripsList) already confirms
+    // first, and a deletion warning needs somewhere to show itself. Same pendingDelete-then-dialog
+    // shape as OfflineRegionsSection.
+    var pendingDeleteWaypoint by remember { mutableStateOf<Waypoint?>(null) }
+
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        when {
+            errorMessage != null -> Text(
+                errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            waypoints.isEmpty() -> Text(
+                "No waypoints dropped yet. Tap the add button on the map to drop one.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            else -> waypoints.forEach { waypoint ->
+                WaypointRow(waypoint = waypoint, onDelete = { pendingDeleteWaypoint = waypoint })
+            }
+        }
+    }
+
+    pendingDeleteWaypoint?.let { waypoint ->
+        val referencingEntryCount = entryReferenceCounts[waypoint.id] ?: 0
+        AlertDialog(
+            onDismissRequest = { pendingDeleteWaypoint = null },
+            title = { Text("Delete \"${waypoint.name}\"?") },
+            text = {
+                Text(
+                    // No permanence claim — see OfflineRegionsSection's identical dialog for why.
+                    if (referencingEntryCount > 0) {
+                        "This waypoint appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}."
+                    } else {
+                        "Delete this waypoint?"
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteWaypoint(waypoint.id)
+                        pendingDeleteWaypoint = null
+                    },
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDeleteWaypoint = null }) { Text("Cancel") } },
+        )
+    }
+}
+
+/**
+ * One saved waypoint: its user-chosen [Waypoint.name] as the primary identifying text, the same
+ * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses, a "Directions" action
+ * ([launchDirections]) reusing the exact same `geo:` intent machinery, and delete.
+ */
+@Composable
+private fun WaypointRow(waypoint: Waypoint, onDelete: () -> Unit) {
+    val context = LocalContext.current
+    val location = LatLng(waypoint.lat, waypoint.lng)
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.md),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(waypoint.name, style = MaterialTheme.typography.titleSmall)
+                when (val mgrs = MgrsConverter.convert(location)) {
+                    is MgrsCoordinate.Grid -> Text(mgrs.value, style = MaterialTheme.typography.bodySmall)
+                    // No line at all rather than a wrong or truncated one — see PlannedTripRow's
+                    // own use of the same MgrsCoordinate branch for why.
+                    is MgrsCoordinate.Unsupported -> Unit
+                }
+                Text(
+                    "${"%.4f".format(waypoint.lat)}, ${"%.4f".format(waypoint.lng)}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            IconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
+                Icon(Icons.Filled.Directions, contentDescription = "Directions to ${waypoint.name}")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Filled.Delete, contentDescription = "Remove waypoint ${waypoint.name}")
+            }
+        }
+    }
+}
+
+private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+
+/**
+ * The direction [ObservationBubble] sits from the dot it names, measured clockwise from up
+ * (0°/up, 90°/right, 180°/down, 270°/left), in the *map's own north-up frame* — not screen space.
+ * [AnchoredAtScreenPoint] rotates this by the map's live bearing to get where the bubble actually
+ * lands on screen, which is the whole point of it being a map-relative constant rather than a
+ * screen-relative one: up-and-left of the dot at bearing 0° (the same corner this composable's
+ * predecessor hard-coded — see its own git history) stays up-and-left *of the dot*, not up-and-left
+ * *of the screen*, as the map turns underneath it.
+ */
+private const val OBSERVATION_BUBBLE_BASE_DIRECTION_DEG = 315f
+
+/**
+ * How far the arrow's own tip extends past [ObservationBubble]'s own edge, toward the dot it
+ * names. Purely a visual "sticks out and reads as pointed" clearance — [rectEdgeIntersection]
+ * already guarantees the tip's *base* sits exactly on the bubble's boundary before this is added.
+ */
+private val OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH = Spacing.md
+
+/** Half the width of the arrow's own base, straddling the point [rectEdgeIntersection] returns. */
+private val OBSERVATION_BUBBLE_ARROW_BASE_HALF_WIDTH = Spacing.xs
+
+/**
+ * Places [content] — [ObservationBubble] itself, handed the exact angle (screen-space, clockwise
+ * from up) its own arrow should point back along — so that arrow's tip lands precisely on
+ * [anchorPx], the tapped sighting's live screen position in the same px coordinate space
+ * [MapSlot]'s own `onSightingTap` reports (see that callback's doc comment). Replaces an earlier
+ * revision that hard-coded a squared-off bubble corner as an implied arrow at a fixed "5 o'clock"
+ * offset from the dot — per the project owner's own follow-up call, that read ambiguously in a
+ * dense cluster and didn't survive map rotation, so this version draws a real, explicit arrow
+ * ([ObservationBubble]'s own [Canvas]) and keeps its tip glued to the dot's exact center rather
+ * than an offset point near it.
+ *
+ * [bearingDeg] is what makes this "remain static on the map, but rotate with the map orientation"
+ * — the project owner's own framing. [OBSERVATION_BUBBLE_BASE_DIRECTION_DEG] fixes where the
+ * bubble sits *relative to the dot, in the map's own north-up frame*; rotating that by the map's
+ * live bearing below is what keeps the bubble's placement correct — up-and-left of the dot, not
+ * up-and-left of the screen — as the map turns, the same way a label pinned to the map surface
+ * itself would. [ObservationBubble]'s own text never rotates: only the angle passed to it and the
+ * bubble's own screen position change, so it stays legible through a rotate gesture rather than
+ * turning upside down at some bearings — the project owner's own explicit constraint ("as long as
+ * it's not spinning with the map and can read it legibly while rotating the map, and stays
+ * pointing directly on the observation dot").
+ *
+ * A custom [Layout], not a plain [Box] + `Modifier.offset`, for the same reason as before: placing
+ * the bubble so its arrow tip lands exactly on [anchorPx] needs the bubble's own measured size,
+ * which isn't known until after it's laid out. Reports its own occupied size as the full incoming
+ * [Constraints] (the whole map [Box]), with the child placed freely inside at the computed point,
+ * clamped to stay on-screen — placing a child outside its parent's own declared bounds would leave
+ * it undependably hit-testable. Clamping can still pull the bubble away from the angle-exact spot
+ * near a screen edge, same limitation the predecessor's own corner-anchoring had — the arrow drawn
+ * from wherever the bubble actually lands is still geometrically consistent with itself, just no
+ * longer touching the dot exactly in that corner case.
+ *
+ * [minY] raises the lowest the bubble's own top edge may land — [CompactMapTab]'s own call site
+ * passes `compassStripClearance`, a real measurement of the compass strip's own type style, so a
+ * marker tapped near the map's top edge never anchors a bubble underneath that strip's full-width
+ * touch-interception band (the exact hazard this file's own "Known pitfalls" precedent already
+ * documents, and the reason the strip is composed after the map's own content in the first place).
+ * A plain [Dp] parameter, not a lambda: an earlier version of this call site read the strip's real
+ * `onGloballyPositioned` layout height back through a `mutableStateOf`, and separately a version
+ * of this parameter itself was made a `() -> Int` lambda — both were tried while chasing a real,
+ * reproducible regression (`AvailabilityScreenMapIconStackTest`'s "tapping elsewhere on the map
+ * dismisses the observation bubble" test, bisected line by line) and neither survived: this
+ * signature and a one-time, non-reactive measurement at the call site is the configuration proven
+ * not to reproduce it. [MapTab] has no such strip and passes `0`.
+ */
+@Composable
+private fun AnchoredAtScreenPoint(
+    anchorPx: Offset,
+    bearingDeg: Float,
+    minY: Dp = 0.dp,
+    modifier: Modifier = Modifier,
+    content: @Composable (arrowAngleDeg: Float) -> Unit,
+) {
+    // The direction FROM the dot TO the bubble, in screen space: the map-relative base direction,
+    // rotated backward by the camera's own clockwise rotation — the map (and everything drawn
+    // relative to it) appears to turn counter-clockwise on screen as the camera turns clockwise, so
+    // subtracting bearingDeg is what keeps this pinned to the dot's own frame rather than the
+    // screen's.
+    val screenDirectionFromDotDeg = (OBSERVATION_BUBBLE_BASE_DIRECTION_DEG - bearingDeg).mod(360f)
+    // The arrow's own direction: from the bubble back toward the dot, the exact opposite of where
+    // the bubble sits relative to it. This is the one value ObservationBubble needs to draw an
+    // arrow consistent with wherever this Layout ends up placing it.
+    val arrowAngleDeg = (screenDirectionFromDotDeg + 180f).mod(360f)
+    Layout(content = { content(arrowAngleDeg) }, modifier = modifier) { measurables, constraints ->
+        val minYPx = minY.roundToPx()
+        // ObservationBubble's own measured size already includes OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH
+        // of reserved margin on every side (its own Modifier.padding — see that composable's doc
+        // comment), so the *card's* own half-extents for rectEdgeIntersection are this placeable's,
+        // shrunk back down by that same margin — otherwise this would compute where the reserved
+        // margin's own outer edge sits, not the visible card's, and the tip would land short of
+        // anchorPx by one tail length.
+        val placeable = measurables.first().measure(Constraints())
+        val tailPx = OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH.toPx()
+        val cardHalfWidth = placeable.width / 2f - tailPx
+        val cardHalfHeight = placeable.height / 2f - tailPx
+        // Where the card's own boundary sits, and how far past it the arrow's tip extends toward
+        // the dot — see rectEdgeIntersection's own doc comment. The ideal (pre-clamp) placeable
+        // center is anchorPx walked backward along that same tip vector, so placing the placeable
+        // there makes the tip land exactly on anchorPx.
+        val edgePoint = rectEdgeIntersection(cardHalfWidth, cardHalfHeight, arrowAngleDeg)
+        val radians = Math.toRadians(arrowAngleDeg.toDouble())
+        val tipOffsetFromCenter = Offset(
+            edgePoint.x + sin(radians).toFloat() * tailPx,
+            edgePoint.y - cos(radians).toFloat() * tailPx,
+        )
+        val idealCenter = anchorPx - tipOffsetFromCenter
+        val halfWidth = placeable.width / 2f
+        val halfHeight = placeable.height / 2f
+        val x = (idealCenter.x - halfWidth)
+            .roundToInt()
+            .coerceIn(0, (constraints.maxWidth - placeable.width).coerceAtLeast(0))
+        val y = (idealCenter.y - halfHeight)
+            .roundToInt()
+            .coerceIn(minYPx, (constraints.maxHeight - placeable.height).coerceAtLeast(minYPx))
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            placeable.placeRelative(x, y)
+        }
+    }
+}
+
+/**
+ * Tapping a sighting dot's own detail — species name and observed date, the two facts
+ * [SightingsMap]'s doc comment describes this as rebuilding from the vendor-native
+ * title/snippet popup MapLibre's style-layer geometry has no equivalent for. "View on iNaturalist"
+ * hands off to [launchINaturalistObservation] rather than showing anything about the observation
+ * this app doesn't already have cached in [Sighting] — no confidence score, no candidate species
+ * list, nothing this app would need to fetch or judge itself.
+ *
+ * A small floating bubble over the map, not a modal [AlertDialog] (this composable's first form,
+ * replaced after hardware feedback that a blocking dialog for something this minor "got in the
+ * way of the UX"). No scrim, no window of its own: it sits in the same [Box] as the map and lets
+ * every tap outside its own bounds fall straight through to the map beneath — dismissing itself is
+ * the caller's job, wired to the map's plain [onTap] the same way `CompactMapTab`'s "tap to restore
+ * chrome while fullscreen" already works, not something this composable can do on its own the way
+ * [AlertDialog]'s `onDismissRequest` (a tap on the scrim, or system back) could.
+ *
+ * [arrowAngleDeg] — [AnchoredAtScreenPoint]'s own computed direction back toward the dot this
+ * bubble names, screen-space, clockwise from up — drives a real, explicit triangular tail drawn by
+ * [Modifier.drawBehind] rather than the earlier revision's single squared-off corner (an implied
+ * arrow that only worked from one fixed relative position). Reserves
+ * [OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH] of otherwise-invisible margin on every side via
+ * [Modifier.padding] so the tail has room to protrude past the visible card's own rounded-rect
+ * silhouette regardless of which side [arrowAngleDeg] currently points it out of — the same margin
+ * [AnchoredAtScreenPoint] already accounts for when it places this composable, so the two agree on
+ * where the tail's tip actually lands without any state passed between them: both independently
+ * apply the identical [rectEdgeIntersection] formula to the same inputs. The card itself is a plain
+ * [RoundedCornerShape] again (all four corners), not one squared — the tail is what reads as a
+ * speech/notification bubble now, not an asymmetric corner.
+ */
+@Composable
+private fun ObservationBubble(
+    sighting: Sighting,
+    onViewOnINaturalist: () -> Unit,
+    onDismiss: () -> Unit,
+    arrowAngleDeg: Float,
+    modifier: Modifier = Modifier,
+) {
+    // Same theme-aware, 80%-opacity fill as MapIconBar/MapModePicker/AddActionTile — one visual
+    // language for every control floating over the map, per the project owner's own request to
+    // bring this bubble in line with the rest rather than Material's own surfaceContainerHigh. The
+    // arrow tail below is filled with this exact same colour so it reads as part of one continuous
+    // shape with the card, not a separate decoration.
+    val isDarkTheme = LocalForagerDarkTheme.current
+    val fillColor = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
+    Box(
+        modifier = modifier
+            // Drawn before padding is applied below, so this sees the full outer bounds (card plus
+            // the reserved tail margin on every side) rather than the shrunken interior padding
+            // leaves for the card — the same "background paints the full area, padding only moves
+            // content" ordering Modifier.background(...).padding(...) already relies on elsewhere.
+            .drawBehind {
+                val tailPx = OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH.toPx()
+                val baseHalfWidthPx = OBSERVATION_BUBBLE_ARROW_BASE_HALF_WIDTH.toPx()
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val cardHalfWidth = center.x - tailPx
+                val cardHalfHeight = center.y - tailPx
+                val edgePoint = rectEdgeIntersection(cardHalfWidth, cardHalfHeight, arrowAngleDeg)
+                val radians = Math.toRadians(arrowAngleDeg.toDouble())
+                val dirX = sin(radians).toFloat()
+                val dirY = -cos(radians).toFloat()
+                val baseCenter = center + edgePoint
+                val tip = Offset(baseCenter.x + dirX * tailPx, baseCenter.y + dirY * tailPx)
+                // Perpendicular to the tip direction, so the tail's base straddles baseCenter along
+                // whichever edge it actually sits on — correct for any angle without needing to
+                // know which of the card's four edges that is.
+                val base1 = Offset(baseCenter.x - dirY * baseHalfWidthPx, baseCenter.y + dirX * baseHalfWidthPx)
+                val base2 = Offset(baseCenter.x + dirY * baseHalfWidthPx, baseCenter.y - dirX * baseHalfWidthPx)
+                drawPath(
+                    Path().apply {
+                        moveTo(base1.x, base1.y)
+                        lineTo(tip.x, tip.y)
+                        lineTo(base2.x, base2.y)
+                        close()
+                    },
+                    color = fillColor,
+                )
+            }
+            .padding(OBSERVATION_BUBBLE_ARROW_TAIL_LENGTH),
+    ) {
+        Surface(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .testTag("observation-bubble")
+                // Consumes its own taps via a plain pointerInput, not Modifier.clickable — this
+                // backdrop isn't itself a button (no ripple, no accessibility click action to fake),
+                // it only needs to swallow the gesture so it doesn't fall through to the map beneath.
+                // The same "a Surface wins hit-testing over whatever's beneath it in a Box" fact
+                // MapIconBar's own doc comment documents, relied on here rather than guarded against:
+                // a tap on the bubble should never also count as the map's own "tap elsewhere" dismiss
+                // gesture. The close icon and "View on iNaturalist" text below still get first crack at
+                // any tap that actually lands on them, same as any nested clickable inside one of these.
+                .pointerInput(Unit) { detectTapGestures {} },
+            shape = RoundedCornerShape(20.dp),
+            color = fillColor,
+            contentColor = if (isDarkTheme) Color.White else Bark,
+            shadowElevation = 6.dp,
+            tonalElevation = 3.dp,
+        ) {
+            Row(
+                // fillMaxWidth() matters here, not just padding: a Row that wraps to its own content's
+                // size can't also give the Column below a meaningful weight(1f) — Compose measures a
+                // weighted child against "remaining space" that only exists once the Row's own width is
+                // bounded/definite. Without this, the Column collapsed to near zero and wrapped
+                // "Chanterelle" one character per line (caught by this bubble's own interaction tests,
+                // not visual review).
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = Spacing.md, top = Spacing.sm, end = Spacing.xs, bottom = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        sighting.commonName ?: sighting.scientificName,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    if (sighting.commonName != null) {
+                        Text(sighting.scientificName, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
+                    }
+                    Row(
+                        // fillMaxWidth so SpaceBetween has real room to push the link to the far
+                        // right — same reasoning as the outer Row's own fillMaxWidth comment above.
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text(
+                            "View on iNaturalist",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable(onClick = onViewOnINaturalist)
+                                .testTag("observation-bubble-view-on-inaturalist"),
+                        )
+                    }
+                    Text(
+                        accuracyLabel(sighting.positionalAccuracyMeters),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalContentColor.current.copy(alpha = 0.7f),
+                        modifier = Modifier.testTag("observation-bubble-accuracy"),
+                    )
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp).testTag("observation-bubble-close"),
+                ) {
+                    Icon(Icons.Filled.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The standing indicator that [MapTab]/[CompactMapTab] are showing "View on Map"'s filtered
+ * sightings rather than every mapped one — CLAUDE.md: a partial/filtered result has to say so, not
+ * render identically to the unfiltered view. [label] is `"<species> (<count>)"`, computed by each
+ * caller from the same [Sighting] list the map actually draws (see [MapTab]'s own doc comment on
+ * `mapTaxonFilterLabel` for why it isn't read from [AvailabilityForecast] directly). Same
+ * theme-aware, 80%-opacity fill as [ObservationBubble]/`MapIconBar`/`MapModePicker` — one visual
+ * language for every control floating over the map.
+ */
+@Composable
+private fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Modifier = Modifier) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    Surface(
+        modifier = modifier.testTag("map-taxon-filter-chip"),
+        shape = RoundedCornerShape(percent = 50),
+        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        contentColor = if (isDarkTheme) Color.White else Bark,
+        shadowElevation = 4.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Showing: $label", style = MaterialTheme.typography.labelMedium)
+            IconButton(
+                onClick = onClear,
+                modifier = Modifier.size(24.dp).testTag("map-taxon-filter-clear"),
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Show all species", modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapMessage(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = color,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(Spacing.lg),
+    )
+}
+

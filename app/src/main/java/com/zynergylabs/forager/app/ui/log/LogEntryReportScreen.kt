@@ -1,0 +1,310 @@
+package com.zynergylabs.forager.app.ui.log
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.R
+import com.zynergylabs.forager.app.domain.model.Association
+import com.zynergylabs.forager.app.domain.model.CapSection
+import com.zynergylabs.forager.app.domain.model.ContextFleshSection
+import com.zynergylabs.forager.app.domain.model.Feature
+import com.zynergylabs.forager.app.domain.model.HostSubstrateSection
+import com.zynergylabs.forager.app.domain.model.HymenophoreDetails
+import com.zynergylabs.forager.app.domain.model.HymenophoreSection
+import com.zynergylabs.forager.app.domain.model.LogPhoto
+import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import com.zynergylabs.forager.app.domain.model.Observed
+import com.zynergylabs.forager.app.domain.model.SporePrintSection
+import com.zynergylabs.forager.app.domain.model.StipeDetails
+import com.zynergylabs.forager.app.domain.model.StipeSection
+import com.zynergylabs.forager.app.domain.model.VeilSection
+import com.zynergylabs.forager.app.domain.model.valueOrNull
+import com.zynergylabs.forager.app.ui.theme.Spacing
+
+/**
+ * The Journal gallery's default view for an *existing* entry — a compiled, readable report of
+ * whatever has been recorded so far, rather than dropping straight into [LogEntryDetailScreen]'s
+ * edit form. [JournalTab] only shows this for an entry opened via [JournalTab.onOpenEntry]; a
+ * brand-new entry started from the gallery's "+" tile goes straight to editing, since there is
+ * nothing yet to report — see [JournalTab]'s own doc comment.
+ *
+ * Only [Observed.Recorded]/[Feature.Present] values are rendered as lines — an unrecorded field is
+ * left out of the report entirely (Stage 2d — previously printed "Not recorded yet." per section;
+ * changed on the owner's own reasoning: *"Not recorded yet." asserts an absence that may be false* —
+ * a forager who examined the cap and found nothing notable, or skipped a spore print because the
+ * identification was obvious, is told their record is incomplete when it is not. Blank makes no
+ * claim; a partially filled find is not a problem needing explanation, so an empty section is simply
+ * omitted, silently, with no message). [LogGalleryScreen]'s "Incomplete" tile label is a separate,
+ * pre-existing signal this change doesn't touch.
+ *
+ * **[isEntirelyEmpty]:** when literally nothing has been recorded anywhere on this screen — no
+ * location, no own identification, no photos, no notes, and all seven taxonomic sections empty —
+ * omitting every section leaves only a title and nothing else: honest, but a screen with no
+ * affordance on it. That specific, fully-empty case shows [EMPTY_FIND_MESSAGE] instead of the
+ * ordinary body, pointing at this screen's own overflow-menu Edit route. Anything short of fully
+ * empty renders exactly as it always has — individual empty sections omitted, no message.
+ */
+@Composable
+internal fun LogEntryReportScreen(
+    entry: MushroomLogEntry,
+    onEdit: () -> Unit,
+    onDeleteEntry: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var menuExpanded by remember(entry.id) { mutableStateOf(false) }
+
+    val capLines = capReportLines(entry.cap)
+    val hymenophoreLines = hymenophoreReportLines(entry.hymenophore)
+    val stipeLines = stipeReportLines(entry.stipe)
+    val veilLines = veilReportLines(entry.veil)
+    val contextFleshLines = contextFleshReportLines(entry.contextFlesh)
+    val sporePrintLines = sporePrintReportLines(entry.sporePrint)
+    val hostSubstrateLines = hostSubstrateReportLines(entry.hostSubstrate)
+
+    val isEntirelyEmpty = entry.foundAt == null &&
+        entry.ownIdentification.isNullOrBlank() &&
+        entry.photos.isEmpty() &&
+        entry.notes.isBlank() &&
+        capLines.isEmpty() &&
+        hymenophoreLines.isEmpty() &&
+        stipeLines.isEmpty() &&
+        veilLines.isEmpty() &&
+        contextFleshLines.isEmpty() &&
+        sporePrintLines.isEmpty() &&
+        hostSubstrateLines.isEmpty()
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
+                }
+                Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.titleMedium)
+            }
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "Entry options")
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Edit entry") },
+                        leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete entry") },
+                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onDeleteEntry()
+                        },
+                    )
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            if (isEntirelyEmpty) {
+                Text(EMPTY_FIND_MESSAGE, style = MaterialTheme.typography.bodyMedium)
+            } else {
+                Text(
+                    entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
+                        ?: stringResource(R.string.log_entry_no_location),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+
+                entry.ownIdentification?.takeIf { it.isNotBlank() }?.let { identification ->
+                    Text("Your own identification: $identification", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                if (entry.photos.isNotEmpty()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        entry.photos.forEach { photo -> ReportPhotoThumbnail(photo = photo) }
+                    }
+                }
+
+                HorizontalDivider()
+
+                ReportSection("Cap", capLines)
+                ReportSection("Hymenophore", hymenophoreLines)
+                ReportSection("Stipe", stipeLines)
+                ReportSection("Veil remnants", veilLines)
+                ReportSection("Context / flesh", contextFleshLines)
+                ReportSection("Spore print", sporePrintLines)
+                ReportSection("Host & substrate", hostSubstrateLines)
+
+                if (entry.notes.isNotBlank()) {
+                    ReportSection("Notes", listOf(entry.notes))
+                }
+            }
+
+            Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
+        }
+    }
+}
+
+/**
+ * The owner's exact wording (Stage 2d dispatch) — reported verbatim so it can be adjusted rather
+ * than paraphrased in code and drifting from what was actually specified.
+ */
+private const val EMPTY_FIND_MESSAGE = "There's nothing in here!  You can change this by tapping the three dot menu > tap edit."
+
+/** One report section — omitted entirely when [lines] is empty, never a "Not recorded yet." placeholder (Stage 2d — see this file's own doc comment). */
+@Composable
+private fun ReportSection(title: String, lines: List<String>) {
+    if (lines.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        lines.forEach { line -> Text(line, style = MaterialTheme.typography.bodyMedium) }
+    }
+}
+
+private fun capReportLines(cap: CapSection): List<String> = buildList {
+    cap.shape.valueOrNull()?.let { add("Shape: ${it.label}") }
+    cap.surface.valueOrNull()?.let { add("Surface: ${it.label}") }
+    when (val decorations = cap.decorations) {
+        is Feature.Present -> add("Decorations: ${decorations.value.joinToString { it.label }}")
+        Feature.Absent -> add("No decorations observed")
+        Feature.NotObserved -> Unit
+    }
+    cap.margin.valueOrNull()?.let { add("Margin: ${it.label}") }
+    if (cap.notes.isNotBlank()) add("Notes: ${cap.notes}")
+}
+
+private fun hymenophoreReportLines(hymenophore: HymenophoreSection): List<String> = buildList {
+    when (val details = hymenophore.details.valueOrNull()) {
+        is HymenophoreDetails.Gills -> {
+            add("Gills")
+            details.attachment.valueOrNull()?.let { add("Attachment: ${it.label}") }
+            details.spacing.valueOrNull()?.let { add("Spacing: ${it.label}") }
+            details.edge.valueOrNull()?.let { add("Edge: ${it.label}") }
+        }
+        HymenophoreDetails.Pores -> add("Pores")
+        HymenophoreDetails.Teeth -> add("Teeth")
+        HymenophoreDetails.SmoothOrWrinkled -> add("Smooth or wrinkled")
+        null -> Unit
+    }
+    if (hymenophore.notes.isNotBlank()) add("Notes: ${hymenophore.notes}")
+}
+
+private fun stipeReportLines(stipe: StipeSection): List<String> = buildList {
+    when (val details = stipe.details.valueOrNull()) {
+        StipeDetails.Absent -> add("No stipe present")
+        is StipeDetails.Present -> {
+            add("Stipe present")
+            details.position.valueOrNull()?.let { add("Position: ${it.label}") }
+            details.interior.valueOrNull()?.let { add("Interior: ${it.label}") }
+            details.base.valueOrNull()?.let { add("Base: ${it.label}") }
+        }
+        null -> Unit
+    }
+    if (stipe.notes.isNotBlank()) add("Notes: ${stipe.notes}")
+}
+
+private fun veilReportLines(veil: VeilSection): List<String> = buildList {
+    when (val annulus = veil.annulus) {
+        is Feature.Present -> add("Annulus: ${annulus.value.label}")
+        Feature.Absent -> add("No annulus")
+        Feature.NotObserved -> Unit
+    }
+    when (val volva = veil.volva) {
+        is Feature.Present -> add("Volva: ${volva.value.label}")
+        Feature.Absent -> add("No volva")
+        Feature.NotObserved -> Unit
+    }
+    if (veil.notes.isNotBlank()) add("Notes: ${veil.notes}")
+}
+
+private fun contextFleshReportLines(contextFlesh: ContextFleshSection): List<String> = buildList {
+    contextFlesh.texture.valueOrNull()?.let { add("Texture: ${it.label}") }
+    when (val colorChange = contextFlesh.colorChangeOnCutting) {
+        is Feature.Present -> add("Color change on cutting: ${colorChange.value}")
+        Feature.Absent -> add("No color change on cutting")
+        Feature.NotObserved -> Unit
+    }
+    when (val exudate = contextFlesh.exudate) {
+        is Feature.Present -> add("Exudate: ${exudate.value}")
+        Feature.Absent -> add("No exudate")
+        Feature.NotObserved -> Unit
+    }
+    if (contextFlesh.notes.isNotBlank()) add("Notes: ${contextFlesh.notes}")
+}
+
+private fun sporePrintReportLines(sporePrint: SporePrintSection): List<String> = buildList {
+    sporePrint.details.valueOrNull()?.let { print ->
+        add("Color: ${print.color.label}")
+        add("Read on: ${print.readOn}")
+    }
+    if (sporePrint.notes.isNotBlank()) add("Notes: ${sporePrint.notes}")
+}
+
+private fun hostSubstrateReportLines(hostSubstrate: HostSubstrateSection): List<String> = buildList {
+    when (val association = hostSubstrate.association.valueOrNull()) {
+        is Association.Mycorrhizal -> add(
+            "Mycorrhizal" + association.hostSpecies.takeIf { it.isNotBlank() }?.let { " with $it" }.orEmpty(),
+        )
+        is Association.DeadWood -> add(
+            "Growing on dead wood" + association.hostSpecies.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty(),
+        )
+        Association.SoilOrLitter -> add("Growing in soil or litter")
+        Association.Dung -> add("Growing on dung")
+        is Association.Other -> add(association.text)
+        null -> Unit
+    }
+    hostSubstrate.forestType.valueOrNull()?.let { add("Forest type: ${it.label}") }
+    hostSubstrate.hostHealth.valueOrNull()?.let { add("Host health: ${it.label}") }
+    if (hostSubstrate.notes.isNotBlank()) add("Notes: ${hostSubstrate.notes}")
+}
+
+private const val REPORT_PHOTO_SIZE_DP = 88
+
+/** Read-only counterpart to [LogEntryDetailScreen]'s removable [LogPhotoThumbnail] — same shared [DecodedPhoto], no remove action. */
+@Composable
+private fun ReportPhotoThumbnail(photo: LogPhoto) {
+    DecodedPhoto(relativePath = photo.relativePath, modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp))
+}

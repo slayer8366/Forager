@@ -1,0 +1,26 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/app/build
+
+# A track export is a precise trace of where someone walked. The repository is public; no GPX
+# ever goes in it (owner decision, timestamp-filter dispatch). The four exports behind
+# docs/audits/2026-09-06-*-findings.md are the last unfiltered evidence and live off version control.
+*.gpx
+
+# The beta-and-release signing identity never enters the repository (dedicated-beta-signing-identity
+# dispatch, owner decision): the owner generates and holds the keystore, and its passwords live in
+# an untracked signing.properties or in environment variables -- see resolveSigningIdentity() in
+# app/build.gradle.kts. The one committed keystore is app/debug.keystore, the debug identity only.
+*.jks
+*.keystore
+!app/debug.keystore
+/signing.properties

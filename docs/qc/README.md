@@ -1,0 +1,115 @@
+# QC — pulses and dispatches
+
+Planner/coder dispatch-and-report cycles for work still active on a task branch, filed the same
+way `docs/audits/` files a point-in-time record — created here so the investigation and the work it
+led to survive the session that produced them, not left to live only in chat uploads or a session
+transcript. Unlike `docs/audits/`, a report here is not itself a standing record of the codebase —
+it documents one dispatch's own gate/tests/decisions, correcting an earlier report in place when a
+later pulse finds the earlier one wrong (see the L4b-R2 report's own record-correction section for
+an example), rather than always superseding via a new dated file.
+
+Two subfolders, each with the same shape:
+
+- `dispatches/` — a Planner dispatch document, and `dispatches/reports/` for the coder session's
+  report responding to it.
+- `pulses/` — a read-only scoping/verification pulse document, and `pulses/reports/` for the
+  session's response to it.
+
+This directory travels with the work: it merges into `main` by the same path the code it documents
+does, and survives a squash merge (each document carries its own date and dispatch reference) —
+it does not need a separate home the way `docs/audits/` sometimes does for cross-branch findings.
+
+## Night-mode tile inversion (`docs/plans/map-redesign.md`'s "Deferred: night-mode colour inversion")
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-28 | Dispatch: night-mode tile inversion, Phase 1 (investigation + measurement, no behaviour change) — the dispatch document itself is a chat upload, not filed here | (dispatch not filed — see report) |
+| 2026-08-28 | Report: Phase 1 findings — `nightModeMaps`' only current effect is a subtle raster-saturation/-contrast tweak, no dimming or marker change; there is no offline rendering path to measure (offline downloads use an entirely different vector style the live map never renders); real basemap luminance measured (pooled P50 0.638 as-is, 0.078 under a hue-preserving inversion) against three real-world locations, sufficient to retire R5's provisional `DAY_TILE_REFERENCE`; "water turns orange" reproduced with real sampled pixels under a naive RGB invert, contrasted against the hue-preserving transform that doesn't rotate hue at all | `dispatches/reports/2026-08-28-night-inversion-phase1-report.md` |
+| 2026-08-28 | Dispatch: can raster tiles be intercepted? (investigation only, no behaviour change) — the dispatch document itself is a chat upload, not filed here | (dispatch not filed — see report) |
+| 2026-08-28 | Report: yes — `HttpRequestUtil.setOkHttpClient(Call.Factory)` exists at 13.5.0 and is the SDK's one HTTP path (verified by decompiling the actual pinned AAR), live and offline tiles confirmed to share it via `FileSource`'s single per-process instance. **The load-bearing finding**: the interception point sits upstream of MapLibre's native cache, and the tile URL carries no day/night signal today — a naive transform would poison the cache (wrong-mode tiles served from it), not just skip caching benefit. Two offline-map hardware findings also recorded in `map-redesign.md` (unmarked coverage edge, undisclosed zoom ceiling), pushed directly to `main` as `af7490e` | `dispatches/reports/2026-08-28-tile-interception-report.md` |
+| 2026-08-28 | Dispatch: do offline tile reads pass through anything interceptable? (investigation only, no behaviour change) — the dispatch document itself is a chat upload, not filed here | (dispatch not filed — see report) |
+| 2026-08-28 | Report: read the real MapLibre Native C++ source at the exact commit the pinned AAR was built from (`a666f02`, confirmed via the `android-v13.5.0` tag). A cache-hit read does trigger a background network-revalidation attempt, but the bytes shown are always the ones already stored — an interceptor never touches what's rendered for an offline read. **Bigger finding**: this app's offline downloads are vector tiles (Protomaps), not rendered pixels, and are never rendered by any live `MapView` in this codebase at all (confirmed: exactly one `MapView(` construction site in the whole app) — the entire raster-transform premise doesn't attach to this app's offline path. The prior report's cache-key fix (differentiate the URL, strip it in the interceptor before the real request) is confirmed to work by tracing the exact code boundary. Flagged, unresolved at filing: a real tension between this finding and the dispatch's own hardware observation ("tiles still rendered" after an ambient-cache clear in airplane mode) — resolved same-day, see the report's own addendum | `dispatches/reports/2026-08-28-offline-interception-report.md` |
+| 2026-08-28 | Addendum to the above (filed in place, not a new row per this index's own correction convention): two more hardware screenshots — cache-only clear (tiles still rendered) vs. cache-**and**-data clear (blank map, airplane mode both times) — pin the mechanism to storage location, not rendering path. `MapLibreStorage.kt`'s `ensureMapLibreStorageOutsideCache()` deliberately redirects MapLibre's tile/offline database from `cacheDir` to `filesDir`, so "Clear cache" alone can't touch it but "Clear data" does; fully explains both screenshots without needing the live-raster-vs-offline-vector question, which this addendum leaves open exactly as the original report left it | (same file, addendum section) |
+| 2026-08-28 | Dispatch: post-download night transform — is it safe to touch the offline store? (investigation only, no writes made) — the dispatch document itself is a chat upload, not filed here | (dispatch not filed — see report) |
+| 2026-08-28 | Report: real `offline_schema.sql` dump (v6, `resources`/`tiles`/`regions`/`region_*` tables, zlib-deflate compression recorded per row), confirmed from the pinned SDK's own JNI source that no supported API exists for enumerating or rewriting a region's tile bytes (`OfflineRegion`'s full public surface has none; `OfflineManager.putResourceWithUrl` looks like a candidate but its own implementation writes into the wrong table, `resources` not `tiles`, with no region association — traced to the exact C++ line), no quiescing primitive is exposed to Android app code (`FileSource.activate/deactivate` is a process-wide ref-counted pause, not a per-caller lock), and a from-scratch atomicity design using one SQLite transaction per region rather than a staged-copy scheme. **Corrects the dispatch's own "established context"**: fetched the live offline style and tile data directly — zero raster/label content, confirmed vector protobuf `.mvt` — so this app's actual downloaded regions have no pixel bytes for a lightness inversion to act on at all; real region-size numbers (504 tiles / ~20 MB stored) measured against the live tile server, and an incidental finding that every z15 tile request 404s because the tileset's real maxzoom is 14, not `OfflineMapRepository.MAX_ZOOM = 15.0` | `dispatches/reports/2026-08-28-post-download-transform-report.md` |
+| 2026-08-28 | Dispatch: find the deep-zoom raster capture path (investigation only, no writes made) — the dispatch document itself is a chat upload, not filed here | (dispatch not filed — see report) |
+| 2026-08-28 | Report: exhaustive search of `app/src/main` finds no second raster-capture path at all — no second `createOfflineRegion` call, zero `putResourceWithUrl` usage, zero prefetch/warm-cache code, no third `MapLibre.getInstance()` site, no `HttpRequestUtil`/interceptor installed anywhere in this app today. Fully explained instead by the mechanism the tile-interception/offline-interception reports already characterized: ordinary live browsing of `Basemap.OPEN_TOPO_MAP` (real `maxZoom = 17`, five levels past the vector region's z10-14) writes real raster PNG tiles into the same shared `tiles` table as plain ambient cache — durable-*looking* but unbounded, evictable, and dependent on this device's own browsing history, exactly the risk the dispatch itself named. Confirmed from real source (`offline_download.cpp`) that a 404'd tile (the z15/maxzoom mismatch) silently decrements the download's own required-count and reports success, not partial or error — and confirmed this is unrelated to any raster backfill, since none exists. Query provided (not run — no device) with a falsifiable predicted result. Concludes the already-designed OkHttp interceptor from the tile-interception report covers this "second layer" for free, since it isn't a second layer — but flags the ambient-cache durability gap as a real, unresolved product question | `dispatches/reports/2026-08-28-raster-capture-path-report.md` |
+
+Pushed directly to `main` as `c526525` (script) — same low-ceremony pattern as `bdd5b31`/`4e72f06`,
+since Phase 1 changed no app behavior. `scripts/measure-night-inversion.py` is the committed,
+reusable measurement tool.
+
+## L4b — persisted drafts (Workstream L4 of `docs/plans/pr26-rework.md`)
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-22 | Scoping pulse response (read-only, no code changes) | `pulses/reports/2026-08-22-l4b-scoping-pulse-response.md` |
+| 2026-08-22 | Dispatch: persisted drafts and Save/Cancel/incidental-exit | `dispatches/2026-08-22-l4b-persisted-drafts-and-save-cancel-dispatch.md` |
+| 2026-08-25 | Report: persisted drafts and Save/Cancel/incidental-exit | `dispatches/reports/2026-08-25-l4b-persisted-drafts-report.md` |
+| 2026-08-25 | Dispatch: L4b-R, correction to a standalone draft row | `dispatches/2026-08-25-l4b-r-standalone-drafts-dispatch.md` |
+| 2026-08-25 | Report: L4b-R standalone-drafts correction | `dispatches/reports/2026-08-25-l4b-r-standalone-drafts-report.md` |
+| 2026-08-25 | Dispatch: L4b-R2, addendum (LogPanel discard offer, four report gaps, photo-race question) | `dispatches/2026-08-25-l4b-r2-addendum-dispatch.md` |
+| 2026-08-25 | Report: L4b-R2 addendum | `dispatches/reports/2026-08-25-l4b-r2-addendum-report.md` |
+| 2026-08-25 | L4 close-out checklist §2 verification pulse response (read-only, no code changes) | `pulses/reports/2026-08-25-l4-closeout-section2-verification-pulse.md` |
+| 2026-08-25 | Dispatch: L4c, serialized editing state, photo race, two form fixes (§1a corrected in place — see the block below its own text) | `dispatches/2026-08-25-l4c-serialized-editing-state-dispatch.md` |
+| 2026-08-25 | Report: L4c serialized editing state (corrects its own first pass on the §3 vacuous test and the §5 draft-only-write mutation check — see that report's own "Premises that turned out wrong" section) | `dispatches/reports/2026-08-25-l4c-serialized-editing-state-report.md` |
+| 2026-08-26 | Pulse response: repo state before L4 close-out housekeeping (read-only, no code changes) — ground truth, branch/PR inventory, records audit, the two device bugs re-measured on `main`, migration/beta-readiness findings | `pulses/reports/2026-08-26-repo-state-pulse-response.md` |
+
+## Planner meta-documents
+
+The Planner's own standing reference material, as distinct from a dispatch or pulse about the
+codebase itself.
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-25 | Cold-start handoff — project state for a planner session with no prior memory. Dated snapshot; see its own header for how stale the "Landed"/"Remaining" tables are as of filing | `planner-cold-start-handoff-2026-08-25.md` |
+| 2026-08-25 | Operating guide — the planner role's method (pulses, dispatches, standing test practices, working with the owner) | `planner-operating-guide-2026-08-25.md` |
+| 2026-08-25 | Correction patch to the handoff document above: Save/Cancel standing rule, a note on Workstream C (see below), and a new lesson 14 — originally filed standalone (2026-08-27) since neither base document existed in this repo yet; both base documents were supplied later the same day and the patch folded into them directly. Kept as the historical record — see its own "Update" section | `dispatches/2026-08-25-planner-cold-start-handoff-correction-patch.md` |
+
+**One part of the patch did not transfer cleanly:** the patch's §2 describes replacing an
+"unaccounted for" claim about Workstream C with "superseded, not missing." The supplied handoff
+document contains no such claim anywhere — the only mention of Workstream C in it is inside an
+unrelated lesson's example. Rather than force text into the document correcting something it
+doesn't say, the filed handoff document instead notes, at that point, that the underlying fact is
+real and already correctly recorded (`docs/plans/README.md`'s PR #26 row;
+`docs/audits/2026-08-24-workstream-c-and-d-archive.md`).
+
+## Understory — M3 Expressive design system (`docs/plans/understory-design-system.md`)
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-26 | Scoping proposal: a layout phase after Understory (session-authored, unsolicited — no pulse prompted it; input to a planner dispatch, not a plan) | `pulses/reports/2026-08-26-layout-phase-scoping-proposal.md` |
+
+Filed under `pulses/reports/` despite running the other direction from the usual
+pulse cycle: the document is a session's read-only scoping output going *to* the
+planner, rather than a session's response to a planner's pulse. It carries a
+correction to a measurement cited in `docs/plans/understory-design-system.md`,
+PR [#44](https://github.com/slayer8366/Forager/pull/44)'s description, and
+several commit messages on `claude/forager-m3-expressive-design-l4c` — see its
+§3.
+
+Landed on `claude/task-hwj91a` via PR [#40](https://github.com/slayer8366/Forager/pull/40)
+(`claude/l4b-persisted-drafts` → `claude/task-hwj91a`) — see `docs/plans/README.md`'s
+`pr26-rework.md` row for the full landing status of L4 alongside the rest of that plan's
+workstreams. **L4c has since landed on `main`** via PR [#42](https://github.com/slayer8366/Forager/pull/42)
+(`claude/l4c-serialized-editing-state` → `main`, merged 2026-08-27) — that merge also carried
+Understory (PR [#44](https://github.com/slayer8366/Forager/pull/44)'s content, merged into the
+L4c branch first as `fea6f6c`) onto `main` in the same commit. Corrected following the 2026-08-26 repo-state pulse (`pulses/reports/2026-08-26-repo-state-pulse-response.md`)
+— this paragraph previously called L4c "not-yet-landed."
+
+### Layout phase — 5S applied to the UI
+
+The layout-phase draft itself (owner-authored, "Layout phase — 5S applied to the UI") has not been
+filed in this repo as of this writing — it exists only as a chat upload, marked "draft for owner
+review." The two pulses verifying its claims against the tree are filed here since they're
+independently useful and, per `CLAUDE.md`'s own "an audit that lives only in a session transcript is
+not recorded" pitfall, worth a durable home regardless of whether the draft itself ever lands.
+
+| Date | Document | File |
+|---|---|---|
+| 2026-08-28 | Pulse: map/icon claims in the layout-phase draft (read-only, no code changes) — relocates the draft's central 1S finding from the compass strip to `MapIconBar`, answers its five "decisions needed" questions | `pulses/reports/2026-08-28-map-icon-pulse.md` |
+| 2026-08-28 | Pulse 2: `MapIconBar` touch-interception check, full row inventory, native-compass confirmation, Q5 provenance, full `map-redesign.md` decided-vs-provisional read, stale self-reference sweep (read-only, no code changes) | `pulses/reports/2026-08-28-mapiconbar-q5-provenance-pulse.md` |
+| 2026-08-28 | Dispatch: merge PR #50, locate the map long-press fixture, sweep pulse 2's seven stale references — the dispatch document itself is a chat upload, not filed here | (dispatch not filed — see report) |
+| 2026-08-28 | Report: PR #50 merged (`82e7274`, verified by reading source, not the PR description — destructive-migration fallback is now debug-only, not removed outright), the long-press fixture confirmed genuinely gone (the interaction model itself moved to pan+confirm, not just the test), all seven references fixed, 742 tests/108 suites/0 failures fresh against the merge | `dispatches/reports/2026-08-28-merge-50-fixture-and-sweep-report.md` |
+| 2026-08-28 | Report: `MapSlot`/`SightingsMap`'s `onLongPress` doc comments corrected (kept wired deliberately, no production consumer — pushed directly to `main` as `4e72f06`), and `MapPalette.NIGHT` confirmed dormant with no live separation claim — the design docs' 0.1007 pairwise-separation figure describes a since-superseded, two-generations-old palette pass, not current `NIGHT`; `performTouchInput` confirmed zero across the whole suite | `pulses/reports/2026-08-28-onlongpress-and-nightpalette-report.md` |
+| 2026-08-28 | Pulse: second layout-phase draft's Correction Notice and rebuilt §2S, spot-checked against the tree — every corrected claim holds (compass strip pure readout, `MapBarIconButton` uniformly `MIN_TOUCH_TARGET`, 8-row bar order matches `map-redesign.md`'s own record exactly, `showCloseButton` confirmed always-false from the code's own comment, the 360dp/600dp drawer figure confirmed under a slightly different constant name). One precision correction: the off-track alert's `DetectOffTrackUseCase` is wired into `TrackRecordingViewModel`'s UI state, not literally unwired — but its only consumer is a passive icon-tint color change, nothing reaches the user with the screen off, so the draft's "posts nothing" conclusion holds for a more specific reason than stated. Answers Q5 (`map-redesign.md` is still authoritative, read in full to confirm) and deliberately declines Q1-4 as the owner's own frequency/product calls | `pulses/reports/2026-08-28-layout-phase-5s-v2-pulse.md` |

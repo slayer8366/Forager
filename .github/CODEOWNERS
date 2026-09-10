@@ -1,0 +1,14 @@
+# Motion spec paths require review from the named motion-owner role, per
+# .github/PULL_REQUEST_TEMPLATE.md's "Motion spec compliance" section.
+#
+# Motion spec and UI theme changes route to @slayer8366.
+#
+# GitHub does not error on an unrecognized CODEOWNERS entry, it just silently skips it, so a
+# placeholder alone (as this file once had) would not actually require review from anyone. Run
+# scripts/verify-codeowners-placeholders.sh before treating this file as taking effect -- it
+# fails loudly while a placeholder remains. Not wired into .github/workflows/ci.yml: that
+# pipeline gates every PR in this repo, and a stray placeholder here shouldn't block unrelated
+# changes from merging.
+/app/src/main/java/com/zynergylabs/forager/app/ui/motion/** @slayer8366
+/docs/motion-spec.md @slayer8366
+/docs/adr/0001-motion-precedence.md @slayer8366

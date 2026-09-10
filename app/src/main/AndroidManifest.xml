@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- For the mushroom log's camera capture (ActivityResultContracts.TakePicture) — see
+         com.zynergylabs.forager.app.photo.CameraCaptureFiles. Gallery attach needs no permission at all: it
+         uses PickVisualMedia, the modern photo picker. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Photo-geodata dispatch: lets a gallery import's EXIF read see the location tag a photo's
+         own MediaStore entry carries (MediaStore.setRequireOriginal, API 29+) — without it, the
+         platform silently redacts GPS EXIF from any stream this app opens. Requested at the moment
+         of first import, not app launch — see com.zynergylabs.forager.app.ui.log.PhotoAcquisitionLaunchers. -->
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+
+    <!-- For com.zynergylabs.forager.app.service.TrackRecordingService, a foreground service so a multi-hour
+         track recording keeps running (and stays visibly running to the user) while the app is
+         backgrounded. FOREGROUND_SERVICE_LOCATION is required as of API 34 alongside the general
+         FOREGROUND_SERVICE permission for a service declared with foregroundServiceType="location"
+         below. POST_NOTIFICATIONS is a runtime permission as of API 33 — this only declares it;
+         requesting it is UI work for Phase 1c, which is what actually starts this service. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Field-test dispatch item 4: DetectOffTrackUseCase's off-track signal reaching a pocketed
+         phone needs a real vibration, not just a notification post — LOW-importance channels
+         (see TrackRecordingService's own "track_recording" channel, reused for this alert) don't
+         vibrate through the notification system on their own. VIBRATE is a normal permission —
+         granted at install, no runtime prompt needed. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!--
+      Without this, PlannedTripRow's "Directions" action always reports no maps app installed,
+      even with one present: compileSdk/targetSdk 37 means Android's package-visibility rules
+      apply, so `PackageManager.resolveActivity()`/`startActivity()` for an implicit `geo:` intent
+      report nothing resolvable unless the manifest explicitly declares visibility into it — this
+      is Android's own documented pattern for exactly that intent (see the platform docs on
+      package visibility and the `geo:` scheme example).
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+        <!--
+          Same package-visibility rule as the geo: query above, for
+          launchINaturalistObservation's own explicit Intent.setPackage(INATURALIST_PACKAGE) call
+          (AvailabilityScreen.kt). Without this, PackageManager.resolveActivity() for that
+          explicitly-package-targeted intent reports no match on API 30+ even with the iNaturalist
+          app installed — its own resolveActivity() check would then always fall through to the
+          plain implicit web intent, silently never reaching the installed app. A <package> element,
+          not another <intent> filter: Intent.setPackage narrows resolution to one already-known
+          package name, which is exactly what <queries><package> declares visibility into, per
+          Android's own package-visibility docs.
+        -->
+        <package android:name="org.inaturalist.android" />
+    </queries>
+
+    <!--
+      android:allowBackup="false" is a STANDING decision (owner's ruling, 2026-09-09). It is NOT
+      beta-scoped, and it is not to be flipped back before production. Android Auto Backup and
+      device-to-device transfer are off permanently; restore is handled by an in-app export/import
+      the project builds itself. Recorded in
+      docs/audits/2026-09-09-backup-ruling-superseded-alternatives.md; the earlier report
+      docs/audits/2026-09-09-allow-backup-and-play-signing-notes.md is the history of how this was
+      first decided, and its "beta-scoped, MUST be revisited before production" framing is
+      superseded by this comment, not by an edit to that report (audits are historical records).
+
+      Why Android's own backup is off — the reasoning that still holds from the first decision:
+      with allowBackup="true" and neither android:dataExtractionRules nor android:fullBackupContent
+      declared (res/xml/ holds only file_paths.xml), Android Auto Backup and device-to-device
+      transfer copy everything under the app's data directory by default — including the live Room
+      database and the photo files. A Room database is copied while it may be mid-write, and
+      restoring a torn SQLite snapshot (twelve migrations of history; app/schemas/ holds
+      4.json-15.json) onto a fresh install is a known corruption path. The field journal that would
+      corrupt is exactly the data this app exists to hold.
+
+      Why the app owns restore rather than the OS (owner's reasoning, 2026-09-09): Google sells
+      cloud backup as a service. An app that exports its own data keeps that value with the app,
+      and that is part of what justifies charging for it. The export stays local unless the user
+      chooses to move it.
+
+      What is actually given up, stated precisely so it is not overstated later: only the
+      OS-mediated seamless transfer — the flow that repopulates apps during new-device setup,
+      before the app has run. Every deliberate move still works and none of it runs through Auto
+      Backup: an exported file over a cable, Bluetooth, Wi-Fi Direct, or a cloud folder the user
+      picks. Restore is reading a file and writing rows; the app owns its schema and can rebuild
+      tracks, journal entries, waypoints and photos as completely as Auto Backup would. The only
+      asymmetry is triggering, not capability — Auto Backup costs the user zero steps because the
+      OS hands the data over during setup, while the app's version needs one deliberate step (open
+      the app, point at a file). That is a first-run design question, not a limitation.
+
+      NOT YET BUILT: the in-app export/import does not exist in this tree (2026-09-09). Nothing
+      user-facing may describe it as available until it does — see docs/beta/README.md and
+      docs/legal/privacy-policy.md, which both say so explicitly.
+
+      Two earlier planner rulings are SUPERSEDED — not violated. Recorded here so a later session
+      does not re-derive them and think they are new:
+        1. "Keep backup on, add exclusion rules for crash logs only." Superseded: it predates the
+           restore-corruption argument above, which is about the database and the photos, not the
+           crash logs.
+        2. "Keep the rules file, add the database and the photo directory to the exclusions."
+           Withdrawn before the owner ruled: excluding the database and the photo directory
+           excludes essentially all user data, so it reaches the same end state as
+           allowBackup="false" while adding two config files, two domains each, and several ways
+           for a rule to be silently inert.
+
+      Consequence recorded by the first decision and still true: this also turns off the
+      device-to-device transfer that docs/plans/journal-trips-and-offline-regions.md (the "Leak
+      paths" list) intended to keep. GPX export covers tracks and waypoints, not the journal, so it
+      is not the in-app export described above and is not a substitute for it.
+    -->
+    <application
+        android:name=".ForagerApplication"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Forager">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Forager">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".service.TrackRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- Grants the camera app write access to a file under filesDir/captures/ for
+             ActivityResultContracts.TakePicture, without exposing broader file access — see
+             com.zynergylabs.forager.app.photo.CameraCaptureFiles and res/xml/file_paths.xml. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+</manifest>

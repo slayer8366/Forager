@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFFFF">
+    <!--
+      A simple location-pin silhouette for the status bar. Android renders a notification's small
+      icon from its alpha channel alone (everything else is ignored and re-tinted by the system),
+      so this is deliberately a plain filled shape rather than the full-color launcher icon
+      (mipmap/ic_launcher) — that one is an adaptive-icon XML built from two layered, colorful
+      drawables, which is the wrong shape for a status-bar icon regardless of tint.
+    -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM12,11.5c-1.38,0 -2.5,-1.12 -2.5,-2.5s1.12,-2.5 2.5,-2.5 2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5z" />
+</vector>

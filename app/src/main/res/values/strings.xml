@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Forager</string>
+    <string name="track_recording_notification_channel_name">Track recording</string>
+    <string name="track_recording_notification_title">Recording a track</string>
+    <string name="track_recording_notification_text">Forager is tracking your location in the background.</string>
+    <string name="track_recording_notification_stop_action">Stop recording</string>
+    <string name="track_recording_needs_location">Track recording needs location access.</string>
+    <string name="off_track_notification_channel_name">Off-track alert</string>
+    <string name="off_track_notification_title">Off track</string>
+    <string name="off_track_notification_text">You\'re moving away from your start point, not toward it.</string>
+    <string name="log_entry_no_location">No location set.</string>
+</resources>
