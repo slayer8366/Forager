@@ -1,7 +1,7 @@
 # Completion report — source package rename and the forbidden-term gate
 
 **Dispatch:** source package rename, term sweep, repo migration (2026-09-09).
-**Base:** stacked on `claude/gpx-namespace-domain` (PR #92 head `84f5437`) — see §5.4.
+**Base:** stacked on `claude/gpx-namespace-domain` (PR #92 head `84f5437`) — see §6.
 **Branch:** `claude/package-rename`. **Prediction pre-registered at `0bf06a7`, before any run.**
 
 **§7 (repo migration) is NOT done.** §7 steps 1, 3 and 4 are merges and an irreversible public
@@ -26,7 +26,7 @@ Neither was missing, so the refusal §0 describes was not triggered.
 |---|---|
 | `namespace` in `app/build.gradle.kts` | changed; now matches `applicationId`, which did not change |
 | Package declarations and imports | 433 files (267 main, 166 test) |
-| Directory structure | `app/src/*/java/com/forager/app/**` → `.../com/zynergylabs/forager/app/**` |
+| Directory structure | the source root moved to `app/src/*/java/com/zynergylabs/forager/app/**` (the old path cannot be written here — see §7.4) |
 | `SKIPPED_TESTS_ALLOWLIST` | 24 classnames, prefix substitution only — verified as a correspondence, §3 |
 | **Room exported schemas** | directory moved with the database class's FQN; **12 migration JSONs moved as pure renames, no content change**, and a compile afterwards produced no second schema tree |
 | ProGuard rules | **empty change set — see §5.3** |
@@ -84,6 +84,31 @@ mechanism, not a leftover; a pattern contrived to avoid spelling it would be wea
 §5 reserves that trade to the owner. **`git grep` sees tracked files at this commit and cannot police
 history** — which is precisely why §7 exists.
 
+
+### 5.1a It then fired for real, in CI, on this very document
+
+The synthetic demonstration above is the weaker evidence. The gate's **first CI run failed**, and it
+was right:
+
+```
+docs/audits/2026-09-09-package-rename-completion-report.md:29:
+  | Directory structure | `app/src/*/java/<retired root>/**` → ... |
+```
+
+Writing the report, I spelled the retired path in the "what changed" table to describe the move —
+**after** running the local check. The local pass was therefore a pass on a tree that was not the
+final tree, which is an ordering error of exactly the kind this project keeps naming: the check ran
+on a sample that did not include the case that could fail it.
+
+Two things follow, and both are worth more than the demonstration:
+
+1. **The gate caught a real occurrence introduced by the person who built the gate**, in the
+   document arguing the gate works. That is the strongest form of evidence it functions.
+2. **The rule has a second-order consequence, now demonstrated rather than predicted:** prose
+   describing this change cannot name its own subject. The table row was rewritten to give only the
+   new path. Any future document explaining the rename inherits the same constraint.
+
+The local check was re-run on the final tree after the fix, and passes.
 ### 5.2 The §6 prediction, and the outcome — in that order
 
 **Predicted, at `0bf06a7`, before the rename was made:** *no change; 12 failures.* The reasoning was
