@@ -211,6 +211,12 @@ class AvailabilityScreenMapIconStackTest {
             appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(IconStackStubTripPlanningWeatherProvider),
         )
+        // Live-fix collection is acquired on the hosting Activity's ON_START and released on
+        // ON_STOP, not from the ViewModel's init. Composing this screen at all implies a STARTED
+        // Activity in production -- Compose content does not render below STARTED -- so this call
+        // is what the harness owes the change, not a behaviour difference. Without it every
+        // live-fix assertion in this class reads the backgrounded state.
+        viewModel.onEnteredForeground()
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
             AvailabilityScreen(
@@ -1464,8 +1470,9 @@ class AvailabilityScreenMapIconStackTest {
         // this strip, per the "any time the map is open" live-tracking scope this redesign answers.
         // replay = 1 (not a bare MutableSharedFlow()): tryEmit below runs synchronously from the
         // test body, with no guarantee AvailabilityViewModel's own viewModelScope.launch { fixes.
-        // collect {} } (started inside its init, from setScreen's AvailabilityViewModel(...) call
-        // above) has actually subscribed by the time the emit happens — a bare zero-buffer
+        // collect {} } (started by setScreen's viewModel.onEnteredForeground() call above, which
+        // stands in for the hosting Activity's ON_START) has actually subscribed by the time the
+        // emit happens — a bare zero-buffer
         // SharedFlow's tryEmit silently drops the value with no subscriber ready yet. A one-slot
         // replay buffer guarantees the fix is delivered whenever the collector does start.
         val fixes = MutableSharedFlow<LocationFix>(replay = 1)
