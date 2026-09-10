@@ -5,13 +5,10 @@
 > therefore not an original record**: where it names a package, the name it originally recorded has
 > been altered. The change is textual only — no finding, figure, date or conclusion was edited.
 
-> **RECOVERED 2026-09-09, and it describes a superseded approach.** This report was never committed
-> to the retired repository — it existed only in an unpushed working tree and was recovered from the
-> local archive during the repository migration. Two things to read it against: the approach it
+> **RECOVERED 2026-09-09, and it describes a superseded approach.** This report was never committed\n> -- it existed only in an unpushed working tree and was recovered from a local mirror. Two things to read it against: the approach it
 > documents (excluding paths from Android auto backup via `backup_rules.xml` and
 > `data_extraction_rules.xml`) was **later withdrawn** in favour of `android:allowBackup="false"`,
-> so neither file exists in this repository; and its stated base, `cb16932`, refers to a repository
-> that no longer exists. Kept because it records *why* that approach was built and what it found.
+> so neither file exists in this repository; and its stated base is `cb16932`. Kept because it records *why* that approach was built and what it found.
 
 **Date:** 2026-09-08
 **Dispatch:** Build — backup rules for Android auto backup (owner ruling: keep auto backup

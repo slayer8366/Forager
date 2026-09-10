@@ -1,10 +1,8 @@
 # Report: consent and corpus-ownership section added to the fusion ideas document
 
 > **RECOVERED 2026-09-09, never merged.** This report lived only on the branch
-> `claude/ideas-fusion-plan` (commit `0d64739`) in the retired repository and was never proposed for
-> merge. It documents the consent and corpus-ownership section added to
-> `docs/plans/ideas-from-fusion-plan.md`, which is recovered alongside it. That repository no longer
-> exists and neither the branch nor the commit resolves any more.
+> `claude/ideas-fusion-plan` (commit `0d64739`) and was never proposed for\n> merge. It documents the consent and corpus-ownership section added to
+> `docs/plans/ideas-from-fusion-plan.md`, which is recovered alongside it.
 
 **Amendment:** "Add a consent and corpus-ownership section to the fusion ideas document" (planner,
 owner-directed). Documentation only; no code, no tests.

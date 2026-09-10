@@ -1,10 +1,7 @@
 # IDEAS — Harvested from the Fable 5.1 location-fusion plan
 
 > **RECOVERED 2026-09-09, never merged.** This document lived only on the branch
-> `claude/ideas-fusion-plan` (commit `0d64739`) in the retired repository and was never proposed for
-> merge, so it did not travel with the migration's seed. It is carried here so that it exists
-> somewhere other than an archive. That repository no longer exists and neither the branch nor the
-> commit resolves any more.
+> `claude/ideas-fusion-plan` (commit `0d64739`) and was never proposed for\n> merge.
 >
 > **Its own framing still governs: nothing here is authorised or scheduled.** It is a register of
 > ideas, not a plan of record. The consent and corpus-ownership material in it is the part most
