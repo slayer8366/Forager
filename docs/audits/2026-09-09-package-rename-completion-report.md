@@ -1,13 +1,5 @@
 # Completion report — source package rename and the forbidden-term gate
 
-> **The gate this report describes does not exist in this repository.** It was built in the retired
-> repository and is recorded here as history. It was **deliberately not carried into the migration**:
-> a gate has to spell the forbidden term in order to match it, so carrying it would have put that
-> string into this repository's first commit permanently — reintroducing on day one the exact
-> condition the migration exists to eliminate. In the old repository the trade was worth it against
-> 649 contaminated commits; here it inverts. Read every present-tense statement about the gate below
-> as describing the retired repository.
-
 **Dispatch:** source package rename, term sweep, repo migration (2026-09-09).
 **Base:** stacked on `claude/gpx-namespace-domain` (PR #92 head `84f5437`) — see §6.
 **Branch:** `claude/package-rename`. **Prediction pre-registered at `0bf06a7`, before any run.**

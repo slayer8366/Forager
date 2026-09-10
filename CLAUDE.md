@@ -7,31 +7,6 @@ layer, content-addressed data hashing, and multi-agent record-store
 ceremony are built for a different kind of project and are not adopted
 here.
 
-
-## The retired package root — a rule with no automated check
-
-**This repository's source package root was changed on 2026-09-09, on legal grounds, and the
-previous one must never reappear.** Reverse-DNS package naming asserts control of a domain, and the
-root used until that date asserted one this project does not own.
-
-The exposure is the **domain claim only**. The app is still called Forager; the Play listing, the
-privacy policy and the GPX namespace URI were all already correct and were untouched. Only the
-literal reverse-DNS string is forbidden.
-
-**There is deliberately no CI check for it, and that is not an oversight.** A gate has to spell the
-term in order to match it. The retired repository carried such a gate and it was worth its one
-occurrence there, against 649 commits that already contained the string. Here it inverts: carrying
-a gate would put the term into this repository's first commit, permanently, reintroducing on day one
-the exact condition the migration was performed to eliminate. **A repository that has never had a
-pull request cannot carry a contaminated `refs/pull/*` head ref** — that is the difference between
-"removed" and "never present," and it is why a force-push over a bad commit would not have been
-enough.
-
-**So the rule holds by attention, not by mechanism.** If you want enforcement, put it in a local
-`.git/hooks/pre-commit` — hooks are untracked, so they never enter the tree or its history. Do not
-add a tracked check, and do not paste the retired string into a file, an issue, a commit message or
-a pull request body in order to test one. The full history of the retired repository is preserved
-off-line; nothing in this repository should reproduce it.
 ## Working with ambiguity
 
 - An ambiguous requirement or an unmade architectural decision is a
