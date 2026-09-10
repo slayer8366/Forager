@@ -21,6 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -205,6 +207,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // The off-track alert's channel is created by AndroidAlertDelivery when AppContainer
         // builds it (alert-delivery dispatch) — nothing alert-related lives in this Activity now.
+        // Release the live-fix OS subscription whenever this Activity is not started, and
+        // re-acquire when it is. Before this, AvailabilityViewModel collected fixes on
+        // viewModelScope from its own init, which cancels at onCleared() -- Activity destruction,
+        // not stop -- so a backgrounded app kept GPS and network listeners registered and
+        // AndroidLocationTracker's `awaitClose { removeUpdates(listener) }` never ran.
+        //
+        // ON_START/ON_STOP rather than ON_RESUME/ON_PAUSE: STARTED is "visible", which is the state
+        // the compass strip's fix is actually for, and it avoids churning the subscription on every
+        // transient pause (a dialog, the app's own camera launch -- the same confusion
+        // PhotoAcquisitionLaunchers.kt documents for its own ON_STOP heuristic).
+        //
+        // Deliberately NOT the recording path. TrackRecordingService collects its own fixes as a
+        // foreground service and is untouched here; TrackRecordingViewModel's collector is bounded
+        // by the recording itself. A recording continues with the screen off exactly as before.
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) = viewModel.onEnteredForeground()
+            override fun onStop(owner: LifecycleOwner) = viewModel.onLeftForeground()
+        })
+
         setContent {
             // Read before ForagerTheme wraps content, not inside it: themeMode is this state's own
             // AvailabilityUiState.themeMode (Settings' Light/Dark/System Default choice), so

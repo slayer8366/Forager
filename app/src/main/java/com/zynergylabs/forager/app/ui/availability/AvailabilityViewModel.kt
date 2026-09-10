@@ -100,6 +100,13 @@ class AvailabilityViewModel(
      */
     private var liveFixJob: Job? = null
 
+    /**
+     * Whether the hosting Activity is between `ON_START` and `ON_STOP`. Gates every start of
+     * [collectLiveFixes] so a start cannot be triggered from the background — see
+     * [onEnteredForeground].
+     */
+    private var isForegrounded: Boolean = false
+
     init {
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
         // up front rather than waiting on a region the way sightings and trip windows do.
@@ -114,12 +121,58 @@ class AvailabilityViewModel(
         loadNightModePreferences()
         loadMapFullscreenPreference()
         loadThemeModePreference()
-        // The compass strip's live coordinates — see AvailabilityUiState.liveFix's own doc
-        // comment. Runs for this ViewModel's whole lifetime, not gated on a search or a track
-        // recording: "any time the map is open" was the explicit ask this answers. Restarted by
-        // onLocationPermissionGranted() when this first collection ran before the permission
-        // existed — see collectLiveFixes()' own doc comment for the first-launch bug that was.
-        collectLiveFixes()
+        // The compass strip's live coordinates are NOT started here any more. Construction-time
+        // collection ran on viewModelScope, which cancels at onCleared() -- Activity destruction,
+        // not stop -- so the OS listener stayed registered while the app was backgrounded and
+        // `awaitClose { removeUpdates(listener) }` never ran. Collection is now driven by
+        // [onEnteredForeground]/[onLeftForeground] from the hosting Activity's lifecycle, so the
+        // subscription is released on ON_STOP and re-acquired on ON_START.
+        //
+        // "Any time the map is open" -- the explicit ask this answers -- is unchanged: the Activity
+        // is STARTED whenever any of this app's screens is on top, so every screen that had a fix
+        // before still has one. What changed is only what happens when no screen is.
+    }
+
+    /**
+     * The hosting Activity reached `ON_START`. Acquires the live-fix subscription.
+     *
+     * **Why lifecycle and not construction.** `viewModelScope` cancels at `onCleared()` — Activity
+     * *destruction*, not stop. A backgrounded Activity is stopped, not destroyed, so a
+     * construction-time collection outlived every backgrounding: the `callbackFlow` was never
+     * closed, its `awaitClose { locationManager.removeUpdates(listener) }` never ran, and the OS
+     * listener stayed registered on both GPS and network providers with no screen showing. What
+     * limited delivery was the platform withholding background location from an app that does not
+     * declare `ACCESS_BACKGROUND_LOCATION` — not anything this app did.
+     *
+     * Idempotent: a start while already collecting is a no-op, so a re-delivered `ON_START` cannot
+     * stack a second OS registration on top of the ones this app already runs while recording.
+     *
+     * **Deliberately not need-gating.** This still subscribes on every tab, at the same 1-second
+     * floor, whether or not anything is consuming fixes. Narrowing *when* the app subscribes while
+     * foregrounded is a separate, larger change; releasing on background is orthogonal to it and
+     * survives it.
+     */
+    fun onEnteredForeground() {
+        isForegrounded = true
+        if (liveFixJob?.isActive != true) collectLiveFixes()
+    }
+
+    /**
+     * The hosting Activity reached `ON_STOP`. Releases the live-fix subscription.
+     *
+     * Cancelling the collection completes the `callbackFlow`, which is what actually runs
+     * `removeUpdates(listener)` — the OS registration goes away rather than merely being ignored.
+     *
+     * **This does not touch a running recording.** `TrackRecordingService` collects
+     * [LocationTracker.fixes] on its own (`TrackRecordingService.kt`), as a foreground service, and
+     * `TrackRecordingViewModel` collects its own stream bounded by the recording itself — started
+     * when recording starts and cancelled when it stops. Neither is this job, and neither is
+     * affected by this call.
+     */
+    fun onLeftForeground() {
+        isForegrounded = false
+        liveFixJob?.cancel()
+        liveFixJob = null
     }
 
     /**
@@ -173,6 +226,11 @@ class AvailabilityViewModel(
      * grant the existing launcher already delivers.
      */
     fun onLocationPermissionGranted() {
+        // Gated on the foreground flag as well as the job: a grant delivered while the Activity is
+        // stopped must not re-acquire the subscription behind a backgrounded app. On the ordinary
+        // path the grant arrives from a launcher callback while the app is visible, so this is
+        // true; ON_START would start it anyway if it were not.
+        if (!isForegrounded) return
         if (liveFixJob?.isActive == true) return
         collectLiveFixes()
     }

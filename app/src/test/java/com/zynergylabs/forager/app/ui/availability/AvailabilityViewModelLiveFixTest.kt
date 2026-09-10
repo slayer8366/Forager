@@ -106,7 +106,14 @@ class AvailabilityViewModelLiveFixTest {
             unitSystemPreferenceRepository = LiveFixStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = LiveFixStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LiveFixStubTripPlanningWeatherProvider),
-        )
+        ).also {
+            // Live-fix collection is no longer started from the ViewModel's init -- it is acquired
+            // on the hosting Activity's ON_START and released on ON_STOP, so the OS listener does
+            // not outlive the foreground. Every test in this class describes the app being visible,
+            // which is exactly this call. Without it the ViewModel is in its backgrounded state and
+            // collects nothing, which is the change under test rather than a fixture detail.
+            it.onEnteredForeground()
+        }
     }
 
     private val fix = LocationFix.Update(
@@ -272,6 +279,56 @@ class AvailabilityViewModelLiveFixTest {
         assertEquals(LocateMeStatus.PermissionDenied, vm.uiState.value.locateMeStatus)
         assertNull(vm.uiState.value.liveFix)
         assertEquals(1, tracker.collectionsStarted)
+    }
+
+    /**
+     * The gate itself, tested from the side that matters: leaving the foreground must **release**
+     * the subscription, not merely stop updating state.
+     *
+     * `subscriptionCount` is the observable stand-in for the production `callbackFlow`'s
+     * `awaitClose { locationManager.removeUpdates(listener) }` — that block runs only when the flow
+     * is closed, so a collector still subscribed here is an OS listener still registered there. A
+     * test that only asserted "the strip stops changing" would pass with the listener alive and the
+     * fixes discarded, which is exactly the state this change exists to end.
+     */
+    @Test
+    fun `leaving the foreground releases the fix subscription, and returning re-acquires it`() = runTest(dispatcher) {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        val vm = viewModel(LiveFixFakeLocationTracker(fixes))
+        advanceUntilIdle()
+        assertEquals("foregrounded: exactly one collector", 1, fixes.subscriptionCount.value)
+
+        vm.onLeftForeground()
+        advanceUntilIdle()
+        assertEquals("backgrounded: released, not merely idle", 0, fixes.subscriptionCount.value)
+
+        vm.onEnteredForeground()
+        advanceUntilIdle()
+        assertEquals("returned to the foreground: re-acquired", 1, fixes.subscriptionCount.value)
+    }
+
+    /**
+     * A permission grant delivered while the Activity is stopped must not re-acquire the
+     * subscription behind a backgrounded app. On the ordinary path the grant arrives from a
+     * launcher callback while the app is visible; this pins the guard that stops the other path.
+     */
+    @Test
+    fun `a permission grant while backgrounded does not re-acquire the subscription`() = runTest(dispatcher) {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        val vm = viewModel(LiveFixFakeLocationTracker(fixes))
+        advanceUntilIdle()
+        vm.onLeftForeground()
+        advanceUntilIdle()
+        assertEquals(0, fixes.subscriptionCount.value)
+
+        vm.onLocationPermissionGranted()
+        advanceUntilIdle()
+
+        assertEquals(
+            "a grant while stopped must not start a collection behind a backgrounded app",
+            0,
+            fixes.subscriptionCount.value,
+        )
     }
 }
 
