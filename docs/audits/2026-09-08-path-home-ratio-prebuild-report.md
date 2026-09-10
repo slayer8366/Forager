@@ -1,5 +1,11 @@
 # Path-home ratio — report before building (nothing built)
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-09-08. **Dispatch:** "Path-home ratio: report before building" (planner's, dated
 2026-09-07). **Type:** stop-and-ask. No production code, no test, no constant was changed. Companion
 script: `2026-09-08-path-home-ratio-discriminators.py` (synthetic fixtures, see §C.0).
@@ -25,7 +31,7 @@ that document records for PR #26.
 
 ### A.1 `pathHome` — the distance source, quoted
 
-`app/src/main/java/com/forager/app/domain/PathHome.kt:81-104`:
+`app/src/main/java/com/zynergylabs/forager/app/domain/PathHome.kt:81-104`:
 
 ```kotlin
 fun pathHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand: HopBand = HopBand.NONE): PathHome? {

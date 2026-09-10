@@ -1,5 +1,11 @@
 # Pre-build report — GPX export carries the full record
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** "GPX export carries the full record" (written 2026-09-07, type: report before
 building, stop-and-ask on section B).
 **Date:** 2026-09-08.
@@ -41,7 +47,7 @@ Java check of `Instant.toString()` in the sandbox (section B.0).
 ### A.1 Where the exporter is and what it reads
 
 The exporter is `TrackGpxExporter.write`
-(`app/src/main/java/com/forager/app/export/TrackGpxExporter.kt:25-30`):
+(`app/src/main/java/com/zynergylabs/forager/app/export/TrackGpxExporter.kt:25-30`):
 
 ```kotlin
 fun write(track: Track): File {
@@ -53,7 +59,7 @@ fun write(track: Track): File {
 ```
 
 It reads nothing itself. It is handed a `Track` and serialises `track.points` through
-`GpxCodec.encode` (`app/src/main/java/com/forager/app/domain/GpxCodec.kt:31-51`), which emits
+`GpxCodec.encode` (`app/src/main/java/com/zynergylabs/forager/app/domain/GpxCodec.kt:31-51`), which emits
 `lat`, `lon`, `<ele>` (when non-null) and `<time>` per point and nothing else (`:46-51`).
 `waypoints` is hard-wired to `emptyList()`.
 

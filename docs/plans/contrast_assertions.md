@@ -1,5 +1,11 @@
 # Deferred: night-mode marker work
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Tracks code that used to run and doesn't any more — some removed twice over
 (first the marker icon-shape swap, then the two contrast assertions it
 made moot) — kept here rather than only in git history, so a later reviver
@@ -30,7 +36,7 @@ night/day branching were changed.
 
 **What was deleted from `SightingsMap.kt`** (present at commit `26f4d89`,
 the tip of the merged Understory PR, if the exact former code is needed —
-`git show 26f4d89:app/src/main/java/com/forager/app/ui/map/SightingsMap.kt`):
+`git show 26f4d89:app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt`):
 
 - `initializeOverlayLayers`'s `night: Boolean` parameter and its three
   `if (night) { SymbolLayer + icon bitmap } else { CircleLayer }` branches

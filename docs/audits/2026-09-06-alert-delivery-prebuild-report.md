@@ -1,5 +1,11 @@
 # Pre-build report: alert delivery — reach a pocketed phone, survive a silenced one
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** "Alert delivery: reach a pocketed phone, and survive a silenced one" (planner,
 owner-directed). All three items are report-before-building; **nothing is built in this commit.**
 
@@ -197,7 +203,7 @@ The existing `VibratorManager`/`Vibrator` split at 31 stays as it is.
 `getAudioAttributesFromLastVibration()` and `getVibrationAttributesFromLastVibration()` (read from
 the shadows jar with `javap`), so **the usage can be asserted on the attribute** as the dispatch
 asks. But there is no `ShadowVibratorManager` in 4.16.1, which is why `OffTrackAlertTest` already
-runs at `sdk = [30]` (`app/src/test/java/com/forager/app/OffTrackAlertTest.kt`, its own doc comment).
+runs at `sdk = [30]` (`app/src/test/java/com/zynergylabs/forager/app/OffTrackAlertTest.kt`, its own doc comment).
 So the 26–32 `AudioAttributes` branch is testable at sdk 30 and the 33+ `VibrationAttributes`
 branch is **not reachable under Robolectric through the production code path**, since production
 takes `VibratorManager` on 31+. I would test the 33+ attribute construction through a seam that

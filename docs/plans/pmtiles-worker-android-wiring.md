@@ -1,5 +1,11 @@
 # Handoff: wire the live PMTiles Worker into the real app
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Status as of 2026-08-19: written for a fresh coder session to pick up cold, continuing off
 `claude/pmtiles-cloudflare-worker` (this doc's own branch, PR
 [#24](https://github.com/slayer8366/Forager/pull/24), open/unmerged) and PR
@@ -24,7 +30,7 @@ owner the three open decisions below rather than picking silently, did steps 3 a
   `app/src/main/assets/forager_pmtiles_offline_style.json`.
 - **Step 3 (offline-download style, glyph-stripped)**: done, using the asset above.
 - **Step 4 (`OfflineManager` wired into the real `OfflineMapRepository`)**: done.
-  `com.forager.app.map.MapLibreOfflineMapRepository` replaces `OsmdroidOfflineMapRepository` (deleted,
+  `com.zynergylabs.forager.app.map.MapLibreOfflineMapRepository` replaces `OsmdroidOfflineMapRepository` (deleted,
   along with `PersistentTileWriter` and `OfflineMapStatusFile` — both now fully unused) in
   `AppContainer`. Every `OfflineManager`/`OfflineRegion` method and callback shape used was checked
   with `javap` against the pinned `org.maplibre.gl:android-sdk:13.5.0` artifact rather than assumed
@@ -162,7 +168,7 @@ step 3 (retiring `PersistentTileWriter`), still gated per that plan's own sequen
 (MapLibre rendering the real app's basemap and overlays) being done first, which as of this writing
 **have not been wired into the real app either** — `MapLibreBasemapPreviewActivity` proved the
 mechanism in a debug-only scaffolding screen, never reachable from `MainActivity`/`MapSlot`/
-`AvailabilityScreen`. Confirm this is still true before assuming it (`git log --oneline -- app/src/main/java/com/forager/app/ui/map/Basemap.kt app/src/main/java/com/forager/app/ui/map/SightingsMap.kt`
+`AvailabilityScreen`. Confirm this is still true before assuming it (`git log --oneline -- app/src/main/java/com/zynergylabs/forager/app/ui/map/Basemap.kt app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt`
 should show no MapLibre-related commits if so).
 
 Concretely, in rough dependency order:
@@ -263,8 +269,8 @@ records this in this doc and as a PR #25 comment.
    `Basemap`/`BasemapTileSources` still needs to become a vector-style catalogue reachable from
    `MainActivity`/`MapSlot`/`AvailabilityScreen`; the 71-layer labeled style already exists
    (generated, not bundled — see the 2026-08-19 update above) but nothing consumes it yet. Re-run the
-   `git log --oneline -- app/src/main/java/com/forager/app/ui/map/Basemap.kt
-   app/src/main/java/com/forager/app/ui/map/SightingsMap.kt` check this doc names above before
+   `git log --oneline -- app/src/main/java/com/zynergylabs/forager/app/ui/map/Basemap.kt
+   app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt` check this doc names above before
    assuming that's still true. This is a live-rendering engine swap on the app's primary map screen —
    treat it with the same "don't ship blind" caution steps 3-4 were given, and re-confirm the dashed
    connector/overlay colours against the new style once it's live, per `maplibre-migration.md` §2b.

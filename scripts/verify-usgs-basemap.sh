@@ -45,7 +45,7 @@ probe() {
   local body
   body=$(mktemp)
   local code
-  code=$(curl -sS -o "$body" -w '%{http_code}' -A "com.forager.app" \
+  code=$(curl -sS -o "$body" -w '%{http_code}' -A "com.zynergylabs.forager.app" \
     "$base/tile/$z/$y/$x" 2>/dev/null || echo "unreachable")
   local kind
   kind=$(python3 - "$body" <<'PY' 2>/dev/null || echo "unreadable"

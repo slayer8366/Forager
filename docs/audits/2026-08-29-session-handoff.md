@@ -1,5 +1,11 @@
 # Session Handoff — 2026-08-29, PR #52 hardware-feedback loop + strip-revert/pill dispatch started
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-08-29
 **Branch:** `claude/new-session-vue2za`, currently at `6927791afd37ccb1abc1a6e7f01469a9c9a5d1bf`, pushed
 and verified matching `origin/claude/new-session-vue2za` exactly (`git rev-parse HEAD` /
@@ -37,7 +43,7 @@ fixes or resolved queue items — write a new dated file instead, per this direc
 
 ## What was investigated for the new dispatch (read-only — no edits made)
 
-All line numbers below are against `app/src/main/java/com/forager/app/ui/availability/AvailabilityScreen.kt`
+All line numbers below are against `app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreen.kt`
 at commit `6927791`. **Re-check them before editing** — this file is long and actively edited; line
 numbers drift between commits.
 
@@ -75,7 +81,7 @@ a third comment elsewhere that grep missed due to wording drift across edits.
   patch to confirm the pre-revert icon size (likely a plain inline icon at a smaller size, inside
   the shared `weight(1f)` text row, based on the row's own doc comment about needle drift — but this
   is inference, not yet confirmed against the real diff; run `git show 93dd177 --
-  app/src/main/java/com/forager/app/ui/availability/AvailabilityScreen.kt` before writing anything).
+  app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreen.kt` before writing anything).
 
 ### Part A.3 — return-to-vehicle readout to remove from the strip
 
@@ -161,7 +167,7 @@ a third comment elsewhere that grep missed due to wording drift across edits.
 
 1. Resolve the Part A.1 stale-comment ambiguity above (read both candidate comments, decide which —
    likely both — to delete/rewrite) before touching `COMPASS_STRIP_MIN_HEIGHT` itself.
-2. Run `git show 93dd177 -- app/src/main/java/com/forager/app/ui/availability/AvailabilityScreen.kt`
+2. Run `git show 93dd177 -- app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreen.kt`
    to confirm the pre-revert compass icon size before reverting it (Part A.2).
 3. Work Part A top to bottom, compiling and running the full suite after each numbered item, not
    just at the end — this file has a documented history of one fix's ripple breaking an unrelated

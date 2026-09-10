@@ -1,5 +1,11 @@
 # Report — onLongPress comment fix + `MapPalette.NIGHT` question
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-08-28. Comment-only change for item 1, read-only investigation for item 2. No
 behavior change, no deletion, no rename anywhere in this session. Applied directly to `main`
 (worktree off `origin/main@bdd5b31`), same low-ceremony pattern as the six-reference sweep, since
@@ -35,7 +41,7 @@ distinct in the fix below rather than conflated.
 
 ### Before/after
 
-**`app/src/main/java/com/forager/app/ui/map/MapSlot.kt`** (`MapSlot` typealias's own doc comment,
+**`app/src/main/java/com/zynergylabs/forager/app/ui/map/MapSlot.kt`** (`MapSlot` typealias's own doc comment,
 the `[onLongPress]` sentence within the multi-parameter paragraph):
 
 > Before: *"[onLongPress] is how the map reports a trip-planning gesture back up without knowing
@@ -54,7 +60,7 @@ Established by: direct read of both `mapSlot(...)` call sites in `AvailabilitySc
 for `MapTab`, `:3719+` for `CompactMapTab` — both pass `{}` as the 5th positional argument,
 `onLongPress`) and `CentrePinLocationPickerOverlay`'s existence (`ui/map/CentrePinLocationPicker.kt:121`).
 
-**`app/src/main/java/com/forager/app/ui/map/SightingsMap.kt`** (the `[onLongPress]` parameter doc):
+**`app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt`** (the `[onLongPress]` parameter doc):
 
 > Before: *"[onLongPress] fires with the geographic point under a long-press, for the caller to
 > turn into a planned trip (via a date picker it owns — this composable knows nothing about dates
@@ -69,7 +75,7 @@ for `MapTab`, `:3719+` for `CompactMapTab` — both pass `{}` as the 5th positio
 > `AvailabilityScreen.kt` (`MapTab`, `CompactMapTab`) pass `{}` for [onLongPress] — the
 > trip-planning/log-a-find interaction this parameter used to drive now goes through panning the
 > camera, tapping the add (+) button, and confirming via
-> [com.forager.app.ui.map.CentrePinLocationPickerOverlay] instead. Kept wired here deliberately,
+> [com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay] instead. Kept wired here deliberately,
 > not left by accident: the listener costs nothing while dormant, and whether to remove it or give
 > it a new consumer is a product decision this comment fix doesn't make."*
 

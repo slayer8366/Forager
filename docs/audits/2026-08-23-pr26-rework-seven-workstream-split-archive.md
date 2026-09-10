@@ -1,5 +1,11 @@
 # Archive — PR #26 rework's original seven-workstream split
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-08-23
 **Status:** point-in-time record. Superseded `docs/plans/pr26-rework.md`'s Workstream 1–7
 sections, replaced in the same pass with Workstream 0 (closed) and Workstreams A–D. Per this
@@ -172,7 +178,7 @@ and would merge cleanly and produce a wrong database — this is the exact colli
 - `ForagerDatabase.kt`'s `entities` list keeps `TrackEntity`/`TrackPointEntity`/`WaypointEntity`
   (from `main`) *and* adds `OfflineRegionEntity` — PR #26's branch predates tracks/waypoints
   entirely, so this list needs assembling fresh, not diffed mechanically.
-- The committed schema JSON moves from `app/schemas/com.forager.app.data.local.ForagerDatabase/5.json`
+- The committed schema JSON moves from `app/schemas/com.zynergylabs.forager.app.data.local.ForagerDatabase/5.json`
   (which is track/waypoint data on `main`, not PR #26's offline-region data) to a new `6.json`
   capturing the offline-region shape.
 - `OfflineRegionMigrationTest` must build a real **version-5** database (matching `main`'s

@@ -1,5 +1,11 @@
 # Pre-registration — JournalTabTest flake, the controlled comparison
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Dispatch:** JournalTabTest flake: the controlled comparison (2026-09-09).
 **Base:** `main` @ `14cc6f3`, as the dispatch names. Branch `claude/journaltabtest-flake-comparison`.
 **Status when written: NO RUN HAS BEEN EXECUTED.** That is the point of the file — §2 requires the
@@ -69,7 +75,7 @@ every ref except `main`, so draws on one ref must be **sequential** (~5.5 min ea
 ## B. §1's inertness question, answered: the placeholder CAN be genuinely inert
 
 The dispatch says to stop if the class's fixture rather than the test body does the interfering
-work. Checked at `14cc6f3`, `app/src/test/java/com/forager/app/service/TrackRecordingServiceTest.kt`:
+work. Checked at `14cc6f3`, `app/src/test/java/com/zynergylabs/forager/app/service/TrackRecordingServiceTest.kt`:
 
 - `@Before setUp()` (`:72-79`) obtains the `Application` context and the container's
   `trackRepository`. It starts no service, launches no coroutine, touches no file. **Inert.**
@@ -127,7 +133,7 @@ predicted of itself, holding a third time.
 
 ### D.1 The outcome measure — fixed now, for every phase
 
-A run is **red** iff `app/build/test-results/testDebugUnitTest/TEST-com.forager.app.ui.log.JournalTabTest.xml`
+A run is **red** iff `app/build/test-results/testDebugUnitTest/TEST-com.zynergylabs.forager.app.ui.log.JournalTabTest.xml`
 contains a `<failure>` for
 `From Album on the edit form opens the picker and pulls the selected photo into the entry`
 (the assertion at `JournalTabTest.kt:374`, confirmed at this HEAD to be

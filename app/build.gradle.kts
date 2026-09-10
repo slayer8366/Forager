@@ -212,27 +212,30 @@ buildIdentity.provisionalReason?.let { reason ->
 android {
     // `namespace` is the Kotlin/Java package root and the R/BuildConfig package — an internal
     // compile-time name. `applicationId` is the app's permanent public identity on Play. They are
-    // allowed to differ and here they deliberately do.
+    // allowed to differ; here they deliberately match, and both were moved for the same reason.
     //
-    // The namespace stays `com.forager.app` because moving it renames 433 source files' package
-    // declarations and every import, and would also rewrite every class name in CI's
-    // SKIPPED_TESTS_ALLOWLIST — a set this repo requires stay byte-identical in both directions.
-    // All of that for a compile-time name no user, store listing or policy ever sees. If it is ever
-    // moved, that is a mechanical refactor on its own, not a rider on an identity change.
-    namespace = "com.forager.app"
+    // Reverse-DNS package naming asserts control of a domain. The root this project used until
+    // 2026-09-09 asserted one it does not own, so it is a forbidden term and does not appear in this
+    // tree; `.github/workflows/ci.yml` fails the build on any occurrence. The exposure was the
+    // domain claim only — the app is still called Forager, and the Play listing, the privacy policy
+    // and the GPX namespace URI were all already correct and were not touched.
+    //
+    // `applicationId` moved first (PR #92), `namespace` second, and they are kept identical so
+    // there is no second name for anyone to reconcile later.
+    namespace = "com.zynergylabs.forager.app"
     compileSdk = 37
 
     defaultConfig {
         // The identity Play records permanently. **It cannot be changed after the first upload** —
         // a different applicationId is a different app, with a different listing and no upgrade
-        // path for anyone who installed the old one. Nothing has been uploaded yet, which is the
-        // only reason this could be corrected at all; the window closes at the first Play upload,
-        // the same shape of deadline as the GPX namespace URI and `rule` provenance.
+        // path for anyone who installed the old one. Nothing has been uploaded, which is the only
+        // reason it could be corrected at all; the window closes at the first Play upload, the same
+        // shape of deadline as the GPX `rule` provenance attribute.
         //
-        // `com.forager.app` claimed a domain this project does not control. `docs/legal/privacy-
-        // policy.md` has named `com.zynergylabs.forager.app` since it was written, and
-        // `scripts/verify-policy-permissions.sh` check 4 has been failing against this line on
-        // purpose, waiting for it.
+        // The same window covers the `namespace` rename above for a different reason: storage paths
+        // derived from `context.packageName` — DataStore files, SharedPreferences — resolve
+        // somewhere new afterwards. On a device with existing data that is silent loss, and the app
+        // looks freshly installed. Safe here only because nothing has shipped.
         //
         // The FileProvider authority follows automatically and needs no edit: the manifest declares
         // `${applicationId}.fileprovider` and the three call sites use
@@ -486,7 +489,7 @@ dependencies {
 
 /**
  * Wires `-Pforager.generateFungiIndexDbAsset=true` through to
- * `com.forager.app.tools.GenerateFungiIndexDbAsset`'s `Assume.assumeTrue` guard (see that class's
+ * `com.zynergylabs.forager.app.tools.GenerateFungiIndexDbAsset`'s `Assume.assumeTrue` guard (see that class's
  * doc comment) as a JVM system property, so the generator is reachable without a second, separate
  * `Test` task. A second task was tried first and dropped: copying `testDebugUnitTest`'s classpath
  * eagerly (`tasks.named<Test>(...).get()`) at the top level fails, because AGP registers that task
@@ -497,7 +500,7 @@ dependencies {
  * `@Test`, but `Assume.assumeTrue(false)` reports it skipped rather than running it — it does real
  * file-system work (rewrites a committed asset) that has no place in the ordinary, side-effect-free
  * suite. Run it deliberately, after the index JSON changes, via
- * `./gradlew testDebugUnitTest --tests "com.forager.app.tools.GenerateFungiIndexDbAsset" -Pforager.generateFungiIndexDbAsset=true`
+ * `./gradlew testDebugUnitTest --tests "com.zynergylabs.forager.app.tools.GenerateFungiIndexDbAsset" -Pforager.generateFungiIndexDbAsset=true`
  * (wrapped by `scripts/generate_fungi_index_db.sh`), then commit the regenerated `.db` asset.
  *
  * `tasks.withType<Test>().configureEach { }`, not `tasks.named<Test>("testDebugUnitTest") { }`:

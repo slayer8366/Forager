@@ -10,7 +10,7 @@
 
 ## Motion spec compliance
 
-**Only required if this PR touches `app/src/main/java/com/forager/app/ui/motion/**` or
+**Only required if this PR touches `app/src/main/java/com/zynergylabs/forager/app/ui/motion/**` or
 `docs/motion-spec.md`.** Otherwise, delete this section.
 
 A failed item blocks the release. `CODEOWNERS` requires review from the named motion owner

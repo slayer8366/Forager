@@ -1,5 +1,11 @@
 # Phase 1 Code Quality and Structure Audit
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 **Date:** 2026-08-21
 **Branch:** `claude/phase1-combined` (HEAD `e488672`)
 **Scope:** code quality and structure only — not delivery-vs-scope, not spec conformance, not feature completeness.
@@ -25,7 +31,7 @@ first audit resurfaces, the comparison is still worth running.
 
 ## A. Structural shape
 
-**1.** Ten largest files by line count, `app/src/main/java/com/forager/app/` (via `find . -name "*.kt" | xargs wc -l | sort -rn`):
+**1.** Ten largest files by line count, `app/src/main/java/com/zynergylabs/forager/app/` (via `find . -name "*.kt" | xargs wc -l | sort -rn`):
 ```
 4243  ui/availability/AvailabilityScreen.kt
  802  ui/map/SightingsMap.kt

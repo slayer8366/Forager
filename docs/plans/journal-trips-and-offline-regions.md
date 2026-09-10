@@ -1,5 +1,11 @@
 # Journal / Trips and offline region management: design decisions
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Design only. Nothing here is built. Written against the MapLibre + PMTiles
 stack on `claude/pmtiles-cloudflare-worker`, not the osmdroid stack on main.
 
@@ -342,7 +348,7 @@ listed as an open question in the plan's original text, but exactly the kind of
 gap the plan's "Freshness" section (no automatic deletion) depends on not
 existing — Android can clear app cache under storage pressure, and this app's
 own "Clear cache" control would have wiped every downloaded region with it. See
-`com.forager.app.map.MapLibreStorage.ensureMapLibreStorageOutsideCache`'s doc
+`com.zynergylabs.forager.app.map.MapLibreStorage.ensureMapLibreStorageOutsideCache`'s doc
 comment for the fix and why it isn't in `Application.onCreate()` despite that
 being the more obvious place (it broke 171 unrelated Robolectric tests — no
 test had ever exercised real MapLibre code before, and no test should have to

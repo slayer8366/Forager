@@ -1,8 +1,14 @@
 # Motion Specification
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Version 1. Source of truth for motion behavior in the Forager app —
 durations, easings, object behavior, performance budget, degradation
-order, and Reduce Motion. Code under `app/src/main/java/com/forager/app/ui/motion/`
+order, and Reduce Motion. Code under `app/src/main/java/com/zynergylabs/forager/app/ui/motion/`
 implements this doc; code comments there reference this doc's section
 names rather than restating its rules.
 

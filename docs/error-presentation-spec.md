@@ -1,6 +1,12 @@
 # Error Presentation Specification
 
-**Repo:** native Kotlin/Compose Android app, `app/src/main/java/com/forager/app/...`
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
+**Repo:** native Kotlin/Compose Android app, `app/src/main/java/com/zynergylabs/forager/app/...`
 **Audience:** implementing engineer or coding agent.
 **Status:** draft for review, v2 — revised against the 2026-08-22 pulse. Supersedes part of PR #31's rendering.
 

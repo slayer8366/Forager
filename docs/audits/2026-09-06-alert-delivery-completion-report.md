@@ -1,5 +1,11 @@
 # Completion report: alert delivery — reach a pocketed phone, survive a silenced one
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Follows `2026-09-06-alert-delivery-prebuild-report.md`. Same dispatch, same branch
 (`claude/new-session-102gri` off `main` at `a2dcb21` — base discrepancy settled by the owner: their
 SHA was stale). Built as the owner decided on every item.
@@ -20,7 +26,7 @@ SHA was stale). Built as the owner decided on every item.
 
 ## What was built
 
-### New — domain (`app/src/main/java/com/forager/app/domain/`)
+### New — domain (`app/src/main/java/com/zynergylabs/forager/app/domain/`)
 
 - **`AlertDelivery.kt`** — `enum AlertKind { OFF_TRACK }`, `data class Alert(kind, overridesSilence)`,
   `fun interface AlertDelivery { fun deliver(alert) }`. `Alert`'s doc states the override is
@@ -35,7 +41,7 @@ SHA was stale). Built as the owner decided on every item.
   DND over silenced ringer; vibrate mode warns of nothing; notifications-off stands alone or is
   appended.
 
-### New — Android (`app/src/main/java/com/forager/app/alert/`)
+### New — Android (`app/src/main/java/com/zynergylabs/forager/app/alert/`)
 
 - **`AndroidAlertDelivery.kt`** — the three functions that lived at the bottom of `MainActivity.kt`,
   moved and changed: channel **`off_track_alert_v2`**, `IMPORTANCE_HIGH`, `enableVibration(false)`,

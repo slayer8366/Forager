@@ -1,5 +1,11 @@
 # TRACK-PULSE.md
 
+> **REDACTED 2026-09-09 — forbidden-term policy.** Occurrences of this project's retired reverse-DNS
+> package root were replaced in this file with `com.zynergylabs.forager.app`. **This document is
+> therefore not an original record**: where it names a package, the name it originally recorded has
+> been altered. The change is textual only — no finding, figure, date or conclusion was edited, and
+> nothing else in the file was touched.
+
 Read-only pulse on the track subsystem, ahead of the Oregon Mycological
 Society field test. Every number and code path below was re-derived from
 the tree on branch `claude/new-session-vue2za` (HEAD `af7490e`), not taken
@@ -19,7 +25,7 @@ contradict; the numbers below exist only in the enum they're defined in.
 
 - The row: `MapBarIconButton` inside `MapIconBar`, wired with
   `onClick = onToggleReturning`, `enabled = isRecording`
-  (`app/src/main/java/com/forager/app/ui/availability/AvailabilityScreen.kt:3948-3959`).
+  (`app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreen.kt:3948-3959`).
 - `enabled = false` disables the `clickable` modifier outright
   (`AvailabilityScreen.kt:4008`, `.clickable(enabled = enabled, onClick = onClick)`)
   and drops the row's alpha to 0.4 (`AvailabilityScreen.kt:4007`) — this is
@@ -66,7 +72,7 @@ only to an 8-icon stack's screen-reader text and a subtle single-icon
 tint change.** This is not a null vehicle location, not a permission gate,
 not a crash — the underlying math and state machine are correct and
 covered by 8 passing `TrackRecordingViewModelTest` cases
-(`app/src/test/java/com/forager/app/ui/track/TrackRecordingViewModelTest.kt:260-369`).
+(`app/src/test/java/com/zynergylabs/forager/app/ui/track/TrackRecordingViewModelTest.kt:260-369`).
 It is a missing rendering step: no visible strip/banner/card was ever
 built to show `ReturnToStartInfo` to a sighted user. **Estimate: small,
 targeted UI work** — the data (`TrackRecordingUiState.returnToStart`,
@@ -285,7 +291,7 @@ phone through, but doesn't today:**
 | Off-track color change (`AvailabilityScreen.kt:3954-3958`) | Some kind of alert when drifting off course | Fires only a color swap on one icon in an 8-icon stack — no sound, no notification, no vibration, easy to miss while the phone is pocketed (matches the owner's report verbatim) |
 | Breadcrumb trail on the map | Shows the path walked so far | Works as implied, but is up to 45 seconds stale (15s UI poll + up to 30s service flush) at any given moment |
 | Waypoint drop/marker | Drops a pin, visible on the map | Works as implied (`CreateWaypointUseCase.kt`, rendered via `waypointsFeatureCollection`, `SightingsMap.kt:801-802`) |
-| Nothing in the UI exposes | — | Track history list, per-track statistics, or track deletion — `GetTracksUseCase`, `ComputeTrackStatisticsUseCase`, and `DeleteTrackUseCase` all exist and are wired into `AppContainer` (`AppContainer.kt:170-171`) but are **never called from any `ui/` file** (`grep` across `app/src/main/java/com/forager/app/ui` finds zero references to any of the three). A recorded track, once ended, is permanently invisible in the app — no way to view, review, or delete it. |
+| Nothing in the UI exposes | — | Track history list, per-track statistics, or track deletion — `GetTracksUseCase`, `ComputeTrackStatisticsUseCase`, and `DeleteTrackUseCase` all exist and are wired into `AppContainer` (`AppContainer.kt:170-171`) but are **never called from any `ui/` file** (`grep` across `app/src/main/java/com/zynergylabs/forager/app/ui` finds zero references to any of the three). A recorded track, once ended, is permanently invisible in the app — no way to view, review, or delete it. |
 | Nothing in the UI exposes | — | Choice of recording mode — `HIGH_ACCURACY`/`BATTERY_SAVER` exist but are unreachable (§2); the app always silently runs `BALANCED` |
 
 **Before testers go out, items needing a decision (disclosure or removal)
@@ -308,8 +314,8 @@ user picks, or reading one back, is Storage Access Framework work needing
 a document-picker UI — Phase 1c... This class is the codec only." Confirmed
 by `grep`: `GpxCodec` is referenced only from its own model
 (`domain/model/GpxDocument.kt`) and its own unit test
-(`app/src/test/java/com/forager/app/domain/GpxCodecTest.kt`) — zero
-references anywhere under `app/src/main/java/com/forager/app/ui`, `service/`,
+(`app/src/test/java/com/zynergylabs/forager/app/domain/GpxCodecTest.kt`) — zero
+references anywhere under `app/src/main/java/com/zynergylabs/forager/app/ui`, `service/`,
 or `MainActivity.kt`.
 
 **What exists and works, one layer down from a UI:** `GpxCodec.encode()`
