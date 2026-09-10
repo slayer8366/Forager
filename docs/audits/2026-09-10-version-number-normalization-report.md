@@ -62,10 +62,18 @@ Stopping here would enforce a rule that has been lifted. **`main` itself is clea
 production `addMigrations` call. None is unreachable. Every schema file's internal `version` matches
 its filename, and each carries a distinct `identityHash`.
 
-**Gap: versions 1 and 2 have neither an exported schema nor a migration path.** The lowest migration
-is 3 to 4 and the lowest schema is `4.json`. A device holding v1 or v2 has no route forward: the
-release path throws, and the debug path would wipe. `ForagerDatabaseDestructiveFallbackTest` asserts
-exactly this pair of behaviours and passes. The owner confirmed on 2026-09-10 that no device holds any version, so this is latent rather than live.
+**Versions 1 and 2 have neither an exported schema nor a migration path, and that is settled rather
+than open.** The lowest migration is 3 to 4 and the lowest schema is `4.json`. A device holding v1 or
+v2 would have no route forward: the release path throws and the debug path would wipe.
+`ForagerDatabaseDestructiveFallbackTest` asserts exactly that pair of behaviours and passes.
+
+**Owner ruling, 2026-09-10: v1 and v2 are not being shipped.** No device holds any version — nothing
+has ever been installed — and no build ever will start below 3. So this is not a gap to close; the
+missing schemas and migrations are for versions that will never exist in the field. The comment at
+`ForagerDatabase.kt:41` already records why they were never captured: `exportSchema` was `false`
+while v1 and v2 relied on a destructive fallback, and that reasoning stopped applying only at
+`MIGRATION_3_4`. Do not add v1/v2 migrations or schemas to "complete" the chain — the chain starts at
+3 by decision.
 
 ## 2. The collision — resolved, and `CLAUDE.md` is wrong about it twice
 
@@ -232,11 +240,10 @@ version is **16**. `FungiIndexDatabase` is at **1** and does not export schemas.
 
 **Blocker B1 is closed** on the numbering question.
 
-Two items outlive this dispatch and are *not* closed by the ruling, because neither depends on what
-a device holds:
+One item outlives this dispatch. A second is listed and struck, because the owner closed it:
 
 - **Nothing reads `app/schemas/`.** Twelve exported schemas are generated, committed, and never
   asserted against; `MigrationTestHelper` appears in zero files. Whether to add schema-driven
   migration tests is a decision of its own, and is not made here.
-- **Versions 1 and 2 have no migration path.** Harmless while no device holds them — which is now
-  established — but it is a real gap the moment a build ships from an older tree.
+- ~~Versions 1 and 2 have no migration path.~~ **Closed by owner ruling, 2026-09-10: v1 and v2 are
+  not being shipped**, so the chain starting at 3 is correct rather than incomplete. See §1.
