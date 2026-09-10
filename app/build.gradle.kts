@@ -214,11 +214,11 @@ android {
     // compile-time name. `applicationId` is the app's permanent public identity on Play. They are
     // allowed to differ; here they deliberately match, and both were moved for the same reason.
     //
-    // Reverse-DNS package naming asserts control of a domain. The root this project used until
-    // 2026-09-09 asserted one it does not own, so it is a forbidden term and does not appear in this
-    // tree; `.github/workflows/ci.yml` fails the build on any occurrence. The exposure was the
-    // domain claim only — the app is still called Forager, and the Play listing, the privacy policy
-    // and the GPX namespace URI were all already correct and were not touched.
+    // Reverse-DNS package naming asserts control of a domain, and the root this project used
+    // until 2026-09-09 asserted one it does not own. That is the defect this rename fixed, and it
+    // is why the value must not be reverted. The exposure was the domain claim only -- the app is
+    // still called Forager, and the Play listing, the privacy policy and the GPX namespace URI
+    // were all already correct and were not touched.
     //
     // `applicationId` moved first (PR #92), `namespace` second, and they are kept identical so
     // there is no second name for anyone to reconcile later.

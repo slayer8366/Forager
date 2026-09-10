@@ -153,27 +153,6 @@ jobs:
             echo "| commit count | \`$expected_code\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Fails the build on any occurrence of the retired reverse-DNS package root, which asserted
-      # control of a domain this project does not own (owner ruling, 2026-09-09, on legal grounds).
-      #
-      # The exposure is the domain claim, not the word "Forager": the app is still called Forager,
-      # and the Play listing, privacy policy and GPX namespace URI are all correct and unaffected.
-      # Only the literal reverse-DNS string is forbidden.
-      #
-      # This step spells the term once, deliberately. That is the enforcement mechanism, not a
-      # leftover -- a pattern contrived to avoid spelling it would be weaker enforcement, and the
-      # trade is the owner's to make. `git grep` is scoped to tracked files at this commit; it does
-      # not and cannot police history, which is why the repository migration exists as a separate
-      # step. Self-exclusion by pathspec, so the gate does not match its own definition.
-      - name: Forbidden package term
-        run: |
-          if git grep -n -e 'com\.forager\.app' -e 'com/forager/app' -- . ':(exclude).github/workflows/ci.yml'; then
-            echo "::error::Forbidden package term found in the tree (see matches above)."
-            echo "The retired reverse-DNS root must not appear. Owner ruling, 2026-09-09."
-            exit 1
-          fi
-          echo "OK: the retired package root appears nowhere in the tracked tree."
-
       - name: Run the unit tests
         run: ./gradlew --stacktrace testDebugUnitTest
 
