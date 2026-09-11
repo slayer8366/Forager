@@ -327,6 +327,32 @@ android {
 val DEBUG_KEYSTORE_CERTIFICATE_SHA256 =
     "CB:2F:6D:A5:02:C3:FE:7B:EA:8D:B7:47:41:4B:ED:47:CB:C8:35:09:44:CF:82:91:E9:B0:98:06:C9:4F:16:26"
 
+/**
+ * The SHA-256 fingerprint of the certificate in the owner's private upload keystore, alias
+ * `forager-upload`, as `keytool -list -v` prints it. **This is the artifact that cannot be fixed
+ * after the first Play upload**, so unlike the debug pin above it is checked and *enforced*, not
+ * printed for a human to compare.
+ *
+ * It is written here, in the tracked build script, **deliberately and not in `signing.properties`**.
+ * The value the guard compares against and the value it computes must not come from the same place:
+ * if both were read from `signing.properties`, the check would pass for whatever keystore that file
+ * happened to point at, including a wrong one, and would be a tautology wearing a guard's clothes.
+ * Here the expected value is committed and reviewed; the actual value is computed from whatever
+ * keystore the release signing config resolves to at execution time. They can disagree, which is
+ * the entire point.
+ *
+ * This is a public fingerprint, not a secret — it is derivable from any artifact the key signs.
+ * Committing it costs nothing and buys the only check that would have caught a keystore swap.
+ *
+ * Concretely, on 2026-09-10 two "backups" of the upload key were found to be a superseded
+ * generation from fourteen minutes earlier, openable by no password anyone held. Had one of those
+ * been restored into place, every path check and the debug-identity check above would have passed;
+ * only a fingerprint pin fails. If the upload key is ever legitimately rotated, this line changes
+ * with it, from keytool, by hand.
+ */
+val RELEASE_KEYSTORE_CERTIFICATE_SHA256 =
+    "9F:B6:16:62:46:C0:A5:98:81:80:D3:C7:C2:FA:08:B2:F1:ED:80:0F:44:05:1C:49:7C:8B:F4:FC:B3:41:0B:67"
+
 /** The SHA-256 fingerprint of [alias]'s certificate in [storeFile], in keytool's colon-separated upper-case form. */
 fun certificateSha256(storeFile: File, storePassword: String, alias: String): String {
     val keyStore = listOf("PKCS12", "JKS").firstNotNullOfOrNull { type ->
@@ -401,9 +427,27 @@ tasks.register("verifyReleaseNeverSignsWithDebugKeystore") {
                     "owner holds, never with the debug key. See this task's own doc comment.",
             )
         }
+        if (fingerprint != RELEASE_KEYSTORE_CERTIFICATE_SHA256) {
+            error(
+                "The release build type resolves to a keystore whose certificate is not the " +
+                    "expected upload identity.\n" +
+                    "  expected: $RELEASE_KEYSTORE_CERTIFICATE_SHA256\n" +
+                    "  actual:   $fingerprint\n" +
+                    "  keystore: ${storeFile.absolutePath}, alias '$keyAlias'\n" +
+                    "The package name and signing identity of the first uploaded bundle are both " +
+                    "immutable, so this fails the build rather than warning. If the upload key was " +
+                    "rotated deliberately, update RELEASE_KEYSTORE_CERTIFICATE_SHA256 in " +
+                    "app/build.gradle.kts from keytool, by hand, in the same change. If it was not, " +
+                    "the keystore in use is the wrong one -- check what signing.properties points at.",
+            )
+        }
         logger.lifecycle(
             "Verified: the release build type signs with '${releaseSigningConfig.name}' " +
                 "(${storeFile.absolutePath}, alias '$keyAlias'), certificate SHA-256 $fingerprint -- not the debug identity.",
+        )
+        logger.lifecycle(
+            "Verified: that certificate matches the pinned upload identity " +
+                "RELEASE_KEYSTORE_CERTIFICATE_SHA256 exactly.",
         )
     }
 }
