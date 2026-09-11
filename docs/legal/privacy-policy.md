@@ -144,7 +144,10 @@ capture's EXIF.
   permission.
 - **`ACCESS_MEDIA_LOCATION`** — reading the capture date and coordinate of a photo you import, so a
   find can be dated and placed. Read separately from the stored copy's bytes.
-- **Notifications, vibrate, foreground service** — the off-track alert and the recording notification.
+- **Notifications, vibrate, foreground service** — the off-track alert, the sundown alerts
+  (a turnaround warning and one at sunset, while a track is recording), and the recording
+  notification. The sundown alerts are computed on the device from the clock and your
+  position; nothing is sent anywhere to produce them.
 - **Internet** — the requests listed above.
 
 ## No analytics, no ads, no tracking
