@@ -151,9 +151,36 @@ the point of doing them at all.
 
 | Check | Date | Device, OS | Result | Notes |
 |---|---|---|---|---|
-| 1 off-track run A, normal | | | not run | |
-| 1 off-track run B, silent | | | not run | |
+| 1 off-track run A, normal | 2026-09-11 16:22 local | Samsung, One UI | **fired, audible** | Owner: "Notification sound is good." Vibration not separately recorded |
+| 1 off-track run B, silent | 2026-09-11 16:26 local | Samsung, One UI | **fired, silent** | Ringer muted (crossed-speaker icon in the status bar at 16:27). Notification posted to the shade and made no sound. **Whether the phone vibrated is not recorded, and that is the datum the ruling actually turns on** — see below |
 | 2 channels listed and separable | 2026-09-11 | Samsung, One UI (exact model and One UI version not recorded) | **PASS** | Three categories listed and independently toggleable: "Off-track alert", "Sundown alert", "Track recording". Only visible after enabling the Samsung toggle described above |
+
+### Check 1: what the two runs establish, and the one thing still open
+
+Run A fired audibly on a normal ringer. Run B fired silently with the ringer muted. Same device,
+same walk, one setting different, which is the paired shape this check was specified as.
+
+**That pair is not yet the confirmation, because both observations are about sound.** The ruling is
+about vibration. The channel is created with `enableVibration(false)`
+(`AndroidAlertDelivery.kt:87`), so the channel contributes no buzz at all, and the only vibration
+is the direct call at `:116`, which after the change carries `VibrationAttributes.USAGE_NOTIFICATION`
+instead of `USAGE_ALARM`. A notification that makes no sound in Mute mode is consistent with the
+ruling having shipped and also consistent with a channel that was never going to make sound anyway.
+
+Three readings, and the device was not asked which one applied:
+
+| Ringer mode | Vibrated? | Meaning |
+|---|---|---|
+| Full Mute | no | **Pass.** `USAGE_NOTIFICATION` was suppressed, which is the ruling |
+| Vibrate | yes | **Also a pass.** The platform allows notification-usage vibration in vibrate mode; this is not the override |
+| Full Mute | yes | **Fail.** `overridesSilence` is still reaching the vibration as `true` |
+
+The status bar in the run B screenshot carries the crossed-speaker icon, which reads as Mute rather
+than Vibrate, but that was not confirmed with the owner and the vibration itself was not observed.
+Recorded as **partial**: the sound half is done, the vibration half is one question away.
+
+Worth noting as correct and not a defect: the notification still **appears** in the shade in run B.
+Silencing an alert and suppressing it are different things, and only the first was ruled.
 
 ### What check 2's pass does and does not establish
 
