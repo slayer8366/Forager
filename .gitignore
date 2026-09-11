@@ -34,3 +34,6 @@ local.properties
 
 # Written by Gradle's daemon-JVM feature, machine-local.
 gradle/gradle-daemon-jvm.properties
+
+# Cygwin/MSYS crash dumps, produced when a tool in the Git-for-Windows toolchain aborts.
+*.stackdump
