@@ -2,6 +2,8 @@
 
 **Date:** 2026-09-11
 **Type:** correction record. **No code changed.**
+**PARTLY CORRECTED 2026-09-11** by `2026-09-11-maplibre-pmtiles-policy-corrections-round-2.md`. Three claims below go past the evidence: **C2's OFL reserved-font-name note is withdrawn** (Open Sans in openmaptiles/fonts is Apache-2.0; the obligation is Apache, not OFL), **C4's "fall back to the z14 archive" is not a drop-in fix** (a z14 tile cannot answer a z15 request; the real option is to advertise `maxzoom: 14` and delete the overflow path), and **C1 lists three recommended items where the policy has four**, two of them code. C6's 29 components are an upper bound of 27 for Android. The prefetch item raised at the end is **settled and withdrawn** (`prefetchZoomDelta = 4` covers ground already on screen). C2's partial disagreement about the demotiles quote is **withdrawn by the owner** — the main-branch README matches verbatim.
+
 **Corrects:** `2026-09-11-maplibre-pmtiles-policy-compliance.md`, same day.
 **Origin:** the owner pulled the primary sources independently and returned six corrections. All
 six checked here against the sources. **All six hold.** Two change a finding's severity; four
