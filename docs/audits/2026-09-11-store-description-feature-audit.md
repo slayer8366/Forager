@@ -3,6 +3,10 @@
 **Date:** 2026-09-11
 **Scope:** audit only. No code, test or dependency changes. Read-only.
 **Base:** `claude/beta-signup-website-g3t91u` at `199d642`, cut from `main` at `4957675`
+**Amended 2026-09-11** by owner ruling: see "Corrections" at the end. Three verdicts below
+(claims 2, 7 and 9) were wrong as first written and are superseded there. The original text is
+left in place so the correction has something to be a correction of.
+
 **Companion:** `2026-09-11-listed-features-phase0-inventory.md` established presence by name.
 This one reads the implementations and describes what they do.
 
@@ -13,14 +17,14 @@ This one reads the implementations and describes what they do.
 | # | Store claim | Verdict |
 |---|---|---|
 | 1 | iNaturalist research by month and location | **Accurate** |
-| 2 | Seasonal fruiting lag chart | **Exists; the copy claims more than it does** |
+| 2 | Seasonal fruiting lag chart | ~~Copy claims more~~ **Accurate** (corrected) |
 | 3 | Tracks, breadcrumbs, waypoint navigation, return to start | **Mostly accurate; two qualifications** |
 | 4 | Sundown alerts | **Does not exist** |
 | 5 | Offline maps | **Accurate** |
 | 6 | Waypoints | **Accurate** |
-| 7 | Journal records finds, waypoints, offline maps, tracks | **Accurate only if "journal" includes Cartography** |
+| 7 | Journal records finds, waypoints, offline maps, tracks | ~~Partly~~ **Accurate, literally** (corrected) |
 | 8 | Cartography | **Accurate** |
-| 9 | "GPX calibration ... accurate under a canopy" | **Describes the opposite of what the code does** |
+| 9 | "GPX calibration ... accurate under a canopy" | ~~Inverted~~ **Substantially accurate** (corrected) |
 
 ---
 
@@ -265,3 +269,87 @@ avoiding, and the beta signup page is already live.
 The other gaps are wording: claims 2, 7 and 9 describe real features in terms the code
 deliberately avoids. Claim 9's fix is the largest rewrite and the most interesting one, because
 what the app actually does there is better than what the sentence promises.
+
+
+---
+
+# Corrections (owner ruling, 2026-09-11)
+
+Three of the nine verdicts above were wrong. Recorded here rather than edited away, because the
+error in claim 7 is a worked example of the failure this project keeps cataloguing.
+
+## Claim 7: the journal. Wrong, and wrong at the layer I chose to look at.
+
+The audit checked `MushroomLogEntryEntity` for `trackId` and `waypointId`, found neither, and
+concluded the journal entry does not record tracks or waypoints. That is true of the entity and
+irrelevant to the claim, because **the Journal is not an entity, it is a tab**, and the answer was
+sitting in a doc comment the audit never opened.
+
+`ui/log/JournalTab.kt:42-45` quotes the owner's own framing directly:
+
+> "**Records is a logbook** — raw, complete, machine-generated data. **Cartography is where those
+> records are compiled into a coherent story.**"
+
+The Journal destination holds two tabs, Records and Cartography. `ui/log/RecordsTab.kt:30-42`
+names Records' **four submenus: Waypoints, Offline Maps, Recorded Tracks, and Finds.**
+
+So "a robust journal system that records your finds, waypoints, offline maps, tracks" is not
+approximately right, it is a literal list of the four things in the Records tab. **Verdict:
+accurate as written.**
+
+The mistake is the same shape as the ones in CLAUDE.md's "check that never saw the data that
+could fail it" family, in its reachability form: a question about the product surface was
+answered from the persistence layer, one step removed, and nothing in the answer said so. The
+cheap check was to open the screen. `git grep JournalTab` would have closed it.
+
+## Claim 2: the fruiting lag chart. The standard applied was too strict.
+
+The audit held that because `ComputeTripWindowsUseCase` refuses to score or rank, the copy could
+not say the chart helps you plan the best time to go. Owner's ruling, and it is correct: a
+planning aid built on imperfect data is still a planning aid, and the refusal to fabricate a
+percentage is a statement about what the *app* asserts, not about what the *user* may conclude.
+Applied consistently, the audit's standard would forbid describing the app at all.
+
+"Helps you plan the best time to go" reads naturally as helping the reader work it out, which is
+exactly what a distribution of observed lag against a stated rule of thumb does. **Verdict:
+accurate as written.**
+
+What survives from the original note, as a watch item rather than a defect: the app does not
+itself nominate a day, so if the sentence is ever read as "the app tells you the best day", the
+gap reappears. Nothing needs changing today.
+
+## Claim 9: "calibration". The audit answered a claim that was not being made.
+
+The audit objected that software cannot calibrate a GNSS receiver. True, and beside the point.
+The owner's meaning is calibration **of the GPS to the code**: tuning how fixes are consumed so
+that what reaches the user meets an accuracy standard. Read that way the term is apt, and the
+constants are literally calibration values, each with its reasoning recorded at the declaration:
+
+- `domain/LiveFixGate.kt:68`, 50 m on the live fix, chosen against two failure modes: 30 m "would
+  blank the HUD under exactly the canopy the owner is testing in", looser would mean "showing
+  positions the track would refuse."
+- `domain/model/TrackRecordingMode.kt`, per-mode ceilings of 30 / 50 / 100 m before a fix becomes
+  a track point.
+- `domain/CompassTrustJudge.kt`, 15°, derived from a walker ending 26 m off line over 100 m,
+  outside the position's own error circle.
+- `domain/NavigationReadout.kt:46`, the "Approaching" band at twice reported accuracy.
+- Network-provider fixes excluded, and the exclusion surfaced in four places.
+
+That is a measurement pipeline tuned so its output is trustworthy, which is what calibration
+means outside the hardware sense. **Verdict: substantially accurate.**
+
+Two things still worth the owner's eye, both narrow:
+
+1. **GPX is the export format**, and it exists separately (`domain/GpxCodec.kt`,
+   `export/TrackGpxExporter.kt`). The store list says "GPX calibration" where it means GPS. A
+   one-letter fix, and worth making so the sentence does not read as calibrating a file format.
+2. **"Ensure accurate location results"** is the phrase doing the most work. Under canopy the
+   calibration sometimes resolves to *no* reading: the HUD withholds distance with "No fix for
+   5 min" while fixes are arriving, by design and with the friendlier alternative explicitly
+   refused. A reader could expect a position where the app deliberately gives none. "Accurate or
+   nothing" is the behaviour, and it is a stronger claim than "accurate", not a weaker one.
+
+## What does not change
+
+Claim 4, sundown alerts, is still absent. Nothing in the owner's ruling touches it, and it
+remains the one item in the list with no implementation behind it.
