@@ -11,6 +11,8 @@ import com.zynergylabs.forager.app.domain.NETWORK_FIXES_RECORDING_NOTICE
 import com.zynergylabs.forager.app.domain.alertAudibilityWarning
 import com.zynergylabs.forager.app.domain.isMostlyNetworkFixes
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
+import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
+import com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
@@ -125,6 +127,20 @@ class TrackRecordingViewModel(
     private val getWaypointReferenceCount: suspend (String) -> Int = { 0 },
     /** The zone the auto-created origin/end waypoints' default names are written in — injected so a test can pin the wall-clock text. */
     private val zone: ZoneId = ZoneId.systemDefault(),
+    /** Pure and stateless, so the default instance is the real one; injected only so a test can substitute. */
+    private val computeSundownCountdown: ComputeSundownCountdownUseCase = ComputeSundownCountdownUseCase(),
+    /**
+     * The user's darkness margin, in minutes. **Read once per [startRecording]**, the same rule
+     * [alertAudibility] follows, rather than watched live: a trip does not need the setting to
+     * change under it mid-walk, and re-reading DataStore every fifteen seconds would be disk
+     * traffic for a value that does not move.
+     *
+     * A suspend function rather than the whole `SundownPreferencesRepository`, matching
+     * [getWaypointReferenceCount]'s reasoning: this ViewModel needs exactly one value from that
+     * surface, and a function type keeps every existing test fixture from having to stand one up
+     * to construct it. Defaults to the stated default margin.
+     */
+    private val darknessMarginMinutes: suspend () -> Int = { DEFAULT_DARKNESS_MARGIN_MINUTES },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -148,6 +164,13 @@ class TrackRecordingViewModel(
     // rule), what stopRecording() seeds the end waypoint from; originCreationInFlight stops a
     // second fix arriving during the origin's own async save from creating a second origin.
     private var lastGatedFix: TrackPoint? = null
+
+    /**
+     * The margin in millis, resolved once per recording. Seeded with the stated default so a
+     * countdown computed before that read lands is the documented behaviour rather than zero,
+     * which would put the turnaround exactly at sunset and quietly drop the point of having one.
+     */
+    private var darknessMarginMillis: Long = DEFAULT_DARKNESS_MARGIN_MINUTES * 60_000L
     private var originCreationInFlight = false
     private var recordingNoticeIds = 0
     private var networkFixesNoticeShown = false
@@ -185,6 +208,7 @@ class TrackRecordingViewModel(
                             networkFixesNotice = null,
                         )
                     }
+                    darknessMarginMillis = darknessMarginMinutes() * 60_000L
                     beginPolling(track.id)
                     beginLocationTracking()
                 }
@@ -295,6 +319,7 @@ class TrackRecordingViewModel(
                         _uiState.update { it.copy(networkFixesNotice = RecordingNotice(++recordingNoticeIds, NETWORK_FIXES_RECORDING_NOTICE)) }
                     }
                     updatePathHome(track)
+                    updateSundown()
                 }
                 delay(POLL_INTERVAL_MILLIS)
             }
@@ -315,6 +340,33 @@ class TrackRecordingViewModel(
      * The gated fix, not any fix: the same accuracy rule that seeds the origin, so the hop is
      * measured from a position the mode's own ceiling admits.
      */
+    /**
+     * Recomputes the countdown from the last gated fix. A new path called from the poll loop
+     * rather than a branch inside it, following [updatePathHome]'s shape.
+     *
+     * Stateless by construction: it reads the clock and the last fix and keeps nothing between
+     * calls. A stop, a process death or a device restart therefore costs it nothing, which is the
+     * owner's requirement met by the shape of the problem rather than by recovery code.
+     *
+     * **This drives the screen only.** It rides `viewModelScope`, which dies with the Activity, so
+     * it stops when the task is swiped away. Harmless for a number nobody is looking at, and
+     * exactly why alert delivery must not be hung here; see [AlertDelivery]'s own doc comment on
+     * the same hole in the off-track alert.
+     */
+    private fun updateSundown() {
+        val fix = lastGatedFix
+        _uiState.update { state ->
+            state.copy(
+                sundownCountdown = computeSundownCountdown(
+                    nowEpochMillis = currentTime.nowEpochMillis(),
+                    position = fix?.let { LatLng(it.lat, it.lng) },
+                    fixAtEpochMillis = fix?.timestampEpochMillis,
+                    darknessMarginMillis = darknessMarginMillis,
+                ),
+            )
+        }
+    }
+
     private fun updatePathHome(track: Track?) {
         val state = uiState.value
         val current = lastGatedFix
