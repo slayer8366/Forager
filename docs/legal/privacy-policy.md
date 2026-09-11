@@ -131,11 +131,14 @@ capture's EXIF.
   showing your position, recording a track, navigating back, and the coordinates a species or
   weather lookup searches on. Location is not confined to recording: `AvailabilityViewModel.init`
   subscribes to live fixes at a one-second floor for the ViewModel's lifetime on every tab, and
-  `AvailabilityScreen` fires locate-me once per launch, so fixes flow whenever the app is open.
+  `AvailabilityScreen` fires locate-me once per launch, so fixes flow whenever the app is in the
+  foreground. When you leave the app, it releases its location subscription rather than relying on
+  Android to withhold it.
   `ACCESS_BACKGROUND_LOCATION` is **not** declared (`app/src/main/AndroidManifest.xml`). A recording
   continues with the screen off because it runs as a foreground service with an ongoing
-  notification, not because the app holds background location access. Outside those two states —
-  app open, or a recording running in the foreground service — the app receives no location at all.
+  notification, not because the app holds background location access. Outside those two states,
+  the app in the foreground or a recording running in the foreground service, the app receives no
+  location at all.
 - **Photos** — you can attach a photo to a journal entry, taken with your device's camera app or
   chosen from your gallery. The photo is stored on your device. Forager does not request camera
   permission.
