@@ -266,3 +266,67 @@ degrade table as one more reason, rendering "at least X" instead of a confident 
 often recordings gap or how far a person walks during one, so building the handling now would be
 the speculative correction logic CLAUDE.md forbids. The beta produces the data, and the
 timestamps to measure it are already being kept.
+
+---
+
+# Amendment, 2026-09-11: how the walk-back line reads (Phase 6 presentation)
+
+Owner decisions, recorded here rather than acted on: the estimate still has no production caller
+and no walked-track data to validate against, so this is what Phase 6 builds, not what Phase 1
+does.
+
+## Two states, not three. No placeholder.
+
+**Ruling:** the average pace is displayed from the start. There is **no "Estimating time..."
+text**.
+
+An earlier phrasing asked for a placeholder until the estimate was stable, alongside "the average
+be displayed first" in the same breath. Those are different behaviours, and the owner's resolution
+on seeing them side by side is that the average shows immediately. A number derived from a stated,
+deliberately slow default is more use to someone deciding whether to keep foraging than a line
+telling them to wait.
+
+So the line reads, in order:
+
+1. **Average pace**, until the measured pace settles.
+2. **Measured pace**, once it has.
+
+## Almost all of this already exists, with the owner's own numbers
+
+The instruction and the recorded design were arrived at independently and agree:
+
+| Owner's words | The constant |
+|---|---|
+| "2 miles per hour travel speed" | `DEFAULT_MOVING_SPEED_KM_PER_HOUR = 3.2`, which is 1.99 mph |
+| "until the estimate can be settled" | `MEASURED_PACE_SETTLED_MOVING_MILLIS`, 15 minutes, named *settled* |
+| "the average be displayed first" | `PaceSource.DEFAULT`, below `MEASURED_PACE_MIN_MOVING_MILLIS`, 5 minutes |
+| "then display the estimate since it's based on user movement" | `PaceSource.DIFFERENCING` / `DOPPLER` |
+
+`MovingPace`'s own note on the 3.2 figure: chosen from foraging behaviour before any data existed,
+slow on purpose, because "the people who walk more slowly than average are often the ones who most
+need the warning."
+
+## What the ruling does not cover, and must not be read as covering
+
+The average needs a **distance** to apply itself to. Where there is no path at all, a lost fix or
+no usable points, `returnWalkingTime` already answers `Withheld` with a reason and no number, and
+that is unchanged: this ruling removes the placeholder for the pace-unmeasured case, not for the
+no-distance case. Those are different, and nothing here turns a missing path into a figure.
+
+The "at least X" hedge on degraded estimates also stands unless the owner says otherwise. The
+whole file is built so that a confidently short number is the one thing it never produces, on the
+stated grounds that being confidently short is the failure mode that gets someone caught out after
+dark.
+
+## One genuinely new idea: a stability bar tied to sundown, not to the clock
+
+The owner's observation: someone who sets out an hour before the turnaround may never accumulate
+the fifteen minutes of *moving* time the settled bar wants, so the estimate would still be on the
+default when the alert fires.
+
+`MovingPace` half-knows this already. Its note on the bar says the default "governs only the first
+minutes of a trip, when nobody is near their turnaround, but at a forager's stop ratio those
+minutes are more of the trip than they look." It records the risk and has no mechanism for it.
+
+Making the bar relative to time-until-turnaround rather than a fixed fifteen minutes is not in the
+code and is worth Phase 6 considering. It is not decided here.
