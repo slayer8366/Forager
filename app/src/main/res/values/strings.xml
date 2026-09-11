@@ -5,6 +5,13 @@
     <string name="track_recording_notification_text">Forager is tracking your location in the background.</string>
     <string name="track_recording_notification_stop_action">Stop recording</string>
     <string name="track_recording_needs_location">Track recording needs location access.</string>
+    <string name="sundown_notification_channel_name">Sundown alert</string>
+    <string name="sundown_notification_channel_description">Tells you when to start heading back, and when the sun sets.</string>
+    <string name="sundown_turnaround_notification_title">Time to head back</string>
+    <!-- Says what is true and never that there is enough time: the walk back is not estimated. -->
+    <string name="sundown_turnaround_notification_text">Sunset is coming. Under trees or in a valley it gets dark sooner.</string>
+    <string name="sundown_sunset_notification_title">The sun has set</string>
+    <string name="sundown_sunset_notification_text">Light is going now.</string>
     <string name="off_track_notification_channel_name">Off-track alert</string>
     <string name="off_track_notification_title">Off track</string>
     <string name="off_track_notification_text">You\'re moving away from your start point, not toward it.</string>

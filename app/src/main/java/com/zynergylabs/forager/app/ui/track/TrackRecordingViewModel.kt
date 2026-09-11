@@ -553,10 +553,11 @@ class TrackRecordingViewModel(
             val shouldAlert = isOffTrackNow && canFireOffTrackAlert()
             if (shouldAlert) {
                 lastOffTrackAlertAtMillis = currentTime.nowEpochMillis()
-                // overridesSilence = true: off-track is advisory, but someone who turned on
-                // recording and walked into the woods has opted into being told they have strayed
-                // (owner decision). The value is passed, not baked in — see Alert's doc comment.
-                alertDelivery.deliver(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = true))
+                // overridesSilence = false — owner ruling, 2026-09-11, reversing the original.
+                // Straying is often deliberate, so off-track respects a phone the user silenced;
+                // the turnaround and sunset alerts are the ones that override it, because those
+                // are about not being stranded after dark. See AlertDelivery's own doc comment.
+                alertDelivery.deliver(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false))
             }
             _uiState.update { it.copy(returnToStart = info, isOffTrack = isOffTrackNow) }
         } else {
