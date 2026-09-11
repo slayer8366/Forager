@@ -350,7 +350,7 @@ opening the app.
 | `INTERNET` | the three OkHttp clients; MapLibre's native HTTP | every search, weather read and map tile |
 | `ACCESS_COARSE_LOCATION` | `AndroidLocationProvider`, `AndroidLocationTracker`, `TrackRecordingService`, `SightingsMap`, `MainActivity` (11 references, paired with FINE) | "Use current location", locate-me, the compass strip's live fix, track recording |
 | `ACCESS_FINE_LOCATION` | as above | track points would be coarse or absent; recording is refused without one of the two (`TrackRecordingService.kt:90`) |
-| `CAMERA` | `PhotoAcquisitionLaunchers.kt:116`, requested at the moment of first capture | in-app camera capture for a log entry |
+| ~~`CAMERA`~~ **REMOVED 2026-09-10** | ~~`PhotoAcquisitionLaunchers.kt:116`, requested at the moment of first capture~~ **Nothing. It was never required:** `ActivityResultContracts.TakePicture` sends `ACTION_IMAGE_CAPTURE`, which the user's camera app services under its own permission. Declaring `CAMERA` did not enable capture, it made the platform *require* the grant before honouring the intent | ~~in-app camera capture for a log entry~~ **Nothing.** Capture works with one fewer prompt. The manifest declaration and the runtime request were removed together; removing either alone breaks capture silently |
 | `ACCESS_MEDIA_LOCATION` | `FilePhotoStore.readExifData` via `MediaStore.setRequireOriginal` (API 29+) | an imported gallery photo's GPS EXIF is silently redacted, so the find gets no coordinate from the photo |
 | `FOREGROUND_SERVICE` | `TrackRecordingService` | multi-hour recording cannot survive backgrounding |
 | `FOREGROUND_SERVICE_LOCATION` | the same service's `foregroundServiceType="location"` (required from API 34) | the service cannot start |
