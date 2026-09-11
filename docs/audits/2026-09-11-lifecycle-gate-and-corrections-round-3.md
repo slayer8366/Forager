@@ -2,6 +2,8 @@
 
 **Date:** 2026-09-11
 **Type:** investigation + correction record. **No code changed.**
+**PARTLY CORRECTED 2026-09-11** by `2026-09-11-lifecycle-gate-and-corrections-round-4.md`. **"Never reads a cache" proves less than claimed** — a missing `getLastKnownLocation` call does not establish it, since Android's `getCurrentLocation` contract permits a very recent cached fix; the conclusion (a find's coordinate is effectively fresh) survives on the contract, and the real gap is that neither `LogPhotoEntity` nor `LocationResult.Success` carries accuracy or provider. **The PR count is 94, not 93** — `/pulls/94` exists; the list endpoint under-reports and the merge-ref guess is disproven. **"Three regions rather than nine" does not survive its own budget** (6000÷480 = 12.5). **The stale `CLAUDE.md` is the project-uploaded copy, not a local checkout**, so "pull, don't edit" is wrong — it needs re-uploading.
+
 **Follows:** `2026-09-11-maplibre-pmtiles-policy-corrections-round-2.md`.
 **Origin:** the owner asked which lifecycle the gate observes, whether a stale fix can reach a
 find's coordinate, whether the cited tests cover the wiring, and returned three corrections to
