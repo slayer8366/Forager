@@ -388,7 +388,24 @@ here.
   (118 = 9/0.076, 375 = 9/0.024) relabelled "~80% power," when the exact
   figures are 103 and 328 and the stated n's carry about 89%. **A
   correction does not propagate forward through its own document on its
-  own.** The rule: when citing a figure, an interval, or a categorical
+  own.** (5) **"The exception carries no path."** Stated early about
+    `SQLiteCantOpenDatabaseException` in the Windows migration failures, never
+    sourced, and restated across sessions with growing confidence until it
+    reached a dispatch's §5 as an established property to be re-confirmed
+    rather than a guess to be checked. It was false. The exception carries the
+    full database path, and always had — the thing that finally bounded the
+    threshold had been sitting in the failure message the whole time, unread,
+    because a claim about it had acquired enough authority to stop anyone
+    looking. This instance differs from the first four in where the authority
+    came from: (1) to (4) each mis-scoped a figure that was correct somewhere,
+    whereas this one had no origin at all and gained standing purely by
+    repetition. **A claim with no provenance is not a weak claim in the
+    record; it is indistinguishable from a strong one.** So: a property
+    asserted about an artifact you can open — an exception, a log line, a
+    file — is checked against the artifact before it is cited, however many
+    documents already repeat it.
+
+    The rule: when citing a figure, an interval, or a categorical
   claim from another document, or from another section of the one you are
   writing, either re-derive it or quote its scope alongside it, and say
   which you did. Where the claim is that something never happens, name the
@@ -401,3 +418,41 @@ here.
   (`2026-09-09-recording-notification-stop-action-completion-report.md:217`).
   This is the same failure that produced the 294-artifact count and the
   `verify-policy-permissions.sh` tripwire.
+- **The Windows migration failures are a path-length boundary at `[212, 260]`,
+  and the repository root is not a term in it.** Eleven Room migration classes
+  fail on Windows with `SQLiteCantOpenDatabaseException`; Linux CI is green and
+  remains the authority. The mechanism is `MAX_PATH`, but not where it was
+  assumed to be. Robolectric builds its sandbox under `%TEMP%` and bakes the
+  **test method name** into the directory name, so the failing path is
+  `C:\Users\<user>\AppData\Local\Temp\robolectric-<Class>_<method_underscored>_<random>\<applicationId>-dataDir\databases\<db>.db`
+  — 93 characters of fixed overhead plus the sandbox suffix plus the database
+  filename, fitting iff `suffix + db_name <= 166`. **The checkout location
+  never appears in it.** Re-cloning to a root 14 characters shorter
+  (`C:\f\Forager`, 12 chars) moved **zero** of the eleven across two full runs,
+  2026-09-10, exactly as it had to.
+  **How the interval was measured, since a single number is not available:**
+  the exception carries the offending path, so failing lengths are read
+  directly — eleven of them, 260 to 271, the shortest sitting exactly on
+  `MAX_PATH`. The passing side comes from the longest path observed to succeed,
+  211 (`TrackRecordingServiceTest`). So the threshold is bounded by
+  `[212, 260]`, and the 49-character gap is the measurement's **resolution, not
+  noise**. Every observation is consistent with exactly 260; two runs cannot
+  separate that from anywhere in the interval, and it must not be asserted as a
+  single figure. **The passing bound is soft** — 211 is the longest path that
+  happened to run, not a searched ceiling — so the interval can only narrow
+  from below by finding a longer passing path.
+  **Do not measure the `.class` path for this.** Those run 241 to 301 and
+  explain a different, genuine failure: Windows could not delete a compiled
+  test class at 298 characters. They cannot split this pool, since the eleven
+  failures include `.class` paths at 241, 242 and 244 — well under any
+  threshold.
+  **The boundary shows itself as intermittency in the message, not the
+  verdict.** Robolectric's random suffix varies in digit count, so a class
+  sitting on the edge shifts a few characters run to run:
+  `LogPhotoMigrationTest` reported a full path at 260 in one run and a
+  pathless, shorter-form exception in the next — same failure, different depth.
+  **The lever, when it is worth pulling, is
+  `systemProperty("java.io.tmpdir", …)` on the test JVM**, pointing somewhere
+  short; that cuts every sandbox path and drops the pool under the threshold.
+  One line, low risk, and it buys **local signal only** — Linux CI is
+  unaffected. Owner's ruling 2026-09-10: after the beta window, not during it.
