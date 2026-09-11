@@ -156,6 +156,16 @@ yourself.
 Forager is not directed at children and collects nothing about anyone, including children, beyond
 what is described above.
 
+## Deleting your data
+
+Everything Forager stores is on your device and can be deleted from inside the app, item by item —
+journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips.
+Uninstalling removes all of it, including the database, the photo files and any crash reports; with
+`allowBackup="false"` there is no cloud copy to survive and reappear. Nothing is held on a server, so
+there is no deletion request to make. Full detail is at <https://www.zynergy-labs.com/delete-data/>,
+generated from `docs/legal/delete-data.md`, and that page is the URL given in the Play Data safety
+declaration.
+
 ## Changes
 
 Material changes to this policy will change the date at the top.
