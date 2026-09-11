@@ -152,7 +152,7 @@ the point of doing them at all.
 | Check | Date | Device, OS | Result | Notes |
 |---|---|---|---|---|
 | 1 off-track run A, normal | 2026-09-11 16:22 local | Samsung, One UI | **fired, audible** | Owner: "Notification sound is good." Vibration not separately recorded |
-| 1 off-track run B, silent | 2026-09-11 16:26 local | Samsung, One UI | **fired, silent** | Ringer muted (crossed-speaker icon in the status bar at 16:27). Notification posted to the shade and made no sound. **Whether the phone vibrated is not recorded, and that is the datum the ruling actually turns on** — see below |
+| 1 off-track run B, silent | 2026-09-11 16:26 local | Samsung, One UI | **PASS** | Owner confirmed **full Mute, no vibration**. Notification posted to the shade, silent and still. This is the top row of the reading table: the `USAGE_ALARM` override is gone from off-track |
 | 2 channels listed and separable | 2026-09-11 | Samsung, One UI (exact model and One UI version not recorded) | **PASS** | Three categories listed and independently toggleable: "Off-track alert", "Sundown alert", "Track recording". Only visible after enabling the Samsung toggle described above |
 
 ### Check 1: what the two runs establish, and the one thing still open
@@ -160,27 +160,41 @@ the point of doing them at all.
 Run A fired audibly on a normal ringer. Run B fired silently with the ringer muted. Same device,
 same walk, one setting different, which is the paired shape this check was specified as.
 
-**That pair is not yet the confirmation, because both observations are about sound.** The ruling is
-about vibration. The channel is created with `enableVibration(false)`
-(`AndroidAlertDelivery.kt:87`), so the channel contributes no buzz at all, and the only vibration
-is the direct call at `:116`, which after the change carries `VibrationAttributes.USAGE_NOTIFICATION`
-instead of `USAGE_ALARM`. A notification that makes no sound in Mute mode is consistent with the
-ruling having shipped and also consistent with a channel that was never going to make sound anyway.
-
-Three readings, and the device was not asked which one applied:
+The owner confirmed run B was **full Mute with no vibration**. Against the three readings this
+check distinguishes, that is the pass:
 
 | Ringer mode | Vibrated? | Meaning |
 |---|---|---|
-| Full Mute | no | **Pass.** `USAGE_NOTIFICATION` was suppressed, which is the ruling |
-| Vibrate | yes | **Also a pass.** The platform allows notification-usage vibration in vibrate mode; this is not the override |
-| Full Mute | yes | **Fail.** `overridesSilence` is still reaching the vibration as `true` |
+| **Full Mute** | **no** | **Pass. This is what was observed.** `USAGE_NOTIFICATION` was suppressed, which is the ruling |
+| Vibrate | yes | Also a pass. The platform allows notification-usage vibration in vibrate mode; that is not the override |
+| Full Mute | yes | Fail. `overridesSilence` would still be reaching the vibration as `true` |
 
-The status bar in the run B screenshot carries the crossed-speaker icon, which reads as Mute rather
-than Vibrate, but that was not confirmed with the owner and the vibration itself was not observed.
-Recorded as **partial**: the sound half is done, the vibration half is one question away.
+The mode mattered and was worth asking about rather than reading off the status-bar glyph. Buzzing
+in Vibrate mode would have looked like a failure and would not have been one.
+
+**The ruling is confirmed. Off-track no longer overrides a silenced phone.**
 
 Worth noting as correct and not a defect: the notification still **appears** in the shade in run B.
 Silencing an alert and suppressing it are different things, and only the first was ruled.
+
+### One residual, stated rather than glossed
+
+The procedure asked for vibration to be recorded in **both** runs. It was recorded in run B and not
+in run A. Run A's evidence is "notification sound is good", and the sound comes from the channel
+(`IMPORTANCE_HIGH`), while the buzz comes from the separate direct call at
+`AndroidAlertDelivery.kt:116`. The two limbs are independent by design — that separation is the
+whole reason the channel is created with `enableVibration(false)` at `:87`.
+
+So one thing these two runs cannot distinguish: a working vibration correctly suppressed in Mute,
+versus a vibration that is not firing at all. Both produce exactly what was observed. That is not a
+doubt about the ruling, which is confirmed either way, because a vibration that never fires cannot
+override anything. It is an unverified claim about the *other* half of the alert: that off-track
+still buzzes on a normal ringer, two short pulses per
+`OFF_TRACK_VIBRATION_PATTERN_MILLIS` (`:74`).
+
+Closing it costs one observation on the next normal-ringer walk. Recorded here rather than left in
+a transcript, since a check that passes without the sample that could have failed it is the family
+this project keeps writing down.
 
 ### What check 2's pass does and does not establish
 
