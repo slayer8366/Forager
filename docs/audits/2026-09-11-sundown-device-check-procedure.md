@@ -151,7 +151,7 @@ the point of doing them at all.
 
 | Check | Date | Device, OS | Result | Notes |
 |---|---|---|---|---|
-| 1 off-track run A, normal | 2026-09-11 16:22 local | Samsung, One UI | **fired, audible** | Owner: "Notification sound is good." Vibration not separately recorded |
+| 1 off-track run A, normal | 2026-09-11 16:22 local | Samsung, One UI | **PASS** | Sound on and vibration on. Audible, and **two pulses**, which is `OFF_TRACK_VIBRATION_PATTERN_MILLIS` (`:74`) as written: 250 ms, 150 ms gap, 250 ms |
 | 1 off-track run B, silent | 2026-09-11 16:26 local | Samsung, One UI | **PASS** | Owner confirmed **full Mute, no vibration**. Notification posted to the shade, silent and still. This is the top row of the reading table: the `USAGE_ALARM` override is gone from off-track |
 | 2 channels listed and separable | 2026-09-11 | Samsung, One UI (exact model and One UI version not recorded) | **PASS** | Three categories listed and independently toggleable: "Off-track alert", "Sundown alert", "Track recording". Only visible after enabling the Samsung toggle described above |
 
@@ -172,29 +172,39 @@ check distinguishes, that is the pass:
 The mode mattered and was worth asking about rather than reading off the status-bar glyph. Buzzing
 in Vibrate mode would have looked like a failure and would not have been one.
 
-**The ruling is confirmed. Off-track no longer overrides a silenced phone.**
+**The ruling is confirmed. Off-track no longer overrides a silenced phone, and it still buzzes when the phone is not silenced.**
 
 Worth noting as correct and not a defect: the notification still **appears** in the shade in run B.
 Silencing an alert and suppressing it are different things, and only the first was ruled.
 
-### One residual, stated rather than glossed
+### The residual, and how it was closed
 
-The procedure asked for vibration to be recorded in **both** runs. It was recorded in run B and not
-in run A. Run A's evidence is "notification sound is good", and the sound comes from the channel
-(`IMPORTANCE_HIGH`), while the buzz comes from the separate direct call at
+When run B first came in, this section recorded an open gap: vibration had been observed in run B
+and not in run A. Run A's evidence at that point was "notification sound is good", and the sound
+comes from the channel (`IMPORTANCE_HIGH`) while the buzz comes from the separate direct call at
 `AndroidAlertDelivery.kt:116`. The two limbs are independent by design — that separation is the
-whole reason the channel is created with `enableVibration(false)` at `:87`.
+whole reason the channel is created with `enableVibration(false)` at `:87`. So the pair as it stood
+could not distinguish **a working vibration correctly suppressed in Mute** from **a vibration that
+is not firing at all**. Both produce exactly what had been seen.
 
-So one thing these two runs cannot distinguish: a working vibration correctly suppressed in Mute,
-versus a vibration that is not firing at all. Both produce exactly what was observed. That is not a
-doubt about the ruling, which is confirmed either way, because a vibration that never fires cannot
-override anything. It is an unverified claim about the *other* half of the alert: that off-track
-still buzzes on a normal ringer, two short pulses per
-`OFF_TRACK_VIBRATION_PATTERN_MILLIS` (`:74`).
+**It is closed.** The owner reports run A's conditions as sound on *and* vibration on, and the
+phone gave **two pulses**. That is `OFF_TRACK_VIBRATION_PATTERN_MILLIS` (`:74`) as written —
+`longArrayOf(0L, 250L, 150L, 250L)`, two 250 ms buzzes with a 150 ms gap — and its own doc says why
+there are two: "more likely to be felt through fabric than a single pulse, still brief enough not
+to feel alarmist."
 
-Closing it costs one observation on the next normal-ringer walk. Recorded here rather than left in
-a transcript, since a check that passes without the sample that could have failed it is the family
-this project keeps writing down.
+So both limbs are now verified in both directions:
+
+| | Normal ringer, vibration on | Full Mute |
+|---|---|---|
+| Sound | yes | no |
+| Vibration | **two pulses, the pattern as written** | none |
+
+The vibration fires, and it is suppressed when the phone is silenced. Those are different facts and
+the check now has an observation for each. Worth naming the shape: the earlier pair passed on a
+sample that could not have failed it, and what closed it was going back for the one observation
+that could. That is the family this project keeps recording, caught here before it was written down
+as a pass.
 
 ### What check 2's pass does and does not establish
 
