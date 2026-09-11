@@ -201,3 +201,68 @@ what gets built and belongs to the owner.
 Plus the new one this report surfaces:
 
 | **S5** | Screen only, screen plus alerts, or live in the notification | **B: screen plus two alerts.** Reasoning in §3. |
+
+---
+
+# Amendment, 2026-09-11: the alert driver, and surviving a stop
+
+Two corrections found after the report was written, both before any wiring, and both by one
+grep each. Recorded here rather than edited into the body above, so the correction has something
+to be a correction of.
+
+## 1. The poll loop is the wrong driver for the alerts
+
+§3 recommended shape B and said a countdown needs no new timer because `beginPolling` already
+runs one. The first half holds. The second half is wrong about *which* component can carry it.
+
+`TrackRecordingViewModel.onCleared()` (`:529-532`) cancels `pollingJob` and `locationJob`, and
+`viewModelScope` dies with the Activity. So the poll loop **stops when the app is swiped away**,
+which is precisely the phone-in-pocket case this feature exists for. An alert hung on it would go
+quiet exactly when it is needed.
+
+`TrackRecordingService` does not have that problem. It owns its own scope and collects
+`container.locationTracker.fixes` directly, evaluating `sampler.shouldAccept` per fix
+(`:106-130`). That keeps running for as long as the recording does, which is the definition of
+when the alert should be live.
+
+**So the feature splits by lifetime, not by convenience:**
+
+| Half | Driver | Why |
+|---|---|---|
+| Screen countdown | `beginPolling`, 15 s | Only matters while the screen is up, and dies with it harmlessly |
+| The two alerts | the service's per-fix collect | Must outlive the Activity. Still no new timer, still no alarms |
+
+At `BATTERY_SAVER` the per-fix cadence is at least 60 s, which is ample for an alert with an
+hour's margin.
+
+## 2. A stop is not a disaster, and detecting one is free
+
+Owner's framing: an unexpected device restart should not spell disaster. Correct, and the
+countdown already has that property for free. **Sunset is a function of clock and position, not
+of recording history.** A restart recomputes it from scratch and is immediately right again, with
+no state carried across the gap and nothing to log.
+
+Where a stop genuinely costs something is the walk-back estimate, not the countdown: a gap leaves
+the recorded track shorter than the path actually walked, so `pathHome` under-measures and the
+walking time comes out **short**, which `ReturnWalkingTime`'s header names as the failure mode
+that gets someone caught out after dark.
+
+**Detecting the gap needs no log, no column and no migration.**
+`TrackPoint.timestampEpochMillis` is already stored on every point, so a gap is a timestamp
+discontinuity between consecutive stored points. `Track.isMostlyNetworkFixes()`
+(`domain/NetworkProviderFix.kt:96`) is the precedent: a track-quality judgement derived from what
+is already stored. This also means **deferring costs nothing** — the timestamps are being written
+today, so tracks collected during the beta can be examined for gaps retroactively.
+
+**Bridge the gap with a measured line; never extrapolate across it.** The straight-line distance
+from the last point before the gap to the first point after is measured, not guessed, and remains
+a lower bound because nobody walks a straight line. Extrapolating the missing distance from
+last-known pace invents a figure nobody observed. The design already holds this exact object:
+`HopBand.FAR` degrades the estimate because a straight line is "short by nature". A recording gap
+is the same thing in the middle of a track rather than at its end, so it belongs in the existing
+degrade table as one more reason, rendering "at least X" instead of a confident number.
+
+**This is Phase 6, not Phase 1.** The countdown needs none of it, and there is no data yet on how
+often recordings gap or how far a person walks during one, so building the handling now would be
+the speculative correction logic CLAUDE.md forbids. The beta produces the data, and the
+timestamps to measure it are already being kept.
