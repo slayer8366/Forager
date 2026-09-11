@@ -6,6 +6,8 @@
 **Question asked:** whether the MapLibre and PMTiles coding structure is in line with those
 projects' policies.
 
+**CORRECTED 2026-09-11** by `2026-09-11-maplibre-pmtiles-policy-corrections.md`, after the owner checked the primary sources independently. **Finding #4 is downgraded to recommended-only** (MapLibre already sends an app-identifying User-Agent; the audit asserted the finding did not depend on that and it did) and **finding #5's licence claim is wrong** (the glyphs are OFL or Apache from openmaptiles/fonts, not demotiles' BSD-3). Four other findings are sharpened without changing severity. The text below is left as written; see the corrections file for what supersedes what.
+
 Scope: the licences and usage policies of MapLibre, PMTiles/Protomaps, and the tile and glyph
 hosts this code actually fetches from. Every policy sentence quoted below was fetched during this
 audit, not recalled. Every code claim names a file and line.
@@ -148,6 +150,8 @@ it. A per-IP rate limit and a tightened `ALLOWED_ORIGINS` close the rest.
 
 ## 4. `tile.openstreetmap.org` is called with a library-default User-Agent
 
+> **SUPERSEDED — downgraded to recommended-only.** MapLibre Native sets `User-Agent: com.zynergylabs.forager.app/<versionName> (<versionCode>)` on every request (`HttpIdentifier.java`, `HttpRequestImpl.java:41-43,76`), so the app is already identified distinctly and stably. The claim below that "the finding does not depend on" MapLibre's default is the error: it does. The contact URL is "optionally" in §3.1 and §3.4 and required only of caching proxies in §5. See corrections C1.
+
 **Where.** `app/src/main/java/com/zynergylabs/forager/app/ui/map/Basemap.kt:171` sets
 `tileUrlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"` for the `OSM_STANDARD` basemap.
 
@@ -177,6 +181,8 @@ setting a Forager-specific UA with a contact URL is a few lines and covers every
 once, OpenTopoMap included.
 
 ## 5. Production glyphs come from MapLibre's CI and demo host
+
+> **PARTLY SUPERSEDED — the remedy holds, the licence claim below is wrong.** The glyph PBFs come from `openmaptiles/fonts` (demotiles README line 121) and are **OFL or Apache**, not demotiles' BSD-3-Clause. Bundling them adds a notice obligation under finding #6 rather than being free of one, and OFL-1.1's reserved-font-name clause applies. See corrections C2.
 
 **Where.** `app/src/main/java/com/zynergylabs/forager/app/ui/map/BasemapStyles.kt:154`:
 
