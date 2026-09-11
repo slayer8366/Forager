@@ -2,6 +2,8 @@
 
 **Date:** 2026-09-11
 **Type:** correction record. **No code changed.**
+**PARTLY CORRECTED 2026-09-11** by `2026-09-11-lifecycle-gate-and-corrections-round-3.md`. **"A merged branch leaves no ref" is wrong** — merging does not delete refs, and the ref still exists in `forager-bak`; the correct rule is that a missing ref says nothing about reachability. **The logging commitment is narrowed wrongly**: `privacy-policy.md:85-86` says the Worker's code "writes no log lines" at all, not merely no request logs, and recording the narrower reading would later appear to license an error log that breaks it. **The index counts quoted are dated** (45 branches then, 52 today). **R1's "three tests" is two** (lines 301 and 305 are one test), and the cited tests do not reach `MainActivity.kt:225-226` at all. **The `maxzoom: 14` option in W2 reverses a recorded decision** that round 2 did not check for — `OfflineMapRepository.kt:96-108`.
+
 **Follows:** `2026-09-11-maplibre-pmtiles-policy-corrections.md`, same day.
 **Origin:** the owner checked round 1's new claims. Three of mine went past the evidence, one of
 their round-1 corrections is withdrawn by them, and they raised a repository concern they asked be
