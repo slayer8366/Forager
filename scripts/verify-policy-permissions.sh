@@ -37,14 +37,22 @@ fail=0
 # Permissions the policy describes in prose rather than by constant. Each entry is a deliberate
 # decision that the user-facing wording covers it; adding to this list is a claim that a reader
 # learns what the permission does without seeing its Android name.
-#   CAMERA               -> "Camera: taking a photo for a journal entry"
 #   INTERNET             -> "Internet: the requests listed above"
 #   POST_NOTIFICATIONS   -> "Notifications, vibrate, foreground service"
 #   VIBRATE              -> same line
 #   FOREGROUND_SERVICE   -> same line
-PROSE_COVERED="CAMERA INTERNET POST_NOTIFICATIONS VIBRATE FOREGROUND_SERVICE"
+# CAMERA was in this list until 2026-09-10. The app no longer declares android.permission.CAMERA:
+# capture goes through ACTION_IMAGE_CAPTURE, which the user's camera app services under its own
+# permission. If the policy still lists a camera entry that is a prose question for the owner, not
+# a manifest mismatch -- this script compares the manifest against permission *constants* named in
+# the policy, and the policy names none in that form.
+PROSE_COVERED="INTERNET POST_NOTIFICATIONS VIBRATE FOREGROUND_SERVICE"
 
-manifest_perms=$(grep -oE 'android\.permission\.[A-Z_]+' "$MANIFEST" | sed 's/android\.permission\.//' | sort -u)
+# Only <uses-permission> declarations count, not every occurrence of the string in the file. Until
+# 2026-09-10 this grepped the raw manifest text, so a *comment* naming a permission was read as
+# declaring it -- removing CAMERA and explaining why in a comment made this script report CAMERA as
+# still declared. The check was reading something adjacent to what it meant.
+manifest_perms=$(grep -oE '<uses-permission[^>]*android:name="android\.permission\.[A-Z_]+"' "$MANIFEST" | grep -oE 'android\.permission\.[A-Z_]+' | sed 's/android\.permission\.//' | sort -u)
 policy_perms=$(grep -oE '\b(ACCESS|FOREGROUND_SERVICE|POST|READ|WRITE|RECORD)_[A-Z_]+\b|\bCAMERA\b|\bINTERNET\b|\bVIBRATE\b' "$POLICY" | sort -u || true)
 
 # ---------------------------------------------------------------------------

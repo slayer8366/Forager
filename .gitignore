@@ -24,3 +24,13 @@ local.properties
 *.keystore
 !app/debug.keystore
 /signing.properties
+
+# Claude Code session state (worktrees, local agent config) -- tooling, never part of a build.
+# Untracked entries here previously made resolveBuildIdentity() stamp release builds `.dirty`,
+# because the dirty check is `git status --porcelain`, which counts untracked files. That
+# sensitivity is deliberate and must not be loosened -- an untracked .kt under src/ IS compiled in,
+# so a false *clean* would be the worse failure. Ignore what genuinely cannot affect a build.
+.claude/
+
+# Written by Gradle's daemon-JVM feature, machine-local.
+gradle/gradle-daemon-jvm.properties

@@ -4,10 +4,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- For the mushroom log's camera capture (ActivityResultContracts.TakePicture) — see
-         com.zynergylabs.forager.app.photo.CameraCaptureFiles. Gallery attach needs no permission at all: it
-         uses PickVisualMedia, the modern photo picker. -->
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The mushroom log's camera capture uses ActivityResultContracts.TakePicture
+         (ACTION_IMAGE_CAPTURE), which needs no permission: the camera app is a separate process
+         and writes into a FileProvider URI Forager supplies. See
+         com.zynergylabs.forager.app.photo.CameraCaptureFiles. android.permission.CAMERA was
+         declared here until 2026-09-10 and removed before the first beta. Declaring it enabled
+         nothing; it only made the platform require the grant before honouring
+         ACTION_IMAGE_CAPTURE, so the app asked testers for access it never used directly.
+         Do not re-add it without a direct CameraX/Camera2 use, and if it ever comes back the
+         runtime request in PhotoAcquisitionLaunchers must come back with it. Gallery attach needs
+         no permission at all: it uses PickVisualMedia, the modern photo picker. -->
     <!-- Photo-geodata dispatch: lets a gallery import's EXIF read see the location tag a photo's
          own MediaStore entry carries (MediaStore.setRequireOriginal, API 29+) — without it, the
          platform silently redacts GPS EXIF from any stream this app opens. Requested at the moment

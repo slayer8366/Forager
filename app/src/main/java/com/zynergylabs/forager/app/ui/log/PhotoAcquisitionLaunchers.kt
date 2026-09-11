@@ -86,15 +86,15 @@ internal fun rememberPhotoAcquisitionLaunchers(
             capture?.let(cameraCaptureFiles::deleteCapture)
         }
     }
-    val requestCameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            val capture = cameraCaptureFiles.newCapture()
-            pendingCapture = capture
-            takePicture.launch(capture.uri)
-        } else {
-            acquisitionInFlight = false
-        }
-    }
+    // No permission request here, deliberately. ActivityResultContracts.TakePicture sends
+    // ACTION_IMAGE_CAPTURE to whatever camera app the user has; that app holds the camera
+    // permission, not Forager, and writes into the FileProvider URI supplied below.
+    // android.permission.CAMERA was declared and requested here until 2026-09-10. It enabled
+    // nothing -- declaring it only makes the platform *require* the grant before honouring
+    // ACTION_IMAGE_CAPTURE -- so removing the manifest entry and this request together is what
+    // makes capture work with one fewer prompt. Removing only one of the two breaks it: the
+    // request alone is denied instantly for an undeclared permission, and capture dies silently
+    // in the else branch.
 
     // PickMultipleVisualMedia, not PickVisualMedia: the single-select contract only ever returns
     // one Uri — see LogEntryDetailScreen's own former doc comment on this exact bug, now this
@@ -113,7 +113,9 @@ internal fun rememberPhotoAcquisitionLaunchers(
     return PhotoAcquisitionLaunchers(
         launchCamera = {
             acquisitionInFlight = true
-            requestCameraPermission.launch(Manifest.permission.CAMERA)
+            val capture = cameraCaptureFiles.newCapture()
+            pendingCapture = capture
+            takePicture.launch(capture.uri)
         },
         launchGallery = {
             acquisitionInFlight = true

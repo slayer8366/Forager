@@ -136,7 +136,9 @@ capture's EXIF.
   continues with the screen off because it runs as a foreground service with an ongoing
   notification, not because the app holds background location access. Outside those two states —
   app open, or a recording running in the foreground service — the app receives no location at all.
-- **Camera** — taking a photo for a journal entry.
+- **Photos** — you can attach a photo to a journal entry, taken with your device's camera app or
+  chosen from your gallery. The photo is stored on your device. Forager does not request camera
+  permission.
 - **`ACCESS_MEDIA_LOCATION`** — reading the capture date and coordinate of a photo you import, so a
   find can be dated and placed. Read separately from the stored copy's bytes.
 - **Notifications, vibrate, foreground service** — the off-track alert and the recording notification.
