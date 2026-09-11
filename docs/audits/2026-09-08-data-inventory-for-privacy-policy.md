@@ -392,6 +392,26 @@ which is exactly the multi-hour-recording case. Nothing in the tree would work b
 with background location. **This is the easiest section of the Play form to answer, and
 the answer is "not requested".**
 
+> **SUPERSEDED IN PLACE 2026-09-11 (owner-authorised), first clause only.** `5967dd5`
+> (2026-09-09 21:40) added a lifecycle gate: the live-fix subscription is now released on the
+> hosting Activity's `ON_STOP` and re-acquired on `ON_START`
+> (`MainActivity.kt:225-226` → `AvailabilityViewModel.onEnteredForeground`/`onLeftForeground`).
+> **So "collected for the whole lifetime of an Activity-scoped ViewModel" and "the entire time
+> it is in the foreground" are no longer accurate** — screen-off or backgrounding now releases it.
+>
+> **The rest of the paragraph stands unchanged and is still true:** not gated on the Maps tab, not
+> gated on a search, not gated on a recording, at a 1 Hz two-provider floor, whenever the app is
+> foregrounded. `AvailabilityViewModel.onEnteredForeground`'s own doc comment says so —
+> "**Deliberately not need-gating.** This still subscribes on every tab, at the same 1-second
+> floor, whether or not anything is consuming fixes."
+>
+> **No submitted Data safety answer changes** (owner, 2026-09-11): location is declared collected
+> and shared either way. This head-note correction exists because this table is an upstream source
+> the form is filled from, and a claim that outlives its mechanism is how the `CAMERA` answer would
+> come back — the second such claim in this one document. The file's own head note, "It is not
+> superseded," predates this and is wrong as to this section. See
+> `2026-09-11-lifecycle-gate-and-corrections-round-4.md`.
+
 The rest of this section is where the draft's third claim fails. "Location used only
 while recording or viewing position" is not what the code does:
 
