@@ -178,6 +178,22 @@ Reading the result:
 | Not recording | The resync ran and agreed with the row. This is the fix |
 | Still recording | The resync did not run, or ran and did not clear. A JVM-green build says nothing about which |
 
+### Result: PASS, 2026-09-12
+
+Owner, on the CI build of `7f3f357` (`APK reports versionCode=613 versionName=1.0.613+g8a5921fa`,
+read from the build step's own output): **"Test success, record button turns off."**
+
+That is the top row. The resync ran on a real device and agreed with the track's row, which is the
+claim no JVM test in this repository can make. The suite was necessary and, as recorded above, not
+sufficient.
+
+What this does **not** establish, and neither does any run so far: that the platform location
+registration is actually released. Cancelling `locationJob` is what runs `awaitClose {
+removeUpdates(listener) }`, and the button clearing proves `clearRecordingState()` ran, which
+cancels that job — so the release follows from the same code path rather than from a separate
+observation. Confirming it directly would need `adb shell dumpsys location` before and after, which
+was not done. Recorded as inferred rather than observed.
+
 Worth doing in the same pass, since it is the half the suite cannot speak to at all: after step 3,
 before step 4, confirm the ongoing notification is gone. That is the service stopping itself, which
 was always correct, and it is what makes the button's claim visibly wrong today.
