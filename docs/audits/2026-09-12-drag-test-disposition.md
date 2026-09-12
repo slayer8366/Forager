@@ -121,3 +121,44 @@ stacked PRs). A bare branch push does not trigger it. So from a container with n
 experiment can reach CI only through a PR; absent an instruction to open one, it runs on the owner's
 host. Outcome B — the test passing on reverted code — is worth writing down even though it keeps
 nothing: it would be the third recorded blind spot on this one surface.
+
+## Addendum 2 (2026-09-12): the CI route does not exist under the constraints
+
+The owner authorised a CI run with four constraints, recorded verbatim so they travel with the
+experiment wherever it runs:
+
+1. **Name it for what it is** — e.g. `claude/experiment-revert-drag-fix-do-not-merge`. The name is
+   the guard; it is what a future session sees in a branch list.
+2. **The revert is the only change on it.** Branch off the current head of the fix branch, revert,
+   push. No test edits, no docs, nothing else — otherwise a failure cannot be attributed.
+3. **No PR, ever.** A PR is what turns a branch into something that looks mergeable.
+4. **Delete the branch after the run** and record the outcome in this document rather than leaving
+   the branch as the artifact. This project has already spent a day on branches nobody could
+   account for.
+
+Main is untouched and the AAB builds from main, so there is no path from the experiment to a
+shipped artifact.
+
+**Read in full, `.github/workflows/ci.yml`'s trigger block is:**
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+```
+
+No `workflow_dispatch`. A bare branch push does not run CI; only a push to `main` or a pull request
+does. **Constraint 3 therefore closes the CI route from a container with no SDK**, exactly as the
+owner anticipated: "If it's PR-only, this route doesn't exist without opening one, and then it goes
+to the host instead." No branch was created. **The experiment runs on the owner's host**, under the
+same four constraints and the seven-step protocol above.
+
+**Side finding from the same read.** The fix branch `claude/new-session-pd5wfd` has a head,
+`7aef89a` ("Audit index: a truncated search result and an empty one are the same text"), that is
+**not contained in `main`** (`git merge-base --is-ancestor` → no). PR #98 merged an earlier point of
+that branch; at least one commit landed on it afterward. Reported, not acted on — it is the class of
+thing constraint 4 exists for, and whether it is unmerged work or a stray belongs to whoever owns
+that branch. If the experiment branches "off the current head of the fix branch" as constraint 2
+says, it inherits that commit; branching off `main` at `f7c9f15` avoids that and still carries the
+fix.
