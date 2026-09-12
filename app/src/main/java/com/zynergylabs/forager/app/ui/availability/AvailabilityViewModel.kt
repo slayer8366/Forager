@@ -165,9 +165,18 @@ class AvailabilityViewModel(
      *
      * **This does not touch a running recording.** `TrackRecordingService` collects
      * [LocationTracker.fixes] on its own (`TrackRecordingService.kt`), as a foreground service, and
-     * `TrackRecordingViewModel` collects its own stream bounded by the recording itself — started
-     * when recording starts and cancelled when it stops. Neither is this job, and neither is
+     * `TrackRecordingViewModel` collects its own stream. Neither is this job, and neither is
      * affected by this call.
+     *
+     * **Corrected (resync dispatch).** This paragraph used to add that the recording ViewModel's
+     * stream is "bounded by the recording itself — started when recording starts and cancelled when
+     * it stops". That held only for a stop made through the ViewModel. A stop from the notification
+     * shade calls `TrackRecordingService.stopRecording()`, a different method of the same name on a
+     * different class, so its `locationJob` outlived the recording and kept a platform registration
+     * alive. `TrackRecordingViewModel` now has its own `onEnteredForeground`/`onLeftForeground`,
+     * which resynchronize against the track's row rather than releasing unconditionally the way
+     * this one does — see that class for why an unconditional release would regress the origin
+     * waypoint and the off-track alert.
      */
     fun onLeftForeground() {
         isForegrounded = false

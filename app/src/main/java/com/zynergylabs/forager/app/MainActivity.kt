@@ -218,12 +218,36 @@ class MainActivity : ComponentActivity() {
         // transient pause (a dialog, the app's own camera launch -- the same confusion
         // PhotoAcquisitionLaunchers.kt documents for its own ON_STOP heuristic).
         //
-        // Deliberately NOT the recording path. TrackRecordingService collects its own fixes as a
-        // foreground service and is untouched here; TrackRecordingViewModel's collector is bounded
-        // by the recording itself. A recording continues with the screen off exactly as before.
+        // TrackRecordingService still collects its own fixes as a foreground service and is
+        // untouched here. A recording continues with the screen off exactly as before.
+        //
+        // CORRECTED (resync dispatch). This comment used to say the recording path was deliberately
+        // excluded because "TrackRecordingViewModel's collector is bounded by the recording itself".
+        // That was right about the design and wrong about the state: the bound is `locationJob`,
+        // cancelled only by TrackRecordingViewModel.stopRecording(), which the notification shade's
+        // Stop action never calls -- it calls TrackRecordingService.stopRecording(), a different
+        // method of the same name on a different class. So after a stop from the shade the
+        // ViewModel's collector outlived the recording it was supposedly bounded by, holding a
+        // platform location registration with no foreground service and no notification behind it.
+        //
+        // TrackRecordingViewModel is therefore driven from the same two callbacks now -- but it does
+        // NOT release its subscription on ON_STOP the way AvailabilityViewModel does. It
+        // resynchronizes against the track's own row and releases only if that row says the
+        // recording is over. Two things in its collector must keep running with the screen off
+        // during a legitimate recording: the origin waypoint, seeded from the first fix to clear the
+        // accuracy gate and which pathHome's own doc records may arrive very late under canopy, and
+        // the off-track alert, which is fed from that same collector. See
+        // TrackRecordingViewModel.onLeftForeground for the full reasoning.
         lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onStart(owner: LifecycleOwner) = viewModel.onEnteredForeground()
-            override fun onStop(owner: LifecycleOwner) = viewModel.onLeftForeground()
+            override fun onStart(owner: LifecycleOwner) {
+                viewModel.onEnteredForeground()
+                trackRecordingViewModel.onEnteredForeground()
+            }
+
+            override fun onStop(owner: LifecycleOwner) {
+                viewModel.onLeftForeground()
+                trackRecordingViewModel.onLeftForeground()
+            }
         })
 
         setContent {

@@ -465,9 +465,10 @@ class TrackRecordingViewModelTest {
         vm.returnToStart(point(lat = 45.003, lng = -122.0, t = 4_000L))
         assertTrue(vm.uiState.value.isOffTrack)
         assertEquals(1, alertDelivery.alerts.size)
-        // Off-track passes overridesSilence = true (owner decision) — asserted on the value the
+        // Off-track passes overridesSilence = false (owner ruling 2026-09-11, reversing the
+        // original true) — asserted on the value the
         // delivery received, since the parameter exists precisely so it is never assumed.
-        assertEquals(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = true), alertDelivery.alerts.single())
+        assertEquals(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false), alertDelivery.alerts.single())
 
         // Still off-track (net distance keeps increasing) on the very next fix, same clock instant
         // — the cooldown, not the heuristic, is what must keep this from delivering again immediately.

@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.track
 import com.zynergylabs.forager.app.domain.PathHome
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.model.SundownCountdown
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -102,6 +103,15 @@ data class TrackRecordingUiState(
      * cleared on the next start. Same one-shot shape as [tripStartWarning].
      */
     val networkFixesNotice: RecordingNotice? = null,
+
+    /**
+     * When the light goes, for the position this recording last had a fix at.
+     *
+     * Always present and never null: [SundownCountdown] has a case for every situation including
+     * "no position yet", so a screen cannot render a blank where a time should be. See that type
+     * for why a blank is the specific failure worth designing against here.
+     */
+    val sundownCountdown: SundownCountdown = SundownCountdown.NoPositionYet,
 ) {
     val isRecording: Boolean get() = activeTrack != null
 }

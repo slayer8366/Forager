@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
 import com.zynergylabs.forager.app.data.repository.DataStoreAppThemePreferenceRepository
+import com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepository
 import com.zynergylabs.forager.app.data.remote.INaturalistClient
 import com.zynergylabs.forager.app.data.remote.OpenMeteoArchiveClient
 import com.zynergylabs.forager.app.data.remote.OpenMeteoClient
@@ -77,6 +78,7 @@ import com.zynergylabs.forager.app.domain.HistoricalWeatherProvider
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
+import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
@@ -182,6 +184,7 @@ class AppContainer(context: Context) {
     val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
     val unitSystemPreferenceRepository: UnitSystemPreferenceRepository = DataStoreUnitSystemPreferenceRepository(context)
     val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context)
+    val sundownPreferencesRepository: SundownPreferencesRepository = DataStoreSundownPreferencesRepository(context)
 
     val photoStore: PhotoStore = FilePhotoStore(context)
     val cameraCaptureFiles = CameraCaptureFiles(context)

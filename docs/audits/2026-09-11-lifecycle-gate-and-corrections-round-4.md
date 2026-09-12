@@ -1,5 +1,7 @@
 # Round 4: what survives a pocketed phone, and three figures that did not reproduce
 
+**STALE BASE — RE-DERIVED 2026-09-12** by `2026-09-12-round-4-re-derived-against-5515adc.md`. This report was written against `4957675` while `origin/main` had moved to `5515adc`, two merges ahead: PR #95 (sundown countdown Phase 1) and PR #96 (recording-state resync). **§3a's "`CivilTwilight` has zero production callers" is withdrawn** — on current main it has two (`ComputeSundownCountdownUseCase`, `SunCrossing`), and every sundown file this report implied was missing already exists, `SundownPreferencesRepository.kt` included. The mechanism findings (§1, §1a, §2a) re-check clean on `5515adc`, and §1a's gap is confirmed **still open** there: #96 resyncs the stale-active direction only. Read the re-derivation first.
+
 **Date:** 2026-09-11
 **Type:** investigation + correction record. **One file edited** (`2026-09-08-data-inventory-for-privacy-policy.md`, owner-authorised supersession note). No code changed.
 **Follows:** `2026-09-11-lifecycle-gate-and-corrections-round-3.md`.

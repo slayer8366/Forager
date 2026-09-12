@@ -43,12 +43,21 @@ class AndroidAlertDelivery(context: Context) : AlertDelivery {
 
     init {
         createOffTrackNotificationChannel(appContext)
+        createSundownNotificationChannel(appContext)
     }
 
     override fun deliver(alert: Alert) {
         when (alert.kind) {
             AlertKind.OFF_TRACK -> {
                 postOffTrackNotification(appContext)
+                vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
+            }
+            AlertKind.TURNAROUND -> {
+                postSundownNotification(appContext, SundownNotification.TURNAROUND)
+                vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
+            }
+            AlertKind.SUNSET -> {
+                postSundownNotification(appContext, SundownNotification.SUNSET)
                 vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
             }
         }
@@ -142,4 +151,65 @@ internal fun vibrateWith(vibrator: Vibrator, overridesSilence: Boolean) {
             AudioAttributes.Builder().setUsage(usage).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build(),
         )
     }
+}
+
+/**
+ * Its own channel, separate from off-track, so a user can silence one without losing the other.
+ * That separation is the point: the owner's ruling is that off-track respects a silenced phone
+ * and the sundown alerts do not, and two channels is what lets someone act on that difference in
+ * Android's own settings rather than only in this app's.
+ */
+internal const val SUNDOWN_CHANNEL_ID = "sundown_alert"
+internal const val SUNDOWN_NOTIFICATION_ID = 1003
+
+/**
+ * Three pulses rather than off-track's two, and longer. This is the alert that means the light is
+ * going, and it should not be mistaken through a coat pocket for the advisory one.
+ */
+internal val SUNDOWN_VIBRATION_PATTERN_MILLIS = longArrayOf(0L, 400L, 200L, 400L, 200L, 400L)
+
+/** Which of the two sundown moments is being announced. */
+internal enum class SundownNotification { TURNAROUND, SUNSET }
+
+internal fun createSundownNotificationChannel(context: Context) {
+    val manager = context.getSystemService(NotificationManager::class.java)
+    val channel = NotificationChannel(
+        SUNDOWN_CHANNEL_ID,
+        context.getString(R.string.sundown_notification_channel_name),
+        // HIGH for the same reason off-track is: meant to be noticed on a pocketed phone. The
+        // channel carries no vibration; the direct call does, so it can carry alarm usage.
+        NotificationManager.IMPORTANCE_HIGH,
+    ).apply {
+        enableVibration(false)
+        description = context.getString(R.string.sundown_notification_channel_description)
+    }
+    manager.createNotificationChannel(channel)
+}
+
+/**
+ * Best-effort, the same stance [postOffTrackNotification] takes: a POST_NOTIFICATIONS denial means
+ * no notification, not a crash, and the vibration still runs on its install-time permission.
+ */
+internal fun postSundownNotification(context: Context, which: SundownNotification) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+    ) {
+        return
+    }
+    val title = when (which) {
+        SundownNotification.TURNAROUND -> R.string.sundown_turnaround_notification_title
+        SundownNotification.SUNSET -> R.string.sundown_sunset_notification_title
+    }
+    val text = when (which) {
+        SundownNotification.TURNAROUND -> R.string.sundown_turnaround_notification_text
+        SundownNotification.SUNSET -> R.string.sundown_sunset_notification_text
+    }
+    val notification = NotificationCompat.Builder(context, SUNDOWN_CHANNEL_ID)
+        .setContentTitle(context.getString(title))
+        .setContentText(context.getString(text))
+        .setSmallIcon(R.drawable.ic_track_recording)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setAutoCancel(true)
+        .build()
+    NotificationManagerCompat.from(context).notify(SUNDOWN_NOTIFICATION_ID, notification)
 }
