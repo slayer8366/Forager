@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.util.Log
+import android.view.MotionEvent
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -522,7 +523,41 @@ fun SightingsMap(
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
-            factory = { mapView },
+            factory = {
+                // Gesture ownership: a drag that starts on the map pans the map, even when an
+                // ancestor is scrolling. Without this, the offline-region picker
+                // (OfflineMapsPanel's Column has verticalScroll) could take the drag and scroll
+                // the panel instead, which made the pin hard to place — the owner's report.
+                //
+                // Why this is needed even though MapLibre already asks: MapView's own
+                // initialisation calls requestDisallowInterceptTouchEvent(true) exactly once
+                // (read from the 13.5.0 artifact's bytecode, in the same block as
+                // setClickable/setLongClickable/setFocusable). That call cannot do the job here
+                // for two independent reasons — the MapView is constructed inside `remember`
+                // above, before AndroidView attaches it, so it has no parent to propagate the
+                // request to; and ViewGroup.dispatchTouchEvent clears FLAG_DISALLOW_INTERCEPT on
+                // every ACTION_DOWN, so a one-shot request at construction is gone by the first
+                // touch regardless. Re-asserting it per gesture is what actually holds.
+                //
+                // Compose honours it: AndroidViewHolder overrides
+                // requestDisallowInterceptTouchEvent and forwards it to PointerInteropFilter
+                // (both read from the compose-ui 1.12.0 artifact), which then dispatches to the
+                // view on the Initial pass and consumes — so the scrolling ancestor never sees
+                // the change. Compose clears the flag again when the gesture ends, so this does
+                // not latch.
+                //
+                // Returns false: MapLibre's own onTouchEvent still runs exactly as before, so
+                // pan, pinch-zoom, double-tap-zoom and rotate are untouched. Safe to attach —
+                // MapView never sets an OnTouchListener on itself (also checked in the artifact),
+                // so nothing is being clobbered.
+                mapView.setOnTouchListener { view, event ->
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        view.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                    false
+                }
+                mapView
+            },
             // Load-bearing intent carried over from osmdroid, re-reasoned rather than re-verified
             // for MapLibre — see this composable's own doc comment, "Content does not paint outside
             // this composable's slot".
