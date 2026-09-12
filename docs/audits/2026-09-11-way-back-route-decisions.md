@@ -186,11 +186,15 @@ the same inputs returns the same answer. The control is honest as "try again now
 it implies the answer will change. Worth saying in the label or not offering it in the states where
 nothing can change.
 
-**My reading of what the primary slot shows in that state, flagged as a reading rather than an
-instruction:** the message takes the primary slot, and the straight line stays in the status line
-where it already is. The two cannot be confused because the status line is labelled, so nothing
-silently changes meaning — which was the actual worry behind the original question. Correct this if
-it is wrong.
+**What the primary slot shows in that state (owner-confirmed 2026-09-12).** The message takes the
+primary slot, and the straight line stays in the status line where it already is. The two cannot be
+confused because the status line is labelled, so nothing silently changes meaning — which was the
+actual worry behind the original question.
+
+Recorded as confirmed rather than left standing as a reading: it was put to the owner as an
+inference and they answered it, so it moves out of "inferred" and into "decided". A claim's status
+in this record should match the evidence behind it, and leaving a confirmed decision marked as a
+guess is the same error as the reverse.
 
 ---
 
