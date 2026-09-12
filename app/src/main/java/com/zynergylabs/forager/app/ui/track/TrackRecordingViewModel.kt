@@ -175,6 +175,14 @@ class TrackRecordingViewModel(
     private var recordingNoticeIds = 0
     private var networkFixesNoticeShown = false
 
+    /**
+     * Whether the hosting Activity is at least STARTED, driven by [onEnteredForeground] /
+     * [onLeftForeground]. Read by [beginLocationTracking] so a recording started and then
+     * immediately backgrounded — `startRecording` does its work in a coroutine, so `ON_STOP` can
+     * win that race — cannot leave a platform listener registered with no screen showing.
+     */
+    private var isForegrounded = true
+
     init {
         loadWaypoints()
         loadTracks()
@@ -274,6 +282,19 @@ class TrackRecordingViewModel(
             }
         }
     }
+
+    /**
+     * The hosting Activity reached `ON_START`.
+     *
+     * INERT IN THIS COMMIT, ON PURPOSE. The test that proves this method is needed has to be seen
+     * failing before the body is written, and a method that does not exist yet fails to compile
+     * rather than failing an assertion — which `CLAUDE.md` records as the way a revert check lies.
+     * The body lands in the next commit.
+     */
+    fun onEnteredForeground() = Unit
+
+    /** The hosting Activity reached `ON_STOP`. Inert in this commit — see [onEnteredForeground]. */
+    fun onLeftForeground() = Unit
 
     /**
      * Marks the walker as now heading back to the track's start — the only state
