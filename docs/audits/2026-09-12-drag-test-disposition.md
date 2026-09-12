@@ -162,3 +162,39 @@ thing constraint 4 exists for, and whether it is unmerged work or a stray belong
 that branch. If the experiment branches "off the current head of the fix branch" as constraint 2
 says, it inherits that commit; branching off `main` at `f7c9f15` avoids that and still carries the
 fix.
+
+## Addendum 3 (owner, 2026-09-12): run on the host; what outcome B would count
+
+**Decision: the experiment runs on the owner's host.** A PR whose purpose is to carry a deliberate
+defect through CI creates something that looks mergeable. The host has the SDK, the experiment is
+self-contained, and nothing needs to leave the machine.
+
+**Outcome B, underlined.** If the test passes on reverted code it keeps nothing, but it would be the
+**third recorded blind spot on one surface**: text metrics (`a188d57`, tab wrap), gesture routing
+(`a9e8a4f`, declined as unreachable), and whatever this one turns out to be. One is an environment
+quirk. Three is a property of the surface, and the count is what eventually justifies a different
+kind of test rather than another attempt at the same one. Instrumented tests on a device would be
+that different kind; they are a post-beta conversation.
+
+## Where this work actually lives
+
+The branch is `claude/ios-port-feasibility-mvsjcr`, and only the first document on it is an iOS
+port report. The name is a session artifact and will make a later reader hunt, so, derived from
+`git diff --name-only origin/main...HEAD` at the time of writing, the branch carries these audit
+documents and nothing else outside `docs/audits/`:
+
+- `2026-09-08-data-inventory-for-privacy-policy.md`
+- `2026-09-11-ios-port-feasibility-report.md`
+- `2026-09-11-lifecycle-gate-and-corrections-round-3.md`
+- `2026-09-11-lifecycle-gate-and-corrections-round-4.md`
+- `2026-09-11-maplibre-pmtiles-policy-compliance.md`
+- `2026-09-11-maplibre-pmtiles-policy-corrections-round-2.md`
+- `2026-09-11-maplibre-pmtiles-policy-corrections.md`
+- `2026-09-12-drag-test-disposition.md`
+- `2026-09-12-recheck-against-f7c9f15.md`
+- `2026-09-12-round-4-re-derived-against-5515adc.md`
+
+The thread runs: iOS feasibility → MapLibre/PMTiles policy audit → three rounds of owner
+corrections → the lifecycle gate and the pocket question → re-derivation after a stale base →
+recheck after #97/#98 → this drag-test disposition. The index rows in `README.md` carry the
+findings; these files carry the evidence.
