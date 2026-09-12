@@ -236,3 +236,32 @@ they should not be merged into one.
 
 **Open actions are now two, unchanged in number:** the host run, and a PR for `e8661ed`/`7aef89a`
 or a decision that they should not ship.
+
+## Addendum 5 (2026-09-12): `e8661ed`/`7aef89a` merged by #99 before a PR was opened here
+
+The owner instructed: open the PR and merge both. Before opening one, the branch state was re-read
+against the remote — the rule this thread produced, applied to its own last step — and **`main` had
+moved to `5494044`, "Merge pull request #99 from slayer8366/claude/new-session-pd5wfd."** Between
+the zero-open-PRs check in Addendum 4 and this one, someone opened and merged #99. Confirmed:
+
+- `git merge-base --is-ancestor e8661ed origin/main` → yes; same for `7aef89a`.
+- The branch is now 0 ahead of `main`, 1 behind.
+- `origin/main:CLAUDE.md:386` carries the entry: "A planner's picture of the repository is a claim
+  about the past..."
+
+**No PR was opened here.** Opening one would have created an empty duplicate. A rule that existed
+only on an unmerged branch now exists on `main`, which was the point.
+
+The owner's own note on this belongs in the record: approving a merge and not noticing it never
+merged is its own small instance of the thing the entry describes.
+
+**The index conflict landed as designed.** Merging `5494044` into this branch conflicted in
+`docs/audits/README.md`: 2 rows from `main`, 9 from this branch, **11 kept, 0 dropped**, 105 rows in
+total. The serialization point working, not a problem.
+
+**Registered on its own, as the owner asked:** at the time of Addendum 4 there were zero open pull
+requests in the repository. Everything then in flight — the three UI fixes, the two documentation
+commits, this disposition work — sat on branches with nothing proposing them. #99 has since closed
+one of those; this branch is another.
+
+**Open actions are now one: the host run.**
