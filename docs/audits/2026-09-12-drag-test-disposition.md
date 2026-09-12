@@ -198,3 +198,41 @@ The thread runs: iOS feasibility → MapLibre/PMTiles policy audit → three rou
 corrections → the lifecycle gate and the pocket question → re-derivation after a stale base →
 recheck after #97/#98 → this drag-test disposition. The index rows in `README.md` carry the
 findings; these files carry the evidence.
+
+## Addendum 4 (2026-09-12): constraint 2 revised, and `7aef89a` identified
+
+**Constraint 2 is revised by the owner:** branch the experiment off **`main` at `f7c9f15`**, not off
+the fix branch's head. Main carries the fix and not the trailing commits, so the revert measures
+exactly one change.
+
+**`7aef89a` is two commits, not one, and neither is app code.** `git log origin/main..
+origin/claude/new-session-pd5wfd`, after deepening the fetch:
+
+| Commit | 2026-09-12 UTC | What | Files |
+|---|---|---|---|
+| `e8661ed` | 12:27 | New `CLAUDE.md` Known-pitfalls entry, "a planner's picture of the repository decays," plus its index row | `CLAUDE.md` +60, `docs/audits/README.md` +1 |
+| `7aef89a` | 12:41 | Second index row, "a truncated search result and an empty one are the same text" — a detector failure (`grep -r ... \| head -5` cutting the output where the answer was), given its own row on the owner's call | `docs/audits/README.md` +1 |
+
+Both say "Documentation only. No code, test or dependency changes." Both are from the session that
+wrote `a9e8a4f`. `e8661ed`'s own message: "Branch restarted from main (f7c9f15), since PR #98 is
+already in." **It is not the 4:3-on-compact ruling.**
+
+**Was it meant to ship?** By content, yes: a `CLAUDE.md` entry commissioned by the owner, on a
+branch restarted for the purpose. **By state, it has not started shipping:** the GitHub API shows
+**zero open pull requests in the repository**, none with this head. So it is exactly the shape the
+owner named — work reachable from no merge, alive only because a branch still exists — and it is
+now identified rather than mysterious, which is the cheap half. Opening the PR is the owner's or that
+session's; not done here.
+
+**It will collide with this branch.** `git merge-tree --write-tree HEAD origin/claude/new-session-pd5wfd`
+(tree untouched) reports `CONFLICT (content): Merge conflict in docs/audits/README.md` — the
+serialization point again, both branches appending index rows. Whichever lands second resolves by
+merge and **keeps every row**; there is no case in which dropping one is right.
+
+One thing worth knowing before either lands: `e8661ed`'s entry uses the `CivilTwilight` decay as its
+worked instance, and `2026-09-12-round-4-re-derived-against-5515adc.md` on this branch records the
+same instance from the other side. Two records of one event, citing different reports, is correct;
+they should not be merged into one.
+
+**Open actions are now two, unchanged in number:** the host run, and a PR for `e8661ed`/`7aef89a`
+or a decision that they should not ship.
