@@ -196,3 +196,58 @@ needs from this pulse is still nothing.**
 **Unverified, non-blocking:** whether `TileLoader` re-requests a never-loaded empty tile on later
 updates. It is existing behaviour for every 204 tile in production and has not presented as a
 problem.
+
+---
+
+## The Worker fix, built (2026-09-12)
+
+Owner: "Ship the Worker fix when you're ready." Built on this branch; ships by merging to `main`,
+because Workers Builds deploys from `main` (`2026-09-09-workers-builds-check-uncorrelated.md`:
+successful builds carry a Version ID only from `main`; the Worker README's
+`claude/pmtiles-cloudflare-worker` was stale and is corrected in the same change).
+
+**What changed** (`server/pmtiles-worker/src/index.ts` +76/−4, `src/shared.ts` +26, `README.md`):
+
+1. **Never 500 on the overflow path.** The call is wrapped; any throw — build-URL resolution miss,
+   upstream range-read failure, timeout — returns `204` with `X-Forager-Overflow: unavailable`,
+   `Cache-Control: no-store`, and **no edge-cache entry**, so the next request retries upstream
+   rather than freezing the degradation for a day. The in-range-but-beyond-upstream case that
+   used to return 404 now returns the same 204 (`beyond-upstream`), because a 404 inside the
+   advertised range is exactly what fails a region in this app.
+2. **bbox gate.** `tileIntersectsBounds(z, x, y, pHeader)` in `shared.ts`: a z15 request outside the
+   local archive's own header bounds returns `204` `outside-archive` without touching Protomaps.
+   Closes the planet-wide crawl exposure (compliance finding #3) at the only place it needs closing.
+3. **Last-known-good build URL.** Lookback raised 5 → 7 days to match Protomaps' stated retention;
+   the last URL that resolved is kept 14 days under a second cache key and used when the probe
+   misses. If that build has since been retired, the range read fails and case 1 degrades to 204.
+4. **Provenance on every overflow response.** `X-Forager-Build: YYYYMMDD` (stored in R2
+   `customMetadata` on write, echoed on cached reads) and `X-Forager-Overflow: live | cached`. This
+   is the owner's round-3 response header: it reports the fallback and names each tile's build
+   without the Worker writing a log line, so the privacy policy's "writes no log lines" holds.
+
+**Verified, and how:**
+
+- `npm run typecheck` (`tsc --noEmit`): clean.
+- `npm run build` (`wrangler deploy --dry-run --outdir dist`, wrangler 4.124.0): bundles, bindings
+  resolve (`env.BUCKET`, `env.ALLOWED_ORIGINS`).
+- The pure gate, unit-tested with `node --experimental-strip-types` and `node:assert/strict`
+  (throwing, not `console.assert`): z0 bounds; a z15 tile over Portland inside the CONUS bbox; z15
+  over London and over Hawaii outside; a tile straddling the western edge counts as inside — 5/5.
+  **The harness was shown to bite**: a deliberate negative control (z15 tile (0,0), Arctic Pacific,
+  asserted inside) fails with `AssertionError`, exit 1.
+- Both source files were copied to `/tmp/worker-orig/` before editing; the forward change is
+  present in `git diff --stat` after every edit.
+
+**Not verified, stated plainly:**
+
+- **No live run.** `wrangler dev`'s local R2 holds no archive, so the handler returns 404 "Archive
+  not found" before the overflow path is reachable; the 500 → 204 behaviour is verified by reading
+  and by typecheck, not by observing a request. The first real observation will be the deployed
+  Worker answering a z15 tile during a Protomaps outage — or a deliberate probe with a bogus build
+  date, which the owner can make from a browser.
+- The JNI hop from `responseError` to the Java `onError` remains inferred from the enum, not read.
+- `node` warns that `package.json` lacks `"type": "module"`; harmless for wrangler's bundler, left
+  alone as out of scope.
+
+**Stated trade, carried from the correction:** a region downloaded during an upstream outage keeps
+its empty z15 tiles until re-downloaded. Real z14 data at coarser resolution, named in the header.

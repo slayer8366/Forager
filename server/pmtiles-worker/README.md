@@ -24,10 +24,13 @@ recording rather than hiding:
   source fixes, since Cloudflare doesn't ship an Android build of `workerd` at all.
 - **Pasting the bundled JS into the dashboard's Quick Edit also failed** (Monaco's mobile clipboard
   handling). What actually worked: connecting this Worker to `slayer8366/Forager` via Cloudflare's
-  own GitHub App (Settings → Build), with **root directory** `server/pmtiles-worker` and
-  **production branch** `claude/pmtiles-cloudflare-worker` — Cloudflare's own build infrastructure
-  runs `npx wrangler deploy` on every push to that branch, so none of the Termux-specific problems
-  above apply.
+  own GitHub App (Settings → Build), with **root directory** `server/pmtiles-worker` and a
+  production branch — Cloudflare's own build infrastructure runs `npx wrangler deploy` on every
+  push to it, so none of the Termux-specific problems above apply. **The production branch is
+  `main`** as of 2026-09-09: `docs/audits/2026-09-09-workers-builds-check-uncorrelated.md` records
+  successful builds carrying a Version ID only from `main`, with pushes to other branches failing
+  at zero duration. This paragraph originally named `claude/pmtiles-cloudflare-worker`; that was
+  true when written and is not now. Shipping a Worker change means merging it to `main`.
 - **`rclone copy <local-file> r2:bucket/key` doesn't reliably land at `key`.** An interrupted
   multi-threaded upload (switching networks mid-transfer) left an artifact that made a later
   `rclone copy` land the object at `key/key` (a nested path) instead of `key` — R2's dashboard
@@ -88,6 +91,30 @@ curl -I "https://forager-pmtiles.brandonlee1-894.workers.dev/us/10/200/380.mvt"
 ```
 
 A `200` with `Content-Type: application/x-protobuf` means it's working.
+
+## The z15 overflow: what a client gets, and never a 500
+
+`us.pmtiles` is built to zoom 14. z15 is served by range-reading Protomaps' daily build on first
+request and caching the tile into R2 (`overflow/{name}/{z}/{x}/{y}.{ext}`, with the build date in
+R2 `customMetadata`). Since 2026-09-12 (tile-policy pulse and its same-day correction in
+`docs/audits/`), that path has a contract:
+
+- **It never answers 500.** A build-URL resolution miss (lookback 7 days, then the last URL that
+  resolved, kept 14 days), an upstream range-read failure, or a timeout returns **`204` with
+  `X-Forager-Overflow: unavailable`**, `Cache-Control: no-store`, and no edge cache entry — so the
+  next request retries. Why 204 and not 404: verified against maplibre-native at
+  `android-v13.5.0`, the offline downloader reports a 404 to its observer before skipping it, and
+  the app fails the whole region on any observer error; a 204 is an ordinary empty resource. It
+  renders as the z14 parent over-zoomed, the same path every empty ocean tile takes.
+- **Only tiles the local archive covers reach upstream.** A z15 request outside the archive's own
+  header bounds returns `204` with `X-Forager-Overflow: outside-archive` without touching Protomaps.
+  An offline download never asks for such a tile; only a crawler would.
+- **Every served overflow tile says where it came from:** `X-Forager-Build: YYYYMMDD` and
+  `X-Forager-Overflow: live` or `cached`. Cached tiles are frozen at the build that first served
+  them and neighbours can differ; the header makes that visible per tile.
+- **Stated trade:** a region downloaded during an upstream outage keeps its empty z15 tiles until
+  re-downloaded — real z14 data at coarser resolution, not a fabricated tile. The header is how the
+  fallback is reported without this Worker writing a log line.
 
 ## Not built yet
 
