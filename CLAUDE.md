@@ -383,3 +383,63 @@ here.
   (`2026-09-09-recording-notification-stop-action-completion-report.md:217`).
   This is the same failure that produced the 294-artifact count and the
   `verify-policy-permissions.sh` tripwire.
+- **A planner's picture of the repository is a claim about the past, and it
+  decays.** A planner with no repository access knows the tree only through
+  reports, and a report describes the moment it was written. Work lands between
+  that moment and the dispatch being executed, so a dispatch that states what
+  exists is asserting something it cannot check, inside a document that will be
+  read as instruction. This is the derived-figure entry above in a different
+  organ: there a figure loses its provenance, here a claim loses its timestamp,
+  and both keep their authority.
+
+  **The instance this repository can show end to end.**
+  `domain/CivilTwilight.kt` was reported as having zero references in `main/` by
+  the Phase 0 inventory
+  (`docs/audits/2026-09-11-listed-features-phase0-inventory.md:107`, and again
+  in the store-description audit at `:127`). That was true when written, at
+  `199d642`. It was false by `6175d59`, five commits later and inside the same
+  PR #95, which built `SunCrossing` and `ComputeSundownCountdownUseCase` on top
+  of it; the file has eight references in `main/` today. The claim decayed
+  inside its own pull request, which is the shortest half-life this failure has
+  shown here and the reason it does not need a long gap to bite.
+
+  **What that instance is not**, checked against the record rather than taken
+  from the summary that prompted this entry: it is not a case of a stale claim
+  causing duplicated work. The inventory's advice was the opposite, to reuse the
+  NOAA equations already present instead of adding a library, and
+  `SunCrossing.kt:15` records that advice being taken deliberately. The dispatch
+  commissioning this entry described the same instance as advice that would have
+  built a second implementation of shipped code, and that does not match the
+  record. Which is this entry demonstrating itself: the summary of a decayed
+  claim had decayed further, and only re-reading the source caught it.
+
+  **The practice.** A dispatch states the base commit it assumes, and the
+  executing session verifies that base against the remote before acting on any
+  claim about what exists. "Verify your base branch before you start" above
+  already covers the branch half; what this adds is that every factual claim in
+  a dispatch inherits the same expiry as the base it was written against. Claims
+  about the tree are premises to check, not facts, and the disclosure
+  requirement already forces wrong premises to be reported, so a stale claim
+  surfaces as a finding instead of propagating as an instruction.
+
+  **Why this form is safer even when the planner is right.** Stating an
+  assumption and having it checked costs one line in a report. Stating it as
+  fact and being wrong costs whatever was built on it. The asymmetry does not
+  depend on the planner's confidence, which is exactly why it cannot be applied
+  selectively: a premise nobody doubts is the one nobody re-derives. The
+  matching ruling is recorded in `docs/audits/README.md`'s 2026-09-12 row and in
+  `docs/audits/2026-09-12-pr95-pulse-before-it-ships.md`: a check that only
+  works when the person who commissioned it was already correct is not a check,
+  and its value is highest exactly when the planner is most confident. That
+  pulse is a second instance in its own right, carrying the owner's account of
+  letting a side observation stand as a characterization it did not support.
+
+  Two further instances were cited to this entry and **could not be confirmed
+  from any repository**: that `main` on `zynergy-site` was reported as having no
+  Functions while production served a placeholder, and that `EXPORT_TOKEN` and
+  `RESEND_API_KEY` were reported unset after both had been set. `zynergy-site`
+  carries no `docs/` directory, so neither report is recorded anywhere
+  checkable, and whether a Cloudflare secret is set is not visible from a
+  repository at all, in either direction. What is visible is that the tree does
+  contain the Functions. Recorded as unverified rather than dropped, because the
+  pattern they describe is the one above.
