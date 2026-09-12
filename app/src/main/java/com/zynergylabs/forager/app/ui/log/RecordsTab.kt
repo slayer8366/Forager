@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -170,6 +169,12 @@ internal fun RecordsTab(
         // is "Waypoint"/"Recorded" at eight characters, and all four labels take two lines, so
         // the row is uniform instead of one odd tab out.
         //
+        // No style override, so these are Tab's own default label style again. The 12sp override
+        // was only ever load-bearing while a nine-character word had to fit one line; two-word
+        // names carry their own headroom, and the owner's call is that the row reads better at
+        // the normal size. Nothing here depends on the smaller type — if a future label does,
+        // that is the signal to rename it rather than to shrink the row again.
+        //
         // Not a rename for brevity's sake: "Waypoint Markers" and "Logged Finds" are what these
         // screens hold. The earlier instruction was not to *shorten* the word ("Points"), which
         // this does not do.
@@ -183,27 +188,26 @@ internal fun RecordsTab(
         // reports implausible glyph widths (single digits of px for a whole word, at any font
         // size), so nothing here ever measures as wrapping and a line-count assertion would pass
         // whatever the labels say. The device is the only authority on this row.
-        val tabLabelStyle = MaterialTheme.typography.labelMedium
         SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(
                 selected = selectedTab == RecordsSubTab.WAYPOINTS,
                 onClick = { selectTab(RecordsSubTab.WAYPOINTS) },
-                text = { Text("Waypoint Markers", style = tabLabelStyle, textAlign = TextAlign.Center) },
+                text = { Text("Waypoint Markers", textAlign = TextAlign.Center) },
             )
             Tab(
                 selected = selectedTab == RecordsSubTab.OFFLINE_MAPS,
                 onClick = { selectTab(RecordsSubTab.OFFLINE_MAPS) },
-                text = { Text("Offline Maps", style = tabLabelStyle, textAlign = TextAlign.Center) },
+                text = { Text("Offline Maps", textAlign = TextAlign.Center) },
             )
             Tab(
                 selected = selectedTab == RecordsSubTab.RECORDED_TRACKS,
                 onClick = { selectTab(RecordsSubTab.RECORDED_TRACKS) },
-                text = { Text("Recorded Tracks", style = tabLabelStyle, textAlign = TextAlign.Center) },
+                text = { Text("Recorded Tracks", textAlign = TextAlign.Center) },
             )
             Tab(
                 selected = selectedTab == RecordsSubTab.FINDS,
                 onClick = { selectTab(RecordsSubTab.FINDS) },
-                text = { Text("Logged Finds", style = tabLabelStyle, textAlign = TextAlign.Center) },
+                text = { Text("Logged Finds", textAlign = TextAlign.Center) },
             )
         }
 
