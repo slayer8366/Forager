@@ -328,3 +328,92 @@ Compose test in this suite does through an `ExternalResource` chained ahead of t
 match, re-running.
 
 Probe file deleted after this record; not committed at any point.
+
+## Addendum 8 (2026-09-12): probe 2 — outcome B, structural, with the mechanism named
+
+**This closes the disposition.** The experiment ran here after the SDK install. The result fell
+outside both pre-registered outcomes, and that is stated before the reading rather than after.
+
+### Pre-registered reading, as written before any run
+
+- **A:** control (no listener) scrolls; guarded (listener) holds at zero → Robolectric can see the
+  mechanism; keep the test.
+- **B:** control does **not** scroll → the environment is blind; delete and record.
+
+### What was observed
+
+Four runs. Each read in the order the project requires — build log for compile errors first,
+JUnit XML second — and each non-result recorded as one:
+
+| Run | State | Result | Reading |
+|---|---|---|---|
+| 1 | no `@Config` | `initializationError`: `targetSdkVersion=37 > maxSdkVersion=36` | non-result; the runner refused to start. Every Robolectric class in the suite (64) carries `@Config(sdk = [36])` |
+| 2 | `@Config(sdk = [36])` | `Unable to resolve activity ... ComponentActivity` | non-result; the Compose host activity was never registered with Robolectric's `PackageManager` (`CentrePinLocationPickerTest` does it through an `ExternalResource` chained ahead of the rule) |
+| 3 | + host activity registered | control **passed** (scrolled); guarded **failed**: `expected 0 but was 3800` | both states scrolled — neither A nor B |
+| 4 | + instrumentation | control `scroll=3800 max=3800 downs=1 moves=0`; guarded `scroll=3800 max=3800 downs=1 moves=0` | **identical in both states** |
+
+**The numbers, as the owner asked, not the pass/fail:**
+
+- Both states scrolled to **3800 px**, which is exactly the column's maximum extent:
+  (200 + 300 + 2000 − 600) dp × 2 at xhdpi. Three drags of ~300 px of finger travel each cannot
+  produce 3800 px of scroll without a fling; the value does not follow from the input. It is the
+  same in both states, so it does not discriminate, but it is the implausibility check the
+  tab-wrap case taught, written down.
+- **`downs=1 moves=0`, in both states.** Across three injected drags, the hosted `View` received
+  exactly one `ACTION_DOWN` and zero `ACTION_MOVE`s.
+
+### Mechanism
+
+The listener **did** run in the guarded state (`downs=1`), so `requestDisallowInterceptTouchEvent(true)`
+**was** called on the parent — and the Compose `verticalScroll` ancestor consumed every subsequent
+move regardless (`moves=0` at the view; `scroll=3800` at the column). Under Robolectric, a drag
+injected with `performTouchInput` on an `AndroidView` inside `verticalScroll` delivers one DOWN to
+the hosted view and nothing after it, and the disallow request changes nothing. **The fix's presence
+is unobservable in this harness.** That is outcome B in substance: the environment cannot see this
+class of defect. It is B with a different symptom from the one pre-registered — the control *does*
+scroll — and the widening is recorded here, not assumed.
+
+**Two limits, stacked.** Probe 2 tested the mechanism on a plain `View` carrying a verbatim copy of
+`SightingsMap.kt:553-558`, because production's listener sits inside the `AndroidView` factory next
+to a `MapView` that cannot construct here (Addendum 7). So even if Compose-interop routing *had*
+worked under Robolectric, production's own code path would still be unreachable without a native
+host build or an extraction of the listener into a named function. Both walls are structural: the
+first is a third-party AAR's native library, which Robolectric shadows nothing of; the second is
+the interop dispatch path itself. Nothing in this project's configuration tunes either away.
+
+**The owner's framing, carried verbatim:** the overlay test's doc comment and probe 1 are "two
+observations of one boundary from different depths" — `GeoJsonSource` and every `Layer` "call a
+`native initialize` from their constructor (verified with `javap`) ... Robolectric shadows the
+Android *platform* SDK, not a third-party AAR's native library." Probe 1 hit that boundary one call
+earlier, at `MapLibre.getInstance()`'s `NativeConnectivityListener.initialize()`.
+
+### The probe's shape, so it is not written again
+
+`DisallowInterceptProbeTest`: `@RunWith(RobolectricTestRunner::class)`, `@Config(sdk = [36],
+qualifiers = "w360dp-h640dp-xhdpi")`, `RuleChain.outerRule(declareHostActivity).around(createComposeRule())`.
+Composition: `Column(fillMaxWidth, height 600.dp, verticalScroll(rememberScrollState()))` holding a
+200 dp spacer, an `AndroidView` (300 dp, `testTag("hosted")`) whose factory returns a plain `View`
+with an `OnTouchListener` counting DOWN/MOVE and — in the guarded state only — the verbatim
+`SightingsMap.kt:553-558` disallow call, then a 2000 dp spacer. Drive: for x-fractions 0.5, 0.2,
+0.8 of the hosted node's width, `performTouchInput { down(x, 0.6·h); moveBy(0, −150); moveBy(0, −150); up() }`
+then `waitForIdle()`. Assert: control `scroll > 0`; guarded `scroll == 0`; every message carries
+`scroll`, `max`, `downs`, `moves`.
+
+### Three blind spots on one surface, now all named
+
+1. **Text metrics** — `a188d57`: Robolectric's text layout reports implausible glyph widths; the
+   tab-wrap test passed identically on defective code and was removed.
+2. **MapLibre native** — Addendum 7, probe 1: `UnsatisfiedLinkError` at the first JNI call; the AAR
+   ships only Android ABIs.
+3. **Compose-interop touch routing** — this addendum, probe 2: one DOWN and no MOVEs reach an
+   `AndroidView`-hosted view under a scrolling ancestor, in both states.
+
+One is a quirk. Three is a property of the surface, and the count is what justifies instrumented
+tests on a device rather than another attempt at the same kind — a post-beta conversation, as the
+owner has said.
+
+### Disposition
+
+**No test is kept.** Both probe files deleted after this record; neither was ever committed. The
+owner's device remains the authority for the drag fix, as `a9e8a4f` said. The open action that
+survives from this thread is the tile-policy pulse, which has a fourteen-day clock behind it.
