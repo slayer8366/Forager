@@ -102,3 +102,22 @@ commands; JDK version; absence of SDK env vars, `local.properties`, and SDK dire
 
 **Not determined:** which definition produces 17; Robolectric's fidelity for the disallow-intercept
 path — which is precisely what the protocol exists to determine.
+
+## Addendum (owner, 2026-09-12): the second count no definition reproduces
+
+"17" is the second figure in this project that matches no definition anyone can construct. The
+first was **376** — the Data safety draft's "376-artifact classpath," which resolved to 287 distinct
+`group:artifact:version` pre-resolution or 157 distinct modules post-resolution, with neither
+reproducing the quoted figure (`docs/audits/README.md`, 2026-09-10 row, "a count that no plausible
+definition reproduces"). Same repair both times: the load-bearing conclusion re-derived and found to
+hold, the figure recorded with its commands rather than as an integer.
+
+The general form, in the owner's words: **a number carried without its definition reads as a
+measurement whether or not it ever was one.**
+
+**Where the revert experiment runs.** `.github/workflows/ci.yml` runs `testDebugUnitTest` on pushes
+to `main` and on pull requests (deliberately with no base-branch filter, per its own comment about
+stacked PRs). A bare branch push does not trigger it. So from a container with no SDK, the
+experiment can reach CI only through a PR; absent an instruction to open one, it runs on the owner's
+host. Outcome B — the test passing on reverted code — is worth writing down even though it keeps
+nothing: it would be the third recorded blind spot on this one surface.
