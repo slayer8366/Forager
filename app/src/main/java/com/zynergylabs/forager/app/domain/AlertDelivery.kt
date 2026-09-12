@@ -4,17 +4,35 @@ package com.zynergylabs.forager.app.domain
  * Which alert is being delivered. One kind today; the turnaround alert (light-budget work, not
  * built) is the second this was shaped for.
  */
-enum class AlertKind { OFF_TRACK }
+enum class AlertKind {
+    OFF_TRACK,
+
+    /**
+     * The darkness margin has been reached: time to start heading back. Passes
+     * `overridesSilence = true` — owner ruling, 2026-09-11: this is the alert that stops someone
+     * being stranded in the dark, so it is an alarm. Anyone who does not want it turns the feature
+     * off in settings, which is a choice about the feature rather than a side effect of having
+     * silenced the phone for something else.
+     */
+    TURNAROUND,
+
+    /** The sun has set. Same reasoning and the same override as [TURNAROUND]. */
+    SUNSET,
+}
 
 /**
  * One alert to deliver. [overridesSilence] is **deliberately a parameter of the call, not a
  * constant inside the delivery** (alert-delivery dispatch, owner decision): off-track is advisory
  * and the turnaround alert, when it exists, is safety, and overriding a phone the user silenced on
  * purpose is defensible for one and arguably rude for the other. The two must be able to differ
- * without the delivery changing shape. Off-track passes `true` — someone who turned on track
- * recording and walked into the woods has opted into being told they have strayed (owner's
- * words) — and the turnaround alert will pass whatever it decides. **Do not hard-code this inside
- * an implementation**; that is the one thing this parameter exists to prevent.
+ * without the delivery changing shape. **Off-track now passes `false`, reversing the original ruling (owner,
+ * 2026-09-11).** It first passed `true`, on the reasoning that someone who started track recording
+ * and walked into the woods has opted into being told they have strayed. The owner's revised
+ * reading: straying is often deliberate, so off-track is the kind of thing a person may reasonably
+ * want to hear only if their notifications are audible, whereas [AlertKind.TURNAROUND] and
+ * [AlertKind.SUNSET] are about not being stranded after dark and override silence. The parameter
+ * existing per call is what made this a one-line reversal rather than a redesign. **Do not
+ * hard-code this inside an implementation**; that is the one thing it exists to prevent.
  */
 data class Alert(
     val kind: AlertKind,
