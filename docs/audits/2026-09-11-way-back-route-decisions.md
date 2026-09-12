@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-11
 **Follows:** [`2026-09-11-way-back-route-prebuild-report.md`](2026-09-11-way-back-route-prebuild-report.md)
-**Status:** five of six decided. D3 is open, expanded below at the owner's request. No code written.
+**Status:** all six decided. D3 taken on 2026-09-12, with both of its follow-on states answered. No code written.
 
 ---
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | D1 | What does the needle point at? | A point **along the route**, distant but not too distant. Never the destination directly, and never off the path |
 | D2 | Which destination? | **All of them, as separate modes.** Waypoint navigation is toggled *instead of* return-to-start, never alongside it, and **overrules it when active**. Waypoints are not navigated automatically; navigating to one is an option offered when selecting it from the map, or from cartography/records |
-| D3 | Route distance primary, or beside the straight line? | **Open.** Expanded below |
+| D3 | Route distance primary, or beside the straight line? | **Option B.** Route distance becomes primary, the straight line keeps the status line. Both follow-on states answered — see below |
 | D4 | Recompute cadence | **5 s to start**, to see how it behaves |
 | D5 | Behaviour when the walker is off the route | **Withhold.** "We don't know if it's going to be a straight line, they may not see it before they turn" |
 | D6 | Draw the route when it equals the track? | **Draw it, yes** |
@@ -128,6 +128,73 @@ accuracy-aware formatting staying with the straight line where it belongs.
 2. **What does the primary slot show when D5 withholds the route?** It has to fall back to the
    straight line, and the walker has to be able to tell that the meaning changed. A number that
    silently switches from "your walk home" to "how far away the car is" is worse than either.
+
+---
+
+## D3 decided: option B, and both follow-on states answered
+
+**The decision.** The route distance becomes the HUD's primary figure. The straight line keeps the
+status line rather than being dropped, and keeps `formatDistanceWithAccuracy` with it, where that
+formatting is honest.
+
+B was recommended with two states it had to answer before it could be built. Neither was traded
+against; both were dissolved.
+
+### 1. "Approaching" stays, and stops being text
+
+Owner: *"approaching can stay, it can just be a glyph that senses when the user is within x distance
+of it. The user does not have to seek it. This can keep the user focused on the path while the
+object itself becomes the alert."*
+
+This removes the eviction rather than redesigning it. Today `NavigationHud.kt:411` puts the string
+"Approaching" **into the status slot**, which is exactly why it displaces "Path home". Moving the
+approach signal onto the target itself frees the slot, so the distance simply keeps showing and
+nothing has to decide which of the two matters more.
+
+The reasoning underneath it is the stronger half: **the user should not have to look for the
+arrival.** A walker reading a strip is not watching the path. Putting the state on the object means
+arrival announces itself in the place the eye is already going.
+
+**The threshold already exists, and it is better than the "x distance" the instruction assumed.**
+`isApproaching` (`NavigationReadout.kt:41-46`) is `distanceMeters <= APPROACHING_ACCURACY_MULTIPLIER
+* accuracyMeters`, with the multiplier at 2.0. Not a fixed radius: it means *you are inside twice
+your own error circle*, at which point a bearing to the target is no longer meaningful, which is why
+the needle is withheld there too. It returns `false` when accuracy is unreported rather than
+substituting a figure. **Reuse it. Do not introduce a second threshold** — one approach rule, read
+in two places.
+
+**One constraint this inherits, and it is not optional.** The PR template's motion checklist requires
+that colour is never the sole carrier of state. A glyph that signals arrival only by changing colour
+fails that. The change has to be in form, not tint alone.
+
+### 2. An unusable route says so, and offers a refresh
+
+Owner: *"just be up front, if the data isn't coherent, then just say, 'Unable to calculate route' and
+maybe offer a refresh option so the user can refresh on demand."*
+
+This is the app's existing stance rather than a new one. `CLAUDE.md`: an unsupported feature or
+capability returns an explicit "unsupported," never a fabricated plausible value. `ReturnWalkingTime`
+already answers `Withheld` with a reason and no number for the same reason.
+
+It also resolves **D5** in the same stroke. D5 ruled that the route is withheld when the walker is
+off it, *"we don't know if it's going to be a straight line, they may not see it before they turn"*.
+That withheld state now has a thing to say instead of a blank.
+
+**What the refresh must not promise.** It recomputes now instead of at the next tick. It cannot
+manufacture data: if the cause is no usable points, or a hop in `HopBand.FAR`, recomputing against
+the same inputs returns the same answer. The control is honest as "try again now" and dishonest if
+it implies the answer will change. Worth saying in the label or not offering it in the states where
+nothing can change.
+
+**What the primary slot shows in that state (owner-confirmed 2026-09-12).** The message takes the
+primary slot, and the straight line stays in the status line where it already is. The two cannot be
+confused because the status line is labelled, so nothing silently changes meaning — which was the
+actual worry behind the original question.
+
+Recorded as confirmed rather than left standing as a reading: it was put to the owner as an
+inference and they answered it, so it moves out of "inferred" and into "decided". A claim's status
+in this record should match the evidence behind it, and leaving a confirmed decision marked as a
+guess is the same error as the reverse.
 
 ---
 
