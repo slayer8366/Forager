@@ -514,7 +514,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Journal").performClick()
         // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu.
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Finds").performClick()
+        composeRule.onNodeWithText("Logged Finds").performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
@@ -616,7 +616,7 @@ class AvailabilityScreenBackNavigationTest {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Waypoints").assertIsDisplayed()
+        composeRule.onNodeWithText("Waypoint Markers").assertIsDisplayed()
 
         pressBack()
 
@@ -914,7 +914,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Finds").performClick()
+        composeRule.onNodeWithText("Logged Finds").performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()

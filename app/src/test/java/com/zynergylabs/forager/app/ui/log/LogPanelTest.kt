@@ -165,7 +165,7 @@ class LogPanelTest {
         // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu —
         // every test below exercises find-editing state, so land there once, here.
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Finds").performClick()
+        composeRule.onNodeWithText("Logged Finds").performClick()
     }
 
     @Test

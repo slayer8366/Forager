@@ -205,7 +205,7 @@ class JournalTabTest {
         // own, with no manual tap standing in for what a real one-shot request already did.
         if (pendingDestination == null) {
             composeRule.onNodeWithText("Records").performClick()
-            composeRule.onNodeWithText("Finds").performClick()
+            composeRule.onNodeWithText("Logged Finds").performClick()
         }
     }
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -75,6 +76,25 @@ fun CentrePinLocationPicker(
     night: Boolean = false,
     onConfirm: (LatLng) -> Unit,
     onCancel: () -> Unit,
+    /**
+     * Width-to-height ratio for **the map viewport itself**, or `null` (the default) to let the
+     * map take whatever height is left over after this composable's own instruction line and
+     * OK/Cancel row.
+     *
+     * Opt-in per call site rather than a constant here, because the two shapes want opposite
+     * things. The journal's entry-location pickers ([com.zynergylabs.forager.app.ui.log.JournalTab],
+     * [com.zynergylabs.forager.app.ui.log.LogPanel]) hand this composable a `weight(1f)` slot and want the map
+     * to fill it — on a tall phone that is considerably more than 4:3, so pinning a ratio there
+     * would make those maps *shorter*, the opposite of what the sizing is for. The offline-region
+     * picker wants a determinate 4:3 map and passes one.
+     *
+     * Rejected alternative: putting `aspectRatio` on the caller's own wrapping `Box`, which is
+     * what `OfflineMapsPanel` did before. That constrains the whole picker — instruction line and
+     * button row included — so the *map* ends up the leftover, measured at 360x146dp on a 360dp
+     * phone against a 360x270dp box: a 2.5:1 letterbox, not the 4:3 it looked like. Constraining
+     * the map and letting the chrome add its own height is what actually makes the viewport 4:3.
+     */
+    mapAspectRatio: Float? = null,
     modifier: Modifier = Modifier,
 ) {
     // Seeded from region's own centre and never fed back into mapSlot's region argument — region
@@ -85,13 +105,22 @@ fun CentrePinLocationPicker(
     // for no reason region.radiusKm ever needs to change here.
     var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // Fills its slot only when the map is the leftover (mapAspectRatio == null). With a ratio, the
+    // map has a determinate height and this column wraps its content, so the caller gets a picker
+    // whose height is the map plus its own chrome rather than one that stretches.
+    Column(modifier = if (mapAspectRatio == null) modifier.fillMaxSize() else modifier.fillMaxWidth()) {
         Text(
             "Pan the map to position the pin, then confirm.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        Box(
+            modifier = if (mapAspectRatio == null) {
+                Modifier.fillMaxWidth().weight(1f)
+            } else {
+                Modifier.fillMaxWidth().aspectRatio(mapAspectRatio)
+            },
+        ) {
             mapSlot(
                 region,
                 MapOverlayContent(),
@@ -106,7 +135,14 @@ fun CentrePinLocationPicker(
             CentrePin(modifier = Modifier.align(Alignment.Center))
         }
         CentrePinConfirmRow(
-            selectedText = "Selected: ${"%.4f".format(cameraCenter.lat)}, ${"%.4f".format(cameraCenter.lng)}",
+            // UI-defects dispatch, §2: this is the pin's current map position, live from
+            // onCameraIdle above — it updates continuously as the map is panned, whether or not
+            // OK has ever been pressed. "Selected:" read as a completed pick and contradicted a
+            // sibling "No location picked yet" line that reads the *confirmed* pick instead (a
+            // different piece of state — see OfflineMapsPanel's own hasValidRegion). Both lines
+            // were individually correct; only the wording claimed a selection that hadn't
+            // happened yet.
+            selectedText = "Pin at: ${"%.4f".format(cameraCenter.lat)}, ${"%.4f".format(cameraCenter.lng)}",
             onConfirm = { onConfirm(cameraCenter) },
             onCancel = onCancel,
         )

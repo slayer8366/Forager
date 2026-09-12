@@ -584,10 +584,14 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
+        // performScrollTo, as "Download Maps"/"No regions downloaded yet" above already need:
+        // map-pan dispatch §2b gave the picker map its own 4:3 viewport (360x270dp here, up from
+        // 360x146dp), which pushes this line below the fold on a 360x640dp window. The line is
+        // present and reachable in the panel's own scroll — only its position changed.
         composeRule.onNodeWithText(
             "Download region: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
-        ).assertIsDisplayed()
-        composeRule.onNodeWithText("Download Maps").assertIsEnabled()
+        ).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsEnabled()
     }
 
     @Test
@@ -684,6 +688,28 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(22, offlineRadiusSlider.steps)
         // Material3 snaps the thumb to its step grid in float, which lands on 7.9999995 for 8.
         assertEquals(8f, offlineRadiusSlider.current, 0.001f)
+    }
+
+    /**
+     * UI-defects dispatch, §2: the picker's own label and the panel's "No location picked yet"
+     * line read two different pieces of state — the pin's live map position
+     * ([com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]'s own `cameraCenter`) and whether OK has ever
+     * been pressed ([AvailabilityUiState.offlineMapLatText]/`offlineMapLngText`, set only from
+     * [OfflineMapsPanel]'s own `onRegionPicked`) — and both are legitimately true before any pick,
+     * which is not a state bug: it's the exact moment the dispatch's screenshot caught. The fix is
+     * wording, not state — the picker no longer claims a "Selected" that has not happened.
+     */
+    @Test
+    fun `the offline map picker's pin label and the panel's not-yet-picked line do not contradict each other`() {
+        setScreen()
+        openOfflineMapsSubTab()
+
+        composeRule.onAllNodesWithText("Pin at:", substring = true).assertCountEquals(1)
+        composeRule.onAllNodesWithText("Selected:", substring = true).assertCountEquals(0)
+        // performScrollTo since map-pan dispatch §2b: the 4:3 map viewport puts this line below
+        // the fold on a 360x640dp window — see the Download-region assertion above.
+        composeRule.onNodeWithText("No location picked yet — pan the map above and tap OK.")
+            .performScrollTo().assertIsDisplayed()
     }
 }
 
