@@ -685,6 +685,25 @@ class AvailabilityScreenSettingsPanelTest {
         // Material3 snaps the thumb to its step grid in float, which lands on 7.9999995 for 8.
         assertEquals(8f, offlineRadiusSlider.current, 0.001f)
     }
+
+    /**
+     * UI-defects dispatch, §2: the picker's own label and the panel's "No location picked yet"
+     * line read two different pieces of state — the pin's live map position
+     * ([com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]'s own `cameraCenter`) and whether OK has ever
+     * been pressed ([AvailabilityUiState.offlineMapLatText]/`offlineMapLngText`, set only from
+     * [OfflineMapsPanel]'s own `onRegionPicked`) — and both are legitimately true before any pick,
+     * which is not a state bug: it's the exact moment the dispatch's screenshot caught. The fix is
+     * wording, not state — the picker no longer claims a "Selected" that has not happened.
+     */
+    @Test
+    fun `the offline map picker's pin label and the panel's not-yet-picked line do not contradict each other`() {
+        setScreen()
+        openOfflineMapsSubTab()
+
+        composeRule.onAllNodesWithText("Pin at:", substring = true).assertCountEquals(1)
+        composeRule.onAllNodesWithText("Selected:", substring = true).assertCountEquals(0)
+        composeRule.onNodeWithText("No location picked yet — pan the map above and tap OK.").assertIsDisplayed()
+    }
 }
 
 private const val MAP_SLOT_TAG = "settings-panel-test-map-slot"

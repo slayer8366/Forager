@@ -106,7 +106,14 @@ fun CentrePinLocationPicker(
             CentrePin(modifier = Modifier.align(Alignment.Center))
         }
         CentrePinConfirmRow(
-            selectedText = "Selected: ${"%.4f".format(cameraCenter.lat)}, ${"%.4f".format(cameraCenter.lng)}",
+            // UI-defects dispatch, §2: this is the pin's current map position, live from
+            // onCameraIdle above — it updates continuously as the map is panned, whether or not
+            // OK has ever been pressed. "Selected:" read as a completed pick and contradicted a
+            // sibling "No location picked yet" line that reads the *confirmed* pick instead (a
+            // different piece of state — see OfflineMapsPanel's own hasValidRegion). Both lines
+            // were individually correct; only the wording claimed a selection that hadn't
+            // happened yet.
+            selectedText = "Pin at: ${"%.4f".format(cameraCenter.lat)}, ${"%.4f".format(cameraCenter.lng)}",
             onConfirm = { onConfirm(cameraCenter) },
             onCancel = onCancel,
         )

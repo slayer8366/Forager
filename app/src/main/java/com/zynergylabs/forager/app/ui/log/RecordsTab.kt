@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -153,26 +154,45 @@ internal fun RecordsTab(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
+        // UI-defects dispatch, §1: SecondaryTabRow is the fixed-width kind (confirmed: at the
+        // narrowest width this project targets, 360dp, each of these four tabs measures exactly
+        // 90dp — a plain 360/4, not sized to content). Tab's own default label style is
+        // titleSmall (14sp), and "Waypoints" is the row's only single-word label — with no space
+        // to wrap at, a 90dp column too narrow for it at 14sp breaks the word itself
+        // ("Waypoint"/"s") rather than between words the way "Offline Maps"/"Recorded Tracks" do.
+        // labelMedium (12sp) gives every label the same, smaller, uniform style rather than
+        // singling "Waypoints" out with its own size — the dispatch's own "do not shorten the
+        // word" ruled out the other fix, changing the string.
+        //
+        // Not verified by a Robolectric test: this file's own test coverage confirmed the 90dp
+        // figure above is real, but Robolectric's text-layout measurement in this project's
+        // config reports implausible glyph widths for these labels (single digits of px for a
+        // full word, regardless of font size) — nothing here can ever be measured as wrapping, so
+        // a test asserting line count would pass identically whether or not this fix does
+        // anything on a real device, which is the "check that never saw the data that could fail
+        // it" family CLAUDE.md names. This needs the owner's own screenshot to confirm, the same
+        // way the defect itself was found.
+        val tabLabelStyle = MaterialTheme.typography.labelMedium
         SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(
                 selected = selectedTab == RecordsSubTab.WAYPOINTS,
                 onClick = { selectTab(RecordsSubTab.WAYPOINTS) },
-                text = { Text("Waypoints") },
+                text = { Text("Waypoints", style = tabLabelStyle) },
             )
             Tab(
                 selected = selectedTab == RecordsSubTab.OFFLINE_MAPS,
                 onClick = { selectTab(RecordsSubTab.OFFLINE_MAPS) },
-                text = { Text("Offline Maps") },
+                text = { Text("Offline Maps", style = tabLabelStyle) },
             )
             Tab(
                 selected = selectedTab == RecordsSubTab.RECORDED_TRACKS,
                 onClick = { selectTab(RecordsSubTab.RECORDED_TRACKS) },
-                text = { Text("Recorded Tracks") },
+                text = { Text("Recorded Tracks", style = tabLabelStyle) },
             )
             Tab(
                 selected = selectedTab == RecordsSubTab.FINDS,
                 onClick = { selectTab(RecordsSubTab.FINDS) },
-                text = { Text("Finds") },
+                text = { Text("Finds", style = tabLabelStyle) },
             )
         }
 
