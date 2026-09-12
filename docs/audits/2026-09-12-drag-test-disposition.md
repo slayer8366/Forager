@@ -290,3 +290,41 @@ constraints and the seven-step protocol are unchanged; only the location moves. 
 constraints (name it, revert-only, no PR, delete after) were for a branch; run locally there is no
 branch, and the "revert is the only change" rule becomes "the test file and the one-line revert are
 the only changes, and the revert is restored from a saved copy, never from git."
+
+## Addendum 7 (2026-09-12): probe 1 — the real `MapView` cannot construct here, observed
+
+Two probes were written as untracked test files under `app/src/test/.../ui/map/`, never committed,
+to be deleted once recorded. This addendum records the first; the second is still running.
+
+**Shape.** `MapLibreInitProbeTest`, `@RunWith(RobolectricTestRunner::class)`, `@Config(sdk = [36])`
+(without that annotation the runner refuses to start on `targetSdkVersion=37 > maxSdkVersion=36` —
+the first run died there with `initializationError` before any body ran, a non-result recorded as
+one). One test: `MapLibre.getInstance(app)` then `MapView(app)` inside a `try`, `fail()`ing with the
+exception's class and message so the JUnit XML carries the cause.
+
+**Result, read after confirming zero compile errors in the build log:**
+
+```
+java.lang.UnsatisfiedLinkError: 'void org.maplibre.android.net.NativeConnectivityListener.initialize()'
+```
+
+`MapLibre.getInstance()`'s first JNI call. The cached `android-sdk-13.5.0.aar` ships
+`jni/{arm64-v8a,armeabi-v7a,x86,x86_64}/` — all Android ABIs against bionic, none loadable by a
+desktop JVM. **So the picker test as originally described — composing the real `SightingsMapSlot`
+and dragging it — cannot run under Robolectric, and the reason is now an observed error rather
+than a claim.**
+
+**This confirms something the tree already said**, which the probe should be read as verifying, not
+discovering: `CentrePinLocationPickerTest`'s class doc — "`[SightingsMap]` itself can't be composed
+under Robolectric — see `[SightingsMapOverlayDataTest]`'s own doc comment for why (native MapLibre
+calls)." The earlier session's "unreachable by construction" was this, with the mechanism unnamed.
+
+**What it does not settle:** whether Robolectric can observe the *mechanism* the fix relies on —
+`requestDisallowInterceptTouchEvent` propagating from an `AndroidView`-hosted `View` to a
+`verticalScroll` ancestor — which needs no MapLibre at all. That is probe 2, with a built-in control.
+Its first attempt was also a non-result (`Unable to resolve activity for Intent {... ComponentActivity}`:
+the Compose host activity was never registered with Robolectric's `PackageManager`, which every
+Compose test in this suite does through an `ExternalResource` chained ahead of the rule). Fixed to
+match, re-running.
+
+Probe file deleted after this record; not committed at any point.
