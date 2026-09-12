@@ -183,7 +183,7 @@ port report. The name is a session artifact and will make a later reader hunt, s
 `git diff --name-only origin/main...HEAD` at the time of writing, the branch carries these audit
 documents and nothing else outside `docs/audits/`:
 
-- `2026-09-08-data-inventory-for-privacy-policy.md`
+- `2026-09-08-data-inventory-for-privacy-policy.md` — **not authored here**; on the branch only because §4 was superseded in place (owner-authorised, round 4)
 - `2026-09-11-ios-port-feasibility-report.md`
 - `2026-09-11-lifecycle-gate-and-corrections-round-3.md`
 - `2026-09-11-lifecycle-gate-and-corrections-round-4.md`
