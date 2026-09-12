@@ -51,15 +51,38 @@ assignment (`TrackRecordingViewModel:360`). `stopRecording()`'s `copy(...)` at `
 fields and this is not among them. It is not cleared by `stopRecording()`, not by `stopReturn()`,
 and **not by #96's `clearRecordingState()` either.**
 
-**That last part is the mechanism worth recording, not the instance.** `clearRecordingState()` was
-created by extracting `stopRecording()`'s existing six-field copy verbatim, precisely so the two
-could not drift. Extraction preserved the behaviour, which was the goal, and in doing so it silently
-preserved the omission and gave it a second caller. **A refactor that is correct by construction is
-correct about what the original did, including what it forgot.** Nothing in the extraction could have
-surfaced the missing field, because the extraction's whole guarantee is that nothing changes.
-
 **Owner ruling: audit row, not a fix.** It is invisible today because nothing renders the field. It
 becomes a real bug the moment something does, which is the screen row.
+
+### The general form, which supersedes the instance
+
+The owner's first ruling asked for a row noting that `clearRecordingState()` inherited the omission.
+On writing it down the mechanism turned out to be the general thing, and the owner ruled that the
+generalization supersedes: *"'One field was missed' describes an instance. 'A refactor whose entire
+guarantee is that nothing changes cannot surface what the original forgot' describes the class, and
+it predicts recurrence rather than just recording one occurrence."*
+
+> **Correctness by construction preserves omissions with exactly the fidelity it preserves
+> behaviour, and the stronger the guarantee, the more faithfully it carries them.**
+
+`clearRecordingState()` was created by extracting `stopRecording()`'s six-field `copy(...)` verbatim,
+*precisely so the two could not drift*. That is a real guarantee and it did its job. What it
+guarantees is that the extracted code does what the original did — which includes not clearing a
+field the original never cleared — and it then gave that omission a second caller. **Nothing in the
+extraction could have surfaced the missing field, because its entire guarantee is that nothing
+changes.**
+
+This is distinct from the families already recorded here. Those are checks decoupled from what they
+check by a step nobody traced, or a red that could not have been green. This one is a change that
+was *correct*, by a method chosen for its strength, and the strength is what carried the defect
+forward intact. The usual defence — "the refactor is behaviour-preserving, so it cannot introduce a
+bug" — is true and is not the claim that matters. It did not introduce one. It propagated one, and
+propagation is what a second caller is.
+
+**The practical form:** when extracting shared code to guarantee two callers cannot drift, the
+extraction is the one moment the original's *contents* are being read as a list. Read them as a list.
+Ask what is not in it. That question has no other natural occasion, which is why the omission
+survives every later reading of either caller.
 
 ## Finding 2: on #95 alone the poll loop never stops after a stop from the shade
 
@@ -122,10 +145,26 @@ again, and this time I'm the one who did it while holding the rule."*
 That is the derived-figure family: a claim correct about the thing it was derived from, which stops
 being correct the moment it is quoted about something larger, with nothing in the quoting marking the
 difference. The side observation was accurate for its original purpose — establishing that #96 was
-independent of #95 — and inaccurate as a description of #95. The pulse itself anticipated this,
-listing all three carried premises as "should be re-derived rather than trusted," which is why the
-gap was found rather than inherited. Two of the three were correct; the incomplete one was the
-characterization.
+independent of #95 — and inaccurate as a description of #95. Two of the three carried premises were
+correct; the incomplete one was the characterization.
+
+### What this says about the procedure, which is the part worth keeping
+
+The pulse's own §6 required all three carried premises to be re-derived rather than trusted. **That
+requirement is the only reason the incomplete framing surfaced at all.** Without it the executor
+would have read the diff looking for a sundown field and a poll-loop call, found both, and reported
+back a confirmation. The off-track silence reversal — the one part of #95 a tester experiences —
+would have gone unmentioned in a document written specifically to decide whether #95 should ship.
+
+The owner's ruling on what to take from that: *"The framing was mine and wrong; the procedure caught
+it anyway. That's a useful thing to know about the procedure — it doesn't depend on the planner being
+right, which is the property you actually want from a check."*
+
+Stated as the property: **a check that only works when the person who commissioned it was already
+correct is not a check.** The instruction "re-derive rather than trust, and report which premises
+were wrong" costs one line in a dispatch and is what makes the difference between reconnaissance and
+confirmation. It is cheap enough to be standard, and its value is highest exactly when the planner is
+most confident, because that is when the carried claim is least likely to be questioned.
 
 ---
 
