@@ -265,3 +265,28 @@ commits, this disposition work — sat on branches with nothing proposing them. 
 one of those; this branch is another.
 
 **Open actions are now one: the host run.**
+
+## Addendum 6 (2026-09-12): the SDK is installed here, and "cannot run in this container" is withdrawn
+
+Owner's instruction: install the SDK. Done, at `/opt/android-sdk` (511M): cmdline-tools build
+`16111833` (sdkmanager `1.0.16261425`), `platforms;android-37.0` — Google now publishes platforms
+with a minor version, so `compileSdk = 37` resolves to `android-37.0`, not `android-37` —
+`build-tools;37.0.0`, `platform-tools`, `android-sdk-license` accepted. `local.properties` points
+at it and is ignored at `.gitignore:4`.
+
+**Proof, read in the order the project's rule requires — build log first, JUnit XML second:**
+
+- `./gradlew :app:testDebugUnitTest --tests "*AvailabilityScreenSettingsPanelTest"`, cold:
+  `BUILD SUCCESSFUL in 4m 30s`, exit 0.
+- Compile errors in the log (`^e: ` / `error:`): **0**.
+- `TEST-...AvailabilityScreenSettingsPanelTest.xml`: **21 tests, 0 failures, 0 errors, 0 skipped**,
+  24.8 s. That is the class the experiment's scrolling-panel assertion lives in.
+- Robolectric's `android-all-instrumented` jar (`16-robolectric-13921718-i7`) was fetched through
+  the proxy, so the harness the experiment needs is present.
+
+So the Addendum 2 statement "the experiment cannot run in this container" is **withdrawn** — an
+absence claim made false by a later action, recorded rather than left standing. The four
+constraints and the seven-step protocol are unchanged; only the location moves. The CI-branch
+constraints (name it, revert-only, no PR, delete after) were for a branch; run locally there is no
+branch, and the "revert is the only change" rule becomes "the test file and the one-line revert are
+the only changes, and the revert is restored from a saved copy, never from git."
