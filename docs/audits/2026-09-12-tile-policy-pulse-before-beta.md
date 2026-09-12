@@ -130,3 +130,69 @@ answerable from the SDK source and should be before fix 1 is relied on.
 **Not measured:** any actual request volume, tile count per region under real use, or Protomaps'
 tolerance. The exposure is structural — public endpoint, unbounded gate, single-error total
 failure — and does not depend on the numbers.
+
+---
+
+## Correction (2026-09-12, same day): fix 1 must return **204, not 404** — verified against the SDK
+
+The pulse's fix 1 said "return 404 (or 204)" and marked the load-bearing claim unverified. It is now
+verified against the `android-v13.5.0` tag of `maplibre-native`, and **404 is wrong for this app**.
+
+**Download side** (`platform/default/src/mbgl/storage/offline_download.cpp:522-531`):
+
+```cpp
+if (onlineResponse.error) {
+    observer->responseError(*onlineResponse.error);          // fires for a 404 too
+    if (onlineResponse.error->reason == Response::Error::Reason::NotFound) {
+        // On error 404, we skip this request and go further.
+        requests.erase(fileRequestsIt);
+        status.requiredResourceCount--;
+        continueDownload();
+    }
+    return;
+}
+```
+
+The SDK does continue past a 404 — but it reports it to the observer **first**. On Android that is
+`OfflineRegionObserver.onError(OfflineRegionError)` with `REASON_NOT_FOUND`, a constant confirmed on
+the pinned 13.5.0 AAR by `javap` (`REASON_SUCCESS, REASON_NOT_FOUND, REASON_SERVER,
+REASON_CONNECTION, REASON_OTHER`; the JNI hop from `responseError` to `onError` is inferred from
+that enum's existence, not read). And `MapLibreOfflineMapRepository.kt:311-315` throws on **any**
+`onError`. So a Worker-side 404 still fails the whole region in this app. A **204** carries no
+error, is stored as a normal empty resource, and never reaches `onError`.
+
+**Render side**, which is where the pulse's "over-zoom" claim actually lives, traced rather than
+taken from `OfflineMapRepository.kt:107-108` (a doc comment about zooming *past* `maxzoom`, a
+different case):
+
+1. `tile_loader_impl.hpp:162` — a `NotFound` error is not treated as an error; `:183` —
+   `tile.setData(res.noContent ? nullptr : res.data)`. **404 and 204 both become `setData(nullptr)`.**
+2. `vector_mvt_tile.cpp:29` — `GeometryTile::setData(data_ ? ... : nullptr)`.
+3. `geometry_tile.cpp:264-267` — no null branch; `pending = true`, handed to the worker.
+4. `geometry_tile_worker.cpp:420` — `parse()`: `if (!data || !layers) return;` No layout produced.
+5. `geometry_tile.cpp:342-345` — `renderable = true` is set only in `onLayout`, which never runs.
+   `tile.hpp:153` — `renderable` defaults `false`.
+6. `algorithm/update_renderables.hpp:50` — `if (tile->isRenderable()) render(ideal); else` look for
+   children, then **parents**. The empty z15 tile is never renderable, so **its z14 parent is drawn,
+   over-zoomed**.
+
+That is the same path every empty ocean tile in the archive takes today (the Worker already answers
+in-archive misses with 204, `index.ts`), so it is production behaviour, not a theory.
+
+**Corrected fix 1:** the Worker answers any overflow failure — build-URL resolution miss, upstream
+error, timeout — with **204**, plus a response header naming why (the owner's round-3 suggestion,
+e.g. `X-Forager-Overflow: unavailable`), which also satisfies `CLAUDE.md`'s no-unlogged-fallback rule
+without writing a log line. Result: the region download completes, the tester sees nothing, and
+the z15 detail degrades to the z14 archive over-zoomed — exactly what the maxzoom-14 fork would give
+by design, applied only when the overflow source is unavailable.
+
+**Stated trade, not hidden:** a 204 for a tile that has data upstream presents "no data at z15."
+The rendered outcome is real z14 data at coarser resolution, not a fabricated value, and the header
+names the degradation; that is the honest form of `CLAUDE.md`'s "explicit unsupported" here.
+
+**Unchanged:** this remains Worker-side and lands independently of the beta build. **What the AAB
+needs from this pulse is still nothing.**
+
+**Unverified, non-blocking:** whether `TileLoader` re-requests a never-loaded empty tile on later
+updates. It is existing behaviour for every 204 tile in production and has not presented as a
+problem.
