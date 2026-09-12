@@ -308,13 +308,12 @@ class TrackRecordingServiceTest {
             )
 
             viewModel.onEnteredForeground()
-            idleAndSettle()
 
             assertFalse(
                 "after the Activity resumes, the state the record button reads (TrackRecordingUiState.isRecording, " +
                     "which is activeTrack != null) must agree with the track's own ended row — it did not, so a user " +
                     "returning to the app still sees a recording that stopped from the shade",
-                viewModel.uiState.value.isRecording,
+                awaitStillRecording(viewModel),
             )
 
             controller.destroy()
@@ -342,6 +341,28 @@ class TrackRecordingServiceTest {
             idleAndSettle()
         }
         return null
+    }
+
+    /**
+     * Whether the ViewModel still claims to be recording after giving the resync time to land.
+     *
+     * Polls rather than settling once. [TrackRecordingViewModel.onEnteredForeground] re-reads the
+     * track's row, which is a database round-trip off the main thread, so its result is no more
+     * visible the instant the call returns than [TrackRecordingViewModel.startRecording]'s write was
+     * — and [awaitActiveTrackId] already had to poll for that one, in this same test. A single
+     * `idle()` is what a first version of this test used, and it reported the fix as not working
+     * when the fix was fine: the assertion simply ran before the read came back.
+     *
+     * Returns `true` on timeout, so a resync that genuinely never clears still fails the assertion
+     * rather than hanging — the same "read as a failure, not as a hang" rule [awaitEndedAt] follows.
+     */
+    private fun awaitStillRecording(viewModel: TrackRecordingViewModel, timeoutMillis: Long = 10_000L): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < deadline) {
+            if (!viewModel.uiState.value.isRecording) return false
+            idleAndSettle()
+        }
+        return true
     }
 
     /**
