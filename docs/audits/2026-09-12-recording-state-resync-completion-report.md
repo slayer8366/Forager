@@ -54,10 +54,13 @@ Before/after: CI at the branch base `5f8f258` reported 172 suites, **1345** test
 failures. After is 1346. The delta is exactly the one new test, in an existing class, so the suite
 count is unchanged. **The skip count is 24 in both and was never adjusted.**
 
-**The dispatch's expected failure pool did not appear.** It named 12 known failures, 11 Room
-migration plus `AvailabilityScreenSettingsPanelTest`, as Windows path-length failures. This run is a
-Linux container and saw zero. That pool is a property of the owner's Windows host, not of the tree,
-and it should not be carried into a Linux report as an expected baseline.
+**The dispatch's expected failure pool did not appear, and that is the correct result rather than a
+surprise.** It named 12 known failures, 11 Room migration plus `AvailabilityScreenSettingsPanelTest`,
+as Windows path-length failures with the threshold bounded to [212, 260]. That is a property of the
+Windows host's `%TEMP%` path length. **It cannot exist in a Linux container**, where the path limit is
+not reached, so zero is what a correct Linux run reports. Stated explicitly rather than passed over,
+because a reader comparing this tally against a Windows one would otherwise be comparing two
+different baselines without knowing it.
 
 **One piece of evidence in this dispatch was contaminated and is recorded rather than quietly
 replaced.** The first "seen it fail" run used a version of the test that checked `isRecording` after
@@ -153,6 +156,34 @@ at all", probably survives, because `ACCESS_BACKGROUND_LOCATION` is not declared
 `AvailabilityViewModel.kt:143-145` already records that the platform is what limits delivery. So in
 the bug window the app holds a registration it disclaimed holding, while likely receiving nothing
 through it. Wrong about the mechanism, accidentally accurate about the effect.
+
+---
+
+## The device check, which is the authority
+
+A green suite is necessary and not sufficient here, and the owner confirms before the video is
+reshot. The check is short because the defect is:
+
+1. Install this branch's build. Start a track recording.
+2. Background the app, or leave it in the foreground — either is a valid run, and they exercise the
+   two different lifecycle edges.
+3. Pull down the shade and tap **Stop recording** on the ongoing notification.
+4. Return to the app.
+5. **Watch the record button.** It must show "not recording".
+
+Reading the result:
+
+| What the button shows on return | Meaning |
+|---|---|
+| Not recording | The resync ran and agreed with the row. This is the fix |
+| Still recording | The resync did not run, or ran and did not clear. A JVM-green build says nothing about which |
+
+Worth doing in the same pass, since it is the half the suite cannot speak to at all: after step 3,
+before step 4, confirm the ongoing notification is gone. That is the service stopping itself, which
+was always correct, and it is what makes the button's claim visibly wrong today.
+
+The video now has a working stop action to demonstrate rather than a broken one, which is the reason
+this was a beta blocker rather than a tidy-up.
 
 ---
 
