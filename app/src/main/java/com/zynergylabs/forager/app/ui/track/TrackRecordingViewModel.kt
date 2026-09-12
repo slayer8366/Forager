@@ -175,14 +175,6 @@ class TrackRecordingViewModel(
     private var recordingNoticeIds = 0
     private var networkFixesNoticeShown = false
 
-    /**
-     * Whether the hosting Activity is at least STARTED, driven by [onEnteredForeground] /
-     * [onLeftForeground]. Read by [beginLocationTracking] so a recording started and then
-     * immediately backgrounded — `startRecording` does its work in a coroutine, so `ON_STOP` can
-     * win that race — cannot leave a platform listener registered with no screen showing.
-     */
-    private var isForegrounded = true
-
     init {
         loadWaypoints()
         loadTracks()
@@ -244,6 +236,36 @@ class TrackRecordingViewModel(
     }
 
     /**
+     * Everything "this ViewModel is no longer recording" means, in one place.
+     *
+     * Extracted so [stopRecording] and [resyncRecordingState] cannot drift: §2 of the resync
+     * dispatch requires the resync to leave the ViewModel in the state a normal stop leaves it in,
+     * and sharing the code is the only way that stays true without someone re-checking two lists.
+     * The difference between the two callers is then exactly one documented side effect, the end
+     * waypoint, which lives in [stopRecording] and not here.
+     *
+     * Cancelling [locationJob] is what releases the platform location listener, not merely what
+     * stops this ViewModel reading it: `LocationTracker.fixes` is a `callbackFlow` whose
+     * `awaitClose { removeUpdates(listener) }` runs on cancellation and at no other time. See
+     * [com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel.onLeftForeground], where this
+     * project recorded the same mechanism after finding a subscription that outlived every
+     * backgrounding.
+     */
+    private fun clearRecordingState() {
+        pollingJob?.cancel()
+        pollingJob = null
+        locationJob?.cancel()
+        locationJob = null
+        recentReturnDistancesMeters.clear()
+        lastOffTrackAlertAtMillis = null
+        lastGatedFix = null
+        originCreationInFlight = false
+        _uiState.update {
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, pathHome = null)
+        }
+    }
+
+    /**
      * Clears local recording state. Ending the track's own row (`endedAtEpochMillis`) is the
      * foreground service's job once it receives the stop intent — see
      * [com.zynergylabs.forager.app.service.TrackRecordingService.stopRecording] — not duplicated here.
@@ -256,17 +278,7 @@ class TrackRecordingViewModel(
     fun stopRecording() {
         val endingTrack = uiState.value.activeTrack
         val endFix = lastGatedFix
-        pollingJob?.cancel()
-        pollingJob = null
-        locationJob?.cancel()
-        locationJob = null
-        recentReturnDistancesMeters.clear()
-        lastOffTrackAlertAtMillis = null
-        lastGatedFix = null
-        originCreationInFlight = false
-        _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, pathHome = null)
-        }
+        clearRecordingState()
         if (endingTrack != null && endFix != null) {
             viewModelScope.launch {
                 createWaypoint(
@@ -284,17 +296,97 @@ class TrackRecordingViewModel(
     }
 
     /**
-     * The hosting Activity reached `ON_START`.
-     *
-     * INERT IN THIS COMMIT, ON PURPOSE. The test that proves this method is needed has to be seen
-     * failing before the body is written, and a method that does not exist yet fails to compile
-     * rather than failing an assertion — which `CLAUDE.md` records as the way a revert check lies.
-     * The body lands in the next commit.
+     * The hosting Activity reached `ON_START`. Resynchronizes against storage — see
+     * [resyncRecordingState].
      */
-    fun onEnteredForeground() = Unit
+    fun onEnteredForeground() {
+        viewModelScope.launch { resyncRecordingState() }
+    }
 
-    /** The hosting Activity reached `ON_STOP`. Inert in this commit — see [onEnteredForeground]. */
-    fun onLeftForeground() = Unit
+    /**
+     * The hosting Activity reached `ON_STOP`. Resynchronizes against storage, identically to
+     * [onEnteredForeground], and the identical body is the point rather than an oversight.
+     *
+     * **Why both, when the dispatch asked only for resume.** Resume alone leaves the case where the
+     * user stops from the shade and never reopens the app: nothing runs, so nothing clears, and
+     * [locationJob] keeps a platform location listener registered with no foreground service and no
+     * notification behind it. Resyncing here closes that, because backgrounding is the one thing
+     * that reliably happens after a stop from the shade.
+     *
+     * **Why this and not the foreground gate `AvailabilityViewModel` uses.** That gate releases the
+     * subscription on `ON_STOP` unconditionally, which is right there and would be a regression
+     * here: two things in [beginLocationTracking]'s collector must keep running with the screen off
+     * during a *legitimate* recording.
+     *
+     * 1. The origin waypoint. It is seeded from the first fix that clears the mode's accuracy gate,
+     *    with no timeout, and [com.zynergylabs.forager.app.domain.pathHome]'s own doc records that under
+     *    canopy that fix may arrive very late or never. A pocketed phone is the normal way to walk
+     *    a track. Gate the collector off and a canopy recording acquires no origin at all, and the
+     *    navigation HUD then has no target to point at — the return-to-vehicle safety feature.
+     * 2. The off-track alert. [returnToStart] is fed from that collector and is what runs
+     *    [detectOffTrack] and hands the [Alert] to [alertDelivery]. Gating on foreground would stop
+     *    it firing with the screen off, which is the exact condition it exists for.
+     *
+     * So the collector stays bounded by the recording, as it always was. What changes is that
+     * "the recording" now means the track's own row rather than a field nothing repopulates.
+     *
+     * **What this does not close, recorded rather than fixed.** During a legitimate recording,
+     * backgrounding still does not release this ViewModel's subscription, and it is a *second*
+     * platform registration on top of the service's own — `LocationTracker.fixes` is a cold
+     * `callbackFlow`, so every collector runs `requestLocationUpdates` independently. Routing this
+     * ViewModel off the service's fixes instead is the structural change and is out of this scope.
+     */
+    fun onLeftForeground() {
+        viewModelScope.launch { resyncRecordingState() }
+    }
+
+    /**
+     * Reconciles this ViewModel's in-memory [TrackRecordingUiState.activeTrack] against the track's
+     * own row, and clears local recording state if the row says the recording is over.
+     *
+     * **The defect this exists for.** `TrackRecordingService.stopRecording()` and
+     * [stopRecording] are two different methods with the same name on two different classes. The
+     * notification's Stop action calls the first and nothing calls the second, so the service ends
+     * the track and this ViewModel never hears about it. [TrackRecordingUiState.isRecording] is
+     * `activeTrack != null`, an in-memory field nothing repopulates from storage, so the record
+     * button goes on claiming a recording that ended.
+     *
+     * **Why this is not routed through [stopRecording], which §2 asks to be justified.** It shares
+     * [clearRecordingState] with it, so the state left behind is identical by construction rather
+     * than by inspection. What it deliberately does **not** inherit is [stopRecording]'s end
+     * waypoint, which is seeded from [lastGatedFix] — the last fix that cleared the gate, which by
+     * the time this runs is where the walker was when they backgrounded the app, not where they
+     * stopped recording. Writing a waypoint there would be a data write from a stale position onto
+     * an already-ended track, which is the class of thing this whole change is about not doing.
+     * A track stopped from the shade therefore still has no end waypoint; that is unchanged by
+     * this, and recorded as a known gap rather than fixed here on a position nobody measured.
+     *
+     * **A read failure clears nothing** and is logged. "Could not read the row" is not evidence the
+     * recording ended, and silently treating it as such would stop a live recording's UI on a
+     * transient database error. That is the only branch [errorLog] carries, because it is the only
+     * one holding a `Throwable` — [ErrorLog] takes a non-null one by design, and fabricating an
+     * exception to report a state through it would misuse the abstraction rather than honour the
+     * "never swallow a failure" rule it exists for.
+     *
+     * **A missing row clears, in the same branch as an ended one**, and that is a state rather than
+     * an error: a track that no longer exists cannot still be recording, so there is no failure to
+     * report. The two are folded together because the ViewModel's response to them is identical and
+     * splitting them would imply a distinction the code does not make.
+     *
+     * Cheap, and a no-op when nothing is recording: it returns before touching storage unless
+     * [TrackRecordingUiState.activeTrack] is set. A background-and-return **during** a live
+     * recording reads one row, finds `endedAtEpochMillis` null, and changes nothing.
+     */
+    private suspend fun resyncRecordingState() {
+        val active = uiState.value.activeTrack ?: return
+        trackRepository.getById(active.trackId)
+            .onSuccess { track ->
+                if (track == null || track.endedAtEpochMillis != null) clearRecordingState()
+            }
+            .onFailure { error ->
+                errorLog.w(TAG, "Couldn't re-read track '${active.trackId}'; leaving recording state as it is.", error)
+            }
+    }
 
     /**
      * Marks the walker as now heading back to the track's start — the only state
