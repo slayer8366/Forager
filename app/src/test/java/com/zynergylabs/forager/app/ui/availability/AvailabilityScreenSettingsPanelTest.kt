@@ -584,10 +584,14 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
+        // performScrollTo, as "Download Maps"/"No regions downloaded yet" above already need:
+        // map-pan dispatch §2b gave the picker map its own 4:3 viewport (360x270dp here, up from
+        // 360x146dp), which pushes this line below the fold on a 360x640dp window. The line is
+        // present and reachable in the panel's own scroll — only its position changed.
         composeRule.onNodeWithText(
             "Download region: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
-        ).assertIsDisplayed()
-        composeRule.onNodeWithText("Download Maps").assertIsEnabled()
+        ).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsEnabled()
     }
 
     @Test
@@ -702,7 +706,10 @@ class AvailabilityScreenSettingsPanelTest {
 
         composeRule.onAllNodesWithText("Pin at:", substring = true).assertCountEquals(1)
         composeRule.onAllNodesWithText("Selected:", substring = true).assertCountEquals(0)
-        composeRule.onNodeWithText("No location picked yet — pan the map above and tap OK.").assertIsDisplayed()
+        // performScrollTo since map-pan dispatch §2b: the 4:3 map viewport puts this line below
+        // the fold on a 360x640dp window — see the Download-region assertion above.
+        composeRule.onNodeWithText("No location picked yet — pan the map above and tap OK.")
+            .performScrollTo().assertIsDisplayed()
     }
 }
 

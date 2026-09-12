@@ -151,20 +151,26 @@ internal fun OfflineMapsPanel(
         // A fixed aspect ratio, not weight(1f): the picker map used to claim all leftover space in
         // an unscrolled panel, but a panel that now scrolls as a whole has no "leftover space" for
         // weight to resolve against.
-        Box(modifier = Modifier.fillMaxWidth().aspectRatio(MAP_PICKER_ASPECT_RATIO)) {
-            CentrePinLocationPicker(
-                mapSlot = mapSlot,
-                region = pickerRegion,
-                basemap = Basemap.OPEN_TOPO_MAP,
-                night = isNightMode,
-                onConfirm = onRegionPicked,
-                // Nothing to cancel back to: this panel had no confirm step before this picker
-                // existed either — the offlineMapLatText/offlineMapLngText fields just keep
-                // whatever they already held (blank, or a prior confirmed pick).
-                onCancel = {},
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+        //
+        // The ratio is handed to the picker rather than applied to a Box around it (map-pan
+        // dispatch, §2b). Wrapping the whole picker constrained the instruction line and the
+        // OK/Cancel row too, leaving the map itself as the remainder: measured 360x146dp inside a
+        // 360x270dp box on a 360dp phone, a 2.5:1 letterbox rather than the 4:3 the constant
+        // reads as. Constraining the map viewport makes it 360x270dp and lets the picker's own
+        // chrome add its height below — see CentrePinLocationPicker.mapAspectRatio.
+        CentrePinLocationPicker(
+            mapSlot = mapSlot,
+            region = pickerRegion,
+            basemap = Basemap.OPEN_TOPO_MAP,
+            night = isNightMode,
+            onConfirm = onRegionPicked,
+            // Nothing to cancel back to: this panel had no confirm step before this picker
+            // existed either — the offlineMapLatText/offlineMapLngText fields just keep
+            // whatever they already held (blank, or a prior confirmed pick).
+            onCancel = {},
+            mapAspectRatio = MAP_PICKER_ASPECT_RATIO,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Column(
             modifier = Modifier
