@@ -87,6 +87,17 @@ class PhotoViewerDialogTest {
         composeRule.setContent {
             PhotoViewerDialog(photos = photos, initialIndex = initialIndex, onDismiss = { dismissals++ })
         }
+        awaitPhoto()
+    }
+
+    /**
+     * The photo decodes off `Dispatchers.IO`, which `waitForIdle` does not wait on; until it lands
+     * the viewer shows its progress indicator and there is no photo node. Needed after every step
+     * to another photo as well as on open — the first full-suite run of this class failed exactly
+     * there, reading the zoom label after "Next photo" before the next decode had finished, while
+     * the same test had passed in a class-only run with the machine less loaded.
+     */
+    private fun awaitPhoto() {
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithContentDescription(VIEWER_PHOTO_DESCRIPTION).fetchSemanticsNodes().isNotEmpty()
         }
@@ -242,6 +253,7 @@ class PhotoViewerDialogTest {
         composeRule.onNodeWithContentDescription("Next photo").performTouchInput { click() }
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(PHOTO_VIEWER_COUNTER_TAG).assertTextEquals("3 / 3")
+        awaitPhoto()
         assertEquals("stepping to another photo starts it at fit", "Zoom 1.0×", zoomLabel())
 
         composeRule.onNodeWithContentDescription("Next photo").performTouchInput { click() }
