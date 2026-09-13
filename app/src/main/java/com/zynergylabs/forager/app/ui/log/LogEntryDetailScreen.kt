@@ -51,15 +51,16 @@ import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
-import com.zynergylabs.forager.app.ui.availability.CollapsibleSection
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
  * time this shows (see [MushroomLogViewModel.onStartNewEntry]): "creating" and "editing" are the
- * same action here. Each characteristic section is a [CollapsibleSection] (reused from
- * `AvailabilityScreen`) so the form doesn't dump every field on screen at once — the same "single
- * line until tapped" shape the drawer's own Search/Trip Planner sections use.
+ * same action here. The form is the header row, the location line, the identification field,
+ * the Photos section and Notes. It used to carry seven collapsible characteristic sections below
+ * the photos (Cap through Host & substrate, each a `CollapsibleSection` around an editor in the
+ * former `LogSectionEditors.kt`); the owner removed them on 2026-09-13 — see the comment at the
+ * Notes field for what stayed and why nothing recorded is lost.
  *
  * ## Standalone drafts (Workstream L4b, owner decision 2026-08-22; corrected 2026-08-25, L4b-R)
  *
@@ -202,28 +203,13 @@ internal fun LogEntryDetailScreen(
 
             HorizontalDivider()
 
-            CollapsibleSection(title = "Cap") {
-                CapEditor(entry.cap, onChanged = { onEntryChanged(entry.copy(cap = it)) })
-            }
-            CollapsibleSection(title = "Hymenophore") {
-                HymenophoreEditor(entry.hymenophore, onChanged = { onEntryChanged(entry.copy(hymenophore = it)) })
-            }
-            CollapsibleSection(title = "Stipe") {
-                StipeEditor(entry.stipe, onChanged = { onEntryChanged(entry.copy(stipe = it)) })
-            }
-            CollapsibleSection(title = "Veil remnants") {
-                VeilEditor(entry.veil, onChanged = { onEntryChanged(entry.copy(veil = it)) })
-            }
-            CollapsibleSection(title = "Context / flesh") {
-                ContextFleshEditor(entry.contextFlesh, onChanged = { onEntryChanged(entry.copy(contextFlesh = it)) })
-            }
-            CollapsibleSection(title = "Spore print") {
-                SporePrintEditor(entry.sporePrint, onChanged = { onEntryChanged(entry.copy(sporePrint = it)) })
-            }
-            CollapsibleSection(title = "Host & substrate") {
-                HostSubstrateEditor(entry.hostSubstrate, onChanged = { onEntryChanged(entry.copy(hostSubstrate = it)) })
-            }
-
+            // Owner decision, 2026-09-13 (from a device screenshot of this form): the seven
+            // collapsible characteristic sections (Cap, Hymenophore, Stipe, Veil remnants,
+            // Context / flesh, Spore print, Host & substrate) are removed from the edit form;
+            // Notes stays. The model, the persistence and LogEntryReportScreen's rendering of
+            // anything already recorded are untouched, so no existing find loses data — the read
+            // view already omits a section with nothing in it. The section editors themselves
+            // (LogSectionEditors.kt) were deleted with this, having no caller left.
             NotesField(entry.notes, onValueChanged = { onEntryChanged(entry.copy(notes = it)) })
 
             Spacer(modifier = Modifier.heightIn(min = Spacing.lg))

@@ -374,4 +374,16 @@ class LogEntryDetailScreenTest {
 
         composeRule.onNodeWithTag(PHOTO_VIEWER_COUNTER_TAG).assertTextEquals("2 / 3")
     }
+
+    /** Owner decision, 2026-09-13: the seven characteristic sections are gone from the edit form; Notes stays. Fails if any heading comes back. */
+    @Test
+    fun `the edit form has no characteristic sections and keeps Notes`() {
+        setScreen(MushroomLogEntry.draft(id = "e1", location = null, date = LocalDate.of(2026, 8, 1)))
+
+        listOf("Cap", "Hymenophore", "Stipe", "Veil remnants", "Context / flesh", "Spore print", "Host & substrate").forEach { heading ->
+            composeRule.onNodeWithText(heading).assertDoesNotExist()
+        }
+        composeRule.onNodeWithText("Notes").assertIsDisplayed()
+        composeRule.onNodeWithText("Photos").assertIsDisplayed()
+    }
 }
