@@ -104,11 +104,11 @@ transverse are exactly where a sign error would survive until a real photo showe
 | | suites | tests | failures | errors | skipped |
 |---|---|---|---|---|---|
 | before (this branch at `2ed232c`, the location dispatch's full run) | 175 | 1382 | 0 | 0 | 24 |
-| after (this branch at `fd7d68c`) | AFTER_SUITES | AFTER_TESTS | AFTER_FAILURES | AFTER_ERRORS | AFTER_SKIPPED |
+| after (this branch at `fd7d68c`) | 176 | 1394 | 0 | 0 | 24 |
 
 Twelve tests added: `PhotoOrientationTest` (6, new), `PhotoViewerDecodeTest` (+5),
 `DecodedPhotoTest` (+1). Skip count unchanged; CI allowlist untouched. `assembleDebug`:
-ASSEMBLE_RESULT. **Container runs on Linux, not GitHub Actions.** The "before" is this branch
+exit 0 on `fd7d68c`. **Container runs on Linux, not GitHub Actions.** The "before" is this branch
 before this dispatch's commit, not a clean `main` worktree; the branch's own before/after against
 `main` is in the viewer report.
 
