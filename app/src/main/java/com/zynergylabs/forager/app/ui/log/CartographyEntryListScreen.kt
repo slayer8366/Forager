@@ -42,7 +42,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  *
  * A card names its date, its tag chips (if any), and kept-item counts — **never whether it has
  * writing**. Per `amendment-2b-optional-writing.md`: a wordless entry with kept items is complete,
- * not incomplete, so no card here carries an "Incomplete"-style badge the way [LogGalleryScreen]'s
+ * not incomplete, so no card here carries an "Incomplete"-style badge (the find tiles' own such badge was removed on 2026-09-13) the way [LogGalleryScreen]'s
  * find tiles do; [MushroomLogEntry] is a different entity with a different completeness question,
  * and none of that framing carries over to entries that never claimed to be structured records.
  */

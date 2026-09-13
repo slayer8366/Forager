@@ -20,7 +20,10 @@ internal fun NotesField(value: String, modifier: Modifier = Modifier, onValueCha
     OutlinedTextField(
         value = value,
         onValueChange = onValueChanged,
-        label = { Text("Notes") },
+        // Owner's wording, 2026-09-13: "Description Notes" — one field for both describing the
+        // specimen and recording context, no new field, no split. The read view's heading for the
+        // same field (LogEntryReportScreen) uses the identical string.
+        label = { Text("Description Notes") },
         modifier = modifier.fillMaxWidth(),
     )
 }

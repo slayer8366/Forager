@@ -94,6 +94,9 @@ class LogEntryReportScreenTest {
         composeRule.onNodeWithText("Pores").assertIsDisplayed()
         composeRule.onNodeWithText("No volva").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Found near a large oak.").performScrollTo().assertIsDisplayed()
+        // The read view heads the same field with the edit form's exact label (owner's wording, 2026-09-13).
+        composeRule.onNodeWithText("Description Notes").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Notes").assertDoesNotExist()
     }
 
     /** [CapSection.EMPTY]'s CapShape/surface/margin are all [Observed.NotObserved] — none of them should print a line. */

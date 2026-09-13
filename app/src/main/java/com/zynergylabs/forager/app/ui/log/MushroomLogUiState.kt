@@ -16,7 +16,7 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
  * list/gallery screen. A row lands here for one of two reasons, indistinguishable by this field
  * alone and treated identically either way: a live edit session (open right now, or persisted after
  * an incidental exit — decision 2026-08-25: "persists the draft, it does not commit") or one a crash
- * orphaned. Rendered with its own "Draft" indicator, the same precedent as the existing "Incomplete"
+ * orphaned. Rendered with its own "Draft" indicator, the same precedent as the then-existing "Incomplete"
  * badge, so recovered entries surface one at a time rather than as one bulk prompt (owner's own
  * reasoning: seeing entries survive one by one is reassuring).
  *

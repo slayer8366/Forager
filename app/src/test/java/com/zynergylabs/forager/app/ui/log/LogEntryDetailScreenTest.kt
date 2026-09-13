@@ -383,7 +383,9 @@ class LogEntryDetailScreenTest {
         listOf("Cap", "Hymenophore", "Stipe", "Veil remnants", "Context / flesh", "Spore print", "Host & substrate").forEach { heading ->
             composeRule.onNodeWithText(heading).assertDoesNotExist()
         }
-        composeRule.onNodeWithText("Notes").assertIsDisplayed()
+        // Owner's wording, 2026-09-13: the field is "Description Notes"; the bare "Notes" label is gone.
+        composeRule.onNodeWithText("Description Notes").assertIsDisplayed()
+        composeRule.onNodeWithText("Notes").assertDoesNotExist()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
     }
 }

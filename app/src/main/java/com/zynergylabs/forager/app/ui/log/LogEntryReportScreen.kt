@@ -66,7 +66,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * a forager who examined the cap and found nothing notable, or skipped a spore print because the
  * identification was obvious, is told their record is incomplete when it is not. Blank makes no
  * claim; a partially filled find is not a problem needing explanation, so an empty section is simply
- * omitted, silently, with no message). [LogGalleryScreen]'s "Incomplete" tile label is a separate,
+ * omitted, silently, with no message). [LogGalleryScreen]'s former "Incomplete" tile label (removed 2026-09-13) was a separate,
  * pre-existing signal this change doesn't touch.
  *
  * **[isEntirelyEmpty]:** when literally nothing has been recorded anywhere on this screen — no
@@ -186,7 +186,7 @@ internal fun LogEntryReportScreen(
                 ReportSection("Host & substrate", hostSubstrateLines)
 
                 if (entry.notes.isNotBlank()) {
-                    ReportSection("Notes", listOf(entry.notes))
+                    ReportSection("Description Notes", listOf(entry.notes))
                 }
             }
 
