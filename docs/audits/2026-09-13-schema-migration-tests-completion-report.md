@@ -51,8 +51,9 @@ that lived on this branch for three commits and was deleted once the answer was 
 - **`androidTest`:** not needed, and this project has none: `app/src` holds `main` and `test` only.
   There is no instrumented test infrastructure to fall back to.
 - **CI:** `ci.yml` runs `testDebugUnitTest` on every pull request, so the new class runs there with
-  everything else. Run 34746417192 on `512403a` was in progress when read; the result on the final
-  head `e307f81` had not been read when this report was written and is recorded in §7.2.
+  everything else. **Run 34746417192 on `512403a` completed green** (read after the first draft of
+  this report), so the class runs and passes on GitHub Actions with the id and 7→8 fixes in; run
+  34746709707 on `e307f81`, the every-column version, was still in progress when this was pushed.
 - **Not a fourth blind spot.** Four one-line reverts of migration code each failed the suite on a
   message naming that edit (§3, "Proof the suite bites").
 
@@ -251,7 +252,8 @@ their own caveat comments, not from a diff of the two).
 - Whether any tester has ever run a migration, or whether any version-1 or 2 file exists.
 - Whether the new tests clear the Windows path ceiling (§6).
 - Whether fixture chains carry a `log_photos` row through 11→12 (§4).
-- CI's result on the final head: not read at the time of writing.
+- CI's result on the final head `e307f81`: in progress when this was pushed. The previous head,
+  `512403a`, with the same twelve tests in their earlier shape, was green (run 34746417192).
 
 ### 7.3 Premises in the dispatch that were wrong
 
