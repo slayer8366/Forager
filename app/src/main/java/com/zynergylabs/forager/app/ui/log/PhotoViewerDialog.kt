@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.domain.model.LogPhoto
+import com.zynergylabs.forager.app.photo.oriented
+import com.zynergylabs.forager.app.photo.readPhotoOrientation
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
 import java.util.Locale
@@ -209,6 +211,7 @@ private fun ViewerControl(
 private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var bitmap by remember(relativePath) { mutableStateOf<ImageBitmap?>(null) }
+    var rotationDegrees by remember(relativePath) { mutableIntStateOf(0) }
     var decodeFailed by remember(relativePath) { mutableStateOf(false) }
     LaunchedEffect(relativePath) {
         val decoded = withContext(Dispatchers.IO) {
@@ -216,7 +219,8 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
                 .onFailure { error -> Log.w(TAG, "Couldn't decode photo at '$relativePath' for the viewer.", error) }
                 .getOrNull()
         }
-        bitmap = decoded?.asImageBitmap()
+        bitmap = decoded?.bitmap?.asImageBitmap()
+        rotationDegrees = decoded?.rotationDegrees ?: 0
         decodeFailed = decoded == null
     }
 
@@ -228,10 +232,18 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
         val loaded = bitmap
         when {
             loaded != null -> {
+                // EXIF-orientation-display dispatch: a 90°/270° photo is drawn by rotating the
+                // layer, not by allocating a turned copy of a bitmap this large. ContentScale.Fit
+                // has already fitted the *unrotated* bitmap, so the layer also scales by
+                // viewerRotationFit's ratio to make the rotated result fit the viewport instead.
+                val fitCorrection = viewerRotationFit(loaded.width, loaded.height, rotationDegrees, viewport.width, viewport.height)
+                val swaps = rotationDegrees % 180 != 0
+                val shownBaseWidth = if (swaps) loaded.height else loaded.width
+                val shownBaseHeight = if (swaps) loaded.width else loaded.height
                 fun clamped(candidate: Offset, atScale: Float): Offset {
-                    val fit = min(viewport.width / loaded.width.toFloat(), viewport.height / loaded.height.toFloat())
-                    val shownWidth = loaded.width * fit * atScale
-                    val shownHeight = loaded.height * fit * atScale
+                    val fit = min(viewport.width / shownBaseWidth.toFloat(), viewport.height / shownBaseHeight.toFloat())
+                    val shownWidth = shownBaseWidth * fit * atScale
+                    val shownHeight = shownBaseHeight * fit * atScale
                     // An explicit zero when the image fits its axis, not coerceIn(-0f, 0f): that
                     // returns -0.0f for a leftward drag, which is equal to nothing but itself.
                     fun axis(value: Float, shown: Float, available: Int): Float {
@@ -277,8 +289,9 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
                             )
                         }
                         .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
+                            rotationZ = rotationDegrees.toFloat()
+                            scaleX = scale * fitCorrection
+                            scaleY = scale * fitCorrection
                             translationX = offset.x
                             translationY = offset.y
                         },
@@ -298,13 +311,25 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * Decodes [file] with the smallest power-of-two `inSampleSize` that brings its longest edge to at
- * most [maxEdgePx]. Reads the file's dimensions with `inJustDecodeBounds` first, then decodes once;
- * neither pass reads or writes EXIF (BitmapFactory does not, and nothing here applies an EXIF
- * orientation — the same as [DecodedPhoto], so the viewer shows the photo the way its thumbnail
- * already does). Throws rather than returning `null` so the caller's `runCatching` logs the cause.
+ * What the viewer draws: the decoded bitmap plus the clockwise rotation the layer must apply to
+ * show it upright. A mirrored orientation (EXIF 2, 4, 5, 7 — editing artefacts, not what a camera
+ * writes) is baked into [bitmap] at decode and [rotationDegrees] is then 0; a pure rotation is
+ * left to the draw transform so no second bitmap of viewer size is ever allocated.
  */
-internal fun decodeBoundedPhoto(file: File, maxEdgePx: Int): Bitmap {
+internal class ViewerPhoto(val bitmap: Bitmap, val rotationDegrees: Int) {
+    /** The size the photo occupies once turned upright, before fitting. */
+    val displayWidth: Int get() = if (rotationDegrees % 180 != 0) bitmap.height else bitmap.width
+    val displayHeight: Int get() = if (rotationDegrees % 180 != 0) bitmap.width else bitmap.height
+}
+
+/**
+ * Decodes [file] with the smallest power-of-two `inSampleSize` that brings its longest edge to at
+ * most [maxEdgePx]. Reads the file's dimensions with `inJustDecodeBounds` first, then decodes once.
+ * The only EXIF read is the orientation tag, through [readPhotoOrientation] (which can return
+ * nothing else); nothing writes to the file. Throws rather than returning `null` so the caller's
+ * `runCatching` logs the cause.
+ */
+internal fun decodeBoundedPhoto(file: File, maxEdgePx: Int): ViewerPhoto {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.absolutePath, bounds)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
@@ -313,8 +338,29 @@ internal fun decodeBoundedPhoto(file: File, maxEdgePx: Int): Bitmap {
     val options = BitmapFactory.Options().apply {
         inSampleSize = viewerSampleSize(width = bounds.outWidth, height = bounds.outHeight, maxEdgePx = maxEdgePx)
     }
-    return BitmapFactory.decodeFile(file.absolutePath, options)
+    val decoded = BitmapFactory.decodeFile(file.absolutePath, options)
         ?: error("BitmapFactory.decodeFile returned null for '${file.name}'")
+    val orientation = readPhotoOrientation(file)
+    return if (orientation.mirrored) {
+        ViewerPhoto(decoded.oriented(orientation), rotationDegrees = 0)
+    } else {
+        ViewerPhoto(decoded, rotationDegrees = orientation.rotationDegrees)
+    }
+}
+
+/**
+ * The factor the viewer's layer multiplies into its scale so a bitmap `ContentScale.Fit` has
+ * fitted *unrotated* fits the viewport once rotated by [rotationDegrees]. 1 for 0°/180°. For
+ * 90°/270° it is `fitRotated / fitUnrotated`, where each fit is `min(viewportW / w, viewportH / h)`
+ * with the bitmap's own or its swapped dimensions. Pure, so [PhotoViewerDecodeTest] checks it
+ * without a composition; 1 whenever any dimension is zero, since there is nothing to fit yet.
+ */
+internal fun viewerRotationFit(bitmapWidth: Int, bitmapHeight: Int, rotationDegrees: Int, viewportWidth: Int, viewportHeight: Int): Float {
+    if (rotationDegrees % 180 == 0) return 1f
+    if (bitmapWidth <= 0 || bitmapHeight <= 0 || viewportWidth <= 0 || viewportHeight <= 0) return 1f
+    val unrotated = min(viewportWidth / bitmapWidth.toFloat(), viewportHeight / bitmapHeight.toFloat())
+    val rotated = min(viewportWidth / bitmapHeight.toFloat(), viewportHeight / bitmapWidth.toFloat())
+    return rotated / unrotated
 }
 
 /**
