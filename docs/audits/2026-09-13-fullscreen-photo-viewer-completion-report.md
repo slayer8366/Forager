@@ -258,3 +258,27 @@ key event reaches the dialog's own back handling, not something else that happen
   and the theme's `scrim` role, no `Color(0x` literal and no palette import, so the script's
   checks 1 and 2 would not have gained a hit from these files, but that is read, not run.
 - No CI run at the time of writing; both suite runs are container runs.
+
+---
+
+## Addendum, same day: the Album (owner follow-up, outside the dispatch)
+
+The owner asked for the same viewer on the Album grid (`PhotoGalleryScreen.kt`). Done in
+`GalleryPhotoTile`: the tile's photo carries the open clickable, and the screen holds the open
+photo's id in `rememberSaveable` and hands the viewer the whole album (`photos.map { it.photo }`),
+so previous/next step through every photo in it.
+
+**The delete `IconButton` is unchanged, on purpose.** The partition problem on the find's 88dp
+thumbnail does not exist here: an Album tile is half the grid's width, so the button's 48dp corner
+box is nowhere near the tile's centre. One thing does change, and is said in the code comment:
+with the photo a direct hit underneath, the button's minimum-touch-target halo no longer applies,
+so its effective region is its own 40dp box rather than 48. Not measured to the dp here; the
+touch at the button's centre and the touch 4dp below its 48dp box are what the tests fix.
+
+**Evidence.** `PhotoGalleryScreenTest` +3, all coordinate touches: the second of three tiles
+opens on "2 / 3" and closes; the delete control's centre opens the confirm dialog and not the
+viewer; five points across a tile (three corners away from the button, the centre, and a point
+just below the button's box) all open with no delete. Reverting the tile's clickable failed two of
+them on their own messages ("a touch at (6.0.dp, 6.0.dp) must open the viewer"), no compile
+errors, restore verified. Full suite after: 174 suites, 1370 tests, 0 failures, 0 errors, 24
+skipped unchanged; container run. The find-side partition and the viewer itself were not touched.
