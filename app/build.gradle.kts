@@ -529,9 +529,6 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.robolectric)
-    // MigrationTestHelper. Reads the exported schema JSON as test assets — see the sourceSets block
-    // at the end of this file that puts app/schemas/ on the unit-test asset path.
-    testImplementation(libs.androidx.room.testing)
 }
 
 /**
@@ -653,14 +650,3 @@ fun indexOfBytes(haystack: ByteArray, needle: ByteArray): Int {
 tasks.matching { it.name == "assembleDebug" }
     .configureEach { finalizedBy("verifyNothingTestOnlyReachesTheApk") }
 
-
-// MigrationTestHelper looks up "<database class>/<version>.json" in the *test* context's assets.
-// Room exports them to app/schemas/ (room.schemaLocation above); this makes that directory a unit-test
-// asset source so Robolectric can serve them. Test source set only — nothing reaches the APK.
-android {
-    sourceSets {
-        getByName("test") {
-            assets.srcDirs("$projectDir/schemas")
-        }
-    }
-}
