@@ -3,7 +3,12 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -238,5 +243,33 @@ class LogEntryReportScreenTest {
         composeRule.onNodeWithContentDescription("Back to your log").performClick()
 
         assertEquals(1, backCalls)
+    }
+
+    /**
+     * Full-screen-photo-viewer dispatch: the read view's thumbnail opens the same viewer as the
+     * edit view's. A coordinate touch (not a semantic click) at a point well inside the tile, since
+     * the claim is that a finger there reaches the photo; and the close control is a coordinate
+     * touch for the same reason.
+     */
+    @Test
+    fun `touching a report thumbnail opens the full-screen viewer, and its close control dismisses it`() {
+        val entryWithPhoto = partiallyRecordedEntry.copy(
+            photos = listOf(LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)),
+        )
+        composeRule.setContent {
+            LogEntryReportScreen(entry = entryWithPhoto, onEdit = {}, onDeleteEntry = {}, onBack = {})
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        val point = with(composeRule.density) { Offset(30.dp.toPx(), 60.dp.toPx()) }
+        composeRule.onNodeWithContentDescription("Log photo").performTouchInput { click(point) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(PHOTO_VIEWER_TAG).assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Close photo").performTouchInput { click() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(PHOTO_VIEWER_TAG).assertDoesNotExist()
     }
 }

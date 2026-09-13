@@ -1,6 +1,9 @@
 package com.zynergylabs.forager.app.ui.log
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,14 +27,22 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ripple
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -237,6 +248,8 @@ private fun PhotosSection(
         onAcquisitionInFlightChanged(photoAcquisition.isAcquisitionInFlight)
     }
 
+    var viewingPhotoId by rememberSaveable { mutableStateOf<String?>(null) }
+
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Photos", style = MaterialTheme.typography.titleSmall)
         // FlowRow, not Row: three real-width Material3 buttons plus their labels can exceed a
@@ -268,22 +281,58 @@ private fun PhotosSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
-                photos.forEach { photo -> LogPhotoThumbnail(photo = photo, onRemove = { onRemovePhoto(photo) }) }
+                photos.forEach { photo ->
+                    LogPhotoThumbnail(
+                        photo = photo,
+                        onOpen = { viewingPhotoId = photo.id },
+                        onRemove = { onRemovePhoto(photo) },
+                    )
+                }
             }
         }
+    }
+
+    // The id, not the index: a removal reorders nothing but does shift indices, and an id that is
+    // no longer in the list closes the viewer instead of opening a neighbour. rememberSaveable so a
+    // rotation mid-inspection comes back on the same photo (see PhotoViewerDialog's own comment).
+    val viewingIndex = viewingPhotoId?.let { id -> photos.indexOfFirst { it.id == id } }?.takeIf { it >= 0 }
+    if (viewingIndex != null) {
+        PhotoViewerDialog(photos = photos, initialIndex = viewingIndex, onDismiss = { viewingPhotoId = null })
     }
 }
 
 private const val PHOTO_THUMBNAIL_SIZE_DP = 88
 private const val REMOVE_GLYPH_SCRIM_SIZE_DP = 28
 
+/**
+ * Side of the remove control's touch target, in dp — the 28dp glyph circle plus a 4dp halo, flush in
+ * the thumbnail's top-end corner. Full-screen-photo-viewer dispatch: the rest of the thumbnail now
+ * opens [PhotoViewerDialog], so the two targets have to partition the 88dp tile, and the partition
+ * is chosen here rather than left to what falls out of the framework. Before this, the control was
+ * an [IconButton] at its 48dp Material minimum: laid out top-end, that box spans x 40–88 and
+ * y 0–48 of the tile, which contains the tile's own centre (44, 44) — a tap in the middle of the
+ * thumbnail, the natural "open this" gesture, was a remove. A 36dp box in the corner (x 52–88,
+ * y 0–36) keeps 8dp clear of the centre on both axes, clears WCAG 2.5.8's 24dp target minimum with
+ * room, and leaves the glyph itself the size it was. Not the Material 48dp: that minimum is for a
+ * control standing alone, and this one shares an 88dp tile with a second target.
+ *
+ * Why the direct bounds are the whole story: Compose expands a touch target to the 48dp minimum
+ * only where nothing else is hit directly, and the photo beneath is now a direct hit everywhere in
+ * the tile, so the control's effective region is exactly this box. [LogEntryDetailScreenTest]
+ * touches both sides of that edge at screen coordinates rather than trusting the arithmetic.
+ */
+internal const val REMOVE_TOUCH_TARGET_DP = 36
+
 /** Exposed at file scope (not inlined into the composable) so [LogPhotoThumbnailRemoveAffordanceContrastTest] checks this exact value, not a copy that can drift from it. */
 internal const val REMOVE_GLYPH_SCRIM_ALPHA = 0.6f
 
 @Composable
-private fun LogPhotoThumbnail(photo: LogPhoto, onRemove: () -> Unit) {
+private fun LogPhotoThumbnail(photo: LogPhoto, onOpen: () -> Unit, onRemove: () -> Unit) {
     Box(modifier = Modifier.size(PHOTO_THUMBNAIL_SIZE_DP.dp)) {
-        DecodedPhoto(relativePath = photo.relativePath, modifier = Modifier.fillMaxSize())
+        DecodedPhoto(
+            relativePath = photo.relativePath,
+            modifier = Modifier.fillMaxSize().clickable(onClickLabel = "Open full screen", onClick = onOpen),
+        )
         // B3 (2026-08-27): the bare glyph read near-invisible against pale photo content —
         // LocalContentColor here tracks the theme, not the photo underneath, so it had no
         // guaranteed contrast against arbitrary imagery. MaterialTheme.colorScheme.scrim is this
@@ -293,14 +342,32 @@ private fun LogPhotoThumbnail(photo: LogPhoto, onRemove: () -> Unit) {
         // theme-following tint: the scrim's whole purpose is a stable, opaque-enough backdrop, so
         // the glyph on top only needs to contrast against the scrim's own dark tone, not against
         // the photo — the same reasoning that keeps a system status bar icon fixed-colour over a
-        // scrim rather than swapping per background. IconButton itself is untouched, so its
-        // default 48dp minimum touch target (already comfortably inside the 88dp thumbnail) is
-        // unaffected — only the glyph and its backing circle, both drawn inside it, are smaller.
-        IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd)) {
+        // scrim rather than swapping per background.
+        //
+        // A plain clickable Box of REMOVE_TOUCH_TARGET_DP, no longer an IconButton: IconButton
+        // fixes its own 48dp target, and 48dp in this corner covers the tile's centre — see
+        // REMOVE_TOUCH_TARGET_DP for the partition this replaces it with. Role.Button and the
+        // "Remove photo" description keep it announced and findable exactly as before.
+        //
+        // The target is the whole square, and the ripple is drawn inside the glyph circle through
+        // its own indication modifier rather than by clipping the clickable to a circle: a clip
+        // clips hit-testing too, and the first run of LogEntryDetailScreenTest's partition check
+        // found the square's corners falling through to the photo (a touch at (54, 2) dp opened
+        // the viewer) with the clip in place.
+        val removeInteraction = remember { MutableInteractionSource() }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(REMOVE_TOUCH_TARGET_DP.dp)
+                .clickable(interactionSource = removeInteraction, indication = null, role = Role.Button, onClick = onRemove),
+            contentAlignment = Alignment.Center,
+        ) {
             Box(
                 modifier = Modifier
                     .size(REMOVE_GLYPH_SCRIM_SIZE_DP.dp)
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = REMOVE_GLYPH_SCRIM_ALPHA), CircleShape),
+                    .clip(CircleShape)
+                    .indication(removeInteraction, ripple())
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = REMOVE_GLYPH_SCRIM_ALPHA)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Filled.Close, contentDescription = "Remove photo", tint = Color.White)
