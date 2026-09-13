@@ -123,8 +123,10 @@ not need-gating.
   when the row says the track ended. Still not a foreground gate, and its own doc says why.
 - "A 'need-gating' item was recorded in the pre-beta audit as unbuilt." Not found under that
   phrase in any audit on any branch.
-- "`AppContainer:129`." The tracker is at `AppContainer.kt:129` on `175b050`.
 - Held: the cold-`callbackFlow`/no-`shareIn`/both-providers description; the "structural change,
-  post-beta" deferral (`resync report:140`); the poll-loop figures.
+  post-beta" deferral (`resync report:140`); the poll-loop figures; and **`AppContainer:129`**, which
+  is correct on `175b050` — the tracker sat at `:127` on `4957675` four days ago and the file has
+  grown, so this is a reference the world moved *toward*, not a misattribution. Checked rather than
+  assumed, because the dispatch said one of its line references was wrong; this one is not.
 
 **4. Decided beyond scope:** nothing. No fix proposed. Every zero above carries its control.
