@@ -76,7 +76,9 @@ class SchemaMigrationTest {
         }
 
     @Test fun `7 to 8 - a photo's entryId becomes a log_entry_photos cross-reference`() =
-        migrate(7, 8, MIGRATION_7_8, overrides = mapOf("log_photos" to mapOf("entryId" to "mushroom_log_entries-1"))) { db ->
+        migrate(7, 8, MIGRATION_7_8, overrides = mapOf("log_photos" to mapOf("entryId" to "mushroom_log_entries-1")),
+            // The one migration that fills a table it creates: each old log_photos.entryId becomes one cross-reference row.
+            filledNewTables = mapOf("log_entry_photos" to 1L)) { db ->
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos WHERE entryId = 'mushroom_log_entries-1' AND photoId = 'log_photos-1'"))
             assertNull(db.scalar("SELECT createdAtEpochMillis FROM log_photos"))
         }
@@ -130,13 +132,20 @@ class SchemaMigrationTest {
     // ---- machinery ----------------------------------------------------------------------------
 
     /** Create at [from] from `from.json`, seed every table, migrate with [migration], validate against `to.json`, assert counts, then [extra]. */
-    private fun migrate(from: Int, to: Int, migration: Migration, overrides: Map<String, Map<String, Any?>> = emptyMap(), extra: (SupportSQLiteDatabase) -> Unit = {}) {
+    private fun migrate(
+        from: Int, to: Int, migration: Migration,
+        overrides: Map<String, Map<String, Any?>> = emptyMap(),
+        filledNewTables: Map<String, Long> = emptyMap(),
+        extra: (SupportSQLiteDatabase) -> Unit = {},
+    ) {
         val name = "m$from.db"
         val seeded = helper.createDatabase(name, from).use { db -> seedEveryTable(db, from, overrides) }
         val db = helper.runMigrationsAndValidate(name, to, true, migration) // validates the result against to.json
         try {
             for ((table, n) in seeded) assertEquals("rows in $table after $from->$to", n, db.scalar("SELECT COUNT(*) FROM `$table`") as Long)
-            for (table in SchemaAssets.tables(to) - seeded.keys) assertEquals("new table $table starts empty", 0L, db.scalar("SELECT COUNT(*) FROM `$table`"))
+            for (table in SchemaAssets.tables(to) - seeded.keys) {
+                assertEquals("rows in new table $table after $from->$to", filledNewTables[table] ?: 0L, db.scalar("SELECT COUNT(*) FROM `$table`"))
+            }
             extra(db)
         } finally { db.close() }
     }
@@ -152,8 +161,10 @@ class SchemaMigrationTest {
             for ((col, affinity, notNull) in fields) {
                 val v: Any? = overrides[table]?.get(col) ?: when {
                     !notNull -> null
-                    col == "id" -> "$table-1"
+                    // Affinity before name: track_points.id (v5+) and offline_regions.id (v6+) are
+                    // INTEGER primary keys, and a string in a rowid alias is SQLITE_MISMATCH, not coercion.
                     affinity == "INTEGER" -> 1L
+                    col == "id" -> "$table-1"
                     affinity == "REAL" -> 1.5
                     else -> "$col-1"
                 }
