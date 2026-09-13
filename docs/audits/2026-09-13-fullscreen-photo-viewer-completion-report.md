@@ -75,14 +75,14 @@ not caused by this dispatch; a 36dp box keeps 8dp clear of the centre on both ax
 |---|---|---|---|---|---|
 | before (clean worktree of `origin/main` at `175b050`) | 172 | 1347 | 0 | 0 | 24 |
 | after, first full run (code commit `e5690ec`) | 174 | 1367 | 1 | 0 | 24 |
-| after, second full run (test timing fix, see item 4 below) | AFTER_SUITES | AFTER_TESTS | AFTER_FAILURES | AFTER_ERRORS | AFTER_SKIPPED |
+| after, second full run (test timing fix, see item 4 below) | 174 | 1367 | 0 | 0 | 24 |
 
 Twenty tests added across four classes: `PhotoViewerDialogTest` (11), `PhotoViewerDecodeTest` (5),
 `LogEntryDetailScreenTest` (+3), `LogEntryReportScreenTest` (+1); two new suites, two existing
 ones grown. Skip count unchanged at 24; the allowlist in `.github/workflows/ci.yml` was not
 touched. The one failure in the first full run was this dispatch's own stepping test, a timing
 hole in the test (item 4 below), not a viewer defect. `assembleDebug` also built clean on the
-same tree (ASSEMBLE_RESULT). **All counts come from this container's `./gradlew`, Linux, not
+same tree (`./gradlew assembleDebug`, exit 0, on `e5690ec`). **All counts come from this container's `./gradlew`, Linux, not
 GitHub Actions**; the before run was a separate worktree so the base's XML could not be confused
 with this branch's.
 
