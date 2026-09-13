@@ -1,6 +1,9 @@
 package com.zynergylabs.forager.app.ui.log
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,14 +27,22 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ripple
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,15 +51,16 @@ import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
-import com.zynergylabs.forager.app.ui.availability.CollapsibleSection
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
  * time this shows (see [MushroomLogViewModel.onStartNewEntry]): "creating" and "editing" are the
- * same action here. Each characteristic section is a [CollapsibleSection] (reused from
- * `AvailabilityScreen`) so the form doesn't dump every field on screen at once — the same "single
- * line until tapped" shape the drawer's own Search/Trip Planner sections use.
+ * same action here. The form is the header row, the location line, the identification field,
+ * the Photos section and Notes. It used to carry seven collapsible characteristic sections below
+ * the photos (Cap through Host & substrate, each a `CollapsibleSection` around an editor in the
+ * former `LogSectionEditors.kt`); the owner removed them on 2026-09-13 — see the comment at the
+ * Notes field for what stayed and why nothing recorded is lost.
  *
  * ## Standalone drafts (Workstream L4b, owner decision 2026-08-22; corrected 2026-08-25, L4b-R)
  *
@@ -191,28 +203,13 @@ internal fun LogEntryDetailScreen(
 
             HorizontalDivider()
 
-            CollapsibleSection(title = "Cap") {
-                CapEditor(entry.cap, onChanged = { onEntryChanged(entry.copy(cap = it)) })
-            }
-            CollapsibleSection(title = "Hymenophore") {
-                HymenophoreEditor(entry.hymenophore, onChanged = { onEntryChanged(entry.copy(hymenophore = it)) })
-            }
-            CollapsibleSection(title = "Stipe") {
-                StipeEditor(entry.stipe, onChanged = { onEntryChanged(entry.copy(stipe = it)) })
-            }
-            CollapsibleSection(title = "Veil remnants") {
-                VeilEditor(entry.veil, onChanged = { onEntryChanged(entry.copy(veil = it)) })
-            }
-            CollapsibleSection(title = "Context / flesh") {
-                ContextFleshEditor(entry.contextFlesh, onChanged = { onEntryChanged(entry.copy(contextFlesh = it)) })
-            }
-            CollapsibleSection(title = "Spore print") {
-                SporePrintEditor(entry.sporePrint, onChanged = { onEntryChanged(entry.copy(sporePrint = it)) })
-            }
-            CollapsibleSection(title = "Host & substrate") {
-                HostSubstrateEditor(entry.hostSubstrate, onChanged = { onEntryChanged(entry.copy(hostSubstrate = it)) })
-            }
-
+            // Owner decision, 2026-09-13 (from a device screenshot of this form): the seven
+            // collapsible characteristic sections (Cap, Hymenophore, Stipe, Veil remnants,
+            // Context / flesh, Spore print, Host & substrate) are removed from the edit form;
+            // Notes stays. The model, the persistence and LogEntryReportScreen's rendering of
+            // anything already recorded are untouched, so no existing find loses data — the read
+            // view already omits a section with nothing in it. The section editors themselves
+            // (LogSectionEditors.kt) were deleted with this, having no caller left.
             NotesField(entry.notes, onValueChanged = { onEntryChanged(entry.copy(notes = it)) })
 
             Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
@@ -236,6 +233,8 @@ private fun PhotosSection(
     LaunchedEffect(photoAcquisition.isAcquisitionInFlight) {
         onAcquisitionInFlightChanged(photoAcquisition.isAcquisitionInFlight)
     }
+
+    var viewingPhotoId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Photos", style = MaterialTheme.typography.titleSmall)
@@ -268,22 +267,58 @@ private fun PhotosSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
-                photos.forEach { photo -> LogPhotoThumbnail(photo = photo, onRemove = { onRemovePhoto(photo) }) }
+                photos.forEach { photo ->
+                    LogPhotoThumbnail(
+                        photo = photo,
+                        onOpen = { viewingPhotoId = photo.id },
+                        onRemove = { onRemovePhoto(photo) },
+                    )
+                }
             }
         }
+    }
+
+    // The id, not the index: a removal reorders nothing but does shift indices, and an id that is
+    // no longer in the list closes the viewer instead of opening a neighbour. rememberSaveable so a
+    // rotation mid-inspection comes back on the same photo (see PhotoViewerDialog's own comment).
+    val viewingIndex = viewingPhotoId?.let { id -> photos.indexOfFirst { it.id == id } }?.takeIf { it >= 0 }
+    if (viewingIndex != null) {
+        PhotoViewerDialog(photos = photos, initialIndex = viewingIndex, onDismiss = { viewingPhotoId = null })
     }
 }
 
 private const val PHOTO_THUMBNAIL_SIZE_DP = 88
 private const val REMOVE_GLYPH_SCRIM_SIZE_DP = 28
 
+/**
+ * Side of the remove control's touch target, in dp — the 28dp glyph circle plus a 4dp halo, flush in
+ * the thumbnail's top-end corner. Full-screen-photo-viewer dispatch: the rest of the thumbnail now
+ * opens [PhotoViewerDialog], so the two targets have to partition the 88dp tile, and the partition
+ * is chosen here rather than left to what falls out of the framework. Before this, the control was
+ * an [IconButton] at its 48dp Material minimum: laid out top-end, that box spans x 40–88 and
+ * y 0–48 of the tile, which contains the tile's own centre (44, 44) — a tap in the middle of the
+ * thumbnail, the natural "open this" gesture, was a remove. A 36dp box in the corner (x 52–88,
+ * y 0–36) keeps 8dp clear of the centre on both axes, clears WCAG 2.5.8's 24dp target minimum with
+ * room, and leaves the glyph itself the size it was. Not the Material 48dp: that minimum is for a
+ * control standing alone, and this one shares an 88dp tile with a second target.
+ *
+ * Why the direct bounds are the whole story: Compose expands a touch target to the 48dp minimum
+ * only where nothing else is hit directly, and the photo beneath is now a direct hit everywhere in
+ * the tile, so the control's effective region is exactly this box. [LogEntryDetailScreenTest]
+ * touches both sides of that edge at screen coordinates rather than trusting the arithmetic.
+ */
+internal const val REMOVE_TOUCH_TARGET_DP = 36
+
 /** Exposed at file scope (not inlined into the composable) so [LogPhotoThumbnailRemoveAffordanceContrastTest] checks this exact value, not a copy that can drift from it. */
 internal const val REMOVE_GLYPH_SCRIM_ALPHA = 0.6f
 
 @Composable
-private fun LogPhotoThumbnail(photo: LogPhoto, onRemove: () -> Unit) {
+private fun LogPhotoThumbnail(photo: LogPhoto, onOpen: () -> Unit, onRemove: () -> Unit) {
     Box(modifier = Modifier.size(PHOTO_THUMBNAIL_SIZE_DP.dp)) {
-        DecodedPhoto(relativePath = photo.relativePath, modifier = Modifier.fillMaxSize())
+        DecodedPhoto(
+            relativePath = photo.relativePath,
+            modifier = Modifier.fillMaxSize().clickable(onClickLabel = "Open full screen", onClick = onOpen),
+        )
         // B3 (2026-08-27): the bare glyph read near-invisible against pale photo content —
         // LocalContentColor here tracks the theme, not the photo underneath, so it had no
         // guaranteed contrast against arbitrary imagery. MaterialTheme.colorScheme.scrim is this
@@ -293,14 +328,32 @@ private fun LogPhotoThumbnail(photo: LogPhoto, onRemove: () -> Unit) {
         // theme-following tint: the scrim's whole purpose is a stable, opaque-enough backdrop, so
         // the glyph on top only needs to contrast against the scrim's own dark tone, not against
         // the photo — the same reasoning that keeps a system status bar icon fixed-colour over a
-        // scrim rather than swapping per background. IconButton itself is untouched, so its
-        // default 48dp minimum touch target (already comfortably inside the 88dp thumbnail) is
-        // unaffected — only the glyph and its backing circle, both drawn inside it, are smaller.
-        IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd)) {
+        // scrim rather than swapping per background.
+        //
+        // A plain clickable Box of REMOVE_TOUCH_TARGET_DP, no longer an IconButton: IconButton
+        // fixes its own 48dp target, and 48dp in this corner covers the tile's centre — see
+        // REMOVE_TOUCH_TARGET_DP for the partition this replaces it with. Role.Button and the
+        // "Remove photo" description keep it announced and findable exactly as before.
+        //
+        // The target is the whole square, and the ripple is drawn inside the glyph circle through
+        // its own indication modifier rather than by clipping the clickable to a circle: a clip
+        // clips hit-testing too, and the first run of LogEntryDetailScreenTest's partition check
+        // found the square's corners falling through to the photo (a touch at (54, 2) dp opened
+        // the viewer) with the clip in place.
+        val removeInteraction = remember { MutableInteractionSource() }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(REMOVE_TOUCH_TARGET_DP.dp)
+                .clickable(interactionSource = removeInteraction, indication = null, role = Role.Button, onClick = onRemove),
+            contentAlignment = Alignment.Center,
+        ) {
             Box(
                 modifier = Modifier
                     .size(REMOVE_GLYPH_SCRIM_SIZE_DP.dp)
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = REMOVE_GLYPH_SCRIM_ALPHA), CircleShape),
+                    .clip(CircleShape)
+                    .indication(removeInteraction, ripple())
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = REMOVE_GLYPH_SCRIM_ALPHA)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Filled.Close, contentDescription = "Remove photo", tint = Color.White)

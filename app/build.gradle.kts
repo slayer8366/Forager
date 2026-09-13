@@ -529,6 +529,10 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.robolectric)
+    // MigrationTestHelper (wire-migration-tests dispatch, 2026-09-13). Reads exported schema JSON
+    // through the Instrumentation context's AssetManager; how app/schemas/ reaches that under
+    // Robolectric is what MigrationSchemaProbeTest establishes.
+    testImplementation(libs.androidx.room.testing)
 }
 
 /**

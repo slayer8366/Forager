@@ -118,6 +118,8 @@ internal fun JournalTab(
     cameraCaptureFiles: CameraCaptureFiles,
     mapSlot: MapSlot,
     pickerRegion: Region,
+    /** The device's current position, if one is in hand — opens the Add/Change Location picker there instead of on [pickerRegion] (find-location-at-creation dispatch, Fix 3; see [findLocationPickerRegion]). Defaulted so callers and tests that have no fix are unchanged. */
+    deviceLocation: LatLng? = null,
     basemap: Basemap,
     /** Night mode for the location picker this hosts, and the Records tab's Offline Maps picker — see [CentrePinLocationPicker]. */
     night: Boolean = false,
@@ -304,7 +306,7 @@ internal fun JournalTab(
         when {
             editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
                 mapSlot = mapSlot,
-                region = pickerRegion,
+                region = findLocationPickerRegion(deviceLocation, pickerRegion),
                 basemap = basemap,
                 night = night,
                 onConfirm = { location ->

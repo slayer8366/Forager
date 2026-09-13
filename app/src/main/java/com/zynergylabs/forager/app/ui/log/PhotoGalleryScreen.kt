@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,6 +89,10 @@ internal fun PhotoGalleryScreen(
     cartographyEntryReferenceCounts: Map<String, Int> = emptyMap(),
 ) {
     val photoAcquisition = rememberPhotoAcquisitionLaunchers(cameraCaptureFiles, onAddGalleryPhoto)
+    // Owner follow-up to the full-screen-photo-viewer dispatch: the same viewer as a find's own
+    // thumbnails, here over the whole album so previous/next step through every photo. The id, not
+    // the index, and saveable — see LogEntryDetailScreen's PhotosSection for the reasoning.
+    var viewingPhotoId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -134,6 +140,7 @@ internal fun PhotoGalleryScreen(
                 items(photos, key = { it.photo.id }) { galleryPhoto ->
                     GalleryPhotoTile(
                         galleryPhoto,
+                        onOpen = { viewingPhotoId = galleryPhoto.photo.id },
                         onDelete = { onDeletePhoto(galleryPhoto) },
                         cartographyEntryCount = cartographyEntryReferenceCounts[galleryPhoto.photo.id] ?: 0,
                     )
@@ -141,11 +148,17 @@ internal fun PhotoGalleryScreen(
             }
         }
     }
+
+    val viewingIndex = viewingPhotoId?.let { id -> photos.indexOfFirst { it.photo.id == id } }?.takeIf { it >= 0 }
+    if (viewingIndex != null) {
+        PhotoViewerDialog(photos = photos.map { it.photo }, initialIndex = viewingIndex, onDismiss = { viewingPhotoId = null })
+    }
 }
 
 @Composable
 private fun GalleryPhotoTile(
     galleryPhoto: GalleryPhoto,
+    onOpen: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     cartographyEntryCount: Int = 0,
@@ -158,7 +171,19 @@ private fun GalleryPhotoTile(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
-                DecodedPhoto(relativePath = galleryPhoto.photo.relativePath, modifier = Modifier.fillMaxSize())
+                // The photo opens the viewer; the delete IconButton composed after it is tested
+                // first by hit-testing and wins inside its own bounds. Unlike LogEntryDetailScreen's
+                // 88dp thumbnail, this tile is half the grid's width (well over 130dp on any phone),
+                // so the IconButton's 48dp corner box is nowhere near the tile's centre and stays
+                // as it was. What the photo's direct hit does change: the button's minimum-touch-
+                // target halo no longer applies (Compose expands a target only where nothing else
+                // is hit directly), so its effective region is its own 40dp box, not 48.
+                // PhotoGalleryScreenTest touches both the tile's centre and the button's centre at
+                // coordinates.
+                DecodedPhoto(
+                    relativePath = galleryPhoto.photo.relativePath,
+                    modifier = Modifier.fillMaxSize().clickable(onClickLabel = "Open full screen", onClick = onOpen),
+                )
                 IconButton(onClick = { confirmingDelete = true }, modifier = Modifier.align(Alignment.TopEnd)) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete this photo")
                 }

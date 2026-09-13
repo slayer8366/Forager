@@ -3,7 +3,18 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -238,5 +249,81 @@ class PhotoGalleryScreenTest {
         // The dialog itself is gone, and the photo is still shown, unaffected.
         composeRule.onNodeWithText("Cancel").assertDoesNotExist()
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
+    }
+
+    // ── Full-screen viewer from the Album (owner follow-up to the full-screen-photo-viewer dispatch) ──
+    //
+    // Coordinate touches, not semantic clicks: the claim is which of the tile's two targets a
+    // finger reaches (CLAUDE.md, Testing).
+
+    private fun albumOf(vararg ids: String): List<GalleryPhoto> = ids.map { id ->
+        GalleryPhoto(photo = LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = null), referencingEntryIds = emptyList())
+    }
+
+    private fun setAlbum(photos: List<GalleryPhoto>, onDeletePhoto: (GalleryPhoto) -> Unit = {}) {
+        composeRule.setContent {
+            PhotoGalleryScreen(photos = photos, isLoading = false, onDeletePhoto = onDeletePhoto, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().size == photos.size
+        }
+    }
+
+    private fun viewerIsOpen(): Boolean = composeRule.onAllNodesWithTag(PHOTO_VIEWER_TAG).fetchSemanticsNodes().isNotEmpty()
+
+    @Test
+    fun `touching a tile's photo opens the viewer on that photo, with the whole album to step through`() {
+        setAlbum(albumOf("p1", "p2", "p3"))
+
+        composeRule.onAllNodesWithContentDescription("Log photo")[1].performTouchInput { click(center) }
+        composeRule.waitForIdle()
+
+        assertEquals(true, viewerIsOpen())
+        composeRule.onNodeWithTag(PHOTO_VIEWER_COUNTER_TAG).assertTextEquals("2 / 3")
+        composeRule.onNodeWithContentDescription("Close photo").performTouchInput { click() }
+        composeRule.waitForIdle()
+        assertEquals(false, viewerIsOpen())
+    }
+
+    @Test
+    fun `touching the delete control asks to delete, and does not open the viewer`() {
+        var deleted: GalleryPhoto? = null
+        setAlbum(albumOf("p1"), onDeletePhoto = { deleted = it })
+
+        composeRule.onNodeWithContentDescription("Delete this photo").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+
+        assertEquals(false, viewerIsOpen())
+        composeRule.onNodeWithText("Delete this photo?").assertIsDisplayed()
+        composeRule.onNodeWithText("Delete").performClick()
+        assertEquals("p1", deleted?.photo?.id)
+    }
+
+    /** A finger is not a point: the tile's four corners away from the delete control, and a point just outside the control's own box, all open. */
+    @Test
+    fun `touches across the tile away from the delete control all open the viewer`() {
+        var deletes = 0
+        setAlbum(albumOf("p1"), onDeletePhoto = { deletes++ })
+        val tile = composeRule.onNodeWithContentDescription("Log photo")
+        val bounds = tile.getUnclippedBoundsInRoot()
+        val inset = 6.dp
+        val samples = listOf(
+            Pair(inset, inset),
+            Pair(inset, bounds.height - inset),
+            Pair(bounds.width - inset, bounds.height - inset),
+            Pair(bounds.width / 2, bounds.height / 2),
+            // Just below the IconButton's 48dp corner box, at its horizontal centre.
+            Pair(bounds.width - 24.dp, 52.dp),
+        )
+        samples.forEach { (x, y) ->
+            val point = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
+            tile.performTouchInput { click(point) }
+            composeRule.waitForIdle()
+            assertEquals("a touch at ($x, $y) must open the viewer", true, viewerIsOpen())
+            composeRule.onNodeWithContentDescription("Close photo").performTouchInput { click() }
+            composeRule.waitForIdle()
+        }
+        assertEquals(0, deletes)
+        composeRule.onNodeWithText("Delete this photo?").assertDoesNotExist()
     }
 }

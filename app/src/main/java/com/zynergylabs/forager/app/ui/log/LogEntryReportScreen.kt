@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +85,9 @@ internal fun LogEntryReportScreen(
     modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
+    // Same shape as LogEntryDetailScreen's PhotosSection: the id of the photo open in the viewer,
+    // saveable so a rotation mid-inspection comes back on it; null when the viewer is closed.
+    var viewingPhotoId by rememberSaveable(entry.id) { mutableStateOf<String?>(null) }
 
     val capLines = capReportLines(entry.cap)
     val hymenophoreLines = hymenophoreReportLines(entry.hymenophore)
@@ -164,7 +169,9 @@ internal fun LogEntryReportScreen(
 
                 if (entry.photos.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        entry.photos.forEach { photo -> ReportPhotoThumbnail(photo = photo) }
+                        entry.photos.forEach { photo ->
+                            ReportPhotoThumbnail(photo = photo, onOpen = { viewingPhotoId = photo.id })
+                        }
                     }
                 }
 
@@ -185,6 +192,11 @@ internal fun LogEntryReportScreen(
 
             Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
         }
+    }
+
+    val viewingIndex = viewingPhotoId?.let { id -> entry.photos.indexOfFirst { it.id == id } }?.takeIf { it >= 0 }
+    if (viewingIndex != null) {
+        PhotoViewerDialog(photos = entry.photos, initialIndex = viewingIndex, onDismiss = { viewingPhotoId = null })
     }
 }
 
@@ -303,8 +315,11 @@ private fun hostSubstrateReportLines(hostSubstrate: HostSubstrateSection): List<
 
 private const val REPORT_PHOTO_SIZE_DP = 88
 
-/** Read-only counterpart to [LogEntryDetailScreen]'s removable [LogPhotoThumbnail] — same shared [DecodedPhoto], no remove action. */
+/** Read-only counterpart to [LogEntryDetailScreen]'s removable [LogPhotoThumbnail] — same shared [DecodedPhoto], no remove action; tapping anywhere on it opens [PhotoViewerDialog]. */
 @Composable
-private fun ReportPhotoThumbnail(photo: LogPhoto) {
-    DecodedPhoto(relativePath = photo.relativePath, modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp))
+private fun ReportPhotoThumbnail(photo: LogPhoto, onOpen: () -> Unit) {
+    DecodedPhoto(
+        relativePath = photo.relativePath,
+        modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp).clickable(onClickLabel = "Open full screen", onClick = onOpen),
+    )
 }

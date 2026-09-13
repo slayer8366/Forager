@@ -103,6 +103,8 @@ internal fun LogPanel(
     cameraCaptureFiles: CameraCaptureFiles,
     mapSlot: MapSlot,
     region: Region,
+    /** See [JournalTab]'s identical parameter — the device position the find's location picker opens on when one is in hand (find-location-at-creation dispatch, Fix 3). */
+    deviceLocation: LatLng? = null,
     basemap: Basemap,
     /** Night mode for the location picker this hosts, and the Records tab's Offline Maps picker — see [CentrePinLocationPicker]. */
     night: Boolean = false,
@@ -271,7 +273,7 @@ internal fun LogPanel(
         if (editing != null && pickingLocationForEditingEntry) {
             CentrePinLocationPicker(
                 mapSlot = mapSlot,
-                region = region,
+                region = findLocationPickerRegion(deviceLocation, region),
                 basemap = basemap,
                 night = night,
                 onConfirm = { location ->

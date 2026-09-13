@@ -3,7 +3,15 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -60,6 +68,7 @@ class LogEntryDetailScreenTest {
         onPullPhoto: () -> Unit = {},
         onSave: () -> Unit = {},
         onCancel: () -> Unit = {},
+        onRemovePhoto: (LogPhoto) -> Unit = {},
     ) {
         composeRule.setContent {
             LogEntryDetailScreen(
@@ -67,7 +76,7 @@ class LogEntryDetailScreenTest {
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
                 onEntryChanged = {},
                 onAddPhoto = {},
-                onRemovePhoto = {},
+                onRemovePhoto = onRemovePhoto,
                 onPullPhoto = onPullPhoto,
                 onAddLocation = onAddLocation,
                 onSave = onSave,
@@ -287,5 +296,94 @@ class LogEntryDetailScreenTest {
         composeRule.onNodeWithText("Cancel").performClick()
 
         assertEquals(true, invoked)
+    }
+
+    // ── Full-screen photo viewer (full-screen-photo-viewer dispatch, 2026-09-12) ──────────────
+    //
+    // Every touch below is a coordinate touch at a point inside the thumbnail's own bounds, not a
+    // semantic click: the claim is routing — which of the two targets sharing this 88dp tile a
+    // finger reaches — and a semantic click bypasses hit-testing entirely (CLAUDE.md, Testing).
+    // Points are sampled on both sides of the remove control's edge (REMOVE_TOUCH_TARGET_DP, flush
+    // top-end) so the partition is measured rather than derived from the arithmetic that chose it.
+
+    private fun photoEntry(vararg ids: String): MushroomLogEntry =
+        MushroomLogEntry.draft(id = "viewer-entry", location = null, date = LocalDate.of(2026, 8, 1))
+            .copy(photos = ids.map { id -> LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = 1_000L) })
+
+    private fun awaitThumbnails(count: Int) {
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().size == count
+        }
+    }
+
+    /** A real touch at ([x], [y]) dp from the thumbnail's own top-left corner. */
+    private fun touchThumbnail(thumbnail: SemanticsNodeInteraction, x: Float, y: Float) {
+        val point = with(composeRule.density) { Offset(x.dp.toPx(), y.dp.toPx()) }
+        thumbnail.performTouchInput { click(point) }
+        composeRule.waitForIdle()
+    }
+
+    private fun viewerIsOpen(): Boolean = composeRule.onAllNodesWithTag(PHOTO_VIEWER_TAG).fetchSemanticsNodes().isNotEmpty()
+
+    private fun closeViewer() {
+        composeRule.onNodeWithContentDescription("Close photo").performTouchInput { click() }
+        composeRule.waitForIdle()
+        assertEquals("the close control must dismiss the viewer", false, viewerIsOpen())
+    }
+
+    @Test
+    fun `a touch anywhere on the thumbnail outside the remove control opens the viewer`() {
+        var removed = 0
+        setScreen(photoEntry("p1"), onRemovePhoto = { removed++ })
+        awaitThumbnails(1)
+        val thumbnail = composeRule.onNodeWithContentDescription("Log photo")
+
+        // The tile's centre and its three corners away from the control, plus two points that sit
+        // just outside the control's box on each axis (its box is x 52–88, y 0–36 of the 88dp tile).
+        val opens = listOf(44f to 44f, 4f to 4f, 4f to 84f, 84f to 84f, 44f to 60f, 50f to 18f, 70f to 38f)
+        opens.forEach { (x, y) ->
+            touchThumbnail(thumbnail, x, y)
+            assertEquals("a touch at ($x, $y) dp must open the viewer", true, viewerIsOpen())
+            closeViewer()
+        }
+        assertEquals("none of those touches may remove the photo", 0, removed)
+    }
+
+    @Test
+    fun `a touch on the remove control removes, and does not open the viewer`() {
+        var removed = 0
+        setScreen(photoEntry("p1"), onRemovePhoto = { removed++ })
+        awaitThumbnails(1)
+        val thumbnail = composeRule.onNodeWithContentDescription("Log photo")
+
+        // The control's centre and four points near its own corners (x 52–88, y 0–36).
+        val removes = listOf(70f to 18f, 54f to 2f, 86f to 2f, 54f to 34f, 86f to 34f)
+        removes.forEachIndexed { index, (x, y) ->
+            touchThumbnail(thumbnail, x, y)
+            assertEquals("a touch at ($x, $y) dp must not open the viewer", false, viewerIsOpen())
+            assertEquals("a touch at ($x, $y) dp must remove the photo", index + 1, removed)
+        }
+    }
+
+    @Test
+    fun `the touched thumbnail is the photo the viewer opens on`() {
+        setScreen(photoEntry("p1", "p2", "p3"))
+        awaitThumbnails(3)
+
+        touchThumbnail(composeRule.onAllNodesWithContentDescription("Log photo")[1], 30f, 60f)
+
+        composeRule.onNodeWithTag(PHOTO_VIEWER_COUNTER_TAG).assertTextEquals("2 / 3")
+    }
+
+    /** Owner decision, 2026-09-13: the seven characteristic sections are gone from the edit form; Notes stays. Fails if any heading comes back. */
+    @Test
+    fun `the edit form has no characteristic sections and keeps Notes`() {
+        setScreen(MushroomLogEntry.draft(id = "e1", location = null, date = LocalDate.of(2026, 8, 1)))
+
+        listOf("Cap", "Hymenophore", "Stipe", "Veil remnants", "Context / flesh", "Spore print", "Host & substrate").forEach { heading ->
+            composeRule.onNodeWithText(heading).assertDoesNotExist()
+        }
+        composeRule.onNodeWithText("Notes").assertIsDisplayed()
+        composeRule.onNodeWithText("Photos").assertIsDisplayed()
     }
 }
