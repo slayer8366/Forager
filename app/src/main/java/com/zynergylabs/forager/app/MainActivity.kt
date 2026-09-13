@@ -95,6 +95,9 @@ class MainActivity : ComponentActivity() {
                     container.locationProvider,
                     container.updatePhotoLocationUseCase,
                     getPhotoEntryReferenceCount = { id -> container.getEntryReferenceCountUseCase.forPhoto(id).getOrDefault(0) },
+                    // Find-location-at-creation dispatch, Fix 1: the held live fix, read at the
+                    // moment a find is started. AvailabilityViewModel is the one live collector.
+                    currentFix = { viewModel.uiState.value.liveFix },
                 )
             }
         }

@@ -10,6 +10,8 @@ import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.zynergylabs.forager.app.domain.LOST_AFTER_MILLIS
+import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
@@ -44,6 +46,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLog
 
 /**
  * [MushroomLogUiState.saveErrorMessage]'s clearing rule — "cleared on dismiss or on the next
@@ -73,6 +76,7 @@ class MushroomLogViewModelTest {
         repository: FakeMushroomLogRepository = FakeMushroomLogRepository(),
         photoStore: FakePhotoStore = FakePhotoStore(),
         locationProvider: FakeLocationProvider = FakeLocationProvider(),
+        currentFix: () -> LocationFix.Update? = { null },
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -89,6 +93,8 @@ class MushroomLogViewModelTest {
         deleteGalleryPhoto = DeleteGalleryPhotoUseCase(repository, photoStore),
         locationProvider = locationProvider,
         updatePhotoLocation = UpdatePhotoLocationUseCase(repository),
+        currentFix = currentFix,
+        now = { NOW },
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
@@ -1137,6 +1143,185 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
         assertEquals("last saved before the crash", vm.uiState.value.editingEntry?.notes)
     }
+
+    // ── Find-location-at-creation dispatch ──────────────────────────────────────────────────
+    //
+    // Fix 1: a find started with no caller-supplied location (the Journal's "+") takes the fresh
+    // device fix in hand, or none. Fix 2: a Camera capture inside a find with no location promotes
+    // its fix to foundAt; Import and From Album never do. All through the real entry points.
+
+    @Test
+    fun `a find started with no location takes the fresh device fix in hand`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = 10_000L, lat = 45.5, lng = -122.6) })
+        advanceUntilIdle()
+
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        assertEquals(LatLng(45.5, -122.6), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals("the location is on the persisted draft, not only in memory", LatLng(45.5, -122.6), repository.getAll().getOrThrow().single().foundAt)
+    }
+
+    @Test
+    fun `a find started with no location and no fix in hand still starts, with no location`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository, currentFix = { null })
+        advanceUntilIdle()
+
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        assertEquals("new-entry", vm.uiState.value.editingEntry?.id)
+        assertNull(vm.uiState.value.editingEntry?.foundAt)
+        assertNull("no fix is not a failure", vm.uiState.value.saveErrorMessage)
+    }
+
+    /** The held fix ages indefinitely once fixes stop (see `AvailabilityUiState.liveFix`); at the HUD's own LOST_AFTER_MILLIS it is no longer a position to stamp a find with. */
+    @Test
+    fun `a held fix at the lost bound is discarded, and the discard is logged`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = LOST_AFTER_MILLIS) })
+        advanceUntilIdle()
+
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        assertEquals("new-entry", vm.uiState.value.editingEntry?.id)
+        assertNull("a fix past the bound must not become the find's location", vm.uiState.value.editingEntry?.foundAt)
+        assertTrue(
+            "discarding a held fix for age must be logged, not silent",
+            ShadowLog.getLogs().any { it.tag == "MushroomLog" && it.msg.contains("past the $LOST_AFTER_MILLIS ms bound") },
+        )
+    }
+
+    @Test
+    fun `a held fix just inside the lost bound is still used`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = LOST_AFTER_MILLIS - 1, lat = 44.0, lng = -121.0) })
+        advanceUntilIdle()
+
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        assertEquals(LatLng(44.0, -121.0), vm.uiState.value.editingEntry?.foundAt)
+    }
+
+    @Test
+    fun `a caller-supplied location wins over the device fix`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = 1_000L, lat = 45.5, lng = -122.6) })
+        advanceUntilIdle()
+
+        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        assertEquals(LatLng(45.0, -122.0), vm.uiState.value.editingEntry?.foundAt)
+    }
+
+    @Test
+    fun `a camera capture inside a find with no location promotes its fix to foundAt`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val vm = viewModel(repository, photoStore, locationProvider, currentFix = { null })
+        advanceUntilIdle()
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+        assertNull("precondition: the find starts with no location", vm.uiState.value.editingEntry?.foundAt)
+
+        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        assertEquals(LatLng(45.5, -122.6), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals("promoted onto the persisted draft too", LatLng(45.5, -122.6), repository.getAll().getOrThrow().single { it.id == "new-entry" }.foundAt)
+        assertEquals("the photo's own patch still happens", listOf(Triple("camera-photo", 45.5, -122.6)), repository.patchedLocations)
+    }
+
+    @Test
+    fun `a camera capture never overwrites a location the find already has`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val vm = viewModel(repository, photoStore, locationProvider)
+        advanceUntilIdle()
+        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        assertEquals(LatLng(45.0, -122.0), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals(listOf(Triple("camera-photo", 45.5, -122.6)), repository.patchedLocations)
+    }
+
+    /** The negative that matters (dispatch §3): an imported photo's EXIF can be from another place and year. It goes on the photo row, as before, and never up to the find. */
+    @Test
+    fun `an Import into a find with no location leaves the find's location null`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        photoStore.persistResult = Result.success(LogPhoto(id = "import-photo", relativePath = "photos/import-photo.jpg", createdAtEpochMillis = 2_000L, latitude = 10.0, longitude = 20.0))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val vm = viewModel(repository, photoStore, locationProvider)
+        advanceUntilIdle()
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        vm.onAddPhoto(GalleryImportPhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.editingEntry?.foundAt)
+        assertNull(repository.getAll().getOrThrow().single { it.id == "new-entry" }.foundAt)
+        assertEquals("the photo keeps its EXIF coordinate on its own row", 10.0, vm.uiState.value.editingEntry!!.photos.single().latitude!!, 0.0)
+        assertTrue("no live-fix request for an import", repository.patchedLocations.isEmpty())
+    }
+
+    @Test
+    fun `From Album into a find with no location leaves the find's location null`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val albumPhoto = LogPhoto(id = "album-photo", relativePath = "photos/album-photo.jpg", createdAtEpochMillis = 2_000L, latitude = 10.0, longitude = 20.0)
+        repository.addPhotoToGallery(albumPhoto)
+        val vm = viewModel(repository, locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6)))
+        advanceUntilIdle()
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        vm.onPullPhoto(albumPhoto)
+        advanceUntilIdle()
+
+        assertEquals("album-photo", vm.uiState.value.editingEntry?.photos?.single()?.id)
+        assertNull(vm.uiState.value.editingEntry?.foundAt)
+        assertTrue(repository.patchedLocations.isEmpty())
+    }
+
+    /** The provider can take up to 20 s; a fix that lands after the user has closed the find must not be written to a find that is no longer open. */
+    @Test
+    fun `a capture fix that resolves after the find was closed is not written to it`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
+        val gate = CompletableDeferred<Unit>()
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6), gate = gate)
+        val vm = viewModel(repository, photoStore, locationProvider)
+        advanceUntilIdle()
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+        assertEquals("precondition: the photo is attached while the fix is still pending", 1, vm.uiState.value.editingEntry?.photos?.size)
+
+        vm.onCloseEntry()
+        advanceUntilIdle()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.editingEntry)
+        assertTrue("no find anywhere carries the late fix", repository.getAll().getOrThrow().all { it.foundAt == null })
+        assertTrue(ShadowLog.getLogs().any { it.tag == "MushroomLog" && it.msg.contains("no longer open for editing") })
+    }
+
 }
 
 private class FakeMushroomLogRepository(
@@ -1274,6 +1459,19 @@ private class FakePhotoStore(
  * same "no fix, no patch, still a success" default every camera-photo test not about geodata
  * specifically relies on implicitly.
  */
-private class FakeLocationProvider(var result: LocationResult = LocationResult.LocationUnavailable) : LocationProvider {
-    override suspend fun getCurrentLocation(): LocationResult = result
+private class FakeLocationProvider(
+    var result: LocationResult = LocationResult.LocationUnavailable,
+    /** Held open by a test to make the one-shot fix resolve *after* something else has happened — the real provider can take up to 20 s. `null` (the default) never gates anything. */
+    var gate: CompletableDeferred<Unit>? = null,
+) : LocationProvider {
+    override suspend fun getCurrentLocation(): LocationResult {
+        gate?.await()
+        return result
+    }
 }
+
+/** The clock every ViewModel under test reads — fixed, so a fix's age is whatever a test builds it to be. */
+private const val NOW = 1_700_000_000_000L
+
+private fun fixAgedMillis(ageMillis: Long, lat: Double = 45.5, lng: Double = -122.6) =
+    LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 8f, timestampEpochMillis = NOW - ageMillis)
