@@ -51,12 +51,12 @@ class MigrationSchemaProbeTest {
         throw AssertionError("PROBE3 RESULT: dir=$dir exists=${File(dir).isDirectory} cookie=${cookie.fold({ it.toString() }, { it::class.java.simpleName })} read4json=${read?.fold({ "$it bytes" }, { it::class.java.simpleName }) ?: "not attempted"}")
     }
 
-    /** Zips app/schemas/ (paths relative to it) into a temp file, the form Robolectric's asset loader takes. */
+    /** Zips app/schemas/ under an `assets/` prefix — the layout AssetManager.open resolves inside an APK or asset zip; PROBE 4 accepted a zip (cookie 3) but could not find root-level entries. */
     private fun zipSchemas(): File {
         val root = File("schemas"); val zip = File.createTempFile("schemas-", ".zip")
         ZipOutputStream(FileOutputStream(zip)).use { out ->
             root.walkTopDown().filter { it.isFile }.forEach { f ->
-                out.putNextEntry(ZipEntry(f.relativeTo(root).path.replace(File.separatorChar, '/'))); f.inputStream().use { it.copyTo(out) }; out.closeEntry()
+                out.putNextEntry(ZipEntry("assets/" + f.relativeTo(root).path.replace(File.separatorChar, '/'))); f.inputStream().use { it.copyTo(out) }; out.closeEntry()
             }
         }
         return zip
