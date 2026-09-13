@@ -183,12 +183,17 @@ half (a different find open by then) is covered by reading, not by a test that c
 - **Whether a find logged from the Journal now shows a location on the owner's device.** §6 says
   the device is the authority; nothing here ran on one.
 - **How old the held fix is in practice**, for the reason above.
-- **Whether the pulse this dispatch was built from says what §1 says.**
-  `docs/audits/2026-09-13-pulse-find-location-on-camera-capture.md` is not in the tree and has
-  never been on `origin/main` (checked with `git log` against the path). The dispatch's §1
-  therefore could only be checked against the code, which is what §1 asked for anyway. Recorded
-  because the audit index's 2026-09-12 row says a finding that exists only in a transcript is
-  exactly the kind that goes unrecorded.
+- **Whether the pulse this dispatch was built from says what §1 says — resolved after the first
+  version of this report, and the first version was wrong about where it was.** This report first
+  said `docs/audits/2026-09-13-pulse-find-location-on-camera-capture.md` was "not in the tree".
+  It is not on `origin/main` and not on this branch, which is what had been checked; but a
+  `git fetch` of every remote head found it, with its index row, at `1522c41` on
+  `origin/claude/ios-port-feasibility-mvsjcr` (2026-09-13 04:33 UTC), a branch 25 commits beyond
+  `main` that has never been merged. So the pulse was written, pushed and indexed, exactly as
+  reported, onto a branch that nothing downstream reads. The first check here fetched `main`
+  only and listed two remote branches, and "not on either" became "not in the tree" in the
+  writing. That is the derived-figure pitfall in CLAUDE.md, in a report about a missing record.
+  The dispatch's §1 was checked against code either way, which is what §1 asked for.
 
 ### Premises in the dispatch that were wrong
 
@@ -202,7 +207,13 @@ half (a different find open by then) is covered by reading, not by a test that c
 - **`PathHome.kt:59-62` "records a late first fix as normal"** — those lines record something
   adjacent: that the origin waypoint may itself be a network fix if recording began before GPS
   settled. The dispatch's constraint (never block on a fix) stands on its own; that citation does
-  not carry it.
+  not carry it. **Where the reading came from, grepped after the owner named it:** the
+  2026-09-11 way-back-route pre-build report (`:74`) cites the lines correctly, for the origin
+  weakness; the two 2026-09-12 recording-state-resync reports (`section-1-gate.md:68`,
+  `completion-report.md:29`, `:214`) cite them for a late or absent first fix, and this dispatch
+  carried that reading forward. The misattribution is one day old and two documents wide, and
+  those documents are not edited here (an audit is a record of its date); this line is the
+  correction.
 - **"`liveFix` is reachable from the log path"** — it was not, in the sense of anything in
   `ui/log` reading it; it is reachable in the sense that `MainActivity` constructs both ViewModels
   and can hand one's value to the other, which is what was done. Both readings are true; the
