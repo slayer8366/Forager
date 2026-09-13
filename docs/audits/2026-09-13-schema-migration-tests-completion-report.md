@@ -54,6 +54,13 @@ that lived on this branch for three commits and was deleted once the answer was 
   everything else. **Run 34746417192 on `512403a` completed green** (read after the first draft of
   this report), so the class runs and passes on GitHub Actions with the id and 7→8 fixes in; run
   34746709707 on `e307f81`, the every-column version, was still in progress when this was pushed.
+  **Runs 483 (`e307f81`) and 484 (`c4cd995`) show as `cancelled`, not failed:** each was cut off by
+  my next push to the branch, under the workflow's cancel-in-progress behaviour, before its tests
+  ran. A cancelled run and a failed run look alike in the list; neither of these carries a result.
+  The run that counts for the final head is 485 (34746927176) on `4c2dcc6`, which differs from
+  `e307f81` only in this report and its index row (`git diff --stat e307f81 4c2dcc6`: two files
+  under `docs/audits/`). **Run 485 completed green at 08:14:07Z**, and its summary step reports
+  177 suites, 1406 tests, 0 failures, 0 errors, 24 skipped, the same figures as the container.
 - **Not a fourth blind spot.** Four one-line reverts of migration code each failed the suite on a
   message naming that edit (§3, "Proof the suite bites").
 
@@ -183,9 +190,12 @@ What the new tests cover that the fixtures do not:
   chains that pass through 11→12 (those starting at 10 or earlier) carry a `log_photos` row through
   it was not checked; stated as unverified rather than as a gap.
 
-Which stay is the owner's ruling. My reading: the 3→4 test and the DAO/repository round-trips are
-coverage the new suite does not replace; the rest of what the fixtures assert is now asserted more
-strictly by the schema-backed tests.
+**Owner's ruling (2026-09-13, after reading this section): the eleven fixture tests stay.** The
+reasons, recorded so nobody revisits this as cleanup: 3→4 has no schema file and the DAO and
+repository round-trips are coverage the schema-backed suite does not replace; the stricter
+assertions are additive, not a replacement; and deleting tests to reduce duplication is how one
+finds out what they were for, which is the wrong thing to find out the week before a schema
+change. My reading before the ruling was the same, and it is the ruling that settles it.
 
 ## §5 Versions 1 and 2
 
@@ -198,6 +208,9 @@ strictly by the schema-backed tests.
   comment (`:122-140`) records that the fallback used to be unconditional and why it is not.
 - **Whether such a file can exist in the wild: could not be determined from the repository.** The
   dispatch's reason (no AAB uploaded before build 628) is a Play Console fact, not visible here.
+  The planner has since agreed it was stated in the dispatch as though checkable from the tree,
+  and that it originates in the planner's own earlier session record; it is treated here as the
+  owner's premise, corroborated in-repo only by the doc comment below.
   The only in-repo statement is the same doc comment, written 2026-08-27: "nothing has been
   distributed". If that held, and every distributed build since carried version 15, no
   version-1 or version-2 file exists on any device, but the "if" is the owner's to confirm.
@@ -252,8 +265,8 @@ their own caveat comments, not from a diff of the two).
 - Whether any tester has ever run a migration, or whether any version-1 or 2 file exists.
 - Whether the new tests clear the Windows path ceiling (§6).
 - Whether fixture chains carry a `log_photos` row through 11→12 (§4).
-- CI's result on the final head `e307f81`: in progress when this was pushed. The previous head,
-  `512403a`, with the same twelve tests in their earlier shape, was green (run 34746417192).
+- (Closed after the first draft.) CI on the final head: run 485 on `4c2dcc6` is green with the
+  same counts as the container; see §2 and §7.5.
 
 ### 7.3 Premises in the dispatch that were wrong
 
@@ -279,8 +292,9 @@ unconditional "drops data" for versions 1 and 2 (§5).
 | Before: CI run 34744450616 on `5aee450` (GitHub Actions) | 176 | 1394 | 0 | 0 | 24 |
 | After: container on `512403a` | 177 | 1406 | 0 | 0 | 24 |
 | After: container on `e307f81` (final tree) | 177 | 1406 | 0 | 0 | 24 |
+| After: CI run 34746927176 on `4c2dcc6` (GitHub Actions, same code plus this report) | 177 | 1406 | 0 | 0 | 24 |
 
 Skip count 24 throughout, never adjusted. The delta is one suite and twelve tests, all
-`SchemaMigrationTest`. The "before" is a GitHub Actions figure and the "after" a Linux container
-figure; the two have matched on every earlier comparison in `docs/audits/` and the Windows pool is
-absent from both by construction.
+`SchemaMigrationTest`. Before and after are both available as GitHub Actions figures, so the
+comparison is like for like; the container figure agrees with both. The Windows pool is absent
+from all three by construction.
