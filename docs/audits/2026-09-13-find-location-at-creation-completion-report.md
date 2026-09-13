@@ -189,7 +189,8 @@ half (a different find open by then) is covered by reading, not by a test that c
   It is not on `origin/main` and not on this branch, which is what had been checked; but a
   `git fetch` of every remote head found it, with its index row, at `1522c41` on
   `origin/claude/ios-port-feasibility-mvsjcr` (2026-09-13 04:33 UTC), a branch 25 commits beyond
-  `main` that has never been merged. So the pulse was written, pushed and indexed, exactly as
+  `main` that has never been merged and is the head of open PR #101 (the z15 overflow worker
+  fix "plus the audits behind it"), where the pulse is its most recent commit. So the pulse was written, pushed and indexed, exactly as
   reported, onto a branch that nothing downstream reads. The first check here fetched `main`
   only and listed two remote branches, and "not on either" became "not in the tree" in the
   writing. That is the derived-figure pitfall in CLAUDE.md, in a report about a missing record.
