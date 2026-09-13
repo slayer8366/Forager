@@ -117,13 +117,12 @@ class SchemaMigrationTest {
 
     // ---- the whole chain ----------------------------------------------------------------------
 
-    @Test fun `4 to 15 - the full chain, validated against 15_json, every seeded row survives`() {
+    @Test fun `4 to 15 - the full chain, validated against 15_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
         val db = helper.runMigrationsAndValidate(name, 15, true, *ALL_MIGRATIONS)
         try {
-            for ((table, n) in seeded) assertEquals("rows in $table after 4->15", n, db.scalar("SELECT COUNT(*) FROM `$table`") as Long)
-            assertEquals(45.4301, db.scalar("SELECT lat FROM mushroom_log_entries") as Double, 1e-9)
+            assertEverySeededValueSurvived(db, seeded, 4, 15)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }
@@ -131,7 +130,7 @@ class SchemaMigrationTest {
 
     // ---- machinery ----------------------------------------------------------------------------
 
-    /** Create at [from] from `from.json`, seed every table, migrate with [migration], validate against `to.json`, assert counts, then [extra]. */
+    /** Create at [from] from `from.json`, seed every table, migrate with [migration], validate against `to.json`, assert every value survived, then [extra]. */
     private fun migrate(
         from: Int, to: Int, migration: Migration,
         overrides: Map<String, Map<String, Any?>> = emptyMap(),
@@ -142,7 +141,7 @@ class SchemaMigrationTest {
         val seeded = helper.createDatabase(name, from).use { db -> seedEveryTable(db, from, overrides) }
         val db = helper.runMigrationsAndValidate(name, to, true, migration) // validates the result against to.json
         try {
-            for ((table, n) in seeded) assertEquals("rows in $table after $from->$to", n, db.scalar("SELECT COUNT(*) FROM `$table`") as Long)
+            assertEverySeededValueSurvived(db, seeded, from, to)
             for (table in SchemaAssets.tables(to) - seeded.keys) {
                 assertEquals("rows in new table $table after $from->$to", filledNewTables[table] ?: 0L, db.scalar("SELECT COUNT(*) FROM `$table`"))
             }
@@ -151,31 +150,52 @@ class SchemaMigrationTest {
     }
 
     /**
-     * One row per table at [version], every NOT NULL column filled *as `version.json` declares it*
-     * (TEXT → "<col>-1"-style, INTEGER → 1, REAL → 1.5), `id`-like keys as "<table>-1", plus
-     * [overrides]. Returns the row count per table (always 1) for the survival assertion.
+     * Every table seeded at [from] still has its one row at [to], and every column that exists at both
+     * versions reads back exactly what was seeded. Columns new at [to] are each test's own business;
+     * columns dropped at [to] (log_photos.entryId at 7->8) are not compared. This is the check that
+     * makes a rebuild migration's `INSERT ... SELECT` list honest: a column copied as NULL, or left
+     * out of the list and defaulted, fails here by name.
      */
-    private fun seedEveryTable(db: SupportSQLiteDatabase, version: Int, overrides: Map<String, Map<String, Any?>>): Map<String, Long> =
+    private fun assertEverySeededValueSurvived(db: SupportSQLiteDatabase, seeded: Map<String, Map<String, Any?>>, from: Int, to: Int) {
+        val columnsAt = SchemaAssets.entities(to).associate { (table, fields) -> table to fields.map { it.name }.toSet() }
+        for ((table, row) in seeded) {
+            val columns = columnsAt[table] ?: throw AssertionError("table $table exists at v$from and not at v$to")
+            assertEquals("rows in $table after $from->$to", 1L, db.scalar("SELECT COUNT(*) FROM `$table`"))
+            for (col in row.keys intersect columns) {
+                assertEquals("$table.$col after $from->$to", row.getValue(col), db.scalar("SELECT `$col` FROM `$table`"))
+            }
+        }
+    }
+
+    /**
+     * One row per table at [version], every column filled with a value of its own affinity *as
+     * `version.json` declares it* — nullable columns included, so a migration that loses one is
+     * caught, not excused — with [overrides] for the values a test wants to see carried. Returns the
+     * seeded row per table.
+     */
+    private fun seedEveryTable(db: SupportSQLiteDatabase, version: Int, overrides: Map<String, Map<String, Any?>>): Map<String, Map<String, Any?>> =
         SchemaAssets.entities(version).associate { (table, fields) ->
             val cv = ContentValues()
-            for ((col, affinity, notNull) in fields) {
-                val v: Any? = overrides[table]?.get(col) ?: when {
-                    !notNull -> null
+            val row = fields.associate { (col, affinity, _) ->
+                val over = overrides[table]
+                val v: Any? = if (over != null && over.containsKey(col)) over[col] else when {
                     // Affinity before name: track_points.id (v5+) and offline_regions.id (v6+) are
                     // INTEGER primary keys, and a string in a rowid alias is SQLITE_MISMATCH, not coercion.
                     affinity == "INTEGER" -> 1L
                     col == "id" -> "$table-1"
                     affinity == "REAL" -> 1.5
-                    else -> "$col-1"
+                    affinity == "TEXT" -> "$col-1"
+                    else -> error("no seed rule for affinity $affinity at $table.$col in $version.json")
                 }
                 when (v) {
-                    null -> Unit
+                    null -> cv.putNull(col)
                     is String -> cv.put(col, v); is Long -> cv.put(col, v); is Int -> cv.put(col, v); is Double -> cv.put(col, v)
                     else -> error("unsupported seed value for $table.$col: $v")
                 }
+                col to v
             }
             check(db.insert(table, SQLiteDatabase.CONFLICT_ABORT, cv) != -1L) { "seed insert failed for $table at v$version" }
-            table to 1L
+            table to row
         }
 
     private fun SupportSQLiteDatabase.scalar(sql: String): Any? = query(sql).use { c ->
