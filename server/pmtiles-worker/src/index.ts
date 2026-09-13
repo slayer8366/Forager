@@ -19,7 +19,7 @@ import {
   TileType,
   tileTypeExt,
 } from "pmtiles";
-import { pmtilesPath, tilePath } from "./shared";
+import { pmtilesPath, tileIntersectsBounds, tilePath } from "./shared";
 import offlineStyle from "./offline-style.json";
 
 interface Env {
@@ -147,7 +147,7 @@ const TILE_CONTENT_TYPES: Partial<Record<TileType, string>> = {
 // -------------------------------------------------------------------------------------------------
 
 /** How many days back from today to probe for a live build before giving up. */
-const BUILD_RESOLUTION_LOOKBACK_DAYS = 5;
+const BUILD_RESOLUTION_LOOKBACK_DAYS = 7;
 
 /** How long a resolved build URL is trusted before re-probing — Protomaps publishes daily. */
 const BUILD_RESOLUTION_CACHE_SECONDS = 6 * 60 * 60;
@@ -170,6 +170,13 @@ function candidateBuildUrl(daysAgo: number): string {
  */
 async function resolveRemoteBuildUrl(ctx: ExecutionContext): Promise<string> {
   const cacheKey = new Request("https://forager-pmtiles-worker.internal/.protomaps-latest-build-url");
+  // The last URL that resolved, kept far longer than the six-hour probe cache: a publishing gap
+  // longer than the lookback used to throw here, and an uncaught throw reached the client as a
+  // 500, which MapLibre's offline downloader reports as an error and this app then treats as the
+  // whole region failing (tile-policy pulse, 2026-09-12). Falling back to a known-good URL keeps
+  // serving; if that build has since been retired, the range read fails and the caller degrades
+  // to 204 instead (see degradedResponse), never 500.
+  const lastGoodKey = new Request("https://forager-pmtiles-worker.internal/.protomaps-last-good-build-url");
   const cache = caches.default;
   const cached = await cache.match(cacheKey);
   if (cached) return await cached.text();
@@ -182,12 +189,50 @@ async function resolveRemoteBuildUrl(ctx: ExecutionContext): Promise<string> {
         headers: { "Cache-Control": `public, max-age=${BUILD_RESOLUTION_CACHE_SECONDS}` },
       });
       ctx.waitUntil(cache.put(cacheKey, resp));
+      ctx.waitUntil(
+        cache.put(lastGoodKey, new Response(url, { headers: { "Cache-Control": `public, max-age=${LAST_GOOD_BUILD_CACHE_SECONDS}` } }))
+      );
       return url;
     }
   }
+  const lastGood = await cache.match(lastGoodKey);
+  if (lastGood) return await lastGood.text();
   throw new Error(
     `Could not find a live Protomaps daily build in the last ${BUILD_RESOLUTION_LOOKBACK_DAYS} days`
   );
+}
+
+/** How long a known-good build URL is kept as a fallback — past Protomaps' own one-week retention, so it only stops being useful when the build itself is gone. */
+const LAST_GOOD_BUILD_CACHE_SECONDS = 14 * 24 * 60 * 60;
+
+/** The build date a daily-build URL names, e.g. "20260912" — carried on every overflow response as provenance. */
+function buildDateOf(url: string): string {
+  return /(\d{8})\.pmtiles$/.exec(url)?.[1] ?? "unknown";
+}
+
+/**
+ * An overflow tile the Worker cannot serve right now, answered as an EMPTY tile (204), not an error.
+ *
+ * Why 204 and not 404 or 500, verified against maplibre-native at android-v13.5.0 (tile-policy pulse
+ * correction, 2026-09-12): the offline downloader reports a 404 to its observer *before* skipping
+ * it (offline_download.cpp:522-531), so the app's observer — which throws on any onError — would
+ * still fail the whole region; a 500 is an error outright. A 204 carries no error, is stored as an
+ * ordinary empty resource, and renders as the z14 parent over-zoomed, because a null-data tile
+ * never becomes renderable and update_renderables falls back to the parent (tile_loader_impl.hpp:183,
+ * geometry_tile_worker.cpp:420, update_renderables.hpp:50). That is the path every empty ocean
+ * tile already takes — an existing route, not a new one under failure.
+ *
+ * NOT cached at the edge and marked no-store, so the next request retries upstream rather than
+ * freezing the degradation for a day. The header names the reason, which is how this fallback is
+ * reported without the Worker writing a log line (the privacy policy's "writes no log lines").
+ * Stated trade: an offline region that downloads during an outage keeps this empty tile until it
+ * is re-downloaded — real z14 data at coarser resolution, not a fabricated value.
+ */
+function degradedResponse(reason: "unavailable" | "outside-archive" | "beyond-upstream", allowedOrigin: string): Response {
+  const headers = new Headers({ "Cache-Control": "no-store", "X-Forager-Overflow": reason });
+  if (allowedOrigin) headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  headers.set("Vary", "Origin");
+  return new Response(undefined, { headers, status: 204 });
 }
 
 function overflowCacheKey(name: string, z: number, x: number, y: number, ext: string): string {
@@ -205,6 +250,7 @@ async function overflowTileResponse(
   name: string,
   tile: [number, number, number],
   ext: string,
+  allowedOrigin: string,
   cacheableHeaders: Headers,
   cacheableResponse: (body: ArrayBuffer | string | undefined, headers: Headers, status: number) => Response
 ): Promise<Response> {
@@ -216,20 +262,31 @@ async function overflowTileResponse(
     if (cachedObject.httpMetadata?.contentType) {
       cacheableHeaders.set("Content-Type", cachedObject.httpMetadata.contentType);
     }
+    // Provenance: which daily build this cached tile came from. Overflow tiles are frozen at the
+    // build that first served them (the key carries no date), so neighbours can differ by build;
+    // the header makes that visible per tile instead of silent (corrections C3, 2026-09-11).
+    cacheableHeaders.set("X-Forager-Build", cachedObject.customMetadata?.build ?? "unknown");
+    cacheableHeaders.set("X-Forager-Overflow", "cached");
     return cacheableResponse(await cachedObject.arrayBuffer(), cacheableHeaders, 200);
   }
 
   const remoteUrl = await resolveRemoteBuildUrl(ctx);
+  const build = buildDateOf(remoteUrl);
   const remoteSource = new FetchSource(remoteUrl);
   const remotePmtiles = new PMTiles(remoteSource, CACHE, nativeDecompress);
   const remoteHeader = await remotePmtiles.getHeader();
 
   if (z < remoteHeader.minZoom || z > remoteHeader.maxZoom) {
-    return cacheableResponse(undefined, cacheableHeaders, 404);
+    // Inside the range this Worker advertises but beyond what upstream holds: an empty tile, not a
+    // 404 — a 404 inside the advertised range is exactly what fails a region download in this app.
+    return degradedResponse("beyond-upstream", allowedOrigin);
   }
 
   const tiledata = await remotePmtiles.getZxy(z, x, y);
+  cacheableHeaders.set("X-Forager-Build", build);
+  cacheableHeaders.set("X-Forager-Overflow", "live");
   if (!tiledata) {
+    // Genuinely nothing at this tile in the build (ocean, outside coverage): this IS the data.
     return cacheableResponse(undefined, cacheableHeaders, 204);
   }
 
@@ -239,6 +296,7 @@ async function overflowTileResponse(
   ctx.waitUntil(
     env.BUCKET.put(key, tiledata.data, {
       httpMetadata: contentType ? { contentType } : undefined,
+      customMetadata: { build },
     })
   );
 
@@ -318,7 +376,17 @@ export default {
 
       if (tile[0] < pHeader.minZoom || tile[0] > pHeader.maxZoom) {
         if (tile[0] > pHeader.maxZoom && tile[0] <= OVERFLOW_MAX_ZOOM) {
-          return await overflowTileResponse(env, ctx, name, tile, ext, cacheableHeaders, cacheableResponse);
+          // Only tiles the local archive itself covers may reach upstream (see tileIntersectsBounds).
+          if (!tileIntersectsBounds(tile[0], tile[1], tile[2], pHeader)) {
+            return degradedResponse("outside-archive", allowedOrigin);
+          }
+          try {
+            return await overflowTileResponse(env, ctx, name, tile, ext, allowedOrigin, cacheableHeaders, cacheableResponse);
+          } catch (e) {
+            // Build-URL resolution miss, upstream range-read failure, timeout: an empty tile, never
+            // a 500. The reason is on the response; nothing is logged (privacy policy).
+            return degradedResponse("unavailable", allowedOrigin);
+          }
         }
         return cacheableResponse(undefined, cacheableHeaders, 404);
       }
