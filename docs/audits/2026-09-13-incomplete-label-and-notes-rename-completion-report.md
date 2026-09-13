@@ -75,12 +75,12 @@ moves toward or away from it.
 | | suites | tests | failures | errors | skipped |
 |---|---|---|---|---|---|
 | before (merged tree at `fcff458`, the section-removal run) | 176 | 1404 | 0 | 0 | 24 |
-| after (this branch at `6e2029c`) | AFTER_SUITES | AFTER_TESTS | AFTER_FAILURES | AFTER_ERRORS | AFTER_SKIPPED |
+| after (this branch at `6e2029c`) | 176 | 1405 | 0 | 0 | 24 |
 
 One test added (`FindsGalleryScreenTest:165`); two existing assertions changed to the new label
 (`LogEntryDetailScreenTest:387`, `LogEntryReportScreenTest:98`), each with a companion assertion
 that the bare "Notes" node no longer exists. Skip count unchanged; CI allowlist untouched.
-`assembleDebug`: ASSEMBLE_RESULT. **Container runs on Linux, not GitHub Actions.**
+`assembleDebug`: exit 0 on `6e2029c`. 1404 + 1 = 1405, counted, not remembered. **Container runs on Linux, not GitHub Actions.**
 
 **The 12-failure Windows path-length pool is absent**, as §5 predicts for Linux: zero failures in
 either run, nothing to subtract. Reported as absent, not passed over.
