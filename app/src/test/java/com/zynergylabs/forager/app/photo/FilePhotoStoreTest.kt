@@ -37,19 +37,28 @@ import org.robolectric.annotation.Config
  * genuine read path, not a stand-in for it. [CameraCapturePhotoSource] never reading EXIF at all,
  * even when the source file happens to carry a GPS tag, is verified the same way.
  *
- * **Not verified here, and not verifiable in this harness:** the platform-level GPS-EXIF redaction
- * [FilePhotoStore]'s own doc comment describes — an ordinary (non-`setRequireOriginal`)
- * `ContentResolver.openInputStream` on a real `content://` `MediaStore` `Uri` returning bytes with
- * GPS EXIF stripped, on API 29+. That redaction is implemented inside the real system
- * `MediaProvider`, which Robolectric does not run; every `Uri` here is a `file://` `Uri` pointing at
- * a Robolectric-filesystem file, and `ContentResolver.openInputStream` resolves a `file://` scheme
- * by opening the path directly, with no redaction logic in that code path on any API level. A test
- * asserting the persisted copy carries no GPS EXIF would therefore only be proving Robolectric's own
- * `file://` handling, not the platform behavior [FilePhotoStore]'s design actually depends on — per
- * CLAUDE.md's own rule against a check that doesn't test what it claims to, that assertion is left
- * unwritten rather than written misleadingly. This is a real, reported gap: confirming the stored
- * copy is actually free of GPS EXIF on a real device is a real-device verification step, not
- * something any unit test run here can stand in for.
+ * ## The GPS-free claim: why it was unwritten, and why it is written now (2026-09-14)
+ *
+ * This section used to record that a persisted capture carrying no GPS EXIF could not be asserted
+ * here. The reasoning held for what it described: that claim rested on the platform-level redaction
+ * an ordinary (non-`setRequireOriginal`) `ContentResolver.openInputStream` performs on a real
+ * `content://` `MediaStore` `Uri` on API 29+, which lives inside the system `MediaProvider` that
+ * Robolectric does not run. Every `Uri` here is a `file://` one, which `openInputStream` opens
+ * directly with no redaction on any API level, so the assertion would have proved Robolectric's
+ * `file://` handling and nothing else.
+ *
+ * What changed is not the harness. It is that the redaction was never reaching a capture in the
+ * first place: [CameraCaptureFiles] hands back a `FileProvider` `Uri` over the app's own
+ * `filesDir/captures` file, and redaction is a `MediaStore` behaviour, so a capture's stored copy
+ * was a verbatim byte copy of whatever the camera app wrote. [scrubPhotoMetadata] now removes it in
+ * this app's own code, on ordinary bytes, which is why the assertion below is a real one: it tests
+ * the thing itself rather than a platform behaviour standing in for it. The remaining device-only
+ * question is the one the scrub does not decide — whether a given camera app writes GPS at all —
+ * and it no longer matters to the outcome, because the metadata goes either way.
+ *
+ * The import half is unchanged and still rests on the platform: an import is deliberately *not*
+ * scrubbed (owner's ruling, 2026-09-14 — "Photos imported from outside the app are to remain
+ * untouched"), so what a real `MediaStore` import carries is still a real-device question.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -204,6 +213,74 @@ class FilePhotoStoreTest {
 
         assertNull("a camera capture's own EXIF is never consulted for location", photo.latitude)
         assertNull(photo.longitude)
+    }
+
+    // ── What the stored copy carries, now that the scrub is this app's own code ──────────────
+
+    /**
+     * The claim this class could not make before [scrubPhotoMetadata] existed — see the class doc.
+     * Asserted on the persisted file's own bytes, through the real `persist` entry point, with a
+     * source file that genuinely carries a coordinate.
+     */
+    @Test
+    fun `a persisted capture carries no GPS EXIF`() = runTest {
+        val sourceFile = minimalJpegWithExif(sourceDir, "capture-to-scrub.jpg") { exif ->
+            exif.setLatLong(45.5, -122.6)
+        }
+        assertEquals("precondition: the source really is location-tagged", "45.5, -122.6", ExifInterface(sourceFile.absolutePath).latLong?.joinToString())
+
+        val photo = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+
+        val persisted = File(context.filesDir, photo.relativePath)
+        val exif = ExifInterface(persisted.absolutePath)
+        assertNull("the stored copy must not carry the coordinate the camera app wrote", exif.latLong)
+        assertNull(exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE))
+        assertNull(exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE))
+    }
+
+    /**
+     * The scrub's one exception, and the reason the whole thing is strip-*then-reapply* rather than
+     * strip: a photo that came out of the store rotated wrongly would be a visible regression, so
+     * the tag the display path reads has to survive persisting.
+     */
+    @Test
+    fun `a persisted capture keeps the orientation the display path reads`() = runTest {
+        val sourceFile = minimalJpegWithExif(sourceDir, "capture-rotated.jpg") { exif ->
+            exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_ROTATE_90.toString())
+            exif.setLatLong(45.5, -122.6)
+        }
+
+        val photo = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+
+        val persisted = File(context.filesDir, photo.relativePath)
+        assertEquals(
+            ExifInterface.ORIENTATION_ROTATE_90,
+            ExifInterface(persisted.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, -1),
+        )
+        assertNull("and the coordinate still goes", ExifInterface(persisted.absolutePath).latLong)
+    }
+
+    /**
+     * Owner's ruling, 2026-09-14: "Photos imported from outside the app are to remain untouched."
+     * The scrub is a capture-time step, not a store-wide one, and this is the assertion that keeps
+     * it that way — an import's own metadata is the photographer's, and removing it would be
+     * destroying data the app was only asked to hold.
+     */
+    @Test
+    fun `a persisted import is left exactly as it was, metadata and all`() = runTest {
+        val sourceFile = minimalJpegWithExif(sourceDir, "import-to-keep.jpg") { exif ->
+            exif.setLatLong(45.5, -122.6)
+            exif.setAttribute(ExifInterface.TAG_MAKE, "ACME")
+        }
+        val sourceBytes = sourceFile.readBytes()
+
+        val photo = store.persist(GalleryImportPhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+
+        val persisted = File(context.filesDir, photo.relativePath)
+        assertArrayEquals("an import is a byte copy, not a rewrite", sourceBytes, persisted.readBytes())
+        val exif = ExifInterface(persisted.absolutePath)
+        assertEquals("45.5, -122.6", exif.latLong?.joinToString())
+        assertEquals("ACME", exif.getAttribute(ExifInterface.TAG_MAKE))
     }
 
     private fun minimalJpegWithExif(directory: File, name: String, configure: (ExifInterface) -> Unit): File {
