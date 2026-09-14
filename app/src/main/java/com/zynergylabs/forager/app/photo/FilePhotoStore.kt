@@ -37,8 +37,15 @@ import java.util.UUID
  * API 29, the platform itself redacts GPS EXIF tags from any stream opened this way unless the
  * caller both holds `ACCESS_MEDIA_LOCATION` *and* explicitly opts in via
  * [MediaStore.setRequireOriginal] — so leaving the byte-copy stream as-is is what keeps the stored
- * copy free of embedded GPS EXIF, for [GalleryImportPhotoSource] and [CameraCapturePhotoSource]
- * alike. A [GalleryImportPhotoSource]'s location and capture timestamp are read *separately*, via
+ * copy free of embedded GPS EXIF **for a [GalleryImportPhotoSource]**.
+ *
+ * **Corrected 2026-09-14: that redaction never covered a [CameraCapturePhotoSource], and this
+ * comment used to claim it did ("alike").** The redaction is a `MediaStore` behaviour, and a
+ * capture's `Uri` is not a `MediaStore` one — [CameraCaptureFiles] hands out
+ * `FileProvider.getUriForFile` over this app's own `filesDir/captures/` file, so no `MediaStore`
+ * is in the path and nothing was ever redacted on that half. A capture's stored copy carried
+ * whatever EXIF the camera app wrote, GPS included, for as long as this comment said otherwise.
+ * What makes the claim true for captures now is [scrubPhotoMetadata], called from [persist]. A [GalleryImportPhotoSource]'s location and capture timestamp are read *separately*, via
  * [readExifData]'s own [MediaStore.setRequireOriginal]-opened stream — never the same open used for
  * the byte copy — so that the coordinate ends up only in [LogPhoto.latitude]/[LogPhoto.longitude],
  * never leaked into the persisted file's own bytes. See [LogPhoto]'s own doc comment for why a
@@ -79,9 +86,19 @@ class FilePhotoStore(
             ?: error("Could not open $uri for reading")
         input.use { stream -> destination.outputStream().use { stream.copyTo(it) } }
 
-        // Camera captures never read EXIF at all — see this class's own doc comment for why a
-        // camera capture's coordinate comes from a live GPS fix, taken after this method returns,
-        // never from whatever EXIF the captured file happens to carry.
+        // Owner's design, 2026-09-14: read the orientation, strip the metadata, reapply the
+        // orientation — see scrubPhotoMetadata. **Captures only**, per the owner's instruction that
+        // photos imported from outside the app remain untouched. The copy above is a byte copy of
+        // whatever the camera app wrote, and nothing else in this app has ever removed anything
+        // from it, so this is the only point at which a capture's GPS EXIF stops travelling with
+        // the file. Lossless and never destructive; that function's own doc comment carries the
+        // reasoning and the failure behaviour.
+        if (source is CameraCapturePhotoSource) scrubPhotoMetadata(destination)
+
+        // Camera captures never read EXIF for a coordinate — see this class's own doc comment for
+        // why a camera capture's coordinate comes from a live GPS fix, taken after this method
+        // returns, never from whatever EXIF the captured file happens to carry. Read from the
+        // source `uri`, not from `destination`, so the scrub above cannot affect an import.
         val exifData = if (source is GalleryImportPhotoSource) readExifData(uri) else ExifData(null, null, null)
 
         LogPhoto(
