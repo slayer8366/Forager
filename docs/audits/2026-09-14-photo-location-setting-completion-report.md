@@ -145,6 +145,17 @@ work. The `FilePhotoStore` doc comment's "alike" claim should be corrected wheth
 work happens, since it is what the belief rests on; it was left alone here rather than edited in
 passing, because a privacy claim is worth its own change and its own device check.
 
+**Closed, 2026-09-14, same day**, by `2026-09-14-capture-metadata-scrub-completion-report.md`. The
+owner read this section and commissioned the strip: `scrubPhotoMetadata` now rebuilds a capture's
+JPEG keeping only JFIF, ICC and Adobe, and reapplies the orientation tag, so the explanation text
+above is true for an in-app capture. The `alike` doc comment is corrected in the same change.
+Imports stay untouched, per the owner's scope ruling, so this section's account of the import half
+still stands as written. One thing this section could not settle is still unsettled and no longer
+matters: whether a given camera app writes GPS at all. The metadata goes either way.
+
+This paragraph is appended rather than replacing the section, because what the section said was
+true when written and the record of the finding is the point.
+
 ---
 
 ## Evidence
