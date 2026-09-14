@@ -2,10 +2,13 @@ package com.zynergylabs.forager.app.photo
 
 import android.content.Context
 import android.util.Log
+import android.view.OrientationEventListener
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCase
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
@@ -51,16 +54,35 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  * - **Back camera, falling back to front.** A device with no back camera is rare and real; binding
  *   [CameraSelector.DEFAULT_BACK_CAMERA] unconditionally throws there rather than degrading.
  *
- * ## Orientation is read per capture, not once at bind
+ * ## Orientation comes from the device's sensor, not the display (corrected 2026-09-14)
  *
- * [ImageCapture.setTargetRotation] is set from the viewfinder's own display immediately before each
- * shot. Setting it once at bind is the obvious version and wrong in a way that would be easy to
- * ship: turning the phone does not necessarily recreate the Activity, so a session bound in
- * portrait would tag every later landscape photo portrait. The EXIF orientation tag is what the
- * whole display path reads, and what [scrubPhotoMetadata] deliberately preserves, so getting it
- * wrong here surfaces as sideways photos everywhere downstream.
+ * [ImageCapture.setTargetRotation] is set immediately before each shot from an
+ * [OrientationEventListener], snapped to a surface rotation with [UseCase.snapToSurfaceRotation].
+ * The first version read `PreviewView.display.rotation` instead, and a verification pass found the
+ * case that breaks: **with auto-rotate off and the phone held landscape, the display never
+ * rotates, so the display read stays at `ROTATION_0` and every landscape photo is tagged
+ * portrait.** CameraX's own reference for `setTargetRotation` names this directly — "display
+ * orientation may be locked by device default, user setting, or app configuration ... In these
+ * cases, set target rotation dynamically according to the android.view.OrientationEventListener"
+ * — and the orientation guide's rotation examples all assume target rotation tracks the *device*,
+ * which is what the listener reports and the display does not.
  *
- * **Device-only, and unverified:** whether the tag actually comes out right, on any of it.
+ * The display read survives only as the fallback for a device whose listener reports it cannot
+ * detect orientation, and for a shot taken before the listener's first reading; both are logged
+ * once when they fire (CLAUDE.md: no unlogged fallback). The EXIF orientation tag is what the whole
+ * display path reads, and what [scrubPhotoMetadata] deliberately preserves, so getting it wrong
+ * here surfaces as sideways photos everywhere downstream.
+ *
+ * **Device-only, and unverified:** whether the tag comes out right, and specifically the
+ * auto-rotate-off landscape case above, which is on the device check by name.
+ *
+ * ## The bound [Camera] is kept
+ *
+ * `bindToLifecycle` returns the [Camera], and until 2026-09-14 this class discarded it. Nothing
+ * reads [camera] yet. It is kept because it is the one object every next feature needs —
+ * `cameraControl` for torch and tap-to-focus, `cameraInfo` for `hasFlashUnit` and metering
+ * support — and discarding it was the single line that would have forced the bind lambda to be
+ * restructured later. Groundwork, recorded as such; the owner's plan of 2026-09-14 names it.
  *
  * ## No location is ever attached
  *
@@ -77,11 +99,24 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
     private var imageCapture: ImageCapture? = null
     private var previewView: PreviewView? = null
 
+    /** The bound camera. Unread today; see the class doc for why it is kept anyway. */
+    private var camera: Camera? = null
+
+    /** The latest surface rotation from the orientation listener; `null` until it has reported, or if it cannot. */
+    private var sensorRotation: Int? = null
+    private var loggedDisplayFallback = false
+
     override suspend fun capture(destination: File): Result<Unit> {
         val capture = imageCapture
             ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
-        // Per shot, from the live display — see this class's own doc comment for why not at bind.
-        previewView?.display?.rotation?.let { rotation -> capture.targetRotation = rotation }
+        // Per shot, from the device's own orientation — see the class doc for why not the display.
+        val rotation = sensorRotation ?: previewView?.display?.rotation?.also {
+            if (!loggedDisplayFallback) {
+                loggedDisplayFallback = true
+                Log.i(TAG, "No orientation reading yet; this shot's rotation comes from the display, which is wrong if auto-rotate is off.")
+            }
+        }
+        rotation?.let { capture.targetRotation = it }
 
         return suspendCancellableCoroutine { continuation ->
             capture.takePicture(
@@ -116,6 +151,18 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
         DisposableEffect(lifecycleOwner, view) {
             previewView = view
             var bound: ProcessCameraProvider? = null
+
+            val orientationListener = object : OrientationEventListener(context) {
+                override fun onOrientationChanged(orientation: Int) {
+                    if (orientation == ORIENTATION_UNKNOWN) return
+                    sensorRotation = UseCase.snapToSurfaceRotation(orientation)
+                }
+            }
+            if (orientationListener.canDetectOrientation()) {
+                orientationListener.enable()
+            } else {
+                Log.i(TAG, "This device reports no orientation sensor; capture rotation will follow the display instead.")
+            }
             val future = ProcessCameraProvider.getInstance(context)
             future.addListener(
                 {
@@ -140,11 +187,12 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
                             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                             .build()
                         provider.unbindAll()
-                        provider.bindToLifecycle(lifecycleOwner, selector, preview, capture)
-                        capture
+                        val boundCamera = provider.bindToLifecycle(lifecycleOwner, selector, preview, capture)
+                        capture to boundCamera
                     }.fold(
-                        onSuccess = { capture ->
+                        onSuccess = { (capture, boundCamera) ->
                             imageCapture = capture
+                            camera = boundCamera
                             bound = provider
                             state = CameraSessionState.Ready
                         },
@@ -158,9 +206,12 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
             )
 
             onDispose {
+                orientationListener.disable()
+                sensorRotation = null
                 // The already-resolved provider, never a blocking `future.get()` on the main
                 // thread: if it never resolved there is nothing bound to release anyway.
                 bound?.unbindAll()
+                camera = null
                 imageCapture = null
                 previewView = null
                 state = CameraSessionState.Opening

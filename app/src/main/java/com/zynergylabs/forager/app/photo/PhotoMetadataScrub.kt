@@ -54,7 +54,13 @@ import java.io.OutputStream
  *   the image is *decoded*, not merely how it is described.
  *
  * Everything else goes: APP1 (EXIF, including GPS, timestamps, maker notes and the IFD1 thumbnail;
- * and XMP), APP13 (IPTC), every other APPn, and COM comments.
+ * and XMP), APP13 (IPTC), every other APPn, COM comments, **and anything after EOI**. That last one
+ * was added 2026-09-14 after a verification pass found the first version copying the whole tail
+ * verbatim: a Motion Photo's MP4, a depth map, an OEM trailer all live after EOI precisely because a
+ * reader that stops there never sees them, which is exactly where something identifying hides. The
+ * output now ends at the first EOI that follows the scans. Between the first SOS and that EOI,
+ * nothing is filtered — a progressive JPEG's later tables and scans are the image, and
+ * [PhotoMetadataScrubTest] holds a ten-scan fixture byte-identical across the scrub.
  *
  * ## Failure is never destructive, and never silent
  *
@@ -146,11 +152,10 @@ private fun stripJpegMetadataSegments(input: InputStream, output: OutputStream):
         if (length < 2) return false
         val payload = length - 2
         if (marker == SOS) {
-            // The scan header, then every remaining byte verbatim: this is the image itself.
+            // The scan header, then the image itself through its EOI, and nothing after.
             output.writeSegmentHeader(marker, hi, lo)
             if (!copyExactly(input, output, payload, buffer)) return false
-            input.copyTo(output)
-            return true
+            return copyScansThroughEoi(input, output, buffer)
         }
         val prefixLength = minOf(payload, MAX_IDENTIFIER_BYTES)
         val identifier = ByteArray(prefixLength)
@@ -162,6 +167,60 @@ private fun stripJpegMetadataSegments(input: InputStream, output: OutputStream):
         } else {
             if (!skipExactly(input, payload - prefixLength, buffer)) return false
         }
+    }
+}
+
+/**
+ * From just after the first SOS header to the first EOI, inclusive; `false` if the stream ends
+ * before one. Entropy-coded data is copied until a real marker: `FF 00` is a stuffed byte and
+ * `FF D0`–`FF D7` a restart marker, both part of the data, and a run of `FF` is fill before a
+ * marker. The marker is then written and, if it is EOI, that is the end of the output — whatever
+ * follows is dropped, which is the point. Any other marker is a length-prefixed segment of a
+ * multi-scan file (a DHT or DQT between scans, another SOS, a DNL) and is copied whole, with no
+ * allowlist applied: after the first SOS everything is the image. A marker straight after a table
+ * segment is found by the same loop with zero data bytes in front of it.
+ *
+ * Byte-at-a-time reads on a buffered stream. Measured nowhere yet; a chunked scan is the obvious
+ * next step if a real capture makes this slow, and it is off the main thread either way.
+ */
+private fun copyScansThroughEoi(input: InputStream, output: OutputStream, buffer: ByteArray): Boolean {
+    while (true) {
+        // Entropy-coded data up to the next real marker.
+        var marker: Int
+        while (true) {
+            val b = input.read()
+            if (b < 0) return false
+            if (b != 0xFF) {
+                output.write(b)
+                continue
+            }
+            var next = input.read()
+            if (next < 0) return false
+            while (next == 0xFF) { // fill bytes
+                output.write(0xFF)
+                next = input.read()
+                if (next < 0) return false
+            }
+            if (next == 0x00 || next in 0xD0..0xD7) {
+                output.write(0xFF)
+                output.write(next)
+                continue
+            }
+            marker = next
+            break
+        }
+        output.write(0xFF)
+        output.write(marker)
+        if (marker == EOI) return true
+        if (marker == 0x01 || marker in 0xD0..0xD8) continue // standalone; not expected here, not reinterpreted
+        val hi = input.read()
+        val lo = input.read()
+        if (hi < 0 || lo < 0) return false
+        val length = (hi shl 8) or lo
+        if (length < 2) return false
+        output.write(hi)
+        output.write(lo)
+        if (!copyExactly(input, output, length - 2, buffer)) return false
     }
 }
 
@@ -235,6 +294,7 @@ private const val APP14 = 0xEE
 private const val APP15 = 0xEF
 private const val COM = 0xFE
 private const val SOS = 0xDA
+private const val EOI = 0xD9
 private const val COPY_BUFFER_BYTES = 8 * 1024
 
 /** The NUL-terminated identifiers the three kept segments declare themselves with. */

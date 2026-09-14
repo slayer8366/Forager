@@ -56,6 +56,24 @@ class PhotoMetadataScrubTest {
         writeBytes(bytes.copyOfRange(0, 2) + segment + bytes.copyOfRange(2, bytes.size))
     }
 
+    /** How many times the two-byte marker [hi],[lo] occurs. A precondition for [sosToEoi]'s one assumption. */
+    private fun countMarker(bytes: ByteArray, hi: Int, lo: Int): Int =
+        (0 until bytes.size - 1).count { bytes[it] == hi.toByte() && bytes[it + 1] == lo.toByte() }
+
+    /**
+     * From the first SOS through the first EOI, inclusive: the image, and nothing after it. Assumes
+     * the file's only `FF D9` is its EOI, which every test using this asserts as a precondition
+     * rather than trusting; a coincidental `FF D9` inside a later table's payload would fool it.
+     */
+    private fun sosToEoi(bytes: ByteArray): ByteArray {
+        val sos = (2 until bytes.size - 1).first { bytes[it] == 0xFF.toByte() && bytes[it + 1] == 0xDA.toByte() }
+        val eoi = (sos until bytes.size - 1).first { bytes[it] == 0xFF.toByte() && bytes[it + 1] == 0xD9.toByte() }
+        return bytes.copyOfRange(sos, eoi + 2)
+    }
+
+    private fun endsWithEoi(bytes: ByteArray): Boolean =
+        bytes.size >= 2 && bytes[bytes.size - 2] == 0xFF.toByte() && bytes[bytes.size - 1] == 0xD9.toByte()
+
     private fun markers(bytes: ByteArray): List<Int> = buildList {
         var i = 2
         while (i < bytes.size - 1 && bytes[i] == 0xFF.toByte()) {
@@ -192,6 +210,79 @@ class PhotoMetadataScrubTest {
         assertFalse("nothing was reapplied, so no metadata segment should exist at all", markers(file.readBytes()).contains(0xE1))
     }
 
+    // ── After the image ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Some camera pipelines append data after EOI — a Motion Photo's MP4, a depth map, an OEM
+     * trailer — and a reader that stops at EOI never sees it, which is exactly why it is where
+     * things hide. The header's claim is that whatever is not deliberately kept is gone; a trailer
+     * is not kept deliberately, so it must go. Asserted on the output's last two bytes and on the
+     * trailer's own content, not on length.
+     */
+    @Test
+    fun `bytes after EOI are dropped, and the image up to EOI is untouched`() {
+        val file = jpeg("trailer.jpg")
+        val image = file.readBytes()
+        assertEquals("precondition: the image itself has exactly one EOI, so sosToEoi finds the real one", 1, countMarker(image, 0xFF, 0xD9))
+        file.writeBytes(image + TRAILER)
+        val before = file.readBytes()
+        assertEquals("precondition: the trailer adds a decoy EOI after the real one", 2, countMarker(before, 0xFF, 0xD9))
+        assertFalse("precondition: the file does not end at an EOI", endsWithEoi(before))
+
+        val outcome = scrubPhotoMetadata(file)
+
+        assertEquals(ScrubOutcome.Scrubbed(orientationReapplied = false), outcome)
+        val after = file.readBytes()
+        assertTrue("the output ends at EOI", endsWithEoi(after))
+        assertFalse("the trailer's content is gone", String(after, Charsets.ISO_8859_1).contains(TRAILER_MARK))
+        assertEquals("the scrub stopped at the first EOI, so the decoy went with the trailer", 1, countMarker(after, 0xFF, 0xD9))
+        assertArrayEquals("everything from SOS through EOI is byte-identical", sosToEoi(before), sosToEoi(after))
+    }
+
+    /** The production path has an orientation to put back; `saveAttributes` must not resurrect the tail. */
+    @Test
+    fun `the orientation reapply does not bring a dropped trailer back`() {
+        val file = jpeg("trailer-oriented.jpg") { exif ->
+            exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_ROTATE_90.toString())
+        }
+        file.writeBytes(file.readBytes() + TRAILER)
+
+        val outcome = scrubPhotoMetadata(file)
+
+        assertEquals(ScrubOutcome.Scrubbed(orientationReapplied = true), outcome)
+        val after = file.readBytes()
+        assertTrue(endsWithEoi(after))
+        assertFalse(String(after, Charsets.ISO_8859_1).contains(TRAILER_MARK))
+        assertEquals(ExifInterface.ORIENTATION_ROTATE_90, ExifInterface(file.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, -1))
+    }
+
+    /**
+     * A progressive JPEG has many scans: after the first SOS come more DHT tables and more SOS
+     * segments before the single EOI. A walk that stops at "the first marker after the entropy
+     * data" would truncate every one of them. This fixture has ten SOS segments (generated with
+     * the JDK's `ImageIO` in progressive mode and embedded, since `javax.imageio` is not on the
+     * Android unit-test classpath), and the assertion is byte identity from the first SOS through
+     * EOI, which is the strongest claim available here: Robolectric's `BitmapFactory` fakes a
+     * 100×100 bitmap for any bytes, so "decodes identically" is not assertable in this harness.
+     */
+    @Test
+    fun `a progressive JPEG keeps every scan and table between its first SOS and EOI`() {
+        val file = File(context().filesDir, "scrub/progressive.jpg").apply { parentFile?.mkdirs() }
+        file.writeBytes(Base64.getDecoder().decode(JPEG_40X20_PROGRESSIVE_BASE64))
+        val before = file.readBytes()
+        assertEquals("precondition: this really is multi-scan", 10, countMarker(before, 0xFF, 0xDA))
+        assertEquals("precondition: exactly one EOI", 1, countMarker(before, 0xFF, 0xD9))
+
+        val outcome = scrubPhotoMetadata(file)
+
+        assertEquals(ScrubOutcome.Scrubbed(orientationReapplied = false), outcome)
+        val after = file.readBytes()
+        assertEquals("every scan survived", 10, countMarker(after, 0xFF, 0xDA))
+        assertArrayEquals(sosToEoi(before), sosToEoi(after))
+        assertTrue(endsWithEoi(after))
+        assertTrue("the JFIF APP0 is still the structural header", markers(after).contains(0xE0))
+    }
+
     // ── Never destructive ────────────────────────────────────────────────────────────────────
 
     @Test
@@ -228,6 +319,22 @@ class PhotoMetadataScrubTest {
     }
 
     private companion object {
+        /** Something a reader stopping at EOI would never see. The mark is what the assertions look for. */
+        const val TRAILER_MARK = "SECRET-TRAILER-PAYLOAD"
+        /**
+         * Carries a decoy `FF D9` *inside* it, followed by more bytes, so the tests can tell "stopped at
+         * the first EOI" from "stopped at the last one" — and does **not** end in `FF D9`, so that
+         * `endsWithEoi` on an unscrubbed file is false. A first draft ended the trailer with the decoy,
+         * which made the ends-at-EOI assertion pass against the unfixed code and broke its own
+         * one-EOI precondition; the failure did not match the prediction, so the test was wrong.
+         */
+        val TRAILER: ByteArray = "ftypmp42".toByteArray() + byteArrayOf(0, 0, 0, 0x18) + TRAILER_MARK.toByteArray() +
+            byteArrayOf(0xFF.toByte(), 0xD9.toByte()) + "bytes-after-the-decoy-eoi".toByteArray()
+
+        /** The same 40×20 image, written progressive by the JDK: ten SOS segments, one EOI. */
+        const val JPEG_40X20_PROGRESSIVE_BASE64 =
+            "/9j/4AAQSkZJRgABAgAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wgARCAAUACgDASIAAhEBAxEB/8QAGAABAQEBAQAAAAAAAAAAAAAAAAMFBAb/xAAYAQEBAAMAAAAAAAAAAAAAAAADBQIEBv/aAAwDAQACEAMQAAAB8lfVvhrZV9XoCrlNwNKVweAvcCr0AaX/xAAXEAEBAQEAAAAAAAAAAAAAAAABAAMC/9oACAEBAAEFAjKMoyjKMoyjKMoyjKOSOSOSOSOS/8QAGREAAgMBAAAAAAAAAAAAAAAAAAMBAgQh/9oACAEDAQE/AU6hOopq4JkTJSeH/8QAFxEBAQEBAAAAAAAAAAAAAAAAAAIEAf/aAAgBAgEBPwGtCtDuhSnX/8QAFBABAAAAAAAAAAAAAAAAAAAAMP/aAAgBAQAGPwJ//8QAFhABAQEAAAAAAAAAAAAAAAAAAGFR/9oACAEBAAE/IYIIIIIIIIIMDIwMDA//2gAMAwEAAgADAAAAEHuwwvgf/8QAFxEBAQEBAAAAAAAAAAAAAAAAAAFhUf/aAAgBAwEBPxDRo6FFFD//xAAZEQEBAAMBAAAAAAAAAAAAAAAAAREhYTH/2gAIAQIBAT8Q6OjZ6qqqrl//xAAYEAADAQEAAAAAAAAAAAAAAAAQITEAIP/aAAgBAQABPxAbT4baZbTxbEg5cO//2Q=="
+
         /** The same 40×20 baseline JPEG [PhotoOrientationTest] uses; it carries a JFIF APP0, which the allowlist keeps. */
         const val JPEG_40X20_BASE64 =
             "/9j/4AAQSkZJRgABAgAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAAUACgBAREA/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oACAEBAAA/APn+iiigD//Z"
