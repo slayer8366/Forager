@@ -154,11 +154,11 @@ passing, because a privacy claim is worth its own change and its own device chec
 | | suites | tests | failures | errors | skipped |
 |---|---|---|---|---|---|
 | before (this branch at `747c6bd`) | 176 | 1405 | 0 | 0 | 24 |
-| after (this branch at `c5acbf4`) | AFTER_SUITES | AFTER_TESTS | AFTER_FAILURES | AFTER_ERRORS | AFTER_SKIPPED |
+| after (this branch at `c5acbf4`) | 177 | 1416 | 0 | 0 | 24 |
 
 Eleven tests added: `DataStorePhotoLocationPreferenceRepositoryTest` (5, new),
 `MushroomLogViewModelTest` (+5), `AvailabilityScreenSettingsPanelTest` (+1). Skip count unchanged;
-the CI allowlist untouched. `assembleDebug`: ASSEMBLE_RESULT. **Container runs on Linux, not
+the CI allowlist untouched. `assembleDebug`: exit 0 on `c5acbf4`. 1405 + 11 = 1416, counted from the XML, not remembered. **Container runs on Linux, not
 GitHub Actions.**
 
 **The 12-failure Windows path-length pool is absent**, as it is on Linux: zero failures in either
