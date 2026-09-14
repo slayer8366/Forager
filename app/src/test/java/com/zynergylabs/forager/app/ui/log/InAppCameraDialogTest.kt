@@ -72,12 +72,10 @@ class InAppCameraDialogTest {
             clearFileProviderCache()
         }
 
-        // And again on the way out. Clearing only on entry fixes this class and breaks the next
-        // one: whatever strategy the last method here left cached points at a temp directory that
-        // no longer exists, and the next class to ask for a FileProvider URI inherits it. That is
-        // not hypothetical — it took `AvailabilityScreenSettingsPanelTest`'s GPX share test down in
-        // the first full-suite run after this class was added, while that test stayed green on its
-        // own. Leaving the cache as we found it is what keeps the damage inside this file.
+        // And again on the way out, as hygiene rather than as a fix for anything observed: this
+        // class writes to a process-wide cache, so it puts it back. **Deliberately not claimed to
+        // fix a cross-class failure** — an earlier version of this comment did, and was wrong. See
+        // the correction note below.
         override fun after() = clearFileProviderCache()
     }
 
@@ -99,6 +97,27 @@ class InAppCameraDialogTest {
      * memory, and the check below fails loudly rather than silently doing nothing if androidx ever
      * renames it — a cleanup that quietly stops cleaning is how this bug comes back wearing a
      * different message.
+     *
+     * ## Correction, same day, and the reason it is written here rather than quietly dropped
+     *
+     * The first full-suite run after this class was added also failed
+     * `AvailabilityScreenSettingsPanelTest`'s GPX share test, with the same
+     * `IllegalArgumentException at FileProvider.java:911`. This class was recorded — in a commit
+     * message, a report and an index row — as having caused it by leaving a poisoned cache behind,
+     * and the `after()` hook as the fix. **Neither was established, and both look wrong.**
+     *
+     * What the checks actually showed, run afterwards because the stated cause did not fit the
+     * observed class ordering:
+     * - Class order is stable across runs here, with `AvailabilityScreenSettingsPanelTest` at
+     *   position 122 and this class at 149. This class runs *after* it, so it cannot poison it.
+     * - Removing only the `after()` hook leaves the full suite green: 1442 tests, 0 failures.
+     * - Restoring this file to its exact state in the failing commit leaves the suite green too,
+     *   same ordering. The failure does not reproduce.
+     *
+     * So that one failure is **unexplained and reported, not fixed**. What *is* reproducible is the
+     * within-class problem above: disable the clearing entirely and 7 of these 13 fail, each naming
+     * its own stale temp root. That is the claim this class supports; the cross-class one it does
+     * not.
      */
     private fun clearFileProviderCache() {
         val cache = runCatching { FileProvider::class.java.getDeclaredField("sCache") }.getOrElse {

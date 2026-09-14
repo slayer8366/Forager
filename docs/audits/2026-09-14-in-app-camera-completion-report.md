@@ -146,18 +146,38 @@ that property, and the same revert now fails on its own message.
 Worth being exact about what this means: **the original version of that test was evidence of
 nothing**, and it read exactly as convincing as the fixed one.
 
-**This class broke another one.** The first full-suite run after adding `InAppCameraDialogTest` took
-down `AvailabilityScreenSettingsPanelTest`'s GPX share test, which stayed green on its own.
-`FileProvider` caches one `PathStrategy` per authority in a **static** map, and Robolectric gives
-every `@Test` method a fresh data directory. Clearing that cache on entry fixes this class and
-breaks the next one: the strategy the last method leaves behind points at a temp directory that no
-longer exists. Clearing on the way out too keeps the damage inside this file.
+**A static cache that breaks tests within this class — confirmed and reproducible.** `FileProvider`
+caches one `PathStrategy` per authority in a **static** map, and Robolectric gives every `@Test`
+method a fresh data directory, so the strategy built by the first method to ask for a capture URI
+points at that method's temp `filesDir` for the rest of the JVM. Disable the clearing and **7 of
+these 13 tests fail**, each naming its own stale temp root; each passes alone. Running one alone and
+watching it pass is what separated "my file paths are wrong" from "state survives between methods".
+`sCache` was confirmed by reflecting over `FileProvider`'s declared fields, not remembered, and the
+cleanup throws if androidx renames it. Nothing was silenced, skipped or `@Ignore`d.
 
-Nothing was silenced, skipped or `@Ignore`d — the suite is green because the cause was removed. The
-diagnosis came from running one failing method alone and watching it pass, which is what separated
-"my file paths are wrong" from "state survives between methods". `sCache` was confirmed by
-reflecting over `FileProvider`'s declared fields, not remembered, and the cleanup throws if androidx
-renames it.
+**A claim this report made and had to withdraw, which is the more useful half.** The first
+full-suite run after adding this class also failed `AvailabilityScreenSettingsPanelTest`'s GPX share
+test with the same `IllegalArgumentException at FileProvider.java:911`. This report, a commit
+message and an index row all recorded that **this class caused it** by leaving a poisoned cache
+behind, and that clearing on the way out was the fix. That was inference from a matching signature,
+not a finding, and it does not survive checking:
+
+| check | result |
+|---|---|
+| class ordering, three separate runs | stable: `AvailabilityScreenSettingsPanelTest` at 122, this class at **149**. This class runs *after* it and cannot poison it. |
+| full suite with only the `after()` hook removed | 1442 tests, **0 failures** — so that hook is not what made the suite green |
+| full suite with this file restored byte-for-byte to its state in the failing commit | 1442 tests, **0 failures**, same ordering — the failure does not reproduce |
+
+So that failure is **unexplained, one-time, and reported rather than fixed**. Its signature is
+recorded here in case it recurs. The `after()` hook stays as hygiene — a class that writes to
+process-wide state puts it back — and is no longer described as fixing anything.
+
+What went wrong in my own reasoning is worth naming, because it is the family CLAUDE.md already
+indexes: a matching error signature was read as a matching cause, and the fix that followed was
+credited by a green run that would have been green anyway. The green suite was not evidence for the
+fix, it was compatible with the fix and with the fix doing nothing, and only the third check told
+those apart. The correction was found by checking class ordering for an unrelated reason, not by
+doubting the story.
 
 ### A guard in the revert runner that could never have fired
 
@@ -215,6 +235,10 @@ lines for it.
 ### Premises that were wrong
 
 - **"The in app camera"** — there was none. §1.
+- **My own diagnosis of the `AvailabilityScreenSettingsPanelTest` failure**, and the fix I credited
+  for it. Withdrawn above, with the three checks that withdrew it. The report, the commit message
+  and the index row all carried the wrong claim before the correction; the commits are pushed, so
+  the correction is a later commit rather than an edit to history.
 - **My own instrument.** The fake's failure behaviour made one test unable to fail, and I had
   written a test asserting the very property that guaranteed it. Found by a revert, not by me.
 
@@ -233,4 +257,7 @@ lines for it.
 - No CI run at the time of writing.
 - The first `failed-file-not-cleaned` revert produced **zero** failures. Reported as the finding it
   was rather than dropped once the test was fixed.
+- The `no-after-clear` and restored-to-`e5f03f1` full-suite runs both produced **zero** failures.
+  Those empty results are the evidence that withdrew a claim, so they are listed rather than passed
+  over as "nothing happened".
 - No test asserts anything about the viewfinder slot's contents; it is a `Box` in every test.
