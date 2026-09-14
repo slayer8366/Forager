@@ -183,6 +183,14 @@ data class AvailabilityUiState(
      * load completes.
      */
     val nightModeMaps: Boolean = false,
+
+    /**
+     * Settings' "Automatically Save Location to Photos" checkbox — see
+     * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what the one flag
+     * gates, which is wider than the label. `true` until the stored preference loads, matching that
+     * repository's own default so the checkbox does not visibly flip on itself at startup.
+     */
+    val autoSaveLocationToPhotos: Boolean = true,
     /**
      * Whether the Maps tab was left in fullscreen on the last run, restored from
      * [com.zynergylabs.forager.app.domain.MapPreferencesRepository.getMapFullscreen] — the one cluster/map

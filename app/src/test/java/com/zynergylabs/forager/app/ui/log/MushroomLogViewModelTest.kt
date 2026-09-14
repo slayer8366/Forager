@@ -77,6 +77,7 @@ class MushroomLogViewModelTest {
         photoStore: FakePhotoStore = FakePhotoStore(),
         locationProvider: FakeLocationProvider = FakeLocationProvider(),
         currentFix: () -> LocationFix.Update? = { null },
+        autoSaveLocationToPhotos: suspend () -> Boolean = { true },
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -95,6 +96,7 @@ class MushroomLogViewModelTest {
         updatePhotoLocation = UpdatePhotoLocationUseCase(repository),
         currentFix = currentFix,
         now = { NOW },
+        autoSaveLocationToPhotos = autoSaveLocationToPhotos,
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
@@ -1322,6 +1324,106 @@ class MushroomLogViewModelTest {
         assertTrue(ShadowLog.getLogs().any { it.tag == "MushroomLog" && it.msg.contains("no longer open for editing") })
     }
 
+
+    // ── "Automatically Save Location to Photos" (owner request, 2026-09-14) ──────────────────
+    //
+    // The owner's ruling is that the one setting gates every automatic location capture, photos
+    // and finds alike, and never a location the user supplied themselves. These drive the real
+    // entry points with the setting off and assert both halves of that.
+
+    @Test
+    fun `with the setting off, a find started with no location does not take the device fix`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(
+            repository,
+            currentFix = { fixAgedMillis(ageMillis = 1_000L, lat = 45.5, lng = -122.6) },
+            autoSaveLocationToPhotos = { false },
+        )
+        advanceUntilIdle()
+
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        assertEquals("the find is still created", "new-entry", vm.uiState.value.editingEntry?.id)
+        assertNull("but with no location", vm.uiState.value.editingEntry?.foundAt)
+        assertNull("and it is not a failure", vm.uiState.value.saveErrorMessage)
+        assertTrue(
+            "switching the setting off is a decision, not a silent no-op",
+            ShadowLog.getLogs().any { it.tag == "MushroomLog" && it.msg.contains("Automatically Save Location to Photos") },
+        )
+    }
+
+    /** The setting gates what the app reaches for on its own, never a point the user chose — the map's tapped or centred point still wins. */
+    @Test
+    fun `with the setting off, a caller-supplied location is still honoured`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository, autoSaveLocationToPhotos = { false })
+        advanceUntilIdle()
+
+        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        assertEquals(LatLng(45.0, -122.0), vm.uiState.value.editingEntry?.foundAt)
+    }
+
+    @Test
+    fun `with the setting off, a camera capture asks for no position and leaves the photo and the find without one`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val vm = viewModel(repository, photoStore, locationProvider, autoSaveLocationToPhotos = { false })
+        advanceUntilIdle()
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        assertEquals("the photo is still attached", 1, vm.uiState.value.editingEntry?.photos?.size)
+        assertNull("the find gets no location", vm.uiState.value.editingEntry?.foundAt)
+        assertTrue("the photo row gets none either", repository.patchedLocations.isEmpty())
+        assertEquals("and no position was requested at all", 0, locationProvider.callCount)
+    }
+
+    /** The Album's own camera path shares the same choke point, so it is gated too — and with no find in sight, which proves the gate is not on the find half alone. */
+    @Test
+    fun `with the setting off, an Album camera capture asks for no position`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        photoStore.persistResult = Result.success(LogPhoto(id = "album-photo", relativePath = "photos/album-photo.jpg", createdAtEpochMillis = 2_000L))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val vm = viewModel(repository, photoStore, locationProvider, autoSaveLocationToPhotos = { false })
+        advanceUntilIdle()
+
+        vm.onAddGalleryPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        val galleryPhoto = vm.uiState.value.galleryPhotos.single()
+        assertNull(galleryPhoto.photo.latitude)
+        assertNull(galleryPhoto.photo.longitude)
+        assertEquals(0, locationProvider.callCount)
+    }
+
+    /** With the setting on — the default every other test in this class runs under — the provider is asked exactly once per capture, which is what makes the zero above mean something. */
+    @Test
+    fun `with the setting on, a camera capture asks for a position once`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val photoStore = FakePhotoStore()
+        photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val vm = viewModel(repository, photoStore, locationProvider, autoSaveLocationToPhotos = { true })
+        advanceUntilIdle()
+        vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
+        advanceUntilIdle()
+
+        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        advanceUntilIdle()
+
+        assertEquals(1, locationProvider.callCount)
+        assertEquals(LatLng(45.5, -122.6), vm.uiState.value.editingEntry?.foundAt)
+    }
+
 }
 
 private class FakeMushroomLogRepository(
@@ -1464,7 +1566,12 @@ private class FakeLocationProvider(
     /** Held open by a test to make the one-shot fix resolve *after* something else has happened — the real provider can take up to 20 s. `null` (the default) never gates anything. */
     var gate: CompletableDeferred<Unit>? = null,
 ) : LocationProvider {
+    /** Counted, not just captured: the photo-location setting's claim is that switching it off means no position is *requested*, which a returned value alone cannot distinguish from one requested and then discarded. */
+    var callCount: Int = 0
+        private set
+
     override suspend fun getCurrentLocation(): LocationResult {
+        callCount++
         gate?.await()
         return result
     }

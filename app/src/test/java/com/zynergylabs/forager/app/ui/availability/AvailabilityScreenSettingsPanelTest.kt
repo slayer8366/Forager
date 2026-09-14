@@ -107,6 +107,7 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedOfflinePickerBasemap: Basemap? = null
     private var capturedNightMode: Boolean? = null
     private var capturedThemeMode: AppThemeMode? = null
+    private var capturedAutoSaveLocation: Boolean? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
@@ -191,6 +192,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
+                onAutoSaveLocationToPhotosChanged = { enabled ->
+                    current = current.copy(autoSaveLocationToPhotos = enabled)
+                    capturedAutoSaveLocation = enabled
+                },
                 onThemeModeChanged = { mode ->
                     current = current.copy(themeMode = mode)
                     capturedThemeMode = mode
@@ -710,6 +715,34 @@ class AvailabilityScreenSettingsPanelTest {
         // the fold on a 360x640dp window — see the Download-region assertion above.
         composeRule.onNodeWithText("No location picked yet — pan the map above and tap OK.")
             .performScrollTo().assertIsDisplayed()
+    }
+
+    /**
+     * Settings' "Automatically Save Location to Photos" checkbox (owner request, 2026-09-14).
+     * Driven through the real checkbox row, and asserted on the exact strings the panel draws —
+     * both imported from `AvailabilityScreen` rather than retyped here, so a reworded label or
+     * explanation cannot pass this test by accident.
+     *
+     * On by default, which is the ruling this guards as much as the toggling: a privacy setting
+     * that shipped defaulting to off would silently take away the location features built the day
+     * before, for every existing install.
+     */
+    @Test
+    fun `the photo-location checkbox starts on, explains itself, and toggles`() {
+        setScreenWithOfflineMapsState()
+        openSettings()
+
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_EXPLANATION).assertIsDisplayed()
+        assertEquals("nothing is written just by opening Settings", null, capturedAutoSaveLocation)
+
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performClick()
+        composeRule.waitForIdle()
+        assertEquals("on by default, so the first tap must turn it off", false, capturedAutoSaveLocation)
+
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performClick()
+        composeRule.waitForIdle()
+        assertEquals(true, capturedAutoSaveLocation)
     }
 }
 

@@ -70,6 +70,8 @@ class MainActivity : ComponentActivity() {
                     container.appThemePreferenceRepository,
                     container.getTodaysForecastUseCase,
                     getOfflineRegionReferenceCount = { id -> container.getEntryReferenceCountUseCase.forOfflineRegion(id).getOrDefault(0) },
+                    getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
+                    setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
                 )
             }
         }
@@ -98,6 +100,16 @@ class MainActivity : ComponentActivity() {
                     // Find-location-at-creation dispatch, Fix 1: the held live fix, read at the
                     // moment a find is started. AvailabilityViewModel is the one live collector.
                     currentFix = { viewModel.uiState.value.liveFix },
+                    // A failed read fails *closed*, unlike the never-set default: the preference
+                    // defaults to on for an install that predates the setting, but an unreadable
+                    // one must not capture a position the user may have switched off. Logged, never
+                    // silent (CLAUDE.md: no default fallback that isn't logged when it fires).
+                    autoSaveLocationToPhotos = {
+                        container.photoLocationPreferenceRepository.getAutoSaveLocationToPhotos().getOrElse { error ->
+                            androidErrorLog.w("PhotoLocation", "Couldn't read the photo-location preference; not capturing a location.", error)
+                            false
+                        }
+                    },
                 )
             }
         }
@@ -386,6 +398,7 @@ class MainActivity : ComponentActivity() {
                     onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                     onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     logUiState = logUiState,

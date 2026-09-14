@@ -197,6 +197,19 @@ class MushroomLogViewModel(
     private val currentFix: () -> LocationFix.Update? = { null },
     /** Clock for [freshDeviceLocation]'s age check, injected so a test can fix a fix's age. */
     private val now: () -> Long = System::currentTimeMillis,
+    /**
+     * Settings' "Automatically Save Location to Photos" preference, read at the moment it is about
+     * to matter rather than held — see
+     * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what it gates and
+     * why the owner's ruling makes that wider than the label. Borrowed as a plain suspend function,
+     * the same shape as [getPhotoEntryReferenceCount], and defaulted to `true` so every existing
+     * test keeps the behaviour it was written against.
+     *
+     * **Re-read per capture, never cached.** A user who unchecks this in Settings and immediately
+     * photographs something must not have the value this ViewModel happened to read at
+     * construction applied to it.
+     */
+    private val autoSaveLocationToPhotos: suspend () -> Boolean = { true },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -323,7 +336,16 @@ class MushroomLogViewModel(
      * What is not bounded here: accuracy. `AvailabilityViewModel`'s collector already refuses fixes
      * worse than 50 m before they are held (`LiveFixGate`), so every fix this reads passed that.
      */
-    private fun freshDeviceLocation(): LatLng? {
+    private suspend fun freshDeviceLocation(): LatLng? {
+        // Owner ruling, 2026-09-14: the setting gates every automatic location capture, finds
+        // included, not only the ones attached to a photo. A location the *caller* supplied (the
+        // map's tapped or centred point) never reaches here — onStartNewEntry only falls back to
+        // this when it was given none — so switching the setting off cannot override a point the
+        // user actually chose.
+        if (!autoSaveLocationToPhotos()) {
+            Log.i(TAG, "Starting a find without a location: \"Automatically Save Location to Photos\" is off.")
+            return null
+        }
         val fix = currentFix() ?: return null
         val ageMillis = fix.ageMillis(now())
         if (ageMillis >= LOST_AFTER_MILLIS) {
@@ -728,6 +750,14 @@ class MushroomLogViewModel(
 
     /** The shared half of both camera follow-ups: requests the fix and, if one resolves, patches it onto [photoId]. Returns the fix so a caller can use it further, `null` when none came back. */
     private suspend fun requestAndPatchCaptureFix(photoId: String): LocationResult.Success? {
+        // The one choke point for both camera paths: gating here stops the coordinate reaching the
+        // photo row *and*, because the find variant promotes what this returns, stops it reaching
+        // the find's foundAt. Checked before the provider is asked at all, so switching the setting
+        // off means no position is requested, not one requested and then discarded.
+        if (!autoSaveLocationToPhotos()) {
+            Log.i(TAG, "Not capturing a location for photo '$photoId': \"Automatically Save Location to Photos\" is off.")
+            return null
+        }
         val location = locationProvider.getCurrentLocation() as? LocationResult.Success ?: return null
         updatePhotoLocation(photoId, location.lat, location.lng).fold(
             onSuccess = {

@@ -471,6 +471,8 @@ fun AvailabilityScreen(
     onDeleteOfflineRegion: (Long) -> Unit,
     /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
     onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings' "Automatically Save Location to Photos" checkbox — see [AvailabilityUiState.autoSaveLocationToPhotos]. Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     onThemeModeChanged: (AppThemeMode) -> Unit,
     /**
@@ -1066,6 +1068,8 @@ fun AvailabilityScreen(
                     onThemeModeChanged = onThemeModeChanged,
                     nightModeMaps = uiState.nightModeMaps,
                     onNightModeMapsChanged = onNightModeMapsChanged,
+                    autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
+                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
                 )
                 BuildIdentityFooter()
@@ -2051,6 +2055,8 @@ fun AvailabilityScreen(
                         currentTime = currentTime,
                         isNightMode = isNightMode,
                         onNightModeMapsChanged = onNightModeMapsChanged,
+                        autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
+                        onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
                         themeMode = uiState.themeMode,
                         onThemeModeChanged = onThemeModeChanged,
                         crashFileStore = crashFileStore,
@@ -2418,6 +2424,9 @@ private fun CompactSettingsTab(
     /** Night mode for the map, and Settings' own checkbox value. */
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings' "Automatically Save Location to Photos" checkbox value — see [AvailabilityUiState.autoSaveLocationToPhotos]. */
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
@@ -2449,6 +2458,8 @@ private fun CompactSettingsTab(
                     onDistanceUnitSelected = onDistanceUnitSelected,
                     nightModeMaps = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
+                    autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     onOpenCrashLogs = { showCrashLogs = true },
@@ -2484,6 +2495,8 @@ private fun SettingsContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     onOpenCrashLogs: () -> Unit,
 ) {
     Column(
@@ -2496,6 +2509,8 @@ private fun SettingsContent(
         HorizontalDivider()
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
+        HorizontalDivider()
+        PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
     }
@@ -2554,6 +2569,46 @@ private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) ->
         Text("Night Maps", style = MaterialTheme.typography.bodyLarge)
     }
 }
+
+/**
+ * Whether the app captures the device's current position for a photo and its find (owner request,
+ * 2026-09-14) — see [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what
+ * the one flag actually gates, which is wider than the label says, and for why it defaults to on.
+ *
+ * Carries explanatory text, unlike every other control in this panel. That is not decoration: the
+ * other settings announce their effect the moment they are flipped (the map recolours, units
+ * change), while this one changes what is *written to a record the user cannot see from here*, and
+ * whose point is what happens to a photo after it leaves the app. The wording is the owner's own,
+ * kept verbatim.
+ */
+@Composable
+private fun PhotoLocationSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+            Text(PHOTO_LOCATION_SETTING_LABEL, style = MaterialTheme.typography.bodyLarge)
+        }
+        Text(
+            PHOTO_LOCATION_SETTING_EXPLANATION,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Exposed at file scope so [com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettingsPanelTest] asserts the exact strings this panel draws, not a copy that can drift from them. */
+internal const val PHOTO_LOCATION_SETTING_LABEL = "Automatically Save Location to Photos"
+
+internal const val PHOTO_LOCATION_SETTING_EXPLANATION =
+    "When saving photos, metadata is stripped of the location data. Enabling this option captures " +
+        "your current position, and saves it to the Journal entry instead. This allows you to share " +
+        "your photos outside the app without the location being revealed."
 
 /**
  * Metric or imperial for everything this app displays with a unit — distances (search radius,
@@ -2649,6 +2704,8 @@ private fun CompactToolsDrawerContent(
     currentTime: CurrentTimeProvider,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
@@ -2670,6 +2727,8 @@ private fun CompactToolsDrawerContent(
             onDistanceUnitSelected = onDistanceUnitSelected,
             isNightMode = isNightMode,
             onNightModeMapsChanged = onNightModeMapsChanged,
+            autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+            onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
             crashFileStore = crashFileStore,

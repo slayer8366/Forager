@@ -81,6 +81,18 @@ class AvailabilityViewModel(
     private val getTodaysForecast: GetTodaysForecastUseCase,
     /** How many Cartography entries currently keep a reference to an offline region — Journal Stage 2b's 4b deletion warning. See `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why this is a plain suspend function rather than the whole Cartography repository. */
     private val getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
+    /**
+     * Settings' "Automatically Save Location to Photos" preference, read and written as two plain
+     * functions rather than by taking
+     * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] itself — the same
+     * "borrow the one capability, not the whole collaborator" shape [getOfflineRegionReferenceCount]
+     * already uses here, and `MushroomLogViewModel`'s `getPhotoEntryReferenceCount`. Defaulted so
+     * the thirteen existing suites that construct this ViewModel and never touch this setting need
+     * no stub apiece; `MainActivity` wires both to the real repository. `Result`-returning, so the
+     * read and write fold exactly the way [loadNightModePreferences] does.
+     */
+    private val getAutoSaveLocationToPhotos: suspend () -> Result<Boolean> = { Result.success(true) },
+    private val setAutoSaveLocationToPhotos: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -119,6 +131,7 @@ class AvailabilityViewModel(
         loadOfflineMapPreferences()
         loadUnitSystemPreference()
         loadNightModePreferences()
+        loadAutoSaveLocationToPhotos()
         loadMapFullscreenPreference()
         loadThemeModePreference()
         // The compass strip's live coordinates are NOT started here any more. Construction-time
@@ -836,6 +849,36 @@ class AvailabilityViewModel(
             mapPreferencesRepository.getNightModeMaps().fold(
                 onSuccess = { night -> _uiState.update { it.copy(nightModeMaps = night) } },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the night-maps preference.", error) },
+            )
+        }
+    }
+
+    /** Restores the "Automatically Save Location to Photos" preference — same read-failure treatment as [loadNightModePreferences]: log, and leave the on-by-default state alone. */
+    private fun loadAutoSaveLocationToPhotos() {
+        viewModelScope.launch {
+            getAutoSaveLocationToPhotos().fold(
+                onSuccess = { enabled -> _uiState.update { it.copy(autoSaveLocationToPhotos = enabled) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the photo-location preference.", error) },
+            )
+        }
+    }
+
+    /**
+     * Settings' "Automatically Save Location to Photos" checkbox. Reflects the new value in state
+     * immediately and persists in the background, the same shape and the same
+     * not-essential-to-using-it failure treatment as [onNightModeMapsChanged] below.
+     *
+     * **The two ViewModels read this preference independently, on purpose.** This one holds it to
+     * render the checkbox; `MushroomLogViewModel` re-reads it from the same repository at the
+     * moment it is about to capture a position. Nothing is pushed from here to there, so there is
+     * no window in which the find path acts on a value this screen has already changed.
+     */
+    fun onAutoSaveLocationToPhotosChanged(enabled: Boolean) {
+        _uiState.update { it.copy(autoSaveLocationToPhotos = enabled) }
+        viewModelScope.launch {
+            setAutoSaveLocationToPhotos(enabled).fold(
+                onSuccess = {},
+                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the photo-location preference.", error) },
             )
         }
     }
