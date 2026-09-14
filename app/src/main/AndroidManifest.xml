@@ -4,16 +4,28 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- The mushroom log's camera capture uses ActivityResultContracts.TakePicture
-         (ACTION_IMAGE_CAPTURE), which needs no permission: the camera app is a separate process
-         and writes into a FileProvider URI Forager supplies. See
-         com.zynergylabs.forager.app.photo.CameraCaptureFiles. android.permission.CAMERA was
-         declared here until 2026-09-10 and removed before the first beta. Declaring it enabled
-         nothing; it only made the platform require the grant before honouring
-         ACTION_IMAGE_CAPTURE, so the app asked testers for access it never used directly.
-         Do not re-add it without a direct CameraX/Camera2 use, and if it ever comes back the
-         runtime request in PhotoAcquisitionLaunchers must come back with it. Gallery attach needs
-         no permission at all: it uses PickVisualMedia, the modern photo picker. -->
+    <!-- Re-added 2026-09-14 for the in-app camera, which is the condition the removal note set.
+         The history, kept because it is the reason this line is not free:
+         android.permission.CAMERA was declared here until 2026-09-10 and removed before the first
+         beta, when every capture went out to the user's own camera app through
+         ActivityResultContracts.TakePicture (ACTION_IMAGE_CAPTURE). It enabled nothing there and
+         cost a prompt: declaring it only makes the platform *require* the grant before honouring
+         that intent. The removal note said "do not re-add it without a direct CameraX/Camera2 use,
+         and if it ever comes back the runtime request in PhotoAcquisitionLaunchers must come back
+         with it." Both halves now apply — com.zynergylabs.forager.app.photo.CameraXCaptureSession
+         opens the camera in this process, and the runtime request is back in
+         PhotoAcquisitionLaunchers.
+         The consequence to know before removing it again: with this declared, ACTION_IMAGE_CAPTURE
+         would now also require the grant. That is one reason the in-app camera replaced the intent
+         outright rather than sitting beside it.
+         Gallery attach still needs no permission at all: it uses PickVisualMedia, the modern
+         photo picker. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- required="false" so Forager still installs on a device with no camera. The in-app camera
+         reports "no camera available" rather than assuming one exists — see CameraXCaptureSession's
+         Unavailable state. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <!-- Photo-geodata dispatch: lets a gallery import's EXIF read see the location tag a photo's
          own MediaStore entry carries (MediaStore.setRequireOriginal, API 29+) — without it, the
          platform silently redacts GPS EXIF from any stream this app opens. Requested at the moment

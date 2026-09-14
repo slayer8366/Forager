@@ -78,6 +78,9 @@ internal fun PullPhotoPickerScreen(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
+            // The in-app camera itself. A Dialog, so this screen stays exactly as it is underneath
+            // and dismissing returns here with nothing to restore — see InAppCameraDialog.
+            photoAcquisition.CameraDialog()
             Button(onClick = photoAcquisition.launchGallery) { Text("Import") }
         }
 

@@ -100,6 +100,9 @@ internal fun PhotoGalleryScreen(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
+            // The in-app camera itself. A Dialog, so this screen stays exactly as it is underneath
+            // and dismissing returns here with nothing to restore — see InAppCameraDialog.
+            photoAcquisition.CameraDialog()
             // Entry-photo-acquisition dispatch, Item 1: "Import," not "Gallery" — this screen
             // itself is the app's own photo collection ("Album"), so a button here labelled
             // "Gallery" that opens the *device's* picker was two near-synonyms meaning opposite

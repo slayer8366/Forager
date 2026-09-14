@@ -245,6 +245,9 @@ private fun PhotosSection(
         // invisible rather than clipped. Wrapping to a second line keeps every button reachable.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
+            // The in-app camera itself. A Dialog, so this screen stays exactly as it is underneath
+            // and dismissing returns here with nothing to restore — see InAppCameraDialog.
+            photoAcquisition.CameraDialog()
             // Entry-photo-acquisition dispatch, Item 1: "Import," not "Gallery" — the app calls its
             // own photo collection "Album," so a button labelled "Gallery" that actually opens the
             // *device's* picker was already two near-synonyms meaning opposite things. "Import" says

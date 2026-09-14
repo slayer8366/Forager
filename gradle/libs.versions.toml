@@ -48,6 +48,13 @@ datastorePreferences = "1.2.1"
 # Maven metadata (dl.google.com/dl/android/maven2/androidx/exifinterface/exifinterface/maven-metadata.xml),
 # not a version copied from a tutorial that could already be stale — same reasoning as maplibre above.
 exifinterface = "1.4.2"
+# The in-app camera (photo/CameraXCaptureSession.kt). 1.6.2 is the latest **stable** on Google's
+# Maven; the metadata's own <latest>/<release> both point at 1.7.0-alpha03, which is the alpha line
+# this project does not take — same reasoning, and the same check against
+# dl.google.com/dl/android/maven2/androidx/camera/<artifact>/maven-metadata.xml, as
+# datastorePreferences and exifinterface above. One version for all four artifacts: CameraX ships
+# them as a set and mixing versions across them is unsupported.
+camerax = "1.6.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -89,6 +96,10 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 nga-mgrs = { group = "mil.nga", name = "mgrs", version.ref = "mgrs" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
