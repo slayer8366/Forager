@@ -228,6 +228,10 @@ covering any of it:
 - whether the permission prompt appears once and behaves on a denial;
 - how the shutter *feels* shot-to-shot, which is the entire point of the feature;
 - whether a device with no back camera falls through to the front one.
+- **(added 2026-09-14, later the same day)** a StrictMode run on a debug build while taking a burst
+  of photos, to turn "`persist` ran on the main thread" from a claim inferred by reading a
+  dispatcher-free call chain into an observation, and to confirm the fix moved it. See
+  `2026-09-14-capture-release-and-persist-off-main-completion-report.md`.
 
 The owner has said the device check covers the whole release when it is finished. These are the
 lines for it.
