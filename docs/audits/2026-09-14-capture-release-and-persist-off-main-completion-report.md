@@ -172,9 +172,46 @@ The second and fourth are the discriminating ones: each isolates a single claim 
   explicitly out of scope"), true when written and false since the scrub landed. Same family as
   the `MainActivity` claim.
 
+### CI: one red, one green, on the same code
+
+Written after the fact, which is why the line below it used to say "no CI run at the time of
+writing".
+
+Run 504 on `459b930` (the code commit) was **red**: `JournalTabTest > From Album on the edit form
+opens the picker and pulls the selected photo into the entry`, `AssertionError at
+JournalTabTest.kt:374`, 1449 tests / 1 failed / 24 skipped. Run 505 on `0f2eac9` (docs only, the
+identical code) was **green**, 1449 / 0 / 24.
+
+That is the documented photo-pull flake — same test, same line, same assertion
+(`onNodeWithContentDescription("Log photo").assertIsDisplayed()`), the subject of
+`2026-09-09-journaltabtest-photo-pull-flake.md`, the pre-registered controlled comparison (4 reds
+in 65 CI draws with the test present, 1 in 65 with its body inert), and the 2026-09-10 origin trace;
+red on `main` itself at `4236e6b` with no change to the test. And it was not called that by reflex:
+
+- **Reachability, by grep:** `JournalTabTest` never touches `FilePhotoStore`, `persist`,
+  `MushroomLogViewModel` or `AppContainer`; it drives a fake `onPullPhoto` harness. The IO switch,
+  `release()` and the streamed scrub cannot reach line 374.
+- **The one mechanism this push adds to every test was named, not dismissed.** `ForagerApplication`
+  now launches the sweep on `Dispatchers.IO` at app creation, and Robolectric creates the
+  application for every test; the flake's own inferred mechanism is a `DecodedPhoto` IO hop racing
+  a recomposition. A listing of an empty temp directory, finished long before the test reaches its
+  assertion, is not a plausible contender on that pool — but that is inference, and the record
+  says so.
+- **What settled it was counting:** one red in one draw at a ~6 % base rate is consistent with the
+  baseline; a second draw of the identical code came back green. Two draws, one each way, on the
+  same bytes.
+
+Standing-down comment on the PR: `issuecomment-5671812453`, posted before run 505 finished, naming
+the check, the reasons above, that no fix exists to port (the cause is marked inferred, not
+executed), and the patch the inferred mechanism implies — a `waitUntil` at line 374 mirroring line
+361 — **left to the owner**, because CLAUDE.md rules that a test unrelated to the dispatched task is
+reported, not touched, and this one is the subject of a pre-registered measurement series a
+drive-by change would contaminate. Nothing skipped, ignored, weakened or allowlisted.
+
 ### Checks that did not fire, and empty results
 
-- No CI run at the time of writing.
+- The re-run that confirmed the flake was not requested; the docs-only push was a free second draw
+  of the same code, and it was green.
 - No test asserts the dispatcher `persist` runs on. Deliberate: a test that pins a dispatcher tests
   the pin, not the jank. StrictMode is the right instrument and it is device-only.
 - **Observed and reported, not fixed:** the release-on-failure test shows that a persist failing
