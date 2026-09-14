@@ -71,6 +71,14 @@ class InAppCameraDialogTest {
                 .addActivityIfNotPresent(ComponentName(app, ComponentActivity::class.java))
             clearFileProviderCache()
         }
+
+        // And again on the way out. Clearing only on entry fixes this class and breaks the next
+        // one: whatever strategy the last method here left cached points at a temp directory that
+        // no longer exists, and the next class to ask for a FileProvider URI inherits it. That is
+        // not hypothetical — it took `AvailabilityScreenSettingsPanelTest`'s GPX share test down in
+        // the first full-suite run after this class was added, while that test stayed green on its
+        // own. Leaving the cache as we found it is what keeps the damage inside this file.
+        override fun after() = clearFileProviderCache()
     }
 
     /**
@@ -127,8 +135,17 @@ class InAppCameraDialogTest {
 
         override suspend fun capture(destination: File): Result<Unit> {
             captureCalls += 1
-            if (failing) return Result.failure(IllegalStateException("the camera said no"))
             destination.parentFile?.mkdirs()
+            if (failing) {
+                // A partial file, *then* the failure. This is the case the production cleanup
+                // exists for and the only one in which it can be observed: a camera that errors
+                // before writing anything leaves nothing to clean up, so a fake that simply
+                // returned a failure would make `a failed capture leaves no file behind` pass
+                // whether or not the screen deleted anything. A revert check caught exactly that
+                // — see this class's own note on it.
+                destination.writeBytes(byteArrayOf(0xFF.toByte()))
+                return Result.failure(IllegalStateException("the camera said no"))
+            }
             destination.writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte()))
             return Result.success(Unit)
         }
@@ -327,23 +344,31 @@ class InAppCameraDialogTest {
     }
 
     /**
-     * The instrument, checked against itself. CLAUDE.md's rule is that a check whose input has not
-     * been verified has not been run: `a failed capture leaves no file behind` asserts an empty
-     * directory, and an empty directory is also what a fake that never writes anything at all would
-     * produce. This is the line that tells the two apart — the fake writes on success and not on
-     * failure, so that assertion is about the production cleanup rather than about the fake.
+     * The instrument, checked against itself — and the check that was wrong first time.
+     *
+     * `a failed capture leaves no file behind` asserts an empty directory. An empty directory is
+     * also exactly what a fake that writes nothing on failure produces, so with the original fake
+     * that test passed whether or not the screen cleaned anything up. A revert check found it:
+     * deleting the `deleteCapture` call produced **zero** failures. CLAUDE.md names this shape
+     * directly — a check that passes identically before and after a change is not covering what it
+     * claims to — and the revert is what surfaced it, not review.
+     *
+     * The fake now writes a partial file and *then* fails, which is the real case: a camera that
+     * errors mid-write leaves a stub the persist path would later try to read. This test is what
+     * keeps that property of the fake from being quietly lost again.
      */
     @Test
-    fun `the fake writes on success and not on failure, which is what makes the cleanup test mean anything`() {
+    fun `the fake leaves a partial file on failure, which is what makes the cleanup test able to fail`() {
         val written = File(context.cacheDir, "probe/written.jpg")
-        val notWritten = File(context.cacheDir, "probe/never-written.jpg")
+        val partial = File(context.cacheDir, "probe/partial.jpg")
 
         val success = runBlocking { FakeSession().capture(written) }
-        val failure = runBlocking { FakeSession().apply { failEveryCapture() }.capture(notWritten) }
+        val failure = runBlocking { FakeSession().apply { failEveryCapture() }.capture(partial) }
 
         assertTrue(success.isSuccess)
-        assertTrue("a successful capture really does leave a file", written.exists())
+        assertTrue("a successful capture leaves a file", written.exists())
         assertTrue(failure.isFailure)
-        assertFalse("and a failed one really does not", notWritten.exists())
+        assertTrue("and a failed one leaves a stub for the screen to clean up", partial.exists())
+        assertFalse("which is not a whole photo", partial.readBytes().size > 1)
     }
 }
