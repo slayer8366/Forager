@@ -17,6 +17,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -64,6 +65,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class FilePhotoStoreTest {
 
+    /** Capture URIs come from the real `FileProvider`; see the rule's own doc for why this is needed. */
+    @get:Rule
+    val fileProviderCache = FileProviderCacheReset()
+
     private lateinit var context: Application
     private lateinit var store: FilePhotoStore
     private lateinit var sourceDir: File
@@ -81,7 +86,7 @@ class FilePhotoStoreTest {
     fun `persist copies the source's bytes into app-private storage and returns a relative path`() = runTest {
         val sourceFile = File(sourceDir, "capture.jpg").apply { writeBytes(byteArrayOf(1, 2, 3, 4, 5)) }
 
-        val result = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile)))
+        val result = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile)))
 
         val photo = result.getOrThrow()
         val persistedFile = File(context.filesDir, photo.relativePath)
@@ -96,8 +101,8 @@ class FilePhotoStoreTest {
         val sourceA = File(sourceDir, "a.jpg").apply { writeBytes(byteArrayOf(1)) }
         val sourceB = File(sourceDir, "b.jpg").apply { writeBytes(byteArrayOf(2)) }
 
-        val photoA = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceA))).getOrThrow()
-        val photoB = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceB))).getOrThrow()
+        val photoA = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceA), sourceA))).getOrThrow()
+        val photoB = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceB), sourceB))).getOrThrow()
 
         assertFalse(photoA.relativePath == photoB.relativePath)
         assertArrayEquals(byteArrayOf(1), File(context.filesDir, photoA.relativePath).readBytes())
@@ -108,7 +113,7 @@ class FilePhotoStoreTest {
     fun `persist from a source that cannot be opened reports failure, not a path to a missing file`() = runTest {
         val missingSource = File(sourceDir, "never-existed.jpg")
 
-        val result = store.persist(CameraCapturePhotoSource(Uri.fromFile(missingSource)))
+        val result = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(missingSource), missingSource)))
 
         assertTrue(result.isFailure)
     }
@@ -123,7 +128,7 @@ class FilePhotoStoreTest {
     @Test
     fun `delete removes the persisted file`() = runTest {
         val sourceFile = File(sourceDir, "capture.jpg").apply { writeBytes(byteArrayOf(9)) }
-        val photo = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
         val persistedFile = File(context.filesDir, photo.relativePath)
         assertTrue(persistedFile.exists())
 
@@ -145,7 +150,7 @@ class FilePhotoStoreTest {
         val clockedStore = FilePhotoStore(context, now = { 1_700_000_000_000L })
         val sourceFile = File(sourceDir, "capture.jpg").apply { writeBytes(byteArrayOf(7)) }
 
-        val photo = clockedStore.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+        val photo = clockedStore.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
 
         assertEquals(1_700_000_000_000L, photo.createdAtEpochMillis)
     }
@@ -209,7 +214,7 @@ class FilePhotoStoreTest {
             exif.setLatLong(45.5, -122.6)
         }
 
-        val photo = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
 
         assertNull("a camera capture's own EXIF is never consulted for location", photo.latitude)
         assertNull(photo.longitude)
@@ -229,7 +234,7 @@ class FilePhotoStoreTest {
         }
         assertEquals("precondition: the source really is location-tagged", "45.5, -122.6", ExifInterface(sourceFile.absolutePath).latLong?.joinToString())
 
-        val photo = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
 
         val persisted = File(context.filesDir, photo.relativePath)
         val exif = ExifInterface(persisted.absolutePath)
@@ -250,7 +255,7 @@ class FilePhotoStoreTest {
             exif.setLatLong(45.5, -122.6)
         }
 
-        val photo = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
 
         val persisted = File(context.filesDir, photo.relativePath)
         assertEquals(
@@ -281,6 +286,54 @@ class FilePhotoStoreTest {
         val exif = ExifInterface(persisted.absolutePath)
         assertEquals("45.5, -122.6", exif.latLong?.joinToString())
         assertEquals("ACME", exif.getAttribute(ExifInterface.TAG_MAKE))
+    }
+
+    // ── The source is consumed (2026-09-14) ─────────────────────────────────────────────────
+
+    /**
+     * The leak this closes: nothing ever deleted a capture's scratch file after persisting it, so
+     * every photo taken lived twice on disk. Asserted on the file, through a **real
+     * `content://` capture URI from [CameraCaptureFiles]** rather than the `file://` form the other
+     * tests use — the first test in this suite to read through the app's `FileProvider` the way
+     * production does, which is recorded in the completion report as the gap it closes.
+     */
+    @Test
+    fun `a persisted capture's scratch file is deleted once its bytes are copied`() = runTest {
+        val capture = CameraCaptureFiles(context).newCapture()
+        capture.file.writeBytes(byteArrayOf(9, 8, 7))
+        assertEquals("precondition: the production URI shape, not file://", "content", capture.uri.scheme)
+        assertTrue("precondition: the scratch file exists", capture.file.exists())
+
+        val photo = store.persist(CameraCapturePhotoSource(capture)).getOrThrow()
+
+        assertArrayEquals("the bytes reached permanent storage", byteArrayOf(9, 8, 7), File(context.filesDir, photo.relativePath).readBytes())
+        assertFalse("and the scratch file is gone", capture.file.exists())
+    }
+
+    /**
+     * Released in a `finally`, not only on success: on failure the user retakes, and the file has
+     * no further use. `now()` is the one call after the copy that a test can make throw.
+     */
+    @Test
+    fun `a capture is released even when persist fails after the copy`() = runTest {
+        val failingStore = FilePhotoStore(context, now = { error("clock unavailable") })
+        val sourceFile = File(sourceDir, "doomed.jpg").apply { writeBytes(byteArrayOf(1)) }
+        val capture = CameraCaptureFiles.Capture(uri = Uri.fromFile(sourceFile), file = sourceFile)
+
+        val result = failingStore.persist(CameraCapturePhotoSource(capture))
+
+        assertTrue("precondition: this persist really failed", result.isFailure)
+        assertFalse("released regardless", sourceFile.exists())
+    }
+
+    /** Owner's ruling: an import is the user's photo. [PhotoSource.release] is a no-op for it by default, and this is what holds that. */
+    @Test
+    fun `an import's source file is never deleted`() = runTest {
+        val sourceFile = File(sourceDir, "theirs.jpg").apply { writeBytes(byteArrayOf(1, 2)) }
+
+        store.persist(GalleryImportPhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+
+        assertTrue("not this app's file to delete", sourceFile.exists())
     }
 
     private fun minimalJpegWithExif(directory: File, name: String, configure: (ExifInterface) -> Unit): File {

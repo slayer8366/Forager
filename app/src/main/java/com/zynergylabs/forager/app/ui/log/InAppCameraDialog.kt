@@ -184,7 +184,7 @@ internal fun InAppCameraDialog(
                                     session.capture(capture.file).fold(
                                         onSuccess = {
                                             photosTaken += 1
-                                            onPhotoCaptured(CameraCapturePhotoSource(capture.uri))
+                                            onPhotoCaptured(CameraCapturePhotoSource(capture))
                                         },
                                         onFailure = {
                                             // The empty destination is cleaned up rather than left

@@ -13,6 +13,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * [PhotoStore] backed by app-private storage (`context.filesDir/photos/`) — never `cacheDir`, since
@@ -63,9 +65,32 @@ import java.util.UUID
  * [MediaStore.setRequireOriginal] doesn't exist below it — this store never reads or writes EXIF
  * data of any kind on API 26-28, so [LogPhoto.latitude]/[LogPhoto.longitude] simply stay `null` for
  * an import on those API levels, honest-null rather than a best-effort read that can't be made
- * reliable. Stripping GPS EXIF from the destination file directly (rather than relying on
- * per-API-level redaction) would close this gap but is explicitly out of scope for this dispatch —
- * see the photo-geodata amendment's decision 5.
+ * reliable. For an **import** that remains the position. For a **capture**, [scrubPhotoMetadata]
+ * has stripped the destination file directly since 2026-09-14 (the sentence that used to end this
+ * paragraph, saying that was out of scope, was true when written and is not now).
+ *
+ * ## Main-safe since 2026-09-14, and why that is stated rather than assumed
+ *
+ * [persist] runs its whole body on [Dispatchers.IO]. Before that it ran wherever it was called
+ * from, which was the main thread: `viewModelScope.launch` with no dispatcher, through a use case
+ * with no dispatcher, into a byte copy and a metadata rewrite of a full-size JPEG, per shot. The
+ * multi-shot camera is exactly the case that shows. **That before-state was inferred from reading
+ * every frame of the chain, not observed** — no frame switched, and `runCatchingCancellable` is a
+ * plain try/catch — and it goes on the device check as a StrictMode run rather than being reported
+ * as measured.
+ *
+ * This is not this repo's convention, and the record should say so: none of the eighteen files in
+ * `data/repository/` switch dispatchers, and the only IO switches in `main/` are in four UI
+ * callers. The Room-backed repositories are main-safe because Room switches for them. This store
+ * has no Room underneath it, so it switches for itself — matching the main-safety the others
+ * already have, not a rule they follow.
+ *
+ * ## [persist] consumes its source
+ *
+ * [PhotoSource.release] is called in a `finally`, succeed or fail, so a capture's temporary file
+ * is deleted once its bytes are copied (or once the copy has failed and the user will retake). An
+ * import's `release` is a no-op by default: the user's photo is never touched. See
+ * [CameraCapturePhotoSource] for the leak this closes.
  */
 class FilePhotoStore(
     private val context: Context,
@@ -74,7 +99,18 @@ class FilePhotoStore(
 
     private val photosDir: File get() = File(context.filesDir, PHOTOS_SUBDIR).apply { mkdirs() }
 
-    override suspend fun persist(source: PhotoSource): Result<LogPhoto> = runCatchingCancellable {
+    override suspend fun persist(source: PhotoSource): Result<LogPhoto> = withContext(Dispatchers.IO) {
+        runCatchingCancellable {
+            try {
+                persistOnIo(source)
+            } finally {
+                source.release()
+            }
+        }
+    }
+
+    /** The body of [persist], on the IO dispatcher, with its source still unreleased. */
+    private fun persistOnIo(source: PhotoSource): LogPhoto {
         val uri = when (source) {
             is CameraCapturePhotoSource -> source.uri
             is GalleryImportPhotoSource -> source.uri
@@ -101,7 +137,7 @@ class FilePhotoStore(
         // source `uri`, not from `destination`, so the scrub above cannot affect an import.
         val exifData = if (source is GalleryImportPhotoSource) readExifData(uri) else ExifData(null, null, null)
 
-        LogPhoto(
+        return LogPhoto(
             id = id,
             relativePath = "$PHOTOS_SUBDIR/$id.jpg",
             createdAtEpochMillis = exifData.capturedAtEpochMillis ?: now(),

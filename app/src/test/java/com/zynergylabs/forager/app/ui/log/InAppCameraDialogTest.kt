@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
-import androidx.core.content.FileProvider
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
+import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -69,34 +69,13 @@ class InAppCameraDialogTest {
             val app = ApplicationProvider.getApplicationContext<Application>()
             Shadows.shadowOf(app.packageManager)
                 .addActivityIfNotPresent(ComponentName(app, ComponentActivity::class.java))
-            clearFileProviderCache()
         }
-
-        // And again on the way out, as hygiene rather than as a fix for anything observed: this
-        // class writes to a process-wide cache, so it puts it back. **Deliberately not claimed to
-        // fix a cross-class failure** — an earlier version of this comment did, and was wrong. See
-        // the correction note below.
-        override fun after() = clearFileProviderCache()
     }
 
     /**
-     * **`FileProvider` caches one `PathStrategy` per authority in a static map, and Robolectric
-     * gives every `@Test` method a fresh data directory.** So the strategy built during the first
-     * method that asks for a capture URI points at that method's temp `filesDir` for the rest of
-     * the JVM's life, and every later method fails with `Failed to find configured root that
-     * contains …`. Nothing about the message says "stale cache", and the trap only springs in a
-     * class run: each of these tests passes on its own, which was how it was diagnosed here —
-     * running one alone and watching it go green is what separated "my file paths are wrong" from
-     * "state survives between methods".
-     *
-     * The same shape as the `by preferencesDataStore` singleton this project already avoids for
-     * exactly this reason (CLAUDE.md, the Room/DataStore pitfall): a per-process cache is invisible
-     * under Robolectric until a second test method meets it.
-     *
-     * `sCache` was confirmed by reflecting over `FileProvider`'s declared fields, not assumed from
-     * memory, and the check below fails loudly rather than silently doing nothing if androidx ever
-     * renames it — a cleanup that quietly stops cleaning is how this bug comes back wearing a
-     * different message.
+     * The `FileProvider` cache reset every capture-creating test needs is [FileProviderCacheReset],
+     * shared since the store's own tests started creating captures too; its doc carries the
+     * mechanism. What stays here is the part that is about this class:
      *
      * ## Correction, same day, and the reason it is written here rather than quietly dropped
      *
@@ -104,36 +83,17 @@ class InAppCameraDialogTest {
      * `AvailabilityScreenSettingsPanelTest`'s GPX share test, with the same
      * `IllegalArgumentException at FileProvider.java:911`. This class was recorded — in a commit
      * message, a report and an index row — as having caused it by leaving a poisoned cache behind,
-     * and the `after()` hook as the fix. **Neither was established, and both look wrong.**
-     *
-     * What the checks actually showed, run afterwards because the stated cause did not fit the
-     * observed class ordering:
-     * - Class order is stable across runs here, with `AvailabilityScreenSettingsPanelTest` at
-     *   position 122 and this class at 149. This class runs *after* it, so it cannot poison it.
-     * - Removing only the `after()` hook leaves the full suite green: 1442 tests, 0 failures.
-     * - Restoring this file to its exact state in the failing commit leaves the suite green too,
-     *   same ordering. The failure does not reproduce.
-     *
-     * So that one failure is **unexplained and reported, not fixed**. What *is* reproducible is the
-     * within-class problem above: disable the clearing entirely and 7 of these 13 fail, each naming
-     * its own stale temp root. That is the claim this class supports; the cross-class one it does
-     * not.
+     * and clearing the cache on exit as the fix. **Neither was established, and both look wrong.**
+     * Class order is stable across runs, with `AvailabilityScreenSettingsPanelTest` at position
+     * 122 and this class at 149, so this class runs *after* it and cannot poison it; removing the
+     * exit clear left the full suite green (1442 / 0); restoring this file to its exact state in
+     * the failing commit left it green too. That one failure is **unexplained and reported, not
+     * fixed**. What *is* reproducible is the within-class problem: disable the reset and 7 of these
+     * 13 fail, each naming its own stale temp root.
      */
-    private fun clearFileProviderCache() {
-        val cache = runCatching { FileProvider::class.java.getDeclaredField("sCache") }.getOrElse {
-            throw AssertionError(
-                "androidx FileProvider no longer has a static `sCache` field. The per-authority " +
-                    "PathStrategy cache is what makes these tests fail in a class run but pass " +
-                    "alone; find where it lives now rather than deleting this.",
-                it,
-            )
-        }
-        cache.isAccessible = true
-        (cache.get(null) as MutableMap<*, *>).clear()
-    }
 
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
+    val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(FileProviderCacheReset()).around(composeRule)
 
     private val context: Application get() = ApplicationProvider.getApplicationContext()
 

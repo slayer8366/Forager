@@ -26,9 +26,11 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
+import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.GalleryImportPhotoSource
 import java.time.LocalDate
+import java.io.File
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -350,7 +352,7 @@ class MushroomLogViewModelTest {
         val vm = viewModel(repository, photoStore, locationProvider)
         advanceUntilIdle()
 
-        vm.onAddGalleryPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        vm.onAddGalleryPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
         val galleryPhoto = vm.uiState.value.galleryPhotos.single()
@@ -374,7 +376,7 @@ class MushroomLogViewModelTest {
         val vm = viewModel(repository, photoStore, locationProvider)
         advanceUntilIdle()
 
-        vm.onAddGalleryPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        vm.onAddGalleryPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
         val galleryPhoto = vm.uiState.value.galleryPhotos.single()
@@ -1233,7 +1235,7 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
         assertNull("precondition: the find starts with no location", vm.uiState.value.editingEntry?.foundAt)
 
-        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        vm.onAddPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
         assertEquals(LatLng(45.5, -122.6), vm.uiState.value.editingEntry?.foundAt)
@@ -1252,7 +1254,7 @@ class MushroomLogViewModelTest {
         vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
-        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        vm.onAddPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
         assertEquals(LatLng(45.0, -122.0), vm.uiState.value.editingEntry?.foundAt)
@@ -1310,7 +1312,7 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
-        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        vm.onAddPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
         assertEquals("precondition: the photo is attached while the fix is still pending", 1, vm.uiState.value.editingEntry?.photos?.size)
 
@@ -1377,7 +1379,7 @@ class MushroomLogViewModelTest {
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
-        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        vm.onAddPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
         assertEquals("the photo is still attached", 1, vm.uiState.value.editingEntry?.photos?.size)
@@ -1396,7 +1398,7 @@ class MushroomLogViewModelTest {
         val vm = viewModel(repository, photoStore, locationProvider, autoSaveLocationToPhotos = { false })
         advanceUntilIdle()
 
-        vm.onAddGalleryPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        vm.onAddGalleryPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
         val galleryPhoto = vm.uiState.value.galleryPhotos.single()
@@ -1417,7 +1419,7 @@ class MushroomLogViewModelTest {
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
-        vm.onAddPhoto(CameraCapturePhotoSource(Uri.EMPTY))
+        vm.onAddPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
         assertEquals(1, locationProvider.callCount)

@@ -29,4 +29,18 @@ package com.zynergylabs.forager.app.domain.model
  * substitutes for the other. See [com.zynergylabs.forager.app.domain.model.LogPhoto]'s own doc comment for the
  * full reasoning.
  */
-interface PhotoSource
+interface PhotoSource {
+    /**
+     * Called by [com.zynergylabs.forager.app.domain.PhotoStore.persist] once it has finished with
+     * this source, succeed or fail. A source that owns a temporary file (a camera capture, which is
+     * this app's own scratch file) deletes it here; a source that does not (a gallery import, which
+     * is the user's photo) leaves this as the no-op it is by default.
+     *
+     * On the interface rather than as a type check inside `persist` (reviewer's design note,
+     * 2026-09-14): the source is the one thing that knows whether it owns its bytes, so the
+     * knowledge lives with it, and a future `PhotoSource` cannot be quietly destructive or quietly
+     * leaky without saying so here. Default no-op keeps the anonymous test fakes compiling and
+     * keeps the import path safe by type rather than by a branch someone has to remember.
+     */
+    fun release() {}
+}

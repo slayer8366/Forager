@@ -3,6 +3,8 @@ package com.zynergylabs.forager.app.photo
 import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 
 /**
  * Strips a stored photo's metadata and puts back only its orientation — owner's design,
@@ -18,14 +20,25 @@ import java.io.File
  * deliberately kept is gone, including anything that did not exist when this was written. The
  * owner's framing, and the stronger of the two by construction.
  *
- * ## Lossless, unlike baking the rotation into the pixels
+ * ## Lossless, and streamed
  *
- * This only rewrites the JPEG's segment structure; the entropy-coded scan data is copied through
+ * Only the JPEG's segment structure is rewritten; the entropy-coded scan data is copied through
  * byte for byte, so the image is untouched and there is no decode, no re-encode and no
- * full-resolution bitmap. That is what makes it affordable at save time: baking the rotation into
- * the pixels instead would cost one generation of JPEG quality and peak around 98 MB for a 12 MP
- * photo, 400 MB for a 50 MP one. Measured, not assumed — [PhotoMetadataScrubTest] asserts the scan
- * bytes are identical across the scrub.
+ * full-resolution bitmap. [PhotoMetadataScrubTest] asserts the scan bytes are identical across the
+ * scrub. Baking the rotation into the pixels instead would cost one generation of JPEG quality and
+ * peak around 98 MB for a 12 MP photo, 400 MB for a 50 MP one.
+ *
+ * Since 2026-09-14 the walk is a stream, input file to temp file through one small buffer, and
+ * never holds the image. The first version read the whole file and rebuilt it in an
+ * `ArrayList<Byte>` — one object reference per byte, so 20 to 40 MB of heap for a 5 MB JPEG, per
+ * shot, on the main thread — which the multi-shot camera turned from a wart into a stall. The
+ * orientation reapply that follows is `ExifInterface.saveAttributes`, which rewrites the whole file
+ * to reinsert APP1, so this is two passes rather than one. A single pass is possible by emitting a
+ * minimal APP1 with only the orientation entry during the walk; **not done**, because these photos
+ * are meant to be shared outside the app and `ExifInterface`'s own writer is the emitter other
+ * readers have been tested against, whereas a hand-rolled segment that `ExifInterface` reads back
+ * correctly could still trip a third-party one. Off the main thread now, two passes is cheap.
+ * Recorded as the option it is.
  *
  * ## What is kept, and why each one
  *
@@ -46,17 +59,19 @@ import java.io.File
  * ## Failure is never destructive, and never silent
  *
  * The rewrite goes to a sibling temp file and replaces the original only once it has been written
- * whole; any failure leaves the original exactly as it was and logs at WARN. That is a deliberate
+ * whole; any failure — a read error, a segment stream that does not parse, a truncated file —
+ * deletes the temp, leaves the original exactly as it was, and logs at WARN. That is a deliberate
  * fail-*open* on privacy: a photo that keeps its metadata is the behaviour that existed before this
  * function, whereas a lost or truncated photo is unrecoverable field data. A non-JPEG is left alone
  * for the same reason.
  */
 internal fun scrubPhotoMetadata(file: File): ScrubOutcome {
-    val original = runCatching { file.readBytes() }.getOrElse { error ->
+    val soi = ByteArray(2)
+    val headerBytes = runCatching { file.inputStream().use { it.readFully(soi) } }.getOrElse { error ->
         Log.w(TAG, "Couldn't read '${file.name}' to scrub its metadata; leaving it as it is.", error)
         return ScrubOutcome.Failed
     }
-    if (!original.startsWithJpegMarker()) {
+    if (headerBytes != 2 || !soi.isJpegSoi()) {
         Log.i(TAG, "'${file.name}' is not a JPEG; leaving its bytes alone.")
         return ScrubOutcome.NotAJpeg
     }
@@ -68,14 +83,12 @@ internal fun scrubPhotoMetadata(file: File): ScrubOutcome {
         ExifInterface(file.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
     }.getOrElse { ExifInterface.ORIENTATION_UNDEFINED }
 
-    val stripped = stripJpegMetadataSegments(original) ?: run {
-        Log.w(TAG, "Couldn't parse '${file.name}' as a JPEG segment stream; leaving it as it is.")
-        return ScrubOutcome.Failed
-    }
-
     val temp = File(file.parentFile, "${file.name}.scrub")
     val replaced = runCatching {
-        temp.writeBytes(stripped)
+        val parsed = file.inputStream().buffered().use { input ->
+            temp.outputStream().buffered().use { output -> stripJpegMetadataSegments(input, output) }
+        }
+        check(parsed) { "'${file.name}' did not parse as a JPEG segment stream" }
         if (orientation != ExifInterface.ORIENTATION_UNDEFINED) {
             ExifInterface(temp.absolutePath).apply {
                 setAttribute(ExifInterface.TAG_ORIENTATION, orientation.toString())
@@ -102,61 +115,118 @@ internal sealed interface ScrubOutcome {
 }
 
 /**
- * Rebuilds [jpeg] with only the segments [isKeptSegment] names, copying the entropy-coded scan data
- * through untouched. `null` when the marker structure does not parse, which is the caller's signal
- * to leave the file alone rather than write something it did not understand.
+ * Walks [input]'s segments and writes only the ones [isKeptSegment] names to [output], copying the
+ * entropy-coded scan data through untouched. Returns `false` when the marker structure does not
+ * parse or the stream ends inside a segment, which is the caller's signal to leave the file alone
+ * rather than write something it did not understand. Holds at most one identifier prefix and one
+ * copy buffer at a time; never the image.
  */
-private fun stripJpegMetadataSegments(jpeg: ByteArray): ByteArray? {
-    val out = ArrayList<Byte>(jpeg.size)
-    out.add(jpeg[0])
-    out.add(jpeg[1]) // SOI
-    var i = 2
-    while (i < jpeg.size) {
-        if (jpeg[i] != MARKER_PREFIX) return null
-        if (i + 1 >= jpeg.size) return null
-        val marker = jpeg[i + 1].toInt() and 0xFF
+private fun stripJpegMetadataSegments(input: InputStream, output: OutputStream): Boolean {
+    val soi = ByteArray(2)
+    if (input.readFully(soi) != 2 || !soi.isJpegSoi()) return false
+    output.write(soi)
+    val buffer = ByteArray(COPY_BUFFER_BYTES)
+    while (true) {
+        val prefix = input.read()
+        if (prefix < 0) return true // segments ended without SOS: written as they were
+        if (prefix != 0xFF) return false
+        val marker = input.read()
+        if (marker < 0) return false
         // Standalone markers carry no length. None normally precedes SOS, but a malformed file must
         // not be silently reinterpreted, so they are handled rather than assumed absent.
         if (marker == 0x01 || marker in 0xD0..0xD9) {
-            out.add(jpeg[i])
-            out.add(jpeg[i + 1])
-            i += 2
+            output.write(0xFF)
+            output.write(marker)
             continue
         }
-        if (i + 3 >= jpeg.size) return null
-        val length = ((jpeg[i + 2].toInt() and 0xFF) shl 8) or (jpeg[i + 3].toInt() and 0xFF)
-        if (length < 2 || i + 2 + length > jpeg.size) return null
-        val segment = jpeg.copyOfRange(i, i + 2 + length)
+        val hi = input.read()
+        val lo = input.read()
+        if (hi < 0 || lo < 0) return false
+        val length = (hi shl 8) or lo
+        if (length < 2) return false
+        val payload = length - 2
         if (marker == SOS) {
             // The scan header, then every remaining byte verbatim: this is the image itself.
-            segment.forEach { out.add(it) }
-            for (k in (i + 2 + length) until jpeg.size) out.add(jpeg[k])
-            return out.toByteArray()
+            output.writeSegmentHeader(marker, hi, lo)
+            if (!copyExactly(input, output, payload, buffer)) return false
+            input.copyTo(output)
+            return true
         }
-        if (isKeptSegment(marker, segment)) segment.forEach { out.add(it) }
-        i += 2 + length
+        val prefixLength = minOf(payload, MAX_IDENTIFIER_BYTES)
+        val identifier = ByteArray(prefixLength)
+        if (input.readFully(identifier) != prefixLength) return false
+        if (isKeptSegment(marker, identifier)) {
+            output.writeSegmentHeader(marker, hi, lo)
+            output.write(identifier)
+            if (!copyExactly(input, output, payload - prefixLength, buffer)) return false
+        } else {
+            if (!skipExactly(input, payload - prefixLength, buffer)) return false
+        }
     }
-    return out.toByteArray()
 }
 
-/** The allowlist — see [scrubPhotoMetadata]'s own doc comment for why each of the three is kept. */
-private fun isKeptSegment(marker: Int, segment: ByteArray): Boolean = when {
+/** The allowlist — see [scrubPhotoMetadata]'s own doc comment for why each of the three is kept. [payloadPrefix] is the segment's first bytes after the length. */
+private fun isKeptSegment(marker: Int, payloadPrefix: ByteArray): Boolean = when {
     marker !in APP0..APP15 && marker != COM -> true // DQT, DHT, SOF, DRI and friends: the image's own structure
-    marker == APP0 -> segment.identifierIs(JFIF_IDENTIFIER)
-    marker == APP2 -> segment.identifierIs(ICC_IDENTIFIER)
-    marker == APP14 -> segment.identifierIs(ADOBE_IDENTIFIER)
+    marker == APP0 -> payloadPrefix.startsWith(JFIF_IDENTIFIER)
+    marker == APP2 -> payloadPrefix.startsWith(ICC_IDENTIFIER)
+    marker == APP14 -> payloadPrefix.startsWith(ADOBE_IDENTIFIER)
     else -> false
 }
 
-/** Whether this segment's payload begins with [identifier], the convention every APPn uses to say what it is. */
-private fun ByteArray.identifierIs(identifier: String): Boolean {
-    val start = 4 // marker (2) + length (2)
-    if (size < start + identifier.length) return false
-    return identifier.indices.all { this[start + it].toInt().toChar() == identifier[it] }
+/** Whether this payload begins with [identifier], the convention every APPn uses to say what it is. */
+private fun ByteArray.startsWith(identifier: String): Boolean {
+    if (size < identifier.length) return false
+    return identifier.indices.all { this[it].toInt().toChar() == identifier[it] }
 }
 
-private fun ByteArray.startsWithJpegMarker(): Boolean =
-    size >= 4 && this[0] == MARKER_PREFIX && (this[1].toInt() and 0xFF) == 0xD8
+private fun ByteArray.isJpegSoi(): Boolean = this[0] == MARKER_PREFIX && (this[1].toInt() and 0xFF) == 0xD8
+
+private fun OutputStream.writeSegmentHeader(marker: Int, lengthHi: Int, lengthLo: Int) {
+    write(0xFF)
+    write(marker)
+    write(lengthHi)
+    write(lengthLo)
+}
+
+/** Fills [target] as far as the stream allows and returns how many bytes it got; short means EOF. */
+private fun InputStream.readFully(target: ByteArray): Int {
+    var filled = 0
+    while (filled < target.size) {
+        val n = read(target, filled, target.size - filled)
+        if (n < 0) break
+        filled += n
+    }
+    return filled
+}
+
+/** Copies exactly [count] bytes; `false` if the stream ends first. */
+private fun copyExactly(input: InputStream, output: OutputStream, count: Int, buffer: ByteArray): Boolean {
+    var remaining = count
+    while (remaining > 0) {
+        val n = input.read(buffer, 0, minOf(remaining, buffer.size))
+        if (n < 0) return false
+        output.write(buffer, 0, n)
+        remaining -= n
+    }
+    return true
+}
+
+/** Discards exactly [count] bytes; `false` if the stream ends first. `skip` may legitimately skip fewer, so it falls back to reading. */
+private fun skipExactly(input: InputStream, count: Int, buffer: ByteArray): Boolean {
+    var remaining = count.toLong()
+    while (remaining > 0) {
+        val skipped = input.skip(remaining)
+        if (skipped > 0) {
+            remaining -= skipped
+            continue
+        }
+        val n = input.read(buffer, 0, minOf(remaining, buffer.size.toLong()).toInt())
+        if (n < 0) return false
+        remaining -= n
+    }
+    return true
+}
 
 private const val MARKER_PREFIX = 0xFF.toByte()
 private const val APP0 = 0xE0
@@ -165,10 +235,14 @@ private const val APP14 = 0xEE
 private const val APP15 = 0xEF
 private const val COM = 0xFE
 private const val SOS = 0xDA
+private const val COPY_BUFFER_BYTES = 8 * 1024
 
 /** The NUL-terminated identifiers the three kept segments declare themselves with. */
 private val JFIF_IDENTIFIER = "JFIF" + Char(0)
 private val ICC_IDENTIFIER = "ICC_PROFILE" + Char(0)
 private const val ADOBE_IDENTIFIER = "Adobe"
+
+/** The longest of the three identifiers above; a segment's first bytes up to this many are read to classify it. */
+private val MAX_IDENTIFIER_BYTES = maxOf(JFIF_IDENTIFIER.length, ICC_IDENTIFIER.length, ADOBE_IDENTIFIER.length)
 
 private const val TAG = "PhotoMetadataScrub"
