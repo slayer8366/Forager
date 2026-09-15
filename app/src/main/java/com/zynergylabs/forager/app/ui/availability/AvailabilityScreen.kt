@@ -247,6 +247,8 @@ import com.zynergylabs.forager.app.ui.adaptive.WindowWidthClass
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowWidthClass
 import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
 import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
+import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
+import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.LogPanel
@@ -386,6 +388,9 @@ private enum class DrawerPanel {
     Search,
     Settings,
     CrashLogs,
+    // Debug builds only: the entry row that reaches it composes nothing in release, so this
+    // value is unreachable there — see ui/diagnostics/DiagnosticsPanel.kt (both source sets).
+    Diagnostics,
     Log,
     // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
     // top-level destination — see PhotoGalleryScreen's own doc comment. No longer a
@@ -1071,6 +1076,7 @@ fun AvailabilityScreen(
                     autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
                     onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
+                    onOpenDiagnostics = { drawerPanel = DrawerPanel.Diagnostics },
                 )
                 BuildIdentityFooter()
             }
@@ -1080,6 +1086,14 @@ fun AvailabilityScreen(
                 CrashLogPanel(
                     modifier = Modifier.weight(1f),
                     files = crashFileStore.list(),
+                    onBack = { drawerPanel = DrawerPanel.Settings },
+                )
+            }
+
+            DrawerPanel.Diagnostics -> {
+                // Same one-level-up back as CrashLogs. Debug builds only; see the enum entry.
+                DiagnosticsPanel(
+                    modifier = Modifier.weight(1f),
                     onBack = { drawerPanel = DrawerPanel.Settings },
                 )
             }
@@ -2434,11 +2448,17 @@ private fun CompactSettingsTab(
     modifier: Modifier = Modifier,
 ) {
     var showCrashLogs by remember { mutableStateOf(false) }
+    // Debug builds only — the row that sets this composes nothing in release. Same drill-in shape
+    // as showCrashLogs, one flag per submenu rather than an enum, matching what was here.
+    var showDiagnostics by remember { mutableStateOf(false) }
 
     // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
     // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
     BackHandler(enabled = showCrashLogs) {
         showCrashLogs = false
+    }
+    BackHandler(enabled = showDiagnostics) {
+        showDiagnostics = false
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -2448,6 +2468,13 @@ private fun CompactSettingsTab(
                     modifier = Modifier.weight(1f),
                     files = crashFileStore.list(),
                     onBack = { showCrashLogs = false },
+                )
+            }
+
+            showDiagnostics -> {
+                DiagnosticsPanel(
+                    modifier = Modifier.weight(1f),
+                    onBack = { showDiagnostics = false },
                 )
             }
 
@@ -2463,6 +2490,7 @@ private fun CompactSettingsTab(
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     onOpenCrashLogs = { showCrashLogs = true },
+                    onOpenDiagnostics = { showDiagnostics = true },
                 )
                 BuildIdentityFooter()
             }
@@ -2498,6 +2526,8 @@ private fun SettingsContent(
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     onOpenCrashLogs: () -> Unit,
+    /** Debug builds only: the row this opens composes nothing in release — see [DiagnosticsEntryRow]'s two source-set versions. */
+    onOpenDiagnostics: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -2513,6 +2543,7 @@ private fun SettingsContent(
         PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
+        DiagnosticsEntryRow(onClick = onOpenDiagnostics)
     }
 }
 

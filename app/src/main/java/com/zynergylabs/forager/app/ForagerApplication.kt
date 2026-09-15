@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Build
 import android.util.Log
 import com.zynergylabs.forager.app.crash.CrashUncaughtExceptionHandler
+import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -11,6 +12,15 @@ import kotlinx.coroutines.launch
 
 class ForagerApplication : Application() {
     lateinit var container: AppContainer
+        private set
+
+    /**
+     * The debug build's observation surface (StrictMode into a file, the sweep's count); a no-op
+     * object in release, by build-type source set rather than by branch — see the two
+     * [DebugDiagnostics] classes. Installed first, before [container] is built, so what it observes
+     * is the whole process from the first line of this method, not the part after startup.
+     */
+    lateinit var diagnostics: DebugDiagnostics
         private set
 
     /**
@@ -24,6 +34,7 @@ class ForagerApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         val startedAt = System.currentTimeMillis()
+        diagnostics = DebugDiagnostics.install(this)
         container = AppContainer(this)
         installCrashHandler()
         sweepOrphanedCaptures(startedAt)
@@ -53,6 +64,8 @@ class ForagerApplication : Application() {
         applicationScope.launch {
             val deleted = container.cameraCaptureFiles.sweepOrphans(processStartedAtMillis)
             if (deleted > 0) Log.i(TAG, "Deleted $deleted orphaned capture file(s) left by an earlier process.")
+            // The same number, somewhere a phone with no logcat can read it (debug builds only).
+            diagnostics.recordSweep(deleted)
         }
     }
 

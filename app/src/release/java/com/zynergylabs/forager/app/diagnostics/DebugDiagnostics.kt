@@ -1,0 +1,22 @@
+package com.zynergylabs.forager.app.diagnostics
+
+import android.content.Context
+
+/**
+ * The release build's twin of the debug-only diagnostics installer: the same two entry points
+ * `ForagerApplication` calls, doing nothing. No StrictMode policy, no log, no file. The debug
+ * version in `src/debug` documents what the real one does and why; this one exists so the call
+ * sites in `src/main` compile in both build types without a `BuildConfig.DEBUG` branch — which,
+ * with `isMinifyEnabled = false` on the release build type, would have shipped the debug classes
+ * in the release APK unreachable rather than absent.
+ */
+class DebugDiagnostics private constructor() {
+
+    @Suppress("UNUSED_PARAMETER")
+    fun recordSweep(deleted: Int) = Unit
+
+    companion object {
+        @Suppress("UNUSED_PARAMETER")
+        fun install(context: Context): DebugDiagnostics = DebugDiagnostics()
+    }
+}
