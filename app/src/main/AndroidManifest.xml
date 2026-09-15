@@ -137,9 +137,27 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Forager">
 
+        <!-- configChanges (2026-09-15): a rotation no longer recreates this Activity. Second and
+             separate step of the camera-rotation fix, on the owner's decision, after the fix
+             itself (the camera's open flag in InAppCameraViewModel, the dialog composed above the
+             window-width branch) had already made the camera survive both recreation and the
+             width-class tree swap. This step keeps everything else across a rotation too: the map's
+             position, drawer and tab state that a recreation used to reset. Verified before adding:
+             no resource directory in this app is qualified by orientation, size or night; every
+             configuration read is in composition through LocalConfiguration, which Compose updates
+             on a handled change; nothing reads configuration at construction; the four ViewModels
+             survive either way. For the camera specifically: PreviewView re-transforms itself
+             through its own DisplayManager listener when the Activity is not recreated, and capture
+             rotation already comes from an OrientationEventListener, not the display.
+             uiMode and smallestScreenSize are deliberately left out: a night-mode toggle and a fold
+             are rare enough that a recreation is fine, and listing them widens the blast radius for
+             no gain. Kept as its own commit so that if the Compose dialog window is wrongly sized
+             through a handled rotation on some Android version, this backs out without touching
+             the fix. MainActivityConfigChangesTest pins exactly this set. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Forager">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
