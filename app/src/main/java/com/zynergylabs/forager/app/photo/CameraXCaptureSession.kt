@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleOwner
 import java.io.File
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -76,6 +76,35 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  * **Device-only, and unverified:** whether the tag comes out right, and specifically the
  * auto-rotate-off landscape case above, which is on the device check by name.
  *
+ * ## Opening is the screen's call, not the viewfinder's (deadlock fix, 2026-09-15)
+ *
+ * The version that shipped fetched the provider, bound the use cases and set `Ready` inside
+ * [Viewfinder]'s `DisposableEffect`. The screen composes [Viewfinder] only once `Ready`. So on a
+ * device the spinner never went away: the screen was waiting for the state that only the composable
+ * it was withholding could produce. Found on the device check; the suite had missed it because its
+ * fake defaulted to `Ready`, its slot was a plain `Box`, and the fake's state was a plain `var`
+ * with no notion of being produced by opening, so the circularity had nothing to show up in.
+ *
+ * Now [open] holds the provider fetch, the bind and the orientation listener, and [close] releases
+ * them; the screen calls both from its own `DisposableEffect`. [Viewfinder] keeps only the
+ * [PreviewView] and the attachment of its surface provider to the already-bound [Preview] — which
+ * `Preview.setSurfaceProvider` allows at any time after binding, and which is why the preview can
+ * be bound before there is anything to draw it into. The state machine reads: `Opening` from
+ * [open] until bound, `Ready` once bound, `Unavailable` on any failure.
+ *
+ * **Lifecycle edges, each handled here and named so the report can say which were checked:**
+ * - *Dismissed while the provider is still resolving.* [close] bumps [openEpoch] and clears
+ *   [isOpen]; the provider callback compares its captured epoch and does nothing, so nothing is
+ *   bound to a screen that has gone.
+ * - *[close] when [open] never completed.* Every field is nullable and the listener's `disable()`
+ *   is safe whether or not `enable()` ran; there is nothing to unbind and nothing is.
+ * - *Reopen after close.* [PhotoAcquisitionLaunchers] creates a fresh session per open, so in
+ *   production this is a new instance. The same instance also reopens cleanly: a new epoch, a new
+ *   listener, a fresh fetch and bind.
+ * - *Orientation listener exactly once per open.* Created and enabled in [open], disabled and
+ *   dropped in [close]; a second [open] without a [close] is refused and logged rather than
+ *   stacking a second listener.
+ *
  * ## The bound [Camera] is kept
  *
  * `bindToLifecycle` returns the [Camera], and until 2026-09-14 this class discarded it. Nothing
@@ -96,15 +125,111 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
     override var state: CameraSessionState by mutableStateOf(CameraSessionState.Opening)
         private set
 
+    private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private var previewView: PreviewView? = null
+    private var boundProvider: ProcessCameraProvider? = null
 
     /** The bound camera. Unread today; see the class doc for why it is kept anyway. */
     private var camera: Camera? = null
 
+    private var orientationListener: OrientationEventListener? = null
+
     /** The latest surface rotation from the orientation listener; `null` until it has reported, or if it cannot. */
     private var sensorRotation: Int? = null
     private var loggedDisplayFallback = false
+
+    /** Bumped by every [open] and [close]; a provider callback whose captured epoch has moved on does nothing. */
+    private var openEpoch = 0
+    private var isOpen = false
+
+    override fun open(lifecycleOwner: LifecycleOwner) {
+        if (isOpen) {
+            Log.w(TAG, "open() on a session that is already open; ignored rather than binding twice.")
+            return
+        }
+        isOpen = true
+        val epoch = ++openEpoch
+        state = CameraSessionState.Opening
+
+        val listener = object : OrientationEventListener(appContext) {
+            override fun onOrientationChanged(orientation: Int) {
+                if (orientation == ORIENTATION_UNKNOWN) return
+                sensorRotation = UseCase.snapToSurfaceRotation(orientation)
+            }
+        }
+        orientationListener = listener
+        if (listener.canDetectOrientation()) {
+            listener.enable()
+        } else {
+            Log.i(TAG, "This device reports no orientation sensor; capture rotation will follow the display instead.")
+        }
+
+        val future = ProcessCameraProvider.getInstance(appContext)
+        future.addListener(
+            {
+                if (!isOpen || epoch != openEpoch) {
+                    Log.i(TAG, "The camera provider resolved after this session was closed; not binding.")
+                    return@addListener
+                }
+                val provider = runCatching { future.get() }.getOrElse { error ->
+                    Log.w(TAG, "The camera provider did not start.", error)
+                    state = CameraSessionState.Unavailable("The camera could not be started on this device.")
+                    return@addListener
+                }
+                val selector = when {
+                    provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
+                    provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
+                    else -> null
+                }
+                if (selector == null) {
+                    state = CameraSessionState.Unavailable("This device has no camera available.")
+                    return@addListener
+                }
+                runCatching {
+                    val newPreview = Preview.Builder().build()
+                    val capture = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .build()
+                    provider.unbindAll()
+                    val boundCamera = provider.bindToLifecycle(lifecycleOwner, selector, newPreview, capture)
+                    Triple(newPreview, capture, boundCamera)
+                }.fold(
+                    onSuccess = { (newPreview, capture, boundCamera) ->
+                        preview = newPreview
+                        imageCapture = capture
+                        camera = boundCamera
+                        boundProvider = provider
+                        // The screen composes the viewfinder only once Ready, so normally there is
+                        // no view yet and the attachment happens in Viewfinder. If one exists, attach now.
+                        previewView?.let { newPreview.setSurfaceProvider(it.surfaceProvider) }
+                        state = CameraSessionState.Ready
+                    },
+                    onFailure = { error ->
+                        Log.w(TAG, "Binding the camera failed.", error)
+                        state = CameraSessionState.Unavailable("The camera is in use by another app, or could not be bound.")
+                    },
+                )
+            },
+            ContextCompat.getMainExecutor(appContext),
+        )
+    }
+
+    override fun close() {
+        if (!isOpen) return // never opened, never completed, or already closed: nothing to release
+        isOpen = false
+        openEpoch++
+        orientationListener?.disable()
+        orientationListener = null
+        sensorRotation = null
+        preview?.setSurfaceProvider(null)
+        boundProvider?.unbindAll()
+        boundProvider = null
+        camera = null
+        imageCapture = null
+        preview = null
+        state = CameraSessionState.Opening
+    }
 
     override suspend fun capture(destination: File): Result<Unit> {
         val capture = imageCapture
@@ -137,84 +262,30 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
     }
 
     /**
-     * The viewfinder, and the binding that feeds it. A concrete member rather than part of
-     * [CameraCaptureSession]: a `@Composable` on the interface would force every fake to be one
-     * too, and the screen takes its viewfinder as a slot precisely so a test can pass a plain
-     * `Box`.
+     * The viewfinder: a [PreviewView], and the attachment of its surface provider to the [Preview]
+     * that [open] bound. Nothing else — no fetching, no binding, no listener — since the deadlock
+     * fix; see the class doc. A concrete member rather than part of [CameraCaptureSession]: a
+     * `@Composable` on the interface would force every fake to be one too, and the screen takes its
+     * viewfinder as a slot precisely so a test can pass a plain `Box`.
      */
     @Composable
     fun Viewfinder(modifier: Modifier = Modifier) {
         val context = LocalContext.current
-        val lifecycleOwner = LocalLifecycleOwner.current
         val view = remember { PreviewView(context) }
 
-        DisposableEffect(lifecycleOwner, view) {
+        DisposableEffect(view) {
             previewView = view
-            var bound: ProcessCameraProvider? = null
-
-            val orientationListener = object : OrientationEventListener(context) {
-                override fun onOrientationChanged(orientation: Int) {
-                    if (orientation == ORIENTATION_UNKNOWN) return
-                    sensorRotation = UseCase.snapToSurfaceRotation(orientation)
-                }
-            }
-            if (orientationListener.canDetectOrientation()) {
-                orientationListener.enable()
+            val bound = preview
+            if (bound == null) {
+                // Ready gates this composable, so a bound Preview should exist. Logged, not
+                // assumed: if it ever happens, this is where the spinner-forever bug would hide.
+                Log.w(TAG, "Viewfinder composed before the camera was bound; nothing to draw into it yet.")
             } else {
-                Log.i(TAG, "This device reports no orientation sensor; capture rotation will follow the display instead.")
+                bound.setSurfaceProvider(view.surfaceProvider)
             }
-            val future = ProcessCameraProvider.getInstance(context)
-            future.addListener(
-                {
-                    val provider = runCatching { future.get() }.getOrElse { error ->
-                        Log.w(TAG, "The camera provider did not start.", error)
-                        state = CameraSessionState.Unavailable("The camera could not be started on this device.")
-                        return@addListener
-                    }
-                    val selector = when {
-                        provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
-                        provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
-                        else -> null
-                    }
-                    if (selector == null) {
-                        state = CameraSessionState.Unavailable("This device has no camera available.")
-                        return@addListener
-                    }
-                    runCatching {
-                        val preview = Preview.Builder().build()
-                            .apply { setSurfaceProvider(view.surfaceProvider) }
-                        val capture = ImageCapture.Builder()
-                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                            .build()
-                        provider.unbindAll()
-                        val boundCamera = provider.bindToLifecycle(lifecycleOwner, selector, preview, capture)
-                        capture to boundCamera
-                    }.fold(
-                        onSuccess = { (capture, boundCamera) ->
-                            imageCapture = capture
-                            camera = boundCamera
-                            bound = provider
-                            state = CameraSessionState.Ready
-                        },
-                        onFailure = { error ->
-                            Log.w(TAG, "Binding the camera to this screen failed.", error)
-                            state = CameraSessionState.Unavailable("The camera is in use by another app, or could not be bound.")
-                        },
-                    )
-                },
-                ContextCompat.getMainExecutor(context),
-            )
-
             onDispose {
-                orientationListener.disable()
-                sensorRotation = null
-                // The already-resolved provider, never a blocking `future.get()` on the main
-                // thread: if it never resolved there is nothing bound to release anyway.
-                bound?.unbindAll()
-                camera = null
-                imageCapture = null
+                preview?.setSurfaceProvider(null)
                 previewView = null
-                state = CameraSessionState.Opening
             }
         }
 

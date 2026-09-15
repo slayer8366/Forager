@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,7 @@ import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 
 /**
@@ -103,6 +105,14 @@ internal fun InAppCameraDialog(
     var captureError by rememberSaveable { mutableStateOf<String?>(null) }
     var isCapturing by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // The screen opens the session, not the viewfinder — the deadlock fix of 2026-09-15, see
+    // CameraCaptureSession.open. Enter opens, leave closes; the `when` below never changes.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(session, lifecycleOwner) {
+        session.open(lifecycleOwner)
+        onDispose { session.close() }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,

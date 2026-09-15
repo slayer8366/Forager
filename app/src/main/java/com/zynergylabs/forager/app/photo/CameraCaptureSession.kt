@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.photo
 
+import androidx.lifecycle.LifecycleOwner
 import java.io.File
 
 /**
@@ -24,6 +25,25 @@ internal interface CameraCaptureSession {
 
     /** Where the camera is in opening. The screen renders from this; it never infers readiness from a null check. */
     val state: CameraSessionState
+
+    /**
+     * Starts the camera: fetches the provider, binds the use cases to [lifecycleOwner], and moves
+     * [state] from `Opening` to `Ready`, or to `Unavailable` with a reason. Called by the screen
+     * when it enters composition, **not** by the viewfinder.
+     *
+     * That distinction is the fix for a deadlock found on device on 2026-09-15: the screen composes
+     * its viewfinder only once `Ready`, and the version that shipped did the opening *inside* the
+     * viewfinder, so the screen waited for `Ready` before composing the only thing that could
+     * produce it. Opening is the screen's call; the viewfinder only draws.
+     */
+    fun open(lifecycleOwner: LifecycleOwner)
+
+    /**
+     * Releases whatever [open] acquired: unbinds, stops listening for orientation, drops the
+     * viewfinder surface. Safe to call when [open] never completed, and a second call is a no-op.
+     * Called by the screen when it leaves composition.
+     */
+    fun close()
 
     /**
      * Writes one photo to [destination], suspending until it is on disk or has failed.

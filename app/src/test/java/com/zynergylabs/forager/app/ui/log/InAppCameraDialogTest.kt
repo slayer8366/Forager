@@ -10,9 +10,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,6 +24,7 @@ import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
+import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import java.io.File
 import kotlinx.coroutines.runBlocking
@@ -48,10 +51,18 @@ import org.robolectric.annotation.Config
  * **nothing** about whether a real camera opens, whether the viewfinder draws, or whether a
  * captured JPEG is right-way-up. Those are device checks, listed as such in the completion report.
  *
- * The fake writes a real file for each successful capture, because the production code creates a
- * destination through [CameraCaptureFiles] and deletes it again on failure; a fake that only
- * returned a `Result` would let a "the failed capture's empty file is cleaned up" assertion pass
- * without there being a file either way.
+ * The fake is [FakeCameraCaptureSession], shared and observable; its doc carries what it scripts.
+ *
+ * ## The deadlock this suite missed, and why (2026-09-15)
+ *
+ * On a device the camera never opened: the Opening spinner, forever. The dialog composes the
+ * viewfinder slot only in the `Ready` branch, and on the head that shipped, the code that fetches
+ * the provider, binds, and sets `Ready` lived inside the real `Viewfinder`'s `DisposableEffect` —
+ * the composable the slot calls. The dialog waited for `Ready` before composing the only thing
+ * that could produce it. This suite passed throughout because the fake defaulted to `Ready`, the
+ * slot was a plain `Box`, and the fake's state was a plain `var` with no notion of "produced by
+ * opening": nothing here could model the circularity. The two tests under "Opening" are the ones
+ * that would have caught it, and did once written.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -101,44 +112,58 @@ class InAppCameraDialogTest {
     private val captured = mutableListOf<PhotoSource>()
     private var dismissals = 0
 
-    private class FakeSession(
-        override var state: CameraSessionState = CameraSessionState.Ready,
-        private var failing: Boolean = false,
-    ) : CameraCaptureSession {
-        var captureCalls = 0
-            private set
-
-        fun failEveryCapture() { failing = true }
-
-        fun recover() { failing = false }
-
-        override suspend fun capture(destination: File): Result<Unit> {
-            captureCalls += 1
-            destination.parentFile?.mkdirs()
-            if (failing) {
-                // A partial file, *then* the failure. This is the case the production cleanup
-                // exists for and the only one in which it can be observed: a camera that errors
-                // before writing anything leaves nothing to clean up, so a fake that simply
-                // returned a failure would make `a failed capture leaves no file behind` pass
-                // whether or not the screen deleted anything. A revert check caught exactly that
-                // — see this class's own note on it.
-                destination.writeBytes(byteArrayOf(0xFF.toByte()))
-                return Result.failure(IllegalStateException("the camera said no"))
-            }
-            destination.writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte()))
-            return Result.success(Unit)
-        }
-    }
-
     @Composable
-    private fun Subject(session: CameraCaptureSession) {
+    private fun Subject(
+        session: CameraCaptureSession,
+        viewfinder: @Composable (Modifier) -> Unit = { modifier -> Box(modifier.fillMaxSize()) },
+    ) {
         InAppCameraDialog(
             session = session,
             cameraCaptureFiles = CameraCaptureFiles(context),
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
-            viewfinder = { modifier -> Box(modifier.fillMaxSize()) },
+            viewfinder = viewfinder,
         )
+    }
+
+    // ── Opening ──────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * The device-check failure, as a test. The session starts `Opening` and becomes `Ready` only
+     * when it is opened; the assertion is that the viewfinder slot is eventually composed. On the
+     * head that shipped this fails with a timeout waiting for the viewfinder: the dialog never
+     * opens the session, because opening lived inside the viewfinder it was withholding.
+     */
+    @Test
+    fun `the viewfinder is composed once the session opens`() {
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Opening)
+        composeRule.setContent {
+            Subject(session, viewfinder = { modifier -> Box(modifier.fillMaxSize().testTag(VIEWFINDER_TAG)) })
+        }
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag(VIEWFINDER_TAG).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag(CAMERA_OPENING_TAG).assertDoesNotExist()
+        assertEquals("opened by the dialog, exactly once", 1, session.openCalls)
+    }
+
+    /** The lifecycle the fix hangs on: open once on enter, close once on leave, never the other way. */
+    @Test
+    fun `the session is opened once on enter and closed once when the dialog leaves`() {
+        val session = FakeCameraCaptureSession()
+        val shown = mutableStateOf(true)
+        composeRule.setContent { if (shown.value) Subject(session) }
+        composeRule.waitForIdle()
+        assertEquals(1, session.openCalls)
+        assertEquals(0, session.closeCalls)
+
+        shown.value = false
+        composeRule.waitForIdle()
+
+        assertEquals("closed exactly once", 1, session.closeCalls)
+        assertEquals("and not reopened", 1, session.openCalls)
     }
 
     // ── The request itself ───────────────────────────────────────────────────────────────────
@@ -146,7 +171,7 @@ class InAppCameraDialogTest {
     /** The headline: the camera does not close after one photo. This is what the owner asked for. */
     @Test
     fun `the camera stays open across several shots and hands up one photo per tap`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
 
         repeat(4) {
@@ -167,7 +192,7 @@ class InAppCameraDialogTest {
      */
     @Test
     fun `a photo is handed over as it lands, before the camera is dismissed`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
@@ -181,7 +206,7 @@ class InAppCameraDialogTest {
     /** Every photo gets its own destination. A reused one would silently overwrite the last shot. */
     @Test
     fun `each shot goes to its own file`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
 
         repeat(3) {
@@ -195,7 +220,7 @@ class InAppCameraDialogTest {
 
     @Test
     fun `the running count is the only feedback and it reads as a sentence`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithText("No photos yet").assertIsDisplayed()
@@ -211,7 +236,7 @@ class InAppCameraDialogTest {
 
     @Test
     fun `Done dismisses, and the photos already taken are not withdrawn`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
         composeRule.waitForIdle()
@@ -232,7 +257,7 @@ class InAppCameraDialogTest {
      */
     @Test
     fun `a failed capture is shown, the count does not move, and nothing is handed up`() {
-        val session = FakeSession().apply { failEveryCapture() }
+        val session = FakeCameraCaptureSession().apply { failEveryCapture() }
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
@@ -247,7 +272,7 @@ class InAppCameraDialogTest {
     /** The empty destination is cleaned up, so the persist path never meets a zero-byte file. */
     @Test
     fun `a failed capture leaves no file behind`() {
-        val session = FakeSession().apply { failEveryCapture() }
+        val session = FakeCameraCaptureSession().apply { failEveryCapture() }
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
@@ -264,7 +289,7 @@ class InAppCameraDialogTest {
      */
     @Test
     fun `the failure message clears on the next successful shot`() {
-        val session = FakeSession().apply { failEveryCapture() }
+        val session = FakeCameraCaptureSession().apply { failEveryCapture() }
         composeRule.setContent { Subject(session) }
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
         composeRule.waitForIdle()
@@ -283,7 +308,7 @@ class InAppCameraDialogTest {
 
     @Test
     fun `an unavailable camera says why, and the shutter cannot be used`() {
-        val session = FakeSession(state = CameraSessionState.Unavailable("This device has no camera available."))
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Unavailable("This device has no camera available."))
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_UNAVAILABLE_TAG).assertIsDisplayed()
@@ -293,7 +318,7 @@ class InAppCameraDialogTest {
 
     @Test
     fun `a camera still opening shows progress rather than a dead viewfinder`() {
-        val session = FakeSession(state = CameraSessionState.Opening)
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Opening, readyOnOpen = false)
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_OPENING_TAG).assertIsDisplayed()
@@ -303,7 +328,7 @@ class InAppCameraDialogTest {
     /** Dismissal has to work from a camera that never opened, or the user is stuck on a black screen. */
     @Test
     fun `an unavailable camera can still be dismissed`() {
-        val session = FakeSession(state = CameraSessionState.Unavailable("The camera is in use by another app."))
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Unavailable("The camera is in use by another app."))
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_DONE_TAG).performClick()
@@ -341,8 +366,8 @@ class InAppCameraDialogTest {
         val written = File(context.cacheDir, "probe/written.jpg")
         val partial = File(context.cacheDir, "probe/partial.jpg")
 
-        val success = runBlocking { FakeSession().capture(written) }
-        val failure = runBlocking { FakeSession().apply { failEveryCapture() }.capture(partial) }
+        val success = runBlocking { FakeCameraCaptureSession().capture(written) }
+        val failure = runBlocking { FakeCameraCaptureSession().apply { failEveryCapture() }.capture(partial) }
 
         assertTrue(success.isSuccess)
         assertTrue("a successful capture leaves a file", written.exists())
@@ -351,3 +376,5 @@ class InAppCameraDialogTest {
         assertFalse("which is not a whole photo", partial.readBytes().size > 1)
     }
 }
+
+private const val VIEWFINDER_TAG = "test-viewfinder"
