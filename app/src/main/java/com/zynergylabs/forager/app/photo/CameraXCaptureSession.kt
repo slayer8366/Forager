@@ -25,7 +25,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import java.io.File
 import kotlin.coroutines.resume
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 
 /**
  * The [CameraCaptureSession] backed by CameraX — the **only** file in this project that imports
@@ -76,6 +78,34 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  *
  * **Device-only, and unverified:** whether the tag comes out right, and specifically the
  * auto-rotate-off landscape case above, which is on the device check by name.
+ *
+ * ## The target reaches CameraX; the file's tag is the HAL's (device result on `b586195`, 2026-09-15)
+ *
+ * With "Lock camera to portrait" on and the phone held landscape, the saved photo came out
+ * landscape and upright, identical to the setting being off, though [capture] had assigned
+ * `ROTATION_0`. Traced hop by hop (window-lock report, addendum on the trace): every hop from the
+ * stored setting to `ImageCapture.setTargetRotation` delivers the gated value, and every hop inside
+ * CameraX 1.6.2 from the setter to the capture request delivers `JPEG_ORIENTATION` = the sensor's
+ * orientation minus the target (90° for a locked shot on a 90° back sensor). What no hop delivers
+ * is the *file's* tag: on every device not on CameraX's two-model quirk list, the tag CameraX
+ * writes is the one the HAL wrote (`ProcessingInput2Packet.createPacketWithHalRotation`, then
+ * `FileUtil.updateFileExif`, which rotates only a tag the HAL left at zero, by a packet rotation
+ * that is itself the HAL's tag). A HAL that tags from its own motion sensor rather than from the
+ * request produces the device result exactly, in both states of the setting — and every earlier
+ * device photo, "upright, as held", is what such a HAL also produces, so none of them had ever
+ * shown `targetRotation` to have an effect on this device. Inferred from the reads and the result,
+ * not observed; the `Shot:` and orientation-tag log lines below are what the next device run
+ * confirms it with.
+ *
+ * So after CameraX has saved the file, [capture] calls [reapplyIntendedOrientation] with the
+ * request's degrees and resolution (both read back from the use case's `resolutionInfo` at the
+ * moment of the shot) and the tag is set to what the shot asked for, when the pixels are the
+ * unrotated capture frame. Rewritten, kept, declined and failed are each logged, since the rewrite
+ * is a fallback firing (CLAUDE.md). The assignment itself is now under test against a real
+ * `ImageCapture` (`CameraXCaptureSessionShotRotationTest`), which is why [installImageCapture]
+ * and [onDeviceOrientation] are functions rather than the assignment and the listener body they
+ * were: the test installs an unbound use case, feeds an orientation, drives [capture], and reads
+ * `targetRotation` back from CameraX's own object.
  *
  * ## Opening is the screen's call, not the viewfinder's (deadlock fix, 2026-09-15)
  *
@@ -170,10 +200,7 @@ internal class CameraXCaptureSession(
         state = CameraSessionState.Opening
 
         val listener = object : OrientationEventListener(appContext) {
-            override fun onOrientationChanged(orientation: Int) {
-                if (orientation == ORIENTATION_UNKNOWN) return
-                sensorRotation = UseCase.snapToSurfaceRotation(orientation)
-            }
+            override fun onOrientationChanged(orientation: Int) = onDeviceOrientation(orientation)
         }
         orientationListener = listener
         if (listener.canDetectOrientation()) {
@@ -214,7 +241,7 @@ internal class CameraXCaptureSession(
                 }.fold(
                     onSuccess = { (newPreview, capture, boundCamera) ->
                         preview = newPreview
-                        imageCapture = capture
+                        installImageCapture(capture)
                         camera = boundCamera
                         boundProvider = provider
                         // The screen composes the viewfinder only once Ready, so normally there is
@@ -248,6 +275,26 @@ internal class CameraXCaptureSession(
         state = CameraSessionState.Opening
     }
 
+    /**
+     * What the orientation listener delivers — degrees, 0 to 359, or
+     * [OrientationEventListener.ORIENTATION_UNKNOWN] — snapped to a surface rotation. Its own
+     * function so a test can hand the session a device orientation without a sensor
+     * (`CameraXCaptureSessionShotRotationTest`); the listener in [open] is a one-line delegate.
+     */
+    internal fun onDeviceOrientation(orientationDegrees: Int) {
+        if (orientationDegrees == OrientationEventListener.ORIENTATION_UNKNOWN) return
+        sensorRotation = UseCase.snapToSurfaceRotation(orientationDegrees)
+    }
+
+    /**
+     * The one place the bound [ImageCapture] is installed. The bind in [open] calls it, and so does
+     * the shot-rotation test with a real, unbound [ImageCapture], whose `targetRotation` then reads
+     * back what [capture] assigned; that test is why this is a function and not an assignment.
+     */
+    internal fun installImageCapture(capture: ImageCapture) {
+        imageCapture = capture
+    }
+
     override suspend fun capture(destination: File): Result<Unit> {
         val capture = imageCapture
             ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
@@ -260,8 +307,18 @@ internal class CameraXCaptureSession(
             }
         }
         rotation?.let { capture.targetRotation = it }
+        // What CameraX will ask the HAL for, read back from the use case at the moment of the shot:
+        // the request's degrees and the frame size the saved JPEG must match for its tag to be
+        // reapplied below. Null until bound. Logged per shot: this line is what the device check
+        // reads to tell "the target never reached CameraX" from "the HAL tagged it otherwise".
+        val intended = capture.resolutionInfo
+        Log.i(
+            TAG,
+            "Shot: deviceRotation=$rotation targetRotation=${capture.targetRotation} " +
+                "requestDegrees=${intended?.rotationDegrees} resolution=${intended?.resolution}",
+        )
 
-        return suspendCancellableCoroutine { continuation ->
+        val saved = suspendCancellableCoroutine { continuation ->
             capture.takePicture(
                 ImageCapture.OutputFileOptions.Builder(destination).build(),
                 ContextCompat.getMainExecutor(appContext),
@@ -277,6 +334,27 @@ internal class CameraXCaptureSession(
                 },
             )
         }
+        if (saved.isFailure) return saved
+
+        // The file's tag is the HAL's, not the request's — see the class doc. Put the request's
+        // tag on it, when the pixels are the unrotated capture frame. Off the main thread: it reads
+        // and may rewrite the file, and debug builds run StrictMode.
+        if (intended == null) {
+            Log.w(TAG, "No resolution info for this shot; '${destination.name}' keeps the HAL's orientation tag.")
+            return saved
+        }
+        val degrees = intended.rotationDegrees
+        when (val outcome = withContext(Dispatchers.IO) { reapplyIntendedOrientation(destination, degrees, intended.resolution) }) {
+            is OrientationReapplyOutcome.Rewritten ->
+                Log.i(TAG, "Orientation tag of '${destination.name}' rewritten: the HAL wrote ${outcome.fromTag}, the shot asked for ${outcome.toTag} ($degrees°).")
+            is OrientationReapplyOutcome.Kept ->
+                Log.i(TAG, "Orientation tag of '${destination.name}' is ${outcome.tag}, already the shot's $degrees°.")
+            is OrientationReapplyOutcome.Declined ->
+                Log.i(TAG, "Orientation tag of '${destination.name}' left as CameraX wrote it (${outcome.tag}): ${outcome.reason}.")
+            is OrientationReapplyOutcome.Failed ->
+                Log.w(TAG, "Couldn't reapply the orientation tag to '${destination.name}'; it keeps the HAL's.", outcome.error)
+        }
+        return saved
     }
 
     /**

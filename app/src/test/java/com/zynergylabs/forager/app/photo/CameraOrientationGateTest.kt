@@ -13,10 +13,11 @@ import org.robolectric.annotation.Config
 /**
  * "Lock camera to portrait" as the one gate it is. [effectiveDeviceRotation] is pure; the real
  * [CameraXCaptureSession] is also read here, constructed but never opened, because its
- * `deviceRotation` getter is plain code that runs without CameraX. What cannot run under
- * Robolectric is the shot itself, so that `capture()` reads the same gate is established by
- * reading the class (`val rotation = deviceRotation ?: …`), not by a test; a revert that pointed
- * `capture()` back at the raw field would pass this class. Said here rather than implied.
+ * `deviceRotation` getter is plain code that runs without CameraX. That `capture()` assigns the
+ * gated value is not this class's: until 2026-09-15 it was established by reading the class, and
+ * this doc said a revert pointing `capture()` back at the raw field would pass the suite. It
+ * would no longer — [CameraXCaptureSessionShotRotationTest] drives `capture()` against a real,
+ * unbound `ImageCapture` and reads `targetRotation` back from it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])

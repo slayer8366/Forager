@@ -318,7 +318,7 @@ class PhotoMetadataScrubTest {
         assertTrue("left behind: $strays", strays.isEmpty())
     }
 
-    private companion object {
+    internal companion object {
         /** Something a reader stopping at EOI would never see. The mark is what the assertions look for. */
         const val TRAILER_MARK = "SECRET-TRAILER-PAYLOAD"
         /**
