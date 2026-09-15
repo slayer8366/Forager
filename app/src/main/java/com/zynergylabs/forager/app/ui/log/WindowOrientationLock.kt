@@ -10,12 +10,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Pins the Activity's window to whatever orientation it has right now for as long as this is in
- * composition, and puts back what was there when it leaves. Owner's requirement, 2026-09-15, from
- * the device check: with `configChanges` handled, a rotation re-laid out the window under the
- * camera and the system played its rotation animation over the viewfinder, so the frame visibly
- * spun. *"The only thing that should rotate is the text, and it should rotate in place. The frame
- * itself should not visually flip, because the screen is already rotating with the phone."*
+ * Pins the Activity's window to portrait for as long as this is in composition, and puts back
+ * what was there when it leaves. Owner's requirement, 2026-09-15, from the device check: with
+ * `configChanges` handled, a rotation re-laid out the window under the camera and the system
+ * played its rotation animation over the viewfinder, so the frame visibly spun. *"The only thing
+ * that should rotate is the text, and it should rotate in place. The frame itself should not
+ * visually flip, because the screen is already rotating with the phone."*
  *
  * ## Why stop the window rather than counter-rotate the preview
  *
@@ -26,11 +26,19 @@ import androidx.compose.ui.platform.LocalContext
  * preview whose transform never changes shows the scene correctly to the person holding the
  * rotating phone. Counter-rotating it would be fighting a listener that is not firing.
  *
- * ## `SCREEN_ORIENTATION_LOCKED`, not `NOSENSOR`
+ * ## `SCREEN_ORIENTATION_PORTRAIT`, after `LOCKED` was tried
  *
- * `LOCKED` (API 18+, `minSdk` is 26) means "whatever orientation the Activity is in now": a camera
- * opened in landscape keeps a landscape window. `NOSENSOR` would snap to the natural orientation,
- * portrait on a phone, which is a rotation of its own. Owner's choice.
+ * The first version used `LOCKED`, "whatever orientation the Activity is in now", so a camera
+ * opened while the phone was held landscape kept a landscape window, and the dialog laid out for
+ * it: the shutter landed at the bottom of a landscape frame instead of where it sits in portrait
+ * (device check, step 2, case 2.4). The requirement is a frame that is identical every time the
+ * camera opens, with only the controls turning, so the lock is now a fixed portrait value.
+ * `PORTRAIT` rather than `SENSOR_PORTRAIT` or `USER_PORTRAIT`: those admit reverse portrait, a
+ * half-turn flip of the window when the phone is held upside down, which is exactly the kind of
+ * movement this exists to stop; and this app's own layouts are portrait and landscape, with no
+ * reverse variants that a reverse-portrait window would serve. The accepted cost, the owner's
+ * decision: opening the camera while holding the phone landscape shows one rotation animation as
+ * the window flips to portrait, and nothing moves after it. Not suppressed.
  *
  * **Two things the platform decides, on the device check.** OEMs vary in how they honour a
  * runtime `requestedOrientation`, and from Android 16 the platform ignores orientation requests
@@ -69,7 +77,7 @@ internal fun LockWindowOrientation() {
             return@DisposableEffect onDispose {}
         }
         val previous = activity.requestedOrientation
-        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         onDispose { activity.requestedOrientation = previous }
     }
 }

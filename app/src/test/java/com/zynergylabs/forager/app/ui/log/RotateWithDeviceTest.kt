@@ -18,6 +18,33 @@ class RotateWithDeviceTest {
     @Test
     fun `no reading yet means upright, which is where the controls already are`() {
         assertEquals(0f, uprightRotationDegrees(null))
+        assertEquals("even when the window itself has turned", 0f, uprightRotationDegrees(null, displayRotation = Surface.ROTATION_90))
+    }
+
+    /** The display term: with the window locked it is constant; with an unlocked window the terms cancel and the window carries the controls. */
+    @Test
+    fun `sensor minus display, a window that turned with the device leaves the controls untouched`() {
+        assertEquals(0f, uprightRotationDegrees(Surface.ROTATION_90, displayRotation = Surface.ROTATION_90))
+        assertEquals(0f, uprightRotationDegrees(Surface.ROTATION_270, displayRotation = Surface.ROTATION_270))
+        assertEquals(0f, uprightRotationDegrees(Surface.ROTATION_180, displayRotation = Surface.ROTATION_180))
+        assertEquals(0f, uprightRotationDegrees(Surface.ROTATION_0, displayRotation = Surface.ROTATION_0))
+    }
+
+    @Test
+    fun `sensor minus display, a locked portrait window is the ROTATION_0 column, unchanged`() {
+        assertEquals(90f, uprightRotationDegrees(Surface.ROTATION_90, displayRotation = Surface.ROTATION_0))
+        assertEquals(-90f, uprightRotationDegrees(Surface.ROTATION_270, displayRotation = Surface.ROTATION_0))
+        assertEquals(180f, uprightRotationDegrees(Surface.ROTATION_180, displayRotation = Surface.ROTATION_0))
+    }
+
+    @Test
+    fun `sensor minus display, a window at a quarter turn with the device elsewhere`() {
+        // Window turned a quarter counter-clockwise (ROTATION_90), device flat: the window carried the
+        // controls a quarter clockwise past upright, so they come a quarter back.
+        assertEquals(-90f, uprightRotationDegrees(Surface.ROTATION_0, displayRotation = Surface.ROTATION_90))
+        // Device the other way from the window: a half turn, folded to the clockwise half turn.
+        assertEquals(180f, uprightRotationDegrees(Surface.ROTATION_270, displayRotation = Surface.ROTATION_90))
+        assertEquals(90f, uprightRotationDegrees(Surface.ROTATION_180, displayRotation = Surface.ROTATION_90))
     }
 
     @Test

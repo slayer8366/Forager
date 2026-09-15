@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
 import kotlin.math.max
 
 /**
@@ -32,16 +34,23 @@ import kotlin.math.max
  *
  * ## The angle, and the way there
  *
- * The angle comes from the same surface rotation the capture session's orientation listener
- * already snaps to ([CameraCaptureSession.deviceRotation]), so the controls and the photo's own
- * rotation tag agree by construction. [uprightRotationDegrees] is the mapping; it is pure and
- * unit-tested. The animation takes the short way round: 0° to 270° is a quarter turn back, not
- * three quarters forward, which [shortestRotationTarget] decides, also pure. `null` (no reading
- * yet, or no sensor) means upright, which is where the controls already are.
+ * The angle is **sensor rotation minus display rotation**. The sensor term is the same surface
+ * rotation the capture session's orientation listener already snaps to
+ * ([CameraCaptureSession.deviceRotation]), so the controls and the photo's own rotation tag agree
+ * by construction. The display term is the window's own rotation, and it is what makes the
+ * expression right whether or not the window moved: with the window locked ([LockWindowOrientation])
+ * it is a constant and the controls turn to meet the device; where the platform ignores the lock
+ * (Android 16 on screens 600dp and wider, for an API 36+ target) the window turns itself, the two
+ * terms cancel, and the controls stay put because the window carried them. No branch, no
+ * capability check, no large-screen path; the owner's design. [uprightRotationDegrees] is the
+ * mapping, pure and unit-tested at both display rotations. The animation takes the short way
+ * round: 0° to 270° is a quarter turn back, not three quarters forward, which
+ * [shortestRotationTarget] decides, also pure. `null` (no reading yet, or no sensor) means
+ * upright, whatever the window is doing, which is where the controls already are.
  */
 @Composable
-internal fun Modifier.rotateWithDevice(surfaceRotation: Int?): Modifier {
-    val target = uprightRotationDegrees(surfaceRotation)
+internal fun Modifier.rotateWithDevice(surfaceRotation: Int?, displayRotation: Int = currentDisplayRotation()): Modifier {
+    val target = uprightRotationDegrees(surfaceRotation, displayRotation)
     var unwrapped by remember { mutableFloatStateOf(target) }
     LaunchedEffect(target) { unwrapped = shortestRotationTarget(unwrapped, target) }
     val degrees by animateFloatAsState(targetValue = unwrapped, label = "rotateWithDevice")
@@ -52,17 +61,38 @@ internal fun Modifier.rotateWithDevice(surfaceRotation: Int?): Modifier {
 
 /**
  * Degrees, clockwise-positive as Compose's `rotationZ`, that a control must turn to read upright
- * when the device is held at [surfaceRotation] and the window has not rotated with it.
+ * when the device is held at [surfaceRotation] and the window is at [displayRotation]: the
+ * device's turn minus the window's, folded into a half turn either way.
  *
  * `Surface.ROTATION_90` is what `UseCase.snapToSurfaceRotation` returns for the device turned a
- * quarter counter-clockwise (its right side up), so the control turns a quarter clockwise to
- * meet it; `ROTATION_270` is the opposite; `ROTATION_180` is upside down either way.
+ * quarter counter-clockwise (its right side up), so with the window at `ROTATION_0` the control
+ * turns a quarter clockwise to meet it; `ROTATION_270` is the opposite; `ROTATION_180` is upside
+ * down either way. A window that has itself turned to `ROTATION_90` has already carried the
+ * control a quarter clockwise, so the same device reading then needs no turn at all. `null`
+ * means no reading, and no turn, whatever the window is at.
  */
-internal fun uprightRotationDegrees(surfaceRotation: Int?): Float = when (surfaceRotation) {
+internal fun uprightRotationDegrees(surfaceRotation: Int?, displayRotation: Int = Surface.ROTATION_0): Float {
+    if (surfaceRotation == null) return 0f
+    return shortestRotationTarget(current = 0f, targetDegrees = clockwiseDegrees(surfaceRotation) - clockwiseDegrees(displayRotation))
+}
+
+/** A `Surface.ROTATION_*` value as the clockwise turn a control needs to meet it; anything unrecognised is upright. */
+private fun clockwiseDegrees(surfaceRotation: Int): Float = when (surfaceRotation) {
     Surface.ROTATION_90 -> 90f
     Surface.ROTATION_180 -> 180f
     Surface.ROTATION_270 -> -90f
     else -> 0f
+}
+
+/**
+ * The window's current rotation. Read through `LocalView`'s display, and with `LocalConfiguration`
+ * read alongside so that a window that does turn (an ignored lock) recomposes this; a view not yet
+ * attached, or one with no display, reads as `ROTATION_0`.
+ */
+@Composable
+private fun currentDisplayRotation(): Int {
+    LocalConfiguration.current
+    return LocalView.current.display?.rotation ?: Surface.ROTATION_0
 }
 
 /**

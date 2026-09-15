@@ -75,12 +75,12 @@ class WindowOrientationLockTest {
     }
 
     @Test
-    fun `the window is locked while the camera is open and the previous request is put back after`() {
+    fun `the window is held portrait while the camera is open and the previous request is put back after`() {
         // A non-default previous value, so "restored" is distinguishable from "reset to unspecified".
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
         setDialog()
 
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_LOCKED, composeRule.activity.requestedOrientation)
+        assertEquals("a fixed portrait, not LOCKED: the frame is identical every time the camera opens", ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, composeRule.activity.requestedOrientation)
 
         setShown(false)
         composeRule.waitForIdle()
