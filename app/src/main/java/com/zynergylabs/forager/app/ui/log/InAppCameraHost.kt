@@ -33,6 +33,8 @@ enum class InAppCameraTarget {
  */
 typealias InAppCameraSlot = @Composable (
     cameraCaptureFiles: CameraCaptureFiles,
+    /** Settings' "Lock camera to portrait", handed to the session at creation — see `effectiveDeviceRotation`. */
+    lockToPortrait: Boolean,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
 ) -> Unit
@@ -43,9 +45,11 @@ typealias InAppCameraSlot = @Composable (
  * viewfinder it draws into. Moved here from `PhotoAcquisitionLaunchers` on 2026-09-15 when the
  * dialog was hoisted; unchanged otherwise.
  */
-internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, onPhotoCaptured, onDismiss ->
+internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, onPhotoCaptured, onDismiss ->
     val context = LocalContext.current.applicationContext
-    val session = remember { CameraXCaptureSession(context) }
+    // Keyed on the setting so a session never carries a stale value; in practice it cannot change
+    // while the camera is open, since the dialog covers Settings.
+    val session = remember(lockToPortrait) { CameraXCaptureSession(context, lockToPortrait) }
     InAppCameraDialog(
         session = session,
         cameraCaptureFiles = cameraCaptureFiles,
@@ -81,6 +85,8 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, onPhoto
 internal fun InAppCameraHost(
     target: InAppCameraTarget?,
     cameraCaptureFiles: CameraCaptureFiles,
+    /** Settings' "Lock camera to portrait", from `AvailabilityUiState`; passed straight to the slot. */
+    lockToPortrait: Boolean,
     onLogEntryPhoto: (PhotoSource) -> Unit,
     onAlbumPhoto: (PhotoSource) -> Unit,
     onCartographyEntryPhoto: (PhotoSource) -> Unit,
@@ -93,5 +99,5 @@ internal fun InAppCameraHost(
         InAppCameraTarget.ALBUM -> onAlbumPhoto
         InAppCameraTarget.CARTOGRAPHY_ENTRY -> onCartographyEntryPhoto
     }
-    camera(cameraCaptureFiles, onPhotoCaptured, onDismiss)
+    camera(cameraCaptureFiles, lockToPortrait, onPhotoCaptured, onDismiss)
 }

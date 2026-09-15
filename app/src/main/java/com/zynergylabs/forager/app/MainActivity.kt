@@ -73,6 +73,8 @@ class MainActivity : ComponentActivity() {
                     getOfflineRegionReferenceCount = { id -> container.getEntryReferenceCountUseCase.forOfflineRegion(id).getOrDefault(0) },
                     getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
                     setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
+                    getLockCameraToPortrait = container.cameraOrientationPreferenceRepository::getLockCameraToPortrait,
+                    setLockCameraToPortrait = container.cameraOrientationPreferenceRepository::setLockCameraToPortrait,
                 )
             }
         }
@@ -404,6 +406,7 @@ class MainActivity : ComponentActivity() {
                     onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                     onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
+                    onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     logUiState = logUiState,

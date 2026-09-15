@@ -85,6 +85,7 @@ class AvailabilityScreenInAppCameraTest {
 
     private val opened = mutableListOf<InAppCameraTarget>()
     private var closed = 0
+    private var slotSawLockToPortrait: Boolean? = null
     private val cartographyPhotos = mutableListOf<PhotoSource>()
     private val albumPhotos = mutableListOf<PhotoSource>()
     private val logEntryPhotos = mutableListOf<PhotoSource>()
@@ -94,7 +95,8 @@ class AvailabilityScreenInAppCameraTest {
 
     private val boxMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, onPhotoCaptured, onDismiss ->
+        slotSawLockToPortrait = lockToPortrait
         val session = remember { FakeCameraCaptureSession() }
         InAppCameraDialog(
             session = session,
@@ -105,7 +107,7 @@ class AvailabilityScreenInAppCameraTest {
         )
     }
 
-    private fun setScreen(cameraPermissionGranted: Boolean = true) {
+    private fun setScreen(cameraPermissionGranted: Boolean = true, lockCameraToPortrait: Boolean = false) {
         if (cameraPermissionGranted) {
             Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>()).grantPermissions(Manifest.permission.CAMERA)
         }
@@ -118,7 +120,7 @@ class AvailabilityScreenInAppCameraTest {
             val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
                 AvailabilityScreen(
-                    uiState = SEARCHED_STATE,
+                    uiState = SEARCHED_STATE.copy(lockCameraToPortrait = lockCameraToPortrait),
                     onUseCurrentLocation = {},
                     onManualLatChanged = {},
                     onManualLngChanged = {},
@@ -244,6 +246,21 @@ class AvailabilityScreenInAppCameraTest {
 
         assertEquals(emptyList<InAppCameraTarget>(), opened)
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)
+    }
+
+    /** Settings' "Lock camera to portrait" reaches the session through the host and the slot, unchanged, in both states. */
+    @Test
+    fun `the lock-camera setting reaches the camera slot as given`() {
+        setScreen(lockCameraToPortrait = true)
+        openEditorCamera()
+        assertEquals(true, slotSawLockToPortrait)
+    }
+
+    @Test
+    fun `with the setting off the slot is told off`() {
+        setScreen()
+        openEditorCamera()
+        assertEquals(false, slotSawLockToPortrait)
     }
 
     /** The holder is what closes it: clearing the target from outside, as the ViewModel would, removes the dialog. */

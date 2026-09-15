@@ -192,6 +192,12 @@ data class AvailabilityUiState(
      */
     val autoSaveLocationToPhotos: Boolean = true,
     /**
+     * Settings' "Lock camera to portrait" — see
+     * [com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository] for the one gate it
+     * throws. `false` until the stored preference loads, matching that repository's default.
+     */
+    val lockCameraToPortrait: Boolean = false,
+    /**
      * Whether the Maps tab was left in fullscreen on the last run, restored from
      * [com.zynergylabs.forager.app.domain.MapPreferencesRepository.getMapFullscreen] — the one cluster/map
      * UI preference that persists across restarts (see that method's own doc comment for the

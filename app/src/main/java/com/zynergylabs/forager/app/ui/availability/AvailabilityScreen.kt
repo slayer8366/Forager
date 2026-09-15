@@ -482,6 +482,8 @@ fun AvailabilityScreen(
     onNightModeMapsChanged: (Boolean) -> Unit,
     /** Settings' "Automatically Save Location to Photos" checkbox — see [AvailabilityUiState.autoSaveLocationToPhotos]. Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
+    /** Settings' "Lock camera to portrait" checkbox — see [AvailabilityUiState.lockCameraToPortrait]. Defaulted like the one above. */
+    onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     onThemeModeChanged: (AppThemeMode) -> Unit,
     /**
@@ -1090,6 +1092,8 @@ fun AvailabilityScreen(
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
                     onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+                    lockCameraToPortrait = uiState.lockCameraToPortrait,
+                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
                     onOpenDiagnostics = { drawerPanel = DrawerPanel.Diagnostics },
                 )
@@ -2076,6 +2080,7 @@ fun AvailabilityScreen(
     InAppCameraHost(
         target = inAppCameraTarget,
         cameraCaptureFiles = cameraCaptureFiles,
+        lockToPortrait = uiState.lockCameraToPortrait,
         onLogEntryPhoto = onAddLogPhoto,
         onAlbumPhoto = onAddGalleryPhoto,
         onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,
@@ -2104,6 +2109,8 @@ fun AvailabilityScreen(
                         onNightModeMapsChanged = onNightModeMapsChanged,
                         autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
                         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+                        lockCameraToPortrait = uiState.lockCameraToPortrait,
+                        onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                         themeMode = uiState.themeMode,
                         onThemeModeChanged = onThemeModeChanged,
                         crashFileStore = crashFileStore,
@@ -2474,6 +2481,8 @@ private fun CompactSettingsTab(
     /** Settings' "Automatically Save Location to Photos" checkbox value — see [AvailabilityUiState.autoSaveLocationToPhotos]. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    lockCameraToPortrait: Boolean,
+    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
@@ -2520,6 +2529,8 @@ private fun CompactSettingsTab(
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     autoSaveLocationToPhotos = autoSaveLocationToPhotos,
                     onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+                    lockCameraToPortrait = lockCameraToPortrait,
+                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     onOpenCrashLogs = { showCrashLogs = true },
@@ -2558,6 +2569,8 @@ private fun SettingsContent(
     onNightModeMapsChanged: (Boolean) -> Unit,
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    lockCameraToPortrait: Boolean,
+    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     onOpenCrashLogs: () -> Unit,
     /** Debug builds only: the row this opens composes nothing in release — see [DiagnosticsEntryRow]'s two source-set versions. */
     onOpenDiagnostics: () -> Unit,
@@ -2574,6 +2587,7 @@ private fun SettingsContent(
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
         PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
+        CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
         DiagnosticsEntryRow(onClick = onOpenDiagnostics)
@@ -2665,6 +2679,39 @@ private fun PhotoLocationSection(checked: Boolean, onCheckedChange: (Boolean) ->
         )
     }
 }
+
+/**
+ * Settings' "Lock camera to portrait" (owner request, 2026-09-15). Same shape as
+ * [PhotoLocationSection] above. The supporting line is there because the consequence is not
+ * obvious from the label: a sideways photo is saved portrait. What it gates, and why it is one
+ * gate, is on [com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository].
+ */
+@Composable
+private fun CameraPortraitLockSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+            Text(LOCK_CAMERA_SETTING_LABEL, style = MaterialTheme.typography.bodyLarge)
+        }
+        Text(
+            LOCK_CAMERA_SETTING_EXPLANATION,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+internal const val LOCK_CAMERA_SETTING_LABEL = "Lock camera to portrait"
+
+internal const val LOCK_CAMERA_SETTING_EXPLANATION =
+    "Keeps the camera and its controls still when you turn the phone. Photos are always saved in " +
+        "portrait, even when you hold the phone sideways."
 
 /** Exposed at file scope so [com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettingsPanelTest] asserts the exact strings this panel draws, not a copy that can drift from them. */
 internal const val PHOTO_LOCATION_SETTING_LABEL = "Automatically Save Location to Photos"
@@ -2770,6 +2817,8 @@ private fun CompactToolsDrawerContent(
     onNightModeMapsChanged: (Boolean) -> Unit,
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    lockCameraToPortrait: Boolean,
+    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
@@ -2793,6 +2842,8 @@ private fun CompactToolsDrawerContent(
             onNightModeMapsChanged = onNightModeMapsChanged,
             autoSaveLocationToPhotos = autoSaveLocationToPhotos,
             onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+            lockCameraToPortrait = lockCameraToPortrait,
+            onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
             crashFileStore = crashFileStore,

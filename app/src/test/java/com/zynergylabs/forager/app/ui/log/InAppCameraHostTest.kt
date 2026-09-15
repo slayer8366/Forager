@@ -56,9 +56,11 @@ class InAppCameraHostTest {
     private val albumPhotos = mutableListOf<PhotoSource>()
     private val cartographyPhotos = mutableListOf<PhotoSource>()
     private var dismissed = 0
+    private var slotSawLockToPortrait: Boolean? = null
 
     /** The test's slot: the real dialog over the fake session, viewfinder a plain box. */
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, onPhotoCaptured, onDismiss ->
+        slotSawLockToPortrait = lockToPortrait
         val session = FakeCameraCaptureSession()
         InAppCameraDialog(
             session = session,
@@ -77,6 +79,7 @@ class InAppCameraHostTest {
             InAppCameraHost(
                 target = target,
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
+                lockToPortrait = false,
                 onLogEntryPhoto = { logEntryPhotos += it },
                 onAlbumPhoto = { albumPhotos += it },
                 onCartographyEntryPhoto = { cartographyPhotos += it },
@@ -104,6 +107,7 @@ class InAppCameraHostTest {
         shoot()
         assertEquals(1, logEntryPhotos.size)
         assertTrue(logEntryPhotos.single() is CameraCapturePhotoSource)
+        assertEquals("the host hands the setting to the slot unchanged", false, slotSawLockToPortrait)
         assertEquals(0, albumPhotos.size)
         assertEquals(0, cartographyPhotos.size)
     }

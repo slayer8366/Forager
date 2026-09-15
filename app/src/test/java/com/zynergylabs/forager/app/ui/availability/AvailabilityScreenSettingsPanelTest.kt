@@ -111,6 +111,7 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedNightMode: Boolean? = null
     private var capturedThemeMode: AppThemeMode? = null
     private var capturedAutoSaveLocation: Boolean? = null
+    private var capturedLockCamera: Boolean? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
@@ -198,6 +199,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onAutoSaveLocationToPhotosChanged = { enabled ->
                     current = current.copy(autoSaveLocationToPhotos = enabled)
                     capturedAutoSaveLocation = enabled
+                },
+                onLockCameraToPortraitChanged = { enabled ->
+                    current = current.copy(lockCameraToPortrait = enabled)
+                    capturedLockCamera = enabled
                 },
                 onThemeModeChanged = { mode ->
                     current = current.copy(themeMode = mode)
@@ -746,6 +751,25 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performClick()
         composeRule.waitForIdle()
         assertEquals(true, capturedAutoSaveLocation)
+    }
+
+    /** "Lock camera to portrait" (owner request, 2026-09-15): off by default, explains its consequence, toggles; the strings are the panel's own constants. */
+    @Test
+    fun `the lock-camera checkbox starts off, explains that sideways photos save portrait, and toggles`() {
+        setScreenWithOfflineMapsState()
+        openSettings()
+
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_EXPLANATION).assertIsDisplayed()
+        assertEquals("nothing is written just by opening Settings", null, capturedLockCamera)
+
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performClick()
+        composeRule.waitForIdle()
+        assertEquals("off by default, so the first tap turns it on", true, capturedLockCamera)
+
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performClick()
+        composeRule.waitForIdle()
+        assertEquals(false, capturedLockCamera)
     }
 
     /**

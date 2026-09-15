@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.photo
 import android.content.Context
 import android.util.Log
 import android.view.OrientationEventListener
+import android.view.Surface
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -120,7 +121,11 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  * still should: the camera HAL writes make, model and timestamps regardless, and an allowlist that
  * only removes what someone remembered to worry about is the thing that scrub exists not to be.
  */
-internal class CameraXCaptureSession(private val appContext: Context) : CameraCaptureSession {
+internal class CameraXCaptureSession(
+    private val appContext: Context,
+    /** Settings' "Lock camera to portrait": the one gate, see [effectiveDeviceRotation]. */
+    private val lockToPortrait: Boolean = false,
+) : CameraCaptureSession {
 
     override var state: CameraSessionState by mutableStateOf(CameraSessionState.Opening)
         private set
@@ -143,7 +148,12 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
      */
     private var sensorRotation: Int? by mutableStateOf(null)
 
-    override val deviceRotation: Int? get() = sensorRotation
+    /**
+     * **The one gate.** Both the screen's control angle and this class's own [capture] read this,
+     * never [sensorRotation] directly, so "Lock camera to portrait" pins one value and both
+     * effects — nothing turns, a sideways photo saves portrait — fall out of that one place.
+     */
+    override val deviceRotation: Int? get() = effectiveDeviceRotation(lockToPortrait, sensorRotation)
     private var loggedDisplayFallback = false
 
     /** Bumped by every [open] and [close]; a provider callback whose captured epoch has moved on does nothing. */
@@ -242,7 +252,8 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
         val capture = imageCapture
             ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
         // Per shot, from the device's own orientation — see the class doc for why not the display.
-        val rotation = sensorRotation ?: previewView?.display?.rotation?.also {
+        // Read through the gate (deviceRotation), not the field: see effectiveDeviceRotation.
+        val rotation = deviceRotation ?: previewView?.display?.rotation?.also {
             if (!loggedDisplayFallback) {
                 loggedDisplayFallback = true
                 Log.i(TAG, "No orientation reading yet; this shot's rotation comes from the display, which is wrong if auto-rotate is off.")
@@ -303,3 +314,13 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
         const val TAG = "CameraXCaptureSession"
     }
 }
+
+/**
+ * The device rotation the camera acts on — for the controls' angle and for each shot's
+ * `targetRotation` alike. With "Lock camera to portrait" off it is the sensor's reading (`null`
+ * until there is one); on, it is `Surface.ROTATION_0` and the sensor is ignored. One function so
+ * the setting is one gate: there is no second place where either effect could be decided
+ * differently. Pure, and tested as such.
+ */
+internal fun effectiveDeviceRotation(lockToPortrait: Boolean, sensorRotation: Int?): Int? =
+    if (lockToPortrait) Surface.ROTATION_0 else sensorRotation
