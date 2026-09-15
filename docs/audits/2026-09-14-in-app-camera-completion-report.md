@@ -223,6 +223,10 @@ covering any of it:
 - whether a real camera opens, and whether the viewfinder draws;
 - whether a captured JPEG comes out right-way-up, which is the per-capture `targetRotation`
   decision in §4 and the one most likely to be wrong;
+- **(added 2026-09-15)** specifically with **auto-rotate off and the phone held landscape**: the
+  per-capture display read this report described was wrong in exactly that case and was replaced
+  by an orientation listener; see
+  `2026-09-15-orientation-sensor-camera-kept-scrub-to-eoi-completion-report.md`;
 - whether the scrub parses a real CameraX JPEG (it refuses and leaves the file whole if it cannot,
   so the failure mode is "metadata kept", not "photo damaged");
 - whether the permission prompt appears once and behaves on a denial;
