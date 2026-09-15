@@ -114,6 +114,11 @@ internal fun InAppCameraDialog(
         onDispose { session.close() }
     }
 
+    // The window stays put while the camera is open and the controls turn in place instead —
+    // owner's requirement of 2026-09-15, reasoning on LockWindowOrientation and rotateWithDevice.
+    // Outside the Dialog so the context here is the Activity's, not the dialog window's.
+    LockWindowOrientation()
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
@@ -152,6 +157,7 @@ internal fun InAppCameraDialog(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(Spacing.sm)
+                        .rotateWithDevice(session.deviceRotation)
                         .testTag(CAMERA_DONE_TAG),
                 ) {
                     Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
@@ -168,7 +174,7 @@ internal fun InAppCameraDialog(
                             message,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.testTag(CAMERA_ERROR_TAG),
+                            modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_ERROR_TAG),
                         )
                     }
 
@@ -176,7 +182,7 @@ internal fun InAppCameraDialog(
                         photoCountLabel(photosTaken),
                         color = Color.White,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.testTag(CAMERA_COUNT_TAG),
+                        modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_COUNT_TAG),
                     )
 
                     Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {

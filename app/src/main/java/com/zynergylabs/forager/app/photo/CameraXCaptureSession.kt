@@ -135,8 +135,15 @@ internal class CameraXCaptureSession(private val appContext: Context) : CameraCa
 
     private var orientationListener: OrientationEventListener? = null
 
-    /** The latest surface rotation from the orientation listener; `null` until it has reported, or if it cannot. */
-    private var sensorRotation: Int? = null
+    /**
+     * The latest surface rotation from the orientation listener; `null` until it has reported, or
+     * if it cannot. Backed by Compose state since 2026-09-15 so the screen's controls can turn
+     * with it ([deviceRotation]); the listener that writes it and the shot that reads it are
+     * unchanged.
+     */
+    private var sensorRotation: Int? by mutableStateOf(null)
+
+    override val deviceRotation: Int? get() = sensorRotation
     private var loggedDisplayFallback = false
 
     /** Bumped by every [open] and [close]; a provider callback whose captured epoch has moved on does nothing. */

@@ -33,6 +33,9 @@ internal class FakeCameraCaptureSession(
 
     override var state: CameraSessionState by mutableStateOf(state)
 
+    /** Settable so a test can turn the device and watch the screen's controls follow. */
+    override var deviceRotation: Int? by mutableStateOf(null)
+
     var openCalls = 0
         private set
     var closeCalls = 0

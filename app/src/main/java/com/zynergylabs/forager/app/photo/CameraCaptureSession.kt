@@ -27,6 +27,15 @@ internal interface CameraCaptureSession {
     val state: CameraSessionState
 
     /**
+     * The device's orientation as a `Surface.ROTATION_*` value, from the same listener that tags
+     * each photo's rotation; `null` until it has reported, or if the device has no sensor. Read
+     * by the screen to turn its controls in place while the window stays locked — see
+     * `ui/log/RotateWithDevice.kt`. Observable in the CameraX implementation, so a change
+     * recomposes what reads it.
+     */
+    val deviceRotation: Int?
+
+    /**
      * Starts the camera: fetches the provider, binds the use cases to [lifecycleOwner], and moves
      * [state] from `Opening` to `Ready`, or to `Unavailable` with a reason. Called by the screen
      * when it enters composition, **not** by the viewfinder.
