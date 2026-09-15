@@ -1,3 +1,4 @@
+# PURPOSE (owner, 2026-09-15): a record of a known-bad host configuration, not a gate. Local runs move to Linux (WSL2), where every line here reads ABSENT and nothing NEW; kept so the same 43 can be recognised if anyone runs the suite on a Windows JVM again, and so scripts/compare-test-baseline.sh can catch a drift back. Unfixed on purpose: A and B are library checks for an environment being retired, C would trade readable test names for a Windows-only limit.
 # Windows-host unit-test baseline: tests expected to FAIL when the suite runs under Robolectric on a Windows JVM.
 # CI (Linux) is the authority and is green; every ID here fails on Windows for one of three host mechanisms.
 # Measured 2026-09-15 by full-suite runs in the same checkout at b586195 (194 suites, 1515 tests) and at 017d6ca
