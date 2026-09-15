@@ -250,6 +250,10 @@ import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
 import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
 import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.log.CameraXInAppCamera
+import com.zynergylabs.forager.app.ui.log.InAppCameraHost
+import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
+import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.LogPanel
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
@@ -495,6 +499,17 @@ fun AvailabilityScreen(
      */
     logUiState: MushroomLogUiState = MushroomLogUiState(),
     cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
+    /**
+     * Which surface the in-app camera is open for, or null when closed. Retained by
+     * `InAppCameraViewModel` across Activity recreation, and composed by this screen **above the
+     * window-width branch** so a rotation's width-class flip does not dispose it — see
+     * [InAppCameraHost] for the bug and the decision.
+     */
+    inAppCameraTarget: InAppCameraTarget? = null,
+    onOpenCamera: (InAppCameraTarget) -> Unit = {},
+    onCloseCamera: () -> Unit = {},
+    /** The camera dialog itself; defaults to CameraX. A slot for the same reason [mapSlot] is one: CameraX cannot run under Robolectric. */
+    inAppCamera: InAppCameraSlot = CameraXInAppCamera,
     /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
     onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
     onOpenLogEntry: (String) -> Unit = {},
@@ -1102,7 +1117,9 @@ fun AvailabilityScreen(
                 LogPanel(
                     modifier = Modifier.weight(1f),
                     uiState = logUiState,
-                    cameraCaptureFiles = cameraCaptureFiles,
+                    onOpenCameraForLogEntry = { onOpenCamera(InAppCameraTarget.LOG_ENTRY) },
+                    onOpenCameraForAlbum = { onOpenCamera(InAppCameraTarget.ALBUM) },
+                    onOpenCameraForCartographyEntry = { onOpenCamera(InAppCameraTarget.CARTOGRAPHY_ENTRY) },
                     mapSlot = mapSlot,
                     region = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
                     deviceLocation = uiState.liveFix?.let { LatLng(it.lat, it.lng) },
@@ -1187,7 +1204,7 @@ fun AvailabilityScreen(
                     photos = logUiState.galleryPhotos,
                     isLoading = logUiState.isLoadingGalleryPhotos,
                     onDeletePhoto = onDeleteGalleryPhoto,
-                    cameraCaptureFiles = cameraCaptureFiles,
+                    onOpenCamera = { onOpenCamera(InAppCameraTarget.ALBUM) },
                     onAddGalleryPhoto = onAddGalleryPhoto,
                     loadErrorMessage = logUiState.galleryLoadErrorMessage,
                 )
@@ -1827,7 +1844,9 @@ fun AvailabilityScreen(
                         CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
                         CompactTab.JOURNAL -> JournalTab(
                             uiState = logUiState,
-                            cameraCaptureFiles = cameraCaptureFiles,
+                            onOpenCameraForLogEntry = { onOpenCamera(InAppCameraTarget.LOG_ENTRY) },
+                            onOpenCameraForAlbum = { onOpenCamera(InAppCameraTarget.ALBUM) },
+                            onOpenCameraForCartographyEntry = { onOpenCamera(InAppCameraTarget.CARTOGRAPHY_ENTRY) },
                             mapSlot = mapSlot,
                             pickerRegion = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
                             deviceLocation = uiState.liveFix?.let { LatLng(it.lat, it.lng) },
@@ -2049,6 +2068,20 @@ fun AvailabilityScreen(
             }
         }
     }
+
+    // The in-app camera, once, above the width-class branch below — deliberately not inside
+    // either tree, so the flip a rotation causes on a phone (COMPACT to MEDIUM) does not dispose
+    // it. Its own open flag lives in InAppCameraViewModel, which survives the recreation.
+    // See InAppCameraHost for both mechanisms and the owner's decision.
+    InAppCameraHost(
+        target = inAppCameraTarget,
+        cameraCaptureFiles = cameraCaptureFiles,
+        onLogEntryPhoto = onAddLogPhoto,
+        onAlbumPhoto = onAddGalleryPhoto,
+        onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,
+        onDismiss = onCloseCamera,
+        camera = inAppCamera,
+    )
 
     if (windowWidthClass == WindowWidthClass.COMPACT) {
         ModalNavigationDrawer(

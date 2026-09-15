@@ -23,7 +23,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -73,7 +72,7 @@ class LogEntryDetailScreenTest {
         composeRule.setContent {
             LogEntryDetailScreen(
                 entry = entry,
-                cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
+                onOpenCamera = {},
                 onEntryChanged = {},
                 onAddPhoto = {},
                 onRemovePhoto = onRemovePhoto,

@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.PhotoSource
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -61,13 +60,14 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 internal fun PullPhotoPickerScreen(
     photos: List<GalleryPhoto>,
     onPhotoSelected: (LogPhoto) -> Unit,
-    cameraCaptureFiles: CameraCaptureFiles,
+    /** Opens the in-app camera for whichever entry this picker serves — hoisted, see [InAppCameraHost]. */
+    onOpenCamera: () -> Unit,
     onPhotoAcquired: (PhotoSource) -> Unit,
     /** See [LogEntryDetailScreen]'s own `PhotosSection` — the identical camera/gallery-round-trip-vs-backgrounding conflation guard. [JournalTab]'s own call site reuses the exact same callback its `LogEntryDetailScreen` call already threads through, since the two are mutually exclusive branches of one `when`; [CartographyScreen] needed this guard newly built (see its own `photoAcquisitionInFlight` doc comment) — this is the first camera/gallery launch surface reachable from inside a Cartography entry. */
     onAcquisitionInFlightChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val photoAcquisition = rememberPhotoAcquisitionLaunchers(cameraCaptureFiles, onPhotoAcquired)
+    val photoAcquisition = rememberPhotoAcquisitionLaunchers(onPhotoAcquired, onOpenCamera)
     LaunchedEffect(photoAcquisition.isAcquisitionInFlight) {
         onAcquisitionInFlightChanged(photoAcquisition.isAcquisitionInFlight)
     }
@@ -77,10 +77,9 @@ internal fun PullPhotoPickerScreen(
             modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
+            // The camera itself is composed once by AvailabilityScreen, above the window-width
+            // branch — see InAppCameraHost.
             Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
-            // The in-app camera itself. A Dialog, so this screen stays exactly as it is underneath
-            // and dismissing returns here with nothing to restore — see InAppCameraDialog.
-            photoAcquisition.CameraDialog()
             Button(onClick = photoAcquisition.launchGallery) { Text("Import") }
         }
 

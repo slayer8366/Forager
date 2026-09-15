@@ -43,7 +43,6 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
@@ -100,7 +99,10 @@ import java.time.LocalDate
 @Composable
 internal fun LogPanel(
     uiState: MushroomLogUiState,
-    cameraCaptureFiles: CameraCaptureFiles,
+    /** See [JournalTab]'s identical three — one hoisted dialog, [InAppCameraHost]. */
+    onOpenCameraForLogEntry: () -> Unit,
+    onOpenCameraForAlbum: () -> Unit,
+    onOpenCameraForCartographyEntry: () -> Unit,
     mapSlot: MapSlot,
     region: Region,
     /** See [JournalTab]'s identical parameter — the device position the find's location picker opens on when one is in hand (find-location-at-creation dispatch, Fix 3). */
@@ -293,7 +295,7 @@ internal fun LogPanel(
                     pullingPhotoForEditingEntry = false
                     onPullPhoto(photo)
                 },
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = onOpenCameraForLogEntry,
                 onPhotoAcquired = onAddPhoto,
                 onAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
                 modifier = Modifier.weight(1f),
@@ -301,7 +303,7 @@ internal fun LogPanel(
         } else if (editing != null) {
             LogEntryDetailScreen(
                 entry = editing,
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = onOpenCameraForLogEntry,
                 onEntryChanged = onEntryChanged,
                 onAddPhoto = onAddPhoto,
                 onRemovePhoto = onRemovePhoto,
@@ -368,7 +370,8 @@ internal fun LogPanel(
                 galleryLoadErrorMessage = galleryLoadErrorMessage,
                 galleryPhotoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
                 onDeleteGalleryPhoto = onDeleteGalleryPhoto,
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCameraForAlbum = onOpenCameraForAlbum,
+                onOpenCameraForEntry = onOpenCameraForCartographyEntry,
                 onAddGalleryPhoto = onAddGalleryPhoto,
                 distanceUnit = distanceUnit,
                 mapSlot = mapSlot,

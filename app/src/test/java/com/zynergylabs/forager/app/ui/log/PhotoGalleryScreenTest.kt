@@ -22,7 +22,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LogPhoto
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -52,7 +51,6 @@ import org.robolectric.annotation.Config
 class PhotoGalleryScreenTest {
 
     private val composeRule = createComposeRule()
-    private val cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext())
 
     private val declareHostActivity = object : ExternalResource() {
         override fun before() {
@@ -73,7 +71,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {}, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
 
         // 1_700_000_000_000ms -> 2023-11-14 UTC; asserted against LocalDate's own toString() (the
@@ -97,7 +95,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(orphaned), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = listOf(orphaned), isLoading = false, onDeletePhoto = {}, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
@@ -111,7 +109,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(migrated), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = listOf(migrated), isLoading = false, onDeletePhoto = {}, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
@@ -120,7 +118,7 @@ class PhotoGalleryScreenTest {
     @Test
     fun `the empty state shows when there are no photos`() {
         composeRule.setContent {
-            PhotoGalleryScreen(photos = emptyList(), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = emptyList(), isLoading = false, onDeletePhoto = {}, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithText("No photos yet. Use Camera or Import above to add one.").assertIsDisplayed()
@@ -133,7 +131,7 @@ class PhotoGalleryScreenTest {
                 photos = emptyList(),
                 isLoading = false,
                 onDeletePhoto = {},
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = {},
                 onAddGalleryPhoto = {},
                 loadErrorMessage = "Photo gallery unavailable.",
             )
@@ -156,7 +154,7 @@ class PhotoGalleryScreenTest {
                 photos = listOf(photo),
                 isLoading = false,
                 onDeletePhoto = {},
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = {},
                 onAddGalleryPhoto = {},
                 loadErrorMessage = "Photo gallery unavailable.",
             )
@@ -175,7 +173,7 @@ class PhotoGalleryScreenTest {
         )
 
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {}, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = {}, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithText("Camera").assertIsDisplayed()
@@ -195,7 +193,7 @@ class PhotoGalleryScreenTest {
         )
         var deleted: GalleryPhoto? = null
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithContentDescription("Delete this photo").performClick()
@@ -219,7 +217,7 @@ class PhotoGalleryScreenTest {
         )
         var deleted: GalleryPhoto? = null
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithContentDescription("Delete this photo").performClick()
@@ -239,7 +237,7 @@ class PhotoGalleryScreenTest {
         )
         var deleted: GalleryPhoto? = null
         composeRule.setContent {
-            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = listOf(photo), isLoading = false, onDeletePhoto = { deleted = it }, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
 
         composeRule.onNodeWithContentDescription("Delete this photo").performClick()
@@ -262,7 +260,7 @@ class PhotoGalleryScreenTest {
 
     private fun setAlbum(photos: List<GalleryPhoto>, onDeletePhoto: (GalleryPhoto) -> Unit = {}) {
         composeRule.setContent {
-            PhotoGalleryScreen(photos = photos, isLoading = false, onDeletePhoto = onDeletePhoto, cameraCaptureFiles = cameraCaptureFiles, onAddGalleryPhoto = {})
+            PhotoGalleryScreen(photos = photos, isLoading = false, onDeletePhoto = onDeletePhoto, onOpenCamera = {}, onAddGalleryPhoto = {})
         }
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().size == photos.size

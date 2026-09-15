@@ -33,7 +33,6 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PhotoSource
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -80,7 +79,9 @@ internal fun CartographyScreen(
     galleryLoadErrorMessage: String?,
     galleryPhotoEntryReferenceCounts: Map<String, Int>,
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit,
-    cameraCaptureFiles: CameraCaptureFiles,
+    /** The Album tab's Camera button, and the entry editor's — two targets, one hoisted dialog; see [InAppCameraHost]. */
+    onOpenCameraForAlbum: () -> Unit,
+    onOpenCameraForEntry: () -> Unit,
     onAddGalleryPhoto: (PhotoSource) -> Unit,
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
@@ -237,7 +238,7 @@ internal fun CartographyScreen(
                 onSetWaypointDecision = onSetWaypointDecision,
                 onSetOfflineRegionDecision = onSetOfflineRegionDecision,
                 onToggleKeptPhoto = onToggleKeptPhoto,
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = onOpenCameraForEntry,
                 onAcquirePhoto = onAcquirePhotoForEntry,
                 onAcquisitionInFlightChanged = { inFlight -> photoAcquisitionInFlight = inFlight },
                 onFinish = onFinishEntry,
@@ -322,7 +323,7 @@ internal fun CartographyScreen(
                 photos = galleryPhotos,
                 isLoading = isLoadingGalleryPhotos,
                 onDeletePhoto = onDeleteGalleryPhoto,
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = onOpenCameraForAlbum,
                 onAddGalleryPhoto = onAddGalleryPhoto,
                 loadErrorMessage = galleryLoadErrorMessage,
                 cartographyEntryReferenceCounts = galleryPhotoEntryReferenceCounts,

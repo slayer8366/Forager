@@ -50,7 +50,6 @@ import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -100,7 +99,8 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 @Composable
 internal fun LogEntryDetailScreen(
     entry: MushroomLogEntry,
-    cameraCaptureFiles: CameraCaptureFiles,
+    /** Opens the in-app camera for this find — hoisted above the window-width branch, see [InAppCameraHost]. */
+    onOpenCamera: () -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
     onAddPhoto: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
@@ -194,7 +194,7 @@ internal fun LogEntryDetailScreen(
 
             PhotosSection(
                 photos = entry.photos,
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = onOpenCamera,
                 onPhotoSourceSelected = onAddPhoto,
                 onRemovePhoto = onRemovePhoto,
                 onPullPhoto = onPullPhoto,
@@ -220,7 +220,7 @@ internal fun LogEntryDetailScreen(
 @Composable
 private fun PhotosSection(
     photos: List<LogPhoto>,
-    cameraCaptureFiles: CameraCaptureFiles,
+    onOpenCamera: () -> Unit,
     onPhotoSourceSelected: (PhotoSource) -> Unit,
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: () -> Unit,
@@ -229,7 +229,7 @@ private fun PhotosSection(
     // The Camera-permission-then-capture and system-Gallery-picker launchers — shared with
     // PhotoGalleryScreen's own Camera/Gallery buttons (standalone-photos dispatch) via this one
     // function, rather than a second hand-copy of the ActivityResultContracts/permission wiring.
-    val photoAcquisition = rememberPhotoAcquisitionLaunchers(cameraCaptureFiles, onPhotoSourceSelected)
+    val photoAcquisition = rememberPhotoAcquisitionLaunchers(onPhotoSourceSelected, onOpenCamera)
     LaunchedEffect(photoAcquisition.isAcquisitionInFlight) {
         onAcquisitionInFlightChanged(photoAcquisition.isAcquisitionInFlight)
     }
@@ -244,10 +244,9 @@ private fun PhotosSection(
         // Row doesn't shrink or wrap overflowing children; they simply run past the screen edge,
         // invisible rather than clipped. Wrapping to a second line keeps every button reachable.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // The camera itself is composed once by AvailabilityScreen, above the window-width
+            // branch, so a rotation does not dispose it with this screen — see InAppCameraHost.
             Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
-            // The in-app camera itself. A Dialog, so this screen stays exactly as it is underneath
-            // and dismissing returns here with nothing to restore — see InAppCameraDialog.
-            photoAcquisition.CameraDialog()
             // Entry-photo-acquisition dispatch, Item 1: "Import," not "Gallery" — the app calls its
             // own photo collection "Album," so a button labelled "Gallery" that actually opens the
             // *device's* picker was already two near-synonyms meaning opposite things. "Import" says

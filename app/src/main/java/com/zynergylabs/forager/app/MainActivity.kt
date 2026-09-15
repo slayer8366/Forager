@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
+import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
@@ -133,6 +134,9 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    /** The in-app camera's open flag, retained across rotation, cleared with the Activity — see its own doc comment. No factory: it has no dependencies. */
+    private val inAppCameraViewModel: InAppCameraViewModel by viewModels()
 
     private val trackRecordingViewModel: TrackRecordingViewModel by viewModels {
         viewModelFactory {
@@ -310,6 +314,7 @@ class MainActivity : ComponentActivity() {
             }
             ForagerTheme(darkTheme = effectiveDarkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
+                val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
                 val cartographyUiState by cartographyViewModel.uiState.collectAsState()
 
@@ -403,6 +408,9 @@ class MainActivity : ComponentActivity() {
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
+                    inAppCameraTarget = inAppCameraTarget,
+                    onOpenCamera = inAppCameraViewModel::open,
+                    onCloseCamera = inAppCameraViewModel::close,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
                     onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
                     onCloseLogEntry = mushroomLogViewModel::onCloseEntry,

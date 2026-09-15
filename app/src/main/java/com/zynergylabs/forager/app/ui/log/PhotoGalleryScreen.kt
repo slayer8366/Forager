@@ -79,7 +79,8 @@ internal fun PhotoGalleryScreen(
     photos: List<GalleryPhoto>,
     isLoading: Boolean,
     onDeletePhoto: (GalleryPhoto) -> Unit,
-    cameraCaptureFiles: CameraCaptureFiles,
+    /** Opens the in-app camera for the Album — hoisted above the window-width branch, see [InAppCameraHost]. */
+    onOpenCamera: () -> Unit,
     /** A photo acquired via Camera or Gallery here — persisted and added to the gallery, standalone, never attached to anything. See [AddPhotoToGalleryUseCase]'s own doc comment. */
     onAddGalleryPhoto: (PhotoSource) -> Unit,
     modifier: Modifier = Modifier,
@@ -88,7 +89,7 @@ internal fun PhotoGalleryScreen(
     /** How many Cartography entries currently keep each photo (by id) attached — Journal Stage 2b's 4b deletion warning, extended to photos. Shown in [GalleryPhotoTile]'s own confirm dialog alongside the existing find-reference count. */
     cartographyEntryReferenceCounts: Map<String, Int> = emptyMap(),
 ) {
-    val photoAcquisition = rememberPhotoAcquisitionLaunchers(cameraCaptureFiles, onAddGalleryPhoto)
+    val photoAcquisition = rememberPhotoAcquisitionLaunchers(onAddGalleryPhoto, onOpenCamera)
     // Owner follow-up to the full-screen-photo-viewer dispatch: the same viewer as a find's own
     // thumbnails, here over the whole album so previous/next step through every photo. The id, not
     // the index, and saveable — see LogEntryDetailScreen's PhotosSection for the reasoning.
@@ -99,10 +100,9 @@ internal fun PhotoGalleryScreen(
             modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
+            // The camera itself is composed once by AvailabilityScreen, above the window-width
+            // branch — see InAppCameraHost.
             Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
-            // The in-app camera itself. A Dialog, so this screen stays exactly as it is underneath
-            // and dismissing returns here with nothing to restore — see InAppCameraDialog.
-            photoAcquisition.CameraDialog()
             // Entry-photo-acquisition dispatch, Item 1: "Import," not "Gallery" — this screen
             // itself is the app's own photo collection ("Album"), so a button here labelled
             // "Gallery" that opens the *device's* picker was two near-synonyms meaning opposite

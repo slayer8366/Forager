@@ -57,7 +57,6 @@ import com.zynergylabs.forager.app.domain.model.PhotoAttachment
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
@@ -147,7 +146,7 @@ internal fun CartographyEntryEditScreen(
      * [KeptPhotosSection]'s own "Remove this photo" already offers). See [PullPhotoPickerScreen]'s
      * own doc comment for why composing "persist" and "attach" happens above this screen, not here.
      */
-    cameraCaptureFiles: CameraCaptureFiles,
+    onOpenCamera: () -> Unit,
     onAcquirePhoto: (PhotoSource) -> Unit,
     /** See [PullPhotoPickerScreen]'s own doc comment on this same parameter. */
     onAcquisitionInFlightChanged: (Boolean) -> Unit,
@@ -193,7 +192,7 @@ internal fun CartographyEntryEditScreen(
         PullPhotoPickerScreen(
             photos = galleryPhotos,
             onPhotoSelected = { photo -> onToggleKeptPhoto(photo.id); pullingPhoto = false },
-            cameraCaptureFiles = cameraCaptureFiles,
+            onOpenCamera = onOpenCamera,
             onPhotoAcquired = onAcquirePhoto,
             onAcquisitionInFlightChanged = onAcquisitionInFlightChanged,
             modifier = modifier.fillMaxSize(),
