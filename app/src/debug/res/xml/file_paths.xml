@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The DEBUG build's FileProvider paths. This file overrides src/main/res/xml/file_paths.xml in
+  debug builds only, by Android's build-type resource merge; the release provider config is the
+  main one, untouched. Every entry in main's file must appear here too, or a debug build would
+  silently lose a share path release has — DebugFileProviderPathsTest asserts that superset.
+
+  The three main entries are repeated verbatim: `captures/` (a capture's temporary destination),
+  `crashes/` (CrashFileStore's directory) and `tracks/` (TrackGpxExporter's cache directory).
+
+  Added for the debug-only Diagnostics panel (ui/diagnostics/DiagnosticsPanel.kt):
+
+  `photos/` is FilePhotoStore's permanent store. Main's file says it never needs a FileProvider
+  URI, and in release that stays true. In a debug build the Diagnostics panel shares a persisted
+  photo out so the owner can open it in a desktop EXIF tool and read what the scrub left — step 5
+  of the PR #102 device check, with no ADB to pull the file.
+
+  `diagnostics/` is DiagnosticsLog's directory, a sibling of `crashes/` under the same app-external
+  root, listed under both roots because DiagnosticsLog.forContext falls back to filesDir when
+  external storage is unavailable, exactly as CrashFileStore.forContext does.
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <files-path name="captures" path="captures/" />
+    <external-files-path name="crashes" path="crashes/" />
+    <cache-path name="tracks" path="tracks/" />
+    <files-path name="photos" path="photos/" />
+    <external-files-path name="diagnostics" path="diagnostics/" />
+    <files-path name="diagnostics-internal" path="diagnostics/" />
+</paths>

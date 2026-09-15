@@ -2,16 +2,42 @@ package com.zynergylabs.forager.app
 
 import android.app.Application
 import android.os.Build
+import android.util.Log
 import com.zynergylabs.forager.app.crash.CrashUncaughtExceptionHandler
+import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class ForagerApplication : Application() {
     lateinit var container: AppContainer
         private set
 
+    /**
+     * The debug build's observation surface (StrictMode into a file, the sweep's count); a no-op
+     * object in release, by build-type source set rather than by branch — see the two
+     * [DebugDiagnostics] classes. Installed first, before [container] is built, so what it observes
+     * is the whole process from the first line of this method, not the part after startup.
+     */
+    lateinit var diagnostics: DebugDiagnostics
+        private set
+
+    /**
+     * Process-lifetime work that belongs to no screen. Created here rather than in [AppContainer]
+     * because the first thing that needed it, the capture sweep below, is a startup concern of the
+     * process, not a dependency any screen asks for. [SupervisorJob] so one failed job does not
+     * cancel the scope for the next.
+     */
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
+        val startedAt = System.currentTimeMillis()
+        diagnostics = DebugDiagnostics.install(this)
         container = AppContainer(this)
         installCrashHandler()
+        sweepOrphanedCaptures(startedAt)
     }
 
     /**
@@ -24,5 +50,26 @@ class ForagerApplication : Application() {
         Thread.setDefaultUncaughtExceptionHandler(
             CrashUncaughtExceptionHandler(container.crashFileStore, Build.VERSION.SDK_INT, previousHandler),
         )
+    }
+
+    /**
+     * [CameraCaptureFiles.sweepOrphans], off the main thread. **`onCreate` runs on the main
+     * thread**; a directory walk and a batch of deletes do not belong on it, and this is dispatched
+     * explicitly rather than assumed to be elsewhere — a draft of this change said the sweep "runs
+     * off-main" as though `onCreate` did, which it does not (reviewer's correction, 2026-09-14).
+     * Logged at INFO when it deletes anything, because a count here is the only evidence the
+     * pre-existing leak left anything behind on a given install.
+     */
+    private fun sweepOrphanedCaptures(processStartedAtMillis: Long) {
+        applicationScope.launch {
+            val deleted = container.cameraCaptureFiles.sweepOrphans(processStartedAtMillis)
+            if (deleted > 0) Log.i(TAG, "Deleted $deleted orphaned capture file(s) left by an earlier process.")
+            // The same number, somewhere a phone with no logcat can read it (debug builds only).
+            diagnostics.recordSweep(deleted)
+        }
+    }
+
+    private companion object {
+        const val TAG = "ForagerApplication"
     }
 }

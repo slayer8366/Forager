@@ -502,6 +502,16 @@ dependencies {
     implementation(libs.nga.mgrs)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.exifinterface)
+    // The in-app camera. camera-view (a PreviewView inside AndroidView) rather than
+    // androidx.camera:camera-compose's CameraXViewfinder: the Compose-native viewfinder is the
+    // newer API and would avoid the AndroidView hop, but neither can be exercised in this project's
+    // test harness (no camera under Robolectric), so the deciding factor is which API is better
+    // established on the device where it will first actually run. PreviewView.surfaceProvider has
+    // been stable across the whole 1.x line.
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 
     debugImplementation(libs.androidx.ui.tooling)
 
@@ -529,6 +539,10 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.robolectric)
+    // MigrationTestHelper (wire-migration-tests dispatch, 2026-09-13). Reads exported schema JSON
+    // through the Instrumentation context's AssetManager; how app/schemas/ reaches that under
+    // Robolectric is what MigrationSchemaProbeTest establishes.
+    testImplementation(libs.androidx.room.testing)
 }
 
 /**

@@ -31,7 +31,6 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
@@ -115,9 +114,14 @@ import java.time.LocalDate
 @Composable
 internal fun JournalTab(
     uiState: MushroomLogUiState,
-    cameraCaptureFiles: CameraCaptureFiles,
+    /** The Camera buttons of this tab's three surfaces call up to one hoisted dialog — see [InAppCameraHost]. */
+    onOpenCameraForLogEntry: () -> Unit,
+    onOpenCameraForAlbum: () -> Unit,
+    onOpenCameraForCartographyEntry: () -> Unit,
     mapSlot: MapSlot,
     pickerRegion: Region,
+    /** The device's current position, if one is in hand — opens the Add/Change Location picker there instead of on [pickerRegion] (find-location-at-creation dispatch, Fix 3; see [findLocationPickerRegion]). Defaulted so callers and tests that have no fix are unchanged. */
+    deviceLocation: LatLng? = null,
     basemap: Basemap,
     /** Night mode for the location picker this hosts, and the Records tab's Offline Maps picker — see [CentrePinLocationPicker]. */
     night: Boolean = false,
@@ -304,7 +308,7 @@ internal fun JournalTab(
         when {
             editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
                 mapSlot = mapSlot,
-                region = pickerRegion,
+                region = findLocationPickerRegion(deviceLocation, pickerRegion),
                 basemap = basemap,
                 night = night,
                 onConfirm = { location ->
@@ -331,7 +335,7 @@ internal fun JournalTab(
                 // whose in-flight state matters at a time. Reusing both rather than defaulting
                 // them to no-ops, which would have rendered live Camera/Import buttons that
                 // silently discarded whatever they captured.
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = onOpenCameraForLogEntry,
                 onPhotoAcquired = onAddPhoto,
                 onAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
                 modifier = Modifier.weight(1f),
@@ -339,7 +343,7 @@ internal fun JournalTab(
 
             editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(
                 entry = editing,
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCamera = onOpenCameraForLogEntry,
                 onEntryChanged = onEntryChanged,
                 onAddPhoto = onAddPhoto,
                 onRemovePhoto = onRemovePhoto,
@@ -417,7 +421,8 @@ internal fun JournalTab(
                 galleryLoadErrorMessage = galleryLoadErrorMessage,
                 galleryPhotoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
                 onDeleteGalleryPhoto = onDeleteGalleryPhoto,
-                cameraCaptureFiles = cameraCaptureFiles,
+                onOpenCameraForAlbum = onOpenCameraForAlbum,
+                onOpenCameraForEntry = onOpenCameraForCartographyEntry,
                 onAddGalleryPhoto = onAddGalleryPhoto,
                 distanceUnit = distanceUnit,
                 mapSlot = mapSlot,

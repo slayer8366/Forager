@@ -1,0 +1,55 @@
+# PURPOSE (owner, 2026-09-15): a record of a known-bad host configuration, not a gate. Local runs move to Linux (WSL2), where every line here reads ABSENT and nothing NEW; kept so the same 43 can be recognised if anyone runs the suite on a Windows JVM again, and so scripts/compare-test-baseline.sh can catch a drift back. Unfixed on purpose: A and B are library checks for an environment being retired, C would trade readable test names for a Windows-only limit.
+# Windows-host unit-test baseline: tests expected to FAIL when the suite runs under Robolectric on a Windows JVM.
+# CI (Linux) is the authority and is green; every ID here fails on Windows for one of three host mechanisms.
+# Measured 2026-09-15 by full-suite runs in the same checkout at b586195 (194 suites, 1515 tests) and at 017d6ca
+# (198 suites, 1540 tests): 43 failing IDs at each, identical by ID (comm -3 empty). Host: Windows 11 Home 26200,
+# Android Studio JBR, Robolectric 4.16.1, %TEMP% = C:\Users\<user>\AppData\Local\Temp.
+# Groups (see docs/audits/2026-09-15-windows-host-test-failures-classified.md):
+#   A  androidx.core FileProvider.SimplePathStrategy.belongsToRoot matches roots with a hard-coded "/" (FileProvider.java:972); Windows canonical paths use "\", so no root matches.
+#   A2 downstream of A: DiagnosticsPanel catches the FileProvider failure and starts no chooser, so the test times out waiting for one.
+#   B  androidx.sqlite SupportSQLiteDriver.open compares database names with substringAfterLast("/") (SupportSQLiteDriver.android.kt:48); a Windows path yields the whole path.
+#   C  Windows MAX_PATH: the Robolectric temp directory is named after the test class and method, and these database paths are 260-272 characters.
+# Format: group<TAB>classname#method. Compare a run against this file with scripts/compare-test-baseline.sh.
+C	com.zynergylabs.forager.app.data.local.CartographyEntryMigrationTest#a pre-existing mushroom log entry survives the 10 to 11 migration intact, and every new cartography_entry table round-trips through the real repository
+C	com.zynergylabs.forager.app.data.local.DayScopedIndexMigrationTest#pre-existing rows in all four indexed tables survive the 9 to 10 migration, and the new day-scoped queries find them
+C	com.zynergylabs.forager.app.data.local.LogPhotoMigrationTest#an existing entry-photo relationship survives as a cross-reference, and a new photo can be shared between two entries
+C	com.zynergylabs.forager.app.data.local.MushroomLogDraftMigrationTest#a pre-existing entry survives the 8 to 9 migration intact and is marked committed, never draft
+C	com.zynergylabs.forager.app.data.local.MushroomLogEntryMigrationTest#a pre-existing entry keeps its coordinates, and a new entry saved with no location round-trips as null
+C	com.zynergylabs.forager.app.data.local.MushroomLogMigrationTest#planned trips and cached searches survive the 3 to 4 migration intact, and the new tables are usable
+C	com.zynergylabs.forager.app.data.local.OfflineRegionMigrationTest#planned trips and mushroom log entries survive the 5 to 6 migration intact, offlineRegionId is null for the pre-existing entry, and offline_regions is usable
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#10 to 11 - six cartography tables appear, existing rows survive
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#11 to 12 - the photo rebuild adds null latitude and longitude, path carried
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#12 to 13 - waypoints and tracks rebuild with null links, values carried
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#13 to 14 - the waypoint rebuild adds null designation, trackId carried
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#14 to 15 - the track_points rebuild adds null speed columns, fix carried
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#4 to 15 - the full chain, validated against 15_json, every seeded value survives
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#4 to 5 - existing rows survive, three track tables appear
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#5 to 6 - offlineRegionId is added null, offline_regions appears
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#6 to 7 - the entries rebuild carries lat and lng through the NOT NULL drop
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#7 to 8 - a photo's entryId becomes a log_entry_photos cross-reference
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#8 to 9 - a pre-existing entry is committed, never draft
+B	com.zynergylabs.forager.app.data.local.SchemaMigrationTest#9 to 10 - day-scoped indexes are added and rows are untouched
+C	com.zynergylabs.forager.app.data.local.TrackOriginWaypointMigrationTest#pre-existing tracks and waypoints survive the 12 to 13 migration with null links, and the new columns round-trip
+C	com.zynergylabs.forager.app.data.local.TrackPointSpeedMigrationTest#a pre-existing point survives 14 to 15 with no speed, and points with and without speed round-trip
+C	com.zynergylabs.forager.app.data.local.TrackWaypointMigrationTest#planned trips and mushroom log entries survive the 4 to 5 migration intact, and the new tables are usable
+C	com.zynergylabs.forager.app.data.local.WaypointDesignationMigrationTest#a pre-existing linked waypoint survives 13 to 14 with no designation, and designated waypoints round-trip
+A	com.zynergylabs.forager.app.photo.CameraCaptureFilesTest#newCapture issues a content URI under captures and creates the directory but not the file
+A	com.zynergylabs.forager.app.photo.FilePhotoStoreTest#a persisted capture's scratch file is deleted once its bytes are copied
+A	com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest#the Album's Camera button opens the camera for the Album
+A	com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest#the camera survives the width-class flip a rotation causes, and its photo still routes
+A	com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettingsPanelTest#tapping a track's share action starts a real ACTION_SEND chooser for a GPX file
+A	com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest#a photo persisted by FilePhotoStore and a capture issued by CameraCaptureFiles both appear
+A2	com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest#listing, viewing and sharing leave both directories byte for byte as they were
+A2	com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest#sharing a photo starts an ACTION_SEND chooser with a content URI naming that file
+A2	com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest#sharing the log starts a text chooser with a content URI for the log file
+A	com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest#Done dismisses, and the photos already taken are not withdrawn
+A	com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest#a failed capture is shown, the count does not move, and nothing is handed up
+A	com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest#a failed capture leaves no file behind
+A	com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest#a photo is handed over as it lands, before the camera is dismissed
+A	com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest#each shot goes to its own file
+A	com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest#the camera stays open across several shots and hands up one photo per tap
+A	com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest#the failure message clears on the next successful shot
+A	com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest#the running count is the only feedback and it reads as a sentence
+A	com.zynergylabs.forager.app.ui.log.InAppCameraHostTest#a photo for a Cartography entry goes to that callback and nowhere else
+A	com.zynergylabs.forager.app.ui.log.InAppCameraHostTest#a photo for a find goes to the find's callback and nowhere else
+A	com.zynergylabs.forager.app.ui.log.InAppCameraHostTest#a photo for the Album goes to the Album's callback and nowhere else

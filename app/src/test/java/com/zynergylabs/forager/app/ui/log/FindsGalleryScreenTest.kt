@@ -155,4 +155,22 @@ class FindsGalleryScreenTest {
 
         composeRule.onNodeWithText("Album").assertDoesNotExist()
     }
+
+    /**
+     * Owner ruling, 2026-09-13: the "Incomplete" badge is gone. This entry has every morphology
+     * field unrecorded — exactly what used to earn the badge — and is committed, not a draft, so
+     * nothing else may take the badge's place: the date stands alone.
+     */
+    @Test
+    fun `a committed find with nothing recorded shows its date alone, no Incomplete badge`() {
+        val bare = MushroomLogEntry.draft(id = "entry-1", location = null, date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+
+        composeRule.setContent {
+            FindsGalleryScreen(entries = listOf(bare), isLoading = false, onOpenEntry = {}, onAddEntry = {})
+        }
+
+        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithText("Incomplete").assertDoesNotExist()
+        composeRule.onNodeWithText("Draft").assertDoesNotExist()
+    }
 }
