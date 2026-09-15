@@ -119,12 +119,20 @@ scope for this dispatch — see the photo-geodata amendment's decision 5."* `scr
 does exactly that stripping, for captures, since 2026-09-14, so decision 5 is reversed for the
 capture half and stands for imports.
 
-**The amendment itself is not in this tree.** Five source files cite it (`MushroomLogViewModel.kt:159`,
-`Migrations.kt:724`, `FilePhotoStore.kt`, `PhotoAcquisitionLaunchers.kt`, `LogPhotoEntity.kt`), and
-no file under `docs/` contains the word "geodata" (grep, 2026-09-15). Decision 5's content is
-known here only from that quoted header. Whether the amendment exists on another branch was not
-checked; the same happened with a pulse document earlier in PR #102, which turned up at the head
-of an unmerged branch. Recorded as unverified rather than cited as if read.
+**The amendment was never a document in this repository. Closed, not left open.** Five source
+files cite it (`MushroomLogViewModel.kt:159`, `Migrations.kt:724`, `FilePhotoStore.kt`,
+`PhotoAcquisitionLaunchers.kt`, `LogPhotoEntity.kt`); no file under `docs/` contains the word
+"geodata". A first draft of this section stopped there and said "not in this tree", which invites
+the next reader to go looking. The owner asked for the one search that settles it, and it was run
+on 2026-09-15: `git log --all -S geodata` over every ref and the reflog, restricted to Markdown.
+The only Markdown file that has ever contained the word is the root `README.md`, from `5aff997`
+("Add camera-GPS and EXIF location data to photos", 2026-09-02) onward, and what it says is one
+line: the `PhotoSource` implementations were "split in two (photo-geodata dispatch)". No file has
+ever had "geodata" in its name. So the amendment, with its numbered decisions, was a planning
+document outside this repository — a dispatch and its amendment, read by the sessions that built
+against them — and is preserved here only in the code comments that cite it: decision 3 at
+`Migrations.kt:724`, decision 5 in the sentence `FilePhotoStore.kt`'s header used to carry, quoted
+above. That is the whole surviving record, and this ADR is now the place that says so.
 
 Why reversed: the redaction decision 5 relied on is a `MediaStore` behaviour and never applied to
 a capture, whose URI is this app's own `FileProvider` (found 2026-09-14). The premise did not hold
