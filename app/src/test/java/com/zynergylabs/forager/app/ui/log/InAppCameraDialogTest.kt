@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import android.app.Application
+import android.graphics.ImageFormat
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -22,6 +24,8 @@ import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
+import com.zynergylabs.forager.app.photo.CaptureOutcome
+import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import java.io.File
 import kotlinx.coroutines.runBlocking
@@ -48,10 +52,8 @@ import org.robolectric.annotation.Config
  * **nothing** about whether a real camera opens, whether the viewfinder draws, or whether a
  * captured JPEG is right-way-up. Those are device checks, listed as such in the completion report.
  *
- * The fake writes a real file for each successful capture, because the production code creates a
- * destination through [CameraCaptureFiles] and deletes it again on failure; a fake that only
- * returned a `Result` would let a "the failed capture's empty file is cleaned up" assertion pass
- * without there being a file either way.
+ * The fake is [FakeCameraCaptureSession], shared since the groundwork PR; its doc carries what it
+ * scripts and why it writes real files.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -101,35 +103,6 @@ class InAppCameraDialogTest {
     private val captured = mutableListOf<PhotoSource>()
     private var dismissals = 0
 
-    private class FakeSession(
-        override var state: CameraSessionState = CameraSessionState.Ready,
-        private var failing: Boolean = false,
-    ) : CameraCaptureSession {
-        var captureCalls = 0
-            private set
-
-        fun failEveryCapture() { failing = true }
-
-        fun recover() { failing = false }
-
-        override suspend fun capture(destination: File): Result<Unit> {
-            captureCalls += 1
-            destination.parentFile?.mkdirs()
-            if (failing) {
-                // A partial file, *then* the failure. This is the case the production cleanup
-                // exists for and the only one in which it can be observed: a camera that errors
-                // before writing anything leaves nothing to clean up, so a fake that simply
-                // returned a failure would make `a failed capture leaves no file behind` pass
-                // whether or not the screen deleted anything. A revert check caught exactly that
-                // — see this class's own note on it.
-                destination.writeBytes(byteArrayOf(0xFF.toByte()))
-                return Result.failure(IllegalStateException("the camera said no"))
-            }
-            destination.writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte()))
-            return Result.success(Unit)
-        }
-    }
-
     @Composable
     private fun Subject(session: CameraCaptureSession) {
         InAppCameraDialog(
@@ -146,7 +119,7 @@ class InAppCameraDialogTest {
     /** The headline: the camera does not close after one photo. This is what the owner asked for. */
     @Test
     fun `the camera stays open across several shots and hands up one photo per tap`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
 
         repeat(4) {
@@ -167,7 +140,7 @@ class InAppCameraDialogTest {
      */
     @Test
     fun `a photo is handed over as it lands, before the camera is dismissed`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
@@ -181,7 +154,7 @@ class InAppCameraDialogTest {
     /** Every photo gets its own destination. A reused one would silently overwrite the last shot. */
     @Test
     fun `each shot goes to its own file`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
 
         repeat(3) {
@@ -195,7 +168,7 @@ class InAppCameraDialogTest {
 
     @Test
     fun `the running count is the only feedback and it reads as a sentence`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithText("No photos yet").assertIsDisplayed()
@@ -211,7 +184,7 @@ class InAppCameraDialogTest {
 
     @Test
     fun `Done dismisses, and the photos already taken are not withdrawn`() {
-        val session = FakeSession()
+        val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
         composeRule.waitForIdle()
@@ -232,7 +205,7 @@ class InAppCameraDialogTest {
      */
     @Test
     fun `a failed capture is shown, the count does not move, and nothing is handed up`() {
-        val session = FakeSession().apply { failEveryCapture() }
+        val session = FakeCameraCaptureSession().apply { failEveryCapture() }
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
@@ -247,7 +220,7 @@ class InAppCameraDialogTest {
     /** The empty destination is cleaned up, so the persist path never meets a zero-byte file. */
     @Test
     fun `a failed capture leaves no file behind`() {
-        val session = FakeSession().apply { failEveryCapture() }
+        val session = FakeCameraCaptureSession().apply { failEveryCapture() }
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
@@ -264,7 +237,7 @@ class InAppCameraDialogTest {
      */
     @Test
     fun `the failure message clears on the next successful shot`() {
-        val session = FakeSession().apply { failEveryCapture() }
+        val session = FakeCameraCaptureSession().apply { failEveryCapture() }
         composeRule.setContent { Subject(session) }
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
         composeRule.waitForIdle()
@@ -283,7 +256,7 @@ class InAppCameraDialogTest {
 
     @Test
     fun `an unavailable camera says why, and the shutter cannot be used`() {
-        val session = FakeSession(state = CameraSessionState.Unavailable("This device has no camera available."))
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Unavailable("This device has no camera available."))
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_UNAVAILABLE_TAG).assertIsDisplayed()
@@ -293,7 +266,7 @@ class InAppCameraDialogTest {
 
     @Test
     fun `a camera still opening shows progress rather than a dead viewfinder`() {
-        val session = FakeSession(state = CameraSessionState.Opening)
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Opening)
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_OPENING_TAG).assertIsDisplayed()
@@ -303,7 +276,7 @@ class InAppCameraDialogTest {
     /** Dismissal has to work from a camera that never opened, or the user is stuck on a black screen. */
     @Test
     fun `an unavailable camera can still be dismissed`() {
-        val session = FakeSession(state = CameraSessionState.Unavailable("The camera is in use by another app."))
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Unavailable("The camera is in use by another app."))
         composeRule.setContent { Subject(session) }
 
         composeRule.onNodeWithTag(CAMERA_DONE_TAG).performClick()
@@ -341,13 +314,35 @@ class InAppCameraDialogTest {
         val written = File(context.cacheDir, "probe/written.jpg")
         val partial = File(context.cacheDir, "probe/partial.jpg")
 
-        val success = runBlocking { FakeSession().capture(written) }
-        val failure = runBlocking { FakeSession().apply { failEveryCapture() }.capture(partial) }
+        val success = runBlocking { FakeCameraCaptureSession().capture(written) }
+        val failure = runBlocking { FakeCameraCaptureSession().apply { failEveryCapture() }.capture(partial) }
 
         assertTrue(success.isSuccess)
         assertTrue("a successful capture leaves a file", written.exists())
+        assertEquals("and names what it wrote", CaptureOutcome(written, ImageFormat.JPEG), success.getOrThrow())
         assertTrue(failure.isFailure)
         assertTrue("and a failed one leaves a stub for the screen to clean up", partial.exists())
         assertFalse("which is not a whole photo", partial.readBytes().size > 1)
+    }
+
+    // ── The fake's state is observable ───────────────────────────────────────────────────────
+
+    /**
+     * The one property the private fake lacked: a state flipped after composition must recompose
+     * the screen. This is what every later mode's tests need (a torch that turns on, a focus that
+     * locks) and it would silently pass through a plain `var`. With the original fake, this test
+     * fails at the second assertion — the shutter stays disabled because nothing observed the flip.
+     */
+    @Test
+    fun `a session that becomes ready after composition enables the shutter`() {
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Opening)
+        composeRule.setContent { Subject(session) }
+        composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).assertIsNotEnabled()
+
+        session.state = CameraSessionState.Ready
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).assertIsEnabled()
+        composeRule.onNodeWithTag(CAMERA_OPENING_TAG).assertDoesNotExist()
     }
 }
