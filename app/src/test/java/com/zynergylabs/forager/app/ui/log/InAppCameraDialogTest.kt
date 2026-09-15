@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import android.app.Application
+import android.graphics.ImageFormat
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.height
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -39,6 +41,7 @@ import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
+import com.zynergylabs.forager.app.photo.CaptureOutcome
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import java.io.File
@@ -403,9 +406,31 @@ class InAppCameraDialogTest {
 
         assertTrue(success.isSuccess)
         assertTrue("a successful capture leaves a file", written.exists())
+        assertEquals("and names what it wrote", CaptureOutcome(written, ImageFormat.JPEG), success.getOrThrow())
         assertTrue(failure.isFailure)
         assertTrue("and a failed one leaves a stub for the screen to clean up", partial.exists())
         assertFalse("which is not a whole photo", partial.readBytes().size > 1)
+    }
+
+    /**
+     * A state flipped from outside after composition must recompose the screen (groundwork PR,
+     * 2026-09-15). The opening test above covers a flip made by [FakeCameraCaptureSession.open];
+     * this one covers a flip the screen did not cause, which is what later modes need (a torch
+     * that turns on, a focus that locks) and which a plain `var` would let pass silently.
+     * `readyOnOpen = false` keeps the session `Opening` through the screen's own open call, so the
+     * flip below is the only thing that can enable the shutter.
+     */
+    @Test
+    fun `a session that becomes ready after composition enables the shutter`() {
+        val session = FakeCameraCaptureSession(state = CameraSessionState.Opening, readyOnOpen = false)
+        composeRule.setContent { Subject(session) }
+        composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).assertIsNotEnabled()
+
+        session.state = CameraSessionState.Ready
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).assertIsEnabled()
+        composeRule.onNodeWithTag(CAMERA_OPENING_TAG).assertDoesNotExist()
     }
 
     // ── The strip, the bands and the window chrome (camera overlay spec, 2026-09-18) ────────

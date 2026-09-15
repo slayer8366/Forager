@@ -269,8 +269,7 @@ internal class CameraXCaptureSession(
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .build()
-                    provider.unbindAll()
-                    val boundCamera = provider.bindToLifecycle(lifecycleOwner, selector, newPreview, capture)
+                    val boundCamera = bindUseCases(provider, lifecycleOwner, selector, listOf(newPreview, capture))
                     Triple(newPreview, capture, boundCamera)
                 }.fold(
                     onSuccess = { (newPreview, capture, boundCamera) ->
@@ -329,7 +328,7 @@ internal class CameraXCaptureSession(
         imageCapture = capture
     }
 
-    override suspend fun capture(destination: File): Result<Unit> {
+    override suspend fun capture(destination: File): Result<CaptureOutcome> {
         val capture = imageCapture
             ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
         // Per shot, from the device's own orientation — see the class doc for why not the display.
@@ -370,7 +369,7 @@ internal class CameraXCaptureSession(
                 ContextCompat.getMainExecutor(appContext),
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onImageSaved(results: ImageCapture.OutputFileResults) {
-                        continuation.resume(Result.success(Unit))
+                        continuation.resume(Result.success(CaptureOutcome(destination, results.imageFormat)))
                     }
 
                     override fun onError(exception: ImageCaptureException) {
@@ -455,6 +454,24 @@ internal class CameraXCaptureSession(
         }
 
         AndroidView(factory = { view }, modifier = modifier)
+    }
+
+    /**
+     * The one place use cases meet a selector and a lifecycle (groundwork PR, 2026-09-15). A third
+     * use case — `ImageAnalysis` for a burst — is built by the caller and added to [useCases]; a
+     * different selector — an extension-enabled one for OEM Night — is passed in. Neither touches
+     * this body. `SessionConfig` and its `bindToLifecycle(LifecycleOwner, CameraSelector,
+     * SessionConfig)` overload exist in the pinned 1.6.2 artifacts (confirmed by `javap`) and are
+     * the path if the varargs bind ever becomes awkward; ADR 0003 records that.
+     */
+    private fun bindUseCases(
+        provider: ProcessCameraProvider,
+        lifecycleOwner: LifecycleOwner,
+        selector: CameraSelector,
+        useCases: List<UseCase>,
+    ): Camera {
+        provider.unbindAll()
+        return provider.bindToLifecycle(lifecycleOwner, selector, *useCases.toTypedArray())
     }
 
     private companion object {

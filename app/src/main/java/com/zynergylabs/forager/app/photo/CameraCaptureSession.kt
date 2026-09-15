@@ -60,9 +60,24 @@ internal interface CameraCaptureSession {
      * Returns [Result] rather than throwing, and rather than a `Boolean`: a failed capture must
      * reach the user as a failure carrying its cause, not as a silently skipped photo. CLAUDE.md,
      * on partial results never being presented as success.
+     *
+     * The success value is a [CaptureOutcome], not `Unit` (groundwork PR, 2026-09-15): the return
+     * type is the one thing every later capture mode has to widen, and widening it now costs five
+     * edit sites while widening it under a burst or RAW feature costs those plus the feature.
      */
-    suspend fun capture(destination: File): Result<Unit>
+    suspend fun capture(destination: File): Result<CaptureOutcome>
 }
+
+/**
+ * What one successful capture produced. [file] is the destination the caller supplied, returned
+ * so a caller holding several in flight can pair each outcome with its capture without a closure.
+ * [imageFormat] is the `android.graphics.ImageFormat` constant CameraX reports for the written
+ * image — `JPEG` today; the value RAW research will read. It is the only datum
+ * `ImageCapture.OutputFileResults` provides in 1.6.2 that the file does not already imply (the
+ * other, `savedUri`, is the same destination). **No production reader yet**, by design and
+ * recorded in ADR 0003; the fake and its tests are the readers until a capture mode is.
+ */
+internal data class CaptureOutcome(val file: File, val imageFormat: Int)
 
 /**
  * Three states, not a nullable camera. [Unavailable] carries its own reason because "the camera

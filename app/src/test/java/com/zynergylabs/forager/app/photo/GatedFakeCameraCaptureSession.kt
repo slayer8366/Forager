@@ -32,5 +32,5 @@ internal class GatedFakeCameraCaptureSession(
     override val state: CameraSessionState get() = inner.state
     override fun open(lifecycleOwner: LifecycleOwner) = inner.open(lifecycleOwner)
     override fun close() = inner.close()
-    override suspend fun capture(destination: File): Result<Unit> = inner.capture(destination)
+    override suspend fun capture(destination: File): Result<CaptureOutcome> = inner.capture(destination)
 }

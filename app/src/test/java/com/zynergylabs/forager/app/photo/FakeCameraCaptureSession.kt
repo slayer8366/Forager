@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.photo
 
+import android.graphics.ImageFormat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,7 +20,8 @@ import java.io.File
  *   provider that has not resolved yet. It never changes an `Unavailable` state: that models an
  *   open that failed. [close] only counts. Both count calls so a test can assert the screen
  *   opens once on enter and closes once on leave, which is the lifecycle the fix hangs on.
- * - [capture] writes a real file. On success, two bytes. On failure — after [failEveryCapture],
+ * - [capture] writes a real file. On success, two bytes and a [CaptureOutcome] naming the
+ *   destination and [ImageFormat.JPEG]. On failure — after [failEveryCapture],
  *   until [recover] — **a one-byte stub and then** `Result.failure`. The stub is the point: a
  *   camera that errors mid-write leaves something behind, and a fake that wrote nothing would let
  *   "a failed capture leaves no file behind" pass whether or not the screen cleaned up. A revert
@@ -58,7 +60,7 @@ internal class FakeCameraCaptureSession(
         closeCalls += 1
     }
 
-    override suspend fun capture(destination: File): Result<Unit> {
+    override suspend fun capture(destination: File): Result<CaptureOutcome> {
         captureCalls += 1
         destination.parentFile?.mkdirs()
         if (failing) {
@@ -66,6 +68,6 @@ internal class FakeCameraCaptureSession(
             return Result.failure(IllegalStateException("the camera said no"))
         }
         destination.writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte()))
-        return Result.success(Unit)
+        return Result.success(CaptureOutcome(destination, ImageFormat.JPEG))
     }
 }
