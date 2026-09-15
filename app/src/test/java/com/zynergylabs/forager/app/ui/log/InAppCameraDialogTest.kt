@@ -120,6 +120,7 @@ class InAppCameraDialogTest {
         InAppCameraDialog(
             session = session,
             cameraCaptureFiles = CameraCaptureFiles(context),
+            lockToPortrait = false,
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
             viewfinder = viewfinder,

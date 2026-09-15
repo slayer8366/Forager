@@ -58,7 +58,7 @@ class WindowOrientationLockTest {
     private var setShown: (Boolean) -> Unit = {}
     private val session = FakeCameraCaptureSession()
 
-    private fun setDialog() {
+    private fun setDialog(lockToPortrait: Boolean) {
         composeRule.setContent {
             var shown by remember { mutableStateOf(true) }
             setShown = { shown = it }
@@ -66,6 +66,7 @@ class WindowOrientationLockTest {
                 InAppCameraDialog(
                     session = session,
                     cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
+                    lockToPortrait = lockToPortrait,
                     onPhotoCaptured = {},
                     onDismiss = {},
                     viewfinder = { modifier -> Box(modifier) },
@@ -75,12 +76,12 @@ class WindowOrientationLockTest {
     }
 
     @Test
-    fun `the window is held portrait while the camera is open and the previous request is put back after`() {
+    fun `setting on, the window is forced portrait while the camera is open and the previous request is put back after`() {
         // A non-default previous value, so "restored" is distinguishable from "reset to unspecified".
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
-        setDialog()
+        setDialog(lockToPortrait = true)
 
-        assertEquals("a fixed portrait, not LOCKED: the frame is identical every time the camera opens", ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, composeRule.activity.requestedOrientation)
+        assertEquals("forced portrait is the point of the setting", ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, composeRule.activity.requestedOrientation)
 
         setShown(false)
         composeRule.waitForIdle()
@@ -88,11 +89,29 @@ class WindowOrientationLockTest {
     }
 
     @Test
+    fun `setting off, the window is pinned where it already is, LOCKED, and the previous request is put back after`() {
+        composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
+        setDialog(lockToPortrait = false)
+
+        assertEquals("nothing forced, so no flip: LOCKED keeps whatever the window was at open", ActivityInfo.SCREEN_ORIENTATION_LOCKED, composeRule.activity.requestedOrientation)
+
+        setShown(false)
+        composeRule.waitForIdle()
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_USER, composeRule.activity.requestedOrientation)
+    }
+
+    @Test
+    fun `the lock value is a pure function of the setting`() {
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, windowLockFor(lockToPortrait = true))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_LOCKED, windowLockFor(lockToPortrait = false))
+    }
+
+    @Test
     fun `with no Activity behind the context nothing is locked and nothing crashes`() {
         val app = ApplicationProvider.getApplicationContext<Application>()
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         composeRule.setContent {
-            CompositionLocalProvider(LocalContext provides app) { LockWindowOrientation() }
+            CompositionLocalProvider(LocalContext provides app) { LockWindowOrientation(lockToPortrait = true) }
         }
         composeRule.waitForIdle()
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, composeRule.activity.requestedOrientation)
@@ -100,7 +119,9 @@ class WindowOrientationLockTest {
 
     @Test
     fun `Done and the count keep their centres when the device turns, and turn their bounds in place`() {
-        setDialog()
+        // A portrait window (the class's qualifiers) with the setting off: the portrait arrangement,
+        // whose controls turn. The landscape arrangement's controls do not; InAppCameraDialogLandscapeTest.
+        setDialog(lockToPortrait = false)
         val doneBefore = composeRule.onNodeWithTag(CAMERA_DONE_TAG).getBoundsInRoot()
         val countBefore = composeRule.onNodeWithTag(CAMERA_COUNT_TAG).getBoundsInRoot()
 

@@ -53,6 +53,7 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToP
     InAppCameraDialog(
         session = session,
         cameraCaptureFiles = cameraCaptureFiles,
+        lockToPortrait = lockToPortrait,
         onPhotoCaptured = onPhotoCaptured,
         onDismiss = onDismiss,
         viewfinder = { modifier -> session.Viewfinder(modifier) },

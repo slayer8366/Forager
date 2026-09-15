@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +28,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -34,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -80,6 +83,19 @@ import kotlinx.coroutines.launch
  * The running count is the only feedback during a session, deliberately. Showing a thumbnail of the
  * last shot invites reviewing in here, which is the flow the owner asked to move to afterwards.
  *
+ * ## Two arrangements, one chosen at open and held (device check on `51882cb`, step 3.4)
+ *
+ * Owner's ruling, superseding the earlier orientation-lock decisions: nothing in the camera layout
+ * moves while the camera is open, and in a landscape window the shutter is on the right edge,
+ * never along the bottom. The window lock became conditional on the setting
+ * ([LockWindowOrientation]: `LOCKED` off, `PORTRAIT` on) and this dialog gained a landscape
+ * arrangement, chosen once from the setting and the window's shape at open ([cameraArrangement])
+ * and never reflowed — the `remember` below has no configuration key on purpose. Portrait is the
+ * layout that existed before, unchanged; landscape puts the shutter on the right edge, vertically
+ * centred, the count beside it, Done top-left, all upright: the window already matches the grip,
+ * so `rotateWithDevice` does not apply there. The controls' angle in the portrait arrangement, the
+ * sensor-minus-display expression, is as it was.
+ *
  * ## What is tested, and what a green suite here does not mean
  *
  * [session] is [CameraCaptureSession], and [viewfinder] is a slot, so everything below is exercised
@@ -94,6 +110,8 @@ import kotlinx.coroutines.launch
 internal fun InAppCameraDialog(
     session: CameraCaptureSession,
     cameraCaptureFiles: CameraCaptureFiles,
+    /** Settings' "Lock camera to portrait": decides the window lock and, with the window's shape at open, the arrangement. */
+    lockToPortrait: Boolean,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -114,10 +132,19 @@ internal fun InAppCameraDialog(
         onDispose { session.close() }
     }
 
-    // The window stays put while the camera is open and the controls turn in place instead —
-    // owner's requirement of 2026-09-15, reasoning on LockWindowOrientation and rotateWithDevice.
-    // Outside the Dialog so the context here is the Activity's, not the dialog window's.
-    LockWindowOrientation()
+    // The window stays put while the camera is open — pinned where it is, or forced portrait, by
+    // the setting; reasoning on LockWindowOrientation. Outside the Dialog so the context here is
+    // the Activity's, not the dialog window's.
+    LockWindowOrientation(lockToPortrait)
+
+    // The arrangement is chosen once, at open, from the setting and the window's shape as the
+    // Activity's configuration reports it in this first composition, and held: `remember` with
+    // no configuration key, on purpose. The lock above is what makes the held value right for
+    // the life of the dialog (LOCKED pins the shape read here; PORTRAIT makes the setting-on
+    // answer portrait whatever was read). Reading LocalConfiguration.current outside `remember`
+    // would reflow if the window ever did turn, which is the one thing that must not happen.
+    val windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val arrangement = remember(lockToPortrait) { cameraArrangement(lockToPortrait, windowIsLandscape) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -148,72 +175,128 @@ internal fun InAppCameraDialog(
                 CameraSessionState.Ready -> viewfinder(Modifier.fillMaxSize())
             }
 
+            val shutterEnabled = session.state == CameraSessionState.Ready && !isCapturing
+            val onShutter: () -> Unit = {
+                // Guarded here as well as by `enabled`: a second tap landing in the same frame as
+                // the first would otherwise open two captures onto two files, and the shutter is
+                // exactly the control people double-tap.
+                if (!isCapturing) {
+                    isCapturing = true
+                    captureError = null
+                    scope.launch {
+                        val capture = cameraCaptureFiles.newCapture()
+                        session.capture(capture.file).fold(
+                            onSuccess = {
+                                photosTaken += 1
+                                onPhotoCaptured(CameraCapturePhotoSource(capture))
+                            },
+                            onFailure = {
+                                // The empty destination is cleaned up rather than left as a
+                                // zero-byte file the persist path would later try to read.
+                                // Reported, never swallowed (CLAUDE.md).
+                                cameraCaptureFiles.deleteCapture(capture)
+                                captureError = CAPTURE_FAILED_MESSAGE
+                            },
+                        )
+                        isCapturing = false
+                    }
+                }
+            }
+
             // Controls sit inside the real system-bar insets; the viewfinder behind them does not.
             // Robolectric reports zero insets, so this padding is device-only by construction
             // (CLAUDE.md, known pitfalls) — nothing below says anything about it.
             Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(Spacing.sm)
-                        .rotateWithDevice(session.deviceRotation)
-                        .testTag(CAMERA_DONE_TAG),
-                ) {
-                    Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
-                    Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
-                }
+                when (arrangement) {
+                    // Exactly as it was before the landscape arrangement existed: Done top-left,
+                    // count and shutter along the bottom, every control turning in place with the
+                    // device (sensor minus display; see rotateWithDevice).
+                    CameraArrangement.Portrait -> {
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(Spacing.sm)
+                                .rotateWithDevice(session.deviceRotation)
+                                .testTag(CAMERA_DONE_TAG),
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
+                            Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
+                        }
 
-                Column(
-                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(Spacing.lg),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    captureError?.let { message ->
-                        Text(
-                            message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_ERROR_TAG),
-                        )
+                        Column(
+                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(Spacing.lg),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        ) {
+                            captureError?.let { message ->
+                                Text(
+                                    message,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_ERROR_TAG),
+                                )
+                            }
+
+                            Text(
+                                photoCountLabel(photosTaken),
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_COUNT_TAG),
+                            )
+
+                            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+                            }
+                        }
                     }
 
-                    Text(
-                        photoCountLabel(photosTaken),
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_COUNT_TAG),
-                    )
+                    // A landscape window, pinned where it is: the shutter on the right edge,
+                    // vertically centred, where the right thumb of a two-handed landscape grip
+                    // already is; the count (and a failure) beside it, not under it; Done
+                    // top-left. Upright, every one of them, and no rotateWithDevice: the window
+                    // already matches the grip, so upright is the natural reading, and controls
+                    // that read upright the moment the camera opens say it is ready.
+                    CameraArrangement.Landscape -> {
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(Spacing.sm)
+                                .testTag(CAMERA_DONE_TAG),
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
+                            Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
+                        }
 
-                    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                        ShutterButton(
-                            enabled = session.state == CameraSessionState.Ready && !isCapturing,
-                            onClick = {
-                                // Guarded here as well as by `enabled`: a second tap landing in the
-                                // same frame as the first would otherwise open two captures onto two
-                                // files, and the shutter is exactly the control people double-tap.
-                                if (isCapturing) return@ShutterButton
-                                isCapturing = true
-                                captureError = null
-                                scope.launch {
-                                    val capture = cameraCaptureFiles.newCapture()
-                                    session.capture(capture.file).fold(
-                                        onSuccess = {
-                                            photosTaken += 1
-                                            onPhotoCaptured(CameraCapturePhotoSource(capture))
-                                        },
-                                        onFailure = {
-                                            // The empty destination is cleaned up rather than left
-                                            // as a zero-byte file the persist path would later try
-                                            // to read. Reported, never swallowed (CLAUDE.md).
-                                            cameraCaptureFiles.deleteCapture(capture)
-                                            captureError = CAPTURE_FAILED_MESSAGE
-                                        },
+                        Row(
+                            modifier = Modifier.align(Alignment.CenterEnd).padding(Spacing.lg),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            ) {
+                                captureError?.let { message ->
+                                    Text(
+                                        message,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.testTag(CAMERA_ERROR_TAG),
                                     )
-                                    isCapturing = false
                                 }
-                            },
-                        )
+
+                                Text(
+                                    photoCountLabel(photosTaken),
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.testTag(CAMERA_COUNT_TAG),
+                                )
+                            }
+
+                            ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+                        }
                     }
                 }
             }

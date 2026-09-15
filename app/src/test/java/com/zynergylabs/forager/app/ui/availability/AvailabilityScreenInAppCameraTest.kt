@@ -101,6 +101,7 @@ class AvailabilityScreenInAppCameraTest {
         InAppCameraDialog(
             session = session,
             cameraCaptureFiles = cameraCaptureFiles,
+            lockToPortrait = lockToPortrait,
             onPhotoCaptured = onPhotoCaptured,
             onDismiss = onDismiss,
             viewfinder = { modifier -> Box(modifier) },
