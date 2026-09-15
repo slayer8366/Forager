@@ -97,6 +97,11 @@ class DiagnosticsPanelTest {
         composeRule.waitUntil(timeoutMillis = 5_000) { composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
     }
 
+    /** The log row exists only once the listing has landed; see the note in the log-row test. */
+    private fun awaitLogRow() {
+        composeRule.waitUntil(timeoutMillis = 5_000) { composeRule.onAllNodesWithTag(DIAGNOSTICS_LOG_ROW_TAG).fetchSemanticsNodes().isNotEmpty() }
+    }
+
     @Test
     fun `lists each directory's files with name, size and modified time, and a count per directory`() {
         val older = File(photosDir, "older.jpg").apply { writeBytes(ByteArray(3_000)); setLastModified(1_700_000_000_000L) }
@@ -191,6 +196,11 @@ class DiagnosticsPanelTest {
         composeRule.onNodeWithTag(DIAGNOSTICS_LOG_ROW_TAG).performClick()
         awaitText(EMPTY_LOG_LABEL)
         composeRule.onNodeWithContentDescription("Back to Diagnostics").performClick()
+        // Leaving the detail drops the listing state; the list re-reads on IO and shows
+        // "Reading…" until it lands, with no log row to tap. Locally the read won that race in
+        // four full runs; on the CI runner it lost once (0efce43, AssertionError at the click
+        // below), so the row is awaited, the same way the first listing is.
+        awaitLogRow()
 
         log.append("sweep deleted=3 orphaned capture file(s)")
         log.append("strictmode DiskReadViolation", "at com.example.Persist.run(Persist.kt:1)")
