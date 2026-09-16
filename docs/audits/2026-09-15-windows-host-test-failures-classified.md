@@ -1,5 +1,12 @@
 # The 43 Windows-host test failures, classified by mechanism and recorded as a baseline by test ID
 
+> **Superseded in part, 2026-09-15 (same day) — see §6.** §3's environment findings (*"WSL is not
+> installed"*, *"this host cannot run the suite under Linux today"*) and §5's *"Not run: the suite on
+> Linux"* were accurate when written and no longer hold. Local runs moved to a **native Ubuntu 26.04
+> install**, not the WSL2 §3 recommended, and the full suite has now run there at `1d81d71`: 0 failures,
+> 24 skipped, all 43 baseline IDs ABSENT. §1's classification is unchanged — it is now measured rather
+> than inferred. Nothing below has been edited.
+
 **Date:** 2026-09-15 · **Branch:** `claude/new-session-vto65i` (PR #102) · **Head classified:** `017d6ca` · **Base measured:** `b586195` · **Host:** Windows 11 Home 26200, Android Studio JBR, Robolectric 4.16.1, `%TEMP%` = `C:\Users\<user>\AppData\Local\Temp`.
 
 **The dispatch.** The local suite on this Windows checkout reports 43 failures and every report has been arguing in prose that none of them are ours. Classify all 43 by root cause with a representative test and line; say for each group whether it is a test-harness assumption or a production portability bug, and stop if any is the latter; record the baseline as data under `docs/`, with a cheap comparison if one exists; and answer whether this host can run the suite under Linux. No production changes, no test changes, no fixes.
@@ -96,3 +103,85 @@ Also recorded: the 2026-09-09 note's standing instruction not to upgrade its cla
 - No production change, no test change, no skip, no guard. `git diff --stat` on `app/` is empty.
 - Not run: the suite on Linux (no WSL). CI's green on the same commits is the record for that.
 - Not proven: that `LongPathsEnabled` would clear group C on this host, or that a Windows-aware shadow would clear A and B. Both named as the cheap fixes they are, for a separate decision.
+
+---
+
+## §6 — Superseded 2026-09-15 (same day): the host moved to native Linux, and the suite ran there
+
+Recorded as a new section rather than edited into §3, per CLAUDE.md: a later record supersedes an
+earlier one rather than rewriting it. Everything in §3 was accurate when written; what superseded it
+is the event §3 was pricing.
+
+**Withdrawn, with what they said.** The one-paragraph outcome: *"This host cannot run the suite under
+Linux today: WSL is not installed."* §3: *"Can this host run the suite under Linux today? No.
+`wsl.exe --status` answers The Windows Subsystem for Linux is not installed."* §5: *"Not run: the suite
+on Linux (no WSL). CI's green on the same commits is the record for that."* All three were true of the
+Windows host on the date written; none is true of the machine local runs now happen on.
+
+**The move went further than the recommendation.** §3 recommended *"install WSL2 and run there"*. What
+happened instead is a native **Ubuntu 26.04.1 LTS** install on its own disk — kernel `7.0.0-31-generic`,
+8 cores, 11 GB RAM, NVMe. Not WSL2, and not a Windows mount: there is **no `/mnt` on this machine at
+all**, so the slow, case-insensitive `/mnt/c/…` path §3 warned against cannot be taken even by accident.
+The WSL2-specific reasoning in §3 — Home edition, Hyper-V, a `.wslconfig` memory cap — no longer applies
+to anything. The `\`-free paths that clear groups A and B are now the filesystem's own, not a mount's.
+
+**What it actually cost.** §3 priced it at *"roughly 8 GB"*, itemised. Measured after a full build and a
+full test run: Android SDK 796 MB, Temurin JDK 21 346 MB, Gradle caches 2.6 GB, Robolectric's android-all
+jars in `~/.m2` 481 MB, the clone plus its build outputs 396 MB — **about 4.5 GB**, against 48 GB free.
+The estimate was high by roughly half, and §3's "disk is the tight number" caveat does not apply here.
+
+**The measurement §3 said could not be taken.** Full suite at `1d81d71` — the commit this baseline was
+established against — with the toolchain matched to CI (Temurin 21, Gradle 9.7.0, cmdline-tools 11076708,
+build-tools 37.0.0, `platforms;android-37.1`), installed by `scripts/setup-android-sdk.sh` itself, run
+from a clean state:
+
+- **198 suites, 1540 tests, 0 failures, 0 errors, 24 skipped.**
+- The 24 skips are **identical by test ID** to CI's `SKIPPED_TESTS_ALLOWLIST`: 0 skipped without an entry,
+  0 entries not actually skipped — the both-directions identity CI's summarize step enforces, checked
+  here by parsing the allowlist out of `ci.yml` and diffing it against the run's JUnit XML.
+- `scripts/compare-test-baseline.sh`: **NEW 0, ABSENT 43**, `run=0 baseline=43 overlap=0 suites=198`,
+  exit 0 — every ID in the baseline absent, nothing new, which is the reading the script's own header
+  predicts for Linux.
+- The APK reports `versionCode=692` against `git rev-list --count HEAD` = 692, and
+  `versionName=1.0.692+g1d81d71c` — no `.dirty` suffix, no shallow-clone fallback, so the build identity
+  confirms a full clone with a clean tree.
+
+**Same sample, both hosts — which is what makes this a comparison and not two readings.** The Windows
+run recorded in §2 was at `017d6ca`, which is an ancestor of `1d81d71` by two commits with **zero files
+changed under `app/src/test/`** between them, and it counted **198 suites, 1540 tests** — the totals this
+Linux run reports exactly. So the same 1540 tests ran on both hosts; 43 of them failed on Windows and none
+fail here, with the host as the only variable. That closes the question CLAUDE.md insists on asking of any
+check — what sample did it actually run on, and did that sample include the cases that could have failed
+it — affirmatively: the 43 that could have failed are present in this run, and passed.
+
+That is §1's claim measured rather than inferred: the 43 are the host's, and removing the host condition
+removes all 43 without touching the app. Nothing under `app/` changed to get here; `git diff --stat` on
+`app/` is empty.
+
+**A bug in the comparison script, found by running it here and fixed in the same pass (owner's call,
+2026-09-15).** `scripts/compare-test-baseline.sh` sorted both sides with `sort` but compared them with
+`comm`. `sort` honours `LC_COLLATE`; `comm` compares bytes and does not. Under `en_US.UTF-8` the collation
+folds case, so `...InAppCameraDialogTest#Done dismisses, ...` sorts among the lowercase method names while
+comm expects it ahead of them (`D` is 0x44, `a` is 0x61) — one line out of 43, which is enough. Handed
+sort's order, comm's merge walks off and mis-classifies.
+
+**Measured, not argued.** A synthetic run whose single failure *was* a baseline ID — the case the script
+exists to recognise — came back `NEW: 1`, a regression that is not one, while that same ID was
+simultaneously listed under `ABSENT`, "did not fail", and the script exited 1. Two contradictory wrong
+answers in one report, on the Windows host, about the one question the script is for.
+
+**Why it survived until now, and why it is closed rather than recorded.** A green run cannot show it: with
+no failures the run side is empty, so `NEW` is empty and `ABSENT` is the whole baseline in any order, and
+the verdict is right by accident. The Linux run above is green, so it would have stayed invisible here too
+— it would have waited for the first host that actually had failures, which is the only host whose answer
+matters. That is the family §4 and CLAUDE.md name: a check decoupled from what it checks by a step in
+between, with nothing in its own output saying so. The owner's ruling was to close it now rather than let
+it sit behind a green wall.
+
+**The fix and its controls.** `export LC_ALL=C`, once, near the top, so a `sort` or `comm` added later
+cannot reintroduce it; every ID is ASCII and the perl is byte-oriented, so its output is unchanged. Three
+controls, because a fix that reported "no failures" unconditionally would pass the first two: the
+baseline-only run now reads `NEW 0, ABSENT 42, overlap 1`, exit 0 (correct, and different from the
+unfixed output, so the change bites); a run carrying a baseline failure *and* a genuine regression reads
+`NEW 1` naming exactly the regression, `ABSENT 42`, exit 1, so real regressions are still caught; and the
+real Linux run above is unchanged at `NEW 0, ABSENT 43`, exit 0, with the warning gone.
