@@ -30,7 +30,19 @@ local.properties
 # because the dirty check is `git status --porcelain`, which counts untracked files. That
 # sensitivity is deliberate and must not be loosened -- an untracked .kt under src/ IS compiled in,
 # so a false *clean* would be the worse failure. Ignore what genuinely cannot affect a build.
-.claude/
+#
+# `.claude/*` rather than `.claude/`, so that the one negation below can apply: git does not descend
+# into an excluded *directory*, so `!.claude/skills/` under a plain `.claude/` rule would never be
+# reached. Everything else under .claude -- worktrees, settings, local agent config -- stays ignored
+# exactly as before; this widens nothing but the single path named next.
+.claude/*
+# Skills are prose the project keeps deliberately: they are read by a session and by a person, they
+# are shared across machines, and they are the kind of thing a fresh checkout should already have.
+# Tracking them does not weaken the dirty check above -- that check counts *untracked* files, so a
+# committed skill reads clean where an untracked one would stamp a release `.dirty`. Leaving these
+# ignored and uncommitted was the state that could not be kept: the files exist on disk, so they
+# would have been permanently invisible to it.
+!.claude/skills/
 
 # Written by Gradle's daemon-JVM feature, machine-local.
 gradle/gradle-daemon-jvm.properties
