@@ -132,3 +132,34 @@ record. It is one line and one more `= Unit`; it is also a path nobody has seen 
 stating explicitly that **it must be run on a debug build** — the store, the panel and StrictMode are
 all debug-only by source set, so on a release build these entries do not exist. That assumption has
 been implicit and is now load-bearing.
+
+---
+
+## §6 — Addendum after the build (2026-09-15, same day)
+
+Appended rather than edited into the sections above: this report was committed before the build, so
+the open question and the path count it recorded are published claims.
+
+**The open question in §5 was decided: the null path records too.** The owner's reasoning, carried
+forward as given — "a shot that produces a `Shot:` line and no outcome line is worse than a fifth
+entry: it looks like a dropped record rather than a distinct path, and the device check reads the
+panel with no way to tell the difference." The four-outcome framing was a summary of the earlier
+report, not a scoped requirement. The consequence is the stronger one: **every capture produces
+exactly two entries**, so an odd count in the panel is a signal by itself.
+
+**§1 and §4 undercounted the paths, and the build found it.** Both say a fifth path exists; there are
+**six**. Beyond the four `OrientationReapplyOutcome` branches and the `intended == null` early return,
+`capture()` also returns at `if (saved.isFailure)` (`CameraXCaptureSession.kt`, before the reapply) when
+the capture itself failed and no file was written. That path had the same defect the owner's ruling
+names — a `Shot:` entry and no second entry — and by the same reasoning it records one too, as
+`not attempted` with the capture's own throwable.
+
+**Decided beyond the dispatch as written, and flagged for reversal.** Recording that sixth path was
+not asked for; it follows from the invariant that was. It is one call site and reverting it is one
+deletion, at the cost of the invariant no longer holding for a failed capture.
+
+**Volume, corrected for one case.** §2's 245 bytes per capture holds for the five paths whose entry is
+a single line. The `failed` branch writes the throwable's stack as the entry's detail, the same shape a
+StrictMode entry uses, so a failure entry is stack-sized (~3.5 KB) rather than ~134 bytes. It is still
+**one entry**, so the two-per-capture invariant is unaffected, and a run in which failures are common
+enough to matter for the cap has a louder problem than its log size.
