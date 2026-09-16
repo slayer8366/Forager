@@ -19,6 +19,25 @@
 # expected reading there, not an error. The ID format is "classname#method", the method name as
 # JUnit records it (backtick names verbatim, with spaces and punctuation).
 set -u
+# One collation for every sort and every comm below, and it has to be the byte one.
+#
+# `sort` honours LC_COLLATE; `comm` compares bytes and does not. Under en_US.UTF-8 the collation
+# folds case and de-prioritises punctuation, so "...InAppCameraDialogTest#Done dismisses, ..."
+# sorts among the lowercase method names while comm expects it before them ('D' is 0x44, 'a' is
+# 0x61). Handed sort's order, comm's merge walks off and mis-classifies: measured on this very
+# baseline, a run whose single failure WAS a baseline ID came back "NEW: 1" -- a regression that
+# is not one -- while the same ID was simultaneously listed under ABSENT, "did not fail", and the
+# script exited 1. Two contradictory wrong answers in one report.
+#
+# A green run cannot surface this: with no failures the run side is empty, so NEW is empty and
+# ABSENT is the whole baseline whatever the order, and the verdict is right by accident. It would
+# therefore have stayed invisible until the first host that actually had failures -- which is the
+# only host whose answer matters. That is why it is fixed here rather than when it next bites.
+#
+# Exported rather than prefixed onto each call so a sort or comm added later cannot reintroduce
+# it. Safe for the data: every ID is ASCII, and the perl below is byte-oriented (no -C flags),
+# so its output is unchanged.
+export LC_ALL=C
 RESULTS_DIR="${1:-app/build/test-results/testDebugUnitTest}"
 BASELINE="${2:-docs/windows-host-test-baseline.tsv}"
 if [ ! -d "$RESULTS_DIR" ]; then echo "no results directory: $RESULTS_DIR" >&2; exit 2; fi
