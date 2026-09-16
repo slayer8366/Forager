@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.diagnostics
 
 import android.os.StrictMode
 import java.io.File
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -101,6 +102,98 @@ class DebugDiagnosticsTest {
         val text = awaitLog(log) { it.contains("delivered-after-reset") }
         assertTrue("the fillers were cleared before any flush; they must not appear:\n$text", !text.contains("filler-batched"))
         assertTrue("the one the framework dropped stays dropped:\n$text", !text.contains("dropped-at-the-cap"))
+    }
+
+    /**
+     * The capture-orientation dispatch: the `Shot:` values reach the store as one entry, with the
+     * values themselves rather than a pre-formatted string handed in — which is what lets the
+     * release twin take the same call and build nothing.
+     */
+    @Test
+    fun `recordCaptureShot writes the shot's four values as one entry`() {
+        val log = newLog()
+        val diagnostics = DebugDiagnostics.install(log)
+
+        diagnostics.recordCaptureShot(deviceRotation = 3, targetRotation = 0, requestDegrees = 90, resolution = "4032x3024")
+
+        val text = awaitLog(log) { it.contains("capture shot") }
+        assertTrue(
+            "expected all four values on the shot entry, got:\n$text",
+            text.contains("capture shot deviceRotation=3 targetRotation=0 requestDegrees=90 resolution=4032x3024"),
+        )
+    }
+
+    /**
+     * A decline carries its own words. This is half of the distinction the instrument exists for:
+     * a HAL that rotated the pixels in memory declines and is *correct*, so the reason is the part
+     * that makes the entry readable rather than alarming.
+     */
+    @Test
+    fun `a declined reapply records its reason and the tag the file carries`() {
+        val log = newLog()
+        val diagnostics = DebugDiagnostics.install(log)
+
+        diagnostics.recordCaptureOrientation(
+            fileName = "IMG_0001.jpg",
+            branch = "declined",
+            fromTag = 6,
+            degrees = 90,
+            reason = "the HAL rotated the pixels",
+        )
+
+        val text = awaitLog(log) { it.contains("capture orientation") }
+        assertTrue("expected the file and branch, got:\n$text", text.contains("capture orientation 'IMG_0001.jpg' declined"))
+        assertTrue("expected the decline's own reason, got:\n$text", text.contains("reason=the HAL rotated the pixels"))
+        assertTrue("expected the tag the file carries, got:\n$text", text.contains("fromTag=6"))
+    }
+
+    /**
+     * The other half: a write that failed is not a decline, and its throwable goes in as the entry's
+     * detail — the same shape a StrictMode entry uses for its stack, so the panel renders it the same.
+     */
+    @Test
+    fun `a failed reapply records the throwable and its stack as the entry's detail`() {
+        val log = newLog()
+        val diagnostics = DebugDiagnostics.install(log)
+
+        diagnostics.recordCaptureOrientation(
+            fileName = "IMG_0002.jpg",
+            branch = "failed",
+            degrees = 270,
+            error = java.io.IOException("permission denied writing the tag"),
+        )
+
+        val text = awaitLog(log) { it.contains("capture orientation 'IMG_0002.jpg' failed") }
+        assertTrue("expected the throwable on the summary, got:\n$text", text.contains("permission denied writing the tag"))
+        assertTrue("expected the stack indented beneath it, got:\n$text", text.contains("    java.io.IOException"))
+    }
+
+    /**
+     * The paths that attempt no reapply — a failed capture, and a shot with no resolution info —
+     * record an entry of their own, which is what makes two entries per capture possible.
+     *
+     * **This does not verify the invariant.** It exercises the recorder, not the call sites: the two
+     * calls below are this test's, not `capture()`'s. Whether every path through `capture()` actually
+     * makes both calls is the wiring, which no test here reaches — a bound camera is device-only, and
+     * the owner accepted that cost when choosing this seam over a constructor parameter. The count
+     * assertion below says one call writes one entry, nothing more.
+     */
+    @Test
+    fun `a path that attempts no reapply records an entry of its own`() {
+        val log = newLog()
+        val diagnostics = DebugDiagnostics.install(log)
+
+        diagnostics.recordCaptureShot(deviceRotation = 0, targetRotation = 0, requestDegrees = null, resolution = null)
+        diagnostics.recordCaptureOrientation(
+            fileName = "IMG_0003.jpg",
+            branch = "not attempted",
+            reason = "no resolution info for this shot; it keeps the HAL's tag",
+        )
+
+        val text = awaitLog(log) { it.contains("capture orientation 'IMG_0003.jpg' not attempted") }
+        val captureEntries = text.lines().count { it.contains("capture shot") || it.contains("capture orientation") }
+        assertEquals("expected one entry per call, got:\n$text", 2, captureEntries)
+        assertTrue("expected the reason the reapply was not attempted, got:\n$text", text.contains("no resolution info for this shot"))
     }
 
     private fun awaitLog(log: DiagnosticsLog, deadlineMillis: Long = 5_000, condition: (String) -> Boolean): String {

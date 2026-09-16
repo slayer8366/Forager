@@ -68,6 +68,58 @@ class DebugDiagnostics private constructor(
         executor.execute { log.append("sweep deleted=$deleted orphaned capture file(s)") }
     }
 
+    /**
+     * One entry per shot, written from [CameraXCaptureSession.capture] alongside its `Log.i` line,
+     * never instead of it: logcat still works for anyone who has it, and this is for the device
+     * check reading the panel with no cable.
+     *
+     * Values, not a formatted string. The release twin takes the same arguments and does nothing
+     * with them, so a release build formats nothing — every argument here already exists at the
+     * call site, and none of them is an interpolation.
+     */
+    fun recordCaptureShot(deviceRotation: Int?, targetRotation: Int, requestDegrees: Int?, resolution: String?) {
+        executor.execute {
+            log.append(
+                "capture shot deviceRotation=$deviceRotation targetRotation=$targetRotation " +
+                    "requestDegrees=$requestDegrees resolution=$resolution",
+            )
+        }
+    }
+
+    /**
+     * The second of every capture's two entries: which branch the orientation-tag reapply took, and
+     * the value that distinguishes it. Every path that follows a shot records one, including the
+     * two that attempt no reapply at all — a shot with a `Shot:` entry and no outcome entry would
+     * read as a dropped record rather than as the distinct path it is, and the panel gives a reader
+     * no way to tell those apart. Two entries per capture is therefore an invariant, and an odd
+     * count in the panel is itself a signal.
+     *
+     * [reason] carries a decline's own words and [error] a failure's throwable, because those two
+     * are exactly what this instrument exists to separate: a HAL that rotated the pixels in memory
+     * is a decline and is correct, while a file that could not be written is a failure and is not.
+     * A failure writes the stack as the entry's detail, the same shape as a StrictMode entry.
+     */
+    fun recordCaptureOrientation(
+        fileName: String,
+        branch: String,
+        fromTag: Int? = null,
+        toTag: Int? = null,
+        degrees: Int? = null,
+        reason: String? = null,
+        error: Throwable? = null,
+    ) {
+        executor.execute {
+            val detail = buildString {
+                if (fromTag != null) append(" fromTag=").append(fromTag)
+                if (toTag != null) append(" toTag=").append(toTag)
+                if (degrees != null) append(" degrees=").append(degrees)
+                if (reason != null) append(" reason=").append(reason)
+                if (error != null) append(" error=").append(error)
+            }
+            log.append("capture orientation '$fileName' $branch$detail", error?.stackTraceToString())
+        }
+    }
+
     private fun installStrictMode() {
         val builder = StrictMode.ThreadPolicy.Builder()
             .detectDiskReads()

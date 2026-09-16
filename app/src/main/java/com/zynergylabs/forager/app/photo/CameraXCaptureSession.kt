@@ -23,6 +23,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.zynergylabs.forager.app.ForagerApplication
+import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
 import java.io.File
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
@@ -186,6 +188,38 @@ internal class CameraXCaptureSession(
     override val deviceRotation: Int? get() = effectiveDeviceRotation(lockToPortrait, sensorRotation)
     private var loggedDisplayFallback = false
 
+    /**
+     * The diagnostics store, or null when there is none to reach. Resolved once — `by lazy`, so the
+     * reason is logged at most once per session rather than once per shot, which is the failure mode
+     * a per-capture recorder has.
+     *
+     * A safe cast, deliberately unlike `MainActivity:43` and `TrackRecordingService:110`, which hard-cast
+     * `application` to [ForagerApplication]. Those run inside components the platform built from this
+     * app's manifest; this runs behind a [Context] handed in by a caller. Today there is one caller and
+     * it passes `LocalContext.current.applicationContext` (`InAppCameraHost.kt:49`), so the cast
+     * succeeds; a second caller passing something else must degrade to no diagnostics, never take the
+     * camera down. Diagnostics are an observation surface, and an observation surface that can break
+     * the thing it observes is worse than none.
+     *
+     * [ForagerApplication.diagnostics] is a `lateinit` assigned in `onCreate` before the container is
+     * built, so any session — created by a user action inside a composed screen — necessarily comes
+     * after it. Read rather than trusted: the access is guarded, so an ordering this reasoning did not
+     * foresee costs the entries, not the shot.
+     */
+    private val diagnostics: DebugDiagnostics? by lazy { resolveDiagnostics() }
+
+    private fun resolveDiagnostics(): DebugDiagnostics? {
+        val application = appContext as? ForagerApplication
+        if (application == null) {
+            Log.i(TAG, "This session's context is not backed by ForagerApplication; capture entries go to logcat only.")
+            return null
+        }
+        return runCatching { application.diagnostics }.getOrElse { error ->
+            Log.i(TAG, "Diagnostics were not installed when this session resolved them; capture entries go to logcat only.", error)
+            null
+        }
+    }
+
     /** Bumped by every [open] and [close]; a provider callback whose captured epoch has moved on does nothing. */
     private var openEpoch = 0
     private var isOpen = false
@@ -317,6 +351,12 @@ internal class CameraXCaptureSession(
             "Shot: deviceRotation=$rotation targetRotation=${capture.targetRotation} " +
                 "requestDegrees=${intended?.rotationDegrees} resolution=${intended?.resolution}",
         )
+        diagnostics?.recordCaptureShot(
+            deviceRotation = rotation,
+            targetRotation = capture.targetRotation,
+            requestDegrees = intended?.rotationDegrees,
+            resolution = intended?.resolution?.toString(),
+        )
 
         val saved = suspendCancellableCoroutine { continuation ->
             capture.takePicture(
@@ -334,25 +374,48 @@ internal class CameraXCaptureSession(
                 },
             )
         }
-        if (saved.isFailure) return saved
+        if (saved.isFailure) {
+            // The second entry this shot owes. Without it a failed capture leaves a lone Shot: line,
+            // which reads as a dropped record rather than as the distinct path it is.
+            diagnostics?.recordCaptureOrientation(
+                fileName = destination.name,
+                branch = "not attempted",
+                reason = "the capture failed and no file was written",
+                error = saved.exceptionOrNull(),
+            )
+            return saved
+        }
 
         // The file's tag is the HAL's, not the request's — see the class doc. Put the request's
         // tag on it, when the pixels are the unrotated capture frame. Off the main thread: it reads
         // and may rewrite the file, and debug builds run StrictMode.
         if (intended == null) {
             Log.w(TAG, "No resolution info for this shot; '${destination.name}' keeps the HAL's orientation tag.")
+            diagnostics?.recordCaptureOrientation(
+                fileName = destination.name,
+                branch = "not attempted",
+                reason = "no resolution info for this shot; it keeps the HAL's tag",
+            )
             return saved
         }
         val degrees = intended.rotationDegrees
         when (val outcome = withContext(Dispatchers.IO) { reapplyIntendedOrientation(destination, degrees, intended.resolution) }) {
-            is OrientationReapplyOutcome.Rewritten ->
+            is OrientationReapplyOutcome.Rewritten -> {
                 Log.i(TAG, "Orientation tag of '${destination.name}' rewritten: the HAL wrote ${outcome.fromTag}, the shot asked for ${outcome.toTag} ($degrees°).")
-            is OrientationReapplyOutcome.Kept ->
+                diagnostics?.recordCaptureOrientation(destination.name, "rewritten", fromTag = outcome.fromTag, toTag = outcome.toTag, degrees = degrees)
+            }
+            is OrientationReapplyOutcome.Kept -> {
                 Log.i(TAG, "Orientation tag of '${destination.name}' is ${outcome.tag}, already the shot's $degrees°.")
-            is OrientationReapplyOutcome.Declined ->
+                diagnostics?.recordCaptureOrientation(destination.name, "kept", fromTag = outcome.tag, degrees = degrees)
+            }
+            is OrientationReapplyOutcome.Declined -> {
                 Log.i(TAG, "Orientation tag of '${destination.name}' left as CameraX wrote it (${outcome.tag}): ${outcome.reason}.")
-            is OrientationReapplyOutcome.Failed ->
+                diagnostics?.recordCaptureOrientation(destination.name, "declined", fromTag = outcome.tag, degrees = degrees, reason = outcome.reason)
+            }
+            is OrientationReapplyOutcome.Failed -> {
                 Log.w(TAG, "Couldn't reapply the orientation tag to '${destination.name}'; it keeps the HAL's.", outcome.error)
+                diagnostics?.recordCaptureOrientation(destination.name, "failed", degrees = degrees, error = outcome.error)
+            }
         }
         return saved
     }
