@@ -4,8 +4,8 @@
 marked superseded. Run this one.
 
 **Written against:** `claude/new-session-vto65i` at `5536f59`, debug build containing `a9587d7` or
-later. No app code has changed since `1e7d97a`, which v3 was written against — the commits between
-them are documentation only — so a build that satisfied v3 satisfies v4.
+later. As of `5536f59`, no app code has changed since `1e7d97a`, which v3 was written against — the
+commits between them are documentation only — so a build that satisfied v3 satisfies v4.
 
 ## Record note: why v1 and v2 are not in this repository
 
@@ -83,7 +83,8 @@ Three things in the Diagnostics log that are **not** findings:
 
 - Framework and startup entries, one stack each.
 - A disk-read violation from opening **Crash Logs** itself. That panel lists its files on the
-  main thread, predates the policy, and has its own record.
+  main thread via `crashFileStore.list()` during composition, predates the policy, and has its
+  own record.
 - **An absent early entry may be rotated rather than missing.** The log rotates at 1 MB and the
   panel reads only the current generation. After a long session, do not read a missing early
   entry as "never written".
@@ -197,7 +198,7 @@ never into the log the panel reads. This run has no logcat. Do not look for `Sho
 count it, which would have found nothing in a perfectly working build and been indistinguishable
 from the invariant failing.
 
-### Six paths, five labels
+### Six paths, five labels, seven rows
 
 | What happened | Label in the entry | What tells it apart |
 |---|---|---|
@@ -205,12 +206,19 @@ from the invariant failing.
 | no resolution info for the shot | `not attempted` | `reason=no resolution info for this shot; it keeps the HAL's tag` |
 | tag rewritten to the request's | `rewritten` | `fromTag=` and `toTag=` |
 | tag was already the request's | `kept` | `fromTag=` |
-| reapply declined | `declined` | `reason=`, in the decline's own words |
+| the HAL rotated the pixels; CameraX's tag stands | `declined` | `reason=` naming the transposed case. **This is the mechanism working. Not a fault.** |
+| orientation couldn't be determined | `declined` | `reason=` naming which: rotation not a right angle, pixel size unreadable, or size matching neither |
 | reapply failed | `failed` | `error=` and a stack |
 
-**Record the `reason=` text in full, not just the label.** The two `not attempted` paths carry the
-same label and are separated only by their reason, so a label alone loses which one ran. v3's
-evidence line asked for the reason "if it declined", which is the wrong three paths out of six.
+**Seven rows across six paths**, because `declined` is one code path carrying four reasons
+(`IntendedOrientation.kt:114`, `:116`, `:135`, `:140`) — one refusal and three indeterminate — and
+those two are opposite readings. A runner who files the refusal as a problem is filing a bug against
+correct behaviour, which is why the split is in the table rather than in the prose.
+
+**Record the `reason=` text in full, not just the label.** v3 asked for the reason only when the
+outcome was `declined`. The reason is load-bearing on three of the six paths: both `not attempted`
+paths, which share a label and are separated by nothing else, and `declined`, where it decides
+whether you are reading correct behaviour or an indeterminate result. Record it whenever it appears.
 
 ### The invariant
 
@@ -225,9 +233,13 @@ quirk.** Count them.
 5. Diagnostics: two more entries. Record the outcome label and its full `reason=` text.
 
 The outcome label is the finding here, either way. `rewritten` confirms the HAL-tag mechanism the
-orientation fix was built on. `kept`, `declined` and `failed` each mean something different.
-`not attempted` means the shot never reached the reapply at all, which is a different kind of
-finding from the four that did. Each is worth recording rather than treating as a fault.
+orientation fix was built on. `kept` means the tag was already what the shot asked for.
+**`declined` on the transposed case — the HAL rotated the pixels, so CameraX's tag stands — is the
+expected-correct reading, the mechanism working as designed; it is not a soft failure and not
+something to file.** `declined` on any of the other three reasons is an indeterminate result and a
+different finding entirely, which is exactly why the `reason=` text decides which of the two you are
+looking at. `failed` is an error, with a stack. `not attempted` means the shot never reached the
+reapply at all. Each is worth recording rather than treating as a fault.
 
 Evidence: the entry counts, and the outcome label plus full `reason=` text for the setting-on
 capture.
