@@ -1,39 +1,57 @@
-# PR 102 device check, v3
+# PR 102 device check, v4
 
-**Status:** **superseded, 2026-09-16, by [v4](2026-09-16-pr102-device-check-v4.md). Do not run this
-version.** It was the first version of this document to exist in the repository, and it is kept
-intact and unedited below this line as the record of what was written. Four of its claims are wrong
-against the tree — two of them, in step 7 and step 12, would cost a run — and the readings are in
-[the corrections note](2026-09-16-device-check-v3-tree-corrections.md). v4 carries those four
-corrections in the body, because a device check is an operational instrument as well as a record and
-relying on a runner to read a companion note first is the same assumption that produced the defect.
+**Status:** current. Supersedes [v3](2026-09-16-pr102-device-check-v3.md), which is kept intact and
+marked superseded. Run this one.
 
-**Written against:** `claude/new-session-vto65i` at `1e7d97a`, debug build containing `a9587d7`
-or later.
+**Written against:** `claude/new-session-vto65i` at `5536f59`, debug build containing `a9587d7` or
+later. No app code has changed since `1e7d97a`, which v3 was written against — the commits between
+them are documentation only — so a build that satisfied v3 satisfies v4.
 
 ## Record note: why v1 and v2 are not in this repository
 
 v1 and v2 were written in conversation and delivered as files to the owner. They were never
-committed. That is the defect this commit closes, and it has already cost something concrete: the
+committed. That is the defect the v3 commit closed, and it had already cost something concrete: the
 Diagnostics completion report at `docs/audits/2026-09-15-debug-diagnostics-instrument-completion-report.md`
 cites "three of its nine steps" and names a step 5, referring to v1's numbering, and a later pulse
 could not reconcile those references because no device-check document existed in the tree to read.
-Per `record-and-supersede`, v1 and v2 are not reconstructed here. They are recorded as superseded
-and unavailable, and this document stands on its own.
+Per `record-and-supersede`, v1 and v2 are not reconstructed. They are recorded as superseded and
+unavailable, and this document stands on its own.
 
-### Step mapping, v1 (nine steps) to v3 (twelve steps)
+## Record note: why v4 exists
+
+v3 was written from dispatch reports for steps 3, 4, 7 and the noise list, and said so. Read against
+the tree the same day (`2026-09-16-device-check-v3-tree-corrections.md`), four of its claims were
+wrong. Two of them would have cost a run:
+
+- **Step 7 told the runner to count `Shot:` entries in the panel.** That string is a logcat line.
+  The panel's entries read `capture shot …` and `capture orientation …`. On a run whose entire
+  premise is a phone with no logcat, a runner searching for `Shot:` finds nothing — and cannot
+  distinguish "wrong string" from "invariant failed", which is the single reading step 7 exists to
+  produce. A false failure report was the likely outcome.
+- **Step 12 asked the log for a number nothing writes.** Inviting a scan of up to a megabyte of log
+  for an entry that cannot be there.
+
+The other two were a miscount of branch labels in step 7 and a section number cited twice from
+memory. All four are carried in the body here rather than left to a companion note, because a device
+check is an operational instrument as well as a record, and expecting the runner to read the
+corrections before the procedure is the same class of assumption that produced the defect. v3 stays
+in the tree, unedited apart from its status line, so the record of what was written survives.
+
+**Numbering is unchanged from v3.** A v3 step number and a v4 step number mean the same step.
+
+### Step mapping, v1 (nine steps) to v3/v4 (twelve steps)
 
 Anything in the repository that cites a v1 step number should be read through this table. The
 completion report's own references are correct as written for v1 and are not edited; this table is
 the bridge.
 
-| v1 step | v3 step | Note |
-|---------|---------|------|
+| v1 step | v3/v4 step | Note |
+|---------|------------|------|
 | 1 | 1 | orientation of the saved photo, unchanged in intent |
 | 2 | 2 | opens and reopens, plus the epoch case |
 | 3 | 3 and 4 | split when the window lock became conditional on the portrait setting |
 | 4 | 5 | photo orientation matrix, fourth row added for setting ON |
-| **5** | **10** | **scrub content. This is the reference in the completion report's §2.4** |
+| **5** | **10** | **scrub content. The completion report's procedure for it is at §3, report line 83** |
 | 6 | 6 | retention and routing |
 | 7 | 8 | multi-shot, release, sweep |
 | 8 | 9 | main thread |
@@ -43,8 +61,8 @@ the bridge.
 Steps 3, 4 and 7 have no v1 ancestor in substance. They test behaviour that did not exist when v1
 was written.
 
-**Do not carry any result forward from a v1 or v2 run.** Every change since then touches the
-camera open path, which most steps exercise.
+**Do not carry any result forward from a v1, v2 or v3 run.** Every change since v1 touches the
+camera open path, which most steps exercise; and v3 was never run.
 
 **Instrument:** Tools, Settings, Diagnostics. The Diagnostics store, the Diagnostics panel and
 StrictMode are all debug-only by source set, so a release build produces nothing to read. This
@@ -74,9 +92,10 @@ Three things in the Diagnostics log that are **not** findings:
 
 ## 1. Orientation of the saved photo
 
-"Lock camera to portrait" **off** for all four. Take one photo per case, persist it, then view it
-**in the app** and **in the device gallery**. The gallery honours EXIF, so sideways there is a
-failure even if the app looks right.
+"Lock camera to portrait" **off** for all four — which is the shipped default, so this is the state
+a fresh install is already in. Take one photo per case, persist it, then view it **in the app** and
+**in the device gallery**. The gallery honours EXIF, so sideways there is a failure even if the app
+looks right.
 
 | Case | Auto-rotate | Phone held | Expected |
 |------|-------------|-----------|----------|
@@ -159,35 +178,71 @@ Evidence: five confirmations.
 
 ## 7. Capture diagnostics, the two-entry invariant
 
-New in v3, and the reason the rest of the run is readable without a debugger.
+New in v3, and the reason the rest of the run is readable without a debugger. **Corrected in v4:
+v3 named the wrong string and the wrong number of labels here.**
 
-**Every capture produces exactly two entries:** one `Shot:` entry, and exactly one outcome entry
-from the six mutually exclusive paths. This invariant is established by reading the seven call
-sites, not by a test, so this step is its only confirmation. **If a capture produces one entry
-rather than two, that is the invariant failing, not a display quirk.** Count them.
+### What the two entries actually look like
+
+**Every capture produces exactly two entries in the Diagnostics panel:**
+
+1. **The shot entry**, reading
+   `capture shot deviceRotation=… targetRotation=… requestDegrees=… resolution=…`
+2. **Exactly one outcome entry**, reading `capture orientation '<filename>' <label>` followed by
+   whichever of ` fromTag=`, ` toTag=`, ` degrees=`, ` reason=`, ` error=` apply. A failure carries
+   its stack as the entry's indented detail.
+
+**`Shot:` will not appear in the panel, and its absence means nothing.** There is a logcat line
+beginning `Shot:` carrying the same four values, written alongside the panel entry and deliberately
+never into the log the panel reads. This run has no logcat. Do not look for `Shot:`; v3 told you to
+count it, which would have found nothing in a perfectly working build and been indistinguishable
+from the invariant failing.
+
+### Six paths, five labels
+
+| What happened | Label in the entry | What tells it apart |
+|---|---|---|
+| the capture failed, no file written | `not attempted` | `reason=the capture failed and no file was written`, plus a stack |
+| no resolution info for the shot | `not attempted` | `reason=no resolution info for this shot; it keeps the HAL's tag` |
+| tag rewritten to the request's | `rewritten` | `fromTag=` and `toTag=` |
+| tag was already the request's | `kept` | `fromTag=` |
+| reapply declined | `declined` | `reason=`, in the decline's own words |
+| reapply failed | `failed` | `error=` and a stack |
+
+**Record the `reason=` text in full, not just the label.** The two `not attempted` paths carry the
+same label and are separated only by their reason, so a label alone loses which one ran. v3's
+evidence line asked for the reason "if it declined", which is the wrong three paths out of six.
+
+### The invariant
+
+Established by reading the seven call sites, not by a test, so this step is its only confirmation.
+**If a capture produces one entry rather than two, that is the invariant failing, not a display
+quirk.** Count them.
 
 1. Diagnostics: note what is already logged.
 2. Take **three** photos, setting off, phone held portrait.
 3. Diagnostics: six new entries, three pairs.
 4. Take **one** photo with the setting **on**, held landscape.
-5. Diagnostics: two more entries. Note the outcome branch named and its reason if it declined.
+5. Diagnostics: two more entries. Record the outcome label and its full `reason=` text.
 
-The outcome branch is the finding here, either way. Rewritten confirms the HAL-tag mechanism the
-orientation fix was built on. Kept, declined or failed each mean something different and each is
-worth recording rather than treating as a fault.
+The outcome label is the finding here, either way. `rewritten` confirms the HAL-tag mechanism the
+orientation fix was built on. `kept`, `declined` and `failed` each mean something different.
+`not attempted` means the shot never reached the reapply at all, which is a different kind of
+finding from the four that did. Each is worth recording rather than treating as a fault.
 
-Evidence: the entry counts, and the outcome branch and values for the setting-on capture.
+Evidence: the entry counts, and the outcome label plus full `reason=` text for the setting-on
+capture.
 
 ## 8. Multi-shot, capture release and sweep
 
 1. Diagnostics: note the contents of `photos` and `captures`.
 2. Ten photos in one session, watching the count. Persist all ten.
 3. Diagnostics: count read 10, `captures` empty, `photos` grew by exactly ten, and twenty new
-   capture entries.
+   capture entries — ten pairs, by step 7's invariant.
 4. Camera again: three photos, **do not** persist. Back out.
 5. Diagnostics: `captures` holds three.
 6. Force stop from Settings, Apps, Forager. Not back, not a recents swipe.
-7. Launch, wait five seconds, open Diagnostics: `captures` empty and the sweep entry reads 3.
+7. Launch, wait five seconds, open Diagnostics: `captures` empty and the sweep entry — it reads
+   `sweep deleted=N orphaned capture file(s)` — gives 3.
 
 A count other than 3 is recorded, not failed: files modified within two seconds of process start
 are skipped by design.
@@ -208,7 +263,10 @@ Evidence: the new entries, or a statement that there were none.
 
 ## 10. Scrub content, the privacy claim
 
-Formerly v1 step 5. This is the step the completion report's §2.4 refers to.
+Formerly v1 step 5. The completion report's own procedure for it is at **§3, "What you will see on
+the phone", report line 83** (`2026-09-15-debug-diagnostics-instrument-completion-report.md:83`).
+v3 cited §2.4 twice; §2.4 of that report is "The sweep's count, and the panel", which is what steps
+7 and 8 exercise, not this step.
 
 Do not sign this off on inference.
 
@@ -249,8 +307,18 @@ Evidence: one line.
 
 ## 12. Trailer, observation rather than a gate
 
-If the log records bytes dropped after EOI, note the number. If not, write "not observable in
-this build". Either answer is acceptable.
+**Corrected in v4. Nothing in this build writes a truncation count, so the answer is known before
+the run: "not observable in this build". Do not scan the log for it.** The scrub truncates at the
+first EOI and counts nothing it drops; the only three things it logs are a read failure, a non-JPEG
+input and a scrub failure. v3 said "if the log records bytes dropped after EOI", which invited a
+search through up to a megabyte of log for an entry that cannot exist.
+
+**The question is answered directly by step 10 item 2**, and better than a log line could: if the
+file's last two bytes are `FF D9`, nothing follows EOI in what the scrub wrote — read off the real
+artifact rather than off the app's own account of it.
+
+Evidence: "not observable in this build", and the hex tail from step 10, which is where this
+question is actually settled.
 
 ---
 
@@ -259,7 +327,8 @@ this build". Either answer is acceptable.
 - Steps run; steps not run and why.
 - Anything surprising, including on steps that passed.
 - Matrix row: model, OS version, 1c result, step 3.3 result, step 5 last row, the step 7 outcome
-  branch, `ICC_Profile` present, trailer observed, main thread clean, sweep count.
+  label **and its `reason=` text**, `ICC_Profile` present, trailer observed, main thread clean,
+  sweep count.
 - Separately: confirm the Crash Logs panel's own main-thread disk read, so it keeps its own
   record rather than living in a report sentence.
 
@@ -267,9 +336,11 @@ this build". Either answer is acceptable.
 orientation request for API 36+ targets, so the window can move on a tablet or unfolded foldable
 regardless of the setting. Recorded with its cause; out of scope for this device.
 
-**Verification note.** Steps 3, 4, 7 and the noise list were written from dispatch reports rather
-than from reading the tree. Step 10's share procedure was corrected against the tree by the
-2026-09-16 photo-share pulse and now matches
-`docs/audits/2026-09-15-debug-diagnostics-instrument-completion-report.md:83`. If a panel label,
-entry wording or arrangement detail differs from what is written here, the tree is right and this
-document is stale. Say so and it gets corrected, as a superseding note rather than an edit.
+**Verification note.** Steps 3, 4, 7, 8, 9, 10, 12 and the noise list have been read against the
+tree (`2026-09-16-device-check-v3-tree-corrections.md`, at `5536f59`) and match it as written here.
+Steps 1, 2, 5, 6 and 11 describe behaviour observable only on hardware — what a gallery shows,
+whether a viewfinder is live, what "Don't keep activities" does — and nothing in the repository
+could confirm or refute them; they are carried from v3 unchecked, which is stated rather than
+implied. If a panel label, entry wording or arrangement detail differs from what is written here,
+the tree is right and this document is stale. Say so and it gets corrected, as a superseding note
+or a v5 rather than a silent edit.
