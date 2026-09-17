@@ -350,6 +350,8 @@ regardless of the setting. Recorded with its cause; out of scope for this device
 
 **Verification note.** Steps 3, 4, 7, 8, 9, 10, 12 and the noise list have been read against the
 tree (`2026-09-16-device-check-v3-tree-corrections.md`, at `5536f59`) and match it as written here.
+Step 7's label table additionally rests on `IntendedOrientation.kt:112-145`, read during the v4 edit
+rather than during the `5536f59` check — that reading is what split `declined` into two rows.
 Steps 1, 2, 5, 6 and 11 describe behaviour observable only on hardware — what a gallery shows,
 whether a viewfinder is live, what "Don't keep activities" does — and nothing in the repository
 could confirm or refute them; they are carried from v3 unchecked, which is stated rather than
