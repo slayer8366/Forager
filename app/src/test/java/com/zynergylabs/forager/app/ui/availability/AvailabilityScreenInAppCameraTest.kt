@@ -22,8 +22,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
@@ -37,6 +39,7 @@ import com.zynergylabs.forager.app.ui.log.IN_APP_CAMERA_TAG
 import com.zynergylabs.forager.app.ui.log.InAppCameraDialog
 import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
+import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -90,6 +93,10 @@ class AvailabilityScreenInAppCameraTest {
     private val albumPhotos = mutableListOf<PhotoSource>()
     private val logEntryPhotos = mutableListOf<PhotoSource>()
 
+    /** Every call of the journal's incidental exit, and the find state it leaves: the camera-open edit guard's two observables. */
+    private var leftEditingIncidentally = 0
+    private var readLogState: () -> MushroomLogUiState = { MushroomLogUiState() }
+
     private var setWidthDp: (Int) -> Unit = {}
     private var setTarget: (InAppCameraTarget?) -> Unit = {}
 
@@ -116,6 +123,8 @@ class AvailabilityScreenInAppCameraTest {
             var widthDp by remember { mutableIntStateOf(360) }
             var target by remember { mutableStateOf<InAppCameraTarget?>(null) }
             var cartographyState by remember { mutableStateOf(CartographyUiState()) }
+            var logState by remember { mutableStateOf(MushroomLogUiState()) }
+            readLogState = { logState }
             setWidthDp = { widthDp = it }
             setTarget = { target = it }
             val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
@@ -154,6 +163,15 @@ class AvailabilityScreenInAppCameraTest {
                     onAddLogPhoto = { logEntryPhotos += it },
                     onAddGalleryPhoto = { albumPhotos += it },
                     onAcquirePhotoForCartographyEntry = { cartographyPhotos += it },
+                    logUiState = logState,
+                    onStartLogEntry = { location, date ->
+                        logState = logState.copy(editingEntry = MushroomLogEntry.draft(id = "started-find", location = location, date = date))
+                    },
+                    // What production's MushroomLogViewModel.onLeaveEditingIncidentally does to the screen: closes the form.
+                    onLeaveLogEntryEditingIncidentally = {
+                        leftEditingIncidentally++
+                        logState = logState.copy(editingEntry = null)
+                    },
                     cartographyUiState = cartographyState,
                     onStartCartographyEntry = { date ->
                         val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
@@ -170,6 +188,33 @@ class AvailabilityScreenInAppCameraTest {
         composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
         composeRule.onNodeWithContentDescription("Add a photo from the Album").performClick()
         composeRule.onNodeWithText("Camera").performClick()
+        composeRule.waitForIdle()
+    }
+
+    /** Journal → Records → Logged Finds → a new find, whose edit form is open. */
+    private fun openNewFind() {
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithText("Logged Finds").performClick()
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.waitForIdle()
+    }
+
+    /** The find editor's own Camera button (`LogEntryDetailScreen`), opening the camera for that find. */
+    private fun openFindCamera() {
+        composeRule.onNodeWithText("Camera").performClick()
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * Home and back: real `ON_STOP`/`ON_START`/`ON_RESUME` through the Activity's own lifecycle, the
+     * same helper shape as `AvailabilityScreenBackNavigationTest.backgroundThenResume`. `CREATED`,
+     * not `DESTROYED`: the composition stays alive, as it does when a user presses home.
+     */
+    private fun backgroundThenResume() {
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        composeRule.waitForIdle()
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
         composeRule.waitForIdle()
     }
 
@@ -262,6 +307,62 @@ class AvailabilityScreenInAppCameraTest {
         setScreen()
         openEditorCamera()
         assertEquals(false, slotSawLockToPortrait)
+    }
+
+    /**
+     * The camera-open edit guard (2026-09-18). Backgrounding while the camera is open over a find
+     * leaves the find open: the camera treats a short absence as the task still in progress, and
+     * the form beneath it now agrees, so the shutter lands on the find instead of on nothing.
+     */
+    @Test
+    fun `backgrounding with the camera open over a find leaves the find open, and the shot still routes to it`() {
+        setScreen()
+        openNewFind()
+        openFindCamera()
+        assertEquals(listOf(InAppCameraTarget.LOG_ENTRY), opened)
+
+        backgroundThenResume()
+
+        assertEquals("the incidental exit must not run while the camera is open", 0, leftEditingIncidentally)
+        assertEquals("started-find", readLogState().editingEntry?.id)
+        composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
+        shoot(expectedTotal = 1)
+        assertEquals(1, logEntryPhotos.size)
+    }
+
+    /** The other side, unchanged: with no camera open, backgrounding over a find is still an incidental exit. */
+    @Test
+    fun `backgrounding over a find with no camera open still leaves the edit, as before`() {
+        setScreen()
+        openNewFind()
+
+        backgroundThenResume()
+
+        assertEquals(1, leftEditingIncidentally)
+        assertEquals(null, readLogState().editingEntry)
+    }
+
+    /**
+     * Why the guard makes the layouts agree rather than diverge: the wide layout has no backgrounding
+     * hook that ends an edit at all (the `ON_STOP` observer lives in `compactMainScaffold` only), so
+     * a find open there survives backgrounding with or without a camera. Asserted on the calls made
+     * *by the backgrounding*: the width flip itself is counted first and subtracted, so whatever the
+     * flip does to the compact tree cannot pass for, or hide, the lifecycle's own behaviour.
+     */
+    @Test
+    fun `on the wide layout backgrounding over an open find never ends the edit, camera or not`() {
+        setScreen()
+        openNewFind()
+        setWidthDp(700)
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithText("Tools").assertCountEquals(0) // the compact bottom nav is gone: the flip happened
+        val callsBeforeBackgrounding = leftEditingIncidentally
+        assertEquals("precondition: the find is still open after the flip", "started-find", readLogState().editingEntry?.id)
+
+        backgroundThenResume()
+
+        assertEquals(callsBeforeBackgrounding, leftEditingIncidentally)
+        assertEquals("started-find", readLogState().editingEntry?.id)
     }
 
     /** The holder is what closes it: clearing the target from outside, as the ViewModel would, removes the dialog. */
