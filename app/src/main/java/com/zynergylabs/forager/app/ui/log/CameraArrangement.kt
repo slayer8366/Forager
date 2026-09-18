@@ -90,3 +90,46 @@ internal fun cameraArrangement(
     displayRotation == Surface.ROTATION_270 -> CameraArrangement.LandscapePortLeft
     else -> CameraArrangement.LandscapePortRight
 }
+
+/**
+ * Which edge of the *window* a physical edge of the device is on, for one arrangement. Screen
+ * coordinates rotate and device anatomy does not, so this is the one place the two are related:
+ * everything that positions against the charger-port edge or the punch-hole edge asks here, and
+ * nothing names a screen side directly.
+ *
+ * Only valid while the window is locked ([LockWindowOrientation]), which is the whole camera
+ * session — an unlocked window would move the mapping under a held arrangement.
+ */
+internal enum class ScreenEdge {
+    Top, Bottom, Left, Right;
+
+    val opposite: ScreenEdge
+        get() = when (this) {
+            Top -> Bottom
+            Bottom -> Top
+            Left -> Right
+            Right -> Left
+        }
+
+    /** A top or bottom edge runs along the window's width; a left or right edge along its height. */
+    val isHorizontal: Boolean get() = this == Top || this == Bottom
+}
+
+/**
+ * The charger-port edge, as a window edge. This is the value the three arrangements always implied
+ * — [CameraArrangement.Portrait]'s `BottomCenter` shutter, the two landscapes' `CenterEnd` and
+ * `CenterStart` — named once so that the punch-hole edge can be its opposite rather than a fourth
+ * hand-written case.
+ *
+ * `Portrait` covers `ROTATION_0` and `ROTATION_180` alike: with the window locked at either, the
+ * window's bottom *is* the device's port edge, which is why opening in portrait has always been
+ * right whichever way up the phone is held.
+ */
+internal fun portEdge(arrangement: CameraArrangement): ScreenEdge = when (arrangement) {
+    CameraArrangement.Portrait -> ScreenEdge.Bottom
+    CameraArrangement.LandscapePortRight -> ScreenEdge.Right
+    CameraArrangement.LandscapePortLeft -> ScreenEdge.Left
+}
+
+/** The punch-hole edge: the port edge's opposite, by the device anatomy the spec fixes, and by nothing else. */
+internal fun punchHoleEdge(arrangement: CameraArrangement): ScreenEdge = portEdge(arrangement).opposite

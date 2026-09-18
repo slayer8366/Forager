@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -124,9 +125,7 @@ class InAppCameraDialogLandscapeTest {
         assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
         assertTrue("the count sits beside the shutter, to its left: ${count.right} vs ${shutter.left}", count.right <= shutter.left)
         assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
-        // Done's node is the TextButton's own bounds, which include Material's minimum touch
-        // target, so its corner is asserted as a region rather than an exact offset.
-        assertDoneCentredInItsCorner(done, frame)
+        assertOnPunchHoleEdge(done, frame, ScreenEdge.Left)
         assertTrue("Done is left of the count and above it", done.right < count.left && done.bottom < count.top)
         assertTrue("right of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() > frame.centreX())
     }
@@ -151,7 +150,7 @@ class InAppCameraDialogLandscapeTest {
         assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
         assertTrue("the count sits beside the shutter, to its right: ${count.left} vs ${shutter.right}", count.left >= shutter.right)
         assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
-        assertDoneCentredInItsCorner(done, frame)
+        assertOnPunchHoleEdge(done, frame, ScreenEdge.Right)
         assertTrue("left of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() < frame.centreX())
     }
 
@@ -161,22 +160,19 @@ class InAppCameraDialogLandscapeTest {
     // claim — that the two rotations never resolve to one arrangement — is in CameraArrangementTest.
 
     /**
-     * Done's placement as [rotateWithDevice] defines it: a square footprint the size of its longer
-     * side, anchored in the top-left corner, with the button centred in it and turning about that
-     * centre. So the centre is the same distance from the frame's left and top, and that holds
-     * whether Done is turned or not — which is why it replaced a region check tuned to the old
-     * never-turning layout, where a 58x40 button's top edge sat 9dp higher than it does centred in
-     * a 58dp square. The assertion comes from the modifier's contract
-     * (`RotateWithDeviceModifierTest`), not from a threshold loosened until the new layout fit.
+     * Done lives in the strip, on the punch-hole edge (CameraBands.kt), so its rule is the same
+     * physical edge in every arrangement — no longer "top-left", which was on the punch-hole edge
+     * in one landscape and on the port edge in the other. Asserted as which edge it is nearer.
      */
-    private fun assertDoneCentredInItsCorner(done: DpRect, frame: DpRect) {
-        assertEquals(
-            "Done turns about a fixed centre in the corner: as far from the left as from the top — $done in $frame",
-            done.centreX() - frame.left.value,
-            done.centreY() - frame.top.value,
-            0.51f,
-        )
-        assertTrue("and that centre is in the top-left, not drifting across the frame: $done", done.centreX() < frame.centreX() / 2 && done.centreY() < frame.centreY())
+    private fun assertOnPunchHoleEdge(done: DpRect, frame: DpRect, punchHole: ScreenEdge) {
+        val fromLeft = done.centreX() - frame.left.value
+        val fromRight = frame.right.value - done.centreX()
+        when (punchHole) {
+            ScreenEdge.Left -> assertTrue("Done nearer the left (punch-hole) edge: $done in $frame", fromLeft < fromRight)
+            ScreenEdge.Right -> assertTrue("Done nearer the right (punch-hole) edge: $done in $frame", fromRight < fromLeft)
+            else -> error("landscape only")
+        }
+        assertTrue("and at the strip's start, the top: $done", done.centreY() < frame.centreY())
     }
 
     /**
@@ -196,7 +192,8 @@ class InAppCameraDialogLandscapeTest {
         setDialog(lockToPortrait = false)
         val doneBefore = bounds(CAMERA_DONE_TAG)
         val countBefore = bounds(CAMERA_COUNT_TAG)
-        assertTrue("at open the device agrees with the window, so Done reads upright: $doneBefore", doneBefore.width > doneBefore.height)
+        // Done is a square icon button now (CameraBands.kt), so a turn does not change its bounds;
+        // "in place" is asserted on its centre, and "turned" on the count, which is text.
         // No such aspect check on the count, deliberately. This harness measures "No photos yet" at
         // about 7x20dp, under the old code as well as this one (measured both ways with a probe on
         // 2026-09-18), so width-greater-than-height is not what upright looks like here and would
@@ -208,8 +205,6 @@ class InAppCameraDialogLandscapeTest {
         val doneAfter = bounds(CAMERA_DONE_TAG)
         val countAfter = bounds(CAMERA_COUNT_TAG)
 
-        assertEquals("Done turned a quarter: its extents swap", doneBefore.width.value, doneAfter.height.value, 0.51f)
-        assertEquals(doneBefore.height.value, doneAfter.width.value, 0.51f)
         assertEquals("in place: Done's centre does not move", doneBefore.centreX(), doneAfter.centreX(), 0.51f)
         assertEquals(doneBefore.centreY(), doneAfter.centreY(), 0.51f)
         assertEquals("the count turned a quarter too", countBefore.width.value, countAfter.height.value, 0.51f)
@@ -261,4 +256,57 @@ class InAppCameraDialogLandscapeTest {
 
         assertEquals("no reflow: the shutter is where it was", before, bounds(CAMERA_SHUTTER_TAG))
     }
+
+    /**
+     * The strip on the punch-hole edge, in device anatomy: at `ROTATION_90` the port is on the
+     * user's right, so the punch-hole is on the left and the strip is flush with the window's left
+     * edge, full height. Robolectric reports zero insets, so "flush" here is the edge itself; on a
+     * device the cut-out inset moves the strip inboard, which no test can see (CameraBands.kt).
+     */
+    @Test
+    fun `at ROTATION_90 the strip is flush with the left edge, the punch-hole side, full height`() {
+        setDisplayRotation(Surface.ROTATION_90)
+        setDialog(lockToPortrait = false)
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val shutter = bounds(CAMERA_SHUTTER_TAG)
+
+        assertEquals("flush with the punch-hole edge", frame.left.value, strip.left.value, 0.51f)
+        assertEquals("full height", frame.top.value, strip.top.value, 0.51f)
+        assertEquals(frame.bottom.value, strip.bottom.value, 0.51f)
+        assertEquals("one control row deep", STRIP_ROW_HEIGHT.value, strip.width.value, 0.51f)
+        assertTrue("on the opposite side from the shutter: ${strip.right} vs ${shutter.left}", strip.right < shutter.left)
+        composeRule.onNodeWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertExists()
+    }
+
+    @Test
+    fun `at ROTATION_270 the strip is flush with the right edge, the punch-hole side, full height`() {
+        setDisplayRotation(Surface.ROTATION_270)
+        setDialog(lockToPortrait = false)
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val shutter = bounds(CAMERA_SHUTTER_TAG)
+
+        assertEquals("flush with the punch-hole edge", frame.right.value, strip.right.value, 0.51f)
+        assertEquals(frame.top.value, strip.top.value, 0.51f)
+        assertEquals(frame.bottom.value, strip.bottom.value, 0.51f)
+        assertEquals(STRIP_ROW_HEIGHT.value, strip.width.value, 0.51f)
+        assertTrue("on the opposite side from the shutter: ${strip.left} vs ${shutter.right}", strip.left > shutter.right)
+    }
+
+    /** The placeholder's label turns with the device, by the one rotation rule. */
+    @Test
+    fun `the strip's placeholder label turns in place when the device does`() {
+        setDisplayRotation(Surface.ROTATION_90)
+        setDialog(lockToPortrait = false)
+        val before = composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot()
+
+        session.deviceRotation = Surface.ROTATION_0
+        composeRule.waitForIdle()
+        val after = composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot()
+
+        assertEquals("a quarter turn swaps the extents", before.width.value, after.height.value, 0.51f)
+        assertEquals("in place", before.centreX(), after.centreX(), 0.51f)
+    }
+
 }

@@ -11,7 +11,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import android.view.View
+import android.view.Window
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.height
+import com.zynergylabs.forager.app.ui.theme.Spacing
+import org.robolectric.shadows.ShadowDialog
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -112,10 +122,14 @@ class InAppCameraDialogTest {
     private val captured = mutableListOf<PhotoSource>()
     private var dismissals = 0
 
+    /** Every window the dialog asked to have its status bar hidden — the seam CameraWindowChrome.kt describes. */
+    private val hiddenOn = mutableListOf<Pair<Window, View>>()
+
     @Composable
     private fun Subject(
         session: CameraCaptureSession,
         viewfinder: @Composable (Modifier) -> Unit = { modifier -> Box(modifier.fillMaxSize()) },
+        stripContent: (@Composable (ScreenEdge, Int?) -> Unit)? = defaultStripContent(),
     ) {
         InAppCameraDialog(
             session = session,
@@ -123,9 +137,15 @@ class InAppCameraDialogTest {
             lockToPortrait = false,
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
+            stripContent = stripContent,
+            statusBarHider = { window, view -> hiddenOn += window to view },
             viewfinder = viewfinder,
         )
     }
+
+    private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag).getBoundsInRoot()
+    private fun DpRect.centreX() = ((left + right) / 2).value
+    private fun DpRect.centreY() = ((top + bottom) / 2).value
 
     // ── Opening ──────────────────────────────────────────────────────────────────────────────
 
@@ -376,6 +396,76 @@ class InAppCameraDialogTest {
         assertTrue("and a failed one leaves a stub for the screen to clean up", partial.exists())
         assertFalse("which is not a whole photo", partial.readBytes().size > 1)
     }
+
+    // ── The strip, the bands and the window chrome (camera overlay spec, 2026-09-18) ────────
+
+    /**
+     * Portrait, in device anatomy: the port is at the window's bottom, so the punch-hole edge is
+     * the top and the strip is flush with it, full width, one control row deep; the shutter band is
+     * at the bottom with the shutter in it. Robolectric's zero insets make "flush" the edge itself;
+     * the cut-out inset that moves the strip inboard on a device is invisible here (CameraBands.kt).
+     */
+    @Test
+    fun `in portrait the strip is flush with the top edge and the shutter band with the bottom`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val shutter = bounds(CAMERA_SHUTTER_TAG)
+        val done = bounds(CAMERA_DONE_TAG)
+
+        assertEquals("flush with the punch-hole edge", frame.top.value, strip.top.value, 0.51f)
+        assertEquals("full width", frame.left.value, strip.left.value, 0.51f)
+        assertEquals(frame.right.value, strip.right.value, 0.51f)
+        assertEquals("one control row deep", STRIP_ROW_HEIGHT.value, strip.height.value, 0.51f)
+        assertTrue("Done is in the strip, at its start: $done in $strip", done.top >= strip.top && done.bottom <= strip.bottom && done.centreX() < frame.centreX())
+        assertEquals("the shutter on the port edge, inside the frame's padding", (frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
+        assertEquals("centred along it", frame.centreX(), shutter.centreX(), 0.51f)
+        composeRule.onNodeWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertExists()
+    }
+
+    /**
+     * The status bar is hidden on the dialog's own window and never the Activity's. What a test can
+     * see is which window was asked; whether the bar goes, and comes back on each exit, is the
+     * emulator's and the device's to show (CameraWindowChrome.kt).
+     */
+    @Test
+    fun `the status bar is asked to hide on the dialog's window, once, and never on the Activity's`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+
+        assertEquals("asked once", 1, hiddenOn.size)
+        val (window, _) = hiddenOn.single()
+        val dialog = ShadowDialog.getLatestDialog()
+        assertTrue("the dialog's window", window === dialog.window)
+        assertTrue("not the Activity's window", window !== dialog.ownerActivity?.window)
+    }
+
+    /** Gated off, the placeholder is not composed and the strip is Done alone; nothing else moves. */
+    @Test
+    fun `with no strip content the placeholder is absent and the shutter is where it was`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession(), stripContent = null) }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag(CAMERA_DONE_TAG).assertIsDisplayed()
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        val shutter = bounds(CAMERA_SHUTTER_TAG)
+        assertEquals((frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
+        assertEquals(frame.centreX(), shutter.centreX(), 0.51f)
+    }
+
+    /** The outline is a second, stroked pass of the same text — it must not become a second text node. */
+    @Test
+    fun `outlined overlay text is one text node, not two`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithText(photoCountLabel(0)).assertCountEquals(1)
+        // Done's outline is eight offset icon copies with no description; only the filled one is "Done".
+        composeRule.onAllNodesWithContentDescription(DONE_LABEL).assertCountEquals(1)
+    }
+
 }
 
 private const val VIEWFINDER_TAG = "test-viewfinder"

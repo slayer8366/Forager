@@ -93,3 +93,42 @@ class CameraArrangementTest {
         )
     }
 }
+
+/**
+ * [portEdge] and [punchHoleEdge]: the two physical edges as window edges, per arrangement. Every
+ * expectation is a sentence in device anatomy — where the charger port is in that hold — and the
+ * punch-hole edge is asserted as the port edge's opposite, never as its own table.
+ */
+class CameraEdgesTest {
+
+    private fun arrangementAt(rotation: Int, landscape: Boolean) =
+        cameraArrangement(lockToPortrait = false, windowIsLandscape = landscape, displayRotation = rotation)
+
+    @Test
+    fun `the port edge is the window's bottom in either portrait hold`() {
+        assertEquals("upright: port at the bottom", ScreenEdge.Bottom, portEdge(arrangementAt(Surface.ROTATION_0, landscape = false)))
+        assertEquals("upside down, window still locked: still the window's bottom", ScreenEdge.Bottom, portEdge(arrangementAt(Surface.ROTATION_180, landscape = false)))
+    }
+
+    @Test
+    fun `the port edge is the window's right at ROTATION_90 and left at ROTATION_270`() {
+        assertEquals("port on the user's right", ScreenEdge.Right, portEdge(arrangementAt(Surface.ROTATION_90, landscape = true)))
+        assertEquals("port on the user's left", ScreenEdge.Left, portEdge(arrangementAt(Surface.ROTATION_270, landscape = true)))
+    }
+
+    @Test
+    fun `the punch-hole edge is the port edge's opposite in every arrangement`() {
+        for (arrangement in CameraArrangement.entries) {
+            assertEquals(arrangement.name, portEdge(arrangement).opposite, punchHoleEdge(arrangement))
+            org.junit.Assert.assertNotEquals("never the same edge: $arrangement", portEdge(arrangement), punchHoleEdge(arrangement))
+        }
+    }
+
+    @Test
+    fun `opposite is an involution and horizontal edges are top and bottom`() {
+        for (edge in ScreenEdge.entries) {
+            assertEquals(edge, edge.opposite.opposite)
+            assertEquals(edge == ScreenEdge.Top || edge == ScreenEdge.Bottom, edge.isHorizontal)
+        }
+    }
+}

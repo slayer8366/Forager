@@ -6,24 +6,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -84,26 +74,27 @@ import kotlinx.coroutines.launch
  * The running count is the only feedback during a session, deliberately. Showing a thumbnail of the
  * last shot invites reviewing in here, which is the flow the owner asked to move to afterwards.
  *
- * ## Two arrangements, one chosen at open and held (device check on `51882cb`, step 3.4)
+ * ## Three arrangements, one chosen at open and held; a region model with two bands (2026-09-18)
  *
  * Owner's ruling, superseding the earlier orientation-lock decisions: nothing in the camera layout
- * moves while the camera is open, and in a landscape window the shutter is on the right edge,
- * never along the bottom. The window lock became conditional on the setting
- * ([LockWindowOrientation]: `LOCKED` off, `PORTRAIT` on) and this dialog gained a landscape
- * arrangement, chosen once from the setting and the window's shape at open ([cameraArrangement])
- * and never reflowed — the `remember` below has no configuration key on purpose. Portrait is the
- * layout that existed before, unchanged; landscape puts the shutter on the device's charger-port
- * edge, vertically centred, the count beside it, Done top-left.
+ * moves while the camera is open. The window lock is conditional on the setting
+ * ([LockWindowOrientation]: `LOCKED` off, `PORTRAIT` on) and the arrangement is chosen once from
+ * the setting, the window's shape and its rotation at open ([cameraArrangement]) and never
+ * reflowed — the `remember` below has no configuration key on purpose.
  *
- * **One rotation rule in both arrangements** (owner, 2026-09-17): controls turn in place as the
- * phone turns, so their text reads in the current hold. The landscape arrangement was first built
- * with its controls held upright and no `rotateWithDevice`, on the reasoning that the window
- * already matches the grip. That reasoning was an exception written into the spec that nobody asked
- * for — the owner stated one rule — and it left "Done" and the count sideways the moment the phone
- * turned. Both arrangements now use the same modifier with the same sensor-minus-display angle.
- * In landscape that angle is zero at open, since the device and the window agree, so the controls
- * still read upright the moment the camera opens; they differ from before only once the phone
- * moves.
+ * Every placement is stated in **device anatomy**, never a screen side: the shutter band sits on
+ * the charger-port edge ([portEdge]) and the strip on the punch-hole edge ([punchHoleEdge]), and
+ * both are bands of the region model in `CameraBands.kt` — zero-thick at the one full-bleed ratio,
+ * so everything sits where it did, and the structure a later ratio needs is already named. Done
+ * lives in the strip, its first resident; it used to be placed by a screen side (top-left) and so
+ * sat on a different physical edge per arrangement. The status bar is hidden on this dialog's own
+ * window ([HideStatusBarOnThisWindow]) and the safe area collapses: no `safeDrawing` padding, each
+ * band clearing the cut-out and the navigation bar on its own edge only.
+ *
+ * **One rotation rule in every arrangement** (owner, 2026-09-17): controls turn in place as the
+ * phone turns, by [rotateWithDevice], so their text reads in the current hold; the shutter is a
+ * disc and has nothing to turn. And one contrast rule (`CameraOverlay.kt`): black outline on every
+ * overlay element, white fill unless the fill carries meaning.
  *
  * ## What is tested, and what a green suite here does not mean
  *
@@ -124,6 +115,10 @@ internal fun InAppCameraDialog(
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The strip's slot (CameraBands.kt); the default is the gated placeholder. A test passes null for the empty strip. */
+    stripContent: (@Composable (edge: ScreenEdge, deviceRotation: Int?) -> Unit)? = defaultStripContent(),
+    /** Hides the status bar on the dialog's own window; a test injects a fake to see which window was asked. */
+    statusBarHider: StatusBarHider = SystemStatusBarHider,
     viewfinder: @Composable (Modifier) -> Unit,
 ) {
     // rememberSaveable: a rotation mid-session must not reset the user's sense of how many they
@@ -164,6 +159,10 @@ internal fun InAppCameraDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
+        // On this window, the dialog's own, so every exit restores the bar by destroying the window
+        // it was hidden on — see CameraWindowChrome.
+        HideStatusBarOnThisWindow(statusBarHider)
+
         Box(
             modifier = modifier
                 .fillMaxSize()
@@ -171,9 +170,8 @@ internal fun InAppCameraDialog(
                 .testTag(IN_APP_CAMERA_TAG),
         ) {
             when (val state = session.state) {
-                is CameraSessionState.Unavailable -> Text(
+                is CameraSessionState.Unavailable -> OverlayText(
                     state.reason,
-                    color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -181,10 +179,7 @@ internal fun InAppCameraDialog(
                         .testTag(CAMERA_UNAVAILABLE_TAG),
                 )
 
-                CameraSessionState.Opening -> CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.align(Alignment.Center).testTag(CAMERA_OPENING_TAG),
-                )
+                CameraSessionState.Opening -> OverlayProgress(modifier = Modifier.align(Alignment.Center).testTag(CAMERA_OPENING_TAG))
 
                 CameraSessionState.Ready -> viewfinder(Modifier.fillMaxSize())
             }
@@ -217,177 +212,121 @@ internal fun InAppCameraDialog(
                 }
             }
 
-            // Controls sit inside the real system-bar insets; the viewfinder behind them does not.
-            // Robolectric reports zero insets, so this padding is device-only by construction
-            // (CLAUDE.md, known pitfalls) — nothing below says anything about it.
-            Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                when (arrangement) {
-                    // Exactly as it was before the landscape arrangement existed: Done top-left,
-                    // count and shutter along the bottom, every control turning in place with the
-                    // device (sensor minus display; see rotateWithDevice).
-                    CameraArrangement.Portrait -> {
-                        TextButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(Spacing.sm)
-                                .rotateWithDevice(session.deviceRotation)
-                                .testTag(CAMERA_DONE_TAG),
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
-                            Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
-                        }
-
-                        Column(
-                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(Spacing.lg),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        ) {
-                            captureError?.let { message ->
-                                Text(
-                                    message,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_ERROR_TAG),
-                                )
-                            }
-
-                            Text(
-                                photoCountLabel(photosTaken),
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_COUNT_TAG),
-                            )
-
-                            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
-                            }
-                        }
-                    }
-
-                    // A landscape window, pinned where it is: the shutter on the device's
-                    // charger-port edge, vertically centred, where the thumb of a two-handed
-                    // landscape grip already is; the count (and a failure) beside it, not under
-                    // it; Done top-left. Done, the count and a failure turn in place with the
-                    // device exactly as the portrait arrangement's do — one rule, every
-                    // arrangement (owner, 2026-09-17). At open the device and the window agree, so
-                    // sensor minus display is zero and they read upright; they turn only when the
-                    // phone does. The shutter is a disc and has nothing to turn.
-                    //
-                    // Two mirrored cases, not one, because the port edge is a physical edge and
-                    // the two landscapes put it on opposite screen sides — see CameraArrangement.
-                    CameraArrangement.LandscapePortRight ->
-                        LandscapeControls(
-                            portOnRight = true,
-                            deviceRotation = session.deviceRotation,
-                            captureError = captureError,
-                            photosTaken = photosTaken,
-                            shutterEnabled = shutterEnabled,
-                            onShutter = onShutter,
-                            onDismiss = onDismiss,
-                        )
-
-                    CameraArrangement.LandscapePortLeft ->
-                        LandscapeControls(
-                            portOnRight = false,
-                            deviceRotation = session.deviceRotation,
-                            captureError = captureError,
-                            photosTaken = photosTaken,
-                            shutterEnabled = shutterEnabled,
-                            onShutter = onShutter,
-                            onDismiss = onDismiss,
-                        )
-                }
+            // The region model (CameraBands.kt): this Box is the viewfinder region, full-bleed, and
+            // the two bands sit on its punch-hole and charger-port edges, zero-thick at the one
+            // ratio that exists. No safeDrawing padding here any more: the status bar is hidden
+            // and the safe area collapses; each band clears the cut-out and the navigation bar on
+            // its own edge only, which is also what keeps the landscape shutter on the screen's
+            // true centre.
+            val port = portEdge(arrangement)
+            CameraStrip(
+                edge = punchHoleEdge(arrangement),
+                deviceRotation = session.deviceRotation,
+                onDismiss = onDismiss,
+                content = stripContent,
+            )
+            CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
+                ShutterCluster(
+                    edge = port,
+                    deviceRotation = session.deviceRotation,
+                    captureError = captureError,
+                    photosTaken = photosTaken,
+                    shutterEnabled = shutterEnabled,
+                    onShutter = onShutter,
+                )
             }
         }
     }
 }
 
 /**
- * The landscape arrangement's controls, mirrored by which screen side the device's charger-port
- * edge is on. One composable rather than two near-identical blocks, because the difference is
- * exactly two things — which side the cluster aligns to, and whether the shutter comes before or
- * after the count in reading order — and a second copy is how the two halves drift apart.
+ * The shutter band's contents: the shutter hard against the charger-port edge, the count (and a
+ * failure) inboard of it. Along a horizontal edge — portrait, the port edge at the bottom — that is
+ * a column with the shutter last; along a vertical edge it is a row with the shutter outermost,
+ * mirrored by which side the port is on. One composable for all three, because the difference is
+ * an axis and an order, and separate copies are how the halves drift apart.
  *
- * The shutter is always the outermost child, hard against the port edge, with the count inboard of
- * it. That ordering is the point: the shutter's distance from the edge the thumb wraps around is
- * what the motor habit is built on, and putting the count outboard would move it.
+ * The shutter is always the outermost child, with the count inboard. That ordering is the point:
+ * the shutter's distance from the edge the thumb wraps around is what the motor habit is built on.
+ * Every glyph turns in place by [rotateWithDevice]; the shutter is a disc and has nothing to turn.
  */
 @Composable
-private fun BoxScope.LandscapeControls(
-    portOnRight: Boolean,
-    /** The session's device reading, for [rotateWithDevice] — the same value the portrait arrangement passes. */
+private fun ShutterCluster(
+    edge: ScreenEdge,
     deviceRotation: Int?,
     captureError: String?,
     photosTaken: Int,
     shutterEnabled: Boolean,
     onShutter: () -> Unit,
-    onDismiss: () -> Unit,
 ) {
-    TextButton(
-        onClick = onDismiss,
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .padding(Spacing.sm)
-            .rotateWithDevice(deviceRotation)
-            .testTag(CAMERA_DONE_TAG),
-    ) {
-        Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
-        Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
-    }
-
-    Row(
-        modifier = Modifier
-            .align(if (portOnRight) Alignment.CenterEnd else Alignment.CenterStart)
-            .padding(Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val readout: @Composable () -> Unit = {
-            Column(
-                horizontalAlignment = if (portOnRight) Alignment.End else Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                captureError?.let { message ->
-                    Text(
-                        message,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_ERROR_TAG),
-                    )
-                }
-
-                Text(
-                    photoCountLabel(photosTaken),
-                    color = Color.White,
+    val readout: @Composable (horizontalAlignment: Alignment.Horizontal) -> Unit = { alignment ->
+        Column(horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            captureError?.let { message ->
+                OverlayText(
+                    message,
+                    fill = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_COUNT_TAG),
+                    modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_ERROR_TAG),
                 )
             }
+            OverlayText(
+                photoCountLabel(photosTaken),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_COUNT_TAG),
+            )
         }
-
-        if (portOnRight) {
-            readout()
-            ShutterButton(enabled = shutterEnabled, onClick = onShutter)
-        } else {
-            ShutterButton(enabled = shutterEnabled, onClick = onShutter)
-            readout()
+    }
+    if (edge.isHorizontal) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            readout(Alignment.CenterHorizontally)
+            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+            }
+        }
+    } else {
+        val portOnRight = edge == ScreenEdge.Right
+        Row(
+            modifier = Modifier.padding(Spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (portOnRight) {
+                readout(Alignment.End)
+                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+            } else {
+                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+                readout(Alignment.Start)
+            }
         }
     }
 }
 
-/** The shutter: a plain ringed disc, the shape every camera app has trained people to recognise. */
+/**
+ * The shutter: a plain ringed disc, the shape every camera app has trained people to recognise,
+ * with the overlay rule's black ring at its outer edge — drawn inside the same 72 dp, so the disc
+ * reads over a white scene without moving.
+ */
 @Composable
 private fun ShutterButton(enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(SHUTTER_SIZE_DP.dp)
             .clip(CircleShape)
-            .background(if (enabled) Color.White else Color.White.copy(alpha = DISABLED_SHUTTER_ALPHA))
-            .border(SHUTTER_RING_DP.dp, Color.White.copy(alpha = SHUTTER_RING_ALPHA), CircleShape)
+            .background(if (enabled) OverlayFill else OverlayFill.copy(alpha = DISABLED_SHUTTER_ALPHA))
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { contentDescription = SHUTTER_DESCRIPTION }
-            .testTag(CAMERA_SHUTTER_TAG),
+            .testTag(CAMERA_SHUTTER_TAG)
+            // Drawing only, after the node is sized, tagged and clickable at its full 72 dp: the
+            // black ring at the outer edge, then the white ring inset by it. The first cut put the
+            // padding before the tag and the tagged node shrank 1.5 dp — the shutter had not moved
+            // and the tests said it had, which is the spec's "lead worth checking" in miniature.
+            .overlayRing()
+            .padding(OVERLAY_OUTLINE_WIDTH / 2)
+            .border(SHUTTER_RING_DP.dp, OverlayFill.copy(alpha = SHUTTER_RING_ALPHA), CircleShape),
     )
 }
 
@@ -408,6 +347,7 @@ private const val DISABLED_SHUTTER_ALPHA = 0.4f
 
 internal const val IN_APP_CAMERA_TAG = "in-app-camera"
 internal const val CAMERA_SHUTTER_TAG = "in-app-camera-shutter"
+internal const val CAMERA_SHUTTER_BAND_TAG = "in-app-camera-shutter-band"
 internal const val CAMERA_COUNT_TAG = "in-app-camera-count"
 internal const val CAMERA_DONE_TAG = "in-app-camera-done"
 internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
