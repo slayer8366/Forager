@@ -209,6 +209,10 @@ Evidence: four confirmations.
    "saved to the album" toast, nothing new in the album.
 9. **Long absence over a find, compact layout.** The same, but return after **over four minutes**:
    the camera is **closed**, and the **find's edit form is still open** with its content intact.
+   **Nothing else will ever check this path.** The four-minute close is driven by `MainActivity`,
+   which the test suite does not run, so 6.9 is not confirming something the tests already cover:
+   if it fails here, the tests did not catch it and could not have. Give a borderline result a
+   second look, and report it as borderline, instead of assuming the suite has it covered.
 10. **No camera, compact layout.** Edit a find, background **without** opening the camera, return:
     unchanged from before this change. The edit form has closed, as it did before 6.8–6.9 existed.
 11. **Wide layout agrees.** In a window the app lays out wide (drawer on the left, no bottom nav;
