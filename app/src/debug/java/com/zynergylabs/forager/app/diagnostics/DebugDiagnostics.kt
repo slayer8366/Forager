@@ -92,11 +92,15 @@ class DebugDiagnostics private constructor(
      * Values, not a formatted string. The release twin takes the same arguments and does nothing
      * with them, so a release build formats nothing — every argument here already exists at the
      * call site, and none of them is an interpolation.
+     *
+     * [displayRotation] sits beside [deviceRotation] on purpose (2026-09-18): the glyphs turn by
+     * sensor minus display and the shutter's edge comes from display alone, so the pair is what a
+     * reader compares. At open they agree; an entry where they differ is the finding, not a quirk.
      */
-    fun recordCaptureShot(deviceRotation: Int?, targetRotation: Int, requestDegrees: Int?, resolution: String?) {
+    fun recordCaptureShot(deviceRotation: Int?, displayRotation: Int?, targetRotation: Int, requestDegrees: Int?, resolution: String?) {
         executor.execute {
             log.append(
-                "capture shot deviceRotation=$deviceRotation targetRotation=$targetRotation " +
+                "capture shot deviceRotation=$deviceRotation displayRotation=$displayRotation targetRotation=$targetRotation " +
                     "requestDegrees=$requestDegrees resolution=$resolution",
             )
         }

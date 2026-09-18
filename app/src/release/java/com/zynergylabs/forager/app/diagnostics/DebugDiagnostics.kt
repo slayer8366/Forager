@@ -25,7 +25,7 @@ class DebugDiagnostics private constructor() {
      * the call site to evaluate before arriving here.
      */
     @Suppress("UNUSED_PARAMETER")
-    fun recordCaptureShot(deviceRotation: Int?, targetRotation: Int, requestDegrees: Int?, resolution: String?) = Unit
+    fun recordCaptureShot(deviceRotation: Int?, displayRotation: Int?, targetRotation: Int, requestDegrees: Int?, resolution: String?) = Unit
 
     /** The second of the debug twin's two entries per capture; this does nothing. */
     @Suppress("UNUSED_PARAMETER")

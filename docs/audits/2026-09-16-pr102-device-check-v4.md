@@ -263,7 +263,12 @@ v3 named the wrong string and the wrong number of labels here.**
 **Every capture produces exactly two entries in the Diagnostics panel:**
 
 1. **The shot entry**, reading
-   `capture shot deviceRotation=… targetRotation=… requestDegrees=… resolution=…`
+   `capture shot deviceRotation=… displayRotation=… targetRotation=… requestDegrees=… resolution=…`
+   — **compare the first two.** `deviceRotation` is the sensor's snapped reading, `displayRotation`
+   the window's; the controls turn by their difference and the shutter's edge follows the second
+   alone. At a fresh open they should be equal. **An entry where they differ is a finding in its own
+   right** (added 2026-09-18 for the S26 Ultra inverted-glyph regression): record both values and
+   which physical side the port was on.
 2. **Exactly one outcome entry**, reading `capture orientation '<filename>' <label>` followed by
    whichever of ` fromTag=`, ` toTag=`, ` degrees=`, ` reason=`, ` error=` apply. A failure carries
    its stack as the entry's indented detail.

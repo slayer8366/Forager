@@ -110,16 +110,16 @@ class DebugDiagnosticsTest {
      * release twin take the same call and build nothing.
      */
     @Test
-    fun `recordCaptureShot writes the shot's four values as one entry`() {
+    fun `recordCaptureShot writes the shot's five values as one entry, the display rotation beside the sensor's`() {
         val log = newLog()
         val diagnostics = DebugDiagnostics.install(log)
 
-        diagnostics.recordCaptureShot(deviceRotation = 3, targetRotation = 0, requestDegrees = 90, resolution = "4032x3024")
+        diagnostics.recordCaptureShot(deviceRotation = 1, displayRotation = 3, targetRotation = 0, requestDegrees = 90, resolution = "4032x3024")
 
         val text = awaitLog(log) { it.contains("capture shot") }
         assertTrue(
-            "expected all four values on the shot entry, got:\n$text",
-            text.contains("capture shot deviceRotation=3 targetRotation=0 requestDegrees=90 resolution=4032x3024"),
+            "expected all five values on the shot entry, the sensor and display readings side by side, got:\n$text",
+            text.contains("capture shot deviceRotation=1 displayRotation=3 targetRotation=0 requestDegrees=90 resolution=4032x3024"),
         )
     }
 
@@ -183,7 +183,7 @@ class DebugDiagnosticsTest {
         val log = newLog()
         val diagnostics = DebugDiagnostics.install(log)
 
-        diagnostics.recordCaptureShot(deviceRotation = 0, targetRotation = 0, requestDegrees = null, resolution = null)
+        diagnostics.recordCaptureShot(deviceRotation = 0, displayRotation = 0, targetRotation = 0, requestDegrees = null, resolution = null)
         diagnostics.recordCaptureOrientation(
             fileName = "IMG_0003.jpg",
             branch = "not attempted",

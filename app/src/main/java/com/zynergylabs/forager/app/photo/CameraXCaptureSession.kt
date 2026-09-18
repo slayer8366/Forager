@@ -346,13 +346,19 @@ internal class CameraXCaptureSession(
         // reapplied below. Null until bound. Logged per shot: this line is what the device check
         // reads to tell "the target never reached CameraX" from "the HAL tagged it otherwise".
         val intended = capture.resolutionInfo
+        // The window's rotation at the shot, beside the sensor's: the controls' angle is sensor
+        // minus display and the arrangement is display alone, so a shot entry that shows only the
+        // sensor cannot show the one disagreement every orientation question comes down to. Added
+        // 2026-09-18 for the S26 Ultra inverted-glyph regression, and kept: this is the instrument.
+        val displayRotation = previewView?.display?.rotation
         Log.i(
             TAG,
-            "Shot: deviceRotation=$rotation targetRotation=${capture.targetRotation} " +
+            "Shot: deviceRotation=$rotation displayRotation=$displayRotation targetRotation=${capture.targetRotation} " +
                 "requestDegrees=${intended?.rotationDegrees} resolution=${intended?.resolution}",
         )
         diagnostics?.recordCaptureShot(
             deviceRotation = rotation,
+            displayRotation = displayRotation,
             targetRotation = capture.targetRotation,
             requestDegrees = intended?.rotationDegrees,
             resolution = intended?.resolution?.toString(),
