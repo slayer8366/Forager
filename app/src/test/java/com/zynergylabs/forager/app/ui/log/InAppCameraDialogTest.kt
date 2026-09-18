@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
+import android.app.Activity
 import android.app.Application
+import android.view.Window
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
@@ -10,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -39,6 +42,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
 
 /**
  * [InAppCameraDialog] driven through its real controls, against a fake [CameraCaptureSession].
@@ -375,6 +379,61 @@ class InAppCameraDialogTest {
         assertTrue(failure.isFailure)
         assertTrue("and a failed one leaves a stub for the screen to clean up", partial.exists())
         assertFalse("which is not a whole photo", partial.readBytes().size > 1)
+    }
+
+    // ── The status bar (hide-status-bar dispatch, 2026-09-18) ───────────────────────────────────
+
+    /**
+     * The status bar is requested hidden on the camera dialog's own window and on no other. What
+     * is asserted is the request itself, read from the platform's own `InsetsController` on each
+     * window, not a proxy like "a controller was obtained": Robolectric runs the real controller,
+     * and its requested-visible types are what the system acts on. Read by reflection because the
+     * getter is not public API; the test-only cost of that is named in [statusBarRequestedVisible].
+     *
+     * What this cannot show: whether the bar actually disappears, and whether the controls take
+     * the space back. Robolectric reports zero insets and draws no status bar, so both are
+     * device-only (v4 step 6 and the dispatch's device items).
+     */
+    @Test
+    fun `the status bar is requested hidden on the camera's own window, and the Activity's is left alone`() {
+        lateinit var activityWindow: Window
+        composeRule.setContent {
+            activityWindow = (LocalView.current.context as Activity).window
+            Subject(FakeCameraCaptureSession())
+        }
+        composeRule.waitForIdle()
+        val dialogWindow = checkNotNull(ShadowDialog.getLatestDialog()?.window) { "precondition: the camera dialog has a window" }
+        assertTrue("precondition: the dialog's window is not the Activity's", dialogWindow !== activityWindow)
+
+        assertFalse("status bar still requested visible on the camera's window", statusBarRequestedVisible(dialogWindow))
+        assertTrue("status bar requested hidden on the Activity's window", statusBarRequestedVisible(activityWindow))
+    }
+
+    /** Leaving is the restore: every exit (Done, back, the absence timeout) ends in the host no longer composing the dialog, which is what this does. */
+    @Test
+    fun `the status bar is requested visible again when the dialog leaves`() {
+        val shown = mutableStateOf(true)
+        composeRule.setContent { if (shown.value) Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+        val dialogWindow = checkNotNull(ShadowDialog.getLatestDialog()?.window)
+        assertFalse("precondition: hidden while open", statusBarRequestedVisible(dialogWindow))
+
+        shown.value = false
+        composeRule.waitForIdle()
+
+        assertTrue("status bar not requested visible again after the dialog left", statusBarRequestedVisible(dialogWindow))
+    }
+
+    /**
+     * Whether [window]'s own insets controller currently requests the status bar visible. Reads
+     * `InsetsController.getRequestedVisibleTypes`, which is platform code Robolectric runs for
+     * real but which is not in the public SDK, hence reflection. If a platform update renames it,
+     * this throws rather than returning a default, so the test fails loudly instead of passing.
+     */
+    private fun statusBarRequestedVisible(window: Window): Boolean {
+        val controller = checkNotNull(window.insetsController) { "no insets controller on $window" }
+        val types = controller.javaClass.getMethod("getRequestedVisibleTypes").invoke(controller) as Int
+        return types and android.view.WindowInsets.Type.statusBars() != 0
     }
 }
 
