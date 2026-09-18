@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
+import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
@@ -317,6 +318,17 @@ class MainActivity : ComponentActivity() {
             ForagerTheme(darkTheme = effectiveDarkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
+
+                // Four minutes away with the camera open closes it — see CameraAbsence.kt for the
+                // number, the clock and why this is a threshold rather than close-on-background.
+                // Composed only while the camera is open, so an absence is measured for a session
+                // that exists; nothing runs while the app is away, the decision is made on return.
+                if (inAppCameraTarget != null) {
+                    CameraAbsenceWatcher(
+                        onLeftApp = inAppCameraViewModel::onLeftApp,
+                        onReturnedToApp = inAppCameraViewModel::onReturnedToApp,
+                    )
+                }
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
                 val cartographyUiState by cartographyViewModel.uiState.collectAsState()
 

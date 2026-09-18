@@ -517,6 +517,9 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // TestLifecycleOwner, for driving ON_STOP/ON_START at a composable that observes the
+    // lifecycle (CameraAbsenceWatcher). Same version as the lifecycle artifacts above.
+    testImplementation(libs.androidx.lifecycle.runtime.testing)
     // MushroomLogMigrationTest declares its own test-only @Database (LegacyForagerDatabaseV3,
     // reusing production entity classes) to build a real version-3 database to migrate from —
     // Room's KSP compiler has to run over test sources too, or that class has no generated

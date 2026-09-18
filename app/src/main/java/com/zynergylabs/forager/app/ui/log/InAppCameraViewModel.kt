@@ -39,11 +39,44 @@ internal class InAppCameraViewModel : ViewModel() {
     /** Null when the camera is closed. */
     val target: StateFlow<InAppCameraTarget?> = _target.asStateFlow()
 
+    /**
+     * When the app was last seen leaving with this camera open, in elapsed-real-time; null when it
+     * has not left, or when a return has already been accounted for. Held here rather than in the
+     * composition for the same reason [target] is: it has to survive the Activity recreation a
+     * rotation used to cause, and it has to die with the process, where a new process closes the
+     * camera anyway. See [CameraAbsenceWatcher] for why the clock is read at the UI edge and passed
+     * in as a number — this class keeps its no-Android, tested-headless property.
+     */
+    private var leftAtElapsedMillis: Long? = null
+
     fun open(target: InAppCameraTarget) {
         _target.value = target
+        // A fresh session is not part of any earlier absence.
+        leftAtElapsedMillis = null
     }
 
     fun close() {
         _target.value = null
+        leftAtElapsedMillis = null
+    }
+
+    /**
+     * The app went away. Recorded only while the camera is open: an absence with nothing open is
+     * not something this class has any use for, and storing it would make the next open inherit it.
+     */
+    fun onLeftApp(elapsedMillis: Long) {
+        if (_target.value != null) leftAtElapsedMillis = elapsedMillis
+    }
+
+    /**
+     * The app came back. Closes the camera when the absence reached the threshold, and otherwise
+     * leaves the session exactly as it was — the whole point of a threshold rather than
+     * close-on-background. The recorded departure is consumed either way, so a later return without
+     * an intervening departure cannot re-trigger it.
+     */
+    fun onReturnedToApp(elapsedMillis: Long) {
+        val leftAt = leftAtElapsedMillis ?: return
+        leftAtElapsedMillis = null
+        if (cameraClosesAfterAbsence(leftAt, elapsedMillis)) close()
     }
 }
