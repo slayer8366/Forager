@@ -1,6 +1,14 @@
 package com.zynergylabs.forager.app.ui.log
 
 import android.content.res.Configuration
+import android.util.Log
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -164,6 +172,7 @@ internal fun InAppCameraDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
+        HideStatusBarForThisDialog()
         Box(
             modifier = modifier
                 .fillMaxSize()
@@ -217,10 +226,16 @@ internal fun InAppCameraDialog(
                 }
             }
 
-            // Controls sit inside the real system-bar insets; the viewfinder behind them does not.
-            // Robolectric reports zero insets, so this padding is device-only by construction
-            // (CLAUDE.md, known pitfalls) — nothing below says anything about it.
-            Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+            // Each control takes the real system-bar and cutout insets on the sides it needs them,
+            // not the whole safe area (hide-status-bar dispatch, 2026-09-18). Two reasons. The
+            // status bar is hidden while this dialog is open (HideStatusBarForThisDialog), so its
+            // inset collapses and the space comes back to the controls, deliberately. And a centred
+            // control centres on the whole screen, not on what an asymmetric safe area leaves:
+            // the landscape shutter is centred on the full height (only horizontal insets), the
+            // portrait column on the full width (only the bottom inset). Done keeps top and start.
+            // The viewfinder behind them takes no insets at all. Robolectric reports zero insets,
+            // so all of this padding is device-only by construction (CLAUDE.md, known pitfalls).
+            Box(modifier = Modifier.fillMaxSize()) {
                 when (arrangement) {
                     // Exactly as it was before the landscape arrangement existed: Done top-left,
                     // count and shutter along the bottom, every control turning in place with the
@@ -230,6 +245,7 @@ internal fun InAppCameraDialog(
                             onClick = onDismiss,
                             modifier = Modifier
                                 .align(Alignment.TopStart)
+                                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Start))
                                 .padding(Spacing.sm)
                                 .rotateWithDevice(session.deviceRotation)
                                 .testTag(CAMERA_DONE_TAG),
@@ -239,7 +255,11 @@ internal fun InAppCameraDialog(
                         }
 
                         Column(
-                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(Spacing.lg),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                                .padding(Spacing.lg),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                         ) {
@@ -304,6 +324,40 @@ internal fun InAppCameraDialog(
 }
 
 /**
+ * Hides the status bar for as long as the camera dialog is composed, on **the dialog's own window
+ * only** (hide-status-bar dispatch, 2026-09-18). The navigation bar is left alone, by the owner's
+ * call. The Activity's window is never touched, so there is no Activity state for any exit to
+ * restore: every way out (Done, back through the dialog's `onDismissRequest`, the four-minute
+ * absence timeout through `InAppCameraViewModel.close`, and the Activity going away) ends with
+ * this leaving composition and the dialog's window going with it. `onDispose` also asks for the
+ * bar back on that window, so the restore does not depend on the platform dropping a destroyed
+ * window's request promptly.
+ *
+ * `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`: a swipe from the top edge of the screen (the top as the
+ * system has it rotated, which the camera's window lock holds still) brings the bar back briefly
+ * and the shade can be pulled down. The bar remains the system's; nothing here draws one.
+ *
+ * Must be called inside the `Dialog` content, where [LocalView]'s parent is the dialog's
+ * [DialogWindowProvider]. Anywhere else there is no dialog window, and that is logged rather than
+ * reaching for the Activity's window instead.
+ */
+@Composable
+private fun HideStatusBarForThisDialog() {
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val window = (view.parent as? DialogWindowProvider)?.window
+        if (window == null) {
+            Log.w(TAG, "No dialog window to hide the status bar on; it stays visible.")
+            return@DisposableEffect onDispose {}
+        }
+        val controller = WindowCompat.getInsetsController(window, view)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.statusBars())
+        onDispose { controller.show(WindowInsetsCompat.Type.statusBars()) }
+    }
+}
+
+/**
  * The landscape arrangement's controls, mirrored by which screen side the device's charger-port
  * edge is on. One composable rather than two near-identical blocks, because the difference is
  * exactly two things — which side the cluster aligns to, and whether the shutter comes before or
@@ -328,6 +382,7 @@ private fun BoxScope.LandscapeControls(
         onClick = onDismiss,
         modifier = Modifier
             .align(Alignment.TopStart)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Start))
             .padding(Spacing.sm)
             .rotateWithDevice(deviceRotation)
             .testTag(CAMERA_DONE_TAG),
@@ -339,6 +394,9 @@ private fun BoxScope.LandscapeControls(
     Row(
         modifier = Modifier
             .align(if (portOnRight) Alignment.CenterEnd else Alignment.CenterStart)
+            // Horizontal insets only: kept off the nav bar or cutout on the port edge, centred on
+            // the screen's full height rather than between the status bar and the bottom inset.
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
             .padding(Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
@@ -416,3 +474,5 @@ internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"
 internal const val SHUTTER_DESCRIPTION = "Take photo"
 internal const val DONE_LABEL = "Done"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
+
+private const val TAG = "InAppCamera"
