@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
 import android.view.Surface
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * Which of the camera dialog's arrangements a session uses — chosen once when the camera opens and
@@ -129,3 +131,37 @@ internal fun portEdge(arrangement: CameraArrangement): ScreenEdge = when (arrang
  * AVD a window never reaches 180 (checked 2026-09-18); unverified on the reference device.
  */
 internal fun punchHoleEdge(arrangement: CameraArrangement): ScreenEdge = portEdge(arrangement).opposite
+
+/**
+ * The camera screen's three regions (top-strip dispatch v2, owner's option A, 2026-09-18): the
+ * **viewfinder region**, whatever the ratio produces; the **strip band** on its punch-hole side;
+ * the **shutter band** on its charger-port side. Every control is anchored inside a band, never
+ * against a screen edge, so a later aspect ratio is "the viewfinder region got smaller and the
+ * bands grew" rather than a revisit of every position.
+ *
+ * **Exactly one ratio exists: full-bleed.** The viewfinder is the whole frame and both bands are
+ * zero-thick, so each band sizes to its own content and that content overlaps onto the image —
+ * which is where the controls have always been. No ratio setting, no second case. **That makes
+ * the band model correct by construction and by review, not by a test that could fail**: with no
+ * second ratio there is nothing to test the bands against, and nothing here should be read as
+ * having verified them. What is tested is what can be — the shutter on the port edge, the strip
+ * on the punch-hole edge, at every rotation.
+ */
+internal data class CameraRegions(
+    /** The band the top strip lives in: on the device's punch-hole edge. */
+    val stripEdge: ScreenEdge,
+    /** The band the shutter and readout live in: on the device's charger-port edge. */
+    val shutterEdge: ScreenEdge,
+    /** Zero at full-bleed: the band sizes to its content, which overlaps the viewfinder. */
+    val stripBandThickness: Dp,
+    /** Zero at full-bleed, as above. */
+    val shutterBandThickness: Dp,
+)
+
+/** The regions for [arrangement] at the one ratio that exists. See [CameraRegions]. */
+internal fun cameraRegions(arrangement: CameraArrangement): CameraRegions = CameraRegions(
+    stripEdge = punchHoleEdge(arrangement),
+    shutterEdge = portEdge(arrangement),
+    stripBandThickness = 0.dp,
+    shutterBandThickness = 0.dp,
+)

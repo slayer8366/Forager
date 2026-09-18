@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import android.view.Surface
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -115,6 +116,24 @@ class CameraArrangementTest {
         }
         for (arrangement in CameraArrangement.entries) {
             assertEquals("the strip is opposite the shutter in $arrangement", portEdge(arrangement).opposite, punchHoleEdge(arrangement))
+        }
+    }
+
+    /**
+     * The region model at the one ratio that exists. The strip band is on the punch-hole edge and
+     * the shutter band on the port edge, in every arrangement; both are zero-thick. **This is the
+     * degenerate case and the only one**: with no second ratio, nothing here can show the bands
+     * would grow correctly, and this test does not claim to (see [CameraRegions]).
+     */
+    @Test
+    fun `at full-bleed the bands are on the device's two short edges and zero-thick`() {
+        for (arrangement in CameraArrangement.entries) {
+            val regions = cameraRegions(arrangement)
+            assertEquals("$arrangement strip band", punchHoleEdge(arrangement), regions.stripEdge)
+            assertEquals("$arrangement shutter band", portEdge(arrangement), regions.shutterEdge)
+            assertEquals("$arrangement: the two bands are opposite each other", regions.stripEdge.opposite, regions.shutterEdge)
+            assertEquals(0.dp, regions.stripBandThickness)
+            assertEquals(0.dp, regions.shutterBandThickness)
         }
     }
 }
