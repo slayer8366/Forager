@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -144,7 +145,12 @@ internal fun InAppCameraDialog(
     // answer portrait whatever was read). Reading LocalConfiguration.current outside `remember`
     // would reflow if the window ever did turn, which is the one thing that must not happen.
     val windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val arrangement = remember(lockToPortrait) { cameraArrangement(lockToPortrait, windowIsLandscape) }
+    // The window's rotation at open decides which physical edge the shutter goes on, because the
+    // two landscapes are mirror images and only one of them has the charger port on the screen's
+    // right — see CameraArrangement. Read outside `remember` for the same reason windowIsLandscape
+    // is: the value is captured at first composition and then held, not tracked.
+    val displayRotation = currentDisplayRotation()
+    val arrangement = remember(lockToPortrait) { cameraArrangement(lockToPortrait, windowIsLandscape, displayRotation) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -251,55 +257,106 @@ internal fun InAppCameraDialog(
                         }
                     }
 
-                    // A landscape window, pinned where it is: the shutter on the right edge,
-                    // vertically centred, where the right thumb of a two-handed landscape grip
-                    // already is; the count (and a failure) beside it, not under it; Done
-                    // top-left. Upright, every one of them, and no rotateWithDevice: the window
-                    // already matches the grip, so upright is the natural reading, and controls
-                    // that read upright the moment the camera opens say it is ready.
-                    CameraArrangement.Landscape -> {
-                        TextButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(Spacing.sm)
-                                .testTag(CAMERA_DONE_TAG),
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
-                            Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
-                        }
+                    // A landscape window, pinned where it is: the shutter on the device's
+                    // charger-port edge, vertically centred, where the thumb of a two-handed
+                    // landscape grip already is; the count (and a failure) beside it, not under
+                    // it; Done top-left. Upright, every one of them, and no rotateWithDevice: the
+                    // window already matches the grip, so upright is the natural reading, and
+                    // controls that read upright the moment the camera opens say it is ready.
+                    //
+                    // Two mirrored cases, not one, because the port edge is a physical edge and
+                    // the two landscapes put it on opposite screen sides — see CameraArrangement.
+                    CameraArrangement.LandscapePortRight ->
+                        LandscapeControls(
+                            portOnRight = true,
+                            captureError = captureError,
+                            photosTaken = photosTaken,
+                            shutterEnabled = shutterEnabled,
+                            onShutter = onShutter,
+                            onDismiss = onDismiss,
+                        )
 
-                        Row(
-                            modifier = Modifier.align(Alignment.CenterEnd).padding(Spacing.lg),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                            ) {
-                                captureError?.let { message ->
-                                    Text(
-                                        message,
-                                        color = MaterialTheme.colorScheme.error,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.testTag(CAMERA_ERROR_TAG),
-                                    )
-                                }
-
-                                Text(
-                                    photoCountLabel(photosTaken),
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.testTag(CAMERA_COUNT_TAG),
-                                )
-                            }
-
-                            ShutterButton(enabled = shutterEnabled, onClick = onShutter)
-                        }
-                    }
+                    CameraArrangement.LandscapePortLeft ->
+                        LandscapeControls(
+                            portOnRight = false,
+                            captureError = captureError,
+                            photosTaken = photosTaken,
+                            shutterEnabled = shutterEnabled,
+                            onShutter = onShutter,
+                            onDismiss = onDismiss,
+                        )
                 }
             }
+        }
+    }
+}
+
+/**
+ * The landscape arrangement's controls, mirrored by which screen side the device's charger-port
+ * edge is on. One composable rather than two near-identical blocks, because the difference is
+ * exactly two things — which side the cluster aligns to, and whether the shutter comes before or
+ * after the count in reading order — and a second copy is how the two halves drift apart.
+ *
+ * The shutter is always the outermost child, hard against the port edge, with the count inboard of
+ * it. That ordering is the point: the shutter's distance from the edge the thumb wraps around is
+ * what the motor habit is built on, and putting the count outboard would move it.
+ */
+@Composable
+private fun BoxScope.LandscapeControls(
+    portOnRight: Boolean,
+    captureError: String?,
+    photosTaken: Int,
+    shutterEnabled: Boolean,
+    onShutter: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    TextButton(
+        onClick = onDismiss,
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(Spacing.sm)
+            .testTag(CAMERA_DONE_TAG),
+    ) {
+        Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
+        Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
+    }
+
+    Row(
+        modifier = Modifier
+            .align(if (portOnRight) Alignment.CenterEnd else Alignment.CenterStart)
+            .padding(Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val readout: @Composable () -> Unit = {
+            Column(
+                horizontalAlignment = if (portOnRight) Alignment.End else Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                captureError?.let { message ->
+                    Text(
+                        message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.testTag(CAMERA_ERROR_TAG),
+                    )
+                }
+
+                Text(
+                    photoCountLabel(photosTaken),
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.testTag(CAMERA_COUNT_TAG),
+                )
+            }
+        }
+
+        if (portOnRight) {
+            readout()
+            ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+        } else {
+            ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+            readout()
         }
     }
 }

@@ -88,9 +88,14 @@ private fun clockwiseDegrees(surfaceRotation: Int): Float = when (surfaceRotatio
  * The window's current rotation. Read through `LocalView`'s display, and with `LocalConfiguration`
  * read alongside so that a window that does turn (an ignored lock) recomposes this; a view not yet
  * attached, or one with no display, reads as `ROTATION_0`.
+ *
+ * `internal` rather than private because [cameraArrangement] needs the same value at open, to put
+ * the shutter on the device's port edge rather than on a fixed screen side — the two landscapes
+ * are not interchangeable, which the 2026-09-17 device-check run found the hard way. One reader of
+ * the window's rotation, not two spellings of it.
  */
 @Composable
-private fun currentDisplayRotation(): Int {
+internal fun currentDisplayRotation(): Int {
     LocalConfiguration.current
     return LocalView.current.display?.rotation ?: Surface.ROTATION_0
 }

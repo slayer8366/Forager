@@ -33,6 +33,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDisplay
 
 /**
  * The camera dialog in a **landscape window** (this class's qualifiers): which arrangement it
@@ -96,15 +97,29 @@ class InAppCameraDialogLandscapeTest {
         assertEquals(Configuration.ORIENTATION_LANDSCAPE, composeRule.activity.resources.configuration.orientation)
     }
 
+    /**
+     * Pins the window's rotation before the dialog opens, and **proves it took**. The arrangement
+     * reads the display's rotation at open, so a harness that silently ignored this would leave
+     * every rotation-specific assertion below running at `ROTATION_0` — passing on the one sample
+     * that cannot fail them (CLAUDE.md: confirm the sample includes the cases that could have
+     * failed the check). The precondition assertion is what makes that impossible.
+     */
+    private fun setDisplayRotation(rotation: Int) {
+        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
+        @Suppress("DEPRECATION") val reported = composeRule.activity.windowManager.defaultDisplay.rotation
+        assertEquals("the harness must actually report the rotation this test is about", rotation, reported)
+    }
+
     @Test
-    fun `setting off in a landscape window, the shutter is on the right edge, vertically centred, the count beside it, Done top-left`() {
+    fun `at ROTATION_90 the port edge is the screen's right, so the shutter is there with the count inboard`() {
+        setDisplayRotation(Surface.ROTATION_90)
         setDialog(lockToPortrait = false)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         val count = bounds(CAMERA_COUNT_TAG)
         val done = bounds(CAMERA_DONE_TAG)
 
-        assertEquals("right edge, inside the frame's padding", (frame.right - Spacing.lg).value, shutter.right.value, 0.51f)
+        assertEquals("port edge (right at ROTATION_90), inside the frame's padding", (frame.right - Spacing.lg).value, shutter.right.value, 0.51f)
         assertEquals("vertically centred", frame.centreY(), shutter.centreY(), 0.51f)
         assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
         assertTrue("the count sits beside the shutter, to its left: ${count.right} vs ${shutter.left}", count.right <= shutter.left)
@@ -113,7 +128,37 @@ class InAppCameraDialogLandscapeTest {
         // target, so its corner is asserted as a region rather than an exact offset.
         assertTrue("Done top-left: $done in $frame", done.left < frame.left + Spacing.lg && done.top < frame.top + Spacing.lg)
         assertTrue("Done is left of the count and above it", done.right < count.left && done.bottom < count.top)
+        assertTrue("right of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() > frame.centreX())
     }
+
+    /**
+     * The mirror of the test above, and the one the 2026-09-17 device-check run was reported
+     * against: at `ROTATION_270` the charger port is on the user's left, so the shutter belongs on
+     * the screen's left. Before the fix this drew on the right — the punch-hole end of an S26
+     * Ultra — because the arrangement had no rotation input and both landscapes got `CenterEnd`.
+     */
+    @Test
+    fun `at ROTATION_270 the port edge is the screen's left, so the shutter is there with the count inboard`() {
+        setDisplayRotation(Surface.ROTATION_270)
+        setDialog(lockToPortrait = false)
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        val shutter = bounds(CAMERA_SHUTTER_TAG)
+        val count = bounds(CAMERA_COUNT_TAG)
+        val done = bounds(CAMERA_DONE_TAG)
+
+        assertEquals("port edge (left at ROTATION_270), inside the frame's padding", (frame.left + Spacing.lg).value, shutter.left.value, 0.51f)
+        assertEquals("vertically centred", frame.centreY(), shutter.centreY(), 0.51f)
+        assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
+        assertTrue("the count sits beside the shutter, to its right: ${count.left} vs ${shutter.right}", count.left >= shutter.right)
+        assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
+        assertTrue("Done top-left: $done in $frame", done.left < frame.left + Spacing.lg && done.top < frame.top + Spacing.lg)
+        assertTrue("left of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() < frame.centreX())
+    }
+
+    // The two landscapes being mirror images is asserted by the side-of-centre line in each of the
+    // two tests above, not by a third test comparing them: a compose rule takes `setContent` once,
+    // so one test cannot open the dialog at both rotations. The pure-function form of the same
+    // claim — that the two rotations never resolve to one arrangement — is in CameraArrangementTest.
 
     @Test
     fun `setting off in a landscape window, nothing turns when the device does`() {
