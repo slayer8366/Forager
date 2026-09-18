@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.diagnostics.DiagnosticsLog
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.FilePhotoStore
@@ -26,6 +28,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -212,6 +215,70 @@ class DiagnosticsPanelTest {
         }
         val shown = composeRule.onNodeWithTag(DIAGNOSTICS_LOG_TEXT_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString()
         assertTrue(shown, shown.contains("strictmode DiskReadViolation\n    at com.example.Persist.run(Persist.kt:1)"))
+    }
+
+    /**
+     * The condition that killed the app on the AVD (a `diagnostics.log` the process cannot open)
+     * makes a *read* fail as well as a write, so the panel meant to show the failure must survive
+     * opening it. A directory where the file should be stands in for the device's EACCES: the same
+     * `FileNotFoundException`, without depending on permissions the test's own user could override.
+     */
+    @Test
+    fun `a log that cannot be read shows why when opened, instead of taking the panel down`() {
+        log = DiagnosticsLog(File(File(context.filesDir, "unreadable-diagnostics"), DiagnosticsLog.FILE_NAME).apply { mkdirs() })
+        setPanel()
+        awaitLogRow()
+
+        composeRule.onNodeWithTag(DIAGNOSTICS_LOG_ROW_TAG).performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag(DIAGNOSTICS_LOG_TEXT_TAG).fetchSemanticsNodes().any { node ->
+                node.config.getOrNull(SemanticsProperties.Text)?.joinToString()?.startsWith("Couldn't read the log:") == true
+            }
+        }
+        val shown = composeRule.onNodeWithTag(DIAGNOSTICS_LOG_TEXT_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString()
+        assertTrue("expected the read's own error, got: $shown", shown.contains("Is a directory"))
+    }
+
+    /**
+     * The dispatch's requirement: a runner can tell "the log stopped recording" from "nothing
+     * happened". Two writes into a file that cannot be opened, then the row, which must say so in
+     * the words [logWriteFailureText] builds — count, time and error — rather than show a size that
+     * has quietly stopped changing.
+     */
+    @Test
+    fun `a log whose writes fail says so on its row`() {
+        log = DiagnosticsLog(File(File(context.filesDir, "unwritable-diagnostics"), DiagnosticsLog.FILE_NAME).apply { mkdirs() })
+        log.append("sweep deleted=0 orphaned capture file(s)")
+        log.append("process started pid=1")
+        val failure = checkNotNull(log.writeFailure) { "precondition: both writes should have failed" }
+        assertEquals(2, failure.failedEntries)
+
+        setPanel()
+        awaitLogRow()
+
+        val shown = composeRule.onNodeWithTag(DIAGNOSTICS_LOG_WRITE_FAILURE_TAG, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString()
+        assertEquals(logWriteFailureText(failure), shown)
+        assertTrue(shown, shown.startsWith("Not recording: 2 entries could not be written since "))
+    }
+
+    @Test
+    fun `a log that is writing shows no failure line`() {
+        log.append("sweep deleted=0 orphaned capture file(s)")
+        setPanel()
+        awaitLogRow()
+
+        composeRule.onAllNodesWithTag(DIAGNOSTICS_LOG_WRITE_FAILURE_TAG, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    /**
+     * The production panel must read the instance that writes, or it reports "no failure" whatever
+     * happened: a fresh `forContext` instance has never tried a write. Identity, not equality —
+     * [DiagnosticsLog] has no `equals`, and the property that matters is which object holds the state.
+     */
+    @Test
+    fun `the production panel reads the log instance the app's diagnostics writes through`() {
+        val app = ApplicationProvider.getApplicationContext<ForagerApplication>()
+        assertSame(app.diagnostics.log, writerLog(app))
     }
 
     @Test
