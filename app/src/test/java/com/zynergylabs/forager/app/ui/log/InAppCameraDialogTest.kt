@@ -409,7 +409,16 @@ class InAppCameraDialogTest {
         assertTrue("status bar requested hidden on the Activity's window", statusBarRequestedVisible(activityWindow))
     }
 
-    /** Leaving is the restore: every exit (Done, back, the absence timeout) ends in the host no longer composing the dialog, which is what this does. */
+    /**
+     * Leaving is the restore: every exit (Done, back, the absence timeout) ends in the host no
+     * longer composing the dialog, which is what this does.
+     *
+     * **What this does not cover, found by revert:** it still passes with `HideStatusBarForThisDialog`'s
+     * `onDispose { show(...) }` removed. Under Robolectric the dialog's window going away is enough
+     * on its own for the request to read visible again, so this pins the removal-restores property,
+     * not the explicit `show()`. That call stays as belt and braces for platforms that might hold a
+     * departing window's request; nothing here proves it is needed.
+     */
     @Test
     fun `the status bar is requested visible again when the dialog leaves`() {
         val shown = mutableStateOf(true)

@@ -136,6 +136,16 @@ The window pins to whatever it already was when the camera opened, and never mov
    to stay readable** — the same rule as 3.2. A label that stays sideways after the phone turns is a
    failure, in this arrangement exactly as in portrait.
 6. Done, then rotate the phone: the screen underneath follows again, proving the lock released.
+7. **Status bar hidden, navigation bar kept.** With the camera open in each of 3.1, 3.3, 3.4 and
+   inverted portrait: **no status bar**; the navigation bar (gesture handle or buttons) is still
+   there. Done sits nearer the top edge than it did before 2026-09-18, and the landscape shutter on
+   the screen's true vertical middle; both are the intended use of the freed space, not a failure.
+   The shutter is still on the port edge (3.3, 3.4), which is the part that must not change.
+8. **The bar comes back on every exit.** Done: back. Back (gesture or button) from the camera:
+   back. After a long absence (6.2), once the camera has closed: back.
+9. **It can still be pulled down.** Camera open, swipe down from the screen's top edge (the top as
+   the screen is currently laid out): the bar shows briefly and the notification shade pulls down.
+   **Say whether that took one swipe or two.** The controls do not move while the bar shows.
 
 Any flip animation on open in this state is a failure. The shutter along the bottom of a
 landscape frame is a failure. **The shutter on the punch-hole edge is a failure.**
@@ -160,6 +170,14 @@ landscape frame is a failure. **The shutter on the punch-hole edge is a failure.
 > landscape — one mechanism, not a second one. At open the angle is zero, so the labels still read
 > upright the moment the camera opens; the difference is only once the phone moves, which is what
 > 3.5 now checks. The shutter is a disc, has nothing to turn, and does not move.
+
+> **Addition, 2026-09-18.** Items 3.7–3.9 are new: the status bar is hidden while the camera is
+> open (hide-status-bar dispatch and addendum), and the controls take the space it leaves. Nothing
+> above changes. 3.1–3.6 were read against the change and still hold as written; "vertically
+> centred" in 3.3 now means the full screen's middle, where before it meant the middle of the area
+> left between the status bar and the bottom inset. **Not tested anywhere but here:** Robolectric
+> draws no status bar and reports zero insets, so the suite can show only that the bar is
+> *requested* hidden on the camera's own window, not that it disappears or where the controls land.
 
 Evidence: one line per item, and **say which physical edge the port was on** for 3.3 and 3.4, not
 just which screen side the shutter appeared on.
