@@ -1435,6 +1435,26 @@ fun AvailabilityScreen(
         // trace of why conflating the two was silently closing the find (and losing the photo with
         // it) on every camera capture.
         val latestPhotoAcquisitionInFlight by rememberUpdatedState(logPhotoAcquisitionInFlight)
+        // Camera-open edit guard (2026-09-18): while the in-app camera is open, backgrounding does
+        // not end the edit. Something may be about to arrive — the camera is still up on return
+        // (CameraAbsence.kt holds it for four minutes) and its shutter routes to this find. Before
+        // this, ON_STOP had already closed the form, so a short absence left the camera open over
+        // a find that was gone and the shot was rescued to the album instead.
+        //
+        // Not discarding while the camera is open is the point of this guard, not a side effect
+        // of it. So the unchanged-re-edit discard in MushroomLogViewModel.onLeaveEditingIncidentally
+        // does not run here either: open a committed find, change nothing, open the camera,
+        // background, and a process kill leaves the untouched re-edit draft in Drafts as a copy of
+        // its parent. Owner's ruling: visible, recoverable, and what "nothing is discarded while
+        // the camera is open" means; the Drafts section already surfaces crash-orphaned entries.
+        //
+        // It also covers a long absence. ON_STOP cannot know how long the user will be away, so
+        // after four minutes the camera closes onto a still-open edit form rather than onto the
+        // list. That reverses the 2026-09-17 strike of "return the user mid-edit" (see
+        // CameraAbsence.kt's own doc for why the strike's premises did not hold), and it makes
+        // this layout agree with the wide one: this observer lives in compactMainScaffold only, so
+        // MEDIUM/EXPANDED windows never ended an edit on backgrounding at all.
+        val latestInAppCameraOpen by rememberUpdatedState(inAppCameraTarget != null)
 
         // Search-focus-and-hide dispatch, Item 2's own hide condition (SearchEntryBar call sites
         // below) — "any entry open" (view or edit), not "specifically editing": from here,
@@ -1471,7 +1491,7 @@ fun AvailabilityScreen(
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_STOP) {
-                    if (latestIsJournalEditing && !latestPhotoAcquisitionInFlight) latestOnLeaveEditingIncidentally()
+                    if (latestIsJournalEditing && !latestPhotoAcquisitionInFlight && !latestInAppCameraOpen) latestOnLeaveEditingIncidentally()
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
