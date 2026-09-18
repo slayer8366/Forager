@@ -180,17 +180,41 @@ Evidence: four confirmations.
 
 ## 6. Retention and routing
 
-1. Rotate with the camera open, then background the app and return: the camera survived the
-   rotation and is **closed** on return.
-2. Developer options, **Don't keep activities** on. Open the camera, background, return: camera
-   must be **closed**. Turn the setting back off afterwards.
-3. Open the camera from a **log entry**, take a photo, confirm it lands on that record.
-4. Same from the **album**.
-5. Same from a **cartography entry**.
+1. **Short absence.** Rotate with the camera open, then background the app and return **within a
+   minute**: the camera survived the rotation and is **still open**, session intact.
+2. **Long absence.** Camera open, background the app and leave it for **over four minutes**, then
+   return: the camera is **closed**.
+3. **Picker round trip.** Camera open, open the **gallery picker**, return promptly: the camera is
+   **still open**. This is the case close-on-background would have broken, and the reason the
+   behaviour is a threshold rather than a lifecycle hook.
+4. Developer options, **Don't keep activities** on. Open the camera, background, return: camera
+   must be **closed**, whatever the elapsed time. Turn the setting back off afterwards.
+5. Open the camera from a **log entry**, take a photo, confirm it lands on that record.
+6. Same from the **album**.
+7. Same from a **cartography entry**.
 
 A photo arriving on the wrong record is a quiet failure no other step catches.
 
-Evidence: five confirmations.
+> **Superseding note, 2026-09-17.** Item 6.1 previously read "background the app and return: the
+> camera survived the rotation and is **closed** on return", asserting a close-on-background that
+> **no code implemented and no decision had ever specified** — established by the finding report
+> (`2026-09-17-shutter-port-edge-and-camera-retention.md`). The owner's ruling was that the
+> behaviour should exist, and it now does, as a **four-minute absence threshold** rather than
+> close-on-background: `702be42`, reasoning on `CameraAbsence.kt`. Items 6.1–6.3 replace the old
+> 6.1 and test both sides of the threshold plus the picker case; the old items 6.2–6.5 are now
+> 6.4–6.7, unchanged in substance.
+>
+> **Two things the old step implied that are not tested here, because they are not true.** It is
+> not the rotation that matters — the rotation is irrelevant to the symptom, so 6.1 keeps it only
+> as a combined check. And the timeout does **not** need to rescue unsaved captures: every capture
+> is persisted to the in-app album on the shutter tap, so there is nothing for it to save. Nor does
+> it return the user mid-edit: backgrounding already leaves journal editing and arms cartography's
+> prompt, which is what the app does on a genuine departure and therefore agrees with the timeout
+> rather than conflicting with it. Both were requirements in the commissioning dispatch and both
+> were struck once the code was read.
+
+Evidence: seven confirmations, and for 6.1–6.3 **say roughly how long you were away**, since that
+is the variable under test.
 
 ## 7. Capture diagnostics, the two-entry invariant
 
