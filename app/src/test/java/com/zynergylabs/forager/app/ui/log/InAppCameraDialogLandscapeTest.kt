@@ -37,7 +37,7 @@ import org.robolectric.shadows.ShadowDisplay
 
 /**
  * The camera dialog in a **landscape window** (this class's qualifiers): which arrangement it
- * chooses for each state of the setting, where the shutter, count and Done land, that nothing
+ * chooses for each state of the setting, where the shutter and count land, that nothing
  * turns in the landscape arrangement when the device does, and that the arrangement is held when
  * the configuration changes underneath it. Measured on the real dialog over the fake session,
  * with bounds read back from the composition, not from a description of the layout.
@@ -117,17 +117,12 @@ class InAppCameraDialogLandscapeTest {
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         val count = bounds(CAMERA_COUNT_TAG)
-        val done = bounds(CAMERA_DONE_TAG)
 
         assertEquals("port edge (right at ROTATION_90), inside the frame's padding", (frame.right - Spacing.lg).value, shutter.right.value, 0.51f)
         assertEquals("vertically centred", frame.centreY(), shutter.centreY(), 0.51f)
         assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
         assertTrue("the count sits beside the shutter, to its left: ${count.right} vs ${shutter.left}", count.right <= shutter.left)
         assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
-        // Done's node is the TextButton's own bounds, which include Material's minimum touch
-        // target, so its corner is asserted as a region rather than an exact offset.
-        assertDoneCentredInItsCorner(done, frame)
-        assertTrue("Done is left of the count and above it", done.right < count.left && done.bottom < count.top)
         assertTrue("right of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() > frame.centreX())
     }
 
@@ -144,14 +139,12 @@ class InAppCameraDialogLandscapeTest {
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         val count = bounds(CAMERA_COUNT_TAG)
-        val done = bounds(CAMERA_DONE_TAG)
 
         assertEquals("port edge (left at ROTATION_270), inside the frame's padding", (frame.left + Spacing.lg).value, shutter.left.value, 0.51f)
         assertEquals("vertically centred", frame.centreY(), shutter.centreY(), 0.51f)
         assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
         assertTrue("the count sits beside the shutter, to its right: ${count.left} vs ${shutter.right}", count.left >= shutter.right)
         assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
-        assertDoneCentredInItsCorner(done, frame)
         assertTrue("left of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() < frame.centreX())
     }
 
@@ -159,25 +152,6 @@ class InAppCameraDialogLandscapeTest {
     // two tests above, not by a third test comparing them: a compose rule takes `setContent` once,
     // so one test cannot open the dialog at both rotations. The pure-function form of the same
     // claim — that the two rotations never resolve to one arrangement — is in CameraArrangementTest.
-
-    /**
-     * Done's placement as [rotateWithDevice] defines it: a square footprint the size of its longer
-     * side, anchored in the top-left corner, with the button centred in it and turning about that
-     * centre. So the centre is the same distance from the frame's left and top, and that holds
-     * whether Done is turned or not — which is why it replaced a region check tuned to the old
-     * never-turning layout, where a 58x40 button's top edge sat 9dp higher than it does centred in
-     * a 58dp square. The assertion comes from the modifier's contract
-     * (`RotateWithDeviceModifierTest`), not from a threshold loosened until the new layout fit.
-     */
-    private fun assertDoneCentredInItsCorner(done: DpRect, frame: DpRect) {
-        assertEquals(
-            "Done turns about a fixed centre in the corner: as far from the left as from the top — $done in $frame",
-            done.centreX() - frame.left.value,
-            done.centreY() - frame.top.value,
-            0.51f,
-        )
-        assertTrue("and that centre is in the top-left, not drifting across the frame: $done", done.centreX() < frame.centreX() / 2 && done.centreY() < frame.centreY())
-    }
 
     /**
      * **One rotation rule, every arrangement** (owner, 2026-09-17). This test used to be the
@@ -192,11 +166,12 @@ class InAppCameraDialogLandscapeTest {
      * unable to fail.
      */
     @Test
-    fun `setting off in a landscape window, Done and the count turn in place when the device does, as in portrait`() {
+    fun `setting off in a landscape window, the count turns in place when the device does, as in portrait`() {
         setDialog(lockToPortrait = false)
-        val doneBefore = bounds(CAMERA_DONE_TAG)
         val countBefore = bounds(CAMERA_COUNT_TAG)
-        assertTrue("at open the device agrees with the window, so Done reads upright: $doneBefore", doneBefore.width > doneBefore.height)
+        // Done was asserted here too, and gave this test its "upright at open" check, until its
+        // removal on 2026-09-18. The count cannot carry that check (see below), so it went with
+        // Done rather than being moved onto a control it would be wrong about.
         // No such aspect check on the count, deliberately. This harness measures "No photos yet" at
         // about 7x20dp, under the old code as well as this one (measured both ways with a probe on
         // 2026-09-18), so width-greater-than-height is not what upright looks like here and would
@@ -205,14 +180,10 @@ class InAppCameraDialogLandscapeTest {
         @Suppress("DEPRECATION") val displayRotation = composeRule.activity.windowManager.defaultDisplay.rotation
         session.deviceRotation = (displayRotation + 1) % 4
         composeRule.waitForIdle()
-        val doneAfter = bounds(CAMERA_DONE_TAG)
         val countAfter = bounds(CAMERA_COUNT_TAG)
 
-        assertEquals("Done turned a quarter: its extents swap", doneBefore.width.value, doneAfter.height.value, 0.51f)
-        assertEquals(doneBefore.height.value, doneAfter.width.value, 0.51f)
-        assertEquals("in place: Done's centre does not move", doneBefore.centreX(), doneAfter.centreX(), 0.51f)
-        assertEquals(doneBefore.centreY(), doneAfter.centreY(), 0.51f)
-        assertEquals("the count turned a quarter too", countBefore.width.value, countAfter.height.value, 0.51f)
+        assertEquals("the count turned a quarter: its extents swap", countBefore.width.value, countAfter.height.value, 0.51f)
+        assertEquals(countBefore.height.value, countAfter.width.value, 0.51f)
         assertEquals("in place", countBefore.centreX(), countAfter.centreX(), 0.51f)
         assertEquals(countBefore.centreY(), countAfter.centreY(), 0.51f)
     }
@@ -243,12 +214,12 @@ class InAppCameraDialogLandscapeTest {
         // this harness cannot do), so a device reading equal to the display's would cancel to no
         // turn — correctly. A reading a quarter turn from the display's is what must turn here.
         @Suppress("DEPRECATION") val displayRotation = composeRule.activity.windowManager.defaultDisplay.rotation
-        val doneBefore = bounds(CAMERA_DONE_TAG)
+        val countBefore = bounds(CAMERA_COUNT_TAG) // Done, until its removal on 2026-09-18; the count turns by the same rule
         session.deviceRotation = (displayRotation + 1) % 4
         composeRule.waitForIdle()
-        val doneAfter = bounds(CAMERA_DONE_TAG)
-        assertEquals("a quarter turn from a display at $displayRotation swaps the extents", doneBefore.width.value, doneAfter.height.value, 0.51f)
-        assertEquals(doneBefore.height.value, doneAfter.width.value, 0.51f)
+        val countAfter = bounds(CAMERA_COUNT_TAG)
+        assertEquals("a quarter turn from a display at $displayRotation swaps the extents", countBefore.width.value, countAfter.height.value, 0.51f)
+        assertEquals(countBefore.height.value, countAfter.width.value, 0.51f)
     }
 
     @Test
