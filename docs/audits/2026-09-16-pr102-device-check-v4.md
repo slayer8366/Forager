@@ -204,6 +204,16 @@ Evidence: four confirmations.
 5. Open the camera from a **log entry**, take a photo, confirm it lands on that record.
 6. Same from the **album**.
 7. Same from a **cartography entry**.
+8. **Short absence over a find, compact layout.** Edit a find, open the camera from it, background,
+   return **within four minutes**, press the shutter: the photo **attaches to that find**. No
+   "saved to the album" toast, nothing new in the album.
+9. **Long absence over a find, compact layout.** The same, but return after **over four minutes**:
+   the camera is **closed**, and the **find's edit form is still open** with its content intact.
+10. **No camera, compact layout.** Edit a find, background **without** opening the camera, return:
+    unchanged from before this change. The edit form has closed, as it did before 6.8–6.9 existed.
+11. **Wide layout agrees.** In a window the app lays out wide (drawer on the left, no bottom nav;
+    landscape on most phones), repeat 6.8 and 6.9: **the same results**. A confirmation that the two
+    layouts now agree, not a regression check: the wide layout never ended an edit on backgrounding.
 
 A photo arriving on the wrong record is a quiet failure no other step catches.
 
@@ -223,10 +233,34 @@ A photo arriving on the wrong record is a quiet failure no other step catches.
 > it return the user mid-edit: backgrounding already leaves journal editing and arms cartography's
 > prompt, which is what the app does on a genuine departure and therefore agrees with the timeout
 > rather than conflicting with it. Both were requirements in the commissioning dispatch and both
-> were struck once the code was read.
+> were struck once the code was read. *(The "mid-edit" sentence is superseded for the journal by
+> the 2026-09-18 note below; the rest of this note stands.)*
 
-Evidence: seven confirmations, and for 6.1–6.3 **say roughly how long you were away**, since that
-is the variable under test.
+> **Superseding note, 2026-09-18.** The sentence above, "Nor does it return the user mid-edit:
+> backgrounding already leaves journal editing", is **no longer true for a find**, and it was only
+> ever partly true. Two findings removed its premises:
+>
+> - **It held on the compact layout only.** The `ON_STOP` observer that ends a find edit lives in
+>   `compactMainScaffold` (`AvailabilityScreen.kt`); wide windows have no backgrounding hook that
+>   ends an edit, so there a user was already returned mid-edit after any absence
+>   (camera-open edit guard dispatch, verify-first item 2).
+> - **"Leaves journal editing" was read as protecting the user's work, and it does not.** The
+>   find's content is on disk from per-keystroke saves before `ON_STOP` runs;
+>   `onLeaveEditingIncidentally` writes nothing and only closes the form (creation-snapshot pulse,
+>   2026-09-17).
+>
+> The owner then ruled that backgrounding does not end a find edit while the in-app camera is open
+> (`AvailabilityScreen`'s `latestInAppCameraOpen` guard; reasoning there and on `CameraAbsence.kt`).
+> This fixes the short absence (the shutter used to fire over a find that was gone and the photo was
+> rescued to the album) and, because `ON_STOP` cannot know how long the absence will be, also means
+> a long absence returns to the still-open edit form. That is deliberate: it makes compact agree
+> with wide. **Cartography is unchanged**: its backgrounded-while-dirty prompt still arms.
+> Items 6.8–6.11 are new and test exactly this; 6.1–6.7 are unchanged. 6.2 still holds as written
+> (the camera is closed after four minutes); 6.9 adds what lies beneath it on a find.
+
+Evidence: eleven confirmations (seven before 2026-09-18, see the note above), and for 6.1–6.3 and
+6.8–6.9 **say roughly how long you were away**, since that is the variable under test. For 6.11
+say which window you used and confirm the bottom nav was absent.
 
 ## 7. Capture diagnostics, the two-entry invariant
 

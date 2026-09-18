@@ -30,17 +30,39 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
  * It is **one thing**: close the dialog. The dispatch that commissioned it also asked for the user
  * to be returned mid-edit and for unpersisted captures to be saved to the album; the pre-build
  * report (`docs/audits/2026-09-17-camera-absence-timeout-prebuild-report.md`) found neither
- * survives contact with the code, and the owner struck both.
+ * survives contact with the code, and the owner struck both. **The journal half of the first was
+ * reinstated on 2026-09-18, by a different route — see the second bullet.**
  *
  * - **Captures are already saved.** Every successful capture persists on the shutter tap
  *   ([InAppCameraDialog]'s `onShutter`), reaching `filesDir/photos` and a gallery row before the
  *   user does anything else. There is no unsaved bucket for a timeout to flush.
- * - **Leaving the edit is not a collision, it is agreement.** Backgrounding already runs the
- *   journal's incidental-exit auto-save (`AvailabilityScreen`'s `ON_STOP` observer) and arms
- *   cartography's backgrounded-while-dirty prompt (`CartographyScreen`'s). Those are what the app
- *   does on a genuine departure, and four minutes away is the definition of one. Suppressing them
- *   would make the camera being open evidence the user is still engaged, which it is not — the
- *   absence is evidence they were not.
+ * - **Leaving the edit: agreement for cartography; superseded for the journal.** As written on
+ *   2026-09-17: *"Backgrounding already runs the journal's incidental-exit auto-save
+ *   (`AvailabilityScreen`'s `ON_STOP` observer) and arms cartography's backgrounded-while-dirty
+ *   prompt (`CartographyScreen`'s). Those are what the app does on a genuine departure, and four
+ *   minutes away is the definition of one. Suppressing them would make the camera being open
+ *   evidence the user is still engaged, which it is not — the absence is evidence they were
+ *   not."* Cartography's half stands: its prompt still arms, and nothing here changed it.
+ *
+ *   The journal's half rested on two premises, and both turned out false. (1) *"Backgrounding
+ *   already runs the journal's incidental exit"* is true on the compact layout only: that observer
+ *   lives in `compactMainScaffold`, and MEDIUM/EXPANDED windows have no backgrounding hook that
+ *   ends an edit, so there a user was already returned mid-edit after any absence. The app
+ *   disagreed with itself across layouts. (2) *"auto-save"* describes a protection that does not
+ *   happen: the find's content is on disk from per-keystroke saves before `ON_STOP` runs, and
+ *   `MushroomLogViewModel.onLeaveEditingIncidentally` writes nothing; it only closes the form. So
+ *   ending the edit on departure was never what kept the user's work safe.
+ *
+ *   With both premises gone, the owner's ruling (2026-09-18) is that `AvailabilityScreen`'s
+ *   `ON_STOP` observer does not end the edit while this camera is open. Under four minutes the
+ *   shutter lands on the find instead of on nothing, which was the defect. Over four minutes the
+ *   camera closes onto a still-open edit form with its content intact, not onto the list; since the
+ *   user left mid-task, that is at least as reasonable, and it makes compact agree with wide. This
+ *   reverses the strike of "return the user mid-edit" for the journal, deliberately: the guard
+ *   cannot know at `ON_STOP` how long the absence will be, and the alternative (end the edit when
+ *   this timeout fires) was rejected as wider than the change, touching this timeout, and keeping
+ *   the layouts apart. The guard's own comment in `AvailabilityScreen` carries the rest,
+ *   including the re-edit discard it skips on purpose.
  *
  * ## The clock is elapsed-real-time, not wall-clock
  *
