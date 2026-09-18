@@ -131,7 +131,7 @@ class InAppCameraDialogTest {
     private fun Subject(
         session: CameraCaptureSession,
         viewfinder: @Composable (Modifier) -> Unit = { modifier -> Box(modifier.fillMaxSize()) },
-        stripContent: (@Composable () -> Unit)? = null,
+        stripContent: (@Composable (ScreenEdge) -> Unit)? = null,
         useDefaultStrip: Boolean = false,
     ) {
         if (useDefaultStrip) {

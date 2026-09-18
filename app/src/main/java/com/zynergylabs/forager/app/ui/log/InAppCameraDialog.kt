@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +47,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -139,11 +142,11 @@ internal fun InAppCameraDialog(
     modifier: Modifier = Modifier,
     /**
      * What the camera's top strip holds, or `null` for an empty strip, which composes nothing and
-     * takes no space. What goes in it is PR #103's to decide; until then the default is the
-     * placeholder, so the owner can judge the strip's size and position. See [CameraStripPlaceholder]
-     * for how to remove it.
+     * takes no space. Handed the band's edge so a row can lay itself along it. What goes in it is
+     * PR #103's to decide; until then the default is the placeholder, so the owner can judge the
+     * strip's size, position and legibility. See [CameraStripPlaceholder] for how to remove it.
      */
-    stripContent: (@Composable () -> Unit)? = { CameraStripPlaceholder() },
+    stripContent: (@Composable (ScreenEdge) -> Unit)? = { edge -> CameraStripPlaceholder(edge) },
     viewfinder: @Composable (Modifier) -> Unit,
 ) {
     // rememberSaveable: a rotation mid-session must not reset the user's sense of how many they
@@ -192,9 +195,8 @@ internal fun InAppCameraDialog(
                 .testTag(IN_APP_CAMERA_TAG),
         ) {
             when (val state = session.state) {
-                is CameraSessionState.Unavailable -> Text(
+                is CameraSessionState.Unavailable -> OverlayText(
                     state.reason,
-                    color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -202,8 +204,11 @@ internal fun InAppCameraDialog(
                         .testTag(CAMERA_UNAVAILABLE_TAG),
                 )
 
+                // The nearest thing an indicator has to an outline is its track: black, behind
+                // the white arc, so the spinner reads over a bright scene as the text does.
                 CameraSessionState.Opening -> CircularProgressIndicator(
-                    color = Color.White,
+                    color = CameraOverlay.Fill,
+                    trackColor = CameraOverlay.Outline,
                     modifier = Modifier.align(Alignment.Center).testTag(CAMERA_OPENING_TAG),
                 )
 
@@ -238,87 +243,61 @@ internal fun InAppCameraDialog(
                 }
             }
 
-            // Each control takes the real system-bar and cutout insets on the sides it needs them,
-            // not the whole safe area (hide-status-bar dispatch, 2026-09-18). Two reasons. The
-            // status bar is hidden while this dialog is open (HideStatusBarForThisDialog), so its
-            // inset collapses and the space comes back to the controls, deliberately. And a centred
-            // control centres on the whole screen, not on what an asymmetric safe area leaves:
-            // the landscape shutter is centred on the full height (only horizontal insets), the
-            // portrait column on the full width (only the bottom inset).
-            // The viewfinder behind them takes no insets at all. Robolectric reports zero insets,
-            // so all of this padding is device-only by construction (CLAUDE.md, known pitfalls).
+            // The region model (top-strip dispatch v2, option A): the viewfinder region is the
+            // whole frame at the one ratio that exists, and the two bands are zero-thick, sizing
+            // to their own content, which therefore overlaps onto the image. Each band takes the
+            // real system-bar and cutout inset on its own edge and nothing else, so the status
+            // bar's collapsed inset (HideStatusBarForThisDialog) comes back to the controls, and a
+            // centred control centres on the whole screen rather than on what an asymmetric safe
+            // area leaves. The viewfinder takes no insets at all. Robolectric reports zero
+            // insets, so every inset here is device-only by construction (CLAUDE.md).
+            val regions = remember(arrangement) { cameraRegions(arrangement) }
             Box(modifier = Modifier.fillMaxSize()) {
-                when (arrangement) {
-                    // Count and shutter along the bottom, every control turning in place with the
-                    // device (sensor minus display; see rotateWithDevice). Done used to be
-                    // top-left; removed 2026-09-18, see the class doc.
-                    CameraArrangement.Portrait -> {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth()
-                                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-                                .padding(Spacing.lg),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        ) {
-                            captureError?.let { message ->
-                                Text(
-                                    message,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_ERROR_TAG),
-                                )
-                            }
+                CameraBand(edge = regions.shutterEdge, thickness = regions.shutterBandThickness, tag = CAMERA_SHUTTER_BAND_TAG) {
+                    when (arrangement) {
+                        // Count and shutter along the bottom, every control turning in place with
+                        // the device (sensor minus display; see rotateWithDevice). Done used to
+                        // be top-left; removed 2026-09-18, see the class doc.
+                        CameraArrangement.Portrait -> PortraitShutterBandContent(
+                            deviceRotation = session.deviceRotation,
+                            captureError = captureError,
+                            photosTaken = photosTaken,
+                            shutterEnabled = shutterEnabled,
+                            onShutter = onShutter,
+                        )
 
-                            Text(
-                                photoCountLabel(photosTaken),
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.rotateWithDevice(session.deviceRotation).testTag(CAMERA_COUNT_TAG),
+                        // A landscape window, pinned where it is: the shutter on the device's
+                        // charger-port edge, vertically centred, where the thumb of a two-handed
+                        // landscape grip already is; the count (and a failure) beside it, not
+                        // under it. The count and a failure turn in place with the device exactly
+                        // as the portrait arrangement's do — one rule, every arrangement (owner,
+                        // 2026-09-17). At open the device and the window agree, so sensor minus
+                        // display is zero and they read upright; they turn only when the phone
+                        // does. The shutter is a disc and has nothing to turn.
+                        //
+                        // Two mirrored cases, not one, because the port edge is a physical edge
+                        // and the two landscapes put it on opposite screen sides — see
+                        // CameraArrangement.
+                        CameraArrangement.LandscapePortRight, CameraArrangement.LandscapePortLeft ->
+                            LandscapeShutterBandContent(
+                                portOnRight = arrangement == CameraArrangement.LandscapePortRight,
+                                deviceRotation = session.deviceRotation,
+                                captureError = captureError,
+                                photosTaken = photosTaken,
+                                shutterEnabled = shutterEnabled,
+                                onShutter = onShutter,
                             )
-
-                            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
-                            }
-                        }
                     }
-
-                    // A landscape window, pinned where it is: the shutter on the device's
-                    // charger-port edge, vertically centred, where the thumb of a two-handed
-                    // landscape grip already is; the count (and a failure) beside it, not under
-                    // it. The count and a failure turn in place with the
-                    // device exactly as the portrait arrangement's do — one rule, every
-                    // arrangement (owner, 2026-09-17). At open the device and the window agree, so
-                    // sensor minus display is zero and they read upright; they turn only when the
-                    // phone does. The shutter is a disc and has nothing to turn.
-                    //
-                    // Two mirrored cases, not one, because the port edge is a physical edge and
-                    // the two landscapes put it on opposite screen sides — see CameraArrangement.
-                    CameraArrangement.LandscapePortRight ->
-                        LandscapeControls(
-                            portOnRight = true,
-                            deviceRotation = session.deviceRotation,
-                            captureError = captureError,
-                            photosTaken = photosTaken,
-                            shutterEnabled = shutterEnabled,
-                            onShutter = onShutter,
-                        )
-
-                    CameraArrangement.LandscapePortLeft ->
-                        LandscapeControls(
-                            portOnRight = false,
-                            deviceRotation = session.deviceRotation,
-                            captureError = captureError,
-                            photosTaken = photosTaken,
-                            shutterEnabled = shutterEnabled,
-                            onShutter = onShutter,
-                        )
                 }
 
-                // The top strip, on the device's punch-hole edge: the opposite of the shutter's,
-                // from the same arrangement, so it follows the device the way the shutter does.
-                stripContent?.let { content -> CameraStrip(edge = punchHoleEdge(arrangement), content = content) }
+                // The top strip's band, on the device's punch-hole edge: the opposite of the
+                // shutter's, from the same arrangement, so it follows the device the way the
+                // shutter does. Composed only with content, so an empty strip is nothing.
+                stripContent?.let { content ->
+                    CameraBand(edge = regions.stripEdge, thickness = regions.stripBandThickness, tag = CAMERA_STRIP_TAG) {
+                        content(regions.stripEdge)
+                    }
+                }
             }
         }
     }
@@ -359,81 +338,80 @@ private fun HideStatusBarForThisDialog() {
 }
 
 /**
- * The camera's top strip (camera-top-strip dispatch, 2026-09-18): a band [CAMERA_STRIP_THICKNESS]
- * deep along [edge], the device's punch-hole edge, full length. Geometry only; what it holds is
- * decided in PR #103.
+ * One band of the region model, along [edge], [thickness] deep at least, its full length. See
+ * [CameraRegions] for what a band is and why every control lives in one. Its content is centred in
+ * it; at zero thickness that means the band is exactly its content, hard against its edge, which is
+ * how the controls overlap onto the full-bleed viewfinder.
  *
- * **It clears the cut-out by sitting inboard of it.** The band starts where the safe-drawing inset
- * on its own edge ends, and that inset is the cut-out's depth (the status bar is hidden while the
- * camera is open, so nothing else contributes): below the punch-hole in portrait, beside it in
- * landscape. The cut-out's own band is left to the viewfinder. The inset on the two ends is taken
- * too, so a side strip stops short of a bottom navigation handle. Splitting the strip around the
- * hole, to use that band, was not done: it would put controls either side of the camera lens
- * and needs a content decision first.
- *
- * **Empty is nothing.** This is only composed when there is content, so an empty strip reserves no
- * band across the viewfinder.
- *
- * `ScreenEdge.Bottom` cannot be reached, since the punch-hole edge is never the port edge by
- * construction, but it is handled rather than thrown on, as [cameraArrangement] handles rotations
- * it cannot see.
+ * **A band clears the cut-out by sitting inboard of it.** It starts where the safe-drawing inset on
+ * its own edge ends, and that inset is the cut-out's depth (the status bar is hidden while the
+ * camera is open, so nothing else contributes): the strip sits below the punch-hole in portrait and
+ * beside it in landscape; the shutter band sits above a bottom navigation handle. The cut-out's
+ * own band is left to the viewfinder. Splitting the strip around the hole, to use that band, was
+ * not done: it would put controls either side of the camera lens and needs a content decision
+ * first. The insets on a band's two ends are taken too, so a side band stops short of a bottom
+ * navigation handle.
  */
 @Composable
-private fun BoxScope.CameraStrip(edge: ScreenEdge, content: @Composable () -> Unit) {
+private fun BoxScope.CameraBand(edge: ScreenEdge, thickness: Dp, tag: String, content: @Composable BoxScope.() -> Unit) {
     val along = when (edge) {
         ScreenEdge.Top ->
             Modifier.align(Alignment.TopCenter).fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-                .height(CAMERA_STRIP_THICKNESS)
+                .heightIn(min = thickness)
         ScreenEdge.Bottom ->
             Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
-                .height(CAMERA_STRIP_THICKNESS)
+                .heightIn(min = thickness)
         ScreenEdge.Left ->
             Modifier.align(Alignment.CenterStart).fillMaxHeight()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Left + WindowInsetsSides.Vertical))
-                .width(CAMERA_STRIP_THICKNESS)
+                .widthIn(min = thickness)
         ScreenEdge.Right ->
             Modifier.align(Alignment.CenterEnd).fillMaxHeight()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Right + WindowInsetsSides.Vertical))
-                .width(CAMERA_STRIP_THICKNESS)
+                .widthIn(min = thickness)
     }
-    Box(modifier = along.testTag(CAMERA_STRIP_TAG), contentAlignment = Alignment.Center) { content() }
+    Box(modifier = along.testTag(tag), contentAlignment = Alignment.Center, content = content)
 }
 
-/**
- * **Placeholder, not a control.** A translucent band filling the strip, so the owner can judge its
- * size and position before PR #103 puts anything in it. Whether it ships is the owner's decision.
- *
- * **To remove it:** delete this function and change `stripContent`'s default in [InAppCameraDialog]
- * to `null`. That is one edit at the call site plus this deletion; there is no flag.
- */
+/** The shutter band's content in the portrait arrangement: a failure, the count, the shutter, stacked, centred on the full width. */
 @Composable
-private fun CameraStripPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.18f))
-            .border(1.dp, Color.White.copy(alpha = 0.6f))
-            .testTag(CAMERA_STRIP_PLACEHOLDER_TAG),
-        contentAlignment = Alignment.Center,
+private fun PortraitShutterBandContent(
+    deviceRotation: Int?,
+    captureError: String?,
+    photosTaken: Int,
+    shutterEnabled: Boolean,
+    onShutter: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text(STRIP_PLACEHOLDER_LABEL, color = Color.White, style = MaterialTheme.typography.labelSmall)
+        captureError?.let { message ->
+            OverlayText(message, fill = CameraOverlay.ErrorFill, modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_ERROR_TAG))
+        }
+        OverlayText(photoCountLabel(photosTaken), modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_COUNT_TAG))
+        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+        }
     }
 }
 
 /**
- * The landscape arrangement's controls, mirrored by which screen side the device's charger-port
- * edge is on. One composable rather than two near-identical blocks, because the difference is
- * exactly two things — which side the cluster aligns to, and whether the shutter comes before or
- * after the count in reading order — and a second copy is how the two halves drift apart.
+ * The shutter band's content in the landscape arrangements, mirrored by which screen side the
+ * device's charger-port edge is on. One composable rather than two near-identical blocks, because
+ * the difference is exactly two things — which side the cluster sits on, and whether the shutter
+ * comes before or after the count in reading order — and a second copy is how the two halves
+ * drift apart.
  *
  * The shutter is always the outermost child, hard against the port edge, with the count inboard of
  * it. That ordering is the point: the shutter's distance from the edge the thumb wraps around is
  * what the motor habit is built on, and putting the count outboard would move it.
  */
 @Composable
-private fun BoxScope.LandscapeControls(
+private fun LandscapeShutterBandContent(
     portOnRight: Boolean,
     /** The session's device reading, for [rotateWithDevice] — the same value the portrait arrangement passes. */
     deviceRotation: Int?,
@@ -443,12 +421,7 @@ private fun BoxScope.LandscapeControls(
     onShutter: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .align(if (portOnRight) Alignment.CenterEnd else Alignment.CenterStart)
-            // Horizontal insets only: kept off the nav bar or cutout on the port edge, centred on
-            // the screen's full height rather than between the status bar and the bottom inset.
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-            .padding(Spacing.lg),
+        modifier = Modifier.padding(Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -458,20 +431,9 @@ private fun BoxScope.LandscapeControls(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 captureError?.let { message ->
-                    Text(
-                        message,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_ERROR_TAG),
-                    )
+                    OverlayText(message, fill = CameraOverlay.ErrorFill, modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_ERROR_TAG))
                 }
-
-                Text(
-                    photoCountLabel(photosTaken),
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_COUNT_TAG),
-                )
+                OverlayText(photoCountLabel(photosTaken), modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_COUNT_TAG))
             }
         }
 
@@ -485,15 +447,42 @@ private fun BoxScope.LandscapeControls(
     }
 }
 
-/** The shutter: a plain ringed disc, the shape every camera app has trained people to recognise. */
+/**
+ * **Placeholder, not a control.** Shows where a real control row would sit: one row deep along the
+ * strip's band, its full length, drawn with the overlay's own contrast treatment and no background,
+ * so the owner can judge its size, its position and its legibility over a bright scene before PR
+ * #103 puts anything in it. Whether it ships is the owner's decision.
+ *
+ * **To remove it:** delete this function and change `stripContent`'s default in [InAppCameraDialog]
+ * to `null`. That is one edit at the call site plus this deletion; there is no flag.
+ */
+@Composable
+private fun CameraStripPlaceholder(edge: ScreenEdge) {
+    val extent = when (edge) {
+        ScreenEdge.Top, ScreenEdge.Bottom -> Modifier.fillMaxWidth().height(CAMERA_STRIP_THICKNESS)
+        ScreenEdge.Left, ScreenEdge.Right -> Modifier.fillMaxHeight().width(CAMERA_STRIP_THICKNESS)
+    }
+    Box(
+        modifier = extent
+            .overlayOutline(RectangleShape)
+            .border(CameraOverlay.OutlineWidth, CameraOverlay.Fill)
+            .testTag(CAMERA_STRIP_PLACEHOLDER_TAG),
+        contentAlignment = Alignment.Center,
+    ) {
+        OverlayText(STRIP_PLACEHOLDER_LABEL, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+/** The shutter: a plain ringed disc, the shape every camera app has trained people to recognise, outlined like everything else over the viewfinder. */
 @Composable
 private fun ShutterButton(enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(SHUTTER_SIZE_DP.dp)
+            .overlayOutline(CircleShape)
             .clip(CircleShape)
-            .background(if (enabled) Color.White else Color.White.copy(alpha = DISABLED_SHUTTER_ALPHA))
-            .border(SHUTTER_RING_DP.dp, Color.White.copy(alpha = SHUTTER_RING_ALPHA), CircleShape)
+            .background(if (enabled) CameraOverlay.Fill else CameraOverlay.Fill.copy(alpha = DISABLED_SHUTTER_ALPHA))
+            .border(SHUTTER_RING_DP.dp, CameraOverlay.Fill.copy(alpha = SHUTTER_RING_ALPHA), CircleShape)
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { contentDescription = SHUTTER_DESCRIPTION }
             .testTag(CAMERA_SHUTTER_TAG),
@@ -519,10 +508,11 @@ internal const val IN_APP_CAMERA_TAG = "in-app-camera"
 internal const val CAMERA_SHUTTER_TAG = "in-app-camera-shutter"
 internal const val CAMERA_COUNT_TAG = "in-app-camera-count"
 internal const val CAMERA_STRIP_TAG = "in-app-camera-strip"
+internal const val CAMERA_SHUTTER_BAND_TAG = "in-app-camera-shutter-band"
 internal const val CAMERA_STRIP_PLACEHOLDER_TAG = "in-app-camera-strip-placeholder"
 internal const val STRIP_PLACEHOLDER_LABEL = "Strip"
 
-/** One row of controls at Material's minimum touch target. */
+/** One row of controls at Material's minimum touch target: the placeholder's thickness, and what a real row would take. */
 internal val CAMERA_STRIP_THICKNESS = 48.dp
 internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
 internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
