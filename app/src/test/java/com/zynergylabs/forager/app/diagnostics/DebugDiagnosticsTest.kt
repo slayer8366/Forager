@@ -2,6 +2,9 @@ package com.zynergylabs.forager.app.diagnostics
 
 import android.os.StrictMode
 import java.io.File
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -194,6 +197,44 @@ class DebugDiagnosticsTest {
         val captureEntries = text.lines().count { it.contains("capture shot") || it.contains("capture orientation") }
         assertEquals("expected one entry per call, got:\n$text", 2, captureEntries)
         assertTrue("expected the reason the reapply was not attempted, got:\n$text", text.contains("no resolution info for this shot"))
+    }
+
+    /**
+     * The AVD crash (2026-09-17): a write that cannot open the file threw out of the worker and
+     * killed the process. Reproduced with a directory where the file should be — every open for
+     * append then fails with the same `FileNotFoundException` the device's EACCES raised, without
+     * depending on file permissions the test's own user could override. The executor is a real
+     * single-worker pool, as in production, whose thread records anything that escapes a task; a
+     * throw out of a task is exactly what reaches a thread's uncaught-exception handler, and on the
+     * device that handler ended the process.
+     */
+    @Test
+    fun `a log write that fails stays on the worker and is recorded, not thrown`() {
+        val log = DiagnosticsLog(tempFolder.newFolder("diagnostics", "diagnostics.log"))
+        val escaped = CopyOnWriteArrayList<Throwable>()
+        val executor = Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "diagnostics-test-worker").apply { setUncaughtExceptionHandler { _, error -> escaped += error } }
+        }
+
+        val diagnostics = DebugDiagnostics.install(log, executor) // the process-start line: the write in the device's stack
+        diagnostics.recordSweep(0)
+        executor.shutdown()
+        assertTrue("the diagnostics worker did not finish", executor.awaitTermination(5, TimeUnit.SECONDS))
+
+        assertEquals("expected no exception to escape the worker, got: $escaped", emptyList<Throwable>(), escaped.toList())
+        val failure = log.writeFailure
+        assertEquals("expected both lost entries counted, got: $failure", 2, failure?.failedEntries)
+        assertTrue("expected the write's own error, got: $failure", failure!!.lastError.contains("Is a directory"))
+    }
+
+    /** The other half of observability: a log that is writing reports no failure, so the panel's line cannot be permanent noise. */
+    @Test
+    fun `a log whose writes land reports no failure`() {
+        val log = newLog()
+        DebugDiagnostics.install(log).recordSweep(0)
+
+        awaitLog(log) { it.contains("sweep deleted=0") }
+        assertEquals(null, log.writeFailure)
     }
 
     private fun awaitLog(log: DiagnosticsLog, deadlineMillis: Long = 5_000, condition: (String) -> Boolean): String {

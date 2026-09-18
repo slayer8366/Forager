@@ -53,24 +53,68 @@ class DiagnosticsLog(
     val rotatedFile: File get() = File(file.parentFile, "${file.name}.1")
 
     /**
+     * Entries this instance could not write, or `null` while every write has landed. What lets a
+     * reader of the panel tell "the log stopped recording" from "nothing happened": a log that
+     * silently stopped growing reads exactly like a quiet run. See [append] for why a failure is
+     * held here and not thrown.
+     *
+     * In memory, on this instance, and never cleared by a later successful write: entries lost
+     * during the failure stay lost, and a log that resumed has a gap the file itself does not
+     * mark. Per process, because the instance is — a relaunch starts with none until its own
+     * first failed write. The panel reads it from the writer's own instance
+     * (`DebugDiagnostics.log`), not from one it constructs, which would always read `null`.
+     */
+    @Volatile
+    var writeFailure: WriteFailure? = null
+        private set
+
+    /**
      * Writes one entry: an ISO-8601 UTC timestamp, a space, [summary] on the same line, then each
      * line of [detail] (a stack trace, typically) indented beneath it. Synchronized because the
      * sweep, the StrictMode listener and the process-start line can arrive from different threads,
      * and an interleaved stack is unreadable. Never called on the main thread by this app's own
      * code — a disk write there would be the very violation the log records.
+     *
+     * **A write that fails is recorded in [writeFailure], never thrown** (diagnostics-write-failure
+     * dispatch, 2026-09-17). Every caller runs this on `DebugDiagnostics`' worker, where a throw is
+     * an uncaught exception and ends the process: on an AVD, after an uninstall and reinstall, a
+     * `diagnostics.log` left behind under the previous install's uid made every open fail with
+     * EACCES, and the process-start line killed the app. An instrument must not take down what it
+     * instruments. Swallowing is not the alternative — a runner would read an incomplete log as a
+     * complete one — so the failure goes to [writeFailure], which the panel shows, and the first
+     * one per instance to logcat. The whole body is covered, [rotate] included, because every
+     * caller shares the one worker. Every later call still tries the write, so a condition that
+     * clears is recovered from without a relaunch. Surfacing never writes to this log, so a
+     * failure cannot recurse into another one.
      */
     @Synchronized
     fun append(summary: String, detail: String? = null) {
-        file.parentFile?.mkdirs()
-        if (file.length() > maxBytes) rotate()
-        file.appendText(
-            buildString {
-                append(TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(currentTime.nowEpochMillis())))
-                append(' ')
-                appendLine(summary)
-                detail?.lineSequence()?.forEach { line -> append("    ").appendLine(line) }
-            },
+        try {
+            file.parentFile?.mkdirs()
+            if (file.length() > maxBytes) rotate()
+            file.appendText(
+                buildString {
+                    append(TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(currentTime.nowEpochMillis())))
+                    append(' ')
+                    appendLine(summary)
+                    detail?.lineSequence()?.forEach { line -> append("    ").appendLine(line) }
+                },
+            )
+        } catch (error: Exception) {
+            recordWriteFailure(error)
+        }
+    }
+
+    private fun recordWriteFailure(error: Exception) {
+        val previous = writeFailure
+        writeFailure = WriteFailure(
+            firstFailedAtEpochMillis = previous?.firstFailedAtEpochMillis ?: currentTime.nowEpochMillis(),
+            failedEntries = (previous?.failedEntries ?: 0) + 1,
+            lastError = error.toString(),
         )
+        if (previous == null) {
+            Log.w(TAG, "Couldn't write to '${file.path}'; entries are not being recorded. The Diagnostics panel shows the count.", error)
+        }
     }
 
     /** The current file's whole text, or empty when nothing has been written yet. Disk I/O; callers keep it off main. */
@@ -88,6 +132,9 @@ class DiagnosticsLog(
             Log.w(TAG, "Couldn't rotate '${file.name}'; it will keep growing past ${maxBytes} bytes.")
         }
     }
+
+    /** See [writeFailure]. [lastError] is the most recent throwable's `toString()`: the message a runner needs, without a stack the panel has no room for. */
+    data class WriteFailure(val firstFailedAtEpochMillis: Long, val failedEntries: Int, val lastError: String)
 
     companion object {
         /**

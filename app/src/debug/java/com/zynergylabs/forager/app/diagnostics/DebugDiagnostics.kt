@@ -56,7 +56,8 @@ import java.util.concurrent.TimeUnit
  * long-lived thread per install would accumulate across a 1,400-test run.
  */
 class DebugDiagnostics private constructor(
-    private val log: DiagnosticsLog,
+    /** Internal so the debug panel reads this instance, whose [DiagnosticsLog.writeFailure] is the one that counts — see that property. */
+    internal val log: DiagnosticsLog,
     private val executor: Executor,
 ) {
 
