@@ -126,16 +126,31 @@ The window pins to whatever it already was when the camera opened, and never mov
    top-left. **No flip animation.**
 2. Rotate the phone both ways: **nothing in the layout moves.** Controls turn in place to stay
    readable.
-3. App in **landscape**, open the camera: landscape frame, **shutter on the right edge**,
-   vertically centred, count beside it, Done top-left, and **Done and the count upright, not
+3. App in **landscape with the charger port on your right**, open the camera: landscape frame,
+   **shutter on the port edge** — the screen's right in this grip — vertically centred, count
+   beside it (inboard, away from the edge), Done top-left, and **Done and the count upright, not
    turned**. No flip animation.
-4. Rotate from there: again, nothing moves.
-5. Done, then rotate the phone: the screen underneath follows again, proving the lock released.
+4. **App in the other landscape, port on your left**, open the camera: the mirror of 3.3 — shutter
+   on the screen's **left**, count inboard to its right, Done still top-left. No flip animation.
+5. Rotate from either of those: again, nothing moves.
+6. Done, then rotate the phone: the screen underneath follows again, proving the lock released.
 
 Any flip animation on open in this state is a failure. The shutter along the bottom of a
-landscape frame is a failure.
+landscape frame is a failure. **The shutter on the punch-hole edge is a failure.**
 
-Evidence: one line per item.
+> **Superseding note, 2026-09-17.** Items 3.3 and 3.4 above replace a single item that read
+> "shutter on the **right edge**". That wording was true of one landscape and false of the other,
+> and **as written it would have passed the broken branch** — it named a screen side where the rule
+> is a physical edge. The rule: the shutter belongs on the device's **charger-port edge**, defined
+> with the screen facing you, port down, punch-hole up. Rotating the phone never moves that edge
+> physically, only in screen coordinates, and the reason is motor habit — a user learns where the
+> shutter is *on the phone*. The original item also tested only one of the two landscapes, which is
+> why the defect reached a device: the first run that opened in the other one found the shutter
+> under the punch-hole cut-out. Fixed in `139727a`; the run that found it is recorded in
+> `2026-09-17-shutter-port-edge-and-camera-retention.md`.
+
+Evidence: one line per item, and **say which physical edge the port was on** for 3.3 and 3.4, not
+just which screen side the shutter appeared on.
 
 ## 4. Window behaviour, setting ON
 
@@ -144,7 +159,7 @@ Evidence: one line per item.
 1. App in landscape, open the camera: **one flip to portrait is expected and accepted**, then the
    portrait arrangement with the shutter at the bottom.
 2. Rotate the phone: nothing moves; controls turn in place.
-3. Done: the lock releases as in 3.5.
+3. Done: the lock releases as in 3.6.
 
 Evidence: one line per item.
 
@@ -338,7 +353,8 @@ question is actually settled.
 
 - Steps run; steps not run and why.
 - Anything surprising, including on steps that passed.
-- Matrix row: model, OS version, 1c result, step 3.3 result, step 5 last row, the step 7 outcome
+- Matrix row: model, OS version, 1c result, **both** step 3.3 and step 3.4 results (the two
+  landscapes are separate answers), step 5 last row, the step 7 outcome
   label **and its `reason=` text**, `ICC_Profile` present, trailer observed, main thread clean,
   sweep count.
 - Separately: confirm the Crash Logs panel's own main-thread disk read, so it keeps its own
