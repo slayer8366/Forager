@@ -85,9 +85,9 @@ import kotlinx.coroutines.launch
  * Every placement is stated in **device anatomy**, never a screen side: the shutter band sits on
  * the charger-port edge ([portEdge]) and the strip on the punch-hole edge ([punchHoleEdge]), and
  * both are bands of the region model in `CameraBands.kt` — zero-thick at the one full-bleed ratio,
- * so everything sits where it did, and the structure a later ratio needs is already named. Done
- * lives in the strip, its first resident; it used to be placed by a screen side (top-left) and so
- * sat on a different physical edge per arrangement. The status bar is hidden on this dialog's own
+ * so everything sits where it did, and the structure a later ratio needs is already named. There
+ * is no Done control: the navigation bar's Back is the way out, and it always was the same close
+ * (`onDismissRequest` is this [onDismiss]) — see `CameraStrip`. The status bar is hidden on this dialog's own
  * window ([HideStatusBarOnThisWindow]) and the safe area collapses: no `safeDrawing` padding, each
  * band clearing the cut-out and the navigation bar on its own edge only.
  *
@@ -222,7 +222,6 @@ internal fun InAppCameraDialog(
             CameraStrip(
                 edge = punchHoleEdge(arrangement),
                 deviceRotation = session.deviceRotation,
-                onDismiss = onDismiss,
                 content = stripContent,
             )
             CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
@@ -349,10 +348,8 @@ internal const val IN_APP_CAMERA_TAG = "in-app-camera"
 internal const val CAMERA_SHUTTER_TAG = "in-app-camera-shutter"
 internal const val CAMERA_SHUTTER_BAND_TAG = "in-app-camera-shutter-band"
 internal const val CAMERA_COUNT_TAG = "in-app-camera-count"
-internal const val CAMERA_DONE_TAG = "in-app-camera-done"
 internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
 internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
 internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"
 internal const val SHUTTER_DESCRIPTION = "Take photo"
-internal const val DONE_LABEL = "Done"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."

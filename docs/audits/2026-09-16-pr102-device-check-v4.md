@@ -126,33 +126,36 @@ placement below is in **device anatomy**: hold the phone screen towards you, cha
 phone turns.
 
 **What to look for.** No system status bar (the clock and icons are gone) but the navigation bar
-or gesture handle still present. A **strip** along the punch-hole edge: an outlined **✕** at its
-start, then an outlined, transparent box labelled "Strip" filling the rest of the row — that box is
-the placeholder for PR #103's controls, and it is there so you can judge its size and position;
-say whether it should ship. The **shutter** on the port edge, a white disc with a black ring. The
+or gesture handle still present. A **strip** along the punch-hole edge holding one thing: an
+outlined, transparent box labelled "Strip" filling the row — the placeholder for PR #103's
+controls, there so you can judge its size and position; say whether it should ship. **There is no
+Done control**: the navigation bar's Back (or the back gesture) closes the camera, and is the only
+way out. The **shutter** on the port edge, a white disc with a black ring. The
 photo count beside or above it. **Every glyph has a black outline** and no control has a background;
 the image runs edge to edge underneath.
 
 1. App in **portrait**, open the camera: portrait frame, strip across the **top**, sitting **below
-   the punch-hole** (not through it), ✕ at its left end; shutter at the **bottom centre**, clear of
-   the navigation bar. No status bar. **No flip animation.**
-2. Rotate the phone both ways, and upside down: **nothing in the layout moves.** The ✕, the count
-   and the "Strip" label turn in place to read in the current hold; the shutter, a disc, does not.
+   the punch-hole** (not through it); shutter at the **bottom centre**, clear of the navigation
+   bar. No status bar. **No flip animation.**
+2. Rotate the phone both ways, and upside down: **nothing in the layout moves.** The count and the
+   "Strip" label turn in place to read in the current hold; the shutter, a disc, does not.
 3. App in **landscape with the charger port on your right**, open the camera: landscape frame,
    **shutter on the port edge** — the screen's right — vertically centred on the **true centre of
    the screen**, count inboard of it; the **strip runs down the punch-hole edge**, the screen's
-   left, **inboard of the cut-out**, ✕ at the top. No status bar. No flip animation. At open the
-   ✕, the count and the label read upright, because the phone and the window agree.
+   left, **inboard of the cut-out**. No status bar. No flip animation. At open the count and the
+   label read upright, because the phone and the window agree.
 4. **App in the other landscape, port on your left**, open the camera: the mirror of 3.3 — shutter
-   on the screen's **left**, count inboard to its right, strip down the screen's **right**, ✕ at the
-   top. No flip animation.
-5. Rotate from either of those: **nothing in the layout moves, and the ✕, the count and the label
-   turn in place** — the same rule as 3.2. A label that stays sideways after the phone turns is a
+   on the screen's **left**, count inboard to its right, strip down the screen's **right**. No flip
+   animation.
+5. Rotate from either of those: **nothing in the layout moves, and the count and the label turn in
+   place** — the same rule as 3.2. A label that stays sideways after the phone turns is a
    failure, in this arrangement exactly as in portrait.
 6. **Swipe down from the screen's top edge** with the camera open: the status bar shows
    transiently and the shade can be pulled. **Record whether that took one swipe or two.**
-7. Close the camera with the ✕, and again with **Back**: the status bar is back each time. Then
-   rotate the phone: the screen underneath follows again, proving the lock released.
+7. Close the camera with **Back** — the navigation bar's button, and again with the back gesture
+   if the phone uses gestures: the camera closes, **photos already taken are kept**, and the status
+   bar is back each time. Then rotate the phone: the screen underneath follows again, proving the
+   lock released.
 8. Camera open, background the app for **over four minutes**, return: the camera has closed
    (step 6.2) **and the status bar is back**. This is the exit most likely to be missed by a
    design that restores the bar itself; here the bar returns because the dialog's window is gone.
@@ -161,13 +164,14 @@ Any flip animation on open in this state is a failure. The shutter along the bot
 frame is a failure. **The shutter on the punch-hole edge is a failure. A strip that runs through
 the cut-out, or a status bar that stays hidden after any exit, is a failure.**
 
-> **Superseding note, 2026-09-18 (camera overlay spec).** This step was rewritten whole. What it
-> used to say, and why each part changed:
+> **Superseding note, 2026-09-18 (camera overlay spec), amended the same day.** This step was
+> rewritten whole. What it used to say, and why each part changed:
 > - **"Done top-left"** — Done was placed by a screen side, which put it on the punch-hole edge in
->   two arrangements and on the port edge in the third. It is now the strip's first resident, an
->   outlined ✕ at the strip's start, so its rule is device anatomy like everything else's. It is an
->   icon, not a labelled button: a labelled button did not fit a strip one control row deep along a
->   vertical edge.
+>   two arrangements and on the port edge in the third. The overlay build first moved it into the
+>   strip as an outlined ✕; the owner then **removed it entirely**: the navigation bar's Back was
+>   already wired to the same close as Done (both reached `onDismiss`), so Done was a second control
+>   for one function. Back is now the only way out, and 3.7 tests it carries everything Done did —
+>   the camera closes, the photos stand, the bar returns.
 > - **"Done and the count upright, not turned"** (already superseded on 2026-09-18, above) — one
 >   rotation rule, every arrangement; the strip's label obeys it too.
 > - **No mention of the status bar** — it is now hidden on the dialog's own window while the camera

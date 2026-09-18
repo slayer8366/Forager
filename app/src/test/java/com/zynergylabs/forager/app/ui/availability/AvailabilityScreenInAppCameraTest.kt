@@ -30,8 +30,8 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
-import com.zynergylabs.forager.app.ui.log.CAMERA_DONE_TAG
 import com.zynergylabs.forager.app.ui.log.CAMERA_SHUTTER_TAG
+import com.zynergylabs.forager.app.ui.log.pressBackOnCameraDialog
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.IN_APP_CAMERA_TAG
 import com.zynergylabs.forager.app.ui.log.InAppCameraDialog
@@ -207,7 +207,7 @@ class AvailabilityScreenInAppCameraTest {
         assertTrue(cartographyPhotos.single() is CameraCapturePhotoSource)
         assertEquals(0, albumPhotos.size + logEntryPhotos.size)
 
-        composeRule.onNodeWithTag(CAMERA_DONE_TAG).performClick()
+        pressBackOnCameraDialog()
         composeRule.waitForIdle()
         assertEquals(1, closed)
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)

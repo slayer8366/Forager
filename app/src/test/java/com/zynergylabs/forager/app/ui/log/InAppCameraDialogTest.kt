@@ -256,16 +256,17 @@ class InAppCameraDialogTest {
     }
 
     @Test
-    fun `Done dismisses, and the photos already taken are not withdrawn`() {
+    fun `Back closes the camera and the photos already taken are not withdrawn, and there is no Done control`() {
         val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag(CAMERA_DONE_TAG).performClick()
+        composeRule.onAllNodesWithContentDescription("Done").assertCountEquals(0)
+        pressBackOnCameraDialog()
         composeRule.waitForIdle()
 
-        assertEquals(1, dismissals)
+        assertEquals("Back reaches the same close Done used to", 1, dismissals)
         assertEquals("the photo stands; dismissing is not a cancel", 1, captured.size)
     }
 
@@ -352,7 +353,7 @@ class InAppCameraDialogTest {
         val session = FakeCameraCaptureSession(state = CameraSessionState.Unavailable("The camera is in use by another app."))
         composeRule.setContent { Subject(session) }
 
-        composeRule.onNodeWithTag(CAMERA_DONE_TAG).performClick()
+        pressBackOnCameraDialog()
         composeRule.waitForIdle()
 
         assertEquals(1, dismissals)
@@ -412,13 +413,11 @@ class InAppCameraDialogTest {
         val frame = bounds(IN_APP_CAMERA_TAG)
         val strip = bounds(CAMERA_STRIP_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
-        val done = bounds(CAMERA_DONE_TAG)
 
         assertEquals("flush with the punch-hole edge", frame.top.value, strip.top.value, 0.51f)
         assertEquals("full width", frame.left.value, strip.left.value, 0.51f)
         assertEquals(frame.right.value, strip.right.value, 0.51f)
         assertEquals("one control row deep", STRIP_ROW_HEIGHT.value, strip.height.value, 0.51f)
-        assertTrue("Done is in the strip, at its start: $done in $strip", done.top >= strip.top && done.bottom <= strip.bottom && done.centreX() < frame.centreX())
         assertEquals("the shutter on the port edge, inside the frame's padding", (frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
         assertEquals("centred along it", frame.centreX(), shutter.centreX(), 0.51f)
         composeRule.onNodeWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertExists()
@@ -441,14 +440,15 @@ class InAppCameraDialogTest {
         assertTrue("not the Activity's window", window !== dialog.ownerActivity?.window)
     }
 
-    /** Gated off, the placeholder is not composed and the strip is Done alone; nothing else moves. */
+    /** Gated off, the placeholder is not composed, the strip is gone, and nothing else moves. */
     @Test
     fun `with no strip content the placeholder is absent and the shutter is where it was`() {
         composeRule.setContent { Subject(FakeCameraCaptureSession(), stripContent = null) }
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertCountEquals(0)
-        composeRule.onNodeWithTag(CAMERA_DONE_TAG).assertIsDisplayed()
+        // Rule 9, in production now that nothing else lives in the strip: no band at all.
+        composeRule.onAllNodesWithTag(CAMERA_STRIP_TAG).assertCountEquals(0)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         assertEquals((frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
@@ -462,8 +462,6 @@ class InAppCameraDialogTest {
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithText(photoCountLabel(0)).assertCountEquals(1)
-        // Done's outline is eight offset icon copies with no description; only the filled one is "Done".
-        composeRule.onAllNodesWithContentDescription(DONE_LABEL).assertCountEquals(1)
     }
 
 }

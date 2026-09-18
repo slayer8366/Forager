@@ -16,16 +16,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,18 +105,21 @@ internal fun BoxScope.CameraBand(
 
 /**
  * The strip: the band on the punch-hole edge and what lives in it. Geometry and structure only —
- * what goes in it is PR #103's, and no working control is added here beyond the one that already
- * existed, Done.
+ * what goes in it is PR #103's, and no working control lives here.
  *
- * **Done moved in here from the top-left corner** (owner's spec, section 0 item 3, reported before
- * the change). Its old rule was a screen side, which put it on the punch-hole edge in two
- * arrangements and on the port edge in the third. As the strip's first resident its rule is device
- * anatomy — the punch-hole edge, at the start end — like everything else's. Because Done is always
- * present, the strip is never empty in production; the empty case is [CameraStrip] composed with
- * neither Done nor content, which composes nothing and takes no space, and is tested that way.
+ * **There is no Done control** (owner, 2026-09-18). The overlay build first moved Done in here
+ * from the top-left corner, as an outlined ✕; the owner then removed it, because the navigation
+ * bar's Back was already wired to the same close — Done's `onClick` and the `Dialog`'s
+ * `onDismissRequest` were the one `onDismiss` lambda, reaching `InAppCameraViewModel.close()` —
+ * so Done was a second control for one function. Back carries everything Done did: the camera
+ * closes, the photos already handed over stand, and the status bar returns with the dialog's
+ * window. `InAppCameraDialogTest` presses Back through the dialog's own dispatcher to prove it.
  *
- * Along a horizontal edge the strip is a row; along a vertical one, a column, with Done at the
- * top. Every glyph turns in place by [rotateWithDevice], the same rule as the shutter band's.
+ * With nothing resident, **the empty strip is a production state**, not a test-only one: gate
+ * the placeholder off and the strip composes nothing and takes no space (rule 9).
+ *
+ * Along a horizontal edge the strip is a row; along a vertical one, a column. Every glyph turns in
+ * place by [rotateWithDevice], the same rule as the shutter band's.
  *
  * **The placeholder** shows the strip at the size a real control row occupies, outlined and with
  * no background, so the owner can judge size, position and legibility before a real control
@@ -132,39 +131,18 @@ internal fun BoxScope.CameraBand(
 internal fun BoxScope.CameraStrip(
     edge: ScreenEdge,
     deviceRotation: Int?,
-    /** The dismiss control, or null for a strip with no controls of its own. */
-    onDismiss: (() -> Unit)?,
     /** The strip's slot for what PR #103 adds, given the edge it runs along and the device reading for [rotateWithDevice]; null composes nothing there. */
     content: (@Composable (edge: ScreenEdge, deviceRotation: Int?) -> Unit)? = defaultStripContent(),
 ) {
-    if (onDismiss == null && content == null) return
+    if (content == null) return
     CameraBand(edge = edge, modifier = Modifier.testTag(CAMERA_STRIP_TAG)) {
-        // Icon only, one control row square. The labelled TextButton it replaces was 58 dp wide
-        // and does not fit a strip one control row deep along a vertical edge without widening
-        // the strip past the size the spec names for it; a square glyph fits both orientations
-        // and turns in place inside its own footprint. The label survives as the content
-        // description, so the control is still "Done" to accessibility.
-        val done: (@Composable () -> Unit)? = onDismiss?.let { dismiss ->
-            {
-                IconButton(
-                    onClick = dismiss,
-                    modifier = Modifier
-                        .size(STRIP_ROW_HEIGHT)
-                        .rotateWithDevice(deviceRotation)
-                        .testTag(CAMERA_DONE_TAG),
-                ) {
-                    OverlayIcon(Icons.Filled.Close, contentDescription = DONE_LABEL)
-                }
-            }
-        }
         if (edge.isHorizontal) {
             Row(
                 modifier = Modifier.fillMaxWidth().height(STRIP_ROW_HEIGHT),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                done?.invoke()
-                content?.let { Box(Modifier.weight(1f).fillMaxHeight()) { it(edge, deviceRotation) } }
+                Box(Modifier.weight(1f).fillMaxHeight()) { content(edge, deviceRotation) }
             }
         } else {
             Column(
@@ -172,8 +150,7 @@ internal fun BoxScope.CameraStrip(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                done?.invoke()
-                content?.let { Box(Modifier.weight(1f).fillMaxWidth()) { it(edge, deviceRotation) } }
+                Box(Modifier.weight(1f).fillMaxWidth()) { content(edge, deviceRotation) }
             }
         }
     }

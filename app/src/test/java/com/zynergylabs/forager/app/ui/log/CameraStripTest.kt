@@ -26,10 +26,9 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * [CameraStrip]'s empty case: no Done and no content composes nothing and takes no space. In the
- * dialog the strip always holds Done, so this is the component at its own entry point, which is
- * the only place the empty case exists. Also that content alone (no Done) gives the strip its one
- * control row, so "invisible when empty" is not "invisible always".
+ * [CameraStrip]'s empty case: no content composes nothing and takes no space — a production state
+ * now that Done is gone, reached by gating the placeholder off. Also that content gives the strip
+ * its one control row, so "invisible when empty" is not "invisible always".
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -51,7 +50,7 @@ class CameraStripTest {
     fun `an empty strip composes nothing and reserves no band`() {
         composeRule.setContent {
             Box(Modifier.fillMaxSize().testTag("frame")) {
-                CameraStrip(edge = ScreenEdge.Top, deviceRotation = null, onDismiss = null, content = null)
+                CameraStrip(edge = ScreenEdge.Top, deviceRotation = null, content = null)
             }
         }
         composeRule.waitForIdle()
@@ -64,7 +63,7 @@ class CameraStripTest {
     fun `a strip with content is one control row deep along its edge`() {
         composeRule.setContent {
             Box(Modifier.fillMaxSize().testTag("frame")) {
-                CameraStrip(edge = ScreenEdge.Top, deviceRotation = null, onDismiss = null, content = { e, r -> StripPlaceholder(e, r) })
+                CameraStrip(edge = ScreenEdge.Top, deviceRotation = null, content = { e, r -> StripPlaceholder(e, r) })
             }
         }
         composeRule.waitForIdle()
