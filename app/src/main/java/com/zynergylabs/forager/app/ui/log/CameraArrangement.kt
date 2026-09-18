@@ -90,3 +90,42 @@ internal fun cameraArrangement(
     displayRotation == Surface.ROTATION_270 -> CameraArrangement.LandscapePortLeft
     else -> CameraArrangement.LandscapePortRight
 }
+
+/** A side of the screen, in screen coordinates: absolute, not start/end, because the edges it names are physical ones. */
+internal enum class ScreenEdge {
+    Top,
+    Bottom,
+    Left,
+    Right,
+    ;
+
+    val opposite: ScreenEdge
+        get() = when (this) {
+            Top -> Bottom
+            Bottom -> Top
+            Left -> Right
+            Right -> Left
+        }
+}
+
+/**
+ * Where the device's charger-port edge is on screen in [arrangement]: the edge the shutter is on.
+ * Written down as a value for the first time here (camera-top-strip dispatch, 2026-09-18); until
+ * then it was implicit in each arrangement's alignment. Carries this file's assumption, a
+ * portrait-natural phone with the port on its natural bottom.
+ */
+internal fun portEdge(arrangement: CameraArrangement): ScreenEdge = when (arrangement) {
+    CameraArrangement.Portrait -> ScreenEdge.Bottom
+    CameraArrangement.LandscapePortRight -> ScreenEdge.Right
+    CameraArrangement.LandscapePortLeft -> ScreenEdge.Left
+}
+
+/**
+ * Where the device's punch-hole edge is on screen in [arrangement]: the camera's top strip goes
+ * there. Simply the port edge's opposite, because the two are the device's opposite short edges
+ * and the window is locked while the camera is open, so no separate logic is needed and none is
+ * written. It inherits [cameraArrangement]'s one blind spot: a portrait window at
+ * `Surface.ROTATION_180` is treated as `Portrait`, where screen-top would be the port edge. On the
+ * AVD a window never reaches 180 (checked 2026-09-18); unverified on the reference device.
+ */
+internal fun punchHoleEdge(arrangement: CameraArrangement): ScreenEdge = portEdge(arrangement).opposite

@@ -18,11 +18,14 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -134,6 +137,13 @@ internal fun InAppCameraDialog(
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * What the camera's top strip holds, or `null` for an empty strip, which composes nothing and
+     * takes no space. What goes in it is PR #103's to decide; until then the default is the
+     * placeholder, so the owner can judge the strip's size and position. See [CameraStripPlaceholder]
+     * for how to remove it.
+     */
+    stripContent: (@Composable () -> Unit)? = { CameraStripPlaceholder() },
     viewfinder: @Composable (Modifier) -> Unit,
 ) {
     // rememberSaveable: a rotation mid-session must not reset the user's sense of how many they
@@ -305,6 +315,10 @@ internal fun InAppCameraDialog(
                             onShutter = onShutter,
                         )
                 }
+
+                // The top strip, on the device's punch-hole edge: the opposite of the shutter's,
+                // from the same arrangement, so it follows the device the way the shutter does.
+                stripContent?.let { content -> CameraStrip(edge = punchHoleEdge(arrangement), content = content) }
             }
         }
     }
@@ -341,6 +355,70 @@ private fun HideStatusBarForThisDialog() {
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.statusBars())
         onDispose { controller.show(WindowInsetsCompat.Type.statusBars()) }
+    }
+}
+
+/**
+ * The camera's top strip (camera-top-strip dispatch, 2026-09-18): a band [CAMERA_STRIP_THICKNESS]
+ * deep along [edge], the device's punch-hole edge, full length. Geometry only; what it holds is
+ * decided in PR #103.
+ *
+ * **It clears the cut-out by sitting inboard of it.** The band starts where the safe-drawing inset
+ * on its own edge ends, and that inset is the cut-out's depth (the status bar is hidden while the
+ * camera is open, so nothing else contributes): below the punch-hole in portrait, beside it in
+ * landscape. The cut-out's own band is left to the viewfinder. The inset on the two ends is taken
+ * too, so a side strip stops short of a bottom navigation handle. Splitting the strip around the
+ * hole, to use that band, was not done: it would put controls either side of the camera lens
+ * and needs a content decision first.
+ *
+ * **Empty is nothing.** This is only composed when there is content, so an empty strip reserves no
+ * band across the viewfinder.
+ *
+ * `ScreenEdge.Bottom` cannot be reached, since the punch-hole edge is never the port edge by
+ * construction, but it is handled rather than thrown on, as [cameraArrangement] handles rotations
+ * it cannot see.
+ */
+@Composable
+private fun BoxScope.CameraStrip(edge: ScreenEdge, content: @Composable () -> Unit) {
+    val along = when (edge) {
+        ScreenEdge.Top ->
+            Modifier.align(Alignment.TopCenter).fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+                .height(CAMERA_STRIP_THICKNESS)
+        ScreenEdge.Bottom ->
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+                .height(CAMERA_STRIP_THICKNESS)
+        ScreenEdge.Left ->
+            Modifier.align(Alignment.CenterStart).fillMaxHeight()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Left + WindowInsetsSides.Vertical))
+                .width(CAMERA_STRIP_THICKNESS)
+        ScreenEdge.Right ->
+            Modifier.align(Alignment.CenterEnd).fillMaxHeight()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Right + WindowInsetsSides.Vertical))
+                .width(CAMERA_STRIP_THICKNESS)
+    }
+    Box(modifier = along.testTag(CAMERA_STRIP_TAG), contentAlignment = Alignment.Center) { content() }
+}
+
+/**
+ * **Placeholder, not a control.** A translucent band filling the strip, so the owner can judge its
+ * size and position before PR #103 puts anything in it. Whether it ships is the owner's decision.
+ *
+ * **To remove it:** delete this function and change `stripContent`'s default in [InAppCameraDialog]
+ * to `null`. That is one edit at the call site plus this deletion; there is no flag.
+ */
+@Composable
+private fun CameraStripPlaceholder() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White.copy(alpha = 0.18f))
+            .border(1.dp, Color.White.copy(alpha = 0.6f))
+            .testTag(CAMERA_STRIP_PLACEHOLDER_TAG),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(STRIP_PLACEHOLDER_LABEL, color = Color.White, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -440,6 +518,12 @@ private const val DISABLED_SHUTTER_ALPHA = 0.4f
 internal const val IN_APP_CAMERA_TAG = "in-app-camera"
 internal const val CAMERA_SHUTTER_TAG = "in-app-camera-shutter"
 internal const val CAMERA_COUNT_TAG = "in-app-camera-count"
+internal const val CAMERA_STRIP_TAG = "in-app-camera-strip"
+internal const val CAMERA_STRIP_PLACEHOLDER_TAG = "in-app-camera-strip-placeholder"
+internal const val STRIP_PLACEHOLDER_LABEL = "Strip"
+
+/** One row of controls at Material's minimum touch target. */
+internal val CAMERA_STRIP_THICKNESS = 48.dp
 internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
 internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
 internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"

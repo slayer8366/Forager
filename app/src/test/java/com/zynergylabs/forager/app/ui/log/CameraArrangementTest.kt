@@ -92,4 +92,29 @@ class CameraArrangementTest {
             cameraArrangement(lockToPortrait = false, windowIsLandscape = true, displayRotation = 99),
         )
     }
+
+    /**
+     * The camera top strip's rule, in the device's terms: at every window rotation the app can
+     * open in with the setting off, the strip's edge is where the device's punch-hole edge is on
+     * screen, per [deviceTopEdgeOnScreen]'s table (read from the platform, not derived from this
+     * code). And it is never the shutter's edge.
+     *
+     * `ROTATION_180` is not in the first loop, deliberately: [cameraArrangement] treats a portrait
+     * window at 180 as `Portrait`, putting the shutter at screen-bottom (the device's top there).
+     * The strip, as the shutter's opposite, inherits that. The AVD never put a window at 180
+     * (2026-09-18); unverified on the reference device. The upside-down *hold*, which does happen,
+     * is a window at 0 and is the first case below, and `InAppCameraDialogTest` covers it with the
+     * sensor turned.
+     */
+    @Test
+    fun `the strip's edge is the device's punch-hole edge at each window rotation it can open in`() {
+        for (rotation in listOf(Surface.ROTATION_0, Surface.ROTATION_90, Surface.ROTATION_270)) {
+            val windowIsLandscape = rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270
+            val arrangement = cameraArrangement(lockToPortrait = false, windowIsLandscape = windowIsLandscape, displayRotation = rotation)
+            assertEquals("rotation $rotation ($arrangement)", deviceTopEdgeOnScreen(rotation), punchHoleEdge(arrangement))
+        }
+        for (arrangement in CameraArrangement.entries) {
+            assertEquals("the strip is opposite the shutter in $arrangement", portEdge(arrangement).opposite, punchHoleEdge(arrangement))
+        }
+    }
 }

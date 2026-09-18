@@ -148,6 +148,40 @@ class InAppCameraDialogLandscapeTest {
         assertTrue("left of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() < frame.centreX())
     }
 
+    /**
+     * The top strip in both landscapes (camera-top-strip dispatch, 2026-09-18), expressed in the
+     * device's terms: whichever screen side [deviceTopEdgeOnScreen] says the punch-hole edge is on
+     * at the pinned rotation, the strip is flush with it, runs its full length, is one row deep,
+     * and sits across the frame from the shutter. One helper, two tests, because a compose rule
+     * takes `setContent` once and so cannot open the dialog at both rotations.
+     */
+    private fun assertStripOnPunchHoleEdge(rotation: Int) {
+        setDisplayRotation(rotation)
+        setDialog(lockToPortrait = false)
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val shutter = bounds(CAMERA_SHUTTER_TAG)
+        when (val edge = deviceTopEdgeOnScreen(rotation)) {
+            ScreenEdge.Left -> {
+                assertEquals("flush with the punch-hole edge (screen left at rotation $rotation)", frame.left.value, strip.left.value, 0.51f)
+                assertTrue("across the frame from the shutter: $strip vs $shutter", strip.right < shutter.left)
+            }
+            ScreenEdge.Right -> {
+                assertEquals("flush with the punch-hole edge (screen right at rotation $rotation)", frame.right.value, strip.right.value, 0.51f)
+                assertTrue("across the frame from the shutter: $strip vs $shutter", strip.left > shutter.right)
+            }
+            else -> error("rotation $rotation puts the punch-hole edge at $edge, which is not a landscape side")
+        }
+        assertEquals("one row deep", CAMERA_STRIP_THICKNESS.value, strip.width.value, 0.51f)
+        assertEquals("the full length of that edge", frame.height.value, strip.height.value, 0.51f)
+    }
+
+    @Test
+    fun `at ROTATION_90 the strip is on the device's punch-hole edge, the screen's left`() = assertStripOnPunchHoleEdge(Surface.ROTATION_90)
+
+    @Test
+    fun `at ROTATION_270 the strip is on the device's punch-hole edge, the screen's right`() = assertStripOnPunchHoleEdge(Surface.ROTATION_270)
+
     // The two landscapes being mirror images is asserted by the side-of-centre line in each of the
     // two tests above, not by a third test comparing them: a compose rule takes `setContent` once,
     // so one test cannot open the dialog at both rotations. The pure-function form of the same

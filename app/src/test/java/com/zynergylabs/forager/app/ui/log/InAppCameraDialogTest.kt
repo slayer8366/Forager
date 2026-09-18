@@ -2,6 +2,9 @@ package com.zynergylabs.forager.app.ui.log
 
 import android.app.Activity
 import android.app.Application
+import android.view.WindowManager
+import android.view.Surface
+import android.content.Context
 import android.view.Window
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -45,6 +48,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowDialog
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
+import org.robolectric.shadows.ShadowDisplay
 
 /**
  * [InAppCameraDialog] driven through its real controls, against a fake [CameraCaptureSession].
@@ -122,13 +131,27 @@ class InAppCameraDialogTest {
     private fun Subject(
         session: CameraCaptureSession,
         viewfinder: @Composable (Modifier) -> Unit = { modifier -> Box(modifier.fillMaxSize()) },
+        stripContent: (@Composable () -> Unit)? = null,
+        useDefaultStrip: Boolean = false,
     ) {
+        if (useDefaultStrip) {
+            InAppCameraDialog(
+                session = session,
+                cameraCaptureFiles = CameraCaptureFiles(context),
+                lockToPortrait = false,
+                onPhotoCaptured = { captured += it },
+                onDismiss = { dismissals += 1 },
+                viewfinder = viewfinder,
+            )
+            return
+        }
         InAppCameraDialog(
             session = session,
             cameraCaptureFiles = CameraCaptureFiles(context),
             lockToPortrait = false,
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
+            stripContent = stripContent,
             viewfinder = viewfinder,
         )
     }
@@ -458,6 +481,55 @@ class InAppCameraDialogTest {
         val controller = checkNotNull(window.insetsController) { "no insets controller on $window" }
         val types = controller.javaClass.getMethod("getRequestedVisibleTypes").invoke(controller) as Int
         return types and android.view.WindowInsets.Type.statusBars() != 0
+    }
+
+    // ── The top strip (camera-top-strip dispatch, 2026-09-18) ────────────────────────────────
+
+    /**
+     * Pins the display's rotation and proves the harness reports it, the `139727a` convention: a
+     * harness that ignored the pin would run every edge assertion at one rotation and could not fail.
+     */
+    private fun pinDisplayRotation(rotation: Int) {
+        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
+        @Suppress("DEPRECATION") val reported = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.rotation
+        assertEquals("the harness must actually report the rotation this test is about", rotation, reported)
+    }
+
+    /**
+     * A portrait window at rotation 0: the device's punch-hole edge is the screen's top
+     * ([deviceTopEdgeOnScreen]), so the strip is there, full width and one row deep, with the shutter
+     * on the opposite edge. Then the phone is turned upside down, the hold where punch-hole is at the
+     * user's bottom: the window is locked, so the strip must not move, because the device's top edge
+     * has not moved on the screen.
+     */
+    @Test
+    fun `in a portrait window the strip is on the device's punch-hole edge, and stays there held upside down`() {
+        pinDisplayRotation(Surface.ROTATION_0)
+        val session = FakeCameraCaptureSession()
+        composeRule.setContent { Subject(session, useDefaultStrip = true) }
+        composeRule.waitForIdle()
+        val frame = composeRule.onNodeWithTag(IN_APP_CAMERA_TAG).getBoundsInRoot()
+        val strip = composeRule.onNodeWithTag(CAMERA_STRIP_TAG).getBoundsInRoot()
+        val shutter = composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).getBoundsInRoot()
+
+        assertEquals(ScreenEdge.Top, deviceTopEdgeOnScreen(Surface.ROTATION_0))
+        assertEquals("flush with the device's punch-hole edge (screen top here; zero insets under Robolectric)", frame.top.value, strip.top.value, 0.51f)
+        assertEquals("one row deep", CAMERA_STRIP_THICKNESS.value, strip.height.value, 0.51f)
+        assertEquals("full length of that edge", frame.width.value, strip.width.value, 0.51f)
+        assertTrue("the shutter is on the other edge: ${shutter.bottom} vs strip ${strip.bottom}", shutter.top > strip.bottom)
+        composeRule.onNodeWithTag(CAMERA_STRIP_PLACEHOLDER_TAG, useUnmergedTree = true).assertExists()
+
+        session.deviceRotation = Surface.ROTATION_180
+        composeRule.waitForIdle()
+        assertEquals("held upside down, the strip has not moved", strip, composeRule.onNodeWithTag(CAMERA_STRIP_TAG).getBoundsInRoot())
+    }
+
+    /** Empty is nothing: no strip node, so no band reserved across the viewfinder. */
+    @Test
+    fun `an empty strip composes nothing and takes no space`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession(), stripContent = null) }
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(CAMERA_STRIP_TAG, useUnmergedTree = true).assertCountEquals(0)
     }
 }
 
