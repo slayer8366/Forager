@@ -112,7 +112,7 @@ Evidence: which cases ran; for any failure, which viewer and which way.
 ## 2. Camera opens and reopens
 
 1. Open the dialog: a live viewfinder, not a spinner.
-2. Done, then reopen: live viewfinder again.
+2. Back (the navigation bar's back; there is no Done control since 2026-09-18), then reopen: live viewfinder again.
 3. **Epoch case:** open, dismiss *while the spinner is showing*, immediately reopen. Camera must
    work. Run three times; the race is timing dependent.
 
@@ -122,30 +122,47 @@ Evidence: how many epoch runs, what happened each time.
 
 The window pins to whatever it already was when the camera opened, and never moves after.
 
-1. App in **portrait**, open the camera: portrait frame, shutter at the bottom centre, Done
-   top-left. **No flip animation.**
+1. App in **portrait**, open the camera: portrait frame, shutter at the bottom centre, **no Done
+   control anywhere** (removed 2026-09-18; back closes the camera). **No flip animation.**
 2. Rotate the phone both ways: **nothing in the layout moves.** Controls turn in place to stay
    readable.
 3. App in **landscape with the charger port on your right**, open the camera: landscape frame,
    **shutter on the port edge** — the screen's right in this grip — vertically centred, count
-   beside it (inboard, away from the edge), Done top-left. No flip animation. At open, Done and the
-   count read upright, because the phone and the window agree.
+   beside it (inboard, away from the edge). No flip animation. At open, the count reads upright,
+   because the phone and the window agree.
 4. **App in the other landscape, port on your left**, open the camera: the mirror of 3.3 — shutter
-   on the screen's **left**, count inboard to its right, Done still top-left. No flip animation.
-5. Rotate from either of those: **nothing in the layout moves, and Done and the count turn in place
-   to stay readable** — the same rule as 3.2. A label that stays sideways after the phone turns is a
+   on the screen's **left**, count inboard to its right. No flip animation.
+5. Rotate from either of those: **nothing in the layout moves, and the count turns in place to stay
+   readable** — the same rule as 3.2. A label that stays sideways after the phone turns is a
    failure, in this arrangement exactly as in portrait.
-6. Done, then rotate the phone: the screen underneath follows again, proving the lock released.
+6. Back, then rotate the phone: the screen underneath follows again, proving the lock released.
 7. **Status bar hidden, navigation bar kept.** With the camera open in each of 3.1, 3.3, 3.4 and
    inverted portrait: **no status bar**; the navigation bar (gesture handle or buttons) is still
-   there. Done sits nearer the top edge than it did before 2026-09-18, and the landscape shutter on
-   the screen's true vertical middle; both are the intended use of the freed space, not a failure.
+   there. The landscape shutter sits on the screen's true vertical middle; that is the intended use
+   of the freed space, not a failure.
    The shutter is still on the port edge (3.3, 3.4), which is the part that must not change.
-8. **The bar comes back on every exit.** Done: back. Back (gesture or button) from the camera:
-   back. After a long absence (6.2), once the camera has closed: back.
+8. **The bar comes back on every exit.** Back (gesture or button) from the camera: back. After a
+   long absence (6.2), once the camera has closed: back.
 9. **It can still be pulled down.** Camera open, swipe down from the screen's top edge (the top as
    the screen is currently laid out): the bar shows briefly and the notification shade pulls down.
    **Say whether that took one swipe or two.** The controls do not move while the bar shows.
+10. **The top strip is on the punch-hole edge, in every orientation.** Camera open in each of 3.1,
+    3.3, 3.4 and inverted portrait: the placeholder (an outlined empty band labelled "Strip", no
+    background) runs along the **punch-hole edge of the phone**: the screen's top in portrait, and
+    in landscape the screen side the punch-hole is on, which is the side **away from** the shutter.
+    Held upside down, it stays on the punch-hole edge, which is now at your bottom. **Say which
+    physical edge it was on**, as for the shutter in 3.3 and 3.4.
+11. **The strip clears the cut-out.** In each hold, the band starts inboard of the punch-hole: below
+    it in portrait, beside it in landscape. No part of the band is under the lens.
+12. **The shutter has not moved.** With the strip visible, the shutter is exactly where 3.1, 3.3 and
+    3.4 put it. A shutter that has shifted, even slightly, is a failure: the band model is meant to
+    change nothing at full-bleed.
+13. **Readable over a bright scene.** Point the camera at something pale and bright (sky, a white
+    wall, paper in sun). The count, the shutter's edge and the "Strip" label all stay readable,
+    because every overlay element has a black outline. Text or an edge that vanishes into the
+    scene is a failure. Then something dark: the same elements read as white on dark.
+14. **A capture failure still reads as red**, if one can be provoked (fill the storage, or note it
+    as not run): the message is red with a black outline, not white.
 
 Any flip animation on open in this state is a failure. The shutter along the bottom of a
 landscape frame is a failure. **The shutter on the punch-hole edge is a failure.**
@@ -171,6 +188,17 @@ landscape frame is a failure. **The shutter on the punch-hole edge is a failure.
 > upright the moment the camera opens; the difference is only once the phone moves, which is what
 > 3.5 now checks. The shutter is a disc, has nothing to turn, and does not move.
 
+> **Addition, 2026-09-18, later.** Done is gone (owner's call: it sat on the punch-hole edge, where
+> the strip goes, and the navigation bar's back serves its function), so every "Done top-left" and
+> "Done turns" above has been rewritten to the count alone, and 2.2, 3.6 and 4.3 say Back. Items
+> 3.10–3.14 are new: the camera top strip on the punch-hole edge (placeholder only; PR #103 decides
+> its contents), the region model that put it there, and the overlay's contrast treatment. What the
+> suite covers and what it does not: the strip's edge and the shutter's are tested at every
+> rotation under Robolectric, but the band model has only its zero-thickness case to run against and
+> is correct by construction, not by a test; the outline is drawn, and nothing but a screen can say
+> whether it reads. Emulator screenshots for all of it are in
+> `img/2026-09-18-camera-top-strip/`; the phone is the evidence for 3.11 and 3.13.
+>
 > **Addition, 2026-09-18.** Items 3.7–3.9 are new: the status bar is hidden while the camera is
 > open (hide-status-bar dispatch and addendum), and the controls take the space it leaves. Nothing
 > above changes. 3.1–3.6 were read against the change and still hold as written; "vertically
@@ -189,7 +217,7 @@ just which screen side the shutter appeared on.
 1. App in landscape, open the camera: **one flip to portrait is expected and accepted**, then the
    portrait arrangement with the shutter at the bottom.
 2. Rotate the phone: nothing moves; controls turn in place.
-3. Done: the lock releases as in 3.6.
+3. Back: the lock releases as in 3.6.
 
 Evidence: one line per item.
 
