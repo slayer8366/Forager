@@ -118,19 +118,18 @@ class WindowOrientationLockTest {
     }
 
     @Test
-    fun `Done and the count keep their centres when the device turns, and turn their bounds in place`() {
+    fun `the count keeps its centre when the device turns, and turns its bounds in place`() {
         // A portrait window (the class's qualifiers) with the setting off: the portrait arrangement,
         // whose controls turn. The landscape arrangement's controls do not; InAppCameraDialogLandscapeTest.
         setDialog(lockToPortrait = false)
-        val doneBefore = composeRule.onNodeWithTag(CAMERA_DONE_TAG).getBoundsInRoot()
         val countBefore = composeRule.onNodeWithTag(CAMERA_COUNT_TAG).getBoundsInRoot()
 
         session.deviceRotation = Surface.ROTATION_90
         composeRule.waitForIdle()
 
-        val doneAfter = composeRule.onNodeWithTag(CAMERA_DONE_TAG).getBoundsInRoot()
         val countAfter = composeRule.onNodeWithTag(CAMERA_COUNT_TAG).getBoundsInRoot()
-        for ((before, after) in listOf(doneBefore to doneAfter, countBefore to countAfter)) {
+        // Done was the other control asserted here until its removal on 2026-09-18.
+        for ((before, after) in listOf(countBefore to countAfter)) {
             assertEquals(((before.left + before.right) / 2).value, ((after.left + after.right) / 2).value, 0.51f)
             assertEquals(((before.top + before.bottom) / 2).value, ((after.top + after.bottom) / 2).value, 0.51f)
             assertEquals("a quarter turn swaps the extents", before.width.value, after.height.value, 0.51f)

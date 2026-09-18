@@ -52,12 +52,12 @@ import android.view.Surface
  * requirement, no reflow, not an oversight.
  */
 internal enum class CameraArrangement {
-    /** Today's layout: Done top-left, count and shutter along the bottom, controls turning in place. */
+    /** Count and shutter along the bottom, controls turning in place. (Done, formerly top-left, was removed 2026-09-18.) */
     Portrait,
 
     /**
      * A landscape window at `Surface.ROTATION_90`, where the device's port edge is the screen's
-     * **right**: shutter on the right, vertically centred, count to its left; Done top-left.
+     * **right**: shutter on the right, vertically centred, count to its left.
      */
     LandscapePortRight,
 

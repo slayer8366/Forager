@@ -132,10 +132,9 @@ class InAppCameraHostTest {
     }
 
     @Test
-    fun `Done asks the holder to close, and the host itself owns no open state`() {
+    fun `back asks the holder to close, and the host itself owns no open state`() {
         val setTarget = setHost(InAppCameraTarget.ALBUM)
-        composeRule.onNodeWithTag(CAMERA_DONE_TAG).performClick()
-        composeRule.waitForIdle()
+        composeRule.pressBackOnCameraDialog()
 
         assertEquals(1, dismissed)
         // Until the holder clears the target, the dialog is still there: closing is the

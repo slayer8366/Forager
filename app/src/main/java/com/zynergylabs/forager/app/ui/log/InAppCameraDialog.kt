@@ -25,13 +25,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -101,14 +97,20 @@ import kotlinx.coroutines.launch
  * arrangement, chosen once from the setting and the window's shape at open ([cameraArrangement])
  * and never reflowed — the `remember` below has no configuration key on purpose. Portrait is the
  * layout that existed before, unchanged; landscape puts the shutter on the device's charger-port
- * edge, vertically centred, the count beside it, Done top-left.
+ * edge, vertically centred, the count beside it.
+ *
+ * **No Done control** (owner, 2026-09-18). The navigation bar's back is the way out, through the
+ * `Dialog`'s own `onDismissRequest`. Done sat top-left, which is the punch-hole edge in the portrait
+ * and port-right landscape arrangements, the edge the camera's top strip is to occupy; the owner's
+ * call was that it could simply go, not move. Every exit still ends in [onDismiss]: back, the
+ * absence timeout (by the holder clearing its target) and the Activity going away.
  *
  * **One rotation rule in both arrangements** (owner, 2026-09-17): controls turn in place as the
  * phone turns, so their text reads in the current hold. The landscape arrangement was first built
  * with its controls held upright and no `rotateWithDevice`, on the reasoning that the window
  * already matches the grip. That reasoning was an exception written into the spec that nobody asked
- * for — the owner stated one rule — and it left "Done" and the count sideways the moment the phone
- * turned. Both arrangements now use the same modifier with the same sensor-minus-display angle.
+ * for — the owner stated one rule — and it left "Done" (since removed) and the count sideways the
+ * moment the phone turned. Both arrangements now use the same modifier with the same sensor-minus-display angle.
  * In landscape that angle is zero at open, since the device and the window agree, so the controls
  * still read upright the moment the camera opens; they differ from before only once the phone
  * moves.
@@ -232,28 +234,15 @@ internal fun InAppCameraDialog(
             // inset collapses and the space comes back to the controls, deliberately. And a centred
             // control centres on the whole screen, not on what an asymmetric safe area leaves:
             // the landscape shutter is centred on the full height (only horizontal insets), the
-            // portrait column on the full width (only the bottom inset). Done keeps top and start.
+            // portrait column on the full width (only the bottom inset).
             // The viewfinder behind them takes no insets at all. Robolectric reports zero insets,
             // so all of this padding is device-only by construction (CLAUDE.md, known pitfalls).
             Box(modifier = Modifier.fillMaxSize()) {
                 when (arrangement) {
-                    // Exactly as it was before the landscape arrangement existed: Done top-left,
-                    // count and shutter along the bottom, every control turning in place with the
-                    // device (sensor minus display; see rotateWithDevice).
+                    // Count and shutter along the bottom, every control turning in place with the
+                    // device (sensor minus display; see rotateWithDevice). Done used to be
+                    // top-left; removed 2026-09-18, see the class doc.
                     CameraArrangement.Portrait -> {
-                        TextButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Start))
-                                .padding(Spacing.sm)
-                                .rotateWithDevice(session.deviceRotation)
-                                .testTag(CAMERA_DONE_TAG),
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
-                            Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
-                        }
-
                         Column(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -288,7 +277,7 @@ internal fun InAppCameraDialog(
                     // A landscape window, pinned where it is: the shutter on the device's
                     // charger-port edge, vertically centred, where the thumb of a two-handed
                     // landscape grip already is; the count (and a failure) beside it, not under
-                    // it; Done top-left. Done, the count and a failure turn in place with the
+                    // it. The count and a failure turn in place with the
                     // device exactly as the portrait arrangement's do — one rule, every
                     // arrangement (owner, 2026-09-17). At open the device and the window agree, so
                     // sensor minus display is zero and they read upright; they turn only when the
@@ -304,7 +293,6 @@ internal fun InAppCameraDialog(
                             photosTaken = photosTaken,
                             shutterEnabled = shutterEnabled,
                             onShutter = onShutter,
-                            onDismiss = onDismiss,
                         )
 
                     CameraArrangement.LandscapePortLeft ->
@@ -315,7 +303,6 @@ internal fun InAppCameraDialog(
                             photosTaken = photosTaken,
                             shutterEnabled = shutterEnabled,
                             onShutter = onShutter,
-                            onDismiss = onDismiss,
                         )
                 }
             }
@@ -327,7 +314,7 @@ internal fun InAppCameraDialog(
  * Hides the status bar for as long as the camera dialog is composed, on **the dialog's own window
  * only** (hide-status-bar dispatch, 2026-09-18). The navigation bar is left alone, by the owner's
  * call. The Activity's window is never touched, so there is no Activity state for any exit to
- * restore: every way out (Done, back through the dialog's `onDismissRequest`, the four-minute
+ * restore: every way out (back through the dialog's `onDismissRequest`, the four-minute
  * absence timeout through `InAppCameraViewModel.close`, and the Activity going away) ends with
  * this leaving composition and the dialog's window going with it. `onDispose` also asks for the
  * bar back on that window, so the restore does not depend on the platform dropping a destroyed
@@ -376,21 +363,7 @@ private fun BoxScope.LandscapeControls(
     photosTaken: Int,
     shutterEnabled: Boolean,
     onShutter: () -> Unit,
-    onDismiss: () -> Unit,
 ) {
-    TextButton(
-        onClick = onDismiss,
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Start))
-            .padding(Spacing.sm)
-            .rotateWithDevice(deviceRotation)
-            .testTag(CAMERA_DONE_TAG),
-    ) {
-        Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
-        Text(DONE_LABEL, color = Color.White, modifier = Modifier.padding(start = Spacing.xs))
-    }
-
     Row(
         modifier = Modifier
             .align(if (portOnRight) Alignment.CenterEnd else Alignment.CenterStart)
@@ -467,12 +440,10 @@ private const val DISABLED_SHUTTER_ALPHA = 0.4f
 internal const val IN_APP_CAMERA_TAG = "in-app-camera"
 internal const val CAMERA_SHUTTER_TAG = "in-app-camera-shutter"
 internal const val CAMERA_COUNT_TAG = "in-app-camera-count"
-internal const val CAMERA_DONE_TAG = "in-app-camera-done"
 internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
 internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
 internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"
 internal const val SHUTTER_DESCRIPTION = "Take photo"
-internal const val DONE_LABEL = "Done"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
 
 private const val TAG = "InAppCamera"

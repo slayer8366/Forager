@@ -14,10 +14,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -239,15 +241,29 @@ class InAppCameraDialogTest {
         composeRule.onNodeWithText("2 photos taken").assertIsDisplayed()
     }
 
+    /**
+     * The owner's call, 2026-09-18: there is no Done control. The navigation bar's back is the way
+     * out, which frees the punch-hole edge for the camera's top strip. Asserted by the label, in the
+     * unmerged tree so a label merged into a parent cannot hide from it.
+     */
     @Test
-    fun `Done dismisses, and the photos already taken are not withdrawn`() {
+    fun `there is no Done control, and system back is how the camera closes`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithText("Done", useUnmergedTree = true).assertCountEquals(0)
+        composeRule.pressBackOnCameraDialog()
+        assertEquals(1, dismissals)
+    }
+
+    @Test
+    fun `back dismisses, and the photos already taken are not withdrawn`() {
         val session = FakeCameraCaptureSession()
         composeRule.setContent { Subject(session) }
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag(CAMERA_DONE_TAG).performClick()
-        composeRule.waitForIdle()
+        composeRule.pressBackOnCameraDialog()
 
         assertEquals(1, dismissals)
         assertEquals("the photo stands; dismissing is not a cancel", 1, captured.size)
@@ -336,8 +352,7 @@ class InAppCameraDialogTest {
         val session = FakeCameraCaptureSession(state = CameraSessionState.Unavailable("The camera is in use by another app."))
         composeRule.setContent { Subject(session) }
 
-        composeRule.onNodeWithTag(CAMERA_DONE_TAG).performClick()
-        composeRule.waitForIdle()
+        composeRule.pressBackOnCameraDialog()
 
         assertEquals(1, dismissals)
     }
