@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.diagnostics.DiagnosticsLog
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
@@ -89,10 +90,26 @@ internal fun DiagnosticsPanel(onBack: () -> Unit, modifier: Modifier = Modifier)
     DiagnosticsPanel(
         photosDir = File(context.filesDir, PHOTOS_DIRECTORY),
         capturesDir = File(context.filesDir, CAPTURES_DIRECTORY),
-        log = DiagnosticsLog.forContext(context),
+        log = remember(context) { writerLog(context) },
         onBack = onBack,
         modifier = modifier,
     )
+}
+
+/**
+ * The log instance `DebugDiagnostics` writes through, because only that instance knows whether its
+ * writes are failing — see [DiagnosticsLog.writeFailure]. A fresh `forContext` instance reads the
+ * same file but would always report no failure, which is the one thing this panel must not say
+ * falsely. Falls back to one, logged, when this process has no installed diagnostics to ask (an
+ * application that is not [ForagerApplication], or one read before `onCreate` assigned it — the
+ * same `lateinit` guard `CameraXCaptureSession` uses).
+ */
+internal fun writerLog(context: Context): DiagnosticsLog {
+    val application = context.applicationContext as? ForagerApplication
+    return runCatching { application?.diagnostics?.log }.getOrNull()
+        ?: DiagnosticsLog.forContext(context).also {
+            Log.w(TAG, "No installed diagnostics to ask; the panel shows the log file but cannot report failed writes.")
+        }
 }
 
 /** The Settings panel's row into this panel. Draws its own divider above so the release twin, which draws nothing, leaves no orphaned rule behind. */
@@ -157,7 +174,7 @@ internal fun DiagnosticsPanel(
             shareError?.let { message ->
                 Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(DIAGNOSTICS_SHARE_ERROR_TAG))
             }
-            LogRow(sizeBytes = current.logBytes, onView = { viewingLog = true }, onShare = { share(log.file, "text/plain") })
+            LogRow(sizeBytes = current.logBytes, writeFailure = current.logWriteFailure, onView = { viewingLog = true }, onShare = { share(log.file, "text/plain") })
             HorizontalDivider()
             DirectorySection(title = "$PHOTOS_DIRECTORY/", files = current.photos, onShare = { share(it, "image/jpeg") })
             HorizontalDivider()
@@ -167,7 +184,7 @@ internal fun DiagnosticsPanel(
 }
 
 @Composable
-private fun LogRow(sizeBytes: Long, onView: () -> Unit, onShare: () -> Unit) {
+private fun LogRow(sizeBytes: Long, writeFailure: DiagnosticsLog.WriteFailure?, onView: () -> Unit, onShare: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -180,6 +197,14 @@ private fun LogRow(sizeBytes: Long, onView: () -> Unit, onShare: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(LOG_ROW_LABEL, style = MaterialTheme.typography.bodyLarge)
             Text(formatBytes(sizeBytes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            writeFailure?.let { failure ->
+                Text(
+                    logWriteFailureText(failure),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag(DIAGNOSTICS_LOG_WRITE_FAILURE_TAG),
+                )
+            }
         }
         IconButton(onClick = onShare, modifier = Modifier.testTag(DIAGNOSTICS_LOG_SHARE_TAG)) {
             Icon(Icons.Filled.Share, contentDescription = "Share diagnostics log")
@@ -218,12 +243,24 @@ private fun FileRow(listed: ListedFile, onShare: () -> Unit) {
     }
 }
 
-/** Mirrors `CrashLogDetail`: the text is read on IO in a `LaunchedEffect`, never during composition. */
+/**
+ * Mirrors `CrashLogDetail`: the text is read on IO in a `LaunchedEffect`, never during composition.
+ * A read that fails is shown in place of the text and logged, never thrown: the condition that
+ * stops the log being written (a file this process cannot open) stops it being read too, and a
+ * throw here would end the process at the moment a runner opened the panel to find out why.
+ */
 @Composable
 private fun DiagnosticsLogDetail(log: DiagnosticsLog, onBack: () -> Unit, modifier: Modifier = Modifier) {
     var content by remember(log) { mutableStateOf<String?>(null) }
     LaunchedEffect(log) {
-        content = withContext(Dispatchers.IO) { log.read() }
+        content = withContext(Dispatchers.IO) {
+            try {
+                log.read()
+            } catch (error: Exception) {
+                Log.w(TAG, "Couldn't read '${log.file.path}'.", error)
+                "$LOG_READ_FAILED_PREFIX $error"
+            }
+        }
     }
     Column(modifier = modifier.fillMaxWidth()) {
         DiagnosticsHeader(title = LOG_ROW_LABEL, backDescription = "Back to Diagnostics", onBack = onBack)
@@ -264,11 +301,17 @@ private fun DiagnosticsHeader(title: String, backDescription: String, onBack: ()
 /** One directory entry as listed: the file plus the two numbers read once, on IO, so composition reads nothing from disk. */
 internal data class ListedFile(val file: File, val sizeBytes: Long, val modifiedEpochMillis: Long)
 
-internal data class DiagnosticsListing(val photos: List<ListedFile>, val captures: List<ListedFile>, val logBytes: Long)
+internal data class DiagnosticsListing(
+    val photos: List<ListedFile>,
+    val captures: List<ListedFile>,
+    val logBytes: Long,
+    /** Read with the listing, so what the row shows is as of the panel opening — the same moment [logBytes] describes. */
+    val logWriteFailure: DiagnosticsLog.WriteFailure?,
+)
 
 /** Regular files only, newest first. A missing directory lists as empty: before the first photo, `photos/` does not exist yet. */
 internal fun readListing(photosDir: File, capturesDir: File, log: DiagnosticsLog): DiagnosticsListing =
-    DiagnosticsListing(photos = listFiles(photosDir), captures = listFiles(capturesDir), logBytes = log.sizeBytes())
+    DiagnosticsListing(photos = listFiles(photosDir), captures = listFiles(capturesDir), logBytes = log.sizeBytes(), logWriteFailure = log.writeFailure)
 
 private fun listFiles(directory: File): List<ListedFile> =
     directory.listFiles().orEmpty()
@@ -316,6 +359,17 @@ internal fun formatBytes(bytes: Long): String = when {
     else -> String.format(Locale.US, "%.1f MB", bytes / (1024.0 * 1024.0))
 }
 
+/**
+ * The log row's failure line: how many entries this process could not write, since when, and the
+ * latest error. Says "not recording" rather than "stopped", because a later write that succeeds
+ * resumes the file while the lost entries stay lost — the count is what tells a reader the log has
+ * a gap, and the file itself does not mark one.
+ */
+internal fun logWriteFailureText(failure: DiagnosticsLog.WriteFailure): String {
+    val entries = if (failure.failedEntries == 1) "1 entry" else "${failure.failedEntries} entries"
+    return "Not recording: $entries could not be written since ${formatModified(failure.firstFailedAtEpochMillis)}. ${failure.lastError}"
+}
+
 /** With seconds: step 4 compares a listing against a relaunch a few seconds earlier. */
 internal fun formatModified(epochMillis: Long): String =
     MODIFIED_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
@@ -341,6 +395,8 @@ internal const val DIAGNOSTICS_LOG_ROW_TAG = "diagnostics-log-row"
 internal const val DIAGNOSTICS_LOG_SHARE_TAG = "diagnostics-log-share"
 internal const val DIAGNOSTICS_LOG_TEXT_TAG = "diagnostics-log-text"
 internal const val DIAGNOSTICS_SHARE_ERROR_TAG = "diagnostics-share-error"
+internal const val DIAGNOSTICS_LOG_WRITE_FAILURE_TAG = "diagnostics-log-write-failure"
+internal const val LOG_READ_FAILED_PREFIX = "Couldn't read the log:"
 internal fun diagnosticsShareTag(file: File): String = "diagnostics-share:${file.name}"
 
 private const val TAG = "DiagnosticsPanel"
