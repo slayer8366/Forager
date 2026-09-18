@@ -126,7 +126,7 @@ class InAppCameraDialogLandscapeTest {
         assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
         // Done's node is the TextButton's own bounds, which include Material's minimum touch
         // target, so its corner is asserted as a region rather than an exact offset.
-        assertTrue("Done top-left: $done in $frame", done.left < frame.left + Spacing.lg && done.top < frame.top + Spacing.lg)
+        assertDoneCentredInItsCorner(done, frame)
         assertTrue("Done is left of the count and above it", done.right < count.left && done.bottom < count.top)
         assertTrue("right of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() > frame.centreX())
     }
@@ -151,7 +151,7 @@ class InAppCameraDialogLandscapeTest {
         assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
         assertTrue("the count sits beside the shutter, to its right: ${count.left} vs ${shutter.right}", count.left >= shutter.right)
         assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
-        assertTrue("Done top-left: $done in $frame", done.left < frame.left + Spacing.lg && done.top < frame.top + Spacing.lg)
+        assertDoneCentredInItsCorner(done, frame)
         assertTrue("left of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() < frame.centreX())
     }
 
@@ -160,22 +160,74 @@ class InAppCameraDialogLandscapeTest {
     // so one test cannot open the dialog at both rotations. The pure-function form of the same
     // claim — that the two rotations never resolve to one arrangement — is in CameraArrangementTest.
 
+    /**
+     * Done's placement as [rotateWithDevice] defines it: a square footprint the size of its longer
+     * side, anchored in the top-left corner, with the button centred in it and turning about that
+     * centre. So the centre is the same distance from the frame's left and top, and that holds
+     * whether Done is turned or not — which is why it replaced a region check tuned to the old
+     * never-turning layout, where a 58x40 button's top edge sat 9dp higher than it does centred in
+     * a 58dp square. The assertion comes from the modifier's contract
+     * (`RotateWithDeviceModifierTest`), not from a threshold loosened until the new layout fit.
+     */
+    private fun assertDoneCentredInItsCorner(done: DpRect, frame: DpRect) {
+        assertEquals(
+            "Done turns about a fixed centre in the corner: as far from the left as from the top — $done in $frame",
+            done.centreX() - frame.left.value,
+            done.centreY() - frame.top.value,
+            0.51f,
+        )
+        assertTrue("and that centre is in the top-left, not drifting across the frame: $done", done.centreX() < frame.centreX() / 2 && done.centreY() < frame.centreY())
+    }
+
+    /**
+     * **One rotation rule, every arrangement** (owner, 2026-09-17). This test used to be the
+     * opposite, `nothing turns when the device does`, asserting "upright, whatever the sensor says:
+     * the window already matches the grip". That clause had no source — the owner stated one rule
+     * and the landscape exception was written into the spec by the planner — and on an S26 Ultra it
+     * left Done and the count sideways as soon as the phone turned.
+     *
+     * The same reading the old test used, a quarter turn from the display's, because a reading
+     * *equal* to the display's cancels under sensor-minus-display whether or not the modifier is
+     * present (the 2026-09-15 session found exactly that with a revert), and would make this test
+     * unable to fail.
+     */
     @Test
-    fun `setting off in a landscape window, nothing turns when the device does`() {
+    fun `setting off in a landscape window, Done and the count turn in place when the device does, as in portrait`() {
         setDialog(lockToPortrait = false)
         val doneBefore = bounds(CAMERA_DONE_TAG)
         val countBefore = bounds(CAMERA_COUNT_TAG)
-        assertTrue("precondition: Done is wider than tall, so a quarter turn would be visible", doneBefore.width > doneBefore.height)
+        assertTrue("at open the device agrees with the window, so Done reads upright: $doneBefore", doneBefore.width > doneBefore.height)
+        // No such aspect check on the count, deliberately. This harness measures "No photos yet" at
+        // about 7x20dp, under the old code as well as this one (measured both ways with a probe on
+        // 2026-09-18), so width-greater-than-height is not what upright looks like here and would
+        // fail on correct code. The extent swap and the fixed centre below do not depend on it.
 
-        // A reading a quarter turn from the harness's display rotation, not equal to it: equal
-        // would cancel under sensor-minus-display even with rotateWithDevice applied, and this
-        // test would then pass with the modifier wrongly present (a revert showed exactly that).
         @Suppress("DEPRECATION") val displayRotation = composeRule.activity.windowManager.defaultDisplay.rotation
         session.deviceRotation = (displayRotation + 1) % 4
         composeRule.waitForIdle()
+        val doneAfter = bounds(CAMERA_DONE_TAG)
+        val countAfter = bounds(CAMERA_COUNT_TAG)
 
-        assertEquals("upright, whatever the sensor says: the window already matches the grip", doneBefore, bounds(CAMERA_DONE_TAG))
-        assertEquals(countBefore, bounds(CAMERA_COUNT_TAG))
+        assertEquals("Done turned a quarter: its extents swap", doneBefore.width.value, doneAfter.height.value, 0.51f)
+        assertEquals(doneBefore.height.value, doneAfter.width.value, 0.51f)
+        assertEquals("in place: Done's centre does not move", doneBefore.centreX(), doneAfter.centreX(), 0.51f)
+        assertEquals(doneBefore.centreY(), doneAfter.centreY(), 0.51f)
+        assertEquals("the count turned a quarter too", countBefore.width.value, countAfter.height.value, 0.51f)
+        assertEquals("in place", countBefore.centreX(), countAfter.centreX(), 0.51f)
+        assertEquals(countBefore.centreY(), countAfter.centreY(), 0.51f)
+    }
+
+    /** Turning the controls must not move the shutter: it was put on the port edge at `139727a` and confirmed on a device. */
+    @Test
+    fun `turning the controls leaves the shutter exactly where it was`() {
+        setDisplayRotation(Surface.ROTATION_270)
+        setDialog(lockToPortrait = false)
+        val shutterBefore = bounds(CAMERA_SHUTTER_TAG)
+
+        session.deviceRotation = Surface.ROTATION_0
+        composeRule.waitForIdle()
+
+        assertEquals("the shutter does not move when the controls beside it turn", shutterBefore, bounds(CAMERA_SHUTTER_TAG))
     }
 
     @Test

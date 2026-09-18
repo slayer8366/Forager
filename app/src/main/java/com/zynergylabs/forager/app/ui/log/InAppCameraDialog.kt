@@ -92,10 +92,18 @@ import kotlinx.coroutines.launch
  * ([LockWindowOrientation]: `LOCKED` off, `PORTRAIT` on) and this dialog gained a landscape
  * arrangement, chosen once from the setting and the window's shape at open ([cameraArrangement])
  * and never reflowed — the `remember` below has no configuration key on purpose. Portrait is the
- * layout that existed before, unchanged; landscape puts the shutter on the right edge, vertically
- * centred, the count beside it, Done top-left, all upright: the window already matches the grip,
- * so `rotateWithDevice` does not apply there. The controls' angle in the portrait arrangement, the
- * sensor-minus-display expression, is as it was.
+ * layout that existed before, unchanged; landscape puts the shutter on the device's charger-port
+ * edge, vertically centred, the count beside it, Done top-left.
+ *
+ * **One rotation rule in both arrangements** (owner, 2026-09-17): controls turn in place as the
+ * phone turns, so their text reads in the current hold. The landscape arrangement was first built
+ * with its controls held upright and no `rotateWithDevice`, on the reasoning that the window
+ * already matches the grip. That reasoning was an exception written into the spec that nobody asked
+ * for — the owner stated one rule — and it left "Done" and the count sideways the moment the phone
+ * turned. Both arrangements now use the same modifier with the same sensor-minus-display angle.
+ * In landscape that angle is zero at open, since the device and the window agree, so the controls
+ * still read upright the moment the camera opens; they differ from before only once the phone
+ * moves.
  *
  * ## What is tested, and what a green suite here does not mean
  *
@@ -260,15 +268,18 @@ internal fun InAppCameraDialog(
                     // A landscape window, pinned where it is: the shutter on the device's
                     // charger-port edge, vertically centred, where the thumb of a two-handed
                     // landscape grip already is; the count (and a failure) beside it, not under
-                    // it; Done top-left. Upright, every one of them, and no rotateWithDevice: the
-                    // window already matches the grip, so upright is the natural reading, and
-                    // controls that read upright the moment the camera opens say it is ready.
+                    // it; Done top-left. Done, the count and a failure turn in place with the
+                    // device exactly as the portrait arrangement's do — one rule, every
+                    // arrangement (owner, 2026-09-17). At open the device and the window agree, so
+                    // sensor minus display is zero and they read upright; they turn only when the
+                    // phone does. The shutter is a disc and has nothing to turn.
                     //
                     // Two mirrored cases, not one, because the port edge is a physical edge and
                     // the two landscapes put it on opposite screen sides — see CameraArrangement.
                     CameraArrangement.LandscapePortRight ->
                         LandscapeControls(
                             portOnRight = true,
+                            deviceRotation = session.deviceRotation,
                             captureError = captureError,
                             photosTaken = photosTaken,
                             shutterEnabled = shutterEnabled,
@@ -279,6 +290,7 @@ internal fun InAppCameraDialog(
                     CameraArrangement.LandscapePortLeft ->
                         LandscapeControls(
                             portOnRight = false,
+                            deviceRotation = session.deviceRotation,
                             captureError = captureError,
                             photosTaken = photosTaken,
                             shutterEnabled = shutterEnabled,
@@ -304,6 +316,8 @@ internal fun InAppCameraDialog(
 @Composable
 private fun BoxScope.LandscapeControls(
     portOnRight: Boolean,
+    /** The session's device reading, for [rotateWithDevice] — the same value the portrait arrangement passes. */
+    deviceRotation: Int?,
     captureError: String?,
     photosTaken: Int,
     shutterEnabled: Boolean,
@@ -315,6 +329,7 @@ private fun BoxScope.LandscapeControls(
         modifier = Modifier
             .align(Alignment.TopStart)
             .padding(Spacing.sm)
+            .rotateWithDevice(deviceRotation)
             .testTag(CAMERA_DONE_TAG),
     ) {
         Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
@@ -338,7 +353,7 @@ private fun BoxScope.LandscapeControls(
                         message,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.testTag(CAMERA_ERROR_TAG),
+                        modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_ERROR_TAG),
                     )
                 }
 
@@ -346,7 +361,7 @@ private fun BoxScope.LandscapeControls(
                     photoCountLabel(photosTaken),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.testTag(CAMERA_COUNT_TAG),
+                    modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_COUNT_TAG),
                 )
             }
         }

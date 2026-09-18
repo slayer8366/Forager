@@ -128,11 +128,13 @@ The window pins to whatever it already was when the camera opened, and never mov
    readable.
 3. App in **landscape with the charger port on your right**, open the camera: landscape frame,
    **shutter on the port edge** — the screen's right in this grip — vertically centred, count
-   beside it (inboard, away from the edge), Done top-left, and **Done and the count upright, not
-   turned**. No flip animation.
+   beside it (inboard, away from the edge), Done top-left. No flip animation. At open, Done and the
+   count read upright, because the phone and the window agree.
 4. **App in the other landscape, port on your left**, open the camera: the mirror of 3.3 — shutter
    on the screen's **left**, count inboard to its right, Done still top-left. No flip animation.
-5. Rotate from either of those: again, nothing moves.
+5. Rotate from either of those: **nothing in the layout moves, and Done and the count turn in place
+   to stay readable** — the same rule as 3.2. A label that stays sideways after the phone turns is a
+   failure, in this arrangement exactly as in portrait.
 6. Done, then rotate the phone: the screen underneath follows again, proving the lock released.
 
 Any flip animation on open in this state is a failure. The shutter along the bottom of a
@@ -148,6 +150,16 @@ landscape frame is a failure. **The shutter on the punch-hole edge is a failure.
 > why the defect reached a device: the first run that opened in the other one found the shutter
 > under the punch-hole cut-out. Fixed in `139727a`; the run that found it is recorded in
 > `2026-09-17-shutter-port-edge-and-camera-retention.md`.
+>
+> **Superseding note, 2026-09-18.** Item 3.3 previously required "**Done and the count upright, not
+> turned**" and treated a turned label as a failure. That clause had no source: the owner stated
+> one rule for every orientation — controls rotate in place as the phone turns, so their text reads
+> in the current hold — and the landscape exception was written into the spec by the planner. The
+> landscape arrangement was built to it, and on an S26 Ultra it left Done and the count sideways as
+> soon as the phone turned. Fixed by applying the portrait arrangement's own `rotateWithDevice` in
+> landscape — one mechanism, not a second one. At open the angle is zero, so the labels still read
+> upright the moment the camera opens; the difference is only once the phone moves, which is what
+> 3.5 now checks. The shutter is a disc, has nothing to turn, and does not move.
 
 Evidence: one line per item, and **say which physical edge the port was on** for 3.3 and 3.4, not
 just which screen side the shutter appeared on.
