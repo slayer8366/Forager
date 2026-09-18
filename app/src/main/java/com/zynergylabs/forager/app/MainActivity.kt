@@ -114,6 +114,11 @@ class MainActivity : ComponentActivity() {
                             false
                         }
                     },
+                    // A capture that lands with no find open is saved to the album and recorded where the
+                    // device check can read it — see MushroomLogViewModel.rescueCaptureWithNoEditingEntry.
+                    recordCaptureWithoutEditingEntry = { photoId, error ->
+                        (application as? ForagerApplication)?.diagnostics?.recordCaptureWithoutEditingEntry(photoId, error)
+                    },
                 )
             }
         }

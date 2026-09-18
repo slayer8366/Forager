@@ -69,6 +69,22 @@ class DebugDiagnostics private constructor(
     }
 
     /**
+     * A capture came back from the in-app camera for a find that is no longer being edited, so it
+     * was persisted to the album instead of attached. Recorded **whether or not the album save
+     * succeeded**, because the save is the user's remedy and not evidence that nothing went wrong:
+     * the app reached a state it should not have, and that is the fact this entry exists to carry.
+     *
+     * Readable on a phone with no logcat, which is the whole reason this store exists. The user's
+     * half is a Toast at the moment it happens; this is the developer's half, hours later.
+     */
+    fun recordCaptureWithoutEditingEntry(photoId: String?, error: Throwable? = null) {
+        executor.execute {
+            val outcome = if (error == null) "saved to the album instead (photo=$photoId)" else "and the album save failed too"
+            log.append("capture arrived with no editing entry; $outcome", error?.stackTraceToString())
+        }
+    }
+
+    /**
      * One entry per shot, written from [CameraXCaptureSession.capture] alongside its `Log.i` line,
      * never instead of it: logcat still works for anyone who has it, and this is for the device
      * check reading the panel with no cable.

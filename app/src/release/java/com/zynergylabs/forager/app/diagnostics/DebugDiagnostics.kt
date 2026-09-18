@@ -15,6 +15,10 @@ class DebugDiagnostics private constructor() {
     @Suppress("UNUSED_PARAMETER")
     fun recordSweep(deleted: Int) = Unit
 
+    /** The debug twin records a capture that arrived with no editing entry; this does nothing. */
+    @Suppress("UNUSED_PARAMETER")
+    fun recordCaptureWithoutEditingEntry(photoId: String?, error: Throwable? = null) = Unit
+
     /**
      * The debug twin writes one entry per shot; this does nothing. Arguments are values rather than
      * a formatted string precisely so that this costs nothing to call: there is no interpolation at

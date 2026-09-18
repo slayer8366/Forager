@@ -198,6 +198,14 @@ class MushroomLogViewModel(
     /** Clock for [freshDeviceLocation]'s age check, injected so a test can fix a fix's age. */
     private val now: () -> Long = System::currentTimeMillis,
     /**
+     * Records that a capture arrived with no editing entry — see [rescueCaptureWithNoEditingEntry].
+     * A plain function rather than `DebugDiagnostics` itself, for the reason [ErrorLog] gives about
+     * `android.util.Log` in a ViewModel: the store is debug-only and Context-bound, and this class
+     * is constructed by tests that have neither. `MainActivity` wires the real one; the default is
+     * a no-op, so every existing test is unaffected and this one's test can assert on a fake.
+     */
+    private val recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
+    /**
      * Settings' "Automatically Save Location to Photos" preference, read at the moment it is about
      * to matter rather than held — see
      * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what it gates and
@@ -643,7 +651,7 @@ class MushroomLogViewModel(
                 // apply would silently discard this one's photo when it lands. See this class's own
                 // "Serialized editing-entry mutations" doc comment — the same principle
                 // onStartEditingEntry's guard applies, extended to every photo mutator.
-                val entry = _uiState.value.editingEntry ?: return@withLock
+                val entry = _uiState.value.editingEntry ?: return@withLock rescueCaptureWithNoEditingEntry(source)
                 addPhoto(entry, source).fold(
                     onSuccess = { updated ->
                         _uiState.update { it.copy(editingEntry = updated, isSavingPhoto = false, saveErrorMessage = null) }
@@ -673,6 +681,76 @@ class MushroomLogViewModel(
                 )
             }
         }
+    }
+
+    /**
+     * A capture came back for a find that is no longer being edited. **It is saved to the album
+     * rather than dropped**, which is this app's rule everywhere else: a capture that succeeds is
+     * never lost, and the album is where it goes when there is nowhere better — also the first
+     * place a user looks for a photo they cannot find.
+     *
+     * ## Do not delete this as dead code: the state is reachable, and here is the sequence
+     *
+     * **This handling is defensive, and it is also on a path a user can walk.** Both, and the
+     * second is the one a future reader is likely to doubt, so it is written out: edit a find in
+     * the Journal, open the in-app camera, background the app, come back inside four minutes — so
+     * the camera is still open, see [CameraAbsenceWatcher] — and press the shutter.
+     *
+     * What clears the entry on the way out is `AvailabilityScreen`'s own `ON_STOP` observer, which
+     * runs the incidental-exit auto-save when a find is open and no photo acquisition is in
+     * flight. The in-app camera does not set that in-flight flag: it was narrowed to the gallery
+     * picker and the permission dialog when the camera became a `Dialog` that never leaves the
+     * Activity (`PhotoAcquisitionLaunchers`). Correct for *opening* the camera, which no longer
+     * causes an `ON_STOP` at all — but a genuine backgrounding while the camera is open is not
+     * guarded, and it clears `editingEntry` while the dialog, which lives above it in
+     * `InAppCameraViewModel`, survives untouched. The shutter is then live over a find that is no
+     * longer open.
+     *
+     * The commissioning dispatch described this state as "not reachable by normal means", reached
+     * only by sudden process death. The sequence above was read out of the tree rather than
+     * reproduced on a device, and is recorded here because the doc's purpose — stopping someone
+     * removing handling they cannot reproduce — is served better by a reproduction than by an
+     * assurance. It covers the process-death case too; that case simply is not the only one.
+     *
+     * Until 2026-09-17 this path dropped the source with no persist, no `release()` and no log —
+     * the photo lost, the scratch file leaking into `captures/` until the next startup sweep, and
+     * nothing anywhere recording it. Found while building the absence timeout. **This is the only
+     * path in the app that drops an unpersisted capture**: `onRemovePhoto` and `onPullPhoto` guard
+     * the same way but act on an already-persisted `LogPhoto`, and the Cartography camera persists
+     * through [onAddGalleryPhoto] first, so its own no-entry guard can skip an attach but never
+     * loses a photo.
+     *
+     * ## Three things, and the third is not optional
+     *
+     * The album save is the user's remedy. The Toast is what stops them looking on the find where
+     * they expected the photo — the only thing that closes that gap at the moment it opens. The
+     * diagnostics entry is the developer's, and it is written **whether or not the save succeeded**:
+     * a recovered photo is not evidence that nothing went wrong, and what went wrong is that the
+     * app reached a state it should not have.
+     *
+     * The message goes out through [MushroomLogUiState.saveErrorMessage], which is this screen's
+     * one transient-message channel — `JournalTab` and `LogPanel` both show it as a Toast and clear
+     * it. The field is named for errors and this message is not one; reusing it is deliberate,
+     * because the alternative was a parallel field threaded through five files to reach the same
+     * `Toast.makeText`. Recorded as a naming wart rather than hidden.
+     *
+     * `release()` is not called here directly: [AddPhotoToGalleryUseCase] reaches
+     * `FilePhotoStore.persist`, which releases the source in a `finally` whether the copy succeeds
+     * or fails. That is the same path the ordinary album save uses, so the scratch file goes by the
+     * mechanism that already exists rather than a second one written for this case.
+     */
+    private suspend fun rescueCaptureWithNoEditingEntry(source: PhotoSource) {
+        addPhotoToGallery(source).fold(
+            onSuccess = { photo ->
+                recordCaptureWithoutEditingEntry(photo.id, null)
+                _uiState.update { it.copy(isSavingPhoto = false, saveErrorMessage = PHOTO_SAVED_TO_ALBUM_MESSAGE) }
+                loadGalleryPhotos()
+            },
+            onFailure = { error ->
+                recordCaptureWithoutEditingEntry(null, error)
+                _uiState.update { it.copy(isSavingPhoto = false, saveErrorMessage = "Couldn't save that photo.") }
+            },
+        )
     }
 
     /**
@@ -876,3 +954,13 @@ class MushroomLogViewModel(
         const val TAG = "MushroomLog"
     }
 }
+
+/**
+ * Shown when a capture lands with no find open — see
+ * [MushroomLogViewModel.rescueCaptureWithNoEditingEntry]. **Says where the photo went, not that
+ * something went wrong** (owner's wording, 2026-09-17): the user's problem at that moment is
+ * finding their picture, and the failure is carried by the diagnostics entry instead. Internal
+ * rather than private so the test asserts the string the user sees rather than a copy of it.
+ */
+internal const val PHOTO_SAVED_TO_ALBUM_MESSAGE = "Photo saved to album."
+

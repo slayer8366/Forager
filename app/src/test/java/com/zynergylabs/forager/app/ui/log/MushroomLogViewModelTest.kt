@@ -80,6 +80,7 @@ class MushroomLogViewModelTest {
         locationProvider: FakeLocationProvider = FakeLocationProvider(),
         currentFix: () -> LocationFix.Update? = { null },
         autoSaveLocationToPhotos: suspend () -> Boolean = { true },
+        recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -99,6 +100,7 @@ class MushroomLogViewModelTest {
         currentFix = currentFix,
         now = { NOW },
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+        recordCaptureWithoutEditingEntry = recordCaptureWithoutEditingEntry,
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
@@ -1426,6 +1428,96 @@ class MushroomLogViewModelTest {
         assertEquals(LatLng(45.5, -122.6), vm.uiState.value.editingEntry?.foundAt)
     }
 
+
+    /**
+     * The swallow fix, 2026-09-17. A capture arriving with no editing entry used to be dropped —
+     * no persist, no `release()`, no log; the photo lost and the scratch file leaking into
+     * `captures/` until the startup sweep. It is now saved to the album, the user is told, and the
+     * anomaly is recorded.
+     *
+     * **This state is reachable by an ordinary user action**, not a race: edit a find, open the
+     * in-app camera, background the app, return inside four minutes (so the camera is still open),
+     * and shoot. The `ON_STOP` on the way out clears `editingEntry` via the incidental-exit
+     * auto-save, while the camera dialog lives above that in `InAppCameraViewModel`.
+     */
+    @Test
+    fun `a capture with no editing entry is saved to the album rather than dropped`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val photoStore = FakePhotoStore()
+        val rescued = LogPhoto(id = "rescued-photo", relativePath = "photos/rescued-photo.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(rescued)
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        // No onOpenEntry/onStartEditingEntry: this is precisely the no-editing-entry state.
+        assertNull(vm.uiState.value.editingEntry)
+
+        val source = object : PhotoSource {}
+        vm.onAddPhoto(source)
+        advanceUntilIdle()
+
+        assertEquals("the photo reaches the album", listOf(rescued), vm.uiState.value.galleryPhotos.map { it.photo })
+        // Reaching persist is what releases the scratch file: FilePhotoStore.persist calls
+        // source.release() in a finally, succeed or fail. The release itself is FilePhotoStoreTest's.
+        assertEquals("the source goes through persist, which is the path that releases it", listOf(source), photoStore.persistedSources)
+        assertEquals(PHOTO_SAVED_TO_ALBUM_MESSAGE, vm.uiState.value.saveErrorMessage)
+        assertFalse("the spinner does not stay up", vm.uiState.value.isSavingPhoto)
+    }
+
+    @Test
+    fun `a capture with no editing entry writes the diagnostic entry, with the photo's id`() = runTest(dispatcher) {
+        val photoStore = FakePhotoStore()
+        val rescued = LogPhoto(id = "rescued-photo", relativePath = "photos/rescued-photo.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(rescued)
+        val recorded = mutableListOf<Pair<String?, Throwable?>>()
+        val vm = viewModel(photoStore = photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
+        advanceUntilIdle()
+
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(listOf<Pair<String?, Throwable?>>("rescued-photo" to null), recorded)
+    }
+
+    /** The save is the user's remedy, not evidence that nothing went wrong — so a failed save still records, and still tells the user. */
+    @Test
+    fun `a capture with no editing entry records the anomaly even when the album save fails`() = runTest(dispatcher) {
+        val photoStore = FakePhotoStore()
+        val failure = IllegalStateException("disk full")
+        photoStore.persistResult = Result.failure(failure)
+        val recorded = mutableListOf<Pair<String?, Throwable?>>()
+        val vm = viewModel(photoStore = photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
+        advanceUntilIdle()
+
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(listOf<Pair<String?, Throwable?>>(null to failure), recorded)
+        assertEquals("Couldn't save that photo.", vm.uiState.value.saveErrorMessage)
+        assertFalse(vm.uiState.value.isSavingPhoto)
+    }
+
+    /** The working path is untouched: with an entry open, the photo still attaches and nothing is recorded. */
+    @Test
+    fun `a capture with an editing entry attaches as before and records no anomaly`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val photoStore = FakePhotoStore()
+        val newPhoto = LogPhoto(id = "new-photo", relativePath = "photos/new-photo.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(newPhoto)
+        val recorded = mutableListOf<Pair<String?, Throwable?>>()
+        val vm = viewModel(repository, photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals("attached, as before", listOf(newPhoto), vm.uiState.value.editingEntry?.photos)
+        assertEquals("nothing recorded on the path that works", emptyList<Pair<String?, Throwable?>>(), recorded)
+        assertNull("and no rescue message", vm.uiState.value.saveErrorMessage)
+    }
+
 }
 
 private class FakeMushroomLogRepository(
@@ -1549,7 +1641,13 @@ private class FakePhotoStore(
 ) : PhotoStore {
     val deletedPhotos = mutableListOf<LogPhoto>()
 
-    override suspend fun persist(source: PhotoSource): Result<LogPhoto> = persistResult
+    /** Every source handed to [persist]. The real store releases the source in a `finally` inside this call, so reaching here is what "the scratch file is released" means — see `FilePhotoStoreTest` for the release itself. */
+    val persistedSources = mutableListOf<PhotoSource>()
+
+    override suspend fun persist(source: PhotoSource): Result<LogPhoto> {
+        persistedSources += source
+        return persistResult
+    }
 
     override suspend fun delete(photo: LogPhoto): Result<Unit> {
         deletedPhotos += photo

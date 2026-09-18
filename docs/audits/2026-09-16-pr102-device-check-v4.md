@@ -285,20 +285,51 @@ capture.
 
 ## 8. Multi-shot, capture release and sweep
 
-1. Diagnostics: note the contents of `photos` and `captures`.
-2. Ten photos in one session, watching the count. Persist all ten.
-3. Diagnostics: count read 10, `captures` empty, `photos` grew by exactly ten, and twenty new
-   capture entries — ten pairs, by step 7's invariant.
-4. Camera again: three photos, **do not** persist. Back out.
-5. Diagnostics: `captures` holds three.
-6. Force stop from Settings, Apps, Forager. Not back, not a recents swipe.
-7. Launch, wait five seconds, open Diagnostics: `captures` empty and the sweep entry — it reads
-   `sweep deleted=N orphaned capture file(s)` — gives 3.
+**Corrected after the swallow fix.** The old 8.4 and 8.5 asked for three unsaved captures. There is
+no longer any way to produce one: every capture persists the moment the shutter succeeds. The
+sweep's remaining job is crash debris.
 
-A count other than 3 is recorded, not failed: files modified within two seconds of process start
-are skipped by design.
+1. Open Diagnostics. Note what is listed under `photos` and under `captures`.
+2. Open the camera. Take **ten** photos in one go, watching the counter. Save all ten.
+3. Open Diagnostics:
+   - Counter read 10?
+   - `photos` gained exactly ten?
+   - **`captures` empty?** It should be empty at every point you look. A file sitting there is
+     either a capture caught mid-persist, which is a fraction of a second, or debris from a process
+     that died. Neither should be waiting for you.
+   - Twenty new capture entries, ten pairs, from step 7?
+4. Force stop Forager: Settings, Apps, Forager, Force stop. Not the back button, not swiping it away
+   from recents.
+5. Open Forager, wait five seconds, open Diagnostics:
+   - `captures` empty?
+   - The sweep line. **`sweep deleted=0 orphaned capture file(s)` is the expected reading**, and it
+     means nothing was left behind.
 
-Evidence: the listings at 1, 3, 5 and 7, the dialog count, and the sweep line.
+**A non-zero sweep count is a finding, not a failure.** It means a process died between a shutter
+press and its persist. Record the number and what you were doing beforehand.
+
+**Optional, and do not force it.** To see the sweep actually delete something you would have to kill
+the app in the fraction of a second between shutter and persist. If you happen to catch it, record
+it. Do not spend time trying.
+
+> **Superseding note, 2026-09-17.** The old 8.4–8.5 ("three photos, **do not** persist. Back out." →
+> "`captures` holds three") described a state the app could only reach through a **bug**: a capture
+> arriving for a find no longer being edited was silently dropped, un-persisted and un-released,
+> leaving its scratch file in `captures/`. The step was testing the swallow without knowing it.
+> Fixing the swallow (`MushroomLogViewModel.rescueCaptureWithNoEditingEntry`) deletes the step's
+> premise, so the step is replaced rather than adjusted. The sweep keeps its two-second mtime guard
+> and its behaviour; what narrowed is its job, now genuine crash debris only — a cleaner definition
+> than it had, and a consequence of the fix rather than a change made to it.
+>
+> **No step was added for the swallow path itself.** The commissioning dispatch ruled that it is not
+> reachable by normal means and so cannot be produced on purpose, leaving Part 1's unit tests as its
+> only evidence. **That premise is disputed by the code**: a sequence exists that a runner could
+> perform — edit a find, open the camera, background the app, return inside four minutes, shoot —
+> and it is written out on `rescueCaptureWithNoEditingEntry`. It was read from the tree, not
+> reproduced on a device. If it holds, this step's companion is a short device step the owner has
+> not yet written.
+
+Evidence: the listings at 1, 3 and 5, the dialog count, and the sweep line.
 
 ## 9. Main thread
 
