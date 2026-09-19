@@ -247,7 +247,13 @@ import com.zynergylabs.forager.app.ui.adaptive.WindowWidthClass
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowWidthClass
 import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
 import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
+import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
+import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.log.CameraXInAppCamera
+import com.zynergylabs.forager.app.ui.log.InAppCameraHost
+import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
+import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.LogPanel
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
@@ -386,6 +392,9 @@ private enum class DrawerPanel {
     Search,
     Settings,
     CrashLogs,
+    // Debug builds only: the entry row that reaches it composes nothing in release, so this
+    // value is unreachable there — see ui/diagnostics/DiagnosticsPanel.kt (both source sets).
+    Diagnostics,
     Log,
     // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
     // top-level destination — see PhotoGalleryScreen's own doc comment. No longer a
@@ -471,6 +480,10 @@ fun AvailabilityScreen(
     onDeleteOfflineRegion: (Long) -> Unit,
     /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
     onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings' "Automatically Save Location to Photos" checkbox — see [AvailabilityUiState.autoSaveLocationToPhotos]. Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
+    /** Settings' "Lock camera to portrait" checkbox — see [AvailabilityUiState.lockCameraToPortrait]. Defaulted like the one above. */
+    onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     onThemeModeChanged: (AppThemeMode) -> Unit,
     /**
@@ -488,6 +501,17 @@ fun AvailabilityScreen(
      */
     logUiState: MushroomLogUiState = MushroomLogUiState(),
     cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
+    /**
+     * Which surface the in-app camera is open for, or null when closed. Retained by
+     * `InAppCameraViewModel` across Activity recreation, and composed by this screen **above the
+     * window-width branch** so a rotation's width-class flip does not dispose it — see
+     * [InAppCameraHost] for the bug and the decision.
+     */
+    inAppCameraTarget: InAppCameraTarget? = null,
+    onOpenCamera: (InAppCameraTarget) -> Unit = {},
+    onCloseCamera: () -> Unit = {},
+    /** The camera dialog itself; defaults to CameraX. A slot for the same reason [mapSlot] is one: CameraX cannot run under Robolectric. */
+    inAppCamera: InAppCameraSlot = CameraXInAppCamera,
     /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
     onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
     onOpenLogEntry: (String) -> Unit = {},
@@ -1066,7 +1090,12 @@ fun AvailabilityScreen(
                     onThemeModeChanged = onThemeModeChanged,
                     nightModeMaps = uiState.nightModeMaps,
                     onNightModeMapsChanged = onNightModeMapsChanged,
+                    autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
+                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+                    lockCameraToPortrait = uiState.lockCameraToPortrait,
+                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
+                    onOpenDiagnostics = { drawerPanel = DrawerPanel.Diagnostics },
                 )
                 BuildIdentityFooter()
             }
@@ -1080,13 +1109,24 @@ fun AvailabilityScreen(
                 )
             }
 
+            DrawerPanel.Diagnostics -> {
+                // Same one-level-up back as CrashLogs. Debug builds only; see the enum entry.
+                DiagnosticsPanel(
+                    modifier = Modifier.weight(1f),
+                    onBack = { drawerPanel = DrawerPanel.Settings },
+                )
+            }
+
             DrawerPanel.Log -> {
                 LogPanel(
                     modifier = Modifier.weight(1f),
                     uiState = logUiState,
-                    cameraCaptureFiles = cameraCaptureFiles,
+                    onOpenCameraForLogEntry = { onOpenCamera(InAppCameraTarget.LOG_ENTRY) },
+                    onOpenCameraForAlbum = { onOpenCamera(InAppCameraTarget.ALBUM) },
+                    onOpenCameraForCartographyEntry = { onOpenCamera(InAppCameraTarget.CARTOGRAPHY_ENTRY) },
                     mapSlot = mapSlot,
                     region = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
+                    deviceLocation = uiState.liveFix?.let { LatLng(it.lat, it.lng) },
                     basemap = basemap,
                     night = isNightMode,
                     onOpenEntryForEditing = onOpenLogEntryForEditing,
@@ -1168,7 +1208,7 @@ fun AvailabilityScreen(
                     photos = logUiState.galleryPhotos,
                     isLoading = logUiState.isLoadingGalleryPhotos,
                     onDeletePhoto = onDeleteGalleryPhoto,
-                    cameraCaptureFiles = cameraCaptureFiles,
+                    onOpenCamera = { onOpenCamera(InAppCameraTarget.ALBUM) },
                     onAddGalleryPhoto = onAddGalleryPhoto,
                     loadErrorMessage = logUiState.galleryLoadErrorMessage,
                 )
@@ -1808,9 +1848,12 @@ fun AvailabilityScreen(
                         CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
                         CompactTab.JOURNAL -> JournalTab(
                             uiState = logUiState,
-                            cameraCaptureFiles = cameraCaptureFiles,
+                            onOpenCameraForLogEntry = { onOpenCamera(InAppCameraTarget.LOG_ENTRY) },
+                            onOpenCameraForAlbum = { onOpenCamera(InAppCameraTarget.ALBUM) },
+                            onOpenCameraForCartographyEntry = { onOpenCamera(InAppCameraTarget.CARTOGRAPHY_ENTRY) },
                             mapSlot = mapSlot,
                             pickerRegion = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
+                            deviceLocation = uiState.liveFix?.let { LatLng(it.lat, it.lng) },
                             basemap = basemap,
                             night = isNightMode,
                             onOpenEntry = onOpenLogEntry,
@@ -2030,6 +2073,7 @@ fun AvailabilityScreen(
         }
     }
 
+
     if (windowWidthClass == WindowWidthClass.COMPACT) {
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -2049,6 +2093,10 @@ fun AvailabilityScreen(
                         currentTime = currentTime,
                         isNightMode = isNightMode,
                         onNightModeMapsChanged = onNightModeMapsChanged,
+                        autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
+                        onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+                        lockCameraToPortrait = uiState.lockCameraToPortrait,
+                        onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                         themeMode = uiState.themeMode,
                         onThemeModeChanged = onThemeModeChanged,
                         crashFileStore = crashFileStore,
@@ -2083,6 +2131,27 @@ fun AvailabilityScreen(
             content = mainScaffold,
         )
     }
+    // The in-app camera, once, outside the width-class branch above — deliberately not inside
+    // either tree, so the flip a rotation causes on a phone (COMPACT to MEDIUM) does not dispose
+    // it. Its own open flag lives in InAppCameraViewModel, which survives the recreation.
+    // See InAppCameraHost for both mechanisms and the owner's decision.
+    //
+    // It sits *after* the branch rather than before it (2026-09-19): since the camera draws in the
+    // Activity's own window instead of a dialog's, nothing but composition order puts it on top,
+    // and a sibling composed first draws and hit-tests underneath. zIndex was tried and measured
+    // insufficient — see InAppCameraDialog's own Box. The reason for the original placement is
+    // untouched: the camera is still outside both width-class trees, so the flip still cannot
+    // dispose it, which is what "above the branch" was always about.
+    InAppCameraHost(
+        target = inAppCameraTarget,
+        cameraCaptureFiles = cameraCaptureFiles,
+        lockToPortrait = uiState.lockCameraToPortrait,
+        onLogEntryPhoto = onAddLogPhoto,
+        onAlbumPhoto = onAddGalleryPhoto,
+        onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,
+        onDismiss = onCloseCamera,
+        camera = inAppCamera,
+    )
 }
 
 /**
@@ -2416,6 +2485,11 @@ private fun CompactSettingsTab(
     /** Night mode for the map, and Settings' own checkbox value. */
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings' "Automatically Save Location to Photos" checkbox value — see [AvailabilityUiState.autoSaveLocationToPhotos]. */
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    lockCameraToPortrait: Boolean,
+    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
@@ -2423,11 +2497,17 @@ private fun CompactSettingsTab(
     modifier: Modifier = Modifier,
 ) {
     var showCrashLogs by remember { mutableStateOf(false) }
+    // Debug builds only — the row that sets this composes nothing in release. Same drill-in shape
+    // as showCrashLogs, one flag per submenu rather than an enum, matching what was here.
+    var showDiagnostics by remember { mutableStateOf(false) }
 
     // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
     // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
     BackHandler(enabled = showCrashLogs) {
         showCrashLogs = false
+    }
+    BackHandler(enabled = showDiagnostics) {
+        showDiagnostics = false
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -2440,6 +2520,13 @@ private fun CompactSettingsTab(
                 )
             }
 
+            showDiagnostics -> {
+                DiagnosticsPanel(
+                    modifier = Modifier.weight(1f),
+                    onBack = { showDiagnostics = false },
+                )
+            }
+
             else -> {
                 SettingsContent(
                     modifier = Modifier.weight(1f),
@@ -2447,9 +2534,14 @@ private fun CompactSettingsTab(
                     onDistanceUnitSelected = onDistanceUnitSelected,
                     nightModeMaps = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
+                    autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+                    lockCameraToPortrait = lockCameraToPortrait,
+                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     onOpenCrashLogs = { showCrashLogs = true },
+                    onOpenDiagnostics = { showDiagnostics = true },
                 )
                 BuildIdentityFooter()
             }
@@ -2482,7 +2574,13 @@ private fun SettingsContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    lockCameraToPortrait: Boolean,
+    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     onOpenCrashLogs: () -> Unit,
+    /** Debug builds only: the row this opens composes nothing in release — see [DiagnosticsEntryRow]'s two source-set versions. */
+    onOpenDiagnostics: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -2495,7 +2593,11 @@ private fun SettingsContent(
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
+        PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
+        CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
+        HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
+        DiagnosticsEntryRow(onClick = onOpenDiagnostics)
     }
 }
 
@@ -2552,6 +2654,79 @@ private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) ->
         Text("Night Maps", style = MaterialTheme.typography.bodyLarge)
     }
 }
+
+/**
+ * Whether the app captures the device's current position for a photo and its find (owner request,
+ * 2026-09-14) — see [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what
+ * the one flag actually gates, which is wider than the label says, and for why it defaults to on.
+ *
+ * Carries explanatory text, unlike every other control in this panel. That is not decoration: the
+ * other settings announce their effect the moment they are flipped (the map recolours, units
+ * change), while this one changes what is *written to a record the user cannot see from here*, and
+ * whose point is what happens to a photo after it leaves the app. The wording is the owner's own,
+ * kept verbatim.
+ */
+@Composable
+private fun PhotoLocationSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+            Text(PHOTO_LOCATION_SETTING_LABEL, style = MaterialTheme.typography.bodyLarge)
+        }
+        Text(
+            PHOTO_LOCATION_SETTING_EXPLANATION,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * Settings' "Lock camera to portrait" (owner request, 2026-09-15). Same shape as
+ * [PhotoLocationSection] above. The supporting line is there because the consequence is not
+ * obvious from the label: a sideways photo is saved portrait. What it gates, and why it is one
+ * gate, is on [com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository].
+ */
+@Composable
+private fun CameraPortraitLockSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+            Text(LOCK_CAMERA_SETTING_LABEL, style = MaterialTheme.typography.bodyLarge)
+        }
+        Text(
+            LOCK_CAMERA_SETTING_EXPLANATION,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+internal const val LOCK_CAMERA_SETTING_LABEL = "Lock camera to portrait"
+
+internal const val LOCK_CAMERA_SETTING_EXPLANATION =
+    "Keeps the camera and its controls still when you turn the phone. Photos are always saved in " +
+        "portrait, even when you hold the phone sideways."
+
+/** Exposed at file scope so [com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettingsPanelTest] asserts the exact strings this panel draws, not a copy that can drift from them. */
+internal const val PHOTO_LOCATION_SETTING_LABEL = "Automatically Save Location to Photos"
+
+internal const val PHOTO_LOCATION_SETTING_EXPLANATION =
+    "When saving photos, metadata is stripped of the location data. Enabling this option captures " +
+        "your current position, and saves it to the Journal entry instead. This allows you to share " +
+        "your photos outside the app without the location being revealed."
 
 /**
  * Metric or imperial for everything this app displays with a unit — distances (search radius,
@@ -2647,6 +2822,10 @@ private fun CompactToolsDrawerContent(
     currentTime: CurrentTimeProvider,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    lockCameraToPortrait: Boolean,
+    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
@@ -2668,6 +2847,10 @@ private fun CompactToolsDrawerContent(
             onDistanceUnitSelected = onDistanceUnitSelected,
             isNightMode = isNightMode,
             onNightModeMapsChanged = onNightModeMapsChanged,
+            autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+            onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+            lockCameraToPortrait = lockCameraToPortrait,
+            onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
             crashFileStore = crashFileStore,

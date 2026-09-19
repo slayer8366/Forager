@@ -17,6 +17,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -37,23 +38,36 @@ import org.robolectric.annotation.Config
  * genuine read path, not a stand-in for it. [CameraCapturePhotoSource] never reading EXIF at all,
  * even when the source file happens to carry a GPS tag, is verified the same way.
  *
- * **Not verified here, and not verifiable in this harness:** the platform-level GPS-EXIF redaction
- * [FilePhotoStore]'s own doc comment describes — an ordinary (non-`setRequireOriginal`)
- * `ContentResolver.openInputStream` on a real `content://` `MediaStore` `Uri` returning bytes with
- * GPS EXIF stripped, on API 29+. That redaction is implemented inside the real system
- * `MediaProvider`, which Robolectric does not run; every `Uri` here is a `file://` `Uri` pointing at
- * a Robolectric-filesystem file, and `ContentResolver.openInputStream` resolves a `file://` scheme
- * by opening the path directly, with no redaction logic in that code path on any API level. A test
- * asserting the persisted copy carries no GPS EXIF would therefore only be proving Robolectric's own
- * `file://` handling, not the platform behavior [FilePhotoStore]'s design actually depends on — per
- * CLAUDE.md's own rule against a check that doesn't test what it claims to, that assertion is left
- * unwritten rather than written misleadingly. This is a real, reported gap: confirming the stored
- * copy is actually free of GPS EXIF on a real device is a real-device verification step, not
- * something any unit test run here can stand in for.
+ * ## The GPS-free claim: why it was unwritten, and why it is written now (2026-09-14)
+ *
+ * This section used to record that a persisted capture carrying no GPS EXIF could not be asserted
+ * here. The reasoning held for what it described: that claim rested on the platform-level redaction
+ * an ordinary (non-`setRequireOriginal`) `ContentResolver.openInputStream` performs on a real
+ * `content://` `MediaStore` `Uri` on API 29+, which lives inside the system `MediaProvider` that
+ * Robolectric does not run. Every `Uri` here is a `file://` one, which `openInputStream` opens
+ * directly with no redaction on any API level, so the assertion would have proved Robolectric's
+ * `file://` handling and nothing else.
+ *
+ * What changed is not the harness. It is that the redaction was never reaching a capture in the
+ * first place: [CameraCaptureFiles] hands back a `FileProvider` `Uri` over the app's own
+ * `filesDir/captures` file, and redaction is a `MediaStore` behaviour, so a capture's stored copy
+ * was a verbatim byte copy of whatever the camera app wrote. [scrubPhotoMetadata] now removes it in
+ * this app's own code, on ordinary bytes, which is why the assertion below is a real one: it tests
+ * the thing itself rather than a platform behaviour standing in for it. The remaining device-only
+ * question is the one the scrub does not decide — whether a given camera app writes GPS at all —
+ * and it no longer matters to the outcome, because the metadata goes either way.
+ *
+ * The import half is unchanged and still rests on the platform: an import is deliberately *not*
+ * scrubbed (owner's ruling, 2026-09-14 — "Photos imported from outside the app are to remain
+ * untouched"), so what a real `MediaStore` import carries is still a real-device question.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class FilePhotoStoreTest {
+
+    /** Capture URIs come from the real `FileProvider`; see the rule's own doc for why this is needed. */
+    @get:Rule
+    val fileProviderCache = FileProviderCacheReset()
 
     private lateinit var context: Application
     private lateinit var store: FilePhotoStore
@@ -72,7 +86,7 @@ class FilePhotoStoreTest {
     fun `persist copies the source's bytes into app-private storage and returns a relative path`() = runTest {
         val sourceFile = File(sourceDir, "capture.jpg").apply { writeBytes(byteArrayOf(1, 2, 3, 4, 5)) }
 
-        val result = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile)))
+        val result = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile)))
 
         val photo = result.getOrThrow()
         val persistedFile = File(context.filesDir, photo.relativePath)
@@ -87,8 +101,8 @@ class FilePhotoStoreTest {
         val sourceA = File(sourceDir, "a.jpg").apply { writeBytes(byteArrayOf(1)) }
         val sourceB = File(sourceDir, "b.jpg").apply { writeBytes(byteArrayOf(2)) }
 
-        val photoA = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceA))).getOrThrow()
-        val photoB = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceB))).getOrThrow()
+        val photoA = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceA), sourceA))).getOrThrow()
+        val photoB = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceB), sourceB))).getOrThrow()
 
         assertFalse(photoA.relativePath == photoB.relativePath)
         assertArrayEquals(byteArrayOf(1), File(context.filesDir, photoA.relativePath).readBytes())
@@ -99,7 +113,7 @@ class FilePhotoStoreTest {
     fun `persist from a source that cannot be opened reports failure, not a path to a missing file`() = runTest {
         val missingSource = File(sourceDir, "never-existed.jpg")
 
-        val result = store.persist(CameraCapturePhotoSource(Uri.fromFile(missingSource)))
+        val result = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(missingSource), missingSource)))
 
         assertTrue(result.isFailure)
     }
@@ -114,7 +128,7 @@ class FilePhotoStoreTest {
     @Test
     fun `delete removes the persisted file`() = runTest {
         val sourceFile = File(sourceDir, "capture.jpg").apply { writeBytes(byteArrayOf(9)) }
-        val photo = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
         val persistedFile = File(context.filesDir, photo.relativePath)
         assertTrue(persistedFile.exists())
 
@@ -136,7 +150,7 @@ class FilePhotoStoreTest {
         val clockedStore = FilePhotoStore(context, now = { 1_700_000_000_000L })
         val sourceFile = File(sourceDir, "capture.jpg").apply { writeBytes(byteArrayOf(7)) }
 
-        val photo = clockedStore.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+        val photo = clockedStore.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
 
         assertEquals(1_700_000_000_000L, photo.createdAtEpochMillis)
     }
@@ -200,10 +214,126 @@ class FilePhotoStoreTest {
             exif.setLatLong(45.5, -122.6)
         }
 
-        val photo = store.persist(CameraCapturePhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
 
         assertNull("a camera capture's own EXIF is never consulted for location", photo.latitude)
         assertNull(photo.longitude)
+    }
+
+    // ── What the stored copy carries, now that the scrub is this app's own code ──────────────
+
+    /**
+     * The claim this class could not make before [scrubPhotoMetadata] existed — see the class doc.
+     * Asserted on the persisted file's own bytes, through the real `persist` entry point, with a
+     * source file that genuinely carries a coordinate.
+     */
+    @Test
+    fun `a persisted capture carries no GPS EXIF`() = runTest {
+        val sourceFile = minimalJpegWithExif(sourceDir, "capture-to-scrub.jpg") { exif ->
+            exif.setLatLong(45.5, -122.6)
+        }
+        assertEquals("precondition: the source really is location-tagged", "45.5, -122.6", ExifInterface(sourceFile.absolutePath).latLong?.joinToString())
+
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
+
+        val persisted = File(context.filesDir, photo.relativePath)
+        val exif = ExifInterface(persisted.absolutePath)
+        assertNull("the stored copy must not carry the coordinate the camera app wrote", exif.latLong)
+        assertNull(exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE))
+        assertNull(exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE))
+    }
+
+    /**
+     * The scrub's one exception, and the reason the whole thing is strip-*then-reapply* rather than
+     * strip: a photo that came out of the store rotated wrongly would be a visible regression, so
+     * the tag the display path reads has to survive persisting.
+     */
+    @Test
+    fun `a persisted capture keeps the orientation the display path reads`() = runTest {
+        val sourceFile = minimalJpegWithExif(sourceDir, "capture-rotated.jpg") { exif ->
+            exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_ROTATE_90.toString())
+            exif.setLatLong(45.5, -122.6)
+        }
+
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
+
+        val persisted = File(context.filesDir, photo.relativePath)
+        assertEquals(
+            ExifInterface.ORIENTATION_ROTATE_90,
+            ExifInterface(persisted.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, -1),
+        )
+        assertNull("and the coordinate still goes", ExifInterface(persisted.absolutePath).latLong)
+    }
+
+    /**
+     * Owner's ruling, 2026-09-14: "Photos imported from outside the app are to remain untouched."
+     * The scrub is a capture-time step, not a store-wide one, and this is the assertion that keeps
+     * it that way — an import's own metadata is the photographer's, and removing it would be
+     * destroying data the app was only asked to hold.
+     */
+    @Test
+    fun `a persisted import is left exactly as it was, metadata and all`() = runTest {
+        val sourceFile = minimalJpegWithExif(sourceDir, "import-to-keep.jpg") { exif ->
+            exif.setLatLong(45.5, -122.6)
+            exif.setAttribute(ExifInterface.TAG_MAKE, "ACME")
+        }
+        val sourceBytes = sourceFile.readBytes()
+
+        val photo = store.persist(GalleryImportPhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+
+        val persisted = File(context.filesDir, photo.relativePath)
+        assertArrayEquals("an import is a byte copy, not a rewrite", sourceBytes, persisted.readBytes())
+        val exif = ExifInterface(persisted.absolutePath)
+        assertEquals("45.5, -122.6", exif.latLong?.joinToString())
+        assertEquals("ACME", exif.getAttribute(ExifInterface.TAG_MAKE))
+    }
+
+    // ── The source is consumed (2026-09-14) ─────────────────────────────────────────────────
+
+    /**
+     * The leak this closes: nothing ever deleted a capture's scratch file after persisting it, so
+     * every photo taken lived twice on disk. Asserted on the file, through a **real
+     * `content://` capture URI from [CameraCaptureFiles]** rather than the `file://` form the other
+     * tests use — the first test in this suite to read through the app's `FileProvider` the way
+     * production does, which is recorded in the completion report as the gap it closes.
+     */
+    @Test
+    fun `a persisted capture's scratch file is deleted once its bytes are copied`() = runTest {
+        val capture = CameraCaptureFiles(context).newCapture()
+        capture.file.writeBytes(byteArrayOf(9, 8, 7))
+        assertEquals("precondition: the production URI shape, not file://", "content", capture.uri.scheme)
+        assertTrue("precondition: the scratch file exists", capture.file.exists())
+
+        val photo = store.persist(CameraCapturePhotoSource(capture)).getOrThrow()
+
+        assertArrayEquals("the bytes reached permanent storage", byteArrayOf(9, 8, 7), File(context.filesDir, photo.relativePath).readBytes())
+        assertFalse("and the scratch file is gone", capture.file.exists())
+    }
+
+    /**
+     * Released in a `finally`, not only on success: on failure the user retakes, and the file has
+     * no further use. `now()` is the one call after the copy that a test can make throw.
+     */
+    @Test
+    fun `a capture is released even when persist fails after the copy`() = runTest {
+        val failingStore = FilePhotoStore(context, now = { error("clock unavailable") })
+        val sourceFile = File(sourceDir, "doomed.jpg").apply { writeBytes(byteArrayOf(1)) }
+        val capture = CameraCaptureFiles.Capture(uri = Uri.fromFile(sourceFile), file = sourceFile)
+
+        val result = failingStore.persist(CameraCapturePhotoSource(capture))
+
+        assertTrue("precondition: this persist really failed", result.isFailure)
+        assertFalse("released regardless", sourceFile.exists())
+    }
+
+    /** Owner's ruling: an import is the user's photo. [PhotoSource.release] is a no-op for it by default, and this is what holds that. */
+    @Test
+    fun `an import's source file is never deleted`() = runTest {
+        val sourceFile = File(sourceDir, "theirs.jpg").apply { writeBytes(byteArrayOf(1, 2)) }
+
+        store.persist(GalleryImportPhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
+
+        assertTrue("not this app's file to delete", sourceFile.exists())
     }
 
     private fun minimalJpegWithExif(directory: File, name: String, configure: (ExifInterface) -> Unit): File {

@@ -12,6 +12,8 @@ import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.zynergylabs.forager.app.domain.LOST_AFTER_MILLIS
+import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
@@ -19,6 +21,7 @@ import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.StartEditingLogEntryUseCase
 import com.zynergylabs.forager.app.domain.UpdatePhotoLocationUseCase
+import com.zynergylabs.forager.app.domain.ageMillis
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
@@ -183,6 +186,38 @@ class MushroomLogViewModel(
     private val updatePhotoLocation: UpdatePhotoLocationUseCase,
     /** How many Cartography entries currently keep a photo attached — Journal Stage 2b's 4b deletion warning, extended to photos. Plain suspend function rather than the whole Cartography repository — see `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why. */
     private val getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
+    /**
+     * The device fix currently in hand, if any — find-location-at-creation dispatch, Fix 1. In
+     * production this reads `AvailabilityViewModel`'s held `liveFix` (`MainActivity` wires the
+     * lambda), the one live collection of fixes that runs whenever the app is foregrounded and is
+     * not gated on a recording. A plain function rather than the other ViewModel or its state
+     * flow, the same shape as [getPhotoEntryReferenceCount]: this class needs one value at one
+     * moment, never a subscription. Never awaited — see [freshDeviceLocation].
+     */
+    private val currentFix: () -> LocationFix.Update? = { null },
+    /** Clock for [freshDeviceLocation]'s age check, injected so a test can fix a fix's age. */
+    private val now: () -> Long = System::currentTimeMillis,
+    /**
+     * Records that a capture arrived with no editing entry — see [rescueCaptureWithNoEditingEntry].
+     * A plain function rather than `DebugDiagnostics` itself, for the reason [ErrorLog] gives about
+     * `android.util.Log` in a ViewModel: the store is debug-only and Context-bound, and this class
+     * is constructed by tests that have neither. `MainActivity` wires the real one; the default is
+     * a no-op, so every existing test is unaffected and this one's test can assert on a fake.
+     */
+    private val recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
+    /**
+     * Settings' "Automatically Save Location to Photos" preference, read at the moment it is about
+     * to matter rather than held — see
+     * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what it gates and
+     * why the owner's ruling makes that wider than the label. Borrowed as a plain suspend function,
+     * the same shape as [getPhotoEntryReferenceCount], and defaulted to `true` so every existing
+     * test keeps the behaviour it was written against.
+     *
+     * **Re-read per capture, never cached.** A user who unchecks this in Settings and immediately
+     * photographs something must not have the value this ViewModel happened to read at
+     * construction applied to it.
+     */
+    private val autoSaveLocationToPhotos: suspend () -> Boolean = { true },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -275,7 +310,10 @@ class MushroomLogViewModel(
     fun onStartNewEntry(location: LatLng?, date: LocalDate = LocalDate.now()) {
         viewModelScope.launch {
             editingEntryMutex.withLock {
-                createEntry(location, date).fold(
+                // Find-location-at-creation dispatch, Fix 1: a caller that supplies a point (the
+                // map's tapped or centred point) keeps it; a caller that supplies none (the
+                // Journal's own "+") gets whatever fresh fix the device has in hand, or nothing.
+                createEntry(location ?: freshDeviceLocation(), date).fold(
                     onSuccess = { entry -> _uiState.update { it.copy(editingEntry = entry, saveErrorMessage = null) } },
                     onFailure = { error ->
                         Log.w(TAG, "Couldn't start a new log entry.", error)
@@ -284,6 +322,45 @@ class MushroomLogViewModel(
                 )
             }
         }
+    }
+
+    /**
+     * The device's held fix as a [LatLng], or `null` — find-location-at-creation dispatch, Fix 1.
+     * Takes what [currentFix] has in hand and never waits for one: under canopy the first fix can
+     * arrive late or never, and a find must save either way (the dispatch's own constraint).
+     *
+     * **Age bound, a decision recorded here rather than inherited.** `AvailabilityViewModel` holds
+     * its last accepted fix indefinitely once fixes stop, and its collector stops on every
+     * background, so the held fix can be from a walk hours ago when the app is next opened on a
+     * sofa with no fix yet. Stamping a find with that would produce a location that looks exactly
+     * as authoritative as a real one, which is the failure this app exists to avoid. The bound
+     * reused is the HUD's own [LOST_AFTER_MILLIS] (5 min): the one age at which this app already
+     * says a fix is not a current position and withholds distance and bearing on it. Same judgement,
+     * same number, by reference so the two cannot drift. Not tighter: the HUD's "stale" band
+     * (30 s) is a display cue, and a find logged half a minute after the last accepted fix is at
+     * the same spot for any practical purpose. Discarding a held fix for age is logged, so the
+     * fallback never fires silently; no fix at all is the ordinary case and is not logged.
+     *
+     * What is not bounded here: accuracy. `AvailabilityViewModel`'s collector already refuses fixes
+     * worse than 50 m before they are held (`LiveFixGate`), so every fix this reads passed that.
+     */
+    private suspend fun freshDeviceLocation(): LatLng? {
+        // Owner ruling, 2026-09-14: the setting gates every automatic location capture, finds
+        // included, not only the ones attached to a photo. A location the *caller* supplied (the
+        // map's tapped or centred point) never reaches here — onStartNewEntry only falls back to
+        // this when it was given none — so switching the setting off cannot override a point the
+        // user actually chose.
+        if (!autoSaveLocationToPhotos()) {
+            Log.i(TAG, "Starting a find without a location: \"Automatically Save Location to Photos\" is off.")
+            return null
+        }
+        val fix = currentFix() ?: return null
+        val ageMillis = fix.ageMillis(now())
+        if (ageMillis >= LOST_AFTER_MILLIS) {
+            Log.i(TAG, "Starting a find without a location: the held fix is ${ageMillis / 1_000}s old, past the $LOST_AFTER_MILLIS ms bound.")
+            return null
+        }
+        return LatLng(fix.lat, fix.lng)
     }
 
     /**
@@ -574,7 +651,7 @@ class MushroomLogViewModel(
                 // apply would silently discard this one's photo when it lands. See this class's own
                 // "Serialized editing-entry mutations" doc comment — the same principle
                 // onStartEditingEntry's guard applies, extended to every photo mutator.
-                val entry = _uiState.value.editingEntry ?: return@withLock
+                val entry = _uiState.value.editingEntry ?: return@withLock rescueCaptureWithNoEditingEntry(source)
                 addPhoto(entry, source).fold(
                     onSuccess = { updated ->
                         _uiState.update { it.copy(editingEntry = updated, isSavingPhoto = false, saveErrorMessage = null) }
@@ -586,8 +663,13 @@ class MushroomLogViewModel(
                         // Photo-geodata dispatch: see this class's own "Camera-capture location" doc
                         // comment. The newly persisted photo is always the last element of updated's
                         // photos list — AddPhotoToLogEntryUseCase's own entry.copy(photos = entry.photos + photo).
+                        // Find-location-at-creation dispatch, Fix 2: this branch, and only this
+                        // branch, also promotes the fix to the find's own foundAt when it has none.
+                        // GalleryImportPhotoSource never enters here (its location is EXIF, read in
+                        // FilePhotoStore, and can be from another place and year); onPullPhoto has
+                        // no location path at all.
                         if (source is CameraCapturePhotoSource) {
-                            patchCameraCaptureLocation(updated.photos.last().id)
+                            patchCameraCaptureLocationIntoFind(photoId = updated.photos.last().id, findId = entry.id)
                         }
                     },
                     onFailure = { error ->
@@ -599,6 +681,76 @@ class MushroomLogViewModel(
                 )
             }
         }
+    }
+
+    /**
+     * A capture came back for a find that is no longer being edited. **It is saved to the album
+     * rather than dropped**, which is this app's rule everywhere else: a capture that succeeds is
+     * never lost, and the album is where it goes when there is nowhere better — also the first
+     * place a user looks for a photo they cannot find.
+     *
+     * ## Do not delete this as dead code: the state is reachable, and here is the sequence
+     *
+     * **This handling is defensive, and it is also on a path a user can walk.** Both, and the
+     * second is the one a future reader is likely to doubt, so it is written out: edit a find in
+     * the Journal, open the in-app camera, background the app, come back inside four minutes — so
+     * the camera is still open, see [CameraAbsenceWatcher] — and press the shutter.
+     *
+     * What clears the entry on the way out is `AvailabilityScreen`'s own `ON_STOP` observer, which
+     * runs the incidental-exit auto-save when a find is open and no photo acquisition is in
+     * flight. The in-app camera does not set that in-flight flag: it was narrowed to the gallery
+     * picker and the permission dialog when the camera became a `Dialog` that never leaves the
+     * Activity (`PhotoAcquisitionLaunchers`). Correct for *opening* the camera, which no longer
+     * causes an `ON_STOP` at all — but a genuine backgrounding while the camera is open is not
+     * guarded, and it clears `editingEntry` while the dialog, which lives above it in
+     * `InAppCameraViewModel`, survives untouched. The shutter is then live over a find that is no
+     * longer open.
+     *
+     * The commissioning dispatch described this state as "not reachable by normal means", reached
+     * only by sudden process death. The sequence above was read out of the tree rather than
+     * reproduced on a device, and is recorded here because the doc's purpose — stopping someone
+     * removing handling they cannot reproduce — is served better by a reproduction than by an
+     * assurance. It covers the process-death case too; that case simply is not the only one.
+     *
+     * Until 2026-09-17 this path dropped the source with no persist, no `release()` and no log —
+     * the photo lost, the scratch file leaking into `captures/` until the next startup sweep, and
+     * nothing anywhere recording it. Found while building the absence timeout. **This is the only
+     * path in the app that drops an unpersisted capture**: `onRemovePhoto` and `onPullPhoto` guard
+     * the same way but act on an already-persisted `LogPhoto`, and the Cartography camera persists
+     * through [onAddGalleryPhoto] first, so its own no-entry guard can skip an attach but never
+     * loses a photo.
+     *
+     * ## Three things, and the third is not optional
+     *
+     * The album save is the user's remedy. The Toast is what stops them looking on the find where
+     * they expected the photo — the only thing that closes that gap at the moment it opens. The
+     * diagnostics entry is the developer's, and it is written **whether or not the save succeeded**:
+     * a recovered photo is not evidence that nothing went wrong, and what went wrong is that the
+     * app reached a state it should not have.
+     *
+     * The message goes out through [MushroomLogUiState.saveErrorMessage], which is this screen's
+     * one transient-message channel — `JournalTab` and `LogPanel` both show it as a Toast and clear
+     * it. The field is named for errors and this message is not one; reusing it is deliberate,
+     * because the alternative was a parallel field threaded through five files to reach the same
+     * `Toast.makeText`. Recorded as a naming wart rather than hidden.
+     *
+     * `release()` is not called here directly: [AddPhotoToGalleryUseCase] reaches
+     * `FilePhotoStore.persist`, which releases the source in a `finally` whether the copy succeeds
+     * or fails. That is the same path the ordinary album save uses, so the scratch file goes by the
+     * mechanism that already exists rather than a second one written for this case.
+     */
+    private suspend fun rescueCaptureWithNoEditingEntry(source: PhotoSource) {
+        addPhotoToGallery(source).fold(
+            onSuccess = { photo ->
+                recordCaptureWithoutEditingEntry(photo.id, null)
+                _uiState.update { it.copy(isSavingPhoto = false, saveErrorMessage = PHOTO_SAVED_TO_ALBUM_MESSAGE) }
+                loadGalleryPhotos()
+            },
+            onFailure = { error ->
+                recordCaptureWithoutEditingEntry(null, error)
+                _uiState.update { it.copy(isSavingPhoto = false, saveErrorMessage = "Couldn't save that photo.") }
+            },
+        )
     }
 
     /**
@@ -655,15 +807,70 @@ class MushroomLogViewModel(
      * new coordinate without the user needing to leave and return.
      */
     private fun patchCameraCaptureLocation(photoId: String) {
+        viewModelScope.launch { requestAndPatchCaptureFix(photoId) }
+    }
+
+    /**
+     * [patchCameraCaptureLocation] for a capture taken from inside a find — find-location-at-
+     * creation dispatch, Fix 2. Same fire-and-forget fix request and photo patch, then one more
+     * step: if the find [findId] still has no `foundAt`, the same fix becomes its location. A
+     * separate function rather than a flag on [patchCameraCaptureLocation], so the Album's own
+     * camera path (no find to promote into) keeps the function it always had. Only [onAddPhoto]'s
+     * `CameraCapturePhotoSource` branch calls this — see the comment there for why Import and From
+     * Album never can.
+     */
+    private fun patchCameraCaptureLocationIntoFind(photoId: String, findId: String) {
         viewModelScope.launch {
-            val location = locationProvider.getCurrentLocation() as? LocationResult.Success ?: return@launch
-            updatePhotoLocation(photoId, location.lat, location.lng).fold(
-                onSuccess = {
-                    loadGalleryPhotos()
-                    loadEntries()
-                },
+            val location = requestAndPatchCaptureFix(photoId) ?: return@launch
+            promoteCaptureFixToFind(findId, LatLng(location.lat, location.lng))
+        }
+    }
+
+    /** The shared half of both camera follow-ups: requests the fix and, if one resolves, patches it onto [photoId]. Returns the fix so a caller can use it further, `null` when none came back. */
+    private suspend fun requestAndPatchCaptureFix(photoId: String): LocationResult.Success? {
+        // The one choke point for both camera paths: gating here stops the coordinate reaching the
+        // photo row *and*, because the find variant promotes what this returns, stops it reaching
+        // the find's foundAt. Checked before the provider is asked at all, so switching the setting
+        // off means no position is requested, not one requested and then discarded.
+        if (!autoSaveLocationToPhotos()) {
+            Log.i(TAG, "Not capturing a location for photo '$photoId': \"Automatically Save Location to Photos\" is off.")
+            return null
+        }
+        val location = locationProvider.getCurrentLocation() as? LocationResult.Success ?: return null
+        updatePhotoLocation(photoId, location.lat, location.lng).fold(
+            onSuccess = {
+                loadGalleryPhotos()
+                loadEntries()
+            },
+            onFailure = { error ->
+                Log.w(TAG, "Couldn't patch a location fix onto photo '$photoId'.", error)
+            },
+        )
+        return location
+    }
+
+    /**
+     * Writes [location] to find [findId]'s `foundAt` only if that find is the one still open for
+     * editing and has no location yet — never over a location the user set or the map supplied.
+     * Under [editingEntryMutex] like every other editing-entry mutation, and persisted the way
+     * [onEntryEdited] persists a keystroke. The fix can take up to the provider's own 20 s to
+     * resolve; if the user has closed the find by then, nothing is written and that is logged.
+     */
+    private suspend fun promoteCaptureFixToFind(findId: String, location: LatLng) {
+        editingEntryMutex.withLock {
+            val entry = _uiState.value.editingEntry
+            if (entry == null || entry.id != findId) {
+                Log.i(TAG, "Capture fix not promoted: find '$findId' is no longer open for editing.")
+                return@withLock
+            }
+            if (entry.foundAt != null) return@withLock
+            val located = entry.copy(foundAt = location)
+            _uiState.update { it.copy(editingEntry = located) }
+            saveEntry(located).fold(
+                onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
                 onFailure = { error ->
-                    Log.w(TAG, "Couldn't patch a location fix onto photo '$photoId'.", error)
+                    Log.w(TAG, "Couldn't save the capture fix as find '$findId''s location.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
                 },
             )
         }
@@ -747,3 +954,13 @@ class MushroomLogViewModel(
         const val TAG = "MushroomLog"
     }
 }
+
+/**
+ * Shown when a capture lands with no find open — see
+ * [MushroomLogViewModel.rescueCaptureWithNoEditingEntry]. **Says where the photo went, not that
+ * something went wrong** (owner's wording, 2026-09-17): the user's problem at that moment is
+ * finding their picture, and the failure is carried by the diagnostics entry instead. Internal
+ * rather than private so the test asserts the string the user sees rather than a copy of it.
+ */
+internal const val PHOTO_SAVED_TO_ALBUM_MESSAGE = "Photo saved to album."
+

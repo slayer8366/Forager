@@ -24,7 +24,6 @@ import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Region
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
@@ -84,7 +83,9 @@ class JournalTabTest {
             var pending by remember { mutableStateOf(pendingDestination) }
             JournalTab(
                 uiState = uiState,
-                cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
+                onOpenCameraForLogEntry = {},
+                onOpenCameraForAlbum = {},
+                onOpenCameraForCartographyEntry = {},
                 mapSlot = StubPickerMapSlot,
                 pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
                 basemap = Basemap.DEFAULT,

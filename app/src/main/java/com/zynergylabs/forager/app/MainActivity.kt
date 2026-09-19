@@ -33,6 +33,8 @@ import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
+import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
+import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
@@ -70,6 +72,10 @@ class MainActivity : ComponentActivity() {
                     container.appThemePreferenceRepository,
                     container.getTodaysForecastUseCase,
                     getOfflineRegionReferenceCount = { id -> container.getEntryReferenceCountUseCase.forOfflineRegion(id).getOrDefault(0) },
+                    getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
+                    setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
+                    getLockCameraToPortrait = container.cameraOrientationPreferenceRepository::getLockCameraToPortrait,
+                    setLockCameraToPortrait = container.cameraOrientationPreferenceRepository::setLockCameraToPortrait,
                 )
             }
         }
@@ -95,6 +101,24 @@ class MainActivity : ComponentActivity() {
                     container.locationProvider,
                     container.updatePhotoLocationUseCase,
                     getPhotoEntryReferenceCount = { id -> container.getEntryReferenceCountUseCase.forPhoto(id).getOrDefault(0) },
+                    // Find-location-at-creation dispatch, Fix 1: the held live fix, read at the
+                    // moment a find is started. AvailabilityViewModel is the one live collector.
+                    currentFix = { viewModel.uiState.value.liveFix },
+                    // A failed read fails *closed*, unlike the never-set default: the preference
+                    // defaults to on for an install that predates the setting, but an unreadable
+                    // one must not capture a position the user may have switched off. Logged, never
+                    // silent (CLAUDE.md: no default fallback that isn't logged when it fires).
+                    autoSaveLocationToPhotos = {
+                        container.photoLocationPreferenceRepository.getAutoSaveLocationToPhotos().getOrElse { error ->
+                            androidErrorLog.w("PhotoLocation", "Couldn't read the photo-location preference; not capturing a location.", error)
+                            false
+                        }
+                    },
+                    // A capture that lands with no find open is saved to the album and recorded where the
+                    // device check can read it — see MushroomLogViewModel.rescueCaptureWithNoEditingEntry.
+                    recordCaptureWithoutEditingEntry = { photoId, error ->
+                        (application as? ForagerApplication)?.diagnostics?.recordCaptureWithoutEditingEntry(photoId, error)
+                    },
                 )
             }
         }
@@ -118,6 +142,9 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    /** The in-app camera's open flag, retained across rotation, cleared with the Activity — see its own doc comment. No factory: it has no dependencies. */
+    private val inAppCameraViewModel: InAppCameraViewModel by viewModels()
 
     private val trackRecordingViewModel: TrackRecordingViewModel by viewModels {
         viewModelFactory {
@@ -295,6 +322,18 @@ class MainActivity : ComponentActivity() {
             }
             ForagerTheme(darkTheme = effectiveDarkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
+                val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
+
+                // Four minutes away with the camera open closes it — see CameraAbsence.kt for the
+                // number, the clock and why this is a threshold rather than close-on-background.
+                // Composed only while the camera is open, so an absence is measured for a session
+                // that exists; nothing runs while the app is away, the decision is made on return.
+                if (inAppCameraTarget != null) {
+                    CameraAbsenceWatcher(
+                        onLeftApp = inAppCameraViewModel::onLeftApp,
+                        onReturnedToApp = inAppCameraViewModel::onReturnedToApp,
+                    )
+                }
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
                 val cartographyUiState by cartographyViewModel.uiState.collectAsState()
 
@@ -383,10 +422,15 @@ class MainActivity : ComponentActivity() {
                     onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                     onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
+                    onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     logUiState = logUiState,
                     cameraCaptureFiles = container.cameraCaptureFiles,
+                    inAppCameraTarget = inAppCameraTarget,
+                    onOpenCamera = inAppCameraViewModel::open,
+                    onCloseCamera = inAppCameraViewModel::close,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
                     onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
                     onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
