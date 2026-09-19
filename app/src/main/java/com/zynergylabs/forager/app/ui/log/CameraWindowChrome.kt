@@ -52,30 +52,34 @@ import androidx.core.view.WindowInsetsControllerCompat
  * nothing else in this app hides a system bar (grep, 2026-09-19), so "restore" means "shown",
  * which is the state every other screen is in.
  *
- * ## White icons on the revealed bar (owner, 2026-09-19)
+ * ## The grey band behind a revealed bar is not this app's to move (2026-09-19)
  *
- * The camera also asks for **white** status bar icons while it is open. Two reasons, one certain
- * and one a hypothesis the device will settle.
+ * Asked for, looked into, and **nothing to change**. A bar revealed over the camera carries a grey
+ * darkening on the S26 Ultra that the navigation bar does not, and the owner confirmed that
+ * **Samsung's own camera shows the same darkening on the same phone**. It is One UI's treatment of
+ * a transiently revealed bar, and there is no app-side API that reaches it:
  *
- * *Certain:* the icon appearance otherwise comes from the app's **theme** — `MainActivity`'s
- * `enableEdgeToEdge` derives it from light/dark mode — and a light theme asks for dark icons. That
- * is a statement about the app's own background, not about a camera viewfinder, and dark icons over
- * an arbitrary scene are simply wrong. It is also inconsistent with this camera's own contrast rule
- * (`CameraOverlay.kt`): every overlay glyph is white with a black outline.
+ * - For a target of API 35+, `Window.setStatusBarColor` is documented as *"the color will be
+ *   transparent and cannot be changed"*, and `setStatusBarContrastEnforced` is deprecated beside it.
+ *   So there is no transparency value to raise; the app already asks for transparent scrims through
+ *   `enableEdgeToEdge`.
+ * - The two flags that draw such a band, `APPEARANCE_OPAQUE_STATUS_BARS` and
+ *   `APPEARANCE_SEMI_TRANSPARENT_STATUS_BARS`, are both `@hide` and set by the system.
+ *   `DisplayPolicy.configureStatusBarOpacity` adds the second only when the activity is letterboxed,
+ *   which this is not, and clears the first because this window carries
+ *   `DRAWS_SYSTEM_BAR_BACKGROUNDS`.
+ * - On the API 36 emulator the revealed bar is already fully transparent — the appearance carries
+ *   neither flag, and the top band's mean moves 255 to 252 between hidden and revealed — so the
+ *   band cannot be reproduced or tested here at all.
  *
- * *The band itself is not ours and is not going away.* The revealed bar carries a grey darkening on
- * the owner's S26 Ultra that the navigation bar does not, and the owner has since confirmed that
- * **Samsung's own camera shows the same darkening on the same phone**. So it is One UI's treatment
- * of a transiently revealed bar, and the reference app does not avoid it either. The platform
- * agrees: the two flags that draw it, `APPEARANCE_OPAQUE_STATUS_BARS` and
- * `APPEARANCE_SEMI_TRANSPARENT_STATUS_BARS`, are both `@hide` and system-set; AOSP adds the latter
- * only over a letterboxed activity, which this is not; and for a target of API 35+
- * `Window.setStatusBarColor` is documented as forced transparent and unchangeable. **There is no
- * transparency value an app can raise.** On the API 36 emulator the revealed bar is already fully
- * transparent, carrying neither flag, so the band cannot be reproduced or tested here at all.
- *
- * White icons were tried against that band first and are kept on the first reason alone. Reverting
- * them is one line if the owner prefers the theme's appearance over the viewfinder.
+ * Forcing **white** icons while the camera is open was built against this and then reverted
+ * (`docs/audits/README.md`, 2026-09-19): on the device the icons were already white, so it changed
+ * nothing there. It is still the only app-side lever that touches a revealed bar, and it would
+ * matter under a **light** app theme, where `enableEdgeToEdge` derives dark icons from the theme and
+ * puts them over a viewfinder. Its own measured trap is recorded in that index row and is the
+ * reason any future attempt must not live here: the camera cannot win that setting from inside its
+ * own composition, because `MainActivity`'s `enableEdgeToEdge` `SideEffect` re-applies the theme's
+ * appearance on every recomposition and recomposes for reasons the camera's subtree does not.
  *
  * ## What is and is not tested
  *
@@ -112,15 +116,7 @@ internal val SystemStatusBarHider = object : StatusBarHider {
     }
 }
 
-/**
- * Hides the status bar on the Activity's window while the camera is composed, and shows it again
- * when the camera leaves.
- *
- * **One-shot, deliberately.** Re-asserting the hide on every recomposition would cancel a transient
- * reveal: the user swipes the bar down, the session's next state change recomposes, and the bar
- * would vanish under their finger. The icons' colour is a separate question and is *not* set here —
- * see [systemBarIconsAreWhite] for why the camera cannot win that one and who decides it instead.
- */
+/** Hides the status bar on the Activity's window while the camera is composed, and shows it again when the camera leaves. */
 @Composable
 internal fun HideStatusBarWhileCameraIsOpen(hider: StatusBarHider) {
     val view = LocalView.current
@@ -134,32 +130,6 @@ internal fun HideStatusBarWhileCameraIsOpen(hider: StatusBarHider) {
         onDispose { hider.show(window, view) }
     }
 }
-
-/**
- * Whether the system bars should carry **white** icons: when the app's own theme is dark, or
- * whenever the camera is open, because the camera's surface is a viewfinder and never the app's
- * background.
- *
- * ## Why this is decided here and applied by `MainActivity`, rather than by the camera
- *
- * It was first built as a claim the camera made on the window, beside hiding the bar, and
- * **measured not to hold**: the camera set the appearance and it was back a second later. The probe
- * logged `useWhiteIcons: previous=true readBack=false` at the moment of the call and
- * `poll: lightStatusBars=true` 1.5 s afterwards, on every poll. `MainActivity` calls
- * `enableEdgeToEdge` from a `SideEffect`, which re-runs on **every** recomposition and re-derives
- * the icon appearance from the app's theme — and it recomposes for reasons the camera's own subtree
- * does not, so re-asserting from the camera is a race the camera loses.
- *
- * The fix is not to assert harder but to have one place decide. `MainActivity` already owns the
- * window's system-bar appearance and already collects the camera's open state, so it reads this
- * function and there is nothing left to fight over. Pure, and tested as such.
- *
- * **What this does not do** is change the grey band on a revealed bar. That band is One UI's — the
- * owner confirmed Samsung's own camera shows the same darkening on the same phone — and no app-side
- * API reaches it; see this file's own doc comment for the platform reading.
- */
-internal fun systemBarIconsAreWhite(appThemeIsDark: Boolean, cameraIsOpen: Boolean): Boolean =
-    appThemeIsDark || cameraIsOpen
 
 /**
  * Asks the platform to rotate the Activity's window seamlessly while the camera is composed: when
