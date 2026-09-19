@@ -34,6 +34,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
+import com.zynergylabs.forager.app.ui.log.systemBarIconsAreWhite
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
@@ -312,17 +313,24 @@ class MainActivity : ComponentActivity() {
             // report this fixes: a light (effectiveDarkTheme == false) app background under status
             // bar icons chosen for a dark background (light/white icons, from the device's dark
             // system setting) — invisible against white.
+            //
+            // The camera is the one surface whose icon appearance is not the app theme's to decide:
+            // it draws a viewfinder in this same window, and dark icons over an arbitrary scene are
+            // wrong. That belongs here rather than in the camera's own chrome because this effect
+            // re-runs on every recomposition and would otherwise overwrite anything the camera set —
+            // measured, see systemBarIconsAreWhite. So the camera's open state is collected above
+            // this effect and read by it; one place decides and there is nothing to race.
+            val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
             SideEffect {
-                val statusBarStyle = if (effectiveDarkTheme) {
+                val style = if (systemBarIconsAreWhite(appThemeIsDark = effectiveDarkTheme, cameraIsOpen = inAppCameraTarget != null)) {
                     SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                 } else {
                     SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
                 }
-                enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
             ForagerTheme(darkTheme = effectiveDarkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
-                val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
 
                 // Four minutes away with the camera open closes it — see CameraAbsence.kt for the
                 // number, the clock and why this is a threshold rather than close-on-background.
