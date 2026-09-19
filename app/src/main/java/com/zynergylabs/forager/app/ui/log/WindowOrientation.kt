@@ -24,9 +24,16 @@ import androidx.compose.ui.platform.LocalContext
  * top of the display as the system has it rotated, and an app cannot move it to another edge.**
  * While the window was pinned the display did not rotate, so the bar stayed on whichever physical
  * edge was up at open — raised three times, and impossible under any lock. So the window turns,
- * and the animation the lock existed to prevent is suppressed another way: the dialog's window asks
- * the platform for seamless rotation ([RotateThisWindowSeamlessly], `CameraWindowChrome.kt`), under
- * which the window is re-laid out in the new rotation with no animation and no fade.
+ * and the animation the lock existed to prevent is meant to be suppressed another way: the dialog's
+ * window asks the platform for seamless rotation ([RotateThisWindowSeamlessly],
+ * `CameraWindowChrome.kt`).
+ *
+ * **Measured 2026-09-19, and it does not work: the platform still plays its rotation animation on
+ * every turn.** The reason is structural and is written up on [RotateThisWindowSeamlessly] — the
+ * Shell picks the animation from the *task's* main window, which is never a Dialog. So this file's
+ * `FULL_SENSOR` half is built and measured, and the half that makes it acceptable is not; the
+ * change is **not shipped** pending the owner's decision
+ * (`docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`).
  *
  * What the lock's history still explains: the arrangement follows the window
  * ([cameraArrangement], the keyed `remember` in `InAppCameraDialog`) because a `LOCKED` window

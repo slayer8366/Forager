@@ -65,6 +65,17 @@ import android.view.Surface
  * happens on every turn rather than only across a return. The paragraph beginning "The window lock
  * is what makes the choice safe to hold" is history: the choice is not held.
  *
+ * **Open finding, 2026-09-19 — there is no reverse-portrait case, and `FULL_SENSOR` makes one
+ * reachable for the first time.** This function returns [CameraArrangement.Portrait] for *any*
+ * non-landscape window, so at `ROTATION_180` the shutter goes to the screen's bottom — which is the
+ * device's **punch-hole** edge in that hold — and the strip to the port edge. Exactly inverted, the
+ * same shape as the 2026-09-17 landscape finding. It could not happen before: `SCREEN_ORIENTATION_LOCKED`
+ * never produced a reverse-portrait window and `SCREEN_ORIENTATION_PORTRAIT` excludes one, which is
+ * why "portrait was already correct at all four rotations" held. Measured on the emulator with the
+ * window following the device: shutter at [446,2033]-[635,2222] of a 1080x2400 window at
+ * `mRotation=2`. A fourth arrangement is what the owner's own rule requires, and it is the owner's
+ * to decide (`docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`).
+ *
  * **Setting on is correct by coincidence, not by handling.** With the setting on the lock requests
  * `PORTRAIT` and this function returns [CameraArrangement.Portrait] whatever the window is, so its
  * two window inputs are constant and cannot disagree with the window. It goes through the same

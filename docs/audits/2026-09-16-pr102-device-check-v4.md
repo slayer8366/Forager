@@ -176,6 +176,13 @@ finding to report. The shutter along the bottom of a landscape frame is a failur
 on the punch-hole edge is a failure. A strip that runs through the cut-out, or a status bar that
 stays hidden after any exit, is a failure.**
 
+> **NOT YET TRUE — written against an intended state that the emulator contradicts.** The window
+> does follow the phone, but the animation suppression does not work: the platform plays its
+> rotation animation on every turn, for a structural reason (`CameraWindowChrome.kt`,
+> `2026-09-19-unlock-seamless-rotation-stop-report.md`). Reverse portrait also puts the shutter on
+> the punch-hole edge. **Do not run this step as a gate until the owner has ruled**; the rewrite is
+> kept so the shape of the check is ready if the owner takes the larger change.
+>
 > **Superseding note, 2026-09-19 (unlock and seamless rotation).** Items 3.2 and 3.5 read "nothing
 > in the layout moves; the count and the label turn in place"; 3.7 ended "proving the lock
 > released"; 3.6 asked for one swipe from the screen's top edge; there was no 3.9. The window is

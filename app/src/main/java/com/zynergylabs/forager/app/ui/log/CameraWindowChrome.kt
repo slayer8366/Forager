@@ -120,6 +120,27 @@ internal fun HideStatusBarOnThisWindow(hider: StatusBarHider) {
  *
  * Not testable under Robolectric beyond the attribute being set on the dialog's window, which the
  * dialog test reads back through the same window the status-bar seam captures.
+ *
+ * ## MEASURED 2026-09-19: this does not suppress the animation, and cannot while the camera is a Dialog
+ *
+ * The request is made and the window manager accepts it — `shouldRotateSeamlessly` returned true on
+ * every turn of the emulator probe, logging `because seamless rotating` once per turn — but the
+ * **animation** is chosen elsewhere and ignores it. Under shell transitions the display's change
+ * carries explicit seamless only via `Transition.setSeamlessRotation`, which is called only from
+ * `DisplayContent.setSeamlessTransitionForFixedRotation` (the fixed-rotation-launch path); an
+ * ordinary rotation reaches only `Transition.onSeamlessRotating`, which overrides the surface sync
+ * method and sets no animation flag. So the Shell's one remaining route is the **task** path,
+ * `Transition.getTaskRotationAnimation`, which reads `ActivityRecord.findMainWindow` — restricted to
+ * `TYPE_BASE_APPLICATION`, so never a Dialog — and then rejects unless that same window is the top
+ * fullscreen opaque window, which with this dialog up it is not. No window can satisfy both halves
+ * while a fullscreen Dialog covers the Activity, so putting the attribute on the Activity's window
+ * or in the manifest does not help either. The probe logged
+ * `task N isn't requesting seamless, so not seamless` and rotation-animation `0` (rotate) on all
+ * four turns, with animation scales at 1.0.
+ *
+ * **This composable is therefore not doing its job today.** It is kept, not reverted, because it is
+ * correct for the design it belongs to and costs nothing; the decision on what to do instead is the
+ * owner's and is recorded in `docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`.
  */
 @Composable
 internal fun RotateThisWindowSeamlessly() {

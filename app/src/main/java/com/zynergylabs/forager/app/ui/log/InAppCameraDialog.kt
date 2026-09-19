@@ -79,9 +79,11 @@ import kotlinx.coroutines.launch
  * The window follows the device with the setting off and is forced portrait with it on
  * ([RequestWindowOrientation]: `FULL_SENSOR` off, `PORTRAIT` on), and the arrangement is derived
  * from the setting, the window's shape and its rotation ([cameraArrangement]) and re-derived on
- * every change of those — the keyed `remember` below. The turn itself has no animation: the
- * dialog's window asks for seamless rotation ([RotateThisWindowSeamlessly]), so the new layout
- * simply replaces the old on the next frame. *Superseded (2026-09-19):* this paragraph read
+ * every change of those — the keyed `remember` below. The turn itself is *meant* to have no
+ * animation, by the dialog's window asking for seamless rotation ([RotateThisWindowSeamlessly]) —
+ * **measured 2026-09-19 and it does not: the platform's rotation animation still plays**, for a
+ * reason written up on that composable. Not shipped; see
+ * `docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`. *Superseded (2026-09-19):* this paragraph read
  * "nothing in the camera layout moves while the camera is open … the window lock is conditional
  * on the setting (`LOCKED` off) … chosen once at open and never reflowed"; the lock could not put
  * the system status bar on the phone's top edge, and the owner reversed it — reasoning on
