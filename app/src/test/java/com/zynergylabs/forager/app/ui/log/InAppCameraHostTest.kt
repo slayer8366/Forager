@@ -134,7 +134,7 @@ class InAppCameraHostTest {
     @Test
     fun `Back asks the holder to close, and the host itself owns no open state`() {
         val setTarget = setHost(InAppCameraTarget.ALBUM)
-        pressBackOnCameraDialog()
+        composeRule.pressBackOnCamera()
         composeRule.waitForIdle()
 
         assertEquals(1, dismissed)

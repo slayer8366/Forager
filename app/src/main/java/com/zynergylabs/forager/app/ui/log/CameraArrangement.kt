@@ -73,8 +73,10 @@ import android.view.Surface
  * never produced a reverse-portrait window and `SCREEN_ORIENTATION_PORTRAIT` excludes one, which is
  * why "portrait was already correct at all four rotations" held. Measured on the emulator with the
  * window following the device: shutter at [446,2033]-[635,2222] of a 1080x2400 window at
- * `mRotation=2`. A fourth arrangement is what the owner's own rule requires, and it is the owner's
- * to decide (`docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`).
+ * `mRotation=2`. A fourth arrangement is what the owner's own rule requires; the owner has ruled to
+ * add it, as its own dispatch after this window change — reverse portrait is the foraging gill-shot
+ * hold, phone flipped end over end to get the lens near the ground, so excluding it is not an
+ * option. **Still open as of this change.**
  *
  * **Setting on is correct by coincidence, not by handling.** With the setting on the lock requests
  * `PORTRAIT` and this function returns [CameraArrangement.Portrait] whatever the window is, so its

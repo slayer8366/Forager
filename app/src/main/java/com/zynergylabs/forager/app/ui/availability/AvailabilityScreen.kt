@@ -2073,20 +2073,6 @@ fun AvailabilityScreen(
         }
     }
 
-    // The in-app camera, once, above the width-class branch below — deliberately not inside
-    // either tree, so the flip a rotation causes on a phone (COMPACT to MEDIUM) does not dispose
-    // it. Its own open flag lives in InAppCameraViewModel, which survives the recreation.
-    // See InAppCameraHost for both mechanisms and the owner's decision.
-    InAppCameraHost(
-        target = inAppCameraTarget,
-        cameraCaptureFiles = cameraCaptureFiles,
-        lockToPortrait = uiState.lockCameraToPortrait,
-        onLogEntryPhoto = onAddLogPhoto,
-        onAlbumPhoto = onAddGalleryPhoto,
-        onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,
-        onDismiss = onCloseCamera,
-        camera = inAppCamera,
-    )
 
     if (windowWidthClass == WindowWidthClass.COMPACT) {
         ModalNavigationDrawer(
@@ -2145,6 +2131,27 @@ fun AvailabilityScreen(
             content = mainScaffold,
         )
     }
+    // The in-app camera, once, outside the width-class branch above — deliberately not inside
+    // either tree, so the flip a rotation causes on a phone (COMPACT to MEDIUM) does not dispose
+    // it. Its own open flag lives in InAppCameraViewModel, which survives the recreation.
+    // See InAppCameraHost for both mechanisms and the owner's decision.
+    //
+    // It sits *after* the branch rather than before it (2026-09-19): since the camera draws in the
+    // Activity's own window instead of a dialog's, nothing but composition order puts it on top,
+    // and a sibling composed first draws and hit-tests underneath. zIndex was tried and measured
+    // insufficient — see InAppCameraDialog's own Box. The reason for the original placement is
+    // untouched: the camera is still outside both width-class trees, so the flip still cannot
+    // dispose it, which is what "above the branch" was always about.
+    InAppCameraHost(
+        target = inAppCameraTarget,
+        cameraCaptureFiles = cameraCaptureFiles,
+        lockToPortrait = uiState.lockCameraToPortrait,
+        onLogEntryPhoto = onAddLogPhoto,
+        onAlbumPhoto = onAddGalleryPhoto,
+        onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,
+        onDismiss = onCloseCamera,
+        camera = inAppCamera,
+    )
 }
 
 /**

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,12 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
@@ -74,16 +74,28 @@ import kotlinx.coroutines.launch
  * The running count is the only feedback during a session, deliberately. Showing a thumbnail of the
  * last shot invites reviewing in here, which is the flow the owner asked to move to afterwards.
  *
+ * ## Not a Dialog any more (2026-09-19), and the name is the only thing left of that
+ *
+ * This draws in **the Activity's own window**, as a full-screen `Box` over the screen's content,
+ * because a fullscreen `Dialog` above the Activity makes seamless rotation unreachable: the
+ * platform picks a rotation's animation from the task's main window, which is only ever
+ * `TYPE_BASE_APPLICATION`, and then requires that window to be the top fullscreen opaque one, which
+ * the dialog was. Measured both ways — `docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`
+ * for the dialog, the completion report beside it for this. Owner's ruling.
+ *
+ * The file and this composable keep the name `InAppCameraDialog`: renaming touches five test
+ * classes and a dozen doc references, and that churn was not part of the ruling. **It is a
+ * historical name, not a description** — there is no `Dialog` here, no second window, and no
+ * `DialogWindowProvider`. Flagged to the owner as a follow-up rather than taken.
+ *
  * ## Three arrangements, re-derived as the window turns; a region model with two bands
  *
  * The window follows the device with the setting off and is forced portrait with it on
  * ([RequestWindowOrientation]: `FULL_SENSOR` off, `PORTRAIT` on), and the arrangement is derived
  * from the setting, the window's shape and its rotation ([cameraArrangement]) and re-derived on
- * every change of those — the keyed `remember` below. The turn itself is *meant* to have no
- * animation, by the dialog's window asking for seamless rotation ([RotateThisWindowSeamlessly]) —
- * **measured 2026-09-19 and it does not: the platform's rotation animation still plays**, for a
- * reason written up on that composable. Not shipped; see
- * `docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`. *Superseded (2026-09-19):* this paragraph read
+ * every change of those — the keyed `remember` below. The turn carries no animation, because the
+ * Activity's window asks for seamless rotation while the camera is open ([RequestSeamlessRotation]):
+ * it is re-laid out in the new rotation and the next frame is simply the new layout. *Superseded (2026-09-19):* this paragraph read
  * "nothing in the camera layout moves while the camera is open … the window lock is conditional
  * on the setting (`LOCKED` off) … chosen once at open and never reflowed"; the lock could not put
  * the system status bar on the phone's top edge, and the owner reversed it — reasoning on
@@ -94,9 +106,11 @@ import kotlinx.coroutines.launch
  * both are bands of the region model in `CameraBands.kt` — zero-thick at the one full-bleed ratio,
  * so everything sits where it did, and the structure a later ratio needs is already named. There
  * is no Done control: the navigation bar's Back is the way out, and it always was the same close
- * (`onDismissRequest` is this [onDismiss]) — see `CameraStrip`. The status bar is hidden on this dialog's own
- * window ([HideStatusBarOnThisWindow]) and the safe area collapses: no `safeDrawing` padding, each
- * band clearing the cut-out and the navigation bar on its own edge only.
+ * (a `BackHandler` reaching this [onDismiss], where until 2026-09-19 it was the dialog's
+ * `onDismissRequest` reaching the same lambda) — see `CameraStrip`. The status bar is hidden on the
+ * Activity's window ([HideStatusBarWhileCameraIsOpen]) and put back when the camera leaves
+ * composition; the safe area collapses, so no `safeDrawing` padding, each band clearing the cut-out
+ * and the navigation bar on its own edge only.
  *
  * **One rotation rule in every arrangement** (owner, 2026-09-17): controls turn in place as the
  * phone turns, by [rotateWithDevice], so their text reads in the current hold; the shutter is a
@@ -124,7 +138,7 @@ internal fun InAppCameraDialog(
     modifier: Modifier = Modifier,
     /** The strip's slot (CameraBands.kt); the default is the gated placeholder. A test passes null for the empty strip. */
     stripContent: (@Composable (edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) -> Unit)? = defaultStripContent(),
-    /** Hides the status bar on the dialog's own window; a test injects a fake to see which window was asked. */
+    /** Hides the status bar on the Activity's window and puts it back on leaving; a test injects a fake to see which window was asked, and that it was restored. */
     statusBarHider: StatusBarHider = SystemStatusBarHider,
     viewfinder: @Composable (Modifier) -> Unit,
 ) {
@@ -163,7 +177,7 @@ internal fun InAppCameraDialog(
     // Following the window is right in both. Since 2026-09-19 it is also the ordinary case: with
     // the setting off the window follows the device (FULL_SENSOR), so these inputs change on every
     // hold, and the re-derived layout appears in the same frame as the turned window because the
-    // window rotates seamlessly (RotateThisWindowSeamlessly). Do not restore a setting-only key:
+    // window rotates seamlessly (RequestSeamlessRotation). Do not restore a setting-only key:
     // that is this bug.
     val windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     // The window's rotation decides which physical edge the shutter goes on, because the two
@@ -175,95 +189,135 @@ internal fun InAppCameraDialog(
         cameraArrangement(lockToPortrait, windowIsLandscape, displayRotation)
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    // Back is the only way out, and on the Activity's window it is the Activity's own dispatcher
+    // rather than a dialog's — it reaches the same `onDismiss` that `onDismissRequest` used to, so
+    // everything downstream of closing is unchanged. Enabled for exactly as long as this composable
+    // is in composition, which is exactly as long as the camera is open.
+    BackHandler { onDismiss() }
+
+    // Both claims are on the Activity's own window now, and both are restored when this leaves
+    // composition — see CameraWindowChrome for why that covers every exit, and for why the window
+    // had to change for the turn below to carry no animation.
+    HideStatusBarWhileCameraIsOpen(statusBarHider)
+    RequestSeamlessRotation()
+
+    Box(
+        // Two separate things keep the screen underneath from being reached, and the `Dialog` used
+        // to provide both for free by being a window of its own. **Order**: the camera is composed
+        // *after* the screen's width-class branch, so it draws and hit-tests above it —
+        // `Modifier.zIndex(1f)` was tried first, to keep the call textually where it was, and
+        // measured insufficient. **Touch**: a `Box` that merely draws a background is not a
+        // hit-test target at all, so touches fell straight through to the controls behind even once
+        // the order was right. `swallowTouchesBelow` below is what stops them, and it is this
+        // repo's own recorded pitfall read backwards — a container that attaches pointer input
+        // intercepts its whole bounds, which here is the wanted behaviour rather than the bug.
+        //
+        // Both were caught by one test and neither by review: the occlusion test in
+        // `AvailabilityScreenInAppCameraTest` failed with the Camera button behind the camera still
+        // firing on a real touch ("expected:<[ALBUM]> but was:<[ALBUM, ALBUM]>"), twice, for these
+        // two different reasons. It is a coordinate touch rather than a semantic click for the
+        // reason CLAUDE.md gives: a semantic click would have passed on every one of these builds.
+        modifier = modifier
+            .fillMaxSize()
+            .swallowTouchesBelow()
+            .background(Color.Black)
+            .testTag(IN_APP_CAMERA_TAG),
     ) {
-        // On this window, the dialog's own, so every exit restores the bar by destroying the window
-        // it was hidden on — see CameraWindowChrome. The same window asks for seamless rotation, so
-        // the turn it now makes with the device carries no animation.
-        HideStatusBarOnThisWindow(statusBarHider)
-        RotateThisWindowSeamlessly()
+        when (val state = session.state) {
+            is CameraSessionState.Unavailable -> OverlayText(
+                state.reason,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(Spacing.lg)
+                    .testTag(CAMERA_UNAVAILABLE_TAG),
+            )
 
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .testTag(IN_APP_CAMERA_TAG),
-        ) {
-            when (val state = session.state) {
-                is CameraSessionState.Unavailable -> OverlayText(
-                    state.reason,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(Spacing.lg)
-                        .testTag(CAMERA_UNAVAILABLE_TAG),
-                )
+            CameraSessionState.Opening -> OverlayProgress(modifier = Modifier.align(Alignment.Center).testTag(CAMERA_OPENING_TAG))
 
-                CameraSessionState.Opening -> OverlayProgress(modifier = Modifier.align(Alignment.Center).testTag(CAMERA_OPENING_TAG))
+            CameraSessionState.Ready -> viewfinder(Modifier.fillMaxSize())
+        }
 
-                CameraSessionState.Ready -> viewfinder(Modifier.fillMaxSize())
-            }
-
-            val shutterEnabled = session.state == CameraSessionState.Ready && !isCapturing
-            val onShutter: () -> Unit = {
-                // Guarded here as well as by `enabled`: a second tap landing in the same frame as
-                // the first would otherwise open two captures onto two files, and the shutter is
-                // exactly the control people double-tap.
-                if (!isCapturing) {
-                    isCapturing = true
-                    captureError = null
-                    scope.launch {
-                        val capture = cameraCaptureFiles.newCapture()
-                        session.capture(capture.file).fold(
-                            onSuccess = {
-                                photosTaken += 1
-                                onPhotoCaptured(CameraCapturePhotoSource(capture))
-                            },
-                            onFailure = {
-                                // The empty destination is cleaned up rather than left as a
-                                // zero-byte file the persist path would later try to read.
-                                // Reported, never swallowed (CLAUDE.md).
-                                cameraCaptureFiles.deleteCapture(capture)
-                                captureError = CAPTURE_FAILED_MESSAGE
-                            },
-                        )
-                        isCapturing = false
-                    }
+        val shutterEnabled = session.state == CameraSessionState.Ready && !isCapturing
+        val onShutter: () -> Unit = {
+            // Guarded here as well as by `enabled`: a second tap landing in the same frame as
+            // the first would otherwise open two captures onto two files, and the shutter is
+            // exactly the control people double-tap.
+            if (!isCapturing) {
+                isCapturing = true
+                captureError = null
+                scope.launch {
+                    val capture = cameraCaptureFiles.newCapture()
+                    session.capture(capture.file).fold(
+                        onSuccess = {
+                            photosTaken += 1
+                            onPhotoCaptured(CameraCapturePhotoSource(capture))
+                        },
+                        onFailure = {
+                            // The empty destination is cleaned up rather than left as a
+                            // zero-byte file the persist path would later try to read.
+                            // Reported, never swallowed (CLAUDE.md).
+                            cameraCaptureFiles.deleteCapture(capture)
+                            captureError = CAPTURE_FAILED_MESSAGE
+                        },
+                    )
+                    isCapturing = false
                 }
             }
+        }
 
-            // The region model (CameraBands.kt): this Box is the viewfinder region, full-bleed, and
-            // the two bands sit on its punch-hole and charger-port edges, zero-thick at the one
-            // ratio that exists. No safeDrawing padding here any more: the status bar is hidden
-            // and the safe area collapses; each band clears the cut-out and the navigation bar on
-            // its own edge only, which is also what keeps the landscape shutter on the screen's
-            // true centre.
-            val port = portEdge(arrangement)
-            // Both bands take the dialog-level displayRotation from above, the value the arrangement
-            // turns on, rather than letting each glyph read its own: inside this Dialog's content
-            // LocalConfiguration does not invalidate, so a glyph's own read goes stale the moment
-            // the window turns and stays stale until something unrelated recomposes it (the
-            // placeholder label after a setting-on landscape open, 2026-09-18). One source, one
-            // invariant: what re-derives the arrangement is what turns the glyphs.
-            CameraStrip(
-                edge = punchHoleEdge(arrangement),
+        // The region model (CameraBands.kt): this Box is the viewfinder region, full-bleed, and
+        // the two bands sit on its punch-hole and charger-port edges, zero-thick at the one
+        // ratio that exists. No safeDrawing padding here any more: the status bar is hidden
+        // and the safe area collapses; each band clears the cut-out and the navigation bar on
+        // its own edge only, which is also what keeps the landscape shutter on the screen's
+        // true centre.
+        val port = portEdge(arrangement)
+        // Both bands take the displayRotation read above, the value the arrangement turns on,
+        // rather than letting each glyph read its own. That was load-bearing while this was a
+        // Dialog, where LocalConfiguration does not invalidate inside the dialog's content and a
+        // glyph's own read went stale the moment the window turned (the placeholder label after a
+        // setting-on landscape open, 2026-09-18). In the Activity's window that local does
+        // invalidate, so the defect cannot recur here — the single source is kept because one
+        // source and one invariant is the right shape, not because it is still the only safe one.
+        CameraStrip(
+            edge = punchHoleEdge(arrangement),
+            deviceRotation = session.deviceRotation,
+            displayRotation = displayRotation,
+            content = stripContent,
+        )
+        CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
+            ShutterCluster(
+                edge = port,
                 deviceRotation = session.deviceRotation,
                 displayRotation = displayRotation,
-                content = stripContent,
+                captureError = captureError,
+                photosTaken = photosTaken,
+                shutterEnabled = shutterEnabled,
+                onShutter = onShutter,
             )
-            CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
-                ShutterCluster(
-                    edge = port,
-                    deviceRotation = session.deviceRotation,
-                    displayRotation = displayRotation,
-                    captureError = captureError,
-                    photosTaken = photosTaken,
-                    shutterEnabled = shutterEnabled,
-                    onShutter = onShutter,
-                )
-            }
+        }
+    }
+}
+
+/**
+ * Takes every touch that reaches this composable and is not handled by something inside it, so the
+ * screen underneath cannot be operated through the camera.
+ *
+ * A `Dialog` gave this for free: a window of its own receives the input and nothing below it is
+ * reachable. Drawing in the Activity's own window instead (2026-09-19), a plain `Box` with a
+ * background is **not a hit-test target** — `background` is a draw modifier and attaches no pointer
+ * input — so touches fell through to whatever the screen had composed there. `AvailabilityScreen`'s
+ * Camera button kept firing under the open camera until this existed.
+ *
+ * The pointer events are consumed on the default (main) pass, which reaches this container only
+ * after everything nested inside it has had the event and declined it. So the shutter, and every
+ * control the bands hold, still work; what this catches is the rest of the screen.
+ */
+private fun Modifier.swallowTouchesBelow(): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent().changes.forEach { it.consume() }
         }
     }
 }

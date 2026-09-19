@@ -13,6 +13,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -31,7 +37,7 @@ import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.ui.log.CAMERA_SHUTTER_TAG
-import com.zynergylabs.forager.app.ui.log.pressBackOnCameraDialog
+import com.zynergylabs.forager.app.ui.log.pressBackOnCamera
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.IN_APP_CAMERA_TAG
 import com.zynergylabs.forager.app.ui.log.InAppCameraDialog
@@ -207,7 +213,7 @@ class AvailabilityScreenInAppCameraTest {
         assertTrue(cartographyPhotos.single() is CameraCapturePhotoSource)
         assertEquals(0, albumPhotos.size + logEntryPhotos.size)
 
-        pressBackOnCameraDialog()
+        composeRule.pressBackOnCamera()
         composeRule.waitForIdle()
         assertEquals(1, closed)
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)
@@ -224,6 +230,49 @@ class AvailabilityScreenInAppCameraTest {
 
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
         assertEquals(0, closed)
+    }
+
+    /**
+     * **The camera is drawn in the Activity's own window now, over this screen's content, and it has
+     * to take the touches that land on it.** While it was a `Dialog` this was the platform's job:
+     * a separate window above the Activity's swallows everything by construction. There is no second
+     * window any more, so what puts the camera on top is `Modifier.zIndex(1f)` on its root
+     * (`InAppCameraDialog`), and zIndex has to hold for hit-testing and not only for drawing.
+     *
+     * A semantic click would pass either way — it invokes the node's own action and bypasses
+     * hit-testing entirely (CLAUDE.md) — so this is a real touch at root coordinates, twice, at the
+     * **same point**. The first is the positive control: with the camera closed that point really
+     * does reach the Album's Camera button and open the camera, so a "nothing happened" second
+     * result cannot be a touch that simply missed. The second is the claim.
+     */
+    @Test
+    fun `with the camera open, a real touch where the Camera button sits is taken by the camera and not by the button behind it`() {
+        setScreen()
+        composeRule.onNodeWithText("Journal").performClick()
+        composeRule.onNodeWithText("Album").performClick()
+        composeRule.waitForIdle()
+
+        val button = composeRule.onNodeWithText("Camera").getBoundsInRoot()
+        val x = (button.left + button.right) / 2
+        val y = (button.top + button.bottom) / 2
+
+        // Positive control: this exact point is live when the camera is not covering it.
+        tapAtRoot(x, y)
+        assertEquals("the control: the touch reached the button", listOf(InAppCameraTarget.ALBUM), opened)
+        composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
+
+        // The claim: the same point, now under the camera, does not reach the button.
+        tapAtRoot(x, y)
+
+        assertEquals("the camera took the touch; the button behind it never fired", listOf(InAppCameraTarget.ALBUM), opened)
+        composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
+        assertEquals("and nothing behind it closed the camera either", 0, closed)
+    }
+
+    /** A touch at a point of the whole screen, hit-tested from the root as a finger is — never a semantic click on a node. */
+    private fun tapAtRoot(x: Dp, y: Dp) {
+        composeRule.onRoot().performTouchInput { click(Offset(x.toPx(), y.toPx())) }
+        composeRule.waitForIdle()
     }
 
     @Test

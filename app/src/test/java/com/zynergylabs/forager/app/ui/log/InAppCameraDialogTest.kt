@@ -27,9 +27,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.height
 import com.zynergylabs.forager.app.ui.theme.Spacing
-import org.robolectric.shadows.ShadowDialog
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -84,7 +83,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class InAppCameraDialogTest {
 
-    private val composeRule = createComposeRule()
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     /**
      * `ui-test-manifest` is deliberately not a dependency of this project (see the reasoning in
@@ -128,8 +127,13 @@ class InAppCameraDialogTest {
     private val captured = mutableListOf<PhotoSource>()
     private var dismissals = 0
 
-    /** Every window the dialog asked to have its status bar hidden — the seam CameraWindowChrome.kt describes. */
+    /** Every window the camera asked to have its status bar hidden, and every one it asked to restore — the seam CameraWindowChrome.kt describes. */
     private val hiddenOn = mutableListOf<Pair<Window, View>>()
+    private val shownOn = mutableListOf<Pair<Window, View>>()
+    private val recordingStatusBarHider = object : StatusBarHider {
+        override fun hide(window: Window, view: View) { hiddenOn += window to view }
+        override fun show(window: Window, view: View) { shownOn += window to view }
+    }
 
     @Composable
     private fun Subject(
@@ -144,7 +148,7 @@ class InAppCameraDialogTest {
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
             stripContent = stripContent,
-            statusBarHider = { window, view -> hiddenOn += window to view },
+            statusBarHider = recordingStatusBarHider,
             viewfinder = viewfinder,
         )
     }
@@ -269,7 +273,7 @@ class InAppCameraDialogTest {
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithContentDescription("Done").assertCountEquals(0)
-        pressBackOnCameraDialog()
+        composeRule.pressBackOnCamera()
         composeRule.waitForIdle()
 
         assertEquals("Back reaches the same close Done used to", 1, dismissals)
@@ -359,7 +363,7 @@ class InAppCameraDialogTest {
         val session = FakeCameraCaptureSession(state = CameraSessionState.Unavailable("The camera is in use by another app."))
         composeRule.setContent { Subject(session) }
 
-        pressBackOnCameraDialog()
+        composeRule.pressBackOnCamera()
         composeRule.waitForIdle()
 
         assertEquals(1, dismissals)
@@ -430,42 +434,55 @@ class InAppCameraDialogTest {
     }
 
     /**
-     * The status bar is hidden on the dialog's own window and never the Activity's. What a test can
-     * see is which window was asked; whether the bar goes, and comes back on each exit, is the
-     * emulator's and the device's to show (CameraWindowChrome.kt).
+     * The status bar is hidden on **the Activity's** window, once, and shown again when the camera
+     * leaves composition. That restore is the cost this design accepted: while the camera was a
+     * `Dialog` the bar came back by the dialog's window being destroyed, with no restore path to
+     * miss — now every exit routes through the camera leaving composition, and `onDispose` is what
+     * covers all of them (CameraWindowChrome.kt). Whether the bar actually goes and returns is the
+     * emulator's and the device's.
      */
     @Test
-    fun `the status bar is asked to hide on the dialog's window, once, and never on the Activity's`() {
-        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+    fun `the status bar is hidden on the Activity's window and shown again when the camera leaves`() {
+        var shown by mutableStateOf(true)
+        composeRule.setContent { if (shown) Subject(FakeCameraCaptureSession()) }
         composeRule.waitForIdle()
 
         assertEquals("asked once", 1, hiddenOn.size)
         val (window, _) = hiddenOn.single()
-        val dialog = ShadowDialog.getLatestDialog()
-        assertTrue("the dialog's window", window === dialog.window)
-        assertTrue("not the Activity's window", window !== dialog.ownerActivity?.window)
+        assertTrue("the Activity's window, because the camera draws in it", window === composeRule.activity.window)
+        assertEquals("nothing restored while the camera is up", 0, shownOn.size)
+
+        shown = false
+        composeRule.waitForIdle()
+
+        assertEquals("restored exactly once on the way out", 1, shownOn.size)
+        assertTrue("and on the same window it was hidden on", shownOn.single().first === window)
     }
 
     /**
-     * The other thing the dialog asks of its own window (CameraWindowChrome.kt): seamless rotation,
-     * so that the turn the window now makes with the device (`RequestWindowOrientation`, setting
-     * off) has no animation. The platform decides on this window's own layout params, so the
-     * assertion is on the attribute of the dialog's window — read back through the same window the
-     * status-bar seam captured — and on the Activity's window being left at the default. Whether
-     * the platform then rotates seamlessly is the emulator's and the device's.
+     * The other claim on the Activity's window (CameraWindowChrome.kt): seamless rotation, so the
+     * turn the window makes with the device (`RequestWindowOrientation`, setting off) carries no
+     * animation. The platform reads this window's own layout params, so the assertion is on the
+     * attribute, and on it being put back when the camera leaves — the request is the camera's, not
+     * the app's. Whether the platform then rotates seamlessly is the emulator's and the device's.
      */
     @Test
-    fun `the dialog's own window asks for seamless rotation`() {
-        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+    fun `the Activity's window asks for seamless rotation while the camera is open, and stops on the way out`() {
+        var shown by mutableStateOf(true)
+        val before = composeRule.activity.window.attributes.rotationAnimation
+        composeRule.setContent { if (shown) Subject(FakeCameraCaptureSession()) }
         composeRule.waitForIdle()
 
-        val (dialogWindow, _) = hiddenOn.single()
-        assertTrue("the same window the status-bar seam captured", dialogWindow === ShadowDialog.getLatestDialog().window)
         assertEquals(
-            "the dialog's window carries ROTATION_ANIMATION_SEAMLESS, so a turn is a re-layout and not an animation",
+            "ROTATION_ANIMATION_SEAMLESS on the Activity's window, so a turn is a re-layout and not an animation",
             WindowManager.LayoutParams.ROTATION_ANIMATION_SEAMLESS,
-            dialogWindow.attributes.rotationAnimation,
+            composeRule.activity.window.attributes.rotationAnimation,
         )
+
+        shown = false
+        composeRule.waitForIdle()
+
+        assertEquals("put back, so only the camera rotates this way", before, composeRule.activity.window.attributes.rotationAnimation)
     }
 
     /** Gated off, the placeholder is not composed, the strip is gone, and nothing else moves. */

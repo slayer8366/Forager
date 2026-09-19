@@ -61,7 +61,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  *
  * ## Insets: the safe area collapses, each band clears only its own edge
  *
- * The status bar is hidden while the camera is open ([HideStatusBarOnThisWindow]), and the
+ * The status bar is hidden while the camera is open ([HideStatusBarWhileCameraIsOpen]), and the
  * controls are **not** laid out as if it were still there. The dialog no longer pads by
  * `safeDrawing`; instead each band pads by the display cut-out and the navigation bar **on its own
  * edge only**. That does three things at once: the strip sits *inboard of the punch-hole cut-out*

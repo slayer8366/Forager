@@ -24,16 +24,14 @@ import androidx.compose.ui.platform.LocalContext
  * top of the display as the system has it rotated, and an app cannot move it to another edge.**
  * While the window was pinned the display did not rotate, so the bar stayed on whichever physical
  * edge was up at open — raised three times, and impossible under any lock. So the window turns,
- * and the animation the lock existed to prevent is meant to be suppressed another way: the dialog's
- * window asks the platform for seamless rotation ([RotateThisWindowSeamlessly],
- * `CameraWindowChrome.kt`).
+ * and the animation the lock existed to prevent is suppressed another way: the Activity's own
+ * window asks the platform for seamless rotation ([RequestSeamlessRotation], `CameraWindowChrome.kt`),
+ * under which the window is re-laid out in the new rotation with no animation.
  *
- * **Measured 2026-09-19, and it does not work: the platform still plays its rotation animation on
- * every turn.** The reason is structural and is written up on [RotateThisWindowSeamlessly] — the
- * Shell picks the animation from the *task's* main window, which is never a Dialog. So this file's
- * `FULL_SENSOR` half is built and measured, and the half that makes it acceptable is not; the
- * change is **not shipped** pending the owner's decision
- * (`docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`).
+ * A first attempt made that request on a `Dialog`'s window and the platform ignored it, for a
+ * structural reason recorded at `docs/audits/2026-09-19-unlock-seamless-rotation-stop-report.md`:
+ * the Shell picks a rotation's animation from the *task's main window*, which is never a Dialog.
+ * The camera now draws in the Activity's own window, which is that window.
  *
  * What the lock's history still explains: the arrangement follows the window
  * ([cameraArrangement], the keyed `remember` in `InAppCameraDialog`) because a `LOCKED` window
@@ -103,7 +101,8 @@ internal fun RequestWindowOrientation(lockToPortrait: Boolean) {
 internal fun windowOrientationFor(lockToPortrait: Boolean): Int =
     if (lockToPortrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
 
-private tailrec fun Context.findActivity(): Activity? = when (this) {
+/** The Activity behind a composition's context, or null — shared with `CameraWindowChrome`, which needs the same window. */
+internal tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null

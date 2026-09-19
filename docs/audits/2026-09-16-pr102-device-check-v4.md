@@ -176,12 +176,13 @@ finding to report. The shutter along the bottom of a landscape frame is a failur
 on the punch-hole edge is a failure. A strip that runs through the cut-out, or a status bar that
 stays hidden after any exit, is a failure.**
 
-> **NOT YET TRUE — written against an intended state that the emulator contradicts.** The window
-> does follow the phone, but the animation suppression does not work: the platform plays its
-> rotation animation on every turn, for a structural reason (`CameraWindowChrome.kt`,
-> `2026-09-19-unlock-seamless-rotation-stop-report.md`). Reverse portrait also puts the shutter on
-> the punch-hole edge. **Do not run this step as a gate until the owner has ruled**; the rewrite is
-> kept so the shape of the check is ready if the owner takes the larger change.
+> **One item is still knowingly wrong, 2026-09-19: reverse portrait.** The window now follows the
+> phone and turns without an animation (the camera draws in the Activity's own window and that
+> window asks for seamless rotation — `CameraWindowChrome.kt`), so 3.1 to 3.8 are live gates again.
+> But `cameraArrangement` has no reverse-portrait case, so in the **upside-down** hold the shutter
+> sits on the punch-hole edge and the strip on the port edge. The owner has ruled to add a fourth
+> arrangement, as its own dispatch. **Until it lands, the upside-down hold of 3.2 and 3.5 is a
+> known failure, not a finding to report**, and 3.9's upside-down photo is the one to watch.
 >
 > **Superseding note, 2026-09-19 (unlock and seamless rotation).** Items 3.2 and 3.5 read "nothing
 > in the layout moves; the count and the label turn in place"; 3.7 ended "proving the lock
