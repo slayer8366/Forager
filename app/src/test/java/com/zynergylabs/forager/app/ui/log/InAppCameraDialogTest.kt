@@ -10,6 +10,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import org.robolectric.shadows.ShadowDisplay
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.CompositionLocalProvider
+import android.view.Surface
+import android.content.res.Configuration
 import androidx.compose.ui.platform.testTag
 import android.view.View
 import android.view.Window
@@ -462,6 +467,41 @@ class InAppCameraDialogTest {
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithText(photoCountLabel(0)).assertCountEquals(1)
+    }
+
+
+    /**
+     * The mirror of the landscape class's follow test: opened in portrait, the window turns to
+     * landscape at `ROTATION_90` (port on the right) — a return from background on a phone, or an
+     * ignored lock on a large screen — and the arrangement follows: shutter to the right edge,
+     * strip down the left. The configuration is provided so the turn can be driven without
+     * recreating the Activity, and the display pin is asserted.
+     */
+    @Test
+    fun `opened in portrait, the arrangement follows a window turned to landscape, shutter to the port edge and strip to the punch-hole edge`() {
+        var orientation by mutableStateOf(Configuration.ORIENTATION_PORTRAIT)
+        composeRule.setContent {
+            val configuration = Configuration(LocalConfiguration.current).apply { this.orientation = orientation }
+            CompositionLocalProvider(LocalConfiguration provides configuration) { Subject(FakeCameraCaptureSession()) }
+        }
+        composeRule.waitForIdle()
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        assertEquals("precondition: portrait arrangement, shutter at the bottom", (frame.bottom - Spacing.lg).value, bounds(CAMERA_SHUTTER_TAG).bottom.value, 0.51f)
+
+        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
+        assertEquals("the harness must report the pinned rotation", Surface.ROTATION_90, ShadowDisplay.getDefaultDisplay().rotation)
+        orientation = Configuration.ORIENTATION_LANDSCAPE
+        composeRule.waitForIdle()
+
+        val shutter = bounds(CAMERA_SHUTTER_TAG)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        assertEquals("landscape arrangement at ROTATION_90: shutter on the right, the port edge", (frame.right - Spacing.lg).value, shutter.right.value, 0.51f)
+        assertEquals("vertically centred", frame.centreY(), shutter.centreY(), 0.51f)
+        assertEquals("strip down the left, the punch-hole edge", frame.left.value, strip.left.value, 0.51f)
+        // 1.5 dp, not 0.51: this class's window stays portrait-sized (470.6 dp tall) while only the
+        // configuration says landscape, and the frame's and the strip's bottom edges round that
+        // half-pixel differently (471 vs 470). Full height to within a pixel is the claim.
+        assertEquals("full height", frame.bottom.value, strip.bottom.value, 1.5f)
     }
 
 }

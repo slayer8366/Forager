@@ -54,10 +54,21 @@ import androidx.compose.ui.platform.LocalContext
  * recreating the Activity, and the setting cannot change while the dialog covers Settings, so
  * nothing in the open path can move the window after this runs.
  *
+ * **Superseding note, 2026-09-18 — "at the moment the request is made" is not the whole story.**
+ * Observed on the S26 Ultra: with this lock in force, a camera opened in landscape, backgrounded,
+ * and returned to in portrait inside the four-minute absence window came back as a **portrait**
+ * window. So the platform re-resolves `SCREEN_ORIENTATION_LOCKED` against the display's rotation
+ * when the Activity becomes visible again, not only when the request is made. **This is device
+ * evidence, not a reading of AOSP**, which was not read. The lock is unchanged — it hands the
+ * platform a mode, and that is the right shape; what changed is that the arrangement now follows
+ * the window (`InAppCameraDialog`) instead of assuming the window cannot move after this runs.
+ *
  * **Two things the platform decides, on the device check.** OEMs vary in how they honour a
  * runtime `requestedOrientation`, and from Android 16 the platform ignores orientation requests
  * on large screens (smallest width 600dp and above) for apps targeting API 36+; this app targets
- * 37. On a phone the lock holds; on a tablet or an unfolded foldable it may not, and the frame
+ * 37. On a phone the lock holds; on a tablet or an unfolded foldable it may not — and where it does
+ * not, since 2026-09-18, the arrangement follows the turned window rather than holding the layout
+ * the camera opened with (superseding note on `CameraArrangement`) — and the frame
  * would rotate as before, with the arrangement held as chosen at open.
  *
  * ## Capture and capture rotation are untouched

@@ -229,8 +229,20 @@ Evidence: four confirmations.
 5. Open the camera from a **log entry**, take a photo, confirm it lands on that record.
 6. Same from the **album**.
 7. Same from a **cartography entry**.
+8. **Return turns the window; the layout must follow.** Open the camera in **landscape**,
+   background, return in **portrait** inside four minutes: **portrait window, portrait
+   arrangement** — strip horizontal along the top, shutter at the bottom. Not a strip down one side.
+9. The mirror: open in **portrait**, background, return in **landscape** inside four minutes:
+   **landscape window, landscape arrangement**, shutter on the charger-port edge, strip on the
+   punch-hole edge. Do it for **both** landscapes, so both arrangements are exercised.
+10. Rotate while the camera is open and stays open: **nothing reflows**, as in step 3.
+11. Setting **on**: open in landscape, background, return in portrait. Portrait throughout,
+    unchanged.
+12. After any of 6.8–6.9, the status bar is still hidden and still reveals on a swipe from the top.
 
-A photo arriving on the wrong record is a quiet failure no other step catches.
+A photo arriving on the wrong record is a quiet failure no other step catches. **A window of one
+shape carrying the other shape's arrangement is a failure** — it was the 2026-09-18 device finding
+that led to the arrangement following the window (`InAppCameraDialog`, the `remember` key).
 
 > **Superseding note, 2026-09-17.** Item 6.1 previously read "background the app and return: the
 > camera survived the rotation and is **closed** on return", asserting a close-on-background that
@@ -250,8 +262,8 @@ A photo arriving on the wrong record is a quiet failure no other step catches.
 > rather than conflicting with it. Both were requirements in the commissioning dispatch and both
 > were struck once the code was read.
 
-Evidence: seven confirmations, and for 6.1–6.3 **say roughly how long you were away**, since that
-is the variable under test.
+Evidence: twelve confirmations, and for 6.1–6.3 and 6.8–6.9 **say roughly how long you were away**,
+since that is the variable under test.
 
 ## 7. Capture diagnostics, the two-entry invariant
 

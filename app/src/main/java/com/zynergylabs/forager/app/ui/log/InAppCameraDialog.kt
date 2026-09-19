@@ -141,19 +141,30 @@ internal fun InAppCameraDialog(
     // the Activity's, not the dialog window's.
     LockWindowOrientation(lockToPortrait)
 
-    // The arrangement is chosen once, at open, from the setting and the window's shape as the
-    // Activity's configuration reports it in this first composition, and held: `remember` with
-    // no configuration key, on purpose. The lock above is what makes the held value right for
-    // the life of the dialog (LOCKED pins the shape read here; PORTRAIT makes the setting-on
-    // answer portrait whatever was read). Reading LocalConfiguration.current outside `remember`
-    // would reflow if the window ever did turn, which is the one thing that must not happen.
+    // The arrangement follows the window: it is derived from the setting, the window's shape and
+    // the window's rotation, and re-derived whenever any of the three changes (owner, 2026-09-18).
+    //
+    // Until 2026-09-18 the `remember` was keyed on the setting alone, so the arrangement was
+    // computed at first composition and held for the dialog's life, on the reasoning that the lock
+    // above keeps the window still and a turning window "must not happen". That treated a turning
+    // window as a failure mode only. It has two legitimate causes the held value was blind to:
+    // **a background-and-return** — the platform re-resolves SCREEN_ORIENTATION_LOCKED when the
+    // Activity becomes visible again, so a camera opened in landscape and returned to in portrait
+    // inside the four-minute window came back as a portrait window carrying a landscape
+    // arrangement (device, 2026-09-18) — and **a large screen where the platform ignores the lock**,
+    // where the window turns in the user's hands and a held arrangement leaves the same mismatch.
+    // Following the window is right in both; there is no visible reflow on a phone, because the
+    // lock holds while anyone is watching and these inputs can only change across a return.
+    // Do not restore a setting-only key: that is this bug.
     val windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    // The window's rotation at open decides which physical edge the shutter goes on, because the
-    // two landscapes are mirror images and only one of them has the charger port on the screen's
-    // right — see CameraArrangement. Read outside `remember` for the same reason windowIsLandscape
-    // is: the value is captured at first composition and then held, not tracked.
+    // The window's rotation decides which physical edge the shutter goes on, because the two
+    // landscapes are mirror images and only one has the charger port on the screen's right — see
+    // CameraArrangement. currentDisplayRotation reads LocalConfiguration so it recomposes when the
+    // window turns, and the key below carries the new value into the arrangement.
     val displayRotation = currentDisplayRotation()
-    val arrangement = remember(lockToPortrait) { cameraArrangement(lockToPortrait, windowIsLandscape, displayRotation) }
+    val arrangement = remember(lockToPortrait, windowIsLandscape, displayRotation) {
+        cameraArrangement(lockToPortrait, windowIsLandscape, displayRotation)
+    }
 
     Dialog(
         onDismissRequest = onDismiss,

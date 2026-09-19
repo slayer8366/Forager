@@ -47,9 +47,23 @@ import android.view.Surface
  * opening: reading the window there would see the pre-flip landscape and hold the wrong answer.
  * The function is pure so every combination is tested without a window.
  *
- * Where the platform ignores the lock (Android 16 on screens 600dp and wider, for this app's API
- * target) the window can turn after open and the arrangement is held anyway — that is the
- * requirement, no reflow, not an oversight.
+ * **Superseded, 2026-09-18 — the arrangement follows the window.** This doc used to end: *"Where
+ * the platform ignores the lock (Android 16 on screens 600dp and wider, for this app's API target)
+ * the window can turn after open and the arrangement is held anyway — that is the requirement, no
+ * reflow, not an oversight."* The owner's ruling reverses it: holding produces a landscape layout
+ * in a portrait window, which is exactly the mismatch a background-and-return produced on the phone
+ * (the platform re-resolves `SCREEN_ORIENTATION_LOCKED` when the Activity becomes visible again),
+ * and the old ruling kept that state deliberately in the one place it is most visible, on the
+ * largest screen. It was a note about something not under control, not a decision that a
+ * mismatched layout is wanted. `InAppCameraDialog` now re-derives the arrangement whenever the
+ * window's shape or rotation changes; "chosen once at open" above is no longer true, and the
+ * stop-and-ask that caught the difference is recorded in `docs/audits/README.md`, 2026-09-18.
+ *
+ * **Setting on is correct by coincidence, not by handling.** With the setting on the lock requests
+ * `PORTRAIT` and this function returns [CameraArrangement.Portrait] whatever the window is, so its
+ * two window inputs are constant and cannot disagree with the window. It goes through the same
+ * `remember` as setting off. It is not protected: the moment either input stops being constant —
+ * a platform that ignores the portrait request, say — it is on the same path as everything else.
  */
 internal enum class CameraArrangement {
     /** Today's layout: Done top-left, count and shutter along the bottom, controls turning in place. */

@@ -220,15 +220,52 @@ class InAppCameraDialogLandscapeTest {
         assertEquals(countBefore.height.value, countAfter.width.value, 0.51f)
     }
 
+    /**
+     * **The arrangement follows the window** (owner, 2026-09-18). This test used to assert the
+     * opposite — "held when the configuration changes underneath the dialog", the shutter staying on
+     * the right edge — for the large-screen case where the platform ignores the lock. That ruling
+     * was reversed once its consequence was visible: holding leaves a landscape layout in a
+     * portrait window, the exact mismatch a background-and-return produced on the phone. Same case,
+     * opposite expectation; the old assertion's failure under the new key
+     * (`expected right edge 552–624 dp, was 284–356 dp`) is this test's before-state.
+     *
+     * The window is turned two ways at once, as a real turn does: the provided configuration goes
+     * portrait and the display's rotation goes to `ROTATION_0`, with the pin asserted so the test
+     * cannot pass on a display that stayed at the landscape rotation.
+     */
     @Test
-    fun `the arrangement chosen at open is held when the configuration changes underneath the dialog`() {
+    fun `the arrangement follows when the window turns underneath the dialog, the shutter moving to the new window's port edge`() {
+        setDisplayRotation(Surface.ROTATION_90)
         setDialog(lockToPortrait = false)
+        val frame = bounds(IN_APP_CAMERA_TAG)
         val before = bounds(CAMERA_SHUTTER_TAG)
+        assertEquals("precondition: landscape arrangement, shutter on the right (port) edge", (frame.right - Spacing.lg).value, before.right.value, 0.51f)
 
+        setDisplayRotation(Surface.ROTATION_0)
         setOrientation(Configuration.ORIENTATION_PORTRAIT)
         composeRule.waitForIdle()
 
-        assertEquals("no reflow: the shutter is where it was", before, bounds(CAMERA_SHUTTER_TAG))
+        val after = bounds(CAMERA_SHUTTER_TAG)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        assertEquals("portrait arrangement: the shutter on the window's bottom, the port edge in a portrait hold", (frame.bottom - Spacing.lg).value, after.bottom.value, 0.51f)
+        assertEquals("centred along it", frame.centreX(), after.centreX(), 0.51f)
+        assertEquals("and the strip on the window's top, the punch-hole edge", frame.top.value, strip.top.value, 0.51f)
+        assertEquals("full width", frame.right.value, strip.right.value, 0.51f)
+    }
+
+    /** The control for the test above: the device turning while the window does not is not a window turn, and nothing reflows. */
+    @Test
+    fun `while the window does not turn, a device turn moves neither the shutter nor the strip`() {
+        setDisplayRotation(Surface.ROTATION_90)
+        setDialog(lockToPortrait = false)
+        val shutterBefore = bounds(CAMERA_SHUTTER_TAG)
+        val stripBefore = bounds(CAMERA_STRIP_TAG)
+
+        session.deviceRotation = Surface.ROTATION_0
+        composeRule.waitForIdle()
+
+        assertEquals("no reflow: the shutter is where it was", shutterBefore, bounds(CAMERA_SHUTTER_TAG))
+        assertEquals("nor the strip", stripBefore, bounds(CAMERA_STRIP_TAG))
     }
 
     /**
