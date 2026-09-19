@@ -195,10 +195,25 @@ count for 3.6, and a note on the placeholder's size and position for the owner's
 
 1. App in landscape, open the camera: **one flip to portrait is expected and accepted**, then the
    portrait arrangement with the shutter at the bottom.
-2. Rotate the phone: nothing moves; controls turn in place.
+2. Rotate the phone every way, including upside down: **nothing moves and nothing turns** — not
+   the count, not the "Strip" label, not any control. The setting pins one rotation value that both
+   the controls' angle and the photo's orientation read, which is the whole point of it: with it on
+   the camera is a portrait camera, and a control that turned would be following a sensor the
+   setting exists to ignore.
 3. Close the camera: the lock releases as in 3.7.
 
-Evidence: one line per item.
+> **Superseding note, 2026-09-18.** Item 4.2 read "nothing moves; controls turn in place". The
+> second clause was the planner applying the general glyph-rotation rule without checking that the
+> portrait lock makes it a special case — the setting's own doc says "nothing in the camera turns"
+> and `effectiveDeviceRotation` pins the one value both glyphs and capture read. The step, the code
+> and the test named for the case (`InAppCameraDialogLandscapeTest`, which drove the fake session
+> past the gate and so tested only the wiring) disagreed from the day the setting shipped, and an
+> emulator run of this step on 2026-09-18 was the first thing to notice: with the setting on and a
+> portrait open, nothing turned in any hold. The test now goes through the gate. Owner's ruling:
+> nothing turns with the setting on; with it off, glyphs rotate as before.
+
+Evidence: one line per item, and for 4.2 **say which holds you tried** and that the label and the
+count stayed put in each.
 
 ## 5. Photo orientation matrix
 

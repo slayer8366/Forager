@@ -21,7 +21,9 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
+import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
+import com.zynergylabs.forager.app.photo.GatedFakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import org.junit.Assert.assertEquals
@@ -66,7 +68,7 @@ class InAppCameraDialogLandscapeTest {
     private var setOrientation: (Int) -> Unit = {}
 
     /** The dialog under a configuration this test controls, so "the window turned underneath it" can be simulated. */
-    private fun setDialog(lockToPortrait: Boolean) {
+    private fun setDialog(lockToPortrait: Boolean, session: CameraCaptureSession = this.session) {
         composeRule.setContent {
             val base = LocalConfiguration.current
             var orientation by remember { mutableStateOf(base.orientation) }
@@ -200,7 +202,12 @@ class InAppCameraDialogLandscapeTest {
     }
 
     @Test
-    fun `setting on in a landscape window, the portrait arrangement is used and its controls turn`() {
+    fun `wiring only, setting on, the portrait arrangement is used and a control turns for whatever value the dialog is handed`() {
+        // This drives the fake's deviceRotation directly, past the gate, and so says nothing about
+        // whether the setting stops the controls turning — it says the dialog turns a control for
+        // the value it is given. That was the only test named for the setting-on case until
+        // 2026-09-18, which is how the code (nothing turns), v4 step 4.2 (controls turn) and this
+        // test disagreed for four days unnoticed. The gated behaviour is the next two tests.
         setDialog(lockToPortrait = true)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
@@ -318,6 +325,68 @@ class InAppCameraDialogLandscapeTest {
 
         assertEquals("a quarter turn swaps the extents", before.width.value, after.height.value, 0.51f)
         assertEquals("in place", before.centreX(), after.centreX(), 0.51f)
+    }
+
+
+    /**
+     * **With the setting on, nothing turns** (owner's ruling, 2026-09-18; the setting's own doc;
+     * `effectiveDeviceRotation`). Through the gate, not past it: the sensor is driven through all
+     * four readings and neither the count nor the placeholder label moves a pixel. Then the
+     * window is turned underneath the dialog — the one flip a landscape open makes — and the
+     * sensor driven again, because the label was seen turned only after that flip on the emulator.
+     *
+     * **What this test cannot see, stated rather than implied:** the emulator's after-flip label
+     * turn is a stale display term inside the dialog's composition (`2026-09-18-placeholder-label-
+     * stale-display-term.md`), and this harness provides `LocalConfiguration` from outside the
+     * dialog, where it does update. So this test passes on the defective code too; it guards the
+     * gate, not the invalidation.
+     */
+    @Test
+    fun `setting on, through the gate, nothing turns for any sensor reading, before or after the window flips`() {
+        setDisplayRotation(Surface.ROTATION_90)
+        val gated = GatedFakeCameraCaptureSession(lockToPortrait = true)
+        setDialog(lockToPortrait = true, session = gated)
+        val count0 = bounds(CAMERA_COUNT_TAG)
+        val label0 = composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot()
+
+        for (reading in listOf(Surface.ROTATION_0, Surface.ROTATION_90, Surface.ROTATION_180, Surface.ROTATION_270)) {
+            gated.sensorRotation = reading
+            composeRule.waitForIdle()
+            assertEquals("count unmoved at sensor $reading", count0, bounds(CAMERA_COUNT_TAG))
+            assertEquals("label unmoved at sensor $reading", label0, composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot())
+        }
+
+        // The flip: the window the setting forces.
+        setDisplayRotation(Surface.ROTATION_0)
+        setOrientation(Configuration.ORIENTATION_PORTRAIT)
+        composeRule.waitForIdle()
+        val countP = bounds(CAMERA_COUNT_TAG)
+        val labelP = composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot()
+        // No "upright" aspect check on either glyph: this harness measures both texts narrower
+        // than tall (the count 7x20 dp, recorded in this class on 2026-09-18), so width > height is
+        // not what upright looks like here and would fail on correct code. The claim is stillness.
+        for (reading in listOf(Surface.ROTATION_90, Surface.ROTATION_180, Surface.ROTATION_270, Surface.ROTATION_0)) {
+            gated.sensorRotation = reading
+            composeRule.waitForIdle()
+            assertEquals("count unmoved after the flip at sensor $reading", countP, bounds(CAMERA_COUNT_TAG))
+            assertEquals("label unmoved after the flip at sensor $reading", labelP, composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot())
+        }
+    }
+
+    /** The control: the same gated session with the setting off turns the count, as today. */
+    @Test
+    fun `setting off, through the gate, the count still turns when the sensor does`() {
+        setDisplayRotation(Surface.ROTATION_90)
+        val gated = GatedFakeCameraCaptureSession(lockToPortrait = false)
+        setDialog(lockToPortrait = false, session = gated)
+        val before = bounds(CAMERA_COUNT_TAG)
+
+        gated.sensorRotation = Surface.ROTATION_0
+        composeRule.waitForIdle()
+        val after = bounds(CAMERA_COUNT_TAG)
+
+        assertEquals("a quarter turn swaps the extents", before.width.value, after.height.value, 0.51f)
+        assertEquals(before.height.value, after.width.value, 0.51f)
     }
 
 }
