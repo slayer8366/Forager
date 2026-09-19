@@ -70,6 +70,31 @@ class CameraXCaptureSessionShotRotationTest {
         assertTrue(result.exceptionOrNull() is ImageCaptureException)
     }
 
+    /**
+     * **The sensor reads reverse portrait even though the window cannot occupy it.** Since
+     * 2026-09-19 the camera's window asks for `SCREEN_ORIENTATION_SENSOR`, which the platform will
+     * not resolve to `ROTATION_180` on a phone, so a phone held end-over-end leaves the window
+     * alone — and this is the half that must keep working anyway, because it is the gill shot:
+     * phone flipped over to get the lens near the ground, and the photo has to save upright.
+     *
+     * Nothing in this path reads the window (`CameraXCaptureSession.onDeviceOrientation` snaps the
+     * `OrientationEventListener`'s degrees and `capture` assigns them), so the two are independent
+     * by construction rather than by arrangement. This pins that: 180 degrees in, `ROTATION_180`
+     * onto the shot.
+     */
+    @Test
+    fun `the sensor still reports reverse portrait, which is the gill shot, whatever the window may occupy`() = runTest {
+        val session = CameraXCaptureSession(app, lockToPortrait = false)
+        val capture = imageCaptureAt(Surface.ROTATION_0)
+        session.installImageCapture(capture)
+        session.onDeviceOrientation(180) // held end over end
+        assertEquals("precondition", Surface.ROTATION_0, capture.targetRotation)
+
+        session.capture(destination())
+
+        assertEquals("the shot is tagged reverse portrait, so the saved photo is upright", Surface.ROTATION_180, capture.targetRotation)
+    }
+
     @Test
     fun `unlocked, the shot assigns the sensor's rotation`() = runTest {
         val session = CameraXCaptureSession(app, lockToPortrait = false)

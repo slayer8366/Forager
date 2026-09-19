@@ -65,18 +65,26 @@ import android.view.Surface
  * happens on every turn rather than only across a return. The paragraph beginning "The window lock
  * is what makes the choice safe to hold" is history: the choice is not held.
  *
- * **Open finding, 2026-09-19 — there is no reverse-portrait case, and `FULL_SENSOR` makes one
- * reachable for the first time.** This function returns [CameraArrangement.Portrait] for *any*
+ * **Closed as unreachable, 2026-09-19 — there is no reverse-portrait case, and the window can no
+ * longer occupy reverse portrait, so nothing can reach one.** This function returns [CameraArrangement.Portrait] for *any*
  * non-landscape window, so at `ROTATION_180` the shutter goes to the screen's bottom — which is the
  * device's **punch-hole** edge in that hold — and the strip to the port edge. Exactly inverted, the
  * same shape as the 2026-09-17 landscape finding. It could not happen before: `SCREEN_ORIENTATION_LOCKED`
  * never produced a reverse-portrait window and `SCREEN_ORIENTATION_PORTRAIT` excludes one, which is
  * why "portrait was already correct at all four rotations" held. Measured on the emulator with the
  * window following the device: shutter at [446,2033]-[635,2222] of a 1080x2400 window at
- * `mRotation=2`. A fourth arrangement is what the owner's own rule requires; the owner has ruled to
- * add it, as its own dispatch after this window change — reverse portrait is the foraging gill-shot
- * hold, phone flipped end over end to get the lens near the ground, so excluding it is not an
- * option. **Still open as of this change.**
+ * `mRotation=2`. A fourth arrangement was ruled and then **withdrawn** the same day: the owner's
+ * reading of the reference app is that its camera window simply does not turn on a half turn, so
+ * ours does not either ([RequestWindowOrientation] now asks for `SCREEN_ORIENTATION_SENSOR`, which
+ * the platform refuses to resolve to `ROTATION_180` on a phone). The gill shot — phone flipped end
+ * over end to get the lens near the ground — still works, because capture rotation comes from the
+ * sensor and not from the window, so the photo saves upright while the window stays put.
+ *
+ * **The defect is unreachable, not fixed, and that is why this note stays.** The `when` below still
+ * returns [CameraArrangement.Portrait] for any non-landscape window, so if reverse portrait ever
+ * becomes reachable again the bands are inverted again, silently. The one change that would do it is
+ * putting `SCREEN_ORIENTATION_FULL_SENSOR` (or `FULL_USER`, or a tablet's `config_allowAllRotations`)
+ * back on the camera's window. **If you are about to do that, build the fourth arrangement first.**
  *
  * **Setting on is correct by coincidence, not by handling.** With the setting on the lock requests
  * `PORTRAIT` and this function returns [CameraArrangement.Portrait] whatever the window is, so its
@@ -119,6 +127,12 @@ internal fun cameraArrangement(
     windowIsLandscape: Boolean,
     displayRotation: Int,
 ): CameraArrangement = when {
+    // No reverse-portrait case on purpose: the camera's window cannot occupy ROTATION_180
+    // (RequestWindowOrientation asks for SCREEN_ORIENTATION_SENSOR, which the platform will not
+    // resolve to 180 on a phone), so this branch's portrait answer is never wrong in practice. It
+    // *would* be wrong there — shutter on the punch-hole edge, strip on the port edge, measured on
+    // the emulator 2026-09-19 — so anything that makes 180 reachable again needs a fourth
+    // arrangement built with it. See this function's doc comment.
     lockToPortrait || !windowIsLandscape -> CameraArrangement.Portrait
     displayRotation == Surface.ROTATION_270 -> CameraArrangement.LandscapePortLeft
     else -> CameraArrangement.LandscapePortRight

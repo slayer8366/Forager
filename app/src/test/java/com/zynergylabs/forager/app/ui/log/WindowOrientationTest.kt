@@ -22,6 +22,7 @@ import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -92,11 +93,20 @@ class WindowOrientationTest {
     }
 
     @Test
-    fun `setting off, the window follows the device through all four orientations, FULL_SENSOR, and the previous request is put back after`() {
+    fun `setting off, the window follows the device but never into reverse portrait, SENSOR, and the previous request is put back after`() {
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
         setDialog(lockToPortrait = false)
 
-        assertEquals("setting off: the window follows the device in all four orientations, so the status bar is on the phone's top edge in every hold", ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR, composeRule.activity.requestedOrientation)
+        assertEquals(
+            "setting off: SENSOR, so the window takes portrait and both landscapes and the platform will not resolve it to reverse portrait on a phone — a half turn leaves the window, and the status bar, where they were",
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR,
+            composeRule.activity.requestedOrientation,
+        )
+        assertNotEquals(
+            "FULL_SENSOR is what would admit reverse portrait, and it is what this replaced; putting it back reintroduces the inverted-bands arrangement (CameraArrangement)",
+            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR,
+            composeRule.activity.requestedOrientation,
+        )
 
         setShown(false)
         composeRule.waitForIdle()
@@ -106,7 +116,7 @@ class WindowOrientationTest {
     @Test
     fun `the requested orientation is a pure function of the setting`() {
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, windowOrientationFor(lockToPortrait = true))
-        assertEquals("all four orientations, reverse portrait included", ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR, windowOrientationFor(lockToPortrait = false))
+        assertEquals("portrait and both landscapes, never reverse portrait", ActivityInfo.SCREEN_ORIENTATION_SENSOR, windowOrientationFor(lockToPortrait = false))
     }
 
     @Test

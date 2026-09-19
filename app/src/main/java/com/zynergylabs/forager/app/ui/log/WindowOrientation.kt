@@ -41,21 +41,41 @@ import androidx.compose.ui.platform.LocalContext
  * cancels the turn; with the window following, the two terms agree in every steady hold and the
  * glyphs stay put because the window moved them.
  *
- * ## The value depends on the setting: `FULL_SENSOR` off, `PORTRAIT` on
+ * ## The value depends on the setting: `SENSOR` off, `PORTRAIT` on
  *
- * - **Setting off: `SCREEN_ORIENTATION_FULL_SENSOR`.** All four orientations, reverse portrait
- *   included — `SENSOR` alone would leave the phone-held-upside-down case as the one hold where the
- *   bar sits on the wrong edge. Two consequences, from the platform's rotation policy
- *   (`DisplayRotation.rotationForOrientation`, android16-release, the `SENSOR`/`FULL_SENSOR`
- *   branch): the window follows the sensor **whether or not the user has auto-rotate locked** in
- *   system settings, and the rotation sensor is switched on for the camera's duration
- *   (`needSensorRunning`, same file). `FULL_USER`, which would honour the user's lock, was
- *   considered and not taken: the requirement is that the bar travels with the phone, and under
- *   a user lock it would not.
+ * - **Setting off: `SCREEN_ORIENTATION_SENSOR`.** Portrait and both landscapes, and **never reverse
+ *   portrait**. The platform's rotation policy is what draws that line
+ *   (`DisplayRotation.rotationForOrientation`, android16-release): for `SENSOR` it takes the
+ *   sensor's rotation, except that a sensor reading of `ROTATION_180` is only honoured when the
+ *   device's own `config_allowAllRotations` is set (tablets) or the request is `FULL_SENSOR` /
+ *   `FULL_USER`. On a phone under `SENSOR` a half turn therefore resolves to `lastRotation`: the
+ *   window stays exactly where it was.
+ *
+ *   **That is the point, not a limitation** (owner, 2026-09-19, from the reference app). Turning the
+ *   phone end-over-end with the camera open leaves the window alone, so there is no rotation to
+ *   animate and the status bar does not move — which is what Samsung's camera was observed doing,
+ *   and why photos still come out upright there: capture rotation comes from the sensor, not the
+ *   window. Ours is the same split, and [CameraXCaptureSession]'s `OrientationEventListener` keeps
+ *   reading all four regardless of what the window may occupy.
+ *
+ *   This replaced `SCREEN_ORIENTATION_FULL_SENSOR`, which was set earlier the same day so that the
+ *   bar would be on the phone's top edge in *every* hold including upside-down. It bought that one
+ *   hold at the price of a visible rotation animation on the half turn, and the owner's ruling is
+ *   that the reference app's behaviour is the right one. Do not put `FULL_SENSOR` back without
+ *   reading [cameraArrangement]'s note on what becomes reachable again if you do.
+ *
+ *   One consequence is unchanged from `FULL_SENSOR` and worth knowing: `SENSOR` sits outside the
+ *   `USER_ROTATION_FREE` guard in that same branch, so the window follows the sensor **whether or
+ *   not the user has auto-rotate locked**, and the rotation sensor runs for the camera's duration
+ *   (`needSensorRunning`, same file). `USER` / `FULL_USER` would honour the lock, and were not
+ *   taken: the requirement is that the bar travels with the phone, and under a user lock it would
+ *   not.
  * - **Setting on: `SCREEN_ORIENTATION_PORTRAIT`**, unchanged since `e51b3ae`. The setting's whole
  *   point is a portrait camera: one flip at open from a landscape window, then nothing turns —
- *   not the window, not a glyph ([effectiveDeviceRotation] pins the sensor term). `PORTRAIT`
- *   rather than `SENSOR_PORTRAIT`/`USER_PORTRAIT`, which admit reverse portrait.
+ *   not the window, not a glyph ([effectiveDeviceRotation] pins the sensor term, so the *photo* is
+ *   tagged portrait too, whatever the hold). `PORTRAIT` rather than `SENSOR_PORTRAIT`/`USER_PORTRAIT`,
+ *   which admit reverse portrait. With reverse portrait now excluded on both sides of the setting,
+ *   what the setting still decides is the two landscapes **and** the capture tag.
  *
  * ## Capture and capture rotation are untouched
  *
@@ -97,9 +117,9 @@ internal fun RequestWindowOrientation(lockToPortrait: Boolean) {
     }
 }
 
-/** The `requestedOrientation` the camera holds: forced portrait when the setting is on, otherwise following the device through all four orientations. Pure, tested. */
+/** The `requestedOrientation` the camera holds: forced portrait when the setting is on, otherwise following the device through portrait and both landscapes but never reverse portrait. Pure, tested. */
 internal fun windowOrientationFor(lockToPortrait: Boolean): Int =
-    if (lockToPortrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+    if (lockToPortrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_SENSOR
 
 /** The Activity behind a composition's context, or null — shared with `CameraWindowChrome`, which needs the same window. */
 internal tailrec fun Context.findActivity(): Activity? = when (this) {
