@@ -118,12 +118,12 @@ Evidence: which cases ran; for any failure, which viewer and which way.
 
 Evidence: how many epoch runs, what happened each time.
 
-## 3. Window behaviour, setting OFF — the strip, the bands, the hidden bar
+## 3. Window behaviour, setting OFF — the window follows the phone, the strip, the bands, the hidden bar
 
-The window pins to whatever it already was when the camera opened, and never moves after. Every
-placement below is in **device anatomy**: hold the phone screen towards you, charger port down —
-*bottom* is the port edge and *top* is the punch-hole edge, and those labels do not move when the
-phone turns.
+The window turns with the phone through all four orientations and re-arranges **without any
+animation**: no spin, no fade, the new layout simply replaces the old. Every placement below is in
+**device anatomy**: hold the phone screen towards you, charger port down — *bottom* is the port edge
+and *top* is the punch-hole edge, and those labels do not move when the phone turns.
 
 **What to look for.** No system status bar (the clock and icons are gone) but the navigation bar
 or gesture handle still present. A **strip** along the punch-hole edge holding one thing: an
@@ -137,32 +137,57 @@ the image runs edge to edge underneath.
 1. App in **portrait**, open the camera: portrait frame, strip across the **top**, sitting **below
    the punch-hole** (not through it); shutter at the **bottom centre**, clear of the navigation
    bar. No status bar. **No flip animation.**
-2. Rotate the phone both ways, and upside down: **nothing in the layout moves.** The count and the
-   "Strip" label turn in place to read in the current hold; the shutter, a disc, does not.
+2. Turn the phone to **each of the other three** holds, and back. In every hold: the window has
+   turned with the phone and the layout has **re-arranged with no animation** — shutter on the
+   charger-port edge, strip on the punch-hole edge, count and "Strip" label reading upright because
+   the window carried them there. **Report any spin or fade on any of these turns**, and which turn.
+   A turn into or out of the **upside-down** hold is the one the platform may animate on a phone
+   whose navigation bar cannot change sides; say whether it did.
 3. App in **landscape with the charger port on your right**, open the camera: landscape frame,
    **shutter on the port edge** — the screen's right — vertically centred on the **true centre of
    the screen**, count inboard of it; the **strip runs down the punch-hole edge**, the screen's
-   left, **inboard of the cut-out**. No status bar. No flip animation. At open the count and the
-   label read upright, because the phone and the window agree.
+   left, **inboard of the cut-out**. No status bar. No flip animation.
 4. **App in the other landscape, port on your left**, open the camera: the mirror of 3.3 — shutter
    on the screen's **left**, count inboard to its right, strip down the screen's **right**. No flip
    animation.
-5. Rotate from either of those: **nothing in the layout moves, and the count and the label turn in
-   place** — the same rule as 3.2. A label that stays sideways after the phone turns is a
-   failure, in this arrangement exactly as in portrait.
-6. **Swipe down from the screen's top edge** with the camera open: the status bar shows
-   transiently and the shade can be pulled. **Record whether that took one swipe or two.**
+5. From either of those, turn to each other hold: as 3.2 — the layout re-arranges without
+   animation, shutter on the port edge and strip on the punch-hole edge every time. A label that
+   stays sideways after the phone turns is a failure.
+6. **The status bar is on the phone's top edge in every hold** — and hidden. Then, in each of the
+   four holds, **swipe down from the phone's top edge**: the bar shows transiently on that edge and
+   the shade pulls down from it. **Record whether that took one swipe or two**, per hold. A bar
+   that appears **without** a swipe at any point — in particular for some seconds right after a
+   turn — is a finding: say which turn and roughly how long it stayed.
 7. Close the camera with **Back** — the navigation bar's button, and again with the back gesture
    if the phone uses gestures: the camera closes, **photos already taken are kept**, and the status
-   bar is back each time. Then rotate the phone: the screen underneath follows again, proving the
-   lock released.
+   bar is back each time. If the phone's own auto-rotate is off and you closed the camera in a
+   hold the phone would not have chosen, the screen underneath turns back now, with the ordinary
+   animation — that is the camera's orientation request being put back, and is expected.
 8. Camera open, background the app for **over four minutes**, return: the camera has closed
    (step 6.2) **and the status bar is back**. This is the exit most likely to be missed by a
    design that restores the bar itself; here the bar returns because the dialog's window is gone.
+9. **Saved photos upright from all four holds** — the regression check for the capture angle,
+   which reads the sensor and not the window (`CameraXCaptureSession.capture`); one photo per hold,
+   viewed in the album.
 
-Any flip animation on open in this state is a failure. The shutter along the bottom of a landscape
-frame is a failure. **The shutter on the punch-hole edge is a failure. A strip that runs through
-the cut-out, or a status bar that stays hidden after any exit, is a failure.**
+Any flip animation on open in this state is a failure. **A spin or fade on a turn between the
+portrait and either landscape hold is a failure**; on a turn into or out of upside-down it is a
+finding to report. The shutter along the bottom of a landscape frame is a failure. **The shutter
+on the punch-hole edge is a failure. A strip that runs through the cut-out, or a status bar that
+stays hidden after any exit, is a failure.**
+
+> **Superseding note, 2026-09-19 (unlock and seamless rotation).** Items 3.2 and 3.5 read "nothing
+> in the layout moves; the count and the label turn in place"; 3.7 ended "proving the lock
+> released"; 3.6 asked for one swipe from the screen's top edge; there was no 3.9. The window is
+> no longer locked with the setting off: it follows the phone (`SCREEN_ORIENTATION_FULL_SENSOR`,
+> `WindowOrientation.kt`) so that the system status bar — which an app cannot move off the
+> display's top edge — is on the phone's top edge in every hold, and the animation the lock existed
+> to prevent is suppressed by the dialog's window requesting seamless rotation
+> (`CameraWindowChrome.kt`). So the layout **does** re-arrange now, without animation, and the
+> glyphs read upright because the window carried them rather than because they turned. The
+> emulator run is in `2026-09-19-unlock-seamless-rotation-report.md`; what the emulator cannot
+> show — a spin or fade on a real phone, the bar on the real top edge, One UI's handling of the
+> seamless request — is what this step is for.
 
 > **Superseding note, 2026-09-18 (camera overlay spec), amended the same day.** This step was
 > rewritten whole. What it used to say, and why each part changed:
@@ -200,7 +225,7 @@ count for 3.6, and a note on the placeholder's size and position for the owner's
    the controls' angle and the photo's orientation read, which is the whole point of it: with it on
    the camera is a portrait camera, and a control that turned would be following a sensor the
    setting exists to ignore.
-3. Close the camera: the lock releases as in 3.7.
+3. Close the camera: the orientation request is put back, as in 3.7.
 
 > **Superseding note, 2026-09-18.** Item 4.2 read "nothing moves; controls turn in place". The
 > second clause was the planner applying the general glyph-rotation rule without checking that the
@@ -250,7 +275,7 @@ Evidence: four confirmations.
 9. The mirror: open in **portrait**, background, return in **landscape** inside four minutes:
    **landscape window, landscape arrangement**, shutter on the charger-port edge, strip on the
    punch-hole edge. Do it for **both** landscapes, so both arrangements are exercised.
-10. Rotate while the camera is open and stays open: **nothing reflows**, as in step 3.
+10. Rotate while the camera is open and stays open: the layout **re-arranges without animation**, as in step 3.2 (reversed 2026-09-19; it read "nothing reflows").
 11. Setting **on**: open in landscape, background, return in portrait. Portrait throughout,
     unchanged.
 12. After any of 6.8–6.9, the status bar is still hidden and still reveals on a swipe from the top.

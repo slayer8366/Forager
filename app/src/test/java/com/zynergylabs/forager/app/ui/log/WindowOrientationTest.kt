@@ -32,16 +32,19 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * The window lock as far as Robolectric can see it: `Activity.requestedOrientation` reads back
- * what the dialog set while it is composed, and what was there before once it leaves. Whether
- * the window then actually stops rotating is the device's; so is whether an OEM, or Android 16 on
- * a large screen, honours the request at all. Also here: the dialog's Done and count keep their
- * centres when the session reports the device turned, which is the in-place half of the same
- * requirement, measured on the real dialog rather than on a bare box.
+ * The window's requested orientation as far as Robolectric can see it: `Activity.requestedOrientation`
+ * reads back what the dialog set while it is composed, and what was there before once it leaves.
+ * Whether the window then actually turns with the device, and whether it turns without an
+ * animation, are the device's and the emulator's; so is whether an OEM honours the request at all.
+ * Also here: the count keeps its centre when the session reports the device turned, which is the
+ * in-place half of the glyph rule, measured on the real dialog rather than on a bare box.
+ *
+ * Until 2026-09-19 this was `WindowOrientationLockTest` and the setting-off assertion was `LOCKED`;
+ * the owner reversed the lock so the status bar can travel with the phone (`WindowOrientation.kt`).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
-class WindowOrientationLockTest {
+class WindowOrientationTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -89,11 +92,11 @@ class WindowOrientationLockTest {
     }
 
     @Test
-    fun `setting off, the window is pinned where it already is, LOCKED, and the previous request is put back after`() {
+    fun `setting off, the window follows the device through all four orientations, FULL_SENSOR, and the previous request is put back after`() {
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
         setDialog(lockToPortrait = false)
 
-        assertEquals("nothing forced, so no flip: LOCKED keeps whatever the window was at open", ActivityInfo.SCREEN_ORIENTATION_LOCKED, composeRule.activity.requestedOrientation)
+        assertEquals("setting off: the window follows the device in all four orientations, so the status bar is on the phone's top edge in every hold", ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR, composeRule.activity.requestedOrientation)
 
         setShown(false)
         composeRule.waitForIdle()
@@ -101,17 +104,17 @@ class WindowOrientationLockTest {
     }
 
     @Test
-    fun `the lock value is a pure function of the setting`() {
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, windowLockFor(lockToPortrait = true))
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_LOCKED, windowLockFor(lockToPortrait = false))
+    fun `the requested orientation is a pure function of the setting`() {
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, windowOrientationFor(lockToPortrait = true))
+        assertEquals("all four orientations, reverse portrait included", ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR, windowOrientationFor(lockToPortrait = false))
     }
 
     @Test
-    fun `with no Activity behind the context nothing is locked and nothing crashes`() {
+    fun `with no Activity behind the context nothing is requested and nothing crashes`() {
         val app = ApplicationProvider.getApplicationContext<Application>()
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         composeRule.setContent {
-            CompositionLocalProvider(LocalContext provides app) { LockWindowOrientation(lockToPortrait = true) }
+            CompositionLocalProvider(LocalContext provides app) { RequestWindowOrientation(lockToPortrait = true) }
         }
         composeRule.waitForIdle()
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, composeRule.activity.requestedOrientation)

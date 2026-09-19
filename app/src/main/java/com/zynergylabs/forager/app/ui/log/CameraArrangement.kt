@@ -39,7 +39,7 @@ import android.view.Surface
  *
  * ## Why this is decided from the setting and the window's shape at open, and from nothing else
  *
- * The window lock ([LockWindowOrientation]) is what makes the choice safe to hold. With "Lock
+ * The window lock (`LockWindowOrientation`, since removed) is what makes the choice safe to hold. With "Lock
  * camera to portrait" **off** the window is `SCREEN_ORIENTATION_LOCKED` — pinned to whatever it
  * was when the camera opened, so its shape *and its rotation* at open are its shape and rotation
  * for the whole session, and the arrangement follows them. With the setting **on** the window is
@@ -58,6 +58,12 @@ import android.view.Surface
  * mismatched layout is wanted. `InAppCameraDialog` now re-derives the arrangement whenever the
  * window's shape or rotation changes; "chosen once at open" above is no longer true, and the
  * stop-and-ask that caught the difference is recorded in `docs/audits/README.md`, 2026-09-18.
+ *
+ * **Superseded again, 2026-09-19 — the lock itself is gone for setting-off.** The window now
+ * follows the device (`SCREEN_ORIENTATION_FULL_SENSOR`, [RequestWindowOrientation]) so the system
+ * status bar can be on the phone's top edge in every hold, and the re-derivation above is what
+ * happens on every turn rather than only across a return. The paragraph beginning "The window lock
+ * is what makes the choice safe to hold" is history: the choice is not held.
  *
  * **Setting on is correct by coincidence, not by handling.** With the setting on the lock requests
  * `PORTRAIT` and this function returns [CameraArrangement.Portrait] whatever the window is, so its
@@ -111,8 +117,11 @@ internal fun cameraArrangement(
  * everything that positions against the charger-port edge or the punch-hole edge asks here, and
  * nothing names a screen side directly.
  *
- * Only valid while the window is locked ([LockWindowOrientation]), which is the whole camera
- * session — an unlocked window would move the mapping under a held arrangement.
+ * Valid for the arrangement the window currently has. The window turns with the device
+ * ([RequestWindowOrientation], since 2026-09-19) and the arrangement is re-derived in the same
+ * composition that sees the turn (`InAppCameraDialog`), so the mapping and the window never
+ * disagree for longer than that; the earlier wording, "only valid while the window is locked",
+ * described a window that was not supposed to turn at all.
  */
 internal enum class ScreenEdge {
     Top, Bottom, Left, Right;

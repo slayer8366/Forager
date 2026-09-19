@@ -16,8 +16,8 @@ import androidx.compose.ui.platform.LocalView
 import kotlin.math.max
 
 /**
- * Rotates a control in place so it reads upright to the person holding the phone while the
- * window stays locked ([LockWindowOrientation]). The one shared piece for every control that
+ * Rotates a control in place so it reads upright to the person holding the phone whatever the
+ * window is doing ([RequestWindowOrientation]). The one shared piece for every control that
  * turns with the device — the camera's Done row and photo count today, the torch icon next; the
  * tap-to-focus indicator, which must not turn, simply does not use it. Owner's instruction: a
  * single shared modifier from the start, not three call sites retrofitted later.
@@ -38,11 +38,13 @@ import kotlin.math.max
  * rotation the capture session's orientation listener already snaps to
  * ([CameraCaptureSession.deviceRotation]), so the controls and the photo's own rotation tag agree
  * by construction. The display term is the window's own rotation, and it is what makes the
- * expression right whether or not the window moved: with the window locked ([LockWindowOrientation])
- * it is a constant and the controls turn to meet the device; where the platform ignores the lock
- * (Android 16 on screens 600dp and wider, for an API 36+ target) the window turns itself, the two
- * terms cancel, and the controls stay put because the window carried them. No branch, no
- * capability check, no large-screen path; the owner's design. [uprightRotationDegrees] is the
+ * expression right whether or not the window moved: with the setting on the window is forced
+ * portrait and the sensor term is pinned, so nothing turns; with it off the window follows the
+ * device ([RequestWindowOrientation], since 2026-09-19 — before that it was locked and this branch
+ * was written for the large screens where the platform ignores a lock), the two terms cancel in
+ * every settled hold, and the controls stay put because the window carried them. Between the
+ * device turning and the window catching up, the difference is what the controls turn by. No
+ * branch, no capability check, no large-screen path; the owner's design. [uprightRotationDegrees] is the
  * mapping, pure and unit-tested at both display rotations. The animation takes the short way
  * round: 0° to 270° is a quarter turn back, not three quarters forward, which
  * [shortestRotationTarget] decides, also pure. `null` (no reading yet, or no sensor) means

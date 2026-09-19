@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.log
 import android.util.Log
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalView
@@ -75,6 +76,64 @@ internal fun HideStatusBarOnThisWindow(hider: StatusBarHider) {
             Log.w(TAG, "Not inside a dialog window; the status bar cannot be hidden here and was not.")
         }
         // Nothing to undo: the window this hid the bar on is destroyed with the dialog.
+        onDispose { }
+    }
+}
+
+/**
+ * Asks the platform to rotate **this dialog's window** seamlessly: when the display turns, the
+ * window is re-laid out in the new rotation and the next frame is simply the new layout — no
+ * rotation animation, no crossfade. This is what replaces the window lock for the setting-off
+ * case ([RequestWindowOrientation], 2026-09-19): the window now follows the device so the system
+ * status bar can sit on the phone's top edge in every hold, and the flip the lock existed to
+ * prevent is suppressed here instead.
+ *
+ * ## Why this window's own attributes, and not the manifest
+ *
+ * The platform decides seamlessness on the **top fullscreen opaque window's** own layout params:
+ * `DisplayRotation.shouldRotateSeamlessly` (android16-release) takes
+ * `DisplayPolicy.getTopFullscreenOpaqueWindow()`, requires it to be the focused window, and
+ * requires `mAttrs.rotationAnimation == ROTATION_ANIMATION_SEAMLESS` on *that* window. With the
+ * camera open that window is this dialog's, not the Activity's — `dumpsys window` on the API 36
+ * emulator, 2026-09-19: `mTopFullscreenOpaqueWindowState` and `mFocusedWindow` both name the
+ * `ty=APPLICATION (0,0)(fillxfill)` window that is the dialog, above the `BASE_APPLICATION` one —
+ * because `DisplayPolicy.applyPostLayoutPolicyLw` counts any unattached application-type window
+ * whose params are `isFullscreen()` (origin 0,0 and MATCH_PARENT both ways), which a Compose
+ * `Dialog` with `usePlatformDefaultWidth = false` and `decorFitsSystemWindows = false` is. The
+ * manifest attribute `android:rotationAnimation` goes elsewhere: `ActivityInfo.rotationAnimation`
+ * → `ActivityRecord.mRotationAnimationHint` → the *task's* animation in
+ * `Transition.getTaskRotationAnimation`, never into a window's attrs, and it would make every
+ * rotation anywhere in the app a jump cut. So the request is made here, on the dialog's window,
+ * scoped to the camera by construction: the window is destroyed with the dialog.
+ *
+ * ## When it cannot apply, and what plays instead
+ *
+ * The platform falls back when the window is mid-animation (the dialog's own entry or exit), when
+ * a picture-in-picture task or a system alert window is on screen, and — on a device whose
+ * navigation bar cannot change sides and whose configuration does not allow seamless rotation
+ * regardless (`config_allowSeamlessRotationDespiteNavBarMoving`, true under gesture navigation on
+ * stock builds) — on any turn to or from reverse portrait. What plays then, under shell
+ * transitions, is the ordinary rotate animation (`DefaultTransitionHandler.getRotationAnimationHint`:
+ * the hint defaults to `ROTATION_ANIMATION_ROTATE`), not the crossfade the constant's own
+ * documentation promises; that promise describes the legacy path. Which of these a given phone
+ * hits is a device item, listed as such.
+ *
+ * Not testable under Robolectric beyond the attribute being set on the dialog's window, which the
+ * dialog test reads back through the same window the status-bar seam captures.
+ */
+@Composable
+internal fun RotateThisWindowSeamlessly() {
+    val view = LocalView.current
+    val window = (view.parent as? DialogWindowProvider)?.window
+    DisposableEffect(window) {
+        if (window != null) {
+            val attributes = window.attributes
+            attributes.rotationAnimation = WindowManager.LayoutParams.ROTATION_ANIMATION_SEAMLESS
+            window.attributes = attributes
+        } else {
+            Log.w(TAG, "Not inside a dialog window; seamless rotation cannot be requested here and was not.")
+        }
+        // Nothing to undo: the window this was requested on is destroyed with the dialog.
         onDispose { }
     }
 }

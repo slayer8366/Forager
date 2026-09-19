@@ -74,13 +74,18 @@ import kotlinx.coroutines.launch
  * The running count is the only feedback during a session, deliberately. Showing a thumbnail of the
  * last shot invites reviewing in here, which is the flow the owner asked to move to afterwards.
  *
- * ## Three arrangements, one chosen at open and held; a region model with two bands (2026-09-18)
+ * ## Three arrangements, re-derived as the window turns; a region model with two bands
  *
- * Owner's ruling, superseding the earlier orientation-lock decisions: nothing in the camera layout
- * moves while the camera is open. The window lock is conditional on the setting
- * ([LockWindowOrientation]: `LOCKED` off, `PORTRAIT` on) and the arrangement is chosen once from
- * the setting, the window's shape and its rotation at open ([cameraArrangement]) and never
- * reflowed — the `remember` below has no configuration key on purpose.
+ * The window follows the device with the setting off and is forced portrait with it on
+ * ([RequestWindowOrientation]: `FULL_SENSOR` off, `PORTRAIT` on), and the arrangement is derived
+ * from the setting, the window's shape and its rotation ([cameraArrangement]) and re-derived on
+ * every change of those — the keyed `remember` below. The turn itself has no animation: the
+ * dialog's window asks for seamless rotation ([RotateThisWindowSeamlessly]), so the new layout
+ * simply replaces the old on the next frame. *Superseded (2026-09-19):* this paragraph read
+ * "nothing in the camera layout moves while the camera is open … the window lock is conditional
+ * on the setting (`LOCKED` off) … chosen once at open and never reflowed"; the lock could not put
+ * the system status bar on the phone's top edge, and the owner reversed it — reasoning on
+ * [RequestWindowOrientation].
  *
  * Every placement is stated in **device anatomy**, never a screen side: the shutter band sits on
  * the charger-port edge ([portEdge]) and the strip on the punch-hole edge ([punchHoleEdge]), and
@@ -136,10 +141,10 @@ internal fun InAppCameraDialog(
         onDispose { session.close() }
     }
 
-    // The window stays put while the camera is open — pinned where it is, or forced portrait, by
-    // the setting; reasoning on LockWindowOrientation. Outside the Dialog so the context here is
-    // the Activity's, not the dialog window's.
-    LockWindowOrientation(lockToPortrait)
+    // The window follows the device, or is forced portrait, by the setting; reasoning on
+    // RequestWindowOrientation. Outside the Dialog so the context here is the Activity's, not the
+    // dialog window's.
+    RequestWindowOrientation(lockToPortrait)
 
     // The arrangement follows the window: it is derived from the setting, the window's shape and
     // the window's rotation, and re-derived whenever any of the three changes (owner, 2026-09-18).
@@ -153,9 +158,11 @@ internal fun InAppCameraDialog(
     // inside the four-minute window came back as a portrait window carrying a landscape
     // arrangement (device, 2026-09-18) — and **a large screen where the platform ignores the lock**,
     // where the window turns in the user's hands and a held arrangement leaves the same mismatch.
-    // Following the window is right in both; there is no visible reflow on a phone, because the
-    // lock holds while anyone is watching and these inputs can only change across a return.
-    // Do not restore a setting-only key: that is this bug.
+    // Following the window is right in both. Since 2026-09-19 it is also the ordinary case: with
+    // the setting off the window follows the device (FULL_SENSOR), so these inputs change on every
+    // hold, and the re-derived layout appears in the same frame as the turned window because the
+    // window rotates seamlessly (RotateThisWindowSeamlessly). Do not restore a setting-only key:
+    // that is this bug.
     val windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     // The window's rotation decides which physical edge the shutter goes on, because the two
     // landscapes are mirror images and only one has the charger port on the screen's right — see
@@ -171,8 +178,10 @@ internal fun InAppCameraDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         // On this window, the dialog's own, so every exit restores the bar by destroying the window
-        // it was hidden on — see CameraWindowChrome.
+        // it was hidden on — see CameraWindowChrome. The same window asks for seamless rotation, so
+        // the turn it now makes with the device carries no animation.
         HideStatusBarOnThisWindow(statusBarHider)
+        RotateThisWindowSeamlessly()
 
         Box(
             modifier = modifier

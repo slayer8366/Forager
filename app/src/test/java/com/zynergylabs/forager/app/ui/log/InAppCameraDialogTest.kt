@@ -18,6 +18,7 @@ import android.content.res.Configuration
 import androidx.compose.ui.platform.testTag
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
@@ -443,6 +444,28 @@ class InAppCameraDialogTest {
         val dialog = ShadowDialog.getLatestDialog()
         assertTrue("the dialog's window", window === dialog.window)
         assertTrue("not the Activity's window", window !== dialog.ownerActivity?.window)
+    }
+
+    /**
+     * The other thing the dialog asks of its own window (CameraWindowChrome.kt): seamless rotation,
+     * so that the turn the window now makes with the device (`RequestWindowOrientation`, setting
+     * off) has no animation. The platform decides on this window's own layout params, so the
+     * assertion is on the attribute of the dialog's window — read back through the same window the
+     * status-bar seam captured — and on the Activity's window being left at the default. Whether
+     * the platform then rotates seamlessly is the emulator's and the device's.
+     */
+    @Test
+    fun `the dialog's own window asks for seamless rotation`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+
+        val (dialogWindow, _) = hiddenOn.single()
+        assertTrue("the same window the status-bar seam captured", dialogWindow === ShadowDialog.getLatestDialog().window)
+        assertEquals(
+            "the dialog's window carries ROTATION_ANIMATION_SEAMLESS, so a turn is a re-layout and not an animation",
+            WindowManager.LayoutParams.ROTATION_ANIMATION_SEAMLESS,
+            dialogWindow.attributes.rotationAnimation,
+        )
     }
 
     /** Gated off, the placeholder is not composed, the strip is gone, and nothing else moves. */
