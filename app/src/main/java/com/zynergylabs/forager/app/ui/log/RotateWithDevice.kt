@@ -89,6 +89,18 @@ private fun clockwiseDegrees(surfaceRotation: Int): Float = when (surfaceRotatio
  * read alongside so that a window that does turn (an ignored lock) recomposes this; a view not yet
  * attached, or one with no display, reads as `ROTATION_0`.
  *
+ * **Do not call this from inside a `Dialog`'s content.** Its invalidation rests on
+ * `LocalConfiguration.current`, and inside a Dialog's content that local does not change when the
+ * window turns — measured on 2026-09-18 with a probe that logged `LocalConfiguration.current.orientation`
+ * still `LANDSCAPE` after the window was portrait. The value returned is then whatever the display
+ * reported the last time something *else* recomposed the caller: plausible, and stale. The
+ * placeholder label stayed a quarter turned after a setting-on landscape open for exactly this
+ * reason while the count beside it, recomposed by an unrelated state change, read fresh
+ * (`docs/audits/2026-09-18-placeholder-label-stale-display-term.md`). A caller inside a dialog must
+ * be **passed** the value read at the dialog level, outside the `Dialog {}` block, where the local
+ * does invalidate — which is what `InAppCameraDialog` now does for every glyph. The alternative,
+ * making this function observe the window itself, was priced and not taken (owner, 2026-09-18).
+ *
  * `internal` rather than private because [cameraArrangement] needs the same value at open, to put
  * the shutter on the device's port edge rather than on a fixed screen side — the two landscapes
  * are not interchangeable, which the 2026-09-17 device-check run found the hard way. One reader of

@@ -50,7 +50,7 @@ class CameraStripTest {
     fun `an empty strip composes nothing and reserves no band`() {
         composeRule.setContent {
             Box(Modifier.fillMaxSize().testTag("frame")) {
-                CameraStrip(edge = ScreenEdge.Top, deviceRotation = null, content = null)
+                CameraStrip(edge = ScreenEdge.Top, deviceRotation = null, displayRotation = android.view.Surface.ROTATION_0, content = null)
             }
         }
         composeRule.waitForIdle()
@@ -63,7 +63,7 @@ class CameraStripTest {
     fun `a strip with content is one control row deep along its edge`() {
         composeRule.setContent {
             Box(Modifier.fillMaxSize().testTag("frame")) {
-                CameraStrip(edge = ScreenEdge.Top, deviceRotation = null, content = { e, r -> StripPlaceholder(e, r) })
+                CameraStrip(edge = ScreenEdge.Top, deviceRotation = null, displayRotation = android.view.Surface.ROTATION_0, content = { e, r, d -> StripPlaceholder(e, r, d) })
             }
         }
         composeRule.waitForIdle()

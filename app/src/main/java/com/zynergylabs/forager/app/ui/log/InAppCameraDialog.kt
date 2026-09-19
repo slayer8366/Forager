@@ -116,7 +116,7 @@ internal fun InAppCameraDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     /** The strip's slot (CameraBands.kt); the default is the gated placeholder. A test passes null for the empty strip. */
-    stripContent: (@Composable (edge: ScreenEdge, deviceRotation: Int?) -> Unit)? = defaultStripContent(),
+    stripContent: (@Composable (edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) -> Unit)? = defaultStripContent(),
     /** Hides the status bar on the dialog's own window; a test injects a fake to see which window was asked. */
     statusBarHider: StatusBarHider = SystemStatusBarHider,
     viewfinder: @Composable (Modifier) -> Unit,
@@ -230,15 +230,23 @@ internal fun InAppCameraDialog(
             // its own edge only, which is also what keeps the landscape shutter on the screen's
             // true centre.
             val port = portEdge(arrangement)
+            // Both bands take the dialog-level displayRotation from above, the value the arrangement
+            // turns on, rather than letting each glyph read its own: inside this Dialog's content
+            // LocalConfiguration does not invalidate, so a glyph's own read goes stale the moment
+            // the window turns and stays stale until something unrelated recomposes it (the
+            // placeholder label after a setting-on landscape open, 2026-09-18). One source, one
+            // invariant: what re-derives the arrangement is what turns the glyphs.
             CameraStrip(
                 edge = punchHoleEdge(arrangement),
                 deviceRotation = session.deviceRotation,
+                displayRotation = displayRotation,
                 content = stripContent,
             )
             CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
                 ShutterCluster(
                     edge = port,
                     deviceRotation = session.deviceRotation,
+                    displayRotation = displayRotation,
                     captureError = captureError,
                     photosTaken = photosTaken,
                     shutterEnabled = shutterEnabled,
@@ -264,6 +272,8 @@ internal fun InAppCameraDialog(
 private fun ShutterCluster(
     edge: ScreenEdge,
     deviceRotation: Int?,
+    /** The dialog-level window rotation, not read here — see the CameraStrip call site for why. */
+    displayRotation: Int,
     captureError: String?,
     photosTaken: Int,
     shutterEnabled: Boolean,
@@ -276,13 +286,13 @@ private fun ShutterCluster(
                     message,
                     fill = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_ERROR_TAG),
+                    modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_ERROR_TAG),
                 )
             }
             OverlayText(
                 photoCountLabel(photosTaken),
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.rotateWithDevice(deviceRotation).testTag(CAMERA_COUNT_TAG),
+                modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_COUNT_TAG),
             )
         }
     }

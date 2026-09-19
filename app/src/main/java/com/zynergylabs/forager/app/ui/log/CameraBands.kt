@@ -131,8 +131,10 @@ internal fun BoxScope.CameraBand(
 internal fun BoxScope.CameraStrip(
     edge: ScreenEdge,
     deviceRotation: Int?,
-    /** The strip's slot for what PR #103 adds, given the edge it runs along and the device reading for [rotateWithDevice]; null composes nothing there. */
-    content: (@Composable (edge: ScreenEdge, deviceRotation: Int?) -> Unit)? = defaultStripContent(),
+    /** The dialog-level window rotation, passed rather than read: `currentDisplayRotation()` goes stale inside a Dialog. */
+    displayRotation: Int,
+    /** The strip's slot for what PR #103 adds, given the edge it runs along and both rotation terms for [rotateWithDevice]; null composes nothing there. */
+    content: (@Composable (edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) -> Unit)? = defaultStripContent(),
 ) {
     if (content == null) return
     CameraBand(edge = edge, modifier = Modifier.testTag(CAMERA_STRIP_TAG)) {
@@ -142,7 +144,7 @@ internal fun BoxScope.CameraStrip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Box(Modifier.weight(1f).fillMaxHeight()) { content(edge, deviceRotation) }
+                Box(Modifier.weight(1f).fillMaxHeight()) { content(edge, deviceRotation, displayRotation) }
             }
         } else {
             Column(
@@ -150,19 +152,19 @@ internal fun BoxScope.CameraStrip(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Box(Modifier.weight(1f).fillMaxWidth()) { content(edge, deviceRotation) }
+                Box(Modifier.weight(1f).fillMaxWidth()) { content(edge, deviceRotation, displayRotation) }
             }
         }
     }
 }
 
 /** What the strip holds by default: the placeholder while [SHOW_STRIP_PLACEHOLDER] is on, nothing otherwise. */
-internal fun defaultStripContent(): (@Composable (ScreenEdge, Int?) -> Unit)? =
-    if (SHOW_STRIP_PLACEHOLDER) ({ edge, rotation -> StripPlaceholder(edge, rotation) }) else null
+internal fun defaultStripContent(): (@Composable (ScreenEdge, Int?, Int) -> Unit)? =
+    if (SHOW_STRIP_PLACEHOLDER) ({ edge, rotation, display -> StripPlaceholder(edge, rotation, display) }) else null
 
 /** An outlined, transparent slot the size of a control row, so the strip can be judged before it has controls. */
 @Composable
-internal fun StripPlaceholder(edge: ScreenEdge, deviceRotation: Int?) {
+internal fun StripPlaceholder(edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) {
     val shape = RoundedCornerShape(Spacing.sm)
     Box(
         modifier = Modifier
@@ -177,7 +179,7 @@ internal fun StripPlaceholder(edge: ScreenEdge, deviceRotation: Int?) {
         OverlayText(
             STRIP_PLACEHOLDER_LABEL,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.rotateWithDevice(deviceRotation),
+            modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation),
         )
     }
 }
