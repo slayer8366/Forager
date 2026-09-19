@@ -74,12 +74,16 @@ import androidx.core.view.WindowInsetsControllerCompat
  *
  * Forcing **white** icons while the camera is open was built against this and then reverted
  * (`docs/audits/README.md`, 2026-09-19): on the device the icons were already white, so it changed
- * nothing there. It is still the only app-side lever that touches a revealed bar, and it would
- * matter under a **light** app theme, where `enableEdgeToEdge` derives dark icons from the theme and
- * puts them over a viewfinder. Its own measured trap is recorded in that index row and is the
- * reason any future attempt must not live here: the camera cannot win that setting from inside its
- * own composition, because `MainActivity`'s `enableEdgeToEdge` `SideEffect` re-applies the theme's
- * appearance on every recomposition and recomposes for reasons the camera's subtree does not.
+ * nothing there. **The icon colour is not ours either, on this phone.** The owner then photographed
+ * the revealed bar under the light system theme and under the dark one, and it is identical in both:
+ * white icons on the same dark band. So One UI chooses the icons for a revealed bar itself,
+ * whatever appearance the app requests. (The revert's own record guessed instead that the app's
+ * theme resolved dark there and that white icons would still matter under a light theme; the two
+ * photographs contradict both, and those claims are withdrawn.) On a build that does honour the
+ * request — stock Android on the emulator did — the camera still cannot set it from inside its own
+ * composition: `MainActivity`'s `enableEdgeToEdge` `SideEffect` re-applies the theme's appearance on
+ * every recomposition and recomposes for reasons the camera's subtree does not (measured, same row).
+ * Any future attempt belongs in `MainActivity`.
  *
  * ## What is and is not tested
  *
