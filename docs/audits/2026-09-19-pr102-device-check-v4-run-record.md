@@ -152,6 +152,67 @@ follows EOI in the file the scrub wrote.
 
 ---
 
+## Step 9: no slow work on the main thread
+
+Read from the **tail** of the Diagnostics log, around a capture at `23:03:38.872Z`.
+
+Eight `DiskReadViolation` entries surround the capture, four immediately before it at
+`23:03:38.364Z` to `23:03:38.365Z` and four after at `23:03:46.315Z` to `23:03:46.316Z`. Every one
+of them reads:
+
+```
+strictmode DiskReadViolation again (xN this process, same stack as its first entry above)
+```
+
+**They are all repeats of the same framework stack**, which appears in full earlier in the log:
+
+```
+android.os.strictmode.DiskReadViolation
+  at android.os.StrictMode$AndroidBlockGuardPolicy.onReadFromDisk(StrictMode.java:1760)
+  ...
+  at android.app.ContextImpl.deleteSharedPreferences(ContextImpl.java:805)
+  at android.content.ContextWrapper.deleteSharedPreferences(ContextWrapper.java:265)
+  at android.app.IdsController.openIdsWindow(IdsController.java:83)
+  at android.app.ActivityThread.handleResumeActivity(ActivityThread.java:6832)
+```
+
+That is framework work during Activity resume, which the step lists as noise to ignore.
+
+The capture itself:
+
+```
+2026-09-19T23:03:38.872Z capture orientation '6a33a4b4-8eb5-4929-8a19-55592ff92854.jpg' kept fromTag=6 degrees=90
+```
+
+**Pass. No new violation named `FilePhotoStore`, `PhotoMetadataScrub`,
+`AddPhotoToLogEntryUseCase` or `AddPhotoToGalleryUseCase`.** No new stack appeared at all; every
+entry around the capture was a repeat of one already recorded.
+
+**This converts the `FilePhotoStore.persist` main-thread claim from inferred to measured.** The PR
+description records the before-state as "inferred by reading every frame of the chain, not
+measured" and sends it to the device check as a StrictMode run. This is that run, on the after
+state.
+
+### Two things about the instrument, worth knowing before reading a log this way
+
+**The log deduplicates by stack.** A repeated violation writes a one-line "again (xN this process,
+same stack as its first entry above)" rather than another trace. So counting `strictmode` lines
+overstates the number of distinct problems, and a new stack is the thing to look for rather than a
+new line.
+
+**The viewer opens at the top of the file.** An earlier attempt at this step screenshotted the same
+oldest entry twice, four minutes apart, and read it as before-and-after. The tail is where a new
+entry lands, and the log was 600 KB at the time. Sharing the file and grepping it is the reliable
+route; scrolling to the bottom works but is easy to get wrong.
+
+### Not established
+
+The four entries at `2026-09-20T00:47:29` are from a later process, after midnight UTC, and carry
+the same repeated stack. **They were not during this capture** and are recorded here only so a
+later reader does not associate them with it.
+
+---
+
 ## Findings from this run
 
 ### 1. `ExifIFD Light Source` survived an allowlist scrub
@@ -207,11 +268,10 @@ one this project keeps catching.
 
 ## Not run in this session
 
-Steps 1, 2, 3, 4, 5, 6, 9 and 11.
+Steps 1, 2, 3, 4, 5, 6 and 11.
 
 Steps 1, 2, 4 and 5 were run on earlier builds during the work and are **not carried forward here**:
 the camera open path changed substantially afterwards.
 
-Step 9, the main-thread StrictMode check, is the one that would settle the
-`FilePhotoStore.persist` before-state that the PR description records as inferred rather than
-measured.
+Step 11, colour, is the one that would decide whether finding 2's missing `ICC_Profile` matters
+visually.
