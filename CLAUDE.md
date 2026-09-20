@@ -180,6 +180,38 @@ here.
   step nobody had traced. So: a pre-build report traces every
   claimed path to its caller and every claimed figure to its reader, and
   states which are unverified, before it prices anything.
+- **A correct count is not a correct reading, and from inside a counting
+  check everything countable looks accounted for. So: a check that
+  enumerates states what each enumerated thing means, or records that it
+  did not.** The 2026-09-16 tree check passed step 7 of the PR #102 device
+  check. It confirmed the seven call sites that write capture-orientation
+  entries, and confirmed that six outcome paths carry five distinct labels —
+  both correct then, both still correct. It never asked what a label
+  *meant*. One of them, `declined`, carries four reasons, and the one at
+  `reapplyIntendedOrientation`'s `transposed` branch (`IntendedOrientation.kt:135`
+  as of `c072686`) — the HAL rotated the pixels, so CameraX's tag stands —
+  is the orientation mechanism working, while the other three are
+  indeterminate results. The check licensed a device-check step that read
+  `declined` as a single soft failure, so a runner reaching the
+  expected-correct branch would have filed a bug against correct behaviour:
+  the one reading that step exists to produce, inverted. Nothing in the
+  check's own output could have said so — the countable thing had been
+  counted, correctly, and that is what made it feel settled. This sits
+  **beside** the family above, not in it: those checks were decoupled from
+  their subject by a lossy filter, a stale artifact or a coincident default;
+  this one saw its subject and measured the wrong property of it. It is the
+  sibling of **check reachability before measuring behaviour** — there the
+  question is whether a path can run, here it is what a measurement licenses
+  once it has. What caught it was not a better check but two independently
+  written documents that agreed on the count and so had to be compared on
+  meaning; agreement on the countable thing is what forced the question onto
+  the uncountable one. That is not a procedure available on demand, which is
+  why the rule above is written as the failure rather than the remedy: "diff
+  two documents" is unrunnable, while "a check that enumerates" is
+  recognisable the next time someone writes one. The two sides of it are
+  recorded at `docs/audits/2026-09-16-device-check-v3-tree-corrections.md`
+  (the check that passed) and `docs/audits/2026-09-16-pr102-device-check-v4.md`
+  step 7 (what it licensed).
 
 - **A count inherits the shape of the artifact it was read off, not the thing it names.** The
   number is accurate. It counts something real. It is simply not counting the thing the sentence

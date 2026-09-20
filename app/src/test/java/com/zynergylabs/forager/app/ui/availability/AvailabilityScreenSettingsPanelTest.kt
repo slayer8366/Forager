@@ -39,6 +39,9 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
+import com.zynergylabs.forager.app.ui.diagnostics.DIAGNOSTICS_ENTRY_LABEL
+import com.zynergylabs.forager.app.ui.diagnostics.DIAGNOSTICS_TITLE
+import com.zynergylabs.forager.app.ui.diagnostics.directoryHeading
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.Instant
@@ -107,6 +110,8 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedOfflinePickerBasemap: Basemap? = null
     private var capturedNightMode: Boolean? = null
     private var capturedThemeMode: AppThemeMode? = null
+    private var capturedAutoSaveLocation: Boolean? = null
+    private var capturedLockCamera: Boolean? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
@@ -191,6 +196,14 @@ class AvailabilityScreenSettingsPanelTest {
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
+                onAutoSaveLocationToPhotosChanged = { enabled ->
+                    current = current.copy(autoSaveLocationToPhotos = enabled)
+                    capturedAutoSaveLocation = enabled
+                },
+                onLockCameraToPortraitChanged = { enabled ->
+                    current = current.copy(lockCameraToPortrait = enabled)
+                    capturedLockCamera = enabled
+                },
                 onThemeModeChanged = { mode ->
                     current = current.copy(themeMode = mode)
                     capturedThemeMode = mode
@@ -710,6 +723,77 @@ class AvailabilityScreenSettingsPanelTest {
         // the fold on a 360x640dp window — see the Download-region assertion above.
         composeRule.onNodeWithText("No location picked yet — pan the map above and tap OK.")
             .performScrollTo().assertIsDisplayed()
+    }
+
+    /**
+     * Settings' "Automatically Save Location to Photos" checkbox (owner request, 2026-09-14).
+     * Driven through the real checkbox row, and asserted on the exact strings the panel draws —
+     * both imported from `AvailabilityScreen` rather than retyped here, so a reworded label or
+     * explanation cannot pass this test by accident.
+     *
+     * On by default, which is the ruling this guards as much as the toggling: a privacy setting
+     * that shipped defaulting to off would silently take away the location features built the day
+     * before, for every existing install.
+     */
+    @Test
+    fun `the photo-location checkbox starts on, explains itself, and toggles`() {
+        setScreenWithOfflineMapsState()
+        openSettings()
+
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_EXPLANATION).assertIsDisplayed()
+        assertEquals("nothing is written just by opening Settings", null, capturedAutoSaveLocation)
+
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performClick()
+        composeRule.waitForIdle()
+        assertEquals("on by default, so the first tap must turn it off", false, capturedAutoSaveLocation)
+
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performClick()
+        composeRule.waitForIdle()
+        assertEquals(true, capturedAutoSaveLocation)
+    }
+
+    /** "Lock camera to portrait" (owner request, 2026-09-15): off by default, explains its consequence, toggles; the strings are the panel's own constants. */
+    @Test
+    fun `the lock-camera checkbox starts off, explains that sideways photos save portrait, and toggles`() {
+        setScreenWithOfflineMapsState()
+        openSettings()
+
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_EXPLANATION).assertIsDisplayed()
+        assertEquals("nothing is written just by opening Settings", null, capturedLockCamera)
+
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performClick()
+        composeRule.waitForIdle()
+        assertEquals("off by default, so the first tap turns it on", true, capturedLockCamera)
+
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performClick()
+        composeRule.waitForIdle()
+        assertEquals(false, capturedLockCamera)
+    }
+
+    /**
+     * Unit tests run against the debug variant, so the debug source set's entry row is the one
+     * composed here; in release it composes nothing and this route does not exist. The panel reads
+     * the real (empty) Robolectric `filesDir`, so the assertion is on the zero-count heading it
+     * produces from that, not on a stub.
+     */
+    @Test
+    fun `Settings offers Diagnostics in a debug build, one tap below Crash Logs, and it opens the panel`() {
+        setScreenWithOfflineMapsState()
+        openSettings()
+
+        composeRule.onNodeWithText("Crash Logs").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(DIAGNOSTICS_ENTRY_LABEL).performScrollTo().assertIsDisplayed().performClick()
+
+        composeRule.onNodeWithText(DIAGNOSTICS_TITLE).assertIsDisplayed()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText(directoryHeading("photos/", 0)).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText(directoryHeading("captures/", 0)).assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Back to Settings").performClick()
+        composeRule.onNodeWithText(DIAGNOSTICS_ENTRY_LABEL).performScrollTo().assertIsDisplayed()
     }
 }
 
