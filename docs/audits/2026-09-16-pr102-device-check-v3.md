@@ -1,0 +1,275 @@
+# PR 102 device check, v3
+
+**Status:** **superseded, 2026-09-16, by [v4](2026-09-16-pr102-device-check-v4.md). Do not run this
+version.** It was the first version of this document to exist in the repository, and it is kept
+intact and unedited below this line as the record of what was written. Four of its claims are wrong
+against the tree — two of them, in step 7 and step 12, would cost a run — and the readings are in
+[the corrections note](2026-09-16-device-check-v3-tree-corrections.md). v4 carries those four
+corrections in the body, because a device check is an operational instrument as well as a record and
+relying on a runner to read a companion note first is the same assumption that produced the defect.
+
+**Written against:** `claude/new-session-vto65i` at `1e7d97a`, debug build containing `a9587d7`
+or later.
+
+## Record note: why v1 and v2 are not in this repository
+
+v1 and v2 were written in conversation and delivered as files to the owner. They were never
+committed. That is the defect this commit closes, and it has already cost something concrete: the
+Diagnostics completion report at `docs/audits/2026-09-15-debug-diagnostics-instrument-completion-report.md`
+cites "three of its nine steps" and names a step 5, referring to v1's numbering, and a later pulse
+could not reconcile those references because no device-check document existed in the tree to read.
+Per `record-and-supersede`, v1 and v2 are not reconstructed here. They are recorded as superseded
+and unavailable, and this document stands on its own.
+
+### Step mapping, v1 (nine steps) to v3 (twelve steps)
+
+Anything in the repository that cites a v1 step number should be read through this table. The
+completion report's own references are correct as written for v1 and are not edited; this table is
+the bridge.
+
+| v1 step | v3 step | Note |
+|---------|---------|------|
+| 1 | 1 | orientation of the saved photo, unchanged in intent |
+| 2 | 2 | opens and reopens, plus the epoch case |
+| 3 | 3 and 4 | split when the window lock became conditional on the portrait setting |
+| 4 | 5 | photo orientation matrix, fourth row added for setting ON |
+| **5** | **10** | **scrub content. This is the reference in the completion report's §2.4** |
+| 6 | 6 | retention and routing |
+| 7 | 8 | multi-shot, release, sweep |
+| 8 | 9 | main thread |
+| 9 | 11 and 12 | colour split from the trailer observation |
+| new in v3 | 7 | capture-orientation diagnostics, the two-entry invariant |
+
+Steps 3, 4 and 7 have no v1 ancestor in substance. They test behaviour that did not exist when v1
+was written.
+
+**Do not carry any result forward from a v1 or v2 run.** Every change since then touches the
+camera open path, which most steps exercise.
+
+**Instrument:** Tools, Settings, Diagnostics. The Diagnostics store, the Diagnostics panel and
+StrictMode are all debug-only by source set, so a release build produces nothing to read. This
+assumption is load-bearing for steps 7 through 11.
+
+Run in order. Steps needing no instrument come first, so a failure costs two minutes rather than
+forty. A failure in steps 1 to 6 stops the run.
+
+Record every step, including passes. A step not run is recorded as not run, with the reason.
+
+## Before starting
+
+Write down: device make and model, Android version, security patch, build commit, system
+auto-rotate state, whether the display is wide gamut, and whether a desktop EXIF tool is
+available. Step 10 needs one.
+
+Three things in the Diagnostics log that are **not** findings:
+
+- Framework and startup entries, one stack each.
+- A disk-read violation from opening **Crash Logs** itself. That panel lists its files on the
+  main thread, predates the policy, and has its own record.
+- **An absent early entry may be rotated rather than missing.** The log rotates at 1 MB and the
+  panel reads only the current generation. After a long session, do not read a missing early
+  entry as "never written".
+
+---
+
+## 1. Orientation of the saved photo
+
+"Lock camera to portrait" **off** for all four. Take one photo per case, persist it, then view it
+**in the app** and **in the device gallery**. The gallery honours EXIF, so sideways there is a
+failure even if the app looks right.
+
+| Case | Auto-rotate | Phone held | Expected |
+|------|-------------|-----------|----------|
+| 1a | on | portrait | upright in both |
+| 1b | on | landscape | upright in both |
+| 1c | **off** | landscape | upright in both |
+| 1d | off | portrait | upright in both |
+
+1c is the case the `OrientationEventListener` exists for.
+
+Evidence: which cases ran; for any failure, which viewer and which way.
+
+## 2. Camera opens and reopens
+
+1. Open the dialog: a live viewfinder, not a spinner.
+2. Done, then reopen: live viewfinder again.
+3. **Epoch case:** open, dismiss *while the spinner is showing*, immediately reopen. Camera must
+   work. Run three times; the race is timing dependent.
+
+Evidence: how many epoch runs, what happened each time.
+
+## 3. Window behaviour, setting OFF
+
+The window pins to whatever it already was when the camera opened, and never moves after.
+
+1. App in **portrait**, open the camera: portrait frame, shutter at the bottom centre, Done
+   top-left. **No flip animation.**
+2. Rotate the phone both ways: **nothing in the layout moves.** Controls turn in place to stay
+   readable.
+3. App in **landscape**, open the camera: landscape frame, **shutter on the right edge**,
+   vertically centred, count beside it, Done top-left, and **Done and the count upright, not
+   turned**. No flip animation.
+4. Rotate from there: again, nothing moves.
+5. Done, then rotate the phone: the screen underneath follows again, proving the lock released.
+
+Any flip animation on open in this state is a failure. The shutter along the bottom of a
+landscape frame is a failure.
+
+Evidence: one line per item.
+
+## 4. Window behaviour, setting ON
+
+"Lock camera to portrait" on. The window is forced portrait always.
+
+1. App in landscape, open the camera: **one flip to portrait is expected and accepted**, then the
+   portrait arrangement with the shutter at the bottom.
+2. Rotate the phone: nothing moves; controls turn in place.
+3. Done: the lock releases as in 3.5.
+
+Evidence: one line per item.
+
+## 5. Photo orientation matrix
+
+Four combinations, one photo each, checked in the gallery.
+
+| Setting | Phone held | Expected saved photo |
+|---------|-----------|----------------------|
+| off | portrait | portrait, upright |
+| off | landscape | landscape, upright |
+| on | portrait | portrait, upright |
+| on | landscape | **presented tall, scene on its side** |
+
+The last row is the setting working, not a failure: same sensor frame, no crop, saved portrait.
+
+Evidence: four confirmations.
+
+## 6. Retention and routing
+
+1. Rotate with the camera open, then background the app and return: the camera survived the
+   rotation and is **closed** on return.
+2. Developer options, **Don't keep activities** on. Open the camera, background, return: camera
+   must be **closed**. Turn the setting back off afterwards.
+3. Open the camera from a **log entry**, take a photo, confirm it lands on that record.
+4. Same from the **album**.
+5. Same from a **cartography entry**.
+
+A photo arriving on the wrong record is a quiet failure no other step catches.
+
+Evidence: five confirmations.
+
+## 7. Capture diagnostics, the two-entry invariant
+
+New in v3, and the reason the rest of the run is readable without a debugger.
+
+**Every capture produces exactly two entries:** one `Shot:` entry, and exactly one outcome entry
+from the six mutually exclusive paths. This invariant is established by reading the seven call
+sites, not by a test, so this step is its only confirmation. **If a capture produces one entry
+rather than two, that is the invariant failing, not a display quirk.** Count them.
+
+1. Diagnostics: note what is already logged.
+2. Take **three** photos, setting off, phone held portrait.
+3. Diagnostics: six new entries, three pairs.
+4. Take **one** photo with the setting **on**, held landscape.
+5. Diagnostics: two more entries. Note the outcome branch named and its reason if it declined.
+
+The outcome branch is the finding here, either way. Rewritten confirms the HAL-tag mechanism the
+orientation fix was built on. Kept, declined or failed each mean something different and each is
+worth recording rather than treating as a fault.
+
+Evidence: the entry counts, and the outcome branch and values for the setting-on capture.
+
+## 8. Multi-shot, capture release and sweep
+
+1. Diagnostics: note the contents of `photos` and `captures`.
+2. Ten photos in one session, watching the count. Persist all ten.
+3. Diagnostics: count read 10, `captures` empty, `photos` grew by exactly ten, and twenty new
+   capture entries.
+4. Camera again: three photos, **do not** persist. Back out.
+5. Diagnostics: `captures` holds three.
+6. Force stop from Settings, Apps, Forager. Not back, not a recents swipe.
+7. Launch, wait five seconds, open Diagnostics: `captures` empty and the sweep entry reads 3.
+
+A count other than 3 is recorded, not failed: files modified within two seconds of process start
+are skipped by design.
+
+Evidence: the listings at 1, 3, 5 and 7, the dialog count, and the sweep line.
+
+## 9. Main thread
+
+1. Diagnostics: note what is logged.
+2. Take one photo and persist it.
+3. Diagnostics again.
+
+Pass: no new disk read or write violation naming `FilePhotoStore`, `PhotoMetadataScrub`,
+`AddPhotoToLogEntryUseCase` or `AddPhotoToGalleryUseCase`. Framework, startup and the Crash Logs
+panel's own violation do not count.
+
+Evidence: the new entries, or a statement that there were none.
+
+## 10. Scrub content, the privacy claim
+
+Formerly v1 step 5. This is the step the completion report's §2.4 refers to.
+
+Do not sign this off on inference.
+
+**Getting the photo off the device.** Two paths, both confirmed to exist:
+
+- **Panel share.** Take a photo, open Settings, Diagnostics, tap the share icon on the top
+  `photos/` row. Send by attachment (Gmail, Drive, Quick Share). **Not** a messenger that
+  recompresses, which would rewrite the metadata and invalidate the whole step.
+- **adb, on a debug build.** `adb pull` of the private directory does not work on an unrooted
+  device; the shell user cannot traverse `/data/data/<pkg>`. The working form needs the filename,
+  which the panel is what shows you:
+
+  ```
+  adb exec-out run-as com.zynergylabs.forager.app cat files/photos/<name> > out.jpg
+  ```
+
+**Then:**
+
+1. `exiftool -a -G1 <file>`, or any viewer showing every tag.
+2. Confirm the last two bytes are `FF D9` in a hex viewer.
+
+Pass:
+- `Orientation` present.
+- **Absent:** every `GPS*`, `MakerNote*`, `ThumbnailImage`, `XMP*`, `IPTC*`, `DateTimeOriginal`,
+  `CreateDate`, `ModifyDate`, `Make`, `Model`, `Software`, any serial number tag.
+- `ICC_Profile` present on a wide-gamut device; absent on an sRGB device is recorded, not failed.
+- Nothing after `FF D9`.
+
+Evidence: the full tag dump, pasted, and the hex tail.
+
+## 11. Colour
+
+Wide gamut only; otherwise record as skipped. One subject, two photos under the same light:
+in-app and the stock camera app, compared side by side. A clearly flatter in-app photo points at
+a lost ICC profile; re-read step 10's `ICC_Profile` line.
+
+Evidence: one line.
+
+## 12. Trailer, observation rather than a gate
+
+If the log records bytes dropped after EOI, note the number. If not, write "not observable in
+this build". Either answer is acceptable.
+
+---
+
+## Sign-off
+
+- Steps run; steps not run and why.
+- Anything surprising, including on steps that passed.
+- Matrix row: model, OS version, 1c result, step 3.3 result, step 5 last row, the step 7 outcome
+  branch, `ICC_Profile` present, trailer observed, main thread clean, sweep count.
+- Separately: confirm the Crash Logs panel's own main-thread disk read, so it keeps its own
+  record rather than living in a report sentence.
+
+**Known limitation, not tested here.** On screens 600dp and wider the platform ignores the
+orientation request for API 36+ targets, so the window can move on a tablet or unfolded foldable
+regardless of the setting. Recorded with its cause; out of scope for this device.
+
+**Verification note.** Steps 3, 4, 7 and the noise list were written from dispatch reports rather
+than from reading the tree. Step 10's share procedure was corrected against the tree by the
+2026-09-16 photo-share pulse and now matches
+`docs/audits/2026-09-15-debug-diagnostics-instrument-completion-report.md:83`. If a panel label,
+entry wording or arrangement detail differs from what is written here, the tree is right and this
+document is stale. Say so and it gets corrected, as a superseding note rather than an edit.

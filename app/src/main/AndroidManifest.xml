@@ -4,16 +4,28 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- The mushroom log's camera capture uses ActivityResultContracts.TakePicture
-         (ACTION_IMAGE_CAPTURE), which needs no permission: the camera app is a separate process
-         and writes into a FileProvider URI Forager supplies. See
-         com.zynergylabs.forager.app.photo.CameraCaptureFiles. android.permission.CAMERA was
-         declared here until 2026-09-10 and removed before the first beta. Declaring it enabled
-         nothing; it only made the platform require the grant before honouring
-         ACTION_IMAGE_CAPTURE, so the app asked testers for access it never used directly.
-         Do not re-add it without a direct CameraX/Camera2 use, and if it ever comes back the
-         runtime request in PhotoAcquisitionLaunchers must come back with it. Gallery attach needs
-         no permission at all: it uses PickVisualMedia, the modern photo picker. -->
+    <!-- Re-added 2026-09-14 for the in-app camera, which is the condition the removal note set.
+         The history, kept because it is the reason this line is not free:
+         android.permission.CAMERA was declared here until 2026-09-10 and removed before the first
+         beta, when every capture went out to the user's own camera app through
+         ActivityResultContracts.TakePicture (ACTION_IMAGE_CAPTURE). It enabled nothing there and
+         cost a prompt: declaring it only makes the platform *require* the grant before honouring
+         that intent. The removal note said "do not re-add it without a direct CameraX/Camera2 use,
+         and if it ever comes back the runtime request in PhotoAcquisitionLaunchers must come back
+         with it." Both halves now apply — com.zynergylabs.forager.app.photo.CameraXCaptureSession
+         opens the camera in this process, and the runtime request is back in
+         PhotoAcquisitionLaunchers.
+         The consequence to know before removing it again: with this declared, ACTION_IMAGE_CAPTURE
+         would now also require the grant. That is one reason the in-app camera replaced the intent
+         outright rather than sitting beside it.
+         Gallery attach still needs no permission at all: it uses PickVisualMedia, the modern
+         photo picker. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- required="false" so Forager still installs on a device with no camera. The in-app camera
+         reports "no camera available" rather than assuming one exists — see CameraXCaptureSession's
+         Unavailable state. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <!-- Photo-geodata dispatch: lets a gallery import's EXIF read see the location tag a photo's
          own MediaStore entry carries (MediaStore.setRequireOriginal, API 29+) — without it, the
          platform silently redacts GPS EXIF from any stream this app opens. Requested at the moment
@@ -125,9 +137,27 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Forager">
 
+        <!-- configChanges (2026-09-15): a rotation no longer recreates this Activity. Second and
+             separate step of the camera-rotation fix, on the owner's decision, after the fix
+             itself (the camera's open flag in InAppCameraViewModel, the dialog composed above the
+             window-width branch) had already made the camera survive both recreation and the
+             width-class tree swap. This step keeps everything else across a rotation too: the map's
+             position, drawer and tab state that a recreation used to reset. Verified before adding:
+             no resource directory in this app is qualified by orientation, size or night; every
+             configuration read is in composition through LocalConfiguration, which Compose updates
+             on a handled change; nothing reads configuration at construction; the four ViewModels
+             survive either way. For the camera specifically: PreviewView re-transforms itself
+             through its own DisplayManager listener when the Activity is not recreated, and capture
+             rotation already comes from an OrientationEventListener, not the display.
+             uiMode and smallestScreenSize are deliberately left out: a night-mode toggle and a fold
+             are rare enough that a recreation is fine, and listing them widens the blast radius for
+             no gain. Kept as its own commit so that if the Compose dialog window is wrongly sized
+             through a handled rotation on some Android version, this backs out without touching
+             the fix. MainActivityConfigChangesTest pins exactly this set. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Forager">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
