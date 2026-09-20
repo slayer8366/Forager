@@ -18,7 +18,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
-import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test
@@ -78,7 +77,8 @@ class CartographyScreenTest {
                 galleryLoadErrorMessage = null,
                 galleryPhotoEntryReferenceCounts = emptyMap(),
                 onDeleteGalleryPhoto = {},
-                cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
+                onOpenCameraForAlbum = {},
+                onOpenCameraForEntry = {},
                 onAddGalleryPhoto = {},
                 distanceUnit = DistanceUnit.MILES,
                 mapSlot = { _, _, _, _, _, _, _, _, _ -> },

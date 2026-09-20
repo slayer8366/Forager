@@ -35,31 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.domain.model.Feature
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
-import com.zynergylabs.forager.app.domain.model.Observed
 import com.zynergylabs.forager.app.ui.theme.Spacing
-
-/**
- * True when any of [entry]'s characteristic fields are still [Observed.NotObserved]/
- * [Feature.NotObserved] — the tile's "Incomplete" cue.
- */
-private fun MushroomLogEntry.hasUnrecordedFields(): Boolean =
-    cap.shape is Observed.NotObserved ||
-        cap.surface is Observed.NotObserved ||
-        cap.decorations is Feature.NotObserved ||
-        cap.margin is Observed.NotObserved ||
-        hymenophore.details is Observed.NotObserved ||
-        stipe.details is Observed.NotObserved ||
-        veil.annulus is Feature.NotObserved ||
-        veil.volva is Feature.NotObserved ||
-        contextFlesh.texture is Observed.NotObserved ||
-        contextFlesh.colorChangeOnCutting is Feature.NotObserved ||
-        contextFlesh.exudate is Feature.NotObserved ||
-        sporePrint.details is Observed.NotObserved ||
-        hostSubstrate.association is Observed.NotObserved ||
-        hostSubstrate.forestType is Observed.NotObserved ||
-        hostSubstrate.hostHealth is Observed.NotObserved
 
 /**
  * Records' Finds submenu — **one implementation, responsive layout**, restoring the same "one
@@ -191,9 +168,8 @@ private fun AddEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 /**
  * One logged find in the gallery grid — a cover photo when one exists, otherwise a placeholder
- * icon. [isDraft] renders a "Draft" badge instead of (never alongside) the "Incomplete" one — a
- * draft is always incomplete by [hasUnrecordedFields]'s own definition too, so showing both would
- * be redundant, not additive.
+ * icon. [isDraft] renders a "Draft" badge under the date; a committed find shows the date alone
+ * (the former "Incomplete" badge was removed on 2026-09-13 — see the comment at that spot).
  */
 @Composable
 private fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {
@@ -239,17 +215,15 @@ private fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Mod
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // Owner ruling, 2026-09-13: no "Incomplete" badge any more. It read from the seven
+                // morphology fields, which the edit form no longer offers, so it described fields
+                // a user cannot fill in; the date stands alone on a committed tile. The private
+                // hasUnrecordedFields() that drove it had no other reader and went with it.
                 if (isDraft) {
                     Text(
                         "Draft",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
-                    )
-                } else if (entry.hasUnrecordedFields()) {
-                    Text(
-                        "Incomplete",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.zynergylabs.forager.app.photo.oriented
+import com.zynergylabs.forager.app.photo.readPhotoOrientation
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -55,9 +57,16 @@ internal fun DecodedPhoto(
     LaunchedEffect(relativePath) {
         bitmap = withContext(Dispatchers.IO) {
             runCatching {
+                val file = File(context.filesDir, relativePath)
                 val options = BitmapFactory.Options().apply { inSampleSize = DECODE_SAMPLE_SIZE }
-                BitmapFactory.decodeFile(File(context.filesDir, relativePath).absolutePath, options)
+                val decoded = BitmapFactory.decodeFile(file.absolutePath, options)
                     ?: error("BitmapFactory.decodeFile returned null for '$relativePath'")
+                // EXIF-orientation-display dispatch: BitmapFactory ignores the orientation tag, so
+                // a capture stored in the sensor's landscape frame came out sideways here. Turned
+                // at display time on the sampled bitmap (see Bitmap.oriented for the cost); the
+                // file is never rewritten. Every thumbnail site in the app goes through this one
+                // decode, so this is the one fix for all of them.
+                decoded.oriented(readPhotoOrientation(file))
             }.onFailure { error ->
                 Log.w(TAG, "Couldn't decode photo at '$relativePath'.", error)
             }.getOrNull()?.asImageBitmap()
@@ -72,5 +81,6 @@ internal fun DecodedPhoto(
     }
 }
 
-private const val DECODE_SAMPLE_SIZE = 4
+/** Internal, not private, so [DecodedPhotoTest] derives its expected rendered sizes from the value actually used. */
+internal const val DECODE_SAMPLE_SIZE = 4
 private const val TAG = "LogPhotoDecode"
