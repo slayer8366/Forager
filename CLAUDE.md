@@ -213,6 +213,56 @@ here.
   (the check that passed) and `docs/audits/2026-09-16-pr102-device-check-v4.md`
   step 7 (what it licensed).
 
+- **A count inherits the shape of the artifact it was read off, not the thing it names.** The
+  number is accurate. It counts something real. It is simply not counting the thing the sentence
+  quoting it says it counts, and nothing in the number marks the difference, because a count
+  carries no units. Two instances, in the order they were found.
+
+  **The instrument-walk parser: 289 fixes, or 289 parseable lines.** The provider/`hasSpeed`
+  correlation came back 289/289 with perfect separation, on a sample that had silently dropped all
+  55 network fixes, because they log `speed=null` and the pattern required a number. One unit of
+  that count was a log line the regex matched, not a fix the walk recorded. Written up in the
+  reachability-family entry above as the log-parser case, where it was filed, correctly for what it
+  showed then, as a check that never saw the disconfirming data.
+
+  **Eight `strictmode` lines, one violation** (2026-09-19,
+  `docs/audits/2026-09-19-pr102-device-check-v4-run-record.md`, step 9). The diagnostics log
+  deduplicates by stack: a repeat writes `again (xN this process, same stack as its first entry
+  above)` rather than another trace (`DebugDiagnostics.kt:164-173`). One unit of a
+  `grep -c strictmode` is a write to the log, not a violation on the device, and the ratio between
+  them is whatever the dedup happened to collapse. A line count over that file measures the
+  instrument, not the app.
+
+  **A third candidate was tested against this entry's own rule and rejected**, which is worth
+  recording because it marks the boundary: `versionCode` 732 against a commit count of 731 (same
+  record). Expand both sides and `versionCode` is "commits reachable from the built ref" while the
+  tree's figure is "commits in the checked-out tree". Same noun. What differs is the ref each was
+  measured over, so that one belongs to the derived-figure entry, not here.
+
+  **This is not the reachability family above, and filing it there applies the wrong check.** There
+  the check never saw the data that could have failed it, and the remedy is to confirm the sample
+  includes the disconfirming cases, or to `git grep` the callers first. Here the data was seen, the
+  sample is complete, and the arithmetic is right. Re-running it more carefully produces the same
+  wrong answer, because the defect is in what the unit denotes, not in what the count reached.
+
+  **The remedy, in two tiers.** Where an identity set is available, **replace the count with the
+  set**: `.github/workflows/ci.yml:218-220` gates skips on exact matches of `(classname, name)`
+  rather than on a number, "a skip count drifts and hides which tests are actually skipped", which
+  does not expand the unit so much as remove the count and the question with it. Where a count
+  cannot be replaced, **say what one unit of it is a unit of, in the sentence that carries the
+  number**: "289 fixes" becomes "289 log lines matching the speed pattern, of 344 fixes recorded";
+  "eight violations" becomes "eight log writes, all repeats of one stack". Where the honest
+  expansion turns out to be a different noun from the one the claim needed, the claim was wrong
+  before anyone checked its arithmetic.
+
+  **Documenting the transformation at the point it happens does not prevent this, and that rests on
+  one case.** `DebugDiagnostics` says plainly what it does, in a doc comment written for this
+  reason, and the number still misled, because the reader of the count was not the reader of the
+  emitter: the same person on the same day, with the comment two files from the `grep`. The parser
+  case had no emitter comment to fail, so it cannot corroborate this. The claim is that a
+  transformation documented where it happens is invisible where its output is quoted, and the
+  remedy above is what will test it.
+
 ## Building
 
 - New capability is a new function, class, or path — not a conditional
