@@ -221,9 +221,9 @@ here.
   **The instrument-walk parser: 289 fixes, or 289 parseable lines.** The provider/`hasSpeed`
   correlation came back 289/289 with perfect separation, on a sample that had silently dropped all
   55 network fixes, because they log `speed=null` and the pattern required a number. One unit of
-  that count was a log line the regex matched, not a fix the walk recorded. Written up as instance
-  (3) of the reachability-family entry above, where it was filed, correctly for what it showed
-  then, as a check that never saw the disconfirming data.
+  that count was a log line the regex matched, not a fix the walk recorded. Written up in the
+  reachability-family entry above as the log-parser case, where it was filed, correctly for what it
+  showed then, as a check that never saw the disconfirming data.
 
   **Eight `strictmode` lines, one violation** (2026-09-19,
   `docs/audits/2026-09-19-pr102-device-check-v4-run-record.md`, step 9). The diagnostics log
