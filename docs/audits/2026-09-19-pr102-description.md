@@ -7,6 +7,14 @@ findings behind it. It summarises; the reports it cites are what state.
 **Describes:** `claude/new-session-vto65i` at `de78d30`, whose merge-base with `main` is `175b050`.
 **Posted to:** https://github.com/slayer8366/Forager/pull/102, 2026-09-19.
 
+**Revised 2026-09-19, later the same day, because the run record landed.** The body below was
+updated when `2026-09-19-pr102-device-check-v4-run-record.md` (#105) closed the evidence gap this
+document records: the six device results it had listed as "observed but not recorded here" are now
+cited to that record, step 9's measurement replaces the inferred main-thread claim, and step 11 is
+named as not run with the two checks that would settle it. The verbatim claim below is maintained
+rather than allowed to lapse, which is the property that makes this file worth keeping: it is the
+body as posted, after that revision.
+
 ## Why this exists as a record
 
 The first draft was written from a working conversation rather than from the tree, and was checked
@@ -85,7 +93,9 @@ Every claim below is sourced to a file and line in this branch, or marked as not
   `CameraCaptureFiles.sweepOrphans`).
 - **`FilePhotoStore.persist` and the metadata scrub ran on the main thread.** The whole body is on
   `Dispatchers.IO` now (`FilePhotoStore.kt:102`). The before-state was inferred by reading every
-  frame of the chain, not measured — it goes to the device check as a StrictMode run.
+  frame of the chain, not measured. **The after state is now measured**: step 9 of the run
+  record found no new StrictMode stack around a capture, and none naming `FilePhotoStore`,
+  `PhotoMetadataScrub`, `AddPhotoToLogEntryUseCase` or `AddPhotoToGalleryUseCase`.
 - A stale doc comment in `CameraCaptureFiles` that named a cleanup caller which never existed
   (`CameraCaptureFiles.kt:20-24`).
 
@@ -209,22 +219,23 @@ bounds identical, capture angle unchanged across both window shapes
 (`docs/audits/2026-09-19-camera-activity-window-report.md` and
 `docs/audits/2026-09-19-reverse-portrait-excluded-report.md`).
 
-**On the device, observed but not recorded here.** These were run on a Samsung Galaxy S26 Ultra
-during the work, and **no run record was committed** — the device check below is the instruction
-sheet, not a result. Treat them as reported, not as evidence this repository carries:
+**On the device, recorded.** Samsung Galaxy S26 Ultra, Android 16, at this commit. Steps 7, 8, 9,
+10 and 12 of the device check, every reading quoted verbatim in
+`docs/audits/2026-09-19-pr102-device-check-v4-run-record.md`, landing in #105:
 
-- Photos upright from all four holds, auto-rotate on and off.
-- The orientation matrix, including the setting-on landscape case saving tall with the scene on its
-  side.
-- Seamless rotation on quarter turns; no rotation at all on a half turn.
-- The two-entry invariant across every capture observed.
-- The privacy scrub on a real file: every targeted tag absent, `Orientation` present, file ending
-  `FF D9` with nothing after.
-- Capture orientation tags correct in three distinct holds: portrait `fromTag=6`, port-right
-  `fromTag=1`, port-left `fromTag=3`, all `kept`.
+- the two-entry invariant, three photos giving three pairs;
+- three holds giving three distinct EXIF tags, `kept fromTag=6 degrees=90` portrait,
+  `fromTag=1 degrees=0` port-right, `fromTag=3 degrees=180` port-left;
+- `captures/` empty after a force stop, with `sweep deleted=0`;
+- the privacy scrub on a real file: `Orientation: Rotate 90 CW` present, every `GPS*`, `MakerNote*`,
+  `XMP*`, `IPTC*`, thumbnail, timestamp, make, model and serial tag absent, file ending `ff d9` with
+  nothing after, with the exiftool dump and hex tail in the record;
+- no new StrictMode stack around a capture.
 
-The phone's Android version is not recorded anywhere in this repository. The emulator work was on
-an API 36 AVD (`docs/audits/2026-09-19-camera-activity-window-report.md:10`).
+The run record is explicit about what it does not cover, including a step 8 item not done as
+written, and about two properties of the diagnostics log that change how its output should be read.
+The emulator work was on an API 36 AVD
+(`docs/audits/2026-09-19-camera-activity-window-report.md:10`).
 
 ---
 
@@ -253,14 +264,22 @@ Recorded in the repository:
   (`docs/audits/2026-09-19-reverse-portrait-excluded-report.md:112`).
 - **The `JournalTabTest` flake** is unchanged by this PR and has its own audit.
 
-Observed, with no committed record:
-
-- **`rewritten` appears unreachable on this hardware.** Every capture read `kept`, because this HAL
-  writes the correct tag. The reapply path exists for devices where it does not.
-- **`ICC_Profile` absent** from the scrubbed file on a wide-gamut device. Step 11 of the device check
-  decides whether it matters visually.
+- **`rewritten` is unexercised, not untested.** Every capture in the run read `kept`, because this
+  HAL writes the correct tag; the reapply path exists for devices where it does not (run record,
+  landing in #105).
+- **`ICC_Profile` is absent** from the scrubbed file on a wide-gamut device (same record).
 - **`ExifIFD Light Source` survived the allowlist scrub.** Carries nothing identifying, and its value
-  is the null one, but something got through an allowlist.
+  is the null one, but something got through an allowlist (same record).
+
+Not settled:
+
+- **Step 11, colour, has not been run.** The scrubbed file carries no `ICC_Profile` on a wide-gamut
+  device, and whether that is visible has not been checked. Two checks settle it, in this order: run
+  a stock-camera photo of the same subject through exiftool, which separates "this camera writes no
+  profile at all" from "ours is losing one" and needs no particular light; then the step's own
+  side-by-side, one subject under the same light, in-app against stock. The first decides what a
+  flatter in-app photo would mean, and the pair together would give cause and effect, measured and
+  observed.
 - **API 37 is untested.** The app targets it (`app/build.gradle.kts:245`); no device or working
   emulator image here runs it.
 
@@ -268,8 +287,10 @@ Observed, with no committed record:
 
 ## Device check
 
-`docs/audits/2026-09-16-pr102-device-check-v4.md`. No steps have a committed run record; which steps
-have been exercised and which go to testers is not established by anything in this repository.
+`docs/audits/2026-09-16-pr102-device-check-v4.md`, with its run record landing in #105. **Run:**
+steps 7, 8, 9, 10 and 12. **Not run:** steps 1, 2, 3, 4, 5, 6 and 11 — steps 1, 2, 4 and 5 were
+exercised on earlier builds and are deliberately not carried forward, the camera open path having
+changed since.
 
 The check was rewritten several times during this PR, and every rewrite came from running it. The
 v3-against-the-tree pass found **four corrections, three of them in steps 7 and 12**
