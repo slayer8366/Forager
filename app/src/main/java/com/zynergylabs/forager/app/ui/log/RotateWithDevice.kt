@@ -13,6 +13,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import kotlin.math.max
 
 /**
@@ -59,7 +62,17 @@ internal fun Modifier.rotateWithDevice(surfaceRotation: Int?, displayRotation: I
     return this
         .squareFootprint()
         .graphicsLayer { rotationZ = degrees }
+        .semantics { rotateWithDeviceTarget = target }
 }
+
+/**
+ * The angle, in degrees, that [rotateWithDevice] is turning its control to: the settled target,
+ * not the animation's current frame. Exposed in semantics for tests, because a **square** control
+ * (the flash chip, and any `IconButton`) has the same bounds turned or not, so a test measuring
+ * extents or positions passes whether or not it turned. Only the angle itself can fail there.
+ */
+internal val RotateWithDeviceTarget = SemanticsPropertyKey<Float>("RotateWithDeviceTarget")
+internal var SemanticsPropertyReceiver.rotateWithDeviceTarget by RotateWithDeviceTarget
 
 /**
  * Degrees, clockwise-positive as Compose's `rotationZ`, that a control must turn to read upright

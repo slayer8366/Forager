@@ -294,7 +294,8 @@ class InAppCameraDialogLandscapeTest {
         assertEquals(frame.bottom.value, strip.bottom.value, 0.51f)
         assertEquals("one control row deep", STRIP_ROW_HEIGHT.value, strip.width.value, 0.51f)
         assertTrue("on the opposite side from the shutter: ${strip.right} vs ${shutter.left}", strip.right < shutter.left)
-        composeRule.onNodeWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertExists()
+        val chip = bounds(CAMERA_FLASH_CHIP_TAG)
+        assertTrue("the flash chip is in the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
     }
 
     @Test
@@ -312,28 +313,40 @@ class InAppCameraDialogLandscapeTest {
         assertTrue("on the opposite side from the shutter: ${strip.left} vs ${shutter.right}", strip.left > shutter.right)
     }
 
-    /** The placeholder's label turns with the device, by the one rotation rule. */
+    /**
+     * The flash chip turns with the device, by the one rotation rule. Asserted on the angle
+     * ([RotateWithDeviceTarget]), not on the bounds: the chip is square, so its extents are the same
+     * turned or not, and the extents check the placeholder label's version of this test made would
+     * pass here on a chip that never turned. At `ROTATION_90` the window has carried the chip a
+     * quarter clockwise, so a device reading of `ROTATION_0` turns it a quarter back.
+     */
     @Test
-    fun `the strip's placeholder label turns in place when the device does`() {
+    fun `the flash chip turns in place when the device does`() {
         setDisplayRotation(Surface.ROTATION_90)
         setDialog(lockToPortrait = false)
-        val before = composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot()
+        val before = bounds(CAMERA_FLASH_CHIP_TAG)
+        assertEquals("no reading yet, no turn", 0f, chipAngle(), 0.01f)
 
         session.deviceRotation = Surface.ROTATION_0
         composeRule.waitForIdle()
-        val after = composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot()
 
-        assertEquals("a quarter turn swaps the extents", before.width.value, after.height.value, 0.51f)
-        assertEquals("in place", before.centreX(), after.centreX(), 0.51f)
+        assertEquals("a quarter turn back", -90f, chipAngle(), 0.01f)
+        assertEquals("in place", before.centreX(), bounds(CAMERA_FLASH_CHIP_TAG).centreX(), 0.51f)
+        assertEquals(before.centreY(), bounds(CAMERA_FLASH_CHIP_TAG).centreY(), 0.51f)
     }
+
+    private fun chipAngle(): Float = composeRule.onNodeWithTag(CAMERA_FLASH_CHIP_TAG).fetchSemanticsNode().config[RotateWithDeviceTarget]
 
 
     /**
      * **With the setting on, nothing turns** (owner's ruling, 2026-09-18; the setting's own doc;
      * `effectiveDeviceRotation`). Through the gate, not past it: the sensor is driven through all
-     * four readings and neither the count nor the placeholder label moves a pixel. Then the
-     * window is turned underneath the dialog — the one flip a landscape open makes — and the
-     * sensor driven again, because the label was seen turned only after that flip on the emulator.
+     * four readings and neither the count moves a pixel nor the flash chip's angle changes (its
+     * angle, because the chip is square and its bounds cannot show a turn; the angle is still, not
+     * zero — before the flip the window is at `ROTATION_90` and the pinned sensor is `ROTATION_0`). Then the window is
+     * turned underneath the dialog — the one flip a landscape open makes — and the sensor driven
+     * again, because the strip's since-retired placeholder label was seen turned only after that
+     * flip on the emulator.
      *
      * **What this test cannot see, stated rather than implied:** the emulator's after-flip label
      * turn is a stale display term inside the dialog's composition (`2026-09-18-placeholder-label-
@@ -347,13 +360,13 @@ class InAppCameraDialogLandscapeTest {
         val gated = GatedFakeCameraCaptureSession(lockToPortrait = true)
         setDialog(lockToPortrait = true, session = gated)
         val count0 = bounds(CAMERA_COUNT_TAG)
-        val label0 = composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot()
+        val angle0 = chipAngle()
 
         for (reading in listOf(Surface.ROTATION_0, Surface.ROTATION_90, Surface.ROTATION_180, Surface.ROTATION_270)) {
             gated.sensorRotation = reading
             composeRule.waitForIdle()
             assertEquals("count unmoved at sensor $reading", count0, bounds(CAMERA_COUNT_TAG))
-            assertEquals("label unmoved at sensor $reading", label0, composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot())
+            assertEquals("chip unturned at sensor $reading", angle0, chipAngle(), 0.01f)
         }
 
         // The flip: the window the setting forces.
@@ -361,15 +374,16 @@ class InAppCameraDialogLandscapeTest {
         setOrientation(Configuration.ORIENTATION_PORTRAIT)
         composeRule.waitForIdle()
         val countP = bounds(CAMERA_COUNT_TAG)
-        val labelP = composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot()
-        // No "upright" aspect check on either glyph: this harness measures both texts narrower
-        // than tall (the count 7x20 dp, recorded in this class on 2026-09-18), so width > height is
-        // not what upright looks like here and would fail on correct code. The claim is stillness.
+        val angleP = chipAngle()
+        // No "upright" aspect check on the count: this harness measures it narrower than tall (7x20
+        // dp, recorded in this class on 2026-09-18), so width > height is not what upright looks
+        // like here and would fail on correct code. The claim is stillness, and for the square chip
+        // stillness is its angle.
         for (reading in listOf(Surface.ROTATION_90, Surface.ROTATION_180, Surface.ROTATION_270, Surface.ROTATION_0)) {
             gated.sensorRotation = reading
             composeRule.waitForIdle()
             assertEquals("count unmoved after the flip at sensor $reading", countP, bounds(CAMERA_COUNT_TAG))
-            assertEquals("label unmoved after the flip at sensor $reading", labelP, composeRule.onNodeWithText(STRIP_PLACEHOLDER_LABEL).getBoundsInRoot())
+            assertEquals("chip unturned after the flip at sensor $reading", angleP, chipAngle(), 0.01f)
         }
     }
 
