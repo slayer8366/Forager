@@ -134,6 +134,8 @@ version, not an observation of it.
 
 ## Flags outside scope
 
-- Claude Code prunes its own session logs after a retention period (the `cleanupPeriodDays`
-  setting); not checked here, and it is why the copy matters.
+- **Unverified, from memory, not from anything read on 2026-09-22:** Claude Code may prune its own
+  session logs after a retention period (a `cleanupPeriodDays` setting). If so, that is why the copy
+  matters. Check it against the settings reference before relying on either copy. (Corrected in the
+  commit after `d50e237`, which stated this as fact.)
 - The PR #114 description does not mention flag 1; a line saying it is fixed has been added to it.
