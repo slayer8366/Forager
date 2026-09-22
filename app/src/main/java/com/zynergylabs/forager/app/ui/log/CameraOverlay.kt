@@ -59,6 +59,14 @@ import androidx.compose.ui.unit.dp
 internal val OverlayOutline: Color = Color.Black
 internal val OverlayFill: Color = Color.White
 
+/**
+ * The level line's fill when the phone is level (`LevelLine.kt`): a fill that carries meaning, so
+ * not white. Yellow because it reads against both the white default and a green woodland scene,
+ * and because red here means an error. Pixel and iPhone mark "level" in yellow in the owner's and
+ * this session's recollection; that was not checked.
+ */
+internal val OverlayLevelFill: Color = Color(0xFFFFD600)
+
 /** Stroke width for text and the offset for icons. Three dp reads as an outline at body size and does not fill a letter's counter. */
 internal val OVERLAY_OUTLINE_WIDTH: Dp = 3.dp
 
