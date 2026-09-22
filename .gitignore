@@ -31,7 +31,15 @@ local.properties
 # because the dirty check is `git status --porcelain`, which counts untracked files. That
 # sensitivity is deliberate and must not be loosened -- an untracked .kt under src/ IS compiled in,
 # so a false *clean* would be the worse failure. Ignore what genuinely cannot affect a build.
-.claude/
+.claude/*
+# Re-included (operator decision D, 2026-09-22; docs/process/accountability-design.md): project
+# settings, subagent definitions and hooks are shared config that must be tracked, not session
+# state. settings.local.json, skills/ and worktrees/ stay ignored under the line above. Git
+# cannot re-include a file inside an ignored directory, which is why the line above is `.claude/*`
+# rather than `.claude/`.
+!.claude/settings.json
+!.claude/agents/
+!.claude/hooks/
 
 # Written by Gradle's daemon-JVM feature, machine-local.
 gradle/gradle-daemon-jvm.properties
