@@ -114,3 +114,23 @@ Design: `docs/process/accountability-design.md`.
 **Abort conditions:** The live test's MCP call would do anything other than a read. Two failed fixes on the hook, after which only data gathering. Anything under ~/forager-backups/ would need deleting or overwriting.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-22-08
+**Dispatch-file:** preserved/2026-09-22-06.md
+**Type:** pulse
+**Outcome:** exercise
+**Report:** docs/audits/2026-09-22-accountability-phase-1-flag1-followup-report.md
+**Notes:** Flag 1 live test for 2026-09-22-07, before the fix: a pulse-typed dispatch sent to the built-in general-purpose agent, not to pulse. The dispatch hook preserved and allowed it, and the agent ran an MCP read. The same dispatch after 47512e2 was blocked and not preserved.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-22-09
+**Timestamp:** 2026-09-22T23:45:49Z
+**Closes:** 2026-09-22-07
+**Outcome:** completed
+**Observed:** Flag 1 was real: a planner session dispatched general-purpose and it ran mcp__claude_ai_Resend__list-domains. Fixed in 47512e2 (only coder and pulse may be dispatched), failing-first (7 failures, 'allow' != 'deny'), sabotage-tested twice, and blocked live afterwards. 26 session-log files found under ~/.claude/projects/ and copied to ~/forager-backups/2026-09-22-01/ with an INDEX.md line; the three interactive sessions were never logged. Sandbox network egress: supported per the sandboxing docs (allowedDomains, strictAllowlist from user/managed/CLI settings only), not tried; socat missing here. Mechanism prediction: the dispatch ran and the MCP call ran, as predicted; the interactive transcripts were absent, as predicted, but the -p ones were present, which the prediction did not say.
+**Deviations:** The flag 1 test used --allowedTools for the one MCP tool. Nothing deleted. Coder egress unchanged, per the ruling.
+
+---
