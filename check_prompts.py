@@ -169,6 +169,17 @@ def check_binding(repo_dir=None):
                 f"{DISPATCH_FIELD!r} field: {', '.join(ids)}")
     errors.extend(duplicate_errors)
 
+    # Forager addition (RECORD.md 2026-09-22-03): a dispatch-note claims
+    # exactly one *preserved* prompt -- the hook's verbatim capture -- never
+    # a recovered one.
+    for entry_id, value in claims:
+        kind = kind_closes.get(entry_id, ("", ""))[0]
+        if kind == cr.NOTE_KIND and not value.startswith(f"{PROVENANCE_DIRS[0]}/"):
+            errors.append(
+                f"entry {entry_id}: a {cr.NOTE_KIND} may only claim a prompt "
+                f"under {PROMPTS_DIR}/{PROVENANCE_DIRS[0]}/, but its "
+                f"{DISPATCH_FIELD!r} names {value!r}")
+
     missing = []
     for entry_id, value in claims:
         if value not in on_disk:
@@ -229,5 +240,118 @@ def main():
     return 1
 
 
+# --------------------------------------------------------------------------
+# Self-tests (Forager addition). Store-level fixtures under a temp dir,
+# checked by both this script's binding check and check_record.py's entry
+# validation, because a dispatch-note is only a valid claim if it is also a
+# valid entry.
+# --------------------------------------------------------------------------
+
+def _store(tmp, files, entries):
+    root = Path(tmp)
+    for rel in files:
+        path = root / PROMPTS_DIR / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"prompt {rel}\n")
+    text = cr._minimal_record(*entries)
+    (root / RECORD_NAME).write_text(text)
+    return text
+
+
+def _store_errors(tmp, files, entries):
+    """Binding errors plus entry-validation errors, for one fixture store."""
+    text = _store(tmp, files, entries)
+    _, binding_errors, _, _ = check_binding(tmp)
+    _, entry_errors, _, _ = cr.validate_entries(text)
+    return binding_errors, entry_errors
+
+
+def render_check():
+    import tempfile
+    print("check_prompts.py --render-check")
+    failures = []
+
+    def check(name, expect_fail_msg, fn):
+        print(f"\n[{name}] expected failure mode if broken: {expect_fail_msg}")
+        try:
+            fn()
+            print(f"[{name}] PASS")
+        except Exception as e:
+            print(f"[{name}] FAIL: {e!r}")
+            failures.append(name)
+
+    pulse = "preserved/2026-01-01-05.md"
+
+    def p1():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, _ = _store_errors(tmp, [pulse], [cr._minimal_intent()])
+        assert any(pulse in e and "no RECORD.md entry" in e for e in binding), (
+            f"an unclaimed pulse prompt was not reported: {binding}")
+
+    check("p1_unclaimed_pulse_prompt_fails",
+          "a preserved prompt no entry claims passes the binding check",
+          p1)
+
+    def p2():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = _store_errors(
+            tmp, [pulse], [cr._minimal_intent(), cr._minimal_note()])
+        assert not binding, f"a dispatch-note's claim was not accepted: {binding}"
+        assert not entry, f"the claiming dispatch-note is not a valid entry: {entry}"
+
+    check("p2_pulse_prompt_with_its_note_passes",
+          "a pulse prompt claimed by a well-formed dispatch-note fails "
+          "either the binding check or entry validation",
+          p2)
+
+    def p3():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        stray = "recovered/2026-01-01-05.md"
+        binding, _ = _store_errors(
+            tmp, [stray],
+            [cr._minimal_note(**{"Dispatch-file": stray})])
+        assert any("2026-01-01-05" in e and "preserved/" in e for e in binding), (
+            f"a dispatch-note claiming a prompt outside preserved/ was "
+            f"accepted: {binding}")
+
+    check("p3_sabotaged_note_outside_preserved_fails",
+          "a dispatch-note claiming a prompt outside prompts/preserved/ "
+          "is accepted as a claim",
+          p3)
+
+    def p4():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        _, entry = _store_errors(
+            tmp, [pulse], [cr._minimal_note(Outcome="done")])
+        assert any("Outcome" in e and "'done'" in e for e in entry), (
+            f"a dispatch-note with a sabotaged Outcome was accepted: {entry}")
+
+    check("p4_sabotaged_note_outcome_fails",
+          "a dispatch-note with an Outcome outside answered, declined and "
+          "exercise is accepted",
+          p4)
+
+    def p5():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, _ = _store_errors(
+            tmp, [pulse],
+            [cr._minimal_intent(**{"Dispatch-file": pulse}), cr._minimal_note()])
+        assert any("claimed by more than one" in e for e in binding), (
+            f"a prompt claimed by both an intent and a dispatch-note was "
+            f"accepted: {binding}")
+
+    check("p5_note_and_intent_on_one_prompt_fails",
+          "one prompt claimed by both an intent and a dispatch-note is "
+          "accepted",
+          p5)
+
+    total = 5
+    print(f"\n{'FAIL' if failures else 'PASS'}: {len(failures)} of "
+          f"{total} checks failed{': ' + ', '.join(failures) if failures else ''}")
+    return 1 if failures else 0
+
+
 if __name__ == "__main__":
+    if "--render-check" in sys.argv:
+        sys.exit(render_check())
     sys.exit(main())

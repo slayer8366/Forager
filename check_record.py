@@ -94,6 +94,46 @@ OUTCOME_FIELD = "Prediction (outcome — planner)"
 SUPPLIED_FIELD = "Prediction-outcome-supplied"
 
 
+# Forager addition (operator ruling, 2026-09-22; RECORD.md 2026-09-22-03).
+# A dispatch-note records a dispatch that opens no intent -- a pulse, a
+# build the operator declined, a live exercise of the dispatch hook -- so
+# the prompt the hook preserved for it is still claimed by an entry. It
+# opens and closes nothing and carries no prediction or finish line, so
+# carrying any of those fields is an error rather than an ignored extra.
+NOTE_KIND = "dispatch-note"
+NOTE_REQUIRED = ["Kind", "ID", "Dispatch-file", "Type", "Outcome", "Report"]
+NOTE_TYPES = {"build", "device", "pulse"}
+NOTE_OUTCOMES = {"answered", "declined", "exercise"}
+NOTE_FORBIDDEN = ["Closes", "Superseded-by", "Finish line",
+                  "Prediction (outcome — planner)",
+                  "Prediction (mechanism — coder)"]
+
+
+def _validate_note(fields, entry_id, label_for_errors):
+    errors = []
+    if entry_id and not ID_RE.match(entry_id):
+        errors.append(f"{NOTE_KIND} {entry_id}: malformed ID (expected "
+                      f"YYYY-MM-DD-NN)")
+    for req_label in NOTE_REQUIRED:
+        if not fields.get(req_label, "").strip():
+            errors.append(f"{NOTE_KIND} {label_for_errors}: missing required "
+                          f"field {req_label!r}")
+    note_type = fields.get("Type", "").strip()
+    if note_type and note_type not in NOTE_TYPES:
+        errors.append(f"{NOTE_KIND} {label_for_errors}: Type {note_type!r} is "
+                      f"not one of {sorted(NOTE_TYPES)}")
+    outcome = fields.get("Outcome", "").strip()
+    if outcome and outcome not in NOTE_OUTCOMES:
+        errors.append(f"{NOTE_KIND} {label_for_errors}: Outcome {outcome!r} "
+                      f"is not one of {sorted(NOTE_OUTCOMES)}")
+    for label in NOTE_FORBIDDEN:
+        if label in fields:
+            errors.append(f"{NOTE_KIND} {label_for_errors}: carries field "
+                          f"{label!r}, but a dispatch-note opens and closes "
+                          f"nothing and has no prediction or finish line")
+    return errors
+
+
 def split_entries(text):
     """Raw text blocks for each entry, found after the '## Entries'
     heading and separated by bare '---' lines. Header/format
@@ -150,6 +190,17 @@ def validate_entries(text):
         kind = fields.get("Kind", "").strip()
         entry_id = fields.get("ID", "").strip()
         label_for_errors = entry_id or f"entry #{i + 1} (no ID)"
+
+        if kind == NOTE_KIND:
+            errors.extend(_validate_note(fields, entry_id, label_for_errors))
+            if entry_id:
+                if entry_id in seen_ids:
+                    errors.append(f"duplicate ID {entry_id}: used by entry "
+                                  f"#{seen_ids[entry_id] + 1} and entry #{i + 1}")
+                else:
+                    seen_ids[entry_id] = i
+            entries.append({"kind": kind, "id": entry_id, "fields": fields})
+            continue
 
         if kind not in ("intent", "terminal"):
             errors.append(f"{label_for_errors}: missing or invalid Kind "
@@ -542,6 +593,16 @@ def _minimal_terminal(id_="2026-01-01-02", closes="2026-01-01-01",
     return _render_entry(fields)
 
 
+def _minimal_note(id_="2026-01-01-05", **overrides):
+    fields = {
+        "Kind": "dispatch-note", "ID": id_,
+        "Dispatch-file": "preserved/2026-01-01-05.md", "Type": "pulse",
+        "Outcome": "answered", "Report": "none",
+    }
+    fields.update(overrides)
+    return _render_entry(fields)
+
+
 def _minimal_record(*entries):
     parts = ["# RECORD.md", "", "## Entries", "", "---", ""]
     for e in entries:
@@ -889,8 +950,75 @@ def render_check():
           "intent ID is accepted",
           check18)
 
+    # ---- Checks 19-23: dispatch-note entries (Forager addition) ------------
+    def check19():
+        text = _minimal_record(_minimal_intent(), _minimal_note())
+        entries, errors, unterminated, _ = validate_entries(text)
+        assert not errors, f"a well-formed dispatch-note produced errors: {errors}"
+        assert len(entries) == 2
+        assert unterminated == ["2026-01-01-01"], (
+            f"a dispatch-note was counted as opening or closing an intent: "
+            f"{unterminated}")
+
+    check("check19_well_formed_dispatch_note_accepted",
+          "a well-formed dispatch-note is rejected as an invalid Kind, or "
+          "is counted as opening or closing an intent",
+          check19)
+
+    def check20():
+        text = _minimal_record(_minimal_note(Report=None))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-05" in e and "'Report'" in e for e in errors), (
+            f"dispatch-note missing 'Report' not reported by ID and field: {errors}")
+
+    check("check20_dispatch_note_missing_field_names_fault",
+          "a dispatch-note missing a required field is accepted, or the "
+          "error does not name both the entry and the field",
+          check20)
+
+    def check21():
+        text = _minimal_record(_minimal_note(Outcome="completed"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-05" in e and "Outcome" in e and "'completed'" in e
+                   for e in errors), (
+            f"dispatch-note with an Outcome outside answered/declined/exercise "
+            f"was accepted: {errors}")
+
+    check("check21_dispatch_note_rejects_unknown_outcome",
+          "a dispatch-note whose Outcome is not answered, declined or "
+          "exercise is accepted",
+          check21)
+
+    def check22():
+        text = _minimal_record(_minimal_note(Type="audit"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-05" in e and "Type" in e and "'audit'" in e
+                   for e in errors), (
+            f"dispatch-note with a Type outside build/device/pulse was "
+            f"accepted: {errors}")
+
+    check("check22_dispatch_note_rejects_unknown_type",
+          "a dispatch-note whose Type is not build, device or pulse is "
+          "accepted",
+          check22)
+
+    def check23():
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_note(Closes="2026-01-01-01"))
+        _, errors, unterminated, _ = validate_entries(text)
+        assert any("2026-01-01-05" in e and "'Closes'" in e for e in errors), (
+            f"a dispatch-note carrying Closes was accepted: {errors}")
+        assert unterminated == ["2026-01-01-01"], (
+            f"a dispatch-note's Closes field closed an intent: {unterminated}")
+
+    check("check23_dispatch_note_cannot_close_an_intent",
+          "a dispatch-note carrying a Closes field is accepted, or closes "
+          "the intent it names",
+          check23)
+
+    total = 23
     print(f"\n{'FAIL' if failures else 'PASS'}: {len(failures)} of "
-          f"{18} checks failed{': ' + ', '.join(failures) if failures else ''}")
+          f"{total} checks failed{': ' + ', '.join(failures) if failures else ''}")
     return 1 if failures else 0
 
 
