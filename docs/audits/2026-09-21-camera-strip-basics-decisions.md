@@ -73,7 +73,7 @@ Forager does not write location into the photo. What it does, as read at `89f53a
 scrubbed before storage". That is true of **camera captures only**. The scrub at
 `FilePhotoStore.kt:132` is gated on `CameraCapturePhotoSource`. Per the owner's earlier
 instruction, **photos imported from the gallery stay untouched** (`FilePhotoStore.kt:125–127`),
-and their EXIF coordinates are read into the record (`:137`). The strip toggle is a camera
+and their EXIF coordinates are read into the record (`:138`). The strip toggle is a camera
 control, so the rule above holds for it. It does not describe imports.
 
 ### B4. ADR 0003
