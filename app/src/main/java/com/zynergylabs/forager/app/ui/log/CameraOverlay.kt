@@ -31,8 +31,8 @@ import androidx.compose.ui.unit.dp
  * the outline is what keeps a glyph readable over light and dark alike, and it is what lets the
  * strip and the controls have **no background of their own** — no scrim, no gradient, no panel.
  * Fill is the only thing that means anything: white for ordinary chrome (the count, the shutter,
- * the loading and unavailable states, strip controls), red for an error so a failure still reads
- * as one, and red for recording controls when PR #103 brings them.
+ * the loading and unavailable states, strip controls), and red for an error so a failure still
+ * reads as one.
  *
  * Everything here takes the outline from [OverlayOutline] and the default fill from [OverlayFill],
  * so a control added later inherits the rule by using these composables rather than by knowing it.

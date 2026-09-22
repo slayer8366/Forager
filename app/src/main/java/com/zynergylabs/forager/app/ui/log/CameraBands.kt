@@ -105,7 +105,7 @@ internal fun BoxScope.CameraBand(
 
 /**
  * The strip: the band on the punch-hole edge and what lives in it. Geometry and structure only —
- * what goes in it is PR #103's, and no working control lives here.
+ * the slot is reserved for the strip controls; none built yet, and no working control lives here.
  *
  * **There is no Done control** (owner, 2026-09-18). The overlay build first moved Done in here
  * from the top-left corner, as an outlined ✕; the owner then removed it, because the navigation
@@ -133,7 +133,7 @@ internal fun BoxScope.CameraStrip(
     deviceRotation: Int?,
     /** The dialog-level window rotation, passed rather than read: `currentDisplayRotation()` goes stale inside a Dialog. */
     displayRotation: Int,
-    /** The strip's slot for what PR #103 adds, given the edge it runs along and both rotation terms for [rotateWithDevice]; null composes nothing there. */
+    /** The strip's slot, reserved for the strip controls (none built yet), given the edge it runs along and both rotation terms for [rotateWithDevice]; null composes nothing there. */
     content: (@Composable (edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) -> Unit)? = defaultStripContent(),
 ) {
     if (content == null) return
