@@ -91,6 +91,12 @@ internal interface CameraCaptureSession {
  */
 internal enum class FlashMode { Off, Torch }
 
+/** What a tap on the flash chip asks for next: Off to Torch to Off. */
+internal fun FlashMode.next(): FlashMode = when (this) {
+    FlashMode.Off -> FlashMode.Torch
+    FlashMode.Torch -> FlashMode.Off
+}
+
 /**
  * Three states, not a nullable camera. [Unavailable] carries its own reason because "the camera
  * didn't open" is the one the user can sometimes act on (no camera on the device, another app
