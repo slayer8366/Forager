@@ -1,6 +1,8 @@
 # Planner–coder accountability in Claude Code
 
-Proposal, 2026-09-22. Built on Evidence Gated Development as read at E-GD-Philosophy `Test-1` @ 35e39d1: BOOTSTRAP.md, CLAUDE.md, PROTOCOL.md, OVERVIEW.md, README.md. Target repo: Forager. Nothing here is built yet. Three decisions (A, B, C) are open for the operator.
+Proposal, 2026-09-22. Built on Evidence Gated Development as read at E-GD-Philosophy `Test-1` @ 35e39d1: BOOTSTRAP.md, CLAUDE.md, PROTOCOL.md, OVERVIEW.md, README.md. Target repo: Forager.
+
+Status, revised 2026-09-22: phase 1 is built on PR #114, and its three device items passed on the S22 Ultra. Decisions A to F are closed; see the end. "Revert paths" is a proposal for phase 2, and nothing in it is built.
 
 ## The idea in one line
 
@@ -69,6 +71,43 @@ Each gate below names the incident it exists for. A gate with no incident behind
 - **History.** Deny `git push --force`, `gh pr merge` and `git merge` into main. Merging is the operator's approval.
 - **Restricted Object.** Stays an instruction in CLAUDE.md:253. A hook that detects it would have to contain its name.
 
+## Revert paths (proposed 2026-09-22, for phase 2)
+
+**Rule.** Nothing that changes state runs until a way back exists and is recorded. Where no way back can exist, the action belongs to the owner.
+
+Git already covers most of the work, but only committed and pushed work. EGD's durability finding applies: an unpushed commit counts as unsaved. The gaps are everything git does not hold.
+
+| State | Revert path | Enforced by |
+|---|---|---|
+| Code and records | Committed and pushed before the next step | SubagentStop report gate (phase 2) |
+| Uncommitted work before a destructive git command (`reset --hard`, `checkout --`, `clean -fd`, `stash drop`, branch delete) | The hook writes a backup ref (`refs/backup/<date>-<seq>`) first, then allows the command | PreToolUse on Bash |
+| App data on the test phone, debug build | Snapshot of the app's data directory through `run-as`, into the backup directory, before any device dispatch; restore on request | Device dispatch preflight |
+| App data on the test phone, release build | None: `run-as` works only on a debuggable build. Switching between debug and release also needs an uninstall, because they are signed with different keys (the phase 1 install guard blocks it) | Owner only. The test phone stays on debug builds for agent work |
+| Anything needed later that lives in `/tmp` or a worktree | Moved into the repo, a pushed branch, or the backup directory before the session ends | Change-of-watch checklist |
+| The owner's machine settings | Copied beside the original before any edit; the owner does these edits anyway | Instruction |
+| External services: email, cloud resources, anything sent | None can exist | Owner only. Enforced today for the planner and pulse only, by their allowlists. **Not enforced for the coder:** its Bash is unrestricted apart from the device and history guards, so `curl`, `gh api -X POST` or `gh pr comment` can send. See "Gap: outbound sends" below |
+
+**Where backups live (owner, 2026-09-22).** On the local drive. The owner has the space.
+
+- **One directory outside the repo**, for example `~/forager-backups/`, with a subfolder per backup named by date and sequence.
+  - Outside the repo because snapshots of app data hold the owner's own data, and they must never reach git.
+  - Not `/tmp`, which Ubuntu clears at boot.
+- **An index**, `~/forager-backups/INDEX.md`, append-only. One line per backup: what it holds, what action it guards, which dispatch it belongs to, and how to restore it. A backup nobody can find is not a revert path.
+- **Agents create, never delete.** A PreToolUse guard blocks any agent command that removes, moves or overwrites anything under the backup directory. A backup the agent can erase does not protect against the agent. Pruning is the owner's, by hand, when space runs short.
+- **One copy, on one disk.** This is a revert path for mistakes, not an archive against disk failure. If something needs to survive a dead drive, that is a separate decision.
+
+**Evidence.** The wipe on 2026-09-22 had no snapshot to restore, so the owner's settings were retyped by hand. `/tmp/ro-map.txt` was the only old-to-new hash map and lived where nothing survives.
+
+**Already short of the rule.** Phase 1's dispatch told the coder to keep none of its throwaway files, and the coder complied: the raw logs of the live exercises and device runs in `/tmp` are deleted. The reports quote every guard message verbatim, so the results survive. The raw transcripts may too: Claude Code keeps its own session logs on the local drive. Check there before calling them lost, and copy what is found into the backup directory. The conflict was in the planner's dispatch, not the coder's conduct.
+
+**Gap: outbound sends.** Two routes send things out past the owner.
+- **The coder's Bash.** Pattern guards on `curl` and friends would leak the way the phase 1 bypass table predicted. The durable control is network egress limited at the sandbox level to what the coder needs (git and GitHub), if Claude Code's sandboxing supports that on the installed version. To verify, then decide in phase 2.
+- **The planner dispatching a built-in agent.** The dispatch tool can start the built-in general-purpose agent, which likely gets every tool, MCP included. If so, a read-only planner could act, and send, through it. That is inferred from the docs and not yet tested. The fix belongs in phase 1, since it is decision A not holding: the dispatch hook allows only the named subagents (`coder`, `pulse`) and blocks every other agent type.
+
+**Exception: deliberate removal.** A backup of something the owner has withdrawn keeps alive what was meant to be gone. The 2026-09-21 rewrite left exactly such copies (`/tmp/ro-rewrite.git`, a pre-rebase branch). When the owner directs a removal, the owner decides whether a backup exists and where it is held. No agent makes or keeps one, local or otherwise, and no hook creates one automatically for that operation.
+
+**To verify before building.** Claude Code's own checkpoints cover the file edits it makes, not Bash side effects. The rule does not lean on them. Confirm their scope on the installed version anyway, so nobody assumes more coverage than they give.
+
 ## What this does not catch
 
 - A planner and operator wrong in the same way. Every gate passes and the work is still wrong (EGD PROTOCOL, "What these do not fix").
@@ -91,11 +130,15 @@ Adopt a gate when it keeps catching things. Review any gate that catches nothing
 
 Each phase is one dispatch, with the hooks sabotage-tested and the results recorded.
 
-## Open for the operator
+## Closed decisions (operator, 2026-09-22)
 
-- **A. Planner read access.** Read-only repository access, or none as in EGD? Proposed: read-only.
-- **B. Approval.** Approve every dispatch, or builds and device runs only, with read-only pulses running unapproved? Proposed: builds and device runs only.
-- **C. Record store.** Vendor EGD's `RECORD.md` and `check_record.py` into Forager, as OSCam vendored its core? Or define intent and terminal entries inside Forager's existing `docs/audits/` convention? Proposed: vendor EGD's, since the intent gate needs a store a script can check. Existing audits stay where they are.
+- **A. Planner read access:** read-only. Later ruling: planner allowlist of Read, Grep, Glob, restricted Bash, Agent, Skill, WebFetch, WebSearch, AskUserQuestion, ToolSearch, TodoWrite; everything else denied, including every `mcp__*` tool.
+- **B. Approval:** builds and device runs only; pulses run unapproved.
+- **C. Record store:** EGD's `RECORD.md` and checkers vendored into Forager.
+- **D. `.claude/` in git:** `.gitignore` narrowed to `.claude/*` with settings, agents and hooks re-included.
+- **E. Existing permission allows:** untouched; precedence settled by experiment in step 0.
+- **F. History rewriting is guarded:** `git filter-repo` and `git filter-branch` blocked.
+- **Backups:** on the local drive, outside the repo, indexed, created by agents but never deleted by them.
 
 ## Sources
 
