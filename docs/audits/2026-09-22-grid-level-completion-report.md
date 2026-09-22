@@ -176,14 +176,16 @@ that nothing held the screen's wiring. It didn't fail first; its two reverts are
 |---|---|---|---|---|---|
 | Camera set (`--tests '*Camera*'`), branch point | `1f19604` | 21 | 114 | 0 | 0 |
 | Camera set, branch head | `42e3dd3` | 27 | 143 | 0 | 0 |
-| Full unit suite, branch head | `42e3dd3` | FULL_CLASSES | FULL_TESTS | FULL_FAILURES | FULL_SKIPPED |
+| Full unit suite, branch head | `42e3dd3` | 211 | 1630 | 0 | 24 |
 
 Both camera runs deleted the results directory first. Neither build log has compile errors. The
 branch-point run finished (`09:02:34`) before the first new file was written (`09:02:39`), on a
 clean tree. The +29 tests are the six new classes (4 + 4 + 5 + 4 + 3 + 5 = 25), 3 new
 `InAppCameraDialogTest` tests and 1 new `AvailabilityScreenInAppCameraTest` test.
 `WindowOrientationTest` isn't matched by the filter; its harness changed, and the full suite covers
-it. `@Ignore` count: **53 at `1f19604`, 53 at `42e3dd3`**.
+it. The full suite is +6 classes and +29 tests against #112's head (205 / 1601), the same delta as
+the camera set, so nothing outside the camera moved. Its 24 skips are pre-existing. `@Ignore`
+count: **53 at `1f19604`, 53 at `42e3dd3`**.
 
 ---
 
