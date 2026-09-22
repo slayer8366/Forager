@@ -10,6 +10,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import com.zynergylabs.forager.app.domain.GridMode
+import com.zynergylabs.forager.app.domain.LevelProvider
+import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import org.robolectric.shadows.ShadowDisplay
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.CompositionLocalProvider
@@ -144,6 +149,9 @@ class InAppCameraDialogTest {
     private fun Subject(
         session: CameraCaptureSession,
         viewfinder: @Composable (Modifier) -> Unit = { modifier -> Box(modifier.fillMaxSize()) },
+        gridMode: GridMode = GridMode.Off,
+        onGridModeChanged: (GridMode) -> Unit = {},
+        levelProvider: LevelProvider = FakeLevelProvider(),
     ) {
         InAppCameraDialog(
             session = session,
@@ -151,6 +159,9 @@ class InAppCameraDialogTest {
             lockToPortrait = false,
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
+            gridMode = gridMode,
+            onGridModeChanged = onGridModeChanged,
+            levelProvider = levelProvider,
             statusBarHider = recordingStatusBarHider,
             viewfinder = viewfinder,
         )
@@ -489,15 +500,23 @@ class InAppCameraDialogTest {
         assertEquals("put back, so only the camera rotates this way", before, composeRule.activity.window.attributes.rotationAnimation)
     }
 
-    /** A camera with no flash unit: no chip, so no strip at all, and nothing else moves. */
+    /**
+     * A camera with no flash unit: no flash chip, and the grid chip takes the strip's first place;
+     * nothing else moves. Until the grid chip this test also held "no chip, no strip at all"; the
+     * grid chip is always present, so the camera's strip is never empty now, and the empty case is
+     * held at the container, in `CameraStripTest`.
+     */
     @Test
-    fun `with no flash unit there is no chip, no strip, and the shutter is where it was`() {
+    fun `with no flash unit there is no flash chip, the grid chip comes first, and the shutter is where it was`() {
         composeRule.setContent { Subject(FakeCameraCaptureSession(flashUnitOnOpen = false)) }
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithTag(CAMERA_FLASH_CHIP_TAG).assertCountEquals(0)
-        // Rule 9, in production: with no chip there is no band at all.
-        composeRule.onAllNodesWithTag(CAMERA_STRIP_TAG).assertCountEquals(0)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val grid = bounds(CAMERA_GRID_CHIP_TAG)
+        // The first slot, not the second: a chip's node sits inside its 48 dp touch target, so its
+        // left edge is a few dp in, and a second slot would start a whole row plus the spacing along.
+        assertTrue("the grid chip in the strip's first slot: $grid in $strip", grid.left - strip.left < STRIP_ROW_HEIGHT)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         assertEquals((frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
@@ -531,6 +550,56 @@ class InAppCameraDialogTest {
             assertEquals("touch ${i + 1} at $point reached the chip", i + 1, session.setFlashModeCalls)
         }
         assertEquals("five taps from Off end on Torch", FlashMode.Torch, session.flashMode)
+    }
+
+    /**
+     * The grid is over the preview and under the bands: at Grid it fills the camera's frame, and it
+     * is placed before the strip and the shutter band, which is the order they draw and hit-test in.
+     * Placement order is read from the frame's semantics children; that it is also the order the
+     * pixels land in is the device check's first step.
+     */
+    @Test
+    fun `at Grid the grid fills the preview and sits under both bands`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession(), gridMode = GridMode.Grid) }
+        composeRule.waitForIdle()
+
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        assertEquals("the grid spans the preview", frame, bounds(CAMERA_GRID_TAG))
+        val order = composeRule.onNodeWithTag(IN_APP_CAMERA_TAG).fetchSemanticsNode().children.map { it.config.getOrNull(SemanticsProperties.TestTag) }
+        val grid = order.indexOf(CAMERA_GRID_TAG)
+        assertTrue("the grid is a child of the frame: $order", grid >= 0)
+        assertTrue("placed before the strip: $order", grid < order.indexOf(CAMERA_STRIP_TAG))
+        assertTrue("and before the shutter band: $order", grid < order.indexOf(CAMERA_SHUTTER_BAND_TAG))
+    }
+
+    @Test
+    fun `at Off there is no grid and no level`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession(), gridMode = GridMode.Off) }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithTag(CAMERA_GRID_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(CAMERA_LEVEL_TAG).assertCountEquals(0)
+    }
+
+    /**
+     * **The level's sensor does not outlive the camera** (the dispatch's rule: register on open,
+     * unregister on close). With Grid + Level on, the camera is listening while it is open, and
+     * not once it has closed.
+     */
+    @Test
+    fun `at Grid and Level the level is shown and its sensor is released when the camera closes`() {
+        val level = FakeLevelProvider(initial = 3f)
+        var open by mutableStateOf(true)
+        composeRule.setContent { if (open) Subject(FakeCameraCaptureSession(), gridMode = GridMode.GridLevel, levelProvider = level) }
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(CAMERA_GRID_TAG).assertCountEquals(1)
+        composeRule.onAllNodesWithTag(CAMERA_LEVEL_TAG).assertCountEquals(1)
+        assertEquals("listening while open", 1, level.collectors)
+
+        open = false
+        composeRule.waitForIdle()
+
+        assertEquals("released once closed", 0, level.collectors)
     }
 
     /** The outline is a second, stroked pass of the same text — it must not become a second text node. */

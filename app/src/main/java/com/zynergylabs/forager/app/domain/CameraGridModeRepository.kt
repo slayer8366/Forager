@@ -10,6 +10,13 @@ package com.zynergylabs.forager.app.domain
  */
 enum class GridMode { Off, Grid, GridLevel }
 
+/** What a tap on the grid chip asks for next: Off to Grid to Grid + Level to Off. */
+fun GridMode.next(): GridMode = when (this) {
+    GridMode.Off -> GridMode.Grid
+    GridMode.Grid -> GridMode.GridLevel
+    GridMode.GridLevel -> GridMode.Off
+}
+
 /**
  * Where the grid mode persists (B7a: across camera sessions and app restarts, unlike torch).
  * DataStore rather than Room, per CLAUDE.md: a flat value nothing will join against.

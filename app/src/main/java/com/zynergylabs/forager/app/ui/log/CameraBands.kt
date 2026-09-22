@@ -100,8 +100,8 @@ internal fun BoxScope.CameraBand(
 }
 
 /**
- * The strip: the band on the punch-hole edge and the chips that live in it, laid along it. The
- * flash chip ([FlashChip]) is the first (2026-09-21).
+ * The strip: the band on the punch-hole edge and the chips that live in it, laid along it: the
+ * flash chip ([FlashChip], 2026-09-21), then the grid chip ([GridChip], 2026-09-22).
  *
  * **There is no Done control** (owner, 2026-09-18). The overlay build first moved Done in here
  * from the top-left corner, as an outlined ✕; the owner then removed it, because the navigation
@@ -114,9 +114,9 @@ internal fun BoxScope.CameraBand(
  * Activity's own `OnBackPressedDispatcher` (`CameraBack.kt:19`), the one the camera's
  * `BackHandler` registers with.
  *
- * With no chips, **the empty strip is a production state**, not a test-only one: on a camera with
- * no flash unit there is nothing to put here, and the strip composes nothing and takes no space
- * (rule 9).
+ * With no chips the strip composes nothing and takes no space (rule 9). Since the grid chip, the
+ * camera always has one, so the empty strip is no longer reached in production; the container
+ * keeps the rule for a camera that has nothing to put here, and `CameraStripTest` holds it.
  *
  * Along a horizontal edge the strip is a row; along a vertical one, a column, chips starting at
  * the row's or column's start. Every chip turns in place by [rotateWithDevice], the same rule as

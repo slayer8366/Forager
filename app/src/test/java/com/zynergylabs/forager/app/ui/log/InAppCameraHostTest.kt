@@ -13,11 +13,13 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
+import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -59,7 +61,7 @@ class InAppCameraHostTest {
     private var slotSawLockToPortrait: Boolean? = null
 
     /** The test's slot: the real dialog over the fake session, viewfinder a plain box. */
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, onPhotoCaptured, onDismiss ->
         slotSawLockToPortrait = lockToPortrait
         val session = FakeCameraCaptureSession()
         InAppCameraDialog(
@@ -68,6 +70,9 @@ class InAppCameraHostTest {
             lockToPortrait = lockToPortrait,
             onPhotoCaptured = onPhotoCaptured,
             onDismiss = onDismiss,
+            gridMode = gridMode,
+            onGridModeChanged = onGridModeChanged,
+            levelProvider = FakeLevelProvider(),
             viewfinder = { modifier -> Box(modifier) },
         )
     }
@@ -81,6 +86,8 @@ class InAppCameraHostTest {
                 target = target,
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
                 lockToPortrait = false,
+                gridMode = GridMode.Off,
+                onGridModeChanged = {},
                 onLogEntryPhoto = { logEntryPhotos += it },
                 onAlbumPhoto = { albumPhotos += it },
                 onCartographyEntryPhoto = { cartographyPhotos += it },

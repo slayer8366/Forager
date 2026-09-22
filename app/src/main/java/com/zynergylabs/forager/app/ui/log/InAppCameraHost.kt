@@ -3,9 +3,11 @@ package com.zynergylabs.forager.app.ui.log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraXCaptureSession
+import com.zynergylabs.forager.app.sensor.AndroidLevelProvider
 
 /**
  * Which surface asked for the in-app camera, so the one hoisted dialog can hand each photo to the
@@ -35,6 +37,9 @@ typealias InAppCameraSlot = @Composable (
     cameraCaptureFiles: CameraCaptureFiles,
     /** Settings' "Lock camera to portrait", handed to the session at creation — see `effectiveDeviceRotation`. */
     lockToPortrait: Boolean,
+    /** The persisted grid mode and the way to change it — see `CameraGridModeViewModel`. */
+    gridMode: GridMode,
+    onGridModeChanged: (GridMode) -> Unit,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
 ) -> Unit
@@ -45,8 +50,10 @@ typealias InAppCameraSlot = @Composable (
  * viewfinder it draws into. Moved here from `PhotoAcquisitionLaunchers` on 2026-09-15 when the
  * dialog was hoisted; unchanged otherwise.
  */
-internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, onPhotoCaptured, onDismiss ->
+internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, onPhotoCaptured, onDismiss ->
     val context = LocalContext.current.applicationContext
+    // One provider per open camera; it registers a sensor listener only while the level is shown.
+    val levelProvider = remember { AndroidLevelProvider(context) }
     // Keyed on the setting so a session never carries a stale value; in practice it cannot change
     // while the camera is open, since the dialog covers Settings.
     val session = remember(lockToPortrait) { CameraXCaptureSession(context, lockToPortrait) }
@@ -56,6 +63,9 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToP
         lockToPortrait = lockToPortrait,
         onPhotoCaptured = onPhotoCaptured,
         onDismiss = onDismiss,
+        gridMode = gridMode,
+        onGridModeChanged = onGridModeChanged,
+        levelProvider = levelProvider,
         viewfinder = { modifier -> session.Viewfinder(modifier) },
     )
 }
@@ -88,6 +98,9 @@ internal fun InAppCameraHost(
     cameraCaptureFiles: CameraCaptureFiles,
     /** Settings' "Lock camera to portrait", from `AvailabilityUiState`; passed straight to the slot. */
     lockToPortrait: Boolean,
+    /** The persisted grid mode, from `CameraGridModeViewModel`; passed straight to the slot. */
+    gridMode: GridMode,
+    onGridModeChanged: (GridMode) -> Unit,
     onLogEntryPhoto: (PhotoSource) -> Unit,
     onAlbumPhoto: (PhotoSource) -> Unit,
     onCartographyEntryPhoto: (PhotoSource) -> Unit,
@@ -100,5 +113,5 @@ internal fun InAppCameraHost(
         InAppCameraTarget.ALBUM -> onAlbumPhoto
         InAppCameraTarget.CARTOGRAPHY_ENTRY -> onCartographyEntryPhoto
     }
-    camera(cameraCaptureFiles, lockToPortrait, onPhotoCaptured, onDismiss)
+    camera(cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, onPhotoCaptured, onDismiss)
 }

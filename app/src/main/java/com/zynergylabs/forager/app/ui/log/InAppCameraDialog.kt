@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.GridMode
+import com.zynergylabs.forager.app.domain.LevelProvider
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
@@ -135,6 +137,12 @@ internal fun InAppCameraDialog(
     lockToPortrait: Boolean,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
+    /** The grid chip's mode, persisted by `CameraGridModeViewModel`; the grid and level draw from it. */
+    gridMode: GridMode,
+    /** Asks for a new grid mode; the chip shows it once it is stored, not before. */
+    onGridModeChanged: (GridMode) -> Unit,
+    /** The level line's roll; collected only while the level is shown. */
+    levelProvider: LevelProvider,
     modifier: Modifier = Modifier,
     /** Hides the status bar on the Activity's window and puts it back on leaving; a test injects a fake to see which window was asked, and that it was restored. */
     statusBarHider: StatusBarHider = SystemStatusBarHider,
@@ -235,6 +243,12 @@ internal fun InAppCameraDialog(
 
             CameraSessionState.Ready -> viewfinder(Modifier.fillMaxSize())
         }
+        // Over the preview, under the bands: composed after the viewfinder and before the strip
+        // and the shutter band, so both draw above them. Only once there is a preview to divide.
+        if (session.state == CameraSessionState.Ready) {
+            GridOverlay(gridMode)
+            LevelLine(gridMode, levelProvider, displayRotation)
+        }
 
         val shutterEnabled = session.state == CameraSessionState.Ready && !isCapturing
         val onShutter: () -> Unit = {
@@ -282,7 +296,7 @@ internal fun InAppCameraDialog(
             edge = punchHoleEdge(arrangement),
             deviceRotation = session.deviceRotation,
             displayRotation = displayRotation,
-            chips = stripChips(session),
+            chips = stripChips(session, gridMode, onGridModeChanged),
         )
         CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
             ShutterCluster(
@@ -441,9 +455,10 @@ internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
 /**
  * The strip's chips for this session, in order along the edge. The flash chip only when the bound
  * camera has a flash unit: it would hide itself anyway, but a chip that composes nothing would
- * still leave a band behind it, and a camera with nothing to put in the strip should have no strip
- * (rule 9). Read in composition, so the chip arrives when the bind reports the unit.
+ * still take a slot. Read in composition, so the chip arrives when the bind reports the unit. The
+ * grid chip always, after it (2026-09-22): every camera can draw a grid.
  */
-private fun stripChips(session: CameraCaptureSession): List<StripChip> = buildList {
+private fun stripChips(session: CameraCaptureSession, gridMode: GridMode, onGridModeChanged: (GridMode) -> Unit): List<StripChip> = buildList {
     if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
+    add { deviceRotation, displayRotation -> GridChip(gridMode, onGridModeChanged, deviceRotation, displayRotation) }
 }
