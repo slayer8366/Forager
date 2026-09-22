@@ -148,9 +148,10 @@ it isn't counted as evidence.
 |---|---|---|---|---|---|
 | Camera set (`--tests '*Camera*'`), branch point | `1b82b15` | 18 | 101 | 0 | 0 |
 | Camera set, branch head | `66eb22f` | 21 | 114 | 0 | 0 |
-| Full unit suite, branch head | `66eb22f` | FULLSUITE_CLASSES | FULLSUITE_TESTS | FULLSUITE_FAILURES | FULLSUITE_SKIPPED |
+| Full unit suite, branch head | `66eb22f` | 205 | 1601 | 0 | 24 |
 
-Both camera-set runs deleted the results directory first, so no XML from an earlier run could be
+The full suite was run at the head only, not at the branch point; its 24 skips are pre-existing
+`@Ignore`s, and none was added. Both camera-set runs deleted the results directory first, so no XML from an earlier run could be
 read. Neither build log has compile errors. The +13 tests are 3 in `CameraFlashSessionTest`, 4 in
 `CameraXCaptureSessionFlashTest`, 4 in `CameraFlashChipTest`, 1 in `CameraStripTest` (column) and
 1 in `InAppCameraDialogTest` (real touch). The filter matches on method names too, so it picks up
