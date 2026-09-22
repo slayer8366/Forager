@@ -89,3 +89,35 @@ no copy kept outside this tree is a source for it.
 3. Save-location (B3).
 
 RAW waits until the capture pipeline can carry it. It is not scheduled here.
+
+---
+
+## Added 2026-09-21, torch dispatch: the owner's location model (B6)
+
+Added below the original entries, which are not edited. Extends B3; supersedes nothing.
+
+**B6. Where a fix goes, as the owner states it.** A GPS fix is stored in the app's own record.
+It is applied to the photo only if the user places the photo in the Journal. Otherwise it never
+leaves the app. The save-location dispatch cites this entry.
+
+**What this session checked, at `1b82b15`:**
+
+- **No code in `app/src/main` writes GPS into an image file.** A search for `TAG_GPS`,
+  `setGpsInfo` and `setLatLong` finds nothing. So "applied to the photo" is not a geotag (B3's
+  wording rule stands). Whatever it means, it happens in the app's records, not in the file.
+- **What the flag gates.** `PhotoLocationPreferenceRepository.kt:16–19` lists three automatic
+  captures: the fix patched onto a camera photo's row, that fix promoted to the find's `foundAt`,
+  and the fix a find started from the Journal takes when it is created.
+
+**Not traced, so unverified:**
+
+- Whether every path that takes a camera photo lands it in a Journal entry, or whether a photo's
+  row can hold a fix with no entry. The model's "only if placed in the Journal" is recorded as the
+  owner's statement, not matched against the camera's entry points.
+- Whether any export or share path (for example GPX, or sharing an entry) carries a stored fix
+  out of the app. "Never leaves the app" is recorded as the owner's statement.
+- **The Journal boundary for gallery imports.** Imports keep their own EXIF, coordinates included
+  (`FilePhotoStore.kt:125–127`), and those coordinates are read into the record (`:138`). A file
+  the user brought in already carries its position, whether or not it is placed in the Journal, so
+  the model above describes camera captures. Whether it is meant to cover imports as well is the
+  owner's to say.

@@ -112,9 +112,11 @@ internal fun BoxScope.CameraBand(
  * bar's Back was already wired to the same close — Done's `onClick` and the `Dialog`'s
  * `onDismissRequest` were the one `onDismiss` lambda, reaching `InAppCameraViewModel.close()` —
  * so Done was a second control for one function. Back carries everything Done did: the camera
- * closes, the photos already handed over stand, and the status bar returns with the dialog's
- * window. `InAppCameraDialogTest.kt:269` proves it by pressing Back through the Activity's own
- * `OnBackPressedDispatcher` (`CameraBack.kt:19`), the one the camera's `BackHandler` registers with.
+ * closes, the photos already handed over stand, and the status bar comes back, restored on the
+ * Activity's window when the camera leaves composition (`HideStatusBarWhileCameraIsOpen`,
+ * `CameraWindowChrome.kt`). `InAppCameraDialogTest.kt:269` proves it by pressing Back through the
+ * Activity's own `OnBackPressedDispatcher` (`CameraBack.kt:19`), the one the camera's
+ * `BackHandler` registers with.
  *
  * With nothing resident, **the empty strip is a production state**, not a test-only one: gate
  * the placeholder off and the strip composes nothing and takes no space (rule 9).
@@ -132,7 +134,12 @@ internal fun BoxScope.CameraBand(
 internal fun BoxScope.CameraStrip(
     edge: ScreenEdge,
     deviceRotation: Int?,
-    /** The dialog-level window rotation, passed rather than read: `currentDisplayRotation()` goes stale inside a Dialog. */
+    /**
+     * The window's rotation, read once by the camera screen and passed in, so every glyph and the
+     * arrangement use the same reading. It was first passed because `currentDisplayRotation()` went
+     * stale inside a Dialog (2026-09-18). The camera has not been a Dialog since 2026-09-19, so that
+     * reason is history; whether a direct read here would now be fresh has not been measured.
+     */
     displayRotation: Int,
     /** The strip's slot, reserved for the strip controls (none built yet), given the edge it runs along and both rotation terms for [rotateWithDevice]; null composes nothing there. */
     content: (@Composable (edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) -> Unit)? = defaultStripContent(),
