@@ -89,3 +89,13 @@ Design: `docs/process/accountability-design.md`.
 **Notes:** Live exercise for 2026-09-22-03: a complete build dispatch from an interactive planner session. The dispatch hook wrote this prompt and returned ask; the approval prompt appeared and was declined by the coder running the exercise (Esc), not by the operator. Nothing ran.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-22-06
+**Timestamp:** 2026-09-22T21:45:14Z
+**Closes:** 2026-09-22-03
+**Outcome:** completed
+**Observed:** Steps 0 to 6 built and pushed on accountability-phase-1 (a0cdf02 through 82c6d8e, then 1e16526, 16bbb40 and the commit carrying this entry). Step 0: dispatch tool is Agent; settings denies reach subagents; agent_type identifies the caller; hook "ask" prompts interactively and blocks in -p; hooks load mid-session; no local or user allow beat a project deny. Every hook has a failing-first run and sabotage runs; four sabotage runs survived at first, all test gaps, fixed in the tests. Bypass table complete. Non-device live exercises run: planner Write blocked; a build missing Device items blocked by name; a complete pulse ran unasked; a complete build prompted and was declined; connectedAndroidTest --dry-run, git push --force --dry-run and git filter-repo --analyze (in a /tmp clone) blocked by their guards. Planner prediction: 1 and 2 confirmed, 3 confirmed as committed but not first time. Coder prediction: (a) partly wrong, (b) to (h) confirmed. Detail: docs/audits/2026-09-22-accountability-phase-1-completion-report.md.
+**Deviations:** Device items 1 to 3 and the two adb live exercises not run: no phone connected; the operator ruled to finish without them, with merge blocked until they pass. Decisions made beyond the dispatch are listed in the report's "Decisions I made", including more than one commit per step and the coder-side live exercises run as claude --agent coder sessions. Autopilot addendum replaced by v2 (reference only) per operator ruling.
+
+---
