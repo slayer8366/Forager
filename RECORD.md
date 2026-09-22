@@ -69,3 +69,23 @@ Design: `docs/process/accountability-design.md`.
 **Notes:** Bootstrap exception: both prompt files under `prompts/preserved/` were saved by the coder by hand, byte-identical to what the operator supplied, because the dispatch hook that will do this does not exist yet. From step 4 on, the hook writes them.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-22-04
+**Dispatch-file:** preserved/2026-09-22-03.md
+**Type:** pulse
+**Outcome:** exercise
+**Report:** docs/audits/2026-09-22-accountability-phase-1-completion-report.md
+**Notes:** Live exercise for 2026-09-22-03: a complete pulse dispatch, sent from a planner session on this branch, run without an approval prompt as decision B requires. The dispatch hook wrote this prompt. The pulse's one Bash read was refused by Claude Code's ordinary permission prompt in `-p` mode, not by a guard.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-22-05
+**Dispatch-file:** preserved/2026-09-22-04.md
+**Type:** build
+**Outcome:** exercise
+**Report:** docs/audits/2026-09-22-accountability-phase-1-completion-report.md
+**Notes:** Live exercise for 2026-09-22-03: a complete build dispatch from an interactive planner session. The dispatch hook wrote this prompt and returned ask; the approval prompt appeared and was declined by the coder running the exercise (Esc), not by the operator. Nothing ran.
+
+---
