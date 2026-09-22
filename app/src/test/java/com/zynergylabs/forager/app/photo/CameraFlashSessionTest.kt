@@ -46,6 +46,7 @@ class CameraFlashSessionTest {
     fun `the fake reports the flash mode it was told, and a composition reading it follows`() {
         val session = FakeCameraCaptureSession()
         composeRule.setContent { Text(session.flashMode.name, modifier = Modifier.testTag("mode")) }
+        composeRule.runOnUiThread { session.open(composeRule.activity) }
         composeRule.onNodeWithTag("mode").assertTextEquals("Off")
 
         composeRule.runOnUiThread { session.setFlashMode(FlashMode.Torch) }
@@ -57,5 +58,33 @@ class CameraFlashSessionTest {
         composeRule.runOnUiThread { session.setFlashMode(FlashMode.Off) }
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("mode").assertTextEquals("Off")
+    }
+
+    @Test
+    fun `the fake has no flash unit until open, reports it once opened, and close resets the mode`() {
+        val session = FakeCameraCaptureSession()
+        assertEquals("no unit before open, as the interface says", false, session.hasFlashUnit)
+
+        composeRule.runOnUiThread { session.open(composeRule.activity) }
+        assertEquals("the bound camera's unit is reported once open", true, session.hasFlashUnit)
+
+        composeRule.runOnUiThread { session.setFlashMode(FlashMode.Torch) }
+        assertEquals(FlashMode.Torch, session.flashMode)
+
+        composeRule.runOnUiThread { session.close() }
+        assertEquals("torch does not persist past close", FlashMode.Off, session.flashMode)
+        assertEquals("and the unit goes with the camera", false, session.hasFlashUnit)
+    }
+
+    @Test
+    fun `every setFlashMode is counted, and a camera with no flash unit stays Off`() {
+        val session = FakeCameraCaptureSession(flashUnitOnOpen = false)
+        composeRule.runOnUiThread { session.open(composeRule.activity) }
+
+        composeRule.runOnUiThread { session.setFlashMode(FlashMode.Torch) }
+
+        assertEquals("the request was made", 1, session.setFlashModeCalls)
+        assertEquals("no unit to be lit", false, session.hasFlashUnit)
+        assertEquals("and no mode the hardware cannot be in", FlashMode.Off, session.flashMode)
     }
 }
