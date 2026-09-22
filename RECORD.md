@@ -134,3 +134,18 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** The flag 1 test used --allowedTools for the one MCP tool. Nothing deleted. Coder egress unchanged, per the ruling.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-22-10
+**Timestamp:** 2026-09-22T23:58:44Z
+**Title:** PR #114 follow-up 2: confirm the flag 1 MCP allow is gone; bind dispatch Type to target
+**Dispatch-file:** preserved/2026-09-22-07.md
+**Change:** (1) Establish where the MCP allow used in the flag 1 test lives, citing file and line or stating it was session-only. (2) dispatch_guard.py: Type pulse only to pulse, Type build or device only to coder, any mismatch blocked; failing-first, sabotage-tested, then live with a pulse-typed dispatch to coder, expected blocked.
+**Scope boundary:** .claude/hooks/dispatch_guard.py and its tests; RECORD.md; prompts/preserved/; one docs/audits/ report and its index row. No settings file is edited; nothing is deleted. The ruling's phase 2 items and tally are recorded, not acted on.
+**Baseline:** accountability-phase-1 at a221c49
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):** (1) The allow was the --allowedTools CLI flag, so it lived only in those two sessions; no settings file names the tool. (2) Today a pulse-typed dispatch to coder is allowed without approval, because the hook checks target membership and Type separately and never together; the binding check, placed before anything is written, blocks it and leaves no preserved prompt.
+**Finish line:** Item 1 answered with evidence; the binding built failing-first, sabotaged, and blocked live; report and index row committed and pushed; a terminal entry closes this intent; both checkers pass on the committed tree.
+**Abort conditions:** Two failed fixes on the hook, after which only data gathering. Anything requiring a settings edit or a deletion.
+
+---
