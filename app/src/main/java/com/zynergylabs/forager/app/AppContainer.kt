@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
 import com.zynergylabs.forager.app.data.repository.DataStoreAppThemePreferenceRepository
+import com.zynergylabs.forager.app.data.repository.DataStoreCameraGridModeRepository
 import com.zynergylabs.forager.app.data.repository.DataStoreCameraOrientationPreferenceRepository
 import com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepository
 import com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepository
@@ -85,6 +86,7 @@ import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionDayIndex
+import com.zynergylabs.forager.app.domain.CameraGridModeRepository
 import com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository
 import com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository
 import com.zynergylabs.forager.app.domain.PhotoStore
@@ -191,6 +193,7 @@ class AppContainer(context: Context) {
     val sundownPreferencesRepository: SundownPreferencesRepository = DataStoreSundownPreferencesRepository(context)
     val photoLocationPreferenceRepository: PhotoLocationPreferenceRepository = DataStorePhotoLocationPreferenceRepository(context)
     val cameraOrientationPreferenceRepository: CameraOrientationPreferenceRepository = DataStoreCameraOrientationPreferenceRepository(context)
+    val cameraGridModeRepository: CameraGridModeRepository = DataStoreCameraGridModeRepository(context)
 
     val photoStore: PhotoStore = FilePhotoStore(context)
     val cameraCaptureFiles = CameraCaptureFiles(context)
