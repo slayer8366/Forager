@@ -34,3 +34,12 @@ not exercised; none of the three items covers it.
 **Owner's note, recorded as said:** before item 2 the owner said "I deleted the clone so just run the
 main app. It's okay to delete data as you need, nothing is needing to be saved." No data was deleted:
 none of the items needed it, and item 3's pass condition is that the guard blocks the uninstall.
+
+## Addition: item 2's on-screen result, and a re-run
+
+At the owner's request item 2 was run a second time, the same way, with Forager still in front. The
+command ran between 22:01:33Z and 22:01:46Z and returned `(Bash completed with no output)`, the same
+as the first run. The owner watched the screen and reported: "Nothing happened."
+
+**Item 2: pass.** The guard allowed the command with Forager in front, and keyevent 0 did nothing
+visible, as the owner observed. Items 1 to 3 have all passed.
