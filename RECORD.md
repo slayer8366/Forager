@@ -99,3 +99,18 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** Device items 1 to 3 and the two adb live exercises not run: no phone connected; the operator ruled to finish without them, with merge blocked until they pass. Decisions made beyond the dispatch are listed in the report's "Decisions I made", including more than one commit per step and the coder-side live exercises run as claude --agent coder sessions. Autopilot addendum replaced by v2 (reference only) per operator ruling.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-22-07
+**Timestamp:** 2026-09-22T23:41:12Z
+**Title:** PR #114 follow-up: test flag 1 (built-in agents), fix if it holds, find transcripts, check sandbox egress
+**Dispatch-file:** preserved/2026-09-22-05.md
+**Change:** (1) Live test: a planner session on this branch dispatches the built-in general-purpose agent with one harmless read-only MCP call. (2) Only if it runs: dispatch_guard.py allows only subagent types coder and pulse and blocks every other type, built-ins included; failing-first, sabotage-tested, then the same dispatch live, expected blocked. (3) Look in Claude Code's local session logs for the live-exercise and device-run sessions, copy anything found into ~/forager-backups/ with an INDEX.md line. (4) Report whether Claude Code 2.1.280's sandboxing can limit network egress, with the source.
+**Scope boundary:** .claude/hooks/dispatch_guard.py and its tests; RECORD.md; prompts/preserved/; one docs/audits/ report and its index row; ~/forager-backups/ (create and copy only). No change to coder egress, no app code, nothing deleted anywhere.
+**Baseline:** accountability-phase-1 at ca4c778
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):** The general-purpose dispatch passes the dispatch hook, because the hook checks the Type line and sections but not the target, and role_guard does not restrict subagents other than pulse; inside it, the MCP tool is reachable (general-purpose inherits every tool) and the list call runs. The fix is a check on tool_input.subagent_type before anything is written; a call with no subagent_type is blocked too. The child sessions' transcripts are likely absent: the interactive child sessions displayed "Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker".
+**Finish line:** The flag 1 result recorded; if the fix was needed, it is built failing-first, sabotage-tested, and confirmed blocked live; transcript findings reported and anything found copied and indexed; the egress answer reported with its source; a report and index row committed and pushed; a terminal entry closes this intent; both checkers pass on the committed tree.
+**Abort conditions:** The live test's MCP call would do anything other than a read. Two failed fixes on the hook, after which only data gathering. Anything under ~/forager-backups/ would need deleting or overwriting.
+
+---
