@@ -36,6 +36,15 @@ internal class FakeCameraCaptureSession(
     /** Settable so a test can turn the device and watch the screen's controls follow. */
     override var deviceRotation: Int? by mutableStateOf(null)
 
+    override val hasFlashUnit: Boolean = false
+
+    private var currentFlashMode: FlashMode by mutableStateOf(FlashMode.Off)
+    override val flashMode: FlashMode get() = currentFlashMode
+
+    override fun setFlashMode(mode: FlashMode) {
+        currentFlashMode = mode
+    }
+
     var openCalls = 0
         private set
     var closeCalls = 0

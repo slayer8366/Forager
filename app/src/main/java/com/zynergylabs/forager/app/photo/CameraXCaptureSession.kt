@@ -426,6 +426,13 @@ internal class CameraXCaptureSession(
         return saved
     }
 
+    // Not wired to CameraX yet: no unit reported, the mode stays Off, and a request says so.
+    override val hasFlashUnit: Boolean get() = false
+    override val flashMode: FlashMode get() = FlashMode.Off
+    override fun setFlashMode(mode: FlashMode) {
+        Log.w(TAG, "setFlashMode($mode) is unsupported: flash is not wired to CameraX yet.")
+    }
+
     /**
      * The viewfinder: a [PreviewView], and the attachment of its surface provider to the [Preview]
      * that [open] bound. Nothing else — no fetching, no binding, no listener — since the deadlock

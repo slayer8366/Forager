@@ -62,7 +62,34 @@ internal interface CameraCaptureSession {
      * on partial results never being presented as success.
      */
     suspend fun capture(destination: File): Result<Unit>
+
+    /**
+     * Whether the bound camera has a flash unit. `false` before [open] has bound a camera and
+     * after [close]: until a camera is bound there is no unit to report, and `false` is what hides
+     * the flash chip. Observable, so the chip appears when the bind lands.
+     */
+    val hasFlashUnit: Boolean
+
+    /**
+     * The flash mode the camera is in. [FlashMode.Off] until [setFlashMode] changes it, and reset
+     * to `Off` by [close]: torch does not persist past the camera closing, and nothing stores it.
+     * Observable, so the chip's glyph follows the session rather than keeping a copy of its own.
+     */
+    val flashMode: FlashMode
+
+    /**
+     * Asks for [mode]. On a session with no flash unit this changes nothing and is logged, rather
+     * than reporting a mode the hardware cannot be in.
+     */
+    fun setFlashMode(mode: FlashMode)
 }
+
+/**
+ * The flash chip's modes. **`Off` and `Torch` only** (owner, 2026-09-21): torch is continuous
+ * light for gills and pores under a cap, which is why it comes first. Auto and flash-on-capture are
+ * a later dispatch on this same enum, and are deliberately not declared ahead of it.
+ */
+internal enum class FlashMode { Off, Torch }
 
 /**
  * Three states, not a nullable camera. [Unavailable] carries its own reason because "the camera

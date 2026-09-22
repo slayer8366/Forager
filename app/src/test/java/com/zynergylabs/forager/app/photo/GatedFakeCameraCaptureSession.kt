@@ -33,4 +33,7 @@ internal class GatedFakeCameraCaptureSession(
     override fun open(lifecycleOwner: LifecycleOwner) = inner.open(lifecycleOwner)
     override fun close() = inner.close()
     override suspend fun capture(destination: File): Result<Unit> = inner.capture(destination)
+    override val hasFlashUnit: Boolean get() = inner.hasFlashUnit
+    override val flashMode: FlashMode get() = inner.flashMode
+    override fun setFlashMode(mode: FlashMode) = inner.setFlashMode(mode)
 }
