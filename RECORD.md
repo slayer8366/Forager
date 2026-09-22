@@ -1,0 +1,71 @@
+# RECORD.md
+
+Forager's record of dispatched work. Each piece of work opens with an intent
+entry, written before anything is built, stating what will change, where the
+change stops, what it is expected to do, and when it counts as finished or
+abandoned. It closes with exactly one terminal entry saying what happened.
+Dispatches that open no intent (a pulse, a build the operator declined, a
+live exercise of the dispatch hook) are recorded by a dispatch note, so every
+preserved prompt under `prompts/preserved/` is accounted for by some entry.
+
+This file is append-only. Nothing already committed is edited or removed; a
+correction is a new entry that points at the one it corrects.
+
+What makes an entry well formed is defined in `check_record.py`, and how
+entries bind to preserved prompts in `check_prompts.py`, not here. Run both
+before committing a change to this file. The existing records in
+`docs/audits/` stay where they are and are not migrated into this store.
+
+Design: `docs/process/accountability-design.md`.
+
+## Entries
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-22-01
+**Timestamp:** 2026-09-22T21:12:30Z
+**Title:** Accountability setup, phase 1, dispatch version 1
+**Dispatch-file:** preserved/2026-09-22-01.md
+**Change:** Build phase 1 of `docs/process/accountability-design.md`: the record store, the planner's tool restrictions, `coder` and `pulse` subagents, the dispatch hook, the device guards and the history guards.
+**Scope boundary:** Phase 1 only, as listed in the dispatch's Scope boundary section. No app code, no strip stack, no migration of `docs/audits/`, nothing from the autopilot addendum.
+**Baseline:** origin/main 89f53a4f288d59aeec4f3deb44e0103c15ce13b7
+**Closed decisions:** A. Planner read-only (Read, Grep, Glob, read-only git and gh Bash, the dispatch tool; Edit, Write and mutating Bash denied). B. Operator approval for build and device dispatches; pulse dispatches run unasked. C. EGD's record store vendored (RECORD.md, check_record.py, check_prompts.py); docs/audits/ not migrated. Gates are hooks and tool restrictions, not instructions. The Restricted Object rule stays an instruction in CLAUDE.md; no hook references it.
+**Planner prediction (stated in the dispatch, not withheld):** 1. Decision A is achievable on the installed version only through a hook that identifies the caller, not through settings alone. 2. Pattern-matched Bash guards are bypassable; at least one of sh -c, a variable, bash script.sh, xargs, or a gradle task alias gets past at least one guard. 3. Every hook passes its sabotage test.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Steps 0 to 6 committed and pushed; every hook has a failing-first test and a sabotage result; bypass table complete; live exercises run; a terminal entry closes the intent; check_record.py and check_prompts.py pass on the committed tree after the terminal entry; a PR open against main.
+**Abort conditions:** The step 0 stop condition (a main-session deny also denies the coder and no hook input field identifies the caller). Any guard that, tested live, lets a real destructive command execute. Two failed fixes on one hook, after which only data gathering.
+**Notes:** Written after the fact, during the execution of version 2 (entry 2026-09-22-03), so that the version this session first stopped on is recorded and its preserved prompt is claimed. Version 1 was delivered in chat to an unrestricted Claude Code session; no hook existed to preserve it. The coder's mechanism prediction is `not authored` because version 1 stopped at pre-flight, before step 1, where the dispatch places it.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-22-02
+**Timestamp:** 2026-09-22T21:12:30Z
+**Closes:** 2026-09-22-01
+**Outcome:** superseded
+**Superseded-by:** 2026-09-22-03
+**Observed:** Stopped at pre-flight before writing anything. Two findings: `.claude/` in the main checkout already held a settings file (`settings.local.json`, allowing `git fetch *`, `git push *` and one CLAUDE.md commit), the dispatch's stop condition for existing settings; and `.gitignore:34` ignored all of `.claude/`, so no phase 1 file under it could be committed. The operator ruled on both (decisions D and E) and added F; the planner reissued the dispatch as version 2.
+**Deviations:** None. Nothing was built under version 1.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-22-03
+**Timestamp:** 2026-09-22T21:12:30Z
+**Title:** Accountability setup, phase 1, dispatch version 2
+**Dispatch-file:** preserved/2026-09-22-02.md
+**Change:** As 2026-09-22-01, plus decisions D, E and F and the operator's rulings recorded below.
+**Scope boundary:** Phase 1 only, as listed in the dispatch's Scope boundary section, extended by the rulings below. No app code, no strip stack, no migration of `docs/audits/`, nothing from the autopilot addendum. CLAUDE.md gains one short section only.
+**Baseline:** origin/main 89f53a4f288d59aeec4f3deb44e0103c15ce13b7, branch accountability-phase-1
+**Closed decisions:** A to C as in 2026-09-22-01. D. Narrow `.gitignore:34` to `.claude/*` and re-include `settings.json`, `agents/` and `hooks/`; `settings.local.json`, `skills/` and `worktrees/` stay ignored. E. Existing local and user allows are not edited; step 0 settles precedence by experiment. F. `git filter-repo` and `git filter-branch` blocked in step 6.
+**Operator rulings during execution (2026-09-22):** (1) The dispatch hook writes to `prompts/preserved/<date>-<seq>.md`. (2) Two dispatch versions are recorded as a supersede chain: 01 intent v1, 02 terminal superseding it, 03 intent v2. (3) A new entry kind, `dispatch-note` (fields Dispatch-file, Type, Outcome of answered, declined or exercise, and Report as a path or "none"), claims exactly one preserved prompt, opens and closes nothing, and has no prediction or finish line; check_prompts.py accepts it as a claim and check_record.py validates it; the first commit of every build is a sweep writing one note per unclaimed preserved prompt; built failing-first with its diff from upstream listed. (4) The planner's allowlist is Read, Grep, Glob, restricted Bash, Agent, Skill, WebFetch, WebSearch, AskUserQuestion, ToolSearch and TodoWrite; every other tool is denied, including every mcp__ tool and NotebookEdit, and unknown tools are denied by default. (5) Step 3 adds one harmless read-only MCP call attempted from each of coder and pulse, expected unavailable; if it runs, stop. (6) The build runs in a separate worktree, pushed as it goes.
+**Planner prediction (stated in the dispatch, not withheld):** As in 2026-09-22-01.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):** Written after step 0 and before any hook exists. Step 0 already observed the planner's first prediction (settings deny rules reach subagents; `agent_type` is absent in the main session and set in a subagent), so it is recorded there as an observation, not predicted here. For the build: (a) the device and history guards match patterns against the whole command text, so `sh -c '...'` and a variable whose assignment spells out the command are both caught, because the forbidden text still appears in the command; (b) `bash script.sh` gets past every device and history guard, since the script's contents never reach the hook; (c) a gradle task abbreviation such as `cAT` gets past the connectedAndroidTest guard; (d) `xargs` with the forbidden words split across the pipe (`echo --force | xargs git push`) gets past the force-push guard; (e) the planner guard is an allowlist and blocks all five variants, because `sh`, `bash`, `xargs` and variable assignment are not read-only git or gh; (f) every hook fails its sabotage test; (g) check_prompts.py reports the live-exercise prompts as unclaimed until dispatch notes are written for them; (h) the adb install signature guard cannot be exercised live without a connected device, and will be evidenced by unit tests only.
+**Finish line:** As in 2026-09-22-01.
+**Abort conditions:** As in 2026-09-22-01, plus step 0's precedence stop: any local or user allow beating a project deny.
+**Notes:** Bootstrap exception: both prompt files under `prompts/preserved/` were saved by the coder by hand, byte-identical to what the operator supplied, because the dispatch hook that will do this does not exist yet. From step 4 on, the hook writes them.
+
+---

@@ -39,3 +39,7 @@ gradle/gradle-daemon-jvm.properties
 # Cygwin/MSYS crash dumps, produced when a tool in the Git-for-Windows toolchain aborts.
 *.stackdump
 /signing/
+
+# Written by Python when check_prompts.py imports check_record.py, or a hook imports its library.
+# Untracked, it would stamp release builds .dirty (see the .claude/ entry above).
+__pycache__/
