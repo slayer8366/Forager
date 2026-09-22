@@ -113,7 +113,8 @@ internal fun BoxScope.CameraBand(
  * `onDismissRequest` were the one `onDismiss` lambda, reaching `InAppCameraViewModel.close()` —
  * so Done was a second control for one function. Back carries everything Done did: the camera
  * closes, the photos already handed over stand, and the status bar returns with the dialog's
- * window. `InAppCameraDialogTest` presses Back through the dialog's own dispatcher to prove it.
+ * window. `InAppCameraDialogTest.kt:269` proves it by pressing Back through the Activity's own
+ * `OnBackPressedDispatcher` (`CameraBack.kt:19`), the one the camera's `BackHandler` registers with.
  *
  * With nothing resident, **the empty strip is a production state**, not a test-only one: gate
  * the placeholder off and the strip composes nothing and takes no space (rule 9).
