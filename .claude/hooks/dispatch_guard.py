@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import guardlib as g  # noqa: E402
 
 DISPATCH_TOOLS = {"Agent", "Task"}
+DISPATCHABLE = {"coder", "pulse"}
 REQUIRED = {
     "build": ["Role", "Base and state", "Scope boundary", "Closed decisions",
               "Prediction", "Finish line and abort conditions", "Checks",
@@ -91,6 +92,15 @@ def guard(payload):
     tool_input = payload.get("tool_input") or {}
     text = tool_input.get("prompt", "") or ""
     target = tool_input.get("subagent_type") or "(none given)"
+
+    # Checked before anything is written. A live test on 2026-09-22 showed the
+    # planner dispatching the built-in general-purpose agent, which has Edit,
+    # Write, Bash and MCP tools, so decision A did not hold (operator ruling:
+    # only the named subagents may be dispatched).
+    if target not in DISPATCHABLE:
+        return ("deny", f"dispatch_guard: subagent type {target!r} may not be "
+                        f"dispatched. Only {', '.join(sorted(DISPATCHABLE))} may; "
+                        f"built-in agent types are blocked.")
 
     m = TYPE_LINE.search(text)
     if not m:

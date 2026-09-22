@@ -115,6 +115,27 @@ class DispatchGuard(unittest.TestCase):
         self.assertIn("check_prompts.py", reason)
         self.assertIn("no RECORD.md entry", reason)
 
+    # Flag 1 (operator ruling, 2026-09-22): a live test showed the planner
+    # dispatching the built-in general-purpose agent, which then ran an MCP
+    # call. Only the named subagents may be dispatched.
+    def test_only_coder_and_pulse_may_be_dispatched(self):
+        for target in ("general-purpose", "Explore", "Plan", "statusline-setup",
+                       "claude", "auditor"):
+            with self.subTest(target):
+                decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS),
+                                                        target, cwd=str(self.repo)))
+                self.assertEqual(decision, "deny")
+                self.assertIn(f"subagent type {target!r} may not be dispatched", reason)
+                self.assertEqual(self.written(), [], "a blocked dispatch was preserved")
+
+    def test_missing_subagent_type_blocked(self):
+        payload = agent(prompt("pulse", PULSE_SECTIONS), cwd=str(self.repo))
+        del payload["tool_input"]["subagent_type"]
+        decision, reason = run_hook(HOOK, payload)
+        self.assertEqual(decision, "deny")
+        self.assertIn("may not be dispatched", reason)
+        self.assertEqual(self.written(), [])
+
     def test_task_tool_name_also_checked(self):
         decision, _ = run_hook(HOOK, agent(prompt(None, BUILD_SECTIONS), tool_name="Task",
                                            cwd=str(self.repo)))
