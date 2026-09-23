@@ -232,3 +232,29 @@ Design: `docs/process/accountability-design.md`.
 **Report:** none: the pulse ended without a hand-back; the planner received no report
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-23-07
+**Timestamp:** 2026-09-23T04:09:27Z
+**Title:** Resume: merge d55-artifact-contract into main in slayer8366/forager-forecast
+**Dispatch-file:** preserved/2026-09-23-04.md
+**Change:** One --no-ff merge commit of d55-artifact-contract (2d8cc8f) into forager-forecast main (82f28b6), made in a new temporary worktree of ~/Zynergy/forager-forecast-t0b cut from origin/main, pushed to origin/main, the worktree then removed. The merge message is the D40 report under D50: it quotes the owner's authorisation, "I authorize merging d55-artifact-contract into main", given in chat on 2026-09-22; recorded as about 20:49 PDT, when the first merge dispatch reached the coder (2026-09-23T03:49:10Z, the Preserved line of preserved/2026-09-23-02.md). Supersedes 2026-09-23-05, which stopped before touching forager-forecast.
+**Scope boundary:** In forager-forecast: that one merge commit and its push to origin/main, and the temporary worktree's creation and removal; no file edited, no branch deleted, nothing written in ~/Zynergy/forager-forecast. In Forager: RECORD.md and prompts/preserved/ on branch worktree-bridge-cse_01Md1NYxk9qgG8y6g7CiSm3y, pushed to that branch, not merged into Forager main.
+**Baseline:** forager-forecast origin/main 82f28b65e1c46148c0518e30b411428ee0a7e2bb, origin/d55-artifact-contract 2d8cc8f9988899c5cc9a0d31e89147a0bbfe216f (re-verified by git fetch in t0b before this entry; is-ancestor exit 0; 0 behind, 5 ahead; 6 files differ); Forager branch at dcb2a4b
+**Prediction (outcome — planner):** The merge is clean; its tree equals 2d8cc8f^{tree}; git diff --name-only 82f28b6 against the merge lists exactly the 6 files; the highest DECISIONS.md row on the result is D60; the audit index row count on the result equals the branch's; both Forager checkers pass once 03, 05, 02 and 04 are all claimed.
+**Prediction (mechanism — coder):** origin/main is an ancestor of the branch, so the --no-ff merge has no three-way content to combine: git records the branch's tree unchanged under a commit with two parents, which makes the tree check, the 6-file diff, the D60 row and the index row count all hold by construction. No merge hook fires in the temporary worktree (a merge runs pre-merge-commit only, and if one is configured it will show in the output). The secret check finds 0 because the branch's own history was pushed without it and the merge adds no content.
+**Finish line:** origin/main in forager-forecast is a merge commit with parents 82f28b6 and 2d8cc8f; the temporary worktree is removed; 2026-09-23-05 is closed as superseded by this intent; this intent is closed by a terminal entry; both checkers pass; this branch is pushed; a report is delivered.
+**Abort conditions:** Either tip has moved at merge time; the merge conflicts; the tree check fails; the secret check hits; a checker fails for a reason other than the four prompts 02, 03, 04 and 05's claim; the push is rejected (never force-push); another new unclaimed prompt appears in prompts/preserved/.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-08
+**Timestamp:** 2026-09-23T04:09:27Z
+**Closes:** 2026-09-23-05
+**Outcome:** superseded
+**Superseded-by:** 2026-09-23-07
+**Observed:** The first merge coder appended 2026-09-23-05 and stopped before touching forager-forecast: check_prompts.py failed on the unclaimed preserved/2026-09-23-03.md. Nothing was merged or pushed in forager-forecast under 2026-09-23-05. The owner ruled that 03 is recorded as an answered dispatch-note (2026-09-23-06) and that the merge resumes under the dispatch preserved as preserved/2026-09-23-04.md, intent 2026-09-23-07.
+**Deviations:** 2026-09-23-05 was committed with its text unchanged; its closing '---' separator was missing and was added in dcb2a4b so that the following entry parses separately.
+
+---
