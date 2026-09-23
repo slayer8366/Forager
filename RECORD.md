@@ -461,3 +461,13 @@ Design: `docs/process/accountability-design.md`.
 **Abort conditions:** main is not 8f4454c or does not contain #116; the evidence does not show role_guard denying the hand-back tool, or names more than one tool; any existing test fails after the change; the sabotage run cannot be shown to have run; two fixes miss on one symptom (then data only).
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-27
+**Dispatch-file:** preserved/2026-09-23-18.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** none in the repository: the report came back as the pulse's final message to the planner, session log ~/.claude/projects/-home-zynergy-labs-Zynergy-Forager--claude-worktrees-pulse-handback/b036f6ee-4c3c-4fbc-852d-0de6fec57d06.jsonl, subagent agent-acdde3fb95140c66e
+**Notes:** The "before" live run of intent 2026-09-23-26: a claude -p planner session in this worktree, at 8ffce56, before the fix, dispatched this pulse; dispatch_guard preserved it here (sha256 d43864abd9777fe50f339aa4f9cdf3c569b1aa023c9692aa8f8e4df3e5c14047). The pulse did not fail: the harness never offered it SubagentHandback (its subagent log mentions the tool 0 times; the pulse wrote "The dispatch says to deliver the answer through my hand-back tool, but I don't have one. My tools are Read and Bash"), so role_guard was never asked, and its plain final message reached the planner in full, ending HANDBACK-OK. The pulses that failed ran in bridge sessions, where the harness injects "Your final report is delivered through SubagentHandback ... plain text you write at the end is not delivered" at subagent log line 2 (agent-ac113d35100c6dbee.jsonl); this claude -p session and the Phase 1 exercise pulse agent-a8720267c56a04365 get no such reminder.
+
+---
