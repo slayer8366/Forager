@@ -208,3 +208,241 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** None. It carries out item 1 of the ruling preserved as preserved/2026-09-23-01.md, which 2026-09-23-01 claims; one prompt cannot be claimed twice, so this intent claims none.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-23-05
+**Timestamp:** 2026-09-23T03:57:52Z
+**Title:** Merge d55-artifact-contract into main in slayer8366/forager-forecast
+**Dispatch-file:** preserved/2026-09-23-02.md
+**Change:** One no-ff merge commit of d55-artifact-contract (2d8cc8f) into forager-forecast main (82f28b6), made in a temporary worktree of ~/Zynergy/forager-forecast-t0b cut from origin/main, pushed to origin/main, the worktree then removed. The merge message quotes the owner's authorisation, "I authorize merging d55-artifact-contract into main", with its time, as D40 and D50 require.
+**Scope boundary:** In forager-forecast: that one merge commit and its push; no file edited, no branch deleted, nothing written in ~/Zynergy/forager-forecast. In Forager: RECORD.md and prompts/preserved/ on branch worktree-bridge-cse_01Md1NYxk9qgG8y6g7CiSm3y, pushed to that branch, not merged into Forager main.
+**Baseline:** forager-forecast origin/main 82f28b65e1c46148c0518e30b411428ee0a7e2bb, origin/d55-artifact-contract 2d8cc8f9988899c5cc9a0d31e89147a0bbfe216f (both verified by git fetch before this entry; 0 behind, 5 ahead); Forager branch at 624173b
+**Prediction (outcome — planner):** The merge is clean; its tree equals 2d8cc8f^{tree}; git diff 82f28b6 against the merge names exactly the six files; DECISIONS.md on the result has D60 as its highest row.
+**Prediction (mechanism — coder):** Because origin/main is an ancestor of the branch, a --no-ff merge has nothing to combine: git takes the branch tree as it is and adds only a commit with two parents, so the tree check and the six-file diff pass by construction. The only hook set is .githooks/pre-commit, which git merge does not run (a merge runs pre-merge-commit, and none exists), so no hook bears on it. The audit index row count on the result equals the branch's.
+**Finish line:** origin/main is the new merge commit with parents 82f28b6 and 2d8cc8f; the temporary worktree is removed; this intent is closed by a terminal entry; both checkers pass; this branch is pushed; a short report is delivered.
+**Abort conditions:** origin/main is not 82f28b6 or origin/d55-artifact-contract is not 2d8cc8f at merge time; the merge conflicts; the tree check fails; the secret check finds anything; the push is rejected (no force-push).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-06
+**Dispatch-file:** preserved/2026-09-23-03.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** none: the pulse ended without a hand-back; the planner received no report
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-23-07
+**Timestamp:** 2026-09-23T04:09:27Z
+**Title:** Resume: merge d55-artifact-contract into main in slayer8366/forager-forecast
+**Dispatch-file:** preserved/2026-09-23-04.md
+**Change:** One --no-ff merge commit of d55-artifact-contract (2d8cc8f) into forager-forecast main (82f28b6), made in a new temporary worktree of ~/Zynergy/forager-forecast-t0b cut from origin/main, pushed to origin/main, the worktree then removed. The merge message is the D40 report under D50: it quotes the owner's authorisation, "I authorize merging d55-artifact-contract into main", given in chat on 2026-09-22; recorded as about 20:49 PDT, when the first merge dispatch reached the coder (2026-09-23T03:49:10Z, the Preserved line of preserved/2026-09-23-02.md). Supersedes 2026-09-23-05, which stopped before touching forager-forecast.
+**Scope boundary:** In forager-forecast: that one merge commit and its push to origin/main, and the temporary worktree's creation and removal; no file edited, no branch deleted, nothing written in ~/Zynergy/forager-forecast. In Forager: RECORD.md and prompts/preserved/ on branch worktree-bridge-cse_01Md1NYxk9qgG8y6g7CiSm3y, pushed to that branch, not merged into Forager main.
+**Baseline:** forager-forecast origin/main 82f28b65e1c46148c0518e30b411428ee0a7e2bb, origin/d55-artifact-contract 2d8cc8f9988899c5cc9a0d31e89147a0bbfe216f (re-verified by git fetch in t0b before this entry; is-ancestor exit 0; 0 behind, 5 ahead; 6 files differ); Forager branch at dcb2a4b
+**Prediction (outcome — planner):** The merge is clean; its tree equals 2d8cc8f^{tree}; git diff --name-only 82f28b6 against the merge lists exactly the 6 files; the highest DECISIONS.md row on the result is D60; the audit index row count on the result equals the branch's; both Forager checkers pass once 03, 05, 02 and 04 are all claimed.
+**Prediction (mechanism — coder):** origin/main is an ancestor of the branch, so the --no-ff merge has no three-way content to combine: git records the branch's tree unchanged under a commit with two parents, which makes the tree check, the 6-file diff, the D60 row and the index row count all hold by construction. No merge hook fires in the temporary worktree (a merge runs pre-merge-commit only, and if one is configured it will show in the output). The secret check finds 0 because the branch's own history was pushed without it and the merge adds no content.
+**Finish line:** origin/main in forager-forecast is a merge commit with parents 82f28b6 and 2d8cc8f; the temporary worktree is removed; 2026-09-23-05 is closed as superseded by this intent; this intent is closed by a terminal entry; both checkers pass; this branch is pushed; a report is delivered.
+**Abort conditions:** Either tip has moved at merge time; the merge conflicts; the tree check fails; the secret check hits; a checker fails for a reason other than the four prompts 02, 03, 04 and 05's claim; the push is rejected (never force-push); another new unclaimed prompt appears in prompts/preserved/.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-08
+**Timestamp:** 2026-09-23T04:09:27Z
+**Closes:** 2026-09-23-05
+**Outcome:** superseded
+**Superseded-by:** 2026-09-23-07
+**Observed:** The first merge coder appended 2026-09-23-05 and stopped before touching forager-forecast: check_prompts.py failed on the unclaimed preserved/2026-09-23-03.md. Nothing was merged or pushed in forager-forecast under 2026-09-23-05. The owner ruled that 03 is recorded as an answered dispatch-note (2026-09-23-06) and that the merge resumes under the dispatch preserved as preserved/2026-09-23-04.md, intent 2026-09-23-07.
+**Deviations:** 2026-09-23-05 was committed with its text unchanged; its closing '---' separator was missing and was added in dcb2a4b so that the following entry parses separately.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-09
+**Dispatch-file:** preserved/2026-09-23-05.md
+**Type:** build
+**Outcome:** declined
+**Report:** none; the coder stopped before any work because the hook edit's authorisation reached it only through the planner; see the planner's chat of 2026-09-22
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-10
+**Dispatch-file:** preserved/2026-09-23-06.md
+**Type:** build
+**Outcome:** declined
+**Report:** none; the coder stopped before its intent at scope item 3 (no request shape for the daily-statistics datasets) and handed the gap back; superseded by revision 2
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-23-11
+**Timestamp:** 2026-09-23T04:38:16Z
+**Title:** forager-forecast: confirm the climate grids' point positions from delivered data (D46, D51, D54), revision 2
+**Dispatch-file:** preserved/2026-09-23-07.md
+**Change:** In slayer8366/forager-forecast, on a new branch grid-positions-d51 cut from origin/main in a new worktree of ~/Zynergy/forager-forecast-t0b: file this dispatch and the stopped revision 1 (with a D41 closeout note) under docs/dispatch/; probe Open-Meteo's archive at seven points for 2024-06-01 under D25's pins with models=era5_land and models=era5 separately; read the request schema of derived-era5-land-daily-statistics and derived-era5-single-levels-daily-statistics from the store itself; pull one day (2024-06-01) of 2m_temperature daily mean and total_precipitation daily sum over a 1-degree box around 47N -123 with uv run --with cdsapi==<current release>; read the delivered coordinate arrays with an uncommitted scratch read; compare cell_for against them; store requests (with time and account identifier, never the key) under docs/pulls/grid-positions/ and file the report at docs/audits/2026-09-22-grid-positions-d51-report.md with index rows for the two dispatches and the report.
+**Scope boundary:** In forager-forecast: only new files under docs/dispatch/, docs/pulls/grid-positions/, docs/audits/ (report and index rows) on grid-positions-d51, pushed; delivered files only under the gitignored data/; no edit to src/, tests/, pyproject.toml or uv.lock; nothing merged; nothing written in ~/Zynergy/forager-forecast or ~/Zynergy/forager-forecast-merge-d55; c0fd3fb not pushed; no CDS terms accepted. In Forager: RECORD.md and prompts/preserved/ on branch worktree-bridge-cse_01Md1NYxk9qgG8y6g7CiSm3y, pushed, not merged; intent 2026-09-23-07 left open.
+**Baseline:** forager-forecast origin/main 82f28b65e1c46148c0518e30b411428ee0a7e2bb (git fetch in t0b before this entry; grid-positions-d51 absent on the remote); Forager branch at 15fa3d2
+**Prediction (outcome — planner):** A per-point table showing whether the current code's nearest-point assignment agrees with delivered positions, for each grid, with every disagreement named.
+**Prediction (mechanism — coder):** The delivered ERA5-Land daily-statistics file carries latitude and longitude arrays at multiples of 0.1 and the ERA5 one at multiples of 0.25, descending in latitude, with longitudes in -180 to 180 because the area is requested with negative west and east bounds (low confidence on the convention; 0 to 360 is the alternative and either is a finding, not a failure). cell_for agrees with the nearest delivered 0.1 point at every probe point except (47.05, -123.05), where the two neighbours are equidistant and the delivered grid cannot decide; there Open-Meteo era5_land returns 47.1, -123.1 as the 2026-09-18 observation did, agreeing with cell_for. On the 0.25 grid (47.125, -123.125) is an exact tie in both axes and only Open-Meteo era5's returned centre decides it; (47.12, -123.13) is nearest 47.0, -123.25 and (47.13, -123.12) nearest 47.25, -123.0. cell_for has no 0.25 mode, which is reported as a finding.
+**Finish line:** grid-positions-d51 is pushed with both dispatch files, the stored requests with their times and account, the report and the index rows; this intent is closed by a terminal entry; both checkers pass; this branch is pushed; a report is delivered.
+**Abort conditions:** CDS credentials missing or the store asks for terms acceptance; the schema forces a choice neither D54 nor D52 fixes; a CDS job queued more than 30 minutes (job id recorded); a delivered file or anything over 1 MB would be committed; a secret would appear anywhere; a permission gate blocks; a new unclaimed preserved prompt appears whose outcome is unseen.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-12
+**Timestamp:** 2026-09-23T04:44:34Z
+**Closes:** 2026-09-23-11
+**Outcome:** completed
+**Observed:** forager-forecast grid-positions-d51 pushed at 0212760 (git ls-remote), three commits on 82f28b6, 7 files, 1030 insertions, nothing under src/, tests/, pyproject.toml or uv.lock: both dispatch files (revision 2 cmp-identical to preserved/2026-09-23-07.md minus five header lines; revision 1 with a D41 closeout note), 14 Open-Meteo requests with times and returned bodies, two CDS requests with time and account, the report docs/audits/2026-09-22-grid-positions-d51-report.md, and index rows 74 to 77. Schema read from the store's retrieve/v1/processes endpoints; cdsapi 0.7.7; jobs ba0fb12f-bcca-4966-b8ea-947fce969182 and 95ee13ef-18b0-4f9f-9443-0263d6892e5f succeeded in under a minute each, 25157 and 25198 bytes, kept in gitignored data/. Both delivered grids are -180 to 180 with descending latitude; ERA5-Land points on multiples of 0.1 (within 5e-14), ERA5 exactly on multiples of 0.25. cell_for agrees with the nearest delivered 0.1 point wherever one is nearest and with Open-Meteo era5_land at all seven probe points; the 0.25 nearest point agrees with Open-Meteo era5 wherever one is nearest. At the exact 0.25 tie (47.125, -123.125) Open-Meteo returned 47.25, -123.0, rounding longitude toward zero, against the away-from-zero rule cells.py states for 0.1. Secret check over the staged index: CDS key 0 files, GBIF_PWD 0 files.
+**Deviations:** The requested area's edges lie on both grids, so the pull cannot separate grid-anchored from request-anchored positions; reported as a limit, no further pull made. Coder choices recorded in the report: frequency 1_hourly, product_type reanalysis, the area bounds, and storing Open-Meteo response bodies. The mechanism prediction held except that it did not foresee the tie direction or the precipitation file's valid_time time_shift attribute of -1 h, recorded uninterpreted.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-23-13
+**Timestamp:** 2026-09-23T04:49:25Z
+**Title:** forager-forecast: grid positions, part 2, exact-tie direction and off-grid area extraction (D46, D51)
+**Dispatch-file:** preserved/2026-09-23-08.md
+**Change:** In slayer8366/forager-forecast, appended to branch grid-positions-d51 in ~/Zynergy/forager-forecast-grid-positions-d51, in new commits: file this dispatch at docs/dispatch/2026-09-22-grid-positions-d51-part2.md (preserved prompt minus the hook header) with an index row; probe Open-Meteo's archive for 2024-06-01 under D25's pins at the eight listed era5_land points and seven listed era5 points and run the committed cell_for read-only on the 0.1 points; repeat both part 1 CDS daily-statistics pulls with only area changed to [47.47, -123.47, 46.53, -122.53], read the delivered coordinates with an uncommitted scratch read, and store the two request JSONs with -offgrid in the filename; file docs/audits/2026-09-22-grid-positions-d51-part2-report.md with an index row.
+**Scope boundary:** In forager-forecast: only new files under docs/dispatch/, docs/pulls/grid-positions/ and docs/audits/ plus the index rows in docs/audits/README.md, on grid-positions-d51, pushed; delivered files only under the gitignored data/; no edit to src/, tests/, pyproject.toml or uv.lock; nothing merged; c0fd3fb and ~/Zynergy/forager-forecast-merge-d55 untouched; no CDS terms accepted; no requests beyond those listed. In Forager: RECORD.md on branch worktree-bridge-cse_01Md1NYxk9qgG8y6g7CiSm3y (and the untracked preserved/2026-09-23-08.md this entry claims), pushed, not merged; intent 2026-09-23-07 left open.
+**Baseline:** forager-forecast origin/grid-positions-d51 0212760bc7525d79e391198a3cc92520ea8130b1 (git fetch then rev-parse in the grid-positions-d51 worktree, 3 commits on 82f28b6, worktree clean at that commit); Forager branch at 61ee4bf (equal to its origin); no preserved prompt unclaimed other than 2026-09-23-08.md, which is this dispatch.
+**Prediction (outcome — planner):** From the dispatch: Open-Meteo resolves exact ties toward +infinity on both axes for both models; where that holds at 0.1, cell_for's away-from-zero rule disagrees on negative-longitude ties and agrees on positive-latitude ties; the off-grid CDS pull returns points on multiples of the step clipped to the box, confirming D51's deduction. Outcome: a per-axis tie rule per model and a yes or no on D51, each with its evidence.
+**Prediction (mechanism — coder):** cell_for (Decimal ROUND_HALF_UP on repr) gives away from zero at every 0.1 tie: 47.25 to 47.3, 47.75 to 47.8, -123.25 to -123.3, -123.75 to -123.8, 49.25 to 49.3, -120.75 to -120.8; control 47.22, -123.22 to 47.2, -123.2. For Open-Meteo, low confidence and inferred without reading its code: if it indexes the grid by rounding (coordinate minus grid origin) over the step, the index is positive, so half-away-from-zero on the index is toward +infinity in coordinates, which fits part 1's one 0.25 tie; at 0.25 that arithmetic is exact, so I expect toward +infinity on both axes for era5; at 0.1 the division by a non-binary step is inexact and a float32 computation would put several ties just below the half, so era5_land may go toward -infinity or be mixed rather than follow the planner's +infinity. The CDS store regrids by nearest-point selection on the native grid, so the off-grid box returns the part 1 point set clipped: ERA5-Land lat 47.4 to 46.6 and lon -123.4 to -122.6 (9 by 9), ERA5 lat 47.25 to 46.75 and lon -123.25 to -122.75 (3 by 3), all on multiples of the step, confirming D51; a shifted set anchored at 47.47, -123.47 is the alternative and would refute it.
+**Finish line:** grid-positions-d51 is pushed with the dispatch file, the two -offgrid stored requests, the part 2 report and the index rows; this intent is closed by a terminal entry; both checkers pass; this branch is pushed; a report is delivered.
+**Abort conditions:** origin/grid-positions-d51 is not 0212760; the store asks for terms; a CDS job queued over 30 minutes (id recorded, one background wait); a file over 1 MB or a delivered file would be committed; a secret would appear anywhere; a permission gate blocks; a new unclaimed preserved prompt appears whose outcome is unseen.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-14
+**Timestamp:** 2026-09-23T04:55:05Z
+**Closes:** 2026-09-23-13
+**Outcome:** completed
+**Observed:** forager-forecast grid-positions-d51 pushed at e200e53 (git ls-remote), three new commits on 0212760, 5 files, 383 insertions, nothing under src/, tests/, pyproject.toml or uv.lock: the dispatch (cmp-identical to preserved/2026-09-23-08.md minus five header lines, 7926 bytes), the two -offgrid CDS requests (diff against part 1: area and requested_at_utc only), the report docs/audits/2026-09-22-grid-positions-d51-part2-report.md, and two index rows. Open-Meteo, 15 requests, all 200: era5_land went toward +infinity at all 5 latitude and all 5 longitude exact 0.1 ties (47.25 to 47.3, -123.25 to -123.2, and so on); era5 toward +infinity at all 3 latitude and 3 longitude exact 0.25 ties, (47.125, -123.125) again 47.25, -123.0; controls nearest. All probed latitudes positive and longitudes negative, so toward +infinity is not separated from away-from-zero on latitude or toward-zero on longitude. cell_for agrees with era5_land on the 2 latitude-only ties and the control and disagrees on longitude at the other 5 points. CDS jobs af33b123-ee5e-4fe7-95bb-f4889a3fbd05 and 6cf9929e-2e33-414e-b2cd-6b09ace0e032 succeeded in under a minute, 25157 and 25198 bytes, in gitignored data/: ERA5-Land 9 by 9 at 47.4 to 46.6, -123.4 to -122.6, step 0.1; ERA5 3 by 3 at 47.25 to 46.75, -123.25 to -122.75, step 0.25; all on multiples of the step in Decimal at 9 places; each equal to part 1's set clipped to the box, not shifted; D51's deduction confirmed for these datasets and this box. No terms asked. Secret check over the staged index: CDS key 0 files, GBIF_PWD 0 files; CDS run logs 0.
+**Deviations:** The dispatch's premise that every probe coordinate is exact in binary holds only for the tie coordinates; 47.22, -123.22, 47.1 and -123.1 are not, and lie too far from a half to decide a tie. My mechanism prediction that era5_land 0.1 ties might go toward -infinity or be mixed was wrong. Open-Meteo bodies kept uncommitted in data/ (part 1 committed its bodies); recorded as a coder choice in the report.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-15
+**Timestamp:** 2026-09-23T05:09:11Z
+**Closes:** 2026-09-23-07
+**Outcome:** completed
+**Observed:** forager-forecast main is c0fd3fb: git fetch origin then git ls-remote origin main in ~/Zynergy/forager-forecast-t0b returned c0fd3fbee976175972a877be8703e53d00fe31dc; git log -1 --format='%H %P %T' c0fd3fb gives parents 82f28b65e1c46148c0518e30b411428ee0a7e2bb and 2d8cc8f9988899c5cc9a0d31e89147a0bbfe216f, tree b323f3a4f7b86bd614449132b04ccf151d8dac3b. The owner pushed c0fd3fb by hand, because history_guard denied the agent's push ("history_guard: push to main blocked: refspec 'HEAD:main' pushes to main", wording as relayed from the resume coder's report, not re-observed). The temporary worktree ~/Zynergy/forager-forecast-merge-d55 (clean, detached at c0fd3fb) was removed with git worktree remove under the dispatch preserved as preserved/2026-09-23-09.md; git worktree list afterwards no longer names it.
+**Deviations:** The push to origin/main was made by the owner, not the coder. The worktree was removed by a later coder session, under 2026-09-23-16, not by the one that made the merge.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-23-16
+**Timestamp:** 2026-09-23T05:09:11Z
+**Title:** Claim six colliding preserved prompts from two other checkouts under new names; PR this branch to Forager main
+**Dispatch-file:** preserved/2026-09-23-09.md
+**Change:** Copy six untracked preserved prompts byte for byte into prompts/preserved/ on this branch under the next free names after this dispatch's own 2026-09-23-09.md, in order of their Preserved timestamps: E (bridge-cse_016CLyXZt76dm7Hr3APUi1Sz 2026-09-23-01.md) to 2026-09-23-10.md, F (same checkout, 2026-09-23-02.md) to -11, A (bridge-cse_019uZR3mJKzHkDaCv5fGnsuk 2026-09-23-01.md) to -12, B (same, -02) to -13, C (same, -03) to -14, D (same, -04) to -15; append one dispatch-note per copy, IDs 2026-09-23-17 to -22, each naming the original checkout, name and SHA-256 and saying the original is a superseded copy that must not be swept again; close this intent; open a PR from this branch to Forager main. Before this intent, and under the same dispatch's planner amendment, 2026-09-23-07 was closed by 2026-09-23-15 after its checks passed and ~/Zynergy/forager-forecast-merge-d55 was removed. Finding (owner ruling "Record only"; the fix goes to the kit's backlog): dispatch_guard.py takes root from the session's own git rev-parse --show-toplevel (.claude/hooks/dispatch_guard.py:127) and numbers each prompt as one past the highest <date>-NN.md in that checkout's prompts/preserved/ only (:62-66), so parallel sessions in different worktrees each take the same numbers.
+**Scope boundary:** In Forager: RECORD.md and prompts/preserved/ on branch worktree-bridge-cse_01Md1NYxk9qgG8y6g7CiSm3y, pushed, and a PR to main that the owner merges. The two other checkouts are read-only: their originals are neither edited, moved nor deleted. No hook, test, settings or checker change. In forager-forecast: only the worktree removal already done under the amendment; no file touched.
+**Baseline:** Forager branch at 841ac87 (equal to its origin), record IDs to 2026-09-23-14 with 2026-09-23-07 the only open intent, preserved prompts committed to 2026-09-23-08.md with 2026-09-23-09.md (this dispatch) untracked; Forager origin/main 624173b; git diff --stat origin/main...HEAD touches RECORD.md and prompts/preserved/ only. The six originals hash E 7c878986f7829d34d6f53aed3c7335eebdaeb58c0160da4570715dcf91279a5c, F f5ad31a43f20cdea4b5ee7a77f42640ad8dabc94356bf94a838ffa409073cd69, A e1e6d9906a42f3bc74525a0d9ed4e8349b8e72c41c238815d7b81fdbd331bbc8, B c0b1139be7731af1f1f56b5ac38a255bdc9036bd57bece939c7c85b47b592f81, C 965fdefa17532a7a2cc023544d6ae8fd76ea52c91fb97893109b683711949bda, D 18a6944b1353cae0cbda5e65ddaa8f1ca885995e2be4590d961ff50441110676, and their headers match the dispatch's table.
+**Prediction (outcome — planner):** The six take 2026-09-23-08 to -13 in order E, F, A, B, C, D if the branch has not passed -07 (the planner's amendment expects the next numbers after the branch's highest prompt instead, since it has); the branch's diff against main is RECORD.md and prompts/preserved/ only; both checkers pass after the notes; the PR merges into main cleanly because main has not moved from 624173b. Graded against the tree: the first part does not hold as written, because the branch holds -08 committed and -09 is this dispatch, so the names are -10 to -15, which the amendment anticipated; the second holds (checked above); the others are graded in the terminal.
+**Prediction (mechanism — coder):** cp gives byte-identical copies, so each copy's sha256sum equals its original's. check_prompts.py binds by Dispatch-file name only, with no content comparison, so the six notes plus this intent leave it with zero unclaimed files. check_record.py accepts extra fields on a dispatch-note (only NOTE_FORBIDDEN is rejected, check_record.py:107-131), so a Notes field passes. The PR is mergeable because main at 624173b is an ancestor of this branch (branch commits sit on it) and none of the added files exists on main.
+**Finish line:** All six copied under -10 to -15 with matching hashes; six dispatch-notes 2026-09-23-17 to -22; this intent closed by a terminal entry; both checkers pass; the branch is pushed; a PR from it to Forager main is open; a report is delivered.
+**Abort conditions:** An original's header no longer matches or its hash changes before copying; a copy's hash differs from its original; main moves with changes to RECORD.md or prompts/preserved/; a checker fails for a reason other than a prompt about to be claimed; any file outside RECORD.md and prompts/preserved/ would change on the branch; a new unclaimed preserved prompt appears whose outcome is unseen.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-17
+**Dispatch-file:** preserved/2026-09-23-10.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-01.md in the checkout .claude/worktrees/bridge-cse_016CLyXZt76dm7Hr3APUi1Sz, sha256 7c878986f7829d34d6f53aed3c7335eebdaeb58c0160da4570715dcf91279a5c; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). The pulse ran and stopped before handing back: role_guard denied SubagentHandback ("the pulse role may not use SubagentHandback"), subagent log agent-ac113d35100c6dbee.jsonl line 46 in ~/.claude/projects/-home-zynergy-labs-Zynergy-Forager--claude-worktrees-bridge-cse-016CLyXZt76dm7Hr3APUi1Sz/24082e3e-f66d-5f6b-b530-708f84d468e9/subagents/; the planner received "no report was delivered" (session log 24082e3e-f66d-5f6b-b530-708f84d468e9.jsonl line 57).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-18
+**Dispatch-file:** preserved/2026-09-23-11.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-02.md in the checkout .claude/worktrees/bridge-cse_016CLyXZt76dm7Hr3APUi1Sz, sha256 f5ad31a43f20cdea4b5ee7a77f42640ad8dabc94356bf94a838ffa409073cd69; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). A retry of 2026-09-23-17's question. The pulse ran and stopped before handing back, for the same reason: role_guard denied SubagentHandback twice (subagent log agent-ada958eac98af18c8.jsonl, same directory as 2026-09-23-17, lines 56 to 61); the planner received "no report was delivered" (session log line 71).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-19
+**Dispatch-file:** preserved/2026-09-23-12.md
+**Type:** build
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-01.md in the checkout .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, sha256 e1e6d9906a42f3bc74525a0d9ed4e8349b8e72c41c238815d7b81fdbd331bbc8; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). Merge Forager PR #115. The coder ran and stopped before its action, the merge: the dispatch waived a record step, and the waiver was not shown to be the owner's (its hand-back, subagent log agent-a461fb9cc1d63b2e7.jsonl under ~/.claude/projects/-home-zynergy-labs-Zynergy-Forager--claude-worktrees-bridge-cse-019uZR3mJKzHkDaCv5fGnsuk/1b897011-9b08-5256-851d-e0b3c0141e2e/subagents/). The owner then merged #115 by hand: merge commit 624173b, merged by slayer8366 (gh pr view 115).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-20
+**Dispatch-file:** preserved/2026-09-23-13.md
+**Type:** build
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-02.md in the checkout .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, sha256 c0b1139be7731af1f1f56b5ac38a255bdc9036bd57bece939c7c85b47b592f81; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). Extract Claude-kit v0.1, first run. The coder ran and stopped before step 1, with nothing built, to ask for rulings: step 1 contradicted the record rules and the checkers the dispatch had to port unchanged (its hand-back, subagent log agent-a78050a8d289a8b88.jsonl, same directory as 2026-09-23-19). Superseded by the dispatch 2026-09-23-21 records.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-21
+**Dispatch-file:** preserved/2026-09-23-14.md
+**Type:** build
+**Outcome:** answered
+**Report:** slayer8366/Claude-kit, docs/audits/2026-09-23-kit-v0.1-extraction-completion-report.md (on branch kit-v0.1, PR #1, which was open and unmerged when this note was written)
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-03.md in the checkout .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, sha256 965fdefa17532a7a2cc023544d6ae8fd76ea52c91fb97893109b683711949bda; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). Extract Claude-kit v0.1, with addendum 2. Completed in slayer8366/Claude-kit: PR #1 and that repository's RECORD.md entries 2026-09-23-01 and -02 (its hand-back, subagent log agent-a8b6c14a1b466b10e.jsonl, same directory as 2026-09-23-19).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-22
+**Dispatch-file:** preserved/2026-09-23-15.md
+**Type:** build
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-04.md in the checkout .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, sha256 18a6944b1353cae0cbda5e65ddaa8f1ca885995e2be4590d961ff50441110676; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). Merge Claude-kit PR #1. The coder ran and stopped before its action, the merge: the Claude Code auto mode classifier denied the REST merge call ("Reason: [Auto-Mode Bypass]", subagent log agent-a9d2ba9a42d9897d6.jsonl line 20, same directory as 2026-09-23-19). Nothing was merged.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-23
+**Timestamp:** 2026-09-23T05:12:02Z
+**Closes:** 2026-09-23-16
+**Outcome:** completed
+**Observed:** Six copies at prompts/preserved/2026-09-23-10.md to -15.md (E, F, A, B, C, D), each sha256sum equal to its original's and cmp-identical; each original's hash also unchanged from the baseline reading; first five lines of each copy match its original and the dispatch's table. check_prompts.py failed before the notes with exactly six binding violations, 2026-09-23-10.md to -15.md, and passed after them with 22 preserved files and 22 dispatch-recording entries; check_record.py passed at every commit. Pushed at f7f88b9. PR https://github.com/slayer8366/Forager/pull/116 opened from this branch to main: GitHub reports mergeable MERGEABLE, mergeStateStatus UNSTABLE because the one check, "Build, test, publish APK", was pending at 05:12Z. origin/main still 624173b and an ancestor of the branch; git diff --name-only origin/main...HEAD lists RECORD.md and prompts/preserved/ files only (15 files). F's outcome was established from its session log: the pulse ran and role_guard denied its SubagentHandback, as it did E's. The stop reasons for A, B and D and C's completion were confirmed against each subagent's own hand-back in session 019uZR3's log, and #115's hand merge by gh pr view 115. Planner predictions graded: names -08 to -13 did not hold (the branch had passed -07; the names are -10 to -15, as the amendment anticipated); diff scope holds; both checkers pass; clean merge is not observed, only GitHub's mergeable flag. Coder mechanism prediction held.
+**Deviations:** history_guard refused a Bash heredoc append to RECORD.md because it could not parse the command ("could not parse this push (No closing quotation)"); nothing ran, and the entries were appended with the Edit tool instead. The 07 terminal and this intent went in one commit (9f649f9) with this dispatch's prompt, so no commit carried an unclaimed prompt. Coder choices, not given by the dispatch: each note's provenance and stop reason sit in one Notes field; E and F take Outcome answered, following the 2026-09-23-06 precedent; C's Report names the branch kit-v0.1, because Claude-kit PR #1 is unmerged. The history_guard denial wording in 2026-09-23-15 is relayed, not re-observed.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-23-24
+**Timestamp:** 2026-09-23T05:55:41Z
+**Title:** forager-forecast: merge grid-positions-d51 into main locally, unpushed, for the owner to push
+**Dispatch-file:** preserved/2026-09-23-16.md
+**Change:** In slayer8366/forager-forecast, in a new detached temporary worktree of ~/Zynergy/forager-forecast-t0b cut from origin/main, make one git merge --no-ff of origin/grid-positions-d51 into origin/main; resolve the expected conflict in docs/audits/README.md by keeping every row from both sides, main's two d55 rows (2026-09-20, 2026-09-21) then the branch's five grid-positions rows (2026-09-22), in append and date order; merge message quotes the owner's authorisation "Merge grid-positions-d51 into forecast main" under D40 and D50, recorded as about 22:38 PDT when the dispatch reached the coder (2026-09-23T05:38:24Z). Leave the commit unpushed in that worktree; the owner pushes.
+**Scope boundary:** In forager-forecast: one merge commit in the temporary worktree, unpushed; no push of anything; no file edit other than the conflict resolution in docs/audits/README.md; nothing under src/, tests/, pyproject.toml or uv.lock changes; ~/Zynergy/forager-forecast and ~/Zynergy/forager-forecast-grid-positions-d51 untouched; the temporary worktree kept. In Forager: RECORD.md and this dispatch's preserved prompt on branch worktree-bridge-cse_01Md1NYxk9qgG8y6g7CiSm3y (head of open PR #116), pushed, not merged.
+**Baseline:** forager-forecast origin/main c0fd3fbee976175972a877be8703e53d00fe31dc and origin/grid-positions-d51 e200e5358278e7840c2492f1cf847775f15d5b85 (git fetch then rev-parse in t0b); merge base 82f28b65e1c46148c0518e30b411428ee0a7e2bb, c0fd3fb's first parent; branch 6 commits on it, 11 paths changed, all under docs/ (10 added plus docs/audits/README.md modified); index rows (lines starting "| 20") 74 at 82f28b6, 76 at c0fd3fb, 79 at e200e53. Forager branch at 75efcf7 equal to its origin; record IDs to 2026-09-23-23, no intent open; check_prompts.py's only violation was prompts/preserved/2026-09-23-16.md, this dispatch, so no sweep was needed.
+**Prediction (outcome — planner):** The merge conflicts only in docs/audits/README.md and union resolves it; the merged row count equals main's 76 plus the branch's added rows; git diff --name-only origin/main HEAD lists only the branch's added files plus docs/audits/README.md; no file under src/, tests/, pyproject.toml or uv.lock changes.
+**Prediction (mechanism — coder):** Both sides appended after the same last base row (the 2026-09-20 handoff row), so git reports one add/add-style content conflict in docs/audits/README.md with main's 2 rows on one side and the branch's 5 on the other, and auto-merges nothing else because no other path is touched by both sides (main's other paths are under docs/planning/ and two new docs/audits/ files; the branch's are new files under docs/dispatch/, docs/pulls/grid-positions/ and docs/audits/). The result has 81 rows; diff against origin/main is exactly the branch's 11 paths; the merge commit's parents are c0fd3fb then e200e53. The secret check finds 0 hits for both values, since part 1 and part 2 stored requests with the account identifier and never the key.
+**Finish line:** A local merge commit with parents c0fd3fb and e200e53 verified by the dispatch's checks 1 to 6; this intent closed by a terminal entry; both checkers pass; this branch pushed; a report with the push command git -C <temp worktree> push origin HEAD:main delivered.
+**Abort conditions:** Either tip differs from the premises; any file other than docs/audits/README.md conflicts; union would need a row edited or dropped; anything under src/, tests/, pyproject.toml or uv.lock would change; the secret check hits; a permission gate blocks; a new unclaimed prompt appears whose outcome is unseen.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-25
+**Timestamp:** 2026-09-23T05:56:59Z
+**Closes:** 2026-09-23-24
+**Outcome:** completed
+**Observed:** Local merge commit 876156b6dea613e95730f41e3e5f870aecdd5995 in the detached temporary worktree ~/Zynergy/forager-forecast-merge-grid-d51 (cut from origin/main), parents c0fd3fbee976175972a877be8703e53d00fe31dc and e200e5358278e7840c2492f1cf847775f15d5b85, tree 177d25826df3fbeab936bdc39b90016365b1f999, unpushed and kept. Tips re-read after git fetch before and after the merge: unchanged. git merge --no-ff --no-commit reported one conflict, docs/audits/README.md, and staged the other 10 paths as added. Main's file is the base plus 2 rows and the branch's the base plus 5 (checked with cmp against 82f28b6's file); the conflicted file with markers stripped was cmp-identical to main's file followed by the branch's 5 rows, and that file was taken as the resolution. Index rows (lines starting "| 20"): 74 at 82f28b6, 76 at c0fd3fb, 79 at e200e53, 81 in the result; git diff --numstat origin/main HEAD on the index is 5 added, 0 removed. git diff --name-only origin/main HEAD lists exactly the branch's 11 paths (10 added files plus docs/audits/README.md), 1413 insertions, no deletions; none under src/, tests/, pyproject.toml or uv.lock; git diff --name-only origin/grid-positions-d51 HEAD lists only main's six d55 paths and the index, so the branch's files arrive unchanged. Secret check over all 147 tracked files of the staged merge tree with git grep -F: CDS key value 0 files, GBIF_PWD value 0 files (control string present in 6). The repo's check-large-files hook passed at commit. origin/main was still c0fd3fb after the commit (git ls-remote). The push to main is the owner's and was not observed; the next dispatch that touches forecast main confirms it. Planner predictions: all four hold. Coder mechanism prediction held.
+**Deviations:** git merge was run with --no-commit so the resolution could be checked before the commit; the commit is a --no-ff merge as dispatched. Coder choices, not given by the dispatch: the time is given as about 22:38 PDT with the UTC timestamp 2026-09-23T05:38:24Z in parentheses, following c0fd3fb's form, because 22:38 PDT falls on 2026-09-22 while the dispatch dates the owner's message 2026-09-23 (read as the UTC date); the merge message wraps the owner's quoted words across a line break, as c0fd3fb's did, so the quote is exact in words but not grep-able as one line; the merge message's subject and body wording; the temporary worktree's path.
+
+---
