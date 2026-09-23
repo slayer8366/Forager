@@ -482,3 +482,12 @@ here.
   repository at all, in either direction. What is visible is that the tree does
   contain the Functions. Recorded as unverified rather than dropped, because the
   pattern they describe is the one above.
+
+## Roles and gates
+
+Planner, coder and pulse are held apart by hooks, not by instruction. The
+design is `docs/process/accountability-design.md`; the subagents are in
+`.claude/agents/`, the gates in `.claude/hooks/`, and the dispatch record in
+`RECORD.md` and `prompts/preserved/`. A main session in this repository is the
+planner and is read-only. Added at the end of this file so that line 253 does
+not move.
