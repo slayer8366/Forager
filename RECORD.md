@@ -184,3 +184,27 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** The first attempt to copy the session log failed (a directory name starting with - broke dirname) after its INDEX.md line had already been appended with a blank line count and hash. INDEX.md is append-only, so that line stands and a correction line after it records the real copy. The gh api merge gap is recorded, not fixed.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-23-03
+**Timestamp:** 2026-09-23T02:23:20Z
+**Title:** Correct a line citation in 2026-09-23-02
+**Change:** Record that 2026-09-23-02 cites the gh pr merge pattern at .claude/hooks/history_guard.py:31; it is at :30.
+**Scope boundary:** RECORD.md only.
+**Baseline:** record-pr114-merge at 1f35033
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):** not authored
+**Finish line:** A terminal entry states the correct line; both checkers pass.
+**Abort conditions:** None beyond the checkers failing.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-04
+**Timestamp:** 2026-09-23T02:23:20Z
+**Closes:** 2026-09-23-03
+**Outcome:** completed
+**Observed:** At b2435ef, git grep puts PR_MERGE, the only pattern that blocks a merge command in history_guard.py, at .claude/hooks/history_guard.py:30, not :31 as 2026-09-23-02 says. Everything else in 2026-09-23-02 stands. The same wrong line was given in chat, in the kit-extraction pulse answer of 2026-09-23 (Question 7).
+**Deviations:** None. It carries out item 1 of the ruling preserved as preserved/2026-09-23-01.md, which 2026-09-23-01 claims; one prompt cannot be claimed twice, so this intent claims none.
+
+---
