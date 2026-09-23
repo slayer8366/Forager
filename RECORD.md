@@ -208,3 +208,27 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** None. It carries out item 1 of the ruling preserved as preserved/2026-09-23-01.md, which 2026-09-23-01 claims; one prompt cannot be claimed twice, so this intent claims none.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-23-05
+**Timestamp:** 2026-09-23T03:57:52Z
+**Title:** Merge d55-artifact-contract into main in slayer8366/forager-forecast
+**Dispatch-file:** preserved/2026-09-23-02.md
+**Change:** One no-ff merge commit of d55-artifact-contract (2d8cc8f) into forager-forecast main (82f28b6), made in a temporary worktree of ~/Zynergy/forager-forecast-t0b cut from origin/main, pushed to origin/main, the worktree then removed. The merge message quotes the owner's authorisation, "I authorize merging d55-artifact-contract into main", with its time, as D40 and D50 require.
+**Scope boundary:** In forager-forecast: that one merge commit and its push; no file edited, no branch deleted, nothing written in ~/Zynergy/forager-forecast. In Forager: RECORD.md and prompts/preserved/ on branch worktree-bridge-cse_01Md1NYxk9qgG8y6g7CiSm3y, pushed to that branch, not merged into Forager main.
+**Baseline:** forager-forecast origin/main 82f28b65e1c46148c0518e30b411428ee0a7e2bb, origin/d55-artifact-contract 2d8cc8f9988899c5cc9a0d31e89147a0bbfe216f (both verified by git fetch before this entry; 0 behind, 5 ahead); Forager branch at 624173b
+**Prediction (outcome — planner):** The merge is clean; its tree equals 2d8cc8f^{tree}; git diff 82f28b6 against the merge names exactly the six files; DECISIONS.md on the result has D60 as its highest row.
+**Prediction (mechanism — coder):** Because origin/main is an ancestor of the branch, a --no-ff merge has nothing to combine: git takes the branch tree as it is and adds only a commit with two parents, so the tree check and the six-file diff pass by construction. The only hook set is .githooks/pre-commit, which git merge does not run (a merge runs pre-merge-commit, and none exists), so no hook bears on it. The audit index row count on the result equals the branch's.
+**Finish line:** origin/main is the new merge commit with parents 82f28b6 and 2d8cc8f; the temporary worktree is removed; this intent is closed by a terminal entry; both checkers pass; this branch is pushed; a short report is delivered.
+**Abort conditions:** origin/main is not 82f28b6 or origin/d55-artifact-contract is not 2d8cc8f at merge time; the merge conflicts; the tree check fails; the secret check finds anything; the push is rejected (no force-push).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-06
+**Dispatch-file:** preserved/2026-09-23-03.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** none: the pulse ended without a hand-back; the planner received no report
+
+---
