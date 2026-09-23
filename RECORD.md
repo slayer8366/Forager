@@ -159,3 +159,52 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** None from the ruling. Beyond it: a second backup (2026-09-22-02) of the new session log and the /tmp scratch, which were not deleted.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-23-01
+**Timestamp:** 2026-09-23T02:22:57Z
+**Title:** Record the owner's authorization and the route of the PR #114 merge; back up its evidence
+**Dispatch-file:** preserved/2026-09-23-01.md
+**Change:** A record of who authorized the PR #114 merge, by what route it ran, and what the history guard does with that route; the session log copied and /tmp/kitprobe moved into ~/forager-backups/, each with an INDEX.md line.
+**Scope boundary:** RECORD.md and prompts/preserved/ on a branch cut from main at b2435ef; ~/forager-backups/ (create, copy and move in only). No hook, test or other file changes.
+**Baseline:** origin/main b2435ef
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The terminal entry below states the authorization, the route and the guard behaviour with sources; both backups exist and are indexed; both checkers pass; the branch is pushed.
+**Abort conditions:** Anything under ~/forager-backups/ would need deleting or overwriting.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-02
+**Timestamp:** 2026-09-23T02:22:57Z
+**Closes:** 2026-09-23-01
+**Outcome:** completed
+**Observed:** Authorization: the owner authorized the PR #114 merge, in the session log ~/.claude/projects/-home-zynergy-labs-Zynergy-Forager--claude-worktrees-bridge-cse-019uZR3mJKzHkDaCv5fGnsuk/1b897011-9b08-5256-851d-e0b3c0141e2e.jsonl at line 1121 (backup copy: ~/forager-backups/2026-09-23-01/, same file name, same line). Route: a REST PUT to repos/slayer8366/Forager/pulls/114/merge (merge_method=merge, pinned to head 77c19dd), run by a Claude Code session in the worktree .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, which carries no .claude/ hooks, so no guard ran. GitHub records the merge as slayer8366 at 2026-09-23T01:18:42Z, merge commit b2435ef, indistinguishable from a merge made by hand. The history guard passes gh api merges even when present: run on b2435ef's hooks with the payload gh api -X PUT repos/o/r/pulls/1/merge -f merge_method=merge, history_guard.py returned no decision for the coder; it blocks only the literal gh pr merge (.claude/hooks/history_guard.py:31). role_guard.py denied the same command for the planner, because gh api is given -X. Backups: the session log copied to ~/forager-backups/2026-09-23-01/ (1265 lines, sha256 ebc3b21a1c496a06…, a byte-prefix of the live log); /tmp/kitprobe moved to ~/forager-backups/2026-09-23-02/kitprobe (25 files, hashes identical before and after, MANIFEST.sha256 beside it); both indexed in ~/forager-backups/INDEX.md.
+**Deviations:** The first attempt to copy the session log failed (a directory name starting with - broke dirname) after its INDEX.md line had already been appended with a blank line count and hash. INDEX.md is append-only, so that line stands and a correction line after it records the real copy. The gh api merge gap is recorded, not fixed.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-23-03
+**Timestamp:** 2026-09-23T02:23:20Z
+**Title:** Correct a line citation in 2026-09-23-02
+**Change:** Record that 2026-09-23-02 cites the gh pr merge pattern at .claude/hooks/history_guard.py:31; it is at :30.
+**Scope boundary:** RECORD.md only.
+**Baseline:** record-pr114-merge at 1f35033
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):** not authored
+**Finish line:** A terminal entry states the correct line; both checkers pass.
+**Abort conditions:** None beyond the checkers failing.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-04
+**Timestamp:** 2026-09-23T02:23:20Z
+**Closes:** 2026-09-23-03
+**Outcome:** completed
+**Observed:** At b2435ef, git grep puts PR_MERGE, the only pattern that blocks a merge command in history_guard.py, at .claude/hooks/history_guard.py:30, not :31 as 2026-09-23-02 says. Everything else in 2026-09-23-02 stands. The same wrong line was given in chat, in the kit-extraction pulse answer of 2026-09-23 (Question 7).
+**Deviations:** None. It carries out item 1 of the ruling preserved as preserved/2026-09-23-01.md, which 2026-09-23-01 claims; one prompt cannot be claimed twice, so this intent claims none.
+
+---
