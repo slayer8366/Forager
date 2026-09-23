@@ -291,3 +291,13 @@ Design: `docs/process/accountability-design.md`.
 **Abort conditions:** CDS credentials missing or the store asks for terms acceptance; the schema forces a choice neither D54 nor D52 fixes; a CDS job queued more than 30 minutes (job id recorded); a delivered file or anything over 1 MB would be committed; a secret would appear anywhere; a permission gate blocks; a new unclaimed preserved prompt appears whose outcome is unseen.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-23-12
+**Timestamp:** 2026-09-23T04:44:34Z
+**Closes:** 2026-09-23-11
+**Outcome:** completed
+**Observed:** forager-forecast grid-positions-d51 pushed at 0212760 (git ls-remote), three commits on 82f28b6, 7 files, 1030 insertions, nothing under src/, tests/, pyproject.toml or uv.lock: both dispatch files (revision 2 cmp-identical to preserved/2026-09-23-07.md minus five header lines; revision 1 with a D41 closeout note), 14 Open-Meteo requests with times and returned bodies, two CDS requests with time and account, the report docs/audits/2026-09-22-grid-positions-d51-report.md, and index rows 74 to 77. Schema read from the store's retrieve/v1/processes endpoints; cdsapi 0.7.7; jobs ba0fb12f-bcca-4966-b8ea-947fce969182 and 95ee13ef-18b0-4f9f-9443-0263d6892e5f succeeded in under a minute each, 25157 and 25198 bytes, kept in gitignored data/. Both delivered grids are -180 to 180 with descending latitude; ERA5-Land points on multiples of 0.1 (within 5e-14), ERA5 exactly on multiples of 0.25. cell_for agrees with the nearest delivered 0.1 point wherever one is nearest and with Open-Meteo era5_land at all seven probe points; the 0.25 nearest point agrees with Open-Meteo era5 wherever one is nearest. At the exact 0.25 tie (47.125, -123.125) Open-Meteo returned 47.25, -123.0, rounding longitude toward zero, against the away-from-zero rule cells.py states for 0.1. Secret check over the staged index: CDS key 0 files, GBIF_PWD 0 files.
+**Deviations:** The requested area's edges lie on both grids, so the pull cannot separate grid-anchored from request-anchored positions; reported as a limit, no further pull made. Coder choices recorded in the report: frequency 1_hourly, product_type reanalysis, the area bounds, and storing Open-Meteo response bodies. The mechanism prediction held except that it did not foresee the tie direction or the precipitation file's valid_time time_shift attribute of -1 h, recorded uninterpreted.
+
+---
