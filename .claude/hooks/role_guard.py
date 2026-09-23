@@ -28,7 +28,7 @@ import guardlib as g  # noqa: E402
 
 PLANNER_TOOLS = {"Read", "Grep", "Glob", "Bash", "Agent", "Skill", "WebFetch",
                  "WebSearch", "AskUserQuestion", "ToolSearch", "TodoWrite"}
-PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash"}
+PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash", "SubagentHandback"}
 
 GIT_PREFIX = r"\bgit\s+(?:(?:-C\s+\S+|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+)\s+)*"
 # Step 2's required patterns. Checked first so each is blocked by name.
