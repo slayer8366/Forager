@@ -267,3 +267,12 @@ Design: `docs/process/accountability-design.md`.
 **Report:** none; the coder stopped before any work because the hook edit's authorisation reached it only through the planner; see the planner's chat of 2026-09-22
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-10
+**Dispatch-file:** preserved/2026-09-23-06.md
+**Type:** build
+**Outcome:** declined
+**Report:** none; the coder stopped before its intent at scope item 3 (no request shape for the daily-statistics datasets) and handed the gap back; superseded by revision 2
+
+---
