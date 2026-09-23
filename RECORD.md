@@ -149,3 +149,13 @@ Design: `docs/process/accountability-design.md`.
 **Abort conditions:** Two failed fixes on the hook, after which only data gathering. Anything requiring a settings edit or a deletion.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-22-11
+**Timestamp:** 2026-09-23T00:01:11Z
+**Closes:** 2026-09-22-10
+**Outcome:** completed
+**Observed:** (1) The flag 1 MCP allow was the --allowedTools CLI flag, session-only; no settings file on the machine allows the tool (the one match, ~/.claude.json:1464, is the claudeAiMcpEverConnected list). (2) Type bound to target in 79e28c1: failing-first (pulse -> coder 'allow' != 'deny', the bypass; build/device -> pulse 'ask' != 'deny'), sabotaged twice, and a live pulse-typed dispatch to coder was blocked with nothing preserved. Mechanism prediction held on both counts.
+**Deviations:** None from the ruling. Beyond it: a second backup (2026-09-22-02) of the new session log and the /tmp scratch, which were not deleted.
+
+---
