@@ -316,3 +316,13 @@ Design: `docs/process/accountability-design.md`.
 **Abort conditions:** origin/grid-positions-d51 is not 0212760; the store asks for terms; a CDS job queued over 30 minutes (id recorded, one background wait); a file over 1 MB or a delivered file would be committed; a secret would appear anywhere; a permission gate blocks; a new unclaimed preserved prompt appears whose outcome is unseen.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-23-14
+**Timestamp:** 2026-09-23T04:55:05Z
+**Closes:** 2026-09-23-13
+**Outcome:** completed
+**Observed:** forager-forecast grid-positions-d51 pushed at e200e53 (git ls-remote), three new commits on 0212760, 5 files, 383 insertions, nothing under src/, tests/, pyproject.toml or uv.lock: the dispatch (cmp-identical to preserved/2026-09-23-08.md minus five header lines, 7926 bytes), the two -offgrid CDS requests (diff against part 1: area and requested_at_utc only), the report docs/audits/2026-09-22-grid-positions-d51-part2-report.md, and two index rows. Open-Meteo, 15 requests, all 200: era5_land went toward +infinity at all 5 latitude and all 5 longitude exact 0.1 ties (47.25 to 47.3, -123.25 to -123.2, and so on); era5 toward +infinity at all 3 latitude and 3 longitude exact 0.25 ties, (47.125, -123.125) again 47.25, -123.0; controls nearest. All probed latitudes positive and longitudes negative, so toward +infinity is not separated from away-from-zero on latitude or toward-zero on longitude. cell_for agrees with era5_land on the 2 latitude-only ties and the control and disagrees on longitude at the other 5 points. CDS jobs af33b123-ee5e-4fe7-95bb-f4889a3fbd05 and 6cf9929e-2e33-414e-b2cd-6b09ace0e032 succeeded in under a minute, 25157 and 25198 bytes, in gitignored data/: ERA5-Land 9 by 9 at 47.4 to 46.6, -123.4 to -122.6, step 0.1; ERA5 3 by 3 at 47.25 to 46.75, -123.25 to -122.75, step 0.25; all on multiples of the step in Decimal at 9 places; each equal to part 1's set clipped to the box, not shifted; D51's deduction confirmed for these datasets and this box. No terms asked. Secret check over the staged index: CDS key 0 files, GBIF_PWD 0 files; CDS run logs 0.
+**Deviations:** The dispatch's premise that every probe coordinate is exact in binary holds only for the tie coordinates; 47.22, -123.22, 47.1 and -123.1 are not, and lie too far from a half to decide a tie. My mechanism prediction that era5_land 0.1 ties might go toward -infinity or be mixed was wrong. Open-Meteo bodies kept uncommitted in data/ (part 1 committed its bodies); recorded as a coder choice in the report.
+
+---
