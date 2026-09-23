@@ -351,3 +351,63 @@ Design: `docs/process/accountability-design.md`.
 **Abort conditions:** An original's header no longer matches or its hash changes before copying; a copy's hash differs from its original; main moves with changes to RECORD.md or prompts/preserved/; a checker fails for a reason other than a prompt about to be claimed; any file outside RECORD.md and prompts/preserved/ would change on the branch; a new unclaimed preserved prompt appears whose outcome is unseen.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-17
+**Dispatch-file:** preserved/2026-09-23-10.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-01.md in the checkout .claude/worktrees/bridge-cse_016CLyXZt76dm7Hr3APUi1Sz, sha256 7c878986f7829d34d6f53aed3c7335eebdaeb58c0160da4570715dcf91279a5c; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). The pulse ran and stopped before handing back: role_guard denied SubagentHandback ("the pulse role may not use SubagentHandback"), subagent log agent-ac113d35100c6dbee.jsonl line 46 in ~/.claude/projects/-home-zynergy-labs-Zynergy-Forager--claude-worktrees-bridge-cse-016CLyXZt76dm7Hr3APUi1Sz/24082e3e-f66d-5f6b-b530-708f84d468e9/subagents/; the planner received "no report was delivered" (session log 24082e3e-f66d-5f6b-b530-708f84d468e9.jsonl line 57).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-18
+**Dispatch-file:** preserved/2026-09-23-11.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-02.md in the checkout .claude/worktrees/bridge-cse_016CLyXZt76dm7Hr3APUi1Sz, sha256 f5ad31a43f20cdea4b5ee7a77f42640ad8dabc94356bf94a838ffa409073cd69; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). A retry of 2026-09-23-17's question. The pulse ran and stopped before handing back, for the same reason: role_guard denied SubagentHandback twice (subagent log agent-ada958eac98af18c8.jsonl, same directory as 2026-09-23-17, lines 56 to 61); the planner received "no report was delivered" (session log line 71).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-19
+**Dispatch-file:** preserved/2026-09-23-12.md
+**Type:** build
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-01.md in the checkout .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, sha256 e1e6d9906a42f3bc74525a0d9ed4e8349b8e72c41c238815d7b81fdbd331bbc8; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). Merge Forager PR #115. The coder ran and stopped before its action, the merge: the dispatch waived a record step, and the waiver was not shown to be the owner's (its hand-back, subagent log agent-a461fb9cc1d63b2e7.jsonl under ~/.claude/projects/-home-zynergy-labs-Zynergy-Forager--claude-worktrees-bridge-cse-019uZR3mJKzHkDaCv5fGnsuk/1b897011-9b08-5256-851d-e0b3c0141e2e/subagents/). The owner then merged #115 by hand: merge commit 624173b, merged by slayer8366 (gh pr view 115).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-20
+**Dispatch-file:** preserved/2026-09-23-13.md
+**Type:** build
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-02.md in the checkout .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, sha256 c0b1139be7731af1f1f56b5ac38a255bdc9036bd57bece939c7c85b47b592f81; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). Extract Claude-kit v0.1, first run. The coder ran and stopped before step 1, with nothing built, to ask for rulings: step 1 contradicted the record rules and the checkers the dispatch had to port unchanged (its hand-back, subagent log agent-a78050a8d289a8b88.jsonl, same directory as 2026-09-23-19). Superseded by the dispatch 2026-09-23-21 records.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-21
+**Dispatch-file:** preserved/2026-09-23-14.md
+**Type:** build
+**Outcome:** answered
+**Report:** slayer8366/Claude-kit, docs/audits/2026-09-23-kit-v0.1-extraction-completion-report.md (on branch kit-v0.1, PR #1, which was open and unmerged when this note was written)
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-03.md in the checkout .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, sha256 965fdefa17532a7a2cc023544d6ae8fd76ea52c91fb97893109b683711949bda; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). Extract Claude-kit v0.1, with addendum 2. Completed in slayer8366/Claude-kit: PR #1 and that repository's RECORD.md entries 2026-09-23-01 and -02 (its hand-back, subagent log agent-a8b6c14a1b466b10e.jsonl, same directory as 2026-09-23-19).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-22
+**Dispatch-file:** preserved/2026-09-23-15.md
+**Type:** build
+**Outcome:** answered
+**Report:** none
+**Notes:** Byte-for-byte copy of the untracked prompts/preserved/2026-09-23-04.md in the checkout .claude/worktrees/bridge-cse_019uZR3mJKzHkDaCv5fGnsuk, sha256 18a6944b1353cae0cbda5e65ddaa8f1ca885995e2be4590d961ff50441110676; that original is a superseded copy, claimed here, and must not be swept again. dispatch_guard numbered it in its own checkout, colliding with a committed file of different content (see 2026-09-23-16). Merge Claude-kit PR #1. The coder ran and stopped before its action, the merge: the Claude Code auto mode classifier denied the REST merge call ("Reason: [Auto-Mode Bypass]", subagent log agent-a9d2ba9a42d9897d6.jsonl line 20, same directory as 2026-09-23-19). Nothing was merged.
+
+---
