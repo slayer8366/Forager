@@ -136,6 +136,20 @@ class DispatchGuard(unittest.TestCase):
         self.assertIn("may not be dispatched", reason)
         self.assertEqual(self.written(), [])
 
+    # Operator ruling, 2026-09-22: Type binds to target. Before this, a
+    # pulse-typed dispatch to coder ran without approval (decision B bypass).
+    def test_type_and_target_mismatch_blocked(self):
+        cases = (("pulse", PULSE_SECTIONS, "coder", "'pulse'"),
+                 ("build", BUILD_SECTIONS, "pulse", "'coder'"),
+                 ("device", BUILD_SECTIONS, "pulse", "'coder'"))
+        for type_, sections, target, required in cases:
+            with self.subTest(f"{type_} -> {target}"):
+                decision, reason = run_hook(HOOK, agent(prompt(type_, sections), target,
+                                                        cwd=str(self.repo)))
+                self.assertEqual(decision, "deny")
+                self.assertIn(f"Type {type_!r} may only be dispatched to {required}", reason)
+                self.assertEqual(self.written(), [], "a mismatched dispatch was preserved")
+
     def test_task_tool_name_also_checked(self):
         decision, _ = run_hook(HOOK, agent(prompt(None, BUILD_SECTIONS), tool_name="Task",
                                            cwd=str(self.repo)))

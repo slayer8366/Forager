@@ -29,6 +29,7 @@ import guardlib as g  # noqa: E402
 
 DISPATCH_TOOLS = {"Agent", "Task"}
 DISPATCHABLE = {"coder", "pulse"}
+TARGET_FOR_TYPE = {"pulse": "pulse", "build": "coder", "device": "coder"}
 REQUIRED = {
     "build": ["Role", "Base and state", "Scope boundary", "Closed decisions",
               "Prediction", "Finish line and abort conditions", "Checks",
@@ -110,6 +111,11 @@ def guard(payload):
     if type_ not in REQUIRED:
         return ("deny", f"dispatch_guard: unknown Type {type_!r}. Known types: "
                         f"{', '.join(sorted(REQUIRED))}.")
+    # Operator ruling, 2026-09-22: Type binds to target. Unbound, a dispatch
+    # typed pulse could go to coder and run without approval (decision B).
+    if TARGET_FOR_TYPE[type_] != target:
+        return ("deny", f"dispatch_guard: Type {type_!r} may only be dispatched to "
+                        f"{TARGET_FOR_TYPE[type_]!r}, not {target!r}.")
     missing = missing_sections(text, REQUIRED[type_])
     if missing:
         return ("deny", f"dispatch_guard: this {type_} dispatch is missing "
