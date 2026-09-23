@@ -143,6 +143,20 @@ class OtherRoles(unittest.TestCase):
                 self.assertEqual(decision, "deny")
                 self.assertIn("pulse", reason)
 
+    def test_pulse_may_hand_back_its_report(self):
+        # Where the harness offers it, SubagentHandback is the only way a
+        # subagent's report reaches its caller. Denied, the pulse ran and
+        # delivered nothing (RECORD.md 2026-09-23-17, -18; intent -26).
+        decision, reason = run_hook(HOOK, tool("SubagentHandback", "pulse",
+                                               {"message": "report"}))
+        self.assertIsNone(decision, f"SubagentHandback: {decision} {reason}")
+
+    def test_planner_still_denied_hand_back(self):
+        # Only the pulse role gains the tool; the planner allowlist is unchanged.
+        decision, reason = run_hook(HOOK, tool("SubagentHandback"))
+        self.assertEqual(decision, "deny")
+        self.assertIn("the planner role may not use SubagentHandback", reason)
+
 
 if __name__ == "__main__":
     unittest.main()
