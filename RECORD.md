@@ -258,3 +258,12 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** 2026-09-23-05 was committed with its text unchanged; its closing '---' separator was missing and was added in dcb2a4b so that the following entry parses separately.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-23-09
+**Dispatch-file:** preserved/2026-09-23-05.md
+**Type:** build
+**Outcome:** declined
+**Report:** none; the coder stopped before any work because the hook edit's authorisation reached it only through the planner; see the planner's chat of 2026-09-22
+
+---
