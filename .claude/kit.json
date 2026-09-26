@@ -1,6 +1,6 @@
 {
   "android_package": "com.zynergylabs.forager.app",
-  "protected_branches": ["main"],
+  "protected_branches": ["pre-main", "main"],
   "dispatchable_agents": ["coder", "pulse"],
   "type_targets": {"pulse": "pulse", "build": "coder", "device": "coder"},
   "required_sections": {
