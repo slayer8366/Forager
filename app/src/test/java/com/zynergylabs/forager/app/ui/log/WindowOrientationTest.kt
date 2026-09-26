@@ -77,6 +77,8 @@ class WindowOrientationTest {
                     onDismiss = {},
                     gridMode = GridMode.Off,
                     onGridModeChanged = {},
+                    autoSaveLocationToPhotos = true,
+                    onAutoSaveLocationToPhotosChanged = {},
                     levelProvider = FakeLevelProvider(),
                     viewfinder = { modifier -> Box(modifier) },
                 )

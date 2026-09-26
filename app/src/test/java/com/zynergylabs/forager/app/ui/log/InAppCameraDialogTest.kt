@@ -152,6 +152,8 @@ class InAppCameraDialogTest {
         gridMode: GridMode = GridMode.Off,
         onGridModeChanged: (GridMode) -> Unit = {},
         levelProvider: LevelProvider = FakeLevelProvider(),
+        autoSaveLocationToPhotos: Boolean = true,
+        onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
     ) {
         InAppCameraDialog(
             session = session,
@@ -161,6 +163,8 @@ class InAppCameraDialogTest {
             onDismiss = { dismissals += 1 },
             gridMode = gridMode,
             onGridModeChanged = onGridModeChanged,
+            autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+            onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
             levelProvider = levelProvider,
             statusBarHider = recordingStatusBarHider,
             viewfinder = viewfinder,
@@ -446,6 +450,28 @@ class InAppCameraDialogTest {
         assertEquals("centred along it", frame.centreX(), shutter.centreX(), 0.51f)
         val chip = bounds(CAMERA_FLASH_CHIP_TAG)
         assertTrue("the flash chip is in the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
+    }
+
+    /**
+     * **All four chips fit** (decision B8, Closed decision A): in portrait the strip is a row along
+     * the top, and Flash, Timer, Grid and Location each sit inside its bounds, in that order, none
+     * overlapping the next. Robolectric reports zero window insets (CLAUDE.md), so this says the
+     * row holds four chips; it says nothing about the punch-hole cut-out, which is a device item.
+     */
+    @Test
+    fun `in portrait all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG)
+        val chips = tags.map { bounds(it) }
+
+        tags.zip(chips).forEach { (tag, chip) ->
+            assertTrue("$tag inside the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
+        }
+        tags.zip(chips).zipWithNext().forEach { (a, b) ->
+            assertTrue("${a.first} ends before ${b.first} starts: ${a.second} then ${b.second}", a.second.right <= b.second.left)
+        }
     }
 
     /**

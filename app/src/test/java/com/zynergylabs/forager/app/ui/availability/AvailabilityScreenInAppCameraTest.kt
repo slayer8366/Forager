@@ -22,6 +22,11 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.hasAnySibling
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isToggleable
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -40,6 +45,9 @@ import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import com.zynergylabs.forager.app.ui.log.CAMERA_GRID_CHIP_TAG
+import com.zynergylabs.forager.app.ui.log.CAMERA_LOCATION_CHIP_TAG
+import com.zynergylabs.forager.app.ui.log.LOCATION_OFF_LABEL
+import com.zynergylabs.forager.app.ui.log.LOCATION_ON_LABEL
 import com.zynergylabs.forager.app.ui.log.CAMERA_SHUTTER_TAG
 import com.zynergylabs.forager.app.ui.log.GRID_ON_LABEL
 import com.zynergylabs.forager.app.ui.log.pressBackOnCamera
@@ -106,7 +114,7 @@ class AvailabilityScreenInAppCameraTest {
 
     private val boxMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
         slotSawLockToPortrait = lockToPortrait
         val session = remember { FakeCameraCaptureSession() }
         InAppCameraDialog(
@@ -117,12 +125,22 @@ class AvailabilityScreenInAppCameraTest {
             onDismiss = onDismiss,
             gridMode = gridMode,
             onGridModeChanged = onGridModeChanged,
+            autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+            onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
             levelProvider = FakeLevelProvider(),
             viewfinder = { modifier -> Box(modifier) },
         )
     }
 
     private val gridModeRequests = mutableListOf<GridMode>()
+
+    /**
+     * Settings' "Automatically Save Location to Photos" as the screen sees it, and every value the
+     * screen's handler was asked for. The handler stores what it is asked, as
+     * `AvailabilityViewModel.onAutoSaveLocationToPhotosChanged` does to `uiState`.
+     */
+    private var autoSaveLocation by mutableStateOf(true)
+    private val autoSaveLocationRequests = mutableListOf<Boolean>()
 
     private fun setScreen(cameraPermissionGranted: Boolean = true, lockCameraToPortrait: Boolean = false, cameraGridMode: GridMode = GridMode.Off) {
         if (cameraPermissionGranted) {
@@ -137,7 +155,7 @@ class AvailabilityScreenInAppCameraTest {
             val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
                 AvailabilityScreen(
-                    uiState = SEARCHED_STATE.copy(lockCameraToPortrait = lockCameraToPortrait),
+                    uiState = SEARCHED_STATE.copy(lockCameraToPortrait = lockCameraToPortrait, autoSaveLocationToPhotos = autoSaveLocation),
                     onUseCurrentLocation = {},
                     onManualLatChanged = {},
                     onManualLngChanged = {},
@@ -162,6 +180,10 @@ class AvailabilityScreenInAppCameraTest {
                     onDeleteOfflineRegion = {},
                     onNightModeMapsChanged = {},
                     onThemeModeChanged = {},
+                    onAutoSaveLocationToPhotosChanged = { requested ->
+                        autoSaveLocationRequests += requested
+                        autoSaveLocation = requested
+                    },
                     mapSlot = boxMapSlot,
                     inAppCameraTarget = target,
                     onOpenCamera = { opened += it; target = it },
@@ -341,6 +363,62 @@ class AvailabilityScreenInAppCameraTest {
         composeRule.waitForIdle()
 
         assertEquals(listOf(GridMode.GridLevel), gridModeRequests)
+    }
+
+    /**
+     * Settings' photo-location value reaches the camera's Location chip through the screen, the
+     * host and the slot, and a tap on the chip reaches the screen's handler with the toggled value
+     * (decision B8 / Closed decision D). Without this, a screen that dropped either would pass
+     * every camera test, since those build the dialog directly.
+     */
+    @Test
+    fun `the photo-location setting reaches the camera's chip, and a tap reaches the screen's handler`() {
+        autoSaveLocation = true
+        setScreen()
+        openEditorCamera()
+        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).assertContentDescriptionEquals(LOCATION_ON_LABEL)
+
+        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("the handler got the toggled value", listOf(false), autoSaveLocationRequests)
+        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).assertContentDescriptionEquals(LOCATION_OFF_LABEL)
+    }
+
+    /** A value changed outside the camera (in Settings) is what the chip shows at the next open. */
+    @Test
+    fun `a changed photo-location setting shows on the chip at the next open`() {
+        autoSaveLocation = true
+        setScreen()
+        openEditorCamera()
+        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).assertContentDescriptionEquals(LOCATION_ON_LABEL)
+        setTarget(null)
+        composeRule.waitForIdle()
+
+        autoSaveLocation = false
+        setTarget(InAppCameraTarget.ALBUM)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).assertContentDescriptionEquals(LOCATION_OFF_LABEL)
+        assertEquals("nothing was asked of the handler", emptyList<Boolean>(), autoSaveLocationRequests)
+    }
+
+    /** The chip and Settings are one value: turned off on the camera's strip, Settings' checkbox reads off. */
+    @Test
+    fun `after a tap on the camera's chip, Settings' checkbox shows the same value`() {
+        autoSaveLocation = true
+        setScreen()
+        openEditorCamera()
+        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.pressBackOnCamera()
+        composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)
+
+        composeRule.onNodeWithText("Tools").performClick()
+        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performScrollTo()
+
+        composeRule.onNode(isToggleable() and hasAnySibling(hasText(PHOTO_LOCATION_SETTING_LABEL)), useUnmergedTree = true).assertIsOff()
     }
 
     /** The holder is what closes it: clearing the target from outside, as the ViewModel would, removes the dialog. */

@@ -96,6 +96,8 @@ class InAppCameraTimerTest {
                     onDismiss = { dismissals += 1; shown = false },
                     gridMode = GridMode.Off,
                     onGridModeChanged = {},
+                    autoSaveLocationToPhotos = true,
+                    onAutoSaveLocationToPhotosChanged = {},
                     levelProvider = FakeLevelProvider(),
                     viewfinder = { modifier -> Box(modifier.fillMaxSize()) },
                 )
