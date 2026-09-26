@@ -121,3 +121,22 @@ leaves the app. The save-location dispatch cites this entry.
   the user brought in already carries its position, whether or not it is placed in the Journal, so
   the model above describes camera captures. Whether it is meant to cover imports as well is the
   owner's to say.
+
+---
+
+## Added 2026-09-22, grid-and-level dispatch: grid mode persists, level always shown, crosshair deferred (B7)
+
+Added below the entries above, which are not edited. Cites the dispatch "grid and level" (written
+2026-09-22). Extends B5's second item; supersedes nothing.
+
+**B7. One chip cycles Off, Grid, Grid + Level.**
+
+| | Decision | Convention (planner's recollection, unverified) | Followed or departed |
+|---|---|---|---|
+| **B7a** | **The grid mode persists across camera sessions and app restarts**, in DataStore, default Off. Unlike torch (B2, and the torch dispatch), which resets on close. | All four keep the 3 by 3 grid as a setting. | **Followed** |
+| **B7b** | **With Grid + Level on, the level line is always shown**, not only near level. | All four show the level only within a few degrees of horizontal or vertical, then hide it. | **Departed.** A forager lining up a scale card wants to see how far off they are, not only when they arrive. Can be superseded. |
+| **B7c** | **The grid is not rotated with the glyphs.** It divides the preview into thirds whichever way the phone is held. | None of the four rotates the grid. | **Followed** |
+| **B7d** | **A flat, top-down crosshair (for shooting a cap from above) is deferred** to its own dispatch. The device check's observation of the horizon line with the phone held flat is the input for it. | — | — |
+
+Persisting across restarts is a separate, per-case decision under CLAUDE.md's UX defaults. B7a
+is that decision for the grid mode, made by the owner in the dispatch.

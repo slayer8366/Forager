@@ -34,6 +34,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
+import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
@@ -145,6 +146,19 @@ class MainActivity : ComponentActivity() {
 
     /** The in-app camera's open flag, retained across rotation, cleared with the Activity — see its own doc comment. No factory: it has no dependencies. */
     private val inAppCameraViewModel: InAppCameraViewModel by viewModels()
+
+    /** The camera's grid mode, persisted in DataStore (decision record B7a); read once, written by the grid chip. */
+    private val cameraGridModeViewModel: CameraGridModeViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                CameraGridModeViewModel(
+                    getGridMode = container.cameraGridModeRepository::getGridMode,
+                    setGridMode = container.cameraGridModeRepository::setGridMode,
+                    errorLog = androidErrorLog,
+                )
+            }
+        }
+    }
 
     private val trackRecordingViewModel: TrackRecordingViewModel by viewModels {
         viewModelFactory {
@@ -323,6 +337,7 @@ class MainActivity : ComponentActivity() {
             ForagerTheme(darkTheme = effectiveDarkTheme) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
+                val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()
 
                 // Four minutes away with the camera open closes it — see CameraAbsence.kt for the
                 // number, the clock and why this is a threshold rather than close-on-background.
@@ -431,6 +446,8 @@ class MainActivity : ComponentActivity() {
                     inAppCameraTarget = inAppCameraTarget,
                     onOpenCamera = inAppCameraViewModel::open,
                     onCloseCamera = inAppCameraViewModel::close,
+                    cameraGridMode = cameraGridMode,
+                    onCameraGridModeChanged = cameraGridModeViewModel::onGridModeChanged,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
                     onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
                     onCloseLogEntry = mushroomLogViewModel::onCloseEntry,

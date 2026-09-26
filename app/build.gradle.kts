@@ -241,6 +241,10 @@ android {
         // `${applicationId}.fileprovider` and the three call sites use
         // `"${context.packageName}.fileprovider"`, and `packageName` is the applicationId at runtime.
         applicationId = "com.zynergylabs.forager.app"
+        // Instrumented tests (app/src/androidTest): the torch device check reads CameraX's own
+        // torchState on a real camera, which no Robolectric test can. Added 2026-09-22 for that
+        // check; it changes nothing about the app APK.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 26
         targetSdk = 37
         versionCode = buildIdentity.code
@@ -516,6 +520,11 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
+    // Instrumented tests only — see app/src/androidTest. These land in the androidTest APK, never
+    // the app's.
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
     testImplementation(libs.kotlinx.coroutines.test)
     // TestLifecycleOwner, for driving ON_STOP/ON_START at a composable that observes the
     // lifecycle (CameraAbsenceWatcher). Same version as the lifecycle artifacts above.

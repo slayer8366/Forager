@@ -92,7 +92,7 @@ internal fun uprightRotationDegrees(surfaceRotation: Int?, displayRotation: Int 
 }
 
 /** A `Surface.ROTATION_*` value as the clockwise turn a control needs to meet it; anything unrecognised is upright. */
-private fun clockwiseDegrees(surfaceRotation: Int): Float = when (surfaceRotation) {
+internal fun clockwiseDegrees(surfaceRotation: Int): Float = when (surfaceRotation) {
     Surface.ROTATION_90 -> 90f
     Surface.ROTATION_180 -> 180f
     Surface.ROTATION_270 -> -90f

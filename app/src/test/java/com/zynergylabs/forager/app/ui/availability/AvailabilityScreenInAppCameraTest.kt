@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onRoot
@@ -29,6 +30,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.model.Region
@@ -36,7 +38,10 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
+import com.zynergylabs.forager.app.sensor.FakeLevelProvider
+import com.zynergylabs.forager.app.ui.log.CAMERA_GRID_CHIP_TAG
 import com.zynergylabs.forager.app.ui.log.CAMERA_SHUTTER_TAG
+import com.zynergylabs.forager.app.ui.log.GRID_ON_LABEL
 import com.zynergylabs.forager.app.ui.log.pressBackOnCamera
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.IN_APP_CAMERA_TAG
@@ -101,7 +106,7 @@ class AvailabilityScreenInAppCameraTest {
 
     private val boxMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, onPhotoCaptured, onDismiss ->
         slotSawLockToPortrait = lockToPortrait
         val session = remember { FakeCameraCaptureSession() }
         InAppCameraDialog(
@@ -110,11 +115,16 @@ class AvailabilityScreenInAppCameraTest {
             lockToPortrait = lockToPortrait,
             onPhotoCaptured = onPhotoCaptured,
             onDismiss = onDismiss,
+            gridMode = gridMode,
+            onGridModeChanged = onGridModeChanged,
+            levelProvider = FakeLevelProvider(),
             viewfinder = { modifier -> Box(modifier) },
         )
     }
 
-    private fun setScreen(cameraPermissionGranted: Boolean = true, lockCameraToPortrait: Boolean = false) {
+    private val gridModeRequests = mutableListOf<GridMode>()
+
+    private fun setScreen(cameraPermissionGranted: Boolean = true, lockCameraToPortrait: Boolean = false, cameraGridMode: GridMode = GridMode.Off) {
         if (cameraPermissionGranted) {
             Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>()).grantPermissions(Manifest.permission.CAMERA)
         }
@@ -157,6 +167,8 @@ class AvailabilityScreenInAppCameraTest {
                     onOpenCamera = { opened += it; target = it },
                     onCloseCamera = { closed++; target = null },
                     inAppCamera = fakeCamera,
+                    cameraGridMode = cameraGridMode,
+                    onCameraGridModeChanged = { gridModeRequests += it },
                     onAddLogPhoto = { logEntryPhotos += it },
                     onAddGalleryPhoto = { albumPhotos += it },
                     onAcquirePhotoForCartographyEntry = { cartographyPhotos += it },
@@ -311,6 +323,24 @@ class AvailabilityScreenInAppCameraTest {
         setScreen()
         openEditorCamera()
         assertEquals(false, slotSawLockToPortrait)
+    }
+
+    /**
+     * The grid mode reaches the camera through the screen, the host and the slot, and a tap on the
+     * grid chip reaches the screen's callback — the path `MainActivity` wires to
+     * `CameraGridModeViewModel`. Without this, a screen that dropped either would pass every camera
+     * test, since those build the dialog directly.
+     */
+    @Test
+    fun `the grid mode reaches the camera, and a tap on the grid chip reaches the screen's callback`() {
+        setScreen(cameraGridMode = GridMode.Grid)
+        openEditorCamera()
+        composeRule.onNodeWithTag(CAMERA_GRID_CHIP_TAG).assertContentDescriptionEquals(GRID_ON_LABEL)
+
+        composeRule.onNodeWithTag(CAMERA_GRID_CHIP_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(GridMode.GridLevel), gridModeRequests)
     }
 
     /** The holder is what closes it: clearing the target from outside, as the ViewModel would, removes the dialog. */

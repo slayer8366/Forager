@@ -1,0 +1,639 @@
+09-22 11:08:54.671  2687  3168 D InstallDependencyHelper: No missing dependency for com.zynergylabs.forager.app
+09-22 11:08:54.672  2687  3168 I PackageManager:           pkg{com.zynergylabs.forager.app}
+09-22 11:08:54.678 10150 10229 I GOS:GameServiceReceiver:  PkgInstallStarted for com.zynergylabs.forager.app UserID : 0
+09-22 11:08:54.744  2687  2879 D ApplicationPolicy: getApplicationStateEnabled : pkg = com.zynergylabs.forager.app userId : 0
+09-22 11:08:54.746  2687  2879 D PermissionService: setAllowlistedRestrictedPermissionsUnchecked called for package - com.zynergylabs.forager.app
+09-22 11:08:54.746  2687  2879 D PermissionService: updateAdminPermissionsInternalcom.zynergylabs.forager.app
+09-22 11:08:54.803 10150 12163 I GOS:GameIntentService: onPackageChanged(). extras: Bundle[{changeType=2, userId=0, type=15, packageName=com.zynergylabs.forager.app}]
+09-22 11:08:54.803 10150 12163 I GOS:GameIntentService: onPackageChanged(). changeType(INSTALL_STARTED), pkgName(com.zynergylabs.forager.app), UserHandle(0), userId(0), Installed(true)
+09-22 11:08:54.804 10150 12163 W GOS:SystemEventReactor: onPackageInstallStarted(). the pkg data already exists. packageName: com.zynergylabs.forager.app
+09-22 11:08:54.808  2687  2879 D BackupManagerService: [UserID:0] restoreAtInstall pkg=com.zynergylabs.forager.app token=d restoreSet=319b4d7e99a6a451
+09-22 11:08:55.067  2687  2879 I PackageManager: installation completed for package:com.zynergylabs.forager.app. Final code path: /data/app/~~WRNkxJLjtH4nPniYe1Pxtg==/com.zynergylabs.forager.app-tUvYN8Tqt6VdB7p9HDHrqw==
+09-22 11:08:55.092  2687  3534 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:55.092  2687  3534 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app, ret=false
+09-22 11:08:55.092  2687  3647 I SdkSandboxManager: No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=10305, mPackageName='com.zynergylabs.forager.app, mAppProcessToken='null'}
+09-22 11:08:55.092  2687  3565 I AppWidgetServiceImpl: Received broadcast: android.intent.action.PACKAGE_ADDED, Updates all providers with com.zynergylabs.forager.app, userId: 0
+09-22 11:08:55.094  2687  3582 D ShortcutService: adding package: com.zynergylabs.forager.app userId=0
+09-22 11:08:55.095  1975 21730 D NativePermissionController: updatePackagesForUid, UidPackageState{uid: 10305, packageNames: [com.zynergylabs.forager.app]}
+09-22 11:08:55.095  2687  3627 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:55.095  2687  3627 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app, ret=false
+09-22 11:08:55.097  3712  3712 D CarrierSvcBindHelper: onPackageAdded: com.zynergylabs.forager.app
+09-22 11:08:55.099  3712  4256 D ImsResolver: maybeAddedImsService, packageName: com.zynergylabs.forager.app
+09-22 11:08:55.100  2687  3185 D OverlayManager: reconcileSettingsForPackage pkgName=com.zynergylabs.forager.app userId=0
+09-22 11:08:55.102  3712  4256 V ImsResolver: searchForImsServices: package=com.zynergylabs.forager.app, users=[UserHandle{0}]
+09-22 11:08:55.102  3712  4256 V ImsResolver: searchForImsServices: package=com.zynergylabs.forager.app, users=[UserHandle{0}]
+09-22 11:08:55.102  2687  3185 I OverlayManager: updateOverlaysForTarget() called with: targetPackage = [com.zynergylabs.forager.app], userId = [0], flags = [0]
+09-22 11:08:55.105  3712  3712 I VvmPkgInstalledRcvr: packageName: com.zynergylabs.forager.app, systemDialer: com.samsung.android.dialer
+09-22 11:08:55.106  3712  4264 I SatelliteAppTracker: onPackageAdded : com.zynergylabs.forager.app
+09-22 11:08:55.115  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_ASSISTANT
+09-22 11:08:55.116 11474 11474 I DWBPkgEventReceiver: Received : android.intent.action.PACKAGE_ADDED, Package : com.zynergylabs.forager.app
+09-22 11:08:55.116  4546  4633 I PackageInfoManager_FLP: action : ACTION_PACKAGE_ADDED, packageName = com.zynergylabs.forager.app
+09-22 11:08:55.117 31845 31845 D BluetoothEventManager: AppPackageChangedHandler: package name = com.zynergylabs.forager.app
+09-22 11:08:55.117  3731  3815 D BluetoothEventManager: AppPackageChangedHandler: package name = com.zynergylabs.forager.app
+09-22 11:08:55.122  3731  3731 I GoodLockLifecycle: onPackageAdded: com.zynergylabs.forager.app
+09-22 11:08:55.122 11474 11474 I DWBPkgEventService: startId : 1, Received : com.samsung.android.forest.PACKAGE_ADDED, Package : com.zynergylabs.forager.app
+09-22 11:08:55.127  2687  3185 D OverlayManager: -> Updating overlay: target=com.zynergylabs.forager.app overlays=[OverlayPaths { resourceDirs = [/product/overlay/NavigationBarMode3Button/NavigationBarMode3ButtonOverlay.apk], overlayPaths = [/product/overlay/NavigationBarMode3Button/NavigationBarMode3ButtonOverlay.apk] }] userId=0
+09-22 11:08:55.128  2687  2687 I Telecom : SamsungOpenCommunicationPlatformPolicyPackageBroadcastReceiver : action : android.intent.action.PACKAGE_ADDED / packageName : com.zynergylabs.forager.app
+09-22 11:08:55.129  2687  3713 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:55.129  2687  3713 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app, ret=false
+09-22 11:08:55.129  2687  3713 I Pageboost: appinfo : com.zynergylabs.forager.app 0 0 0 0
+09-22 11:08:55.129  2687  3713 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:55.129  2687  3713 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app, ret=false
+09-22 11:08:55.130  2687  4433 I Telecom : SamsungOpenCommunicationPlatformPolicyPackageHandler : handleMessage : { when=-2ms what=0 obj=com.zynergylabs.forager.app target=com.samsung.server.telecom.advancedcall.ocp.policy.broadcast.SamsungOpenCommunicationPlatformPolicyPackageHandler }.what
+09-22 11:08:55.134  7487  7487 I SafetyLabelChangedBroadcastReceiver: received broadcast packageName: com.zynergylabs.forager.app, current user: UserHandle{0}, packageChangeEvent: NEW_INSTALL, intent user: UserHandle{0}
+09-22 11:08:55.135  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.138  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.samsung.systemui.action.PLUGIN_FACE_WIDGET
+09-22 11:08:55.138  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_GLOBAL_ACTIONS
+09-22 11:08:55.138  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.138  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.138  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_TOAST
+09-22 11:08:55.138  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_SENSOR_MANAGER
+09-22 11:08:55.139  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_VOLUME
+09-22 11:08:55.139  2687  3713 I Pageboost: Reset this app info : com.zynergylabs.forager.app 
+09-22 11:08:55.139  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_CLOCK_PROVIDER
+09-22 11:08:55.139  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.139  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PEOPLE_HUB_PERSON_EXTRACTOR
+09-22 11:08:55.140  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_QS
+09-22 11:08:55.140  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.140 10374 10374 I Routine@Core[4.9.07.7]: PackageChangedHandler: collectMetadata packageName - com.zynergylabs.forager.app
+09-22 11:08:55.141 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderImpl: scheduleCollectPackageJob - packageName:com.zynergylabs.forager.app
+09-22 11:08:55.141  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_OVERLAY
+09-22 11:08:55.142 10374 10374 I Routine@Core[4.9.07.7]: MetadataSyncBacklog: add: null + com.zynergylabs.forager.app
+09-22 11:08:55.142  2687  3713 I Pageboost: db create : CREATE TABLE IF NOT EXISTS comzynergylabsforagerapp (FILENAME TEXT, OFFSET INTEGER, SIZE INTEGER, FORVRAMDISK INTEGER, BITMAP BLOB, unique (FILENAME, OFFSET) );
+09-22 11:08:55.142 10676 10676 I FILP/PackageIntentReceiver: pkgName : com.zynergylabs.forager.app
+09-22 11:08:55.145  4546  4633 I PackageInfoManager_FLP: handled onPackageAdded for com.zynergylabs.forager.app(0)
+09-22 11:08:55.149  2687  3713 I Pageboost: add app to global @ runtime: com.zynergylabs.forager.app
+09-22 11:08:55.154  3712  3712 D CarrierSvcBindHelper: onPackageModified: com.zynergylabs.forager.app
+09-22 11:08:55.156  3712  4264 I SatelliteAppTracker: onPackageModified : com.zynergylabs.forager.app
+09-22 11:08:55.156  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_ASSISTANT
+09-22 11:08:55.157  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.157 11474 11474 I DWBPkgEventReceiver: Received : android.intent.action.PACKAGE_CHANGED, Package : com.zynergylabs.forager.app
+09-22 11:08:55.158  2687  3565 I AppWidgetServiceImpl: Received broadcast: android.intent.action.PACKAGE_CHANGED, Updates all providers with com.zynergylabs.forager.app, userId: 0
+09-22 11:08:55.159  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.samsung.systemui.action.PLUGIN_FACE_WIDGET
+09-22 11:08:55.159  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_GLOBAL_ACTIONS
+09-22 11:08:55.159  2687  3582 D ShortcutService: changing package: com.zynergylabs.forager.app userId=0
+09-22 11:08:55.160  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.160  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.160  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_TOAST
+09-22 11:08:55.161  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_SENSOR_MANAGER
+09-22 11:08:55.162  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_VOLUME
+09-22 11:08:55.162  3731  3731 I GoodLockLifecycle: onPackageChanged: com.zynergylabs.forager.app
+09-22 11:08:55.162  3731  3731 I SharedAppWidgetFacade:  onPackageChanged com.zynergylabs.forager.app
+09-22 11:08:55.162  3712  4256 D ImsResolver: maybeAddedImsService, packageName: com.zynergylabs.forager.app
+09-22 11:08:55.162  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_CLOCK_PROVIDER
+09-22 11:08:55.162  3712  4256 V ImsResolver: searchForImsServices: package=com.zynergylabs.forager.app, users=[UserHandle{0}]
+09-22 11:08:55.163  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.164  3712  4256 V ImsResolver: searchForImsServices: package=com.zynergylabs.forager.app, users=[UserHandle{0}]
+09-22 11:08:55.164  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PEOPLE_HUB_PERSON_EXTRACTOR
+09-22 11:08:55.166  3712  3712 D SatelliteController: packageStateChanged: package:com.zynergylabs.forager.app DefaultSmsPackageName:com.google.android.apps.messaging
+09-22 11:08:55.168  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_QS
+09-22 11:08:55.169  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.171  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app com.android.systemui.action.PLUGIN_OVERLAY
+09-22 11:08:55.175 11474 11474 I DWBPkgEventService: startId : 1, Received : com.samsung.android.forest.PACKAGE_ADDED, Package : com.zynergylabs.forager.app
+09-22 11:08:55.175  4546  4633 I PackageInfoManager_FLP: updatePermission, com.zynergylabs.forager.app to 0
+09-22 11:08:55.178  3731  3731 D SecSTQuickControlRequestReceiver: onReceiveForPackage action = android.intent.action.PACKAGE_CHANGED, pkgName = com.zynergylabs.forager.app
+09-22 11:08:55.179 10169 10169 I [AirCmd]_ShortcutListController: onReceive : android.intent.action.PACKAGE_CHANGED pkg = com.zynergylabs.forager.app
+09-22 11:08:55.187  4546  4633 I PackageInfoManager_FLP: updatePermission, com.zynergylabs.forager.app to 0
+09-22 11:08:55.187  4546  4633 I PackageInfoManager_FLP: updatePermission, com.zynergylabs.forager.app to 0
+09-22 11:08:55.187  4546  4633 I PackageInfoManager_FLP: updatePermission, com.zynergylabs.forager.app to 0
+09-22 11:08:55.187  4546  4633 I PackageInfoManager_FLP: updatePermission, com.zynergylabs.forager.app to 0
+09-22 11:08:55.187  4546  4633 I PackageInfoManager_FLP: updatePermission, com.zynergylabs.forager.app to 0
+09-22 11:08:55.189  2687  2833 D MARsPolicyManager: new Package : com.zynergylabs.forager.app, SCPMTarget : false
+09-22 11:08:55.197 15191 15191 I Finsky  : [2] AIM: AppInfoCacheUpdater -> invalidating apps: [com.zynergylabs.forager.app]
+09-22 11:08:55.199 15191 15385 I Finsky  : [72] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app]
+09-22 11:08:55.202 15191 15382 I Finsky  : [71] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app]
+09-22 11:08:55.205  2687  3168 D InstallDependencyHelper: No missing dependency for com.zynergylabs.forager.app.test
+09-22 11:08:55.205  2687  3168 I PackageManager:           pkg{com.zynergylabs.forager.app.test}
+09-22 11:08:55.209 10150 10229 I GOS:GameServiceReceiver:  PkgInstallStarted for com.zynergylabs.forager.app.test UserID : 0
+09-22 11:08:55.226 15191 15191 I Finsky  : [2] AIM: AppInfoCacheUpdater -> invalidating apps: [com.zynergylabs.forager.app]
+09-22 11:08:55.226  5031 12208 I ProximityAuth: [RecentAppsMediator] Package added: (user=UserHandle{0}) com.zynergylabs.forager.app
+09-22 11:08:55.228  2687  2805 I SGM:GameManager: PkgUpdateReceiver, onPackageAdded : com.zynergylabs.forager.app userHandle : UserHandle{0} userId : 0
+09-22 11:08:55.228  2687  2805 D SGM:GosNotifyThread: sendPackageMessage(), changeType=0, pkgName=com.zynergylabs.forager.app, userHandleId=0
+09-22 11:08:55.228  2687  3270 D SGM:GosNotifyThread: notifyPackageChangedToGos(), before send intent to GOS. type:15, changeType: 0, pkgName:com.zynergylabs.forager.app, userHandleId:0
+09-22 11:08:55.229  2687  3270 D SGM:PmAppCategoryManager: getManifestCategory(), manifestCategory=-1, packageName=com.zynergylabs.forager.app
+09-22 11:08:55.229  2687  3270 D SGM:PmAppCategoryManager: getCategoryOverride(), categoryOverride=-1, packageName=com.zynergylabs.forager.app
+09-22 11:08:55.229  2687  3270 I SGM:GosNotifyThread: notifyPackageChangedToGos(), category from pm: com.zynergylabs.forager.app, [-1/-1]
+09-22 11:08:55.235 15191 15385 I Finsky  : [72] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app]
+09-22 11:08:55.240 15191 15382 I Finsky  : [71] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app]
+09-22 11:08:55.275  2687  2879 D ApplicationPolicy: getApplicationStateEnabled : pkg = com.zynergylabs.forager.app.test userId : 0
+09-22 11:08:55.276  2687  2879 D PermissionService: setAllowlistedRestrictedPermissionsUnchecked called for package - com.zynergylabs.forager.app.test
+09-22 11:08:55.276  2687  2879 D PermissionService: updateAdminPermissionsInternalcom.zynergylabs.forager.app.test
+09-22 11:08:55.367  2687  2805 I AdaptiveAppByDefaultLogger: sendSaBroadcast update:com.zynergylabs.forager.app;37;Unspecified;True;False;False
+09-22 11:08:55.374 10150 12209 I GOS:GameIntentService: onPackageChanged(). extras: Bundle[{changeType=2, userId=0, type=15, packageName=com.zynergylabs.forager.app.test}]
+09-22 11:08:55.374 10150 12209 I GOS:GameIntentService: onPackageChanged(). changeType(INSTALL_STARTED), pkgName(com.zynergylabs.forager.app.test), UserHandle(0), userId(0), Installed(true)
+09-22 11:08:55.375 10150 12209 I GOS:GameIntentService: onHandleIntent. GameIntentService. type: 15, pkgName: com.zynergylabs.forager.app
+09-22 11:08:55.375 10150 12209 I GOS:GameIntentService: onPackageChanged(). extras: Bundle[{changeType=0, manifestCategory=-1, userId=0, pkgName=com.zynergylabs.forager.app, type=15, packageName=com.zynergylabs.forager.app, categoryOverride=-1}]
+09-22 11:08:55.375 10150 12209 I GOS:GameIntentService: onPackageChanged(). changeType(INSTALLED), pkgName(com.zynergylabs.forager.app), UserHandle(0), userId(0), Installed(true)
+09-22 11:08:55.375 10150 12209 I GOS:GameIntentService: onPkgInstalled(), appInfoCategory: null, packageName: com.zynergylabs.forager.app
+09-22 11:08:55.378  2687  2805 D LauncherAppsService: Calling onPackageAdded: com.zynergylabs.forager.app, uid: 10305
+09-22 11:08:55.378  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:55.378  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:55.378  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:55.378  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:55.378  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:55.378  2687  2805 D LauncherApps: onPackageAdded 0,com.zynergylabs.forager.app
+09-22 11:08:55.379  4244  4244 I HoneySpace.PackageOperationTracker: onPackageAdded - com.zynergylabs.forager.app UserHandle{0}
+09-22 11:08:55.380  4244 31175 I HoneySpace.PackageSourceImpl: addActivityToList [ADD] : com.zynergylabs.forager.app/.MainActivity#UserHandle{0}
+09-22 11:08:55.380  2687 10394 I AppWidgetServiceImpl: getInstalledProvidersForProfiles lock in com.zynergylabs.forager.app
+09-22 11:08:55.380  4244  3286 I HoneySpace.HoneySpacePackageSourceImpl: Package added : com.zynergylabs.forager.app
+09-22 11:08:55.382  4244  4244 I HoneySpace.WorkspaceViewModel: Package added : com.zynergylabs.forager.app/.MainActivity#UserHandle{0}
+09-22 11:08:55.384  2687  2879 D BackupManagerService: [UserID:0] restoreAtInstall pkg=com.zynergylabs.forager.app.test token=e restoreSet=319b4d7e99a6a451
+09-22 11:08:55.385  4244  4244 I HoneySpace.PackageEventHandler: Package added : com.zynergylabs.forager.app/.MainActivity#UserHandle{0}
+09-22 11:08:55.388  3731  6862 D LauncherApps: onPackageAdded 0,com.zynergylabs.forager.app
+09-22 11:08:55.388 10122 10202 D LauncherApps: onPackageAdded 0,com.zynergylabs.forager.app
+09-22 11:08:55.389 10150 12209 I GOS:FilteredPmAppCategoryGetter: getCategoryCode(). categoryCode:undefined, packageName:com.zynergylabs.forager.app
+09-22 11:08:55.389 10150 12209 I GOS:SystemEventReactor: onPackageInstalled(). categoryByAppInfo=undefined, packageName=com.zynergylabs.forager.app
+09-22 11:08:55.396 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderJobService: onStartJob: collectPackageInBG - com.zynergylabs.forager.app
+09-22 11:08:55.397 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderJobService: packageName : com.zynergylabs.forager.app, forced : true
+09-22 11:08:55.399  4244 10282 I AppIconSolution: getThemeIconWithBG called with public API, pkg = com.zynergylabs.forager.app, mode = 48
+09-22 11:08:55.399  4244 10282 I AppIconSolution: return adaptive icon for com.zynergylabs.forager.app, isNight = true
+09-22 11:08:55.399  4244 10282 I LauncherActivityInfo: packageName: com.zynergylabs.forager.app, useThemeIcon: false, height: 202, width: 202, density: 640
+09-22 11:08:55.403  4244  4244 I HoneySpace.DataCache: insertItem : id=11304, title=Forager, type=APP, containerType=ITEM_GROUP, containerId=-1, x=-1, y=-1, rank=-1, spanX=-1, spanY=-1, scale=1.0, component=com.zynergylabs.forager.app/.MainActivity, profileId=0, intent=null, restored=0, hidden=UNHIDDEN, appWidgetId=-1, options=0, refPackageName=null
+09-22 11:08:55.403  4244  4244 I HoneySpace.DataCache: updateItem : id=11304, title=Forager, type=APP, containerType=ITEM_GROUP, containerId=20, x=-1, y=-1, rank=16, spanX=-1, spanY=-1, scale=1.0, component=com.zynergylabs.forager.app/.MainActivity, profileId=0, intent=null, restored=0, hidden=UNHIDDEN, appWidgetId=-1, options=0, refPackageName=null
+09-22 11:08:55.403  4244  4244 I HoneySpace.AppListFastRecyclerViewAdapter: onItemRangeInserted Forager 16 4
+09-22 11:08:55.406  4244  4244 I HoneySpace.ApplistCellLayout: addItem [4] (4, 2) width=1502, height=953, spanX=1, spanY=1, view=com.honeyspace.ui.common.iconview.IconViewImpl{957bc4f VFED..CL. ......ID 0,0-263,275 #7f0a02ed app:id/icon} - Forager, visibility:0, alpha:1.0, badge:0, icon:163x163, iconAlpha:255, iconState:NONE, iconSize:158, forceHideBadge:false, isTransparent:false
+09-22 11:08:55.406  4244  3285 I HoneySpace.IconCache: add icon DB: [com.zynergylabs.forager.app/.MainActivity#UserHandle{0}] - IconAndLabel(icon=android.graphics.Bitmap@4d4ed35, label=Forager) | false | 640 | false |true | -14070989
+09-22 11:08:55.406  2687  2805 D MetaDataCollector: onReceive: done pkgName=com.zynergylabs.forager.app
+09-22 11:08:55.411  2687  2805 D LauncherApps: onPackageChanged 0,com.zynergylabs.forager.app
+09-22 11:08:55.411  3731  6862 D LauncherApps: onPackageChanged 0,com.zynergylabs.forager.app
+09-22 11:08:55.411  2687 10792 D SGM:GameManager: setPackageConfigurations(). category=-1, pkgName=com.zynergylabs.forager.app
+09-22 11:08:55.411  2687 10792 D SGM:GameManager: setPackageConfiguration(). configuration: packageName: com.zynergylabs.forager.app, performancePolicyForSsrm: null, optimalAspectRatio: 1.7777778, dynamicSurfaceScaling: 1.0, category: -1, categoryByUser: -1, fillBlackSurfaceOnMargins: false, userId: null
+09-22 11:08:55.411  2687 10792 D SGM:GameManager: setPackageConfiguration(). pkgName=com.zynergylabs.forager.app
+09-22 11:08:55.411  2687 10792 D SGM:Util: isPkgInstalled(). pkgName=com.zynergylabs.forager.app, userId=0, installed=true
+09-22 11:08:55.412 10122 10202 D LauncherApps: onPackageChanged 0,com.zynergylabs.forager.app
+09-22 11:08:55.412  4244  4244 I HoneySpace.PackageOperationTracker: onPackageChanged - com.zynergylabs.forager.app UserHandle{0}
+09-22 11:08:55.412 10374 10689 I Routine@Core[4.9.07.7]: MetadataLoadManager: collect: com.zynergylabs.forager.app
+09-22 11:08:55.413 10374 10689 I Routine@Core[4.9.07.7]: MetadataLoadManager: collectWithCollectors - Collect Start! package = com.zynergylabs.forager.app
+09-22 11:08:55.415 10374 10689 I Routine@Core[4.9.07.7]: WatchMetaDataCollector: collect - packageName :com.zynergylabs.forager.app
+09-22 11:08:55.415  2687 10407 I AppWidgetServiceImpl: getInstalledProvidersForProfiles lock in com.zynergylabs.forager.app
+09-22 11:08:55.416  4244  3285 I HoneySpace.IconCache: remove icon cache & DB : com.zynergylabs.forager.app UserHandle{0}
+09-22 11:08:55.416  4244  3285 I HoneySpace.IconCache: removeSpecificIconDb: com.zynergylabs.forager.app UserHandle{0}
+09-22 11:08:55.426  4244  3285 I AppIconSolution: getThemeIconWithBG called with public API, pkg = com.zynergylabs.forager.app, mode = 48
+09-22 11:08:55.426  4244  3285 I AppIconSolution: return adaptive icon for com.zynergylabs.forager.app, isNight = true
+09-22 11:08:55.426  4244  3285 I LauncherActivityInfo: packageName: com.zynergylabs.forager.app, useThemeIcon: false, height: 202, width: 202, density: 640
+09-22 11:08:55.428  4244  3287 I HoneySpace.IconCache: add icon DB: [com.zynergylabs.forager.app/.MainActivity#UserHandle{0}] - IconAndLabel(icon=android.graphics.Bitmap@811d159, label=Forager) | false | 640 | false |true | -14070989
+09-22 11:08:55.428  4244  4244 I HoneySpace.HoneySpaceManagerContainer: refreshHoneyPlugin, packageName: com.zynergylabs.forager.app
+09-22 11:08:55.428  4244  2466 I HoneySpace.HoneySpacePackageSourceImpl: Package changed : com.zynergylabs.forager.app
+09-22 11:08:55.428  4244  2466 I SearchableManager: invalidate: com.zynergylabs.forager.app
+09-22 11:08:55.429  4244  4244 I HoneySpace.AppsEdgePanel.ViewModel: packageChanged : com.zynergylabs.forager.app
+09-22 11:08:55.440 15191 15191 I Finsky  : [2] Received an install/uninstall event for package com.zynergylabs.forager.app
+09-22 11:08:55.585  8198  8198 W msgr.AppInfoCore: Install status cache EVICT for com.zynergylabs.forager.app (package changed)
+09-22 11:08:55.586  8198  8198 W msgr.AppInfoCore: Install status cache EVICT for com.zynergylabs.forager.app (package changed)
+09-22 11:08:55.589 15230 15230 I AccountReloadObserver: [C] received action: android.intent.action.PACKAGE_ADDED, dat: package:com.zynergylabs.forager.app
+09-22 11:08:55.589 15230 15230 I AccountReloadObserver: [C] received action: android.intent.action.PACKAGE_CHANGED, dat: package:com.zynergylabs.forager.app
+09-22 11:08:55.605 15191 15393 I Finsky  : [74] Installer package name of package com.zynergylabs.forager.app is 
+09-22 11:08:55.686  5031 12121 I Backup  : [RestoreRequestProcessor] Skipping app with no doc url or kv pairs: com.zynergylabs.forager.app.test
+09-22 11:08:55.694  2687  2879 I PackageManager: installation completed for package:com.zynergylabs.forager.app.test. Final code path: /data/app/~~hlKpidhpOHfSg8xSbdHCrw==/com.zynergylabs.forager.app.test-172YIcAMxQ_4suDW6vWr8A==
+09-22 11:08:55.709 10374 10689 I Routine@Core[4.9.07.7]: MetadataLoadManager: doPostCollectionTasks - packageName:com.zynergylabs.forager.app
+09-22 11:08:55.715  3712  3712 D CarrierSvcBindHelper: onPackageAdded: com.zynergylabs.forager.app.test
+09-22 11:08:55.716 32026 32026 I adbd    : adbd service requested 'shell:am set-debug-app com.zynergylabs.forager.app ; echo utp_shell_exit_code=$?'
+09-22 11:08:55.716  3712  4264 I SatelliteAppTracker: onPackageAdded : com.zynergylabs.forager.app.test
+09-22 11:08:55.718  2687  3565 I AppWidgetServiceImpl: Received broadcast: android.intent.action.PACKAGE_ADDED, Updates all providers with com.zynergylabs.forager.app.test, userId: 0
+09-22 11:08:55.718  2687  3582 D ShortcutService: adding package: com.zynergylabs.forager.app.test userId=0
+09-22 11:08:55.718  2687  3647 I SdkSandboxManager: No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=10332, mPackageName='com.zynergylabs.forager.app.test, mAppProcessToken='null'}
+09-22 11:08:55.718  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_ASSISTANT
+09-22 11:08:55.718  2687  3534 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app.test, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:55.719  2687  3534 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app.test, ret=false
+09-22 11:08:55.719  3731  3731 I GoodLockLifecycle: onPackageAdded: com.zynergylabs.forager.app.test
+09-22 11:08:55.719  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.721  2687  3627 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app.test, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:55.721  2687  3627 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app.test, ret=false
+09-22 11:08:55.721  1975 21730 D NativePermissionController: updatePackagesForUid, UidPackageState{uid: 10332, packageNames: [com.zynergylabs.forager.app.test]}
+09-22 11:08:55.722  2687  2687 I Telecom : SamsungOpenCommunicationPlatformPolicyPackageBroadcastReceiver : action : android.intent.action.PACKAGE_ADDED / packageName : com.zynergylabs.forager.app.test
+09-22 11:08:55.722  2687  3713 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app.test, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:55.722  2687  3713 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app.test, ret=false
+09-22 11:08:55.722  2687  3713 I Pageboost: appinfo : com.zynergylabs.forager.app.test 0 0 0 0
+09-22 11:08:55.722  2687  3713 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app.test, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:55.722  2687  3713 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app.test, ret=false
+09-22 11:08:55.722  2687  3713 I Pageboost: Reset this app info : com.zynergylabs.forager.app.test 
+09-22 11:08:55.722  2687  3713 I Pageboost: db create : CREATE TABLE IF NOT EXISTS comzynergylabsforagerapptest (FILENAME TEXT, OFFSET INTEGER, SIZE INTEGER, FORVRAMDISK INTEGER, BITMAP BLOB, unique (FILENAME, OFFSET) );
+09-22 11:08:55.723  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.samsung.systemui.action.PLUGIN_FACE_WIDGET
+09-22 11:08:55.723  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_GLOBAL_ACTIONS
+09-22 11:08:55.723  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.723  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.724  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_TOAST
+09-22 11:08:55.726  2687  4433 I Telecom : SamsungOpenCommunicationPlatformPolicyPackageHandler : handleMessage : { when=-4ms what=0 obj=com.zynergylabs.forager.app.test target=com.samsung.server.telecom.advancedcall.ocp.policy.broadcast.SamsungOpenCommunicationPlatformPolicyPackageHandler }.what
+09-22 11:08:55.728  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_SENSOR_MANAGER
+09-22 11:08:55.728  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_VOLUME
+09-22 11:08:55.728  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_CLOCK_PROVIDER
+09-22 11:08:55.728  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.729  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PEOPLE_HUB_PERSON_EXTRACTOR
+09-22 11:08:55.729  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_QS
+09-22 11:08:55.729  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.729  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_OVERLAY
+09-22 11:08:55.729  3712  4256 D ImsResolver: maybeAddedImsService, packageName: com.zynergylabs.forager.app.test
+09-22 11:08:55.730  3712  4256 V ImsResolver: searchForImsServices: package=com.zynergylabs.forager.app.test, users=[UserHandle{0}]
+09-22 11:08:55.730  3712  4256 V ImsResolver: searchForImsServices: package=com.zynergylabs.forager.app.test, users=[UserHandle{0}]
+09-22 11:08:55.732  2687  3713 I Pageboost: add app to global @ runtime: com.zynergylabs.forager.app.test
+09-22 11:08:55.739  3712  3712 I VvmPkgInstalledRcvr: packageName: com.zynergylabs.forager.app.test, systemDialer: com.samsung.android.dialer
+09-22 11:08:55.739  2687  2833 D MARsPolicyManager: new Package : com.zynergylabs.forager.app.test, SCPMTarget : false
+09-22 11:08:55.744  2687  2805 I SGM:GameManager: PkgUpdateReceiver, onPackageAdded : com.zynergylabs.forager.app.test userHandle : UserHandle{0} userId : 0
+09-22 11:08:55.744  2687  2805 D SGM:GosNotifyThread: sendPackageMessage(), changeType=0, pkgName=com.zynergylabs.forager.app.test, userHandleId=0
+09-22 11:08:55.744  2687  3270 D SGM:GosNotifyThread: notifyPackageChangedToGos(), before send intent to GOS. type:15, changeType: 0, pkgName:com.zynergylabs.forager.app.test, userHandleId:0
+09-22 11:08:55.745  3731  3815 D BluetoothEventManager: AppPackageChangedHandler: package name = com.zynergylabs.forager.app.test
+09-22 11:08:55.745  4546  4633 I PackageInfoManager_FLP: action : ACTION_PACKAGE_ADDED, packageName = com.zynergylabs.forager.app.test
+09-22 11:08:55.745  2687  3270 D SGM:PmAppCategoryManager: getManifestCategory(), manifestCategory=-1, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.745  2687  3270 D SGM:PmAppCategoryManager: getCategoryOverride(), categoryOverride=-1, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.745  2687  3270 I SGM:GosNotifyThread: notifyPackageChangedToGos(), category from pm: com.zynergylabs.forager.app.test, [-1/-1]
+09-22 11:08:55.749 11474 11474 I DWBPkgEventReceiver: Received : android.intent.action.PACKAGE_ADDED, Package : com.zynergylabs.forager.app.test
+09-22 11:08:55.750 31845 31845 D BluetoothEventManager: AppPackageChangedHandler: package name = com.zynergylabs.forager.app.test
+09-22 11:08:55.758 10150 12249 I GOS:GameIntentService: onHandleIntent. GameIntentService. type: 15, pkgName: com.zynergylabs.forager.app.test
+09-22 11:08:55.767  2687  2805 D MetaDataCollector: onReceive: done pkgName=com.zynergylabs.forager.app.test
+09-22 11:08:55.768  2687  2805 I AdaptiveAppByDefaultLogger: sendSaBroadcast update:com.zynergylabs.forager.app.test;37;Unspecified;True;False;False
+09-22 11:08:55.781  2687  3185 D OverlayManager: reconcileSettingsForPackage pkgName=com.zynergylabs.forager.app.test userId=0
+09-22 11:08:55.781  2687  3185 I OverlayManager: updateOverlaysForTarget() called with: targetPackage = [com.zynergylabs.forager.app.test], userId = [0], flags = [0]
+09-22 11:08:55.785  2687  3183 I ActivityManager: Force stopping com.zynergylabs.forager.app appid=10305 user=-1: set debug app
+09-22 11:08:55.787 11474 11474 I DWBPkgEventService: startId : 1, Received : com.samsung.android.forest.PACKAGE_ADDED, Package : com.zynergylabs.forager.app.test
+09-22 11:08:55.798  2687  2805 D LauncherAppsService: Calling onPackageAdded: com.zynergylabs.forager.app.test, uid: 10332
+09-22 11:08:55.800  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.800  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.800  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.800  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.801  4244  4244 I HoneySpace.PackageOperationTracker: onPackageAdded - com.zynergylabs.forager.app.test UserHandle{0}
+09-22 11:08:55.801 10122 10202 D LauncherApps: onPackageAdded 0,com.zynergylabs.forager.app.test
+09-22 11:08:55.801  3731  3742 D LauncherApps: onPackageAdded 0,com.zynergylabs.forager.app.test
+09-22 11:08:55.802  2687 10792 I AppWidgetServiceImpl: getInstalledProvidersForProfiles lock in com.zynergylabs.forager.app.test
+09-22 11:08:55.803  4244  3286 I HoneySpace.HoneySpacePackageSourceImpl: Package added : com.zynergylabs.forager.app.test
+09-22 11:08:55.805 10374 10374 I Routine@Core[4.9.07.7]: PackageChangedHandler: collectMetadata packageName - com.zynergylabs.forager.app.test
+09-22 11:08:55.806 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderImpl: scheduleCollectPackageJob - packageName:com.zynergylabs.forager.app.test
+09-22 11:08:55.806 10374 10374 I Routine@Core[4.9.07.7]: MetadataSyncBacklog: add: com.zynergylabs.forager.app + com.zynergylabs.forager.app.test
+09-22 11:08:55.807  2687  2805 D LauncherAppsService: onPackageAdded: triggering onPackageAdded for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.807  2687  2805 D LauncherApps: onPackageAdded 0,com.zynergylabs.forager.app.test
+09-22 11:08:55.818  2687  3185 D OverlayManager: -> Updating overlay: target=com.zynergylabs.forager.app.test overlays=[OverlayPaths { resourceDirs = [/product/overlay/NavigationBarMode3Button/NavigationBarMode3ButtonOverlay.apk], overlayPaths = [/product/overlay/NavigationBarMode3Button/NavigationBarMode3ButtonOverlay.apk] }] userId=0
+09-22 11:08:55.819  7487  7487 I SafetyLabelChangedBroadcastReceiver: received broadcast packageName: com.zynergylabs.forager.app.test, current user: UserHandle{0}, packageChangeEvent: NEW_INSTALL, intent user: UserHandle{0}
+09-22 11:08:55.830 10150 12249 I GOS:GameIntentService: onPackageChanged(). extras: Bundle[{changeType=0, manifestCategory=-1, userId=0, pkgName=com.zynergylabs.forager.app.test, type=15, packageName=com.zynergylabs.forager.app.test, categoryOverride=-1}]
+09-22 11:08:55.830 10150 12249 I GOS:GameIntentService: onPackageChanged(). changeType(INSTALLED), pkgName(com.zynergylabs.forager.app.test), UserHandle(0), userId(0), Installed(true)
+09-22 11:08:55.830 10150 12249 I GOS:GameIntentService: onPkgInstalled(), appInfoCategory: null, packageName: com.zynergylabs.forager.app.test
+09-22 11:08:55.833 10150 12249 I GOS:FilteredPmAppCategoryGetter: getCategoryCode(). categoryCode:undefined, packageName:com.zynergylabs.forager.app.test
+09-22 11:08:55.834 10150 12249 I GOS:SystemEventReactor: onPackageInstalled(). categoryByAppInfo=undefined, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.834 10150 12249 I GOS:SystemEventReactor: addPkgData(), category=undefined, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:55.834 10150 12249 I GOS:SystemEventReactor: addPkgData(), A package was added : com.zynergylabs.forager.app.test as undefined
+09-22 11:08:55.838 10150 12249 W GOS:GameIntentService: onPkgInstalled(), pkgData == null. do nothing. packageName(com.zynergylabs.forager.app.test)
+09-22 11:08:55.840 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderJobService: onStopJob: collectPackageInBG - com.zynergylabs.forager.app / stopReason = 1
+09-22 11:08:55.842 10676 10676 I FILP/PackageIntentReceiver: pkgName : com.zynergylabs.forager.app.test
+09-22 11:08:55.842 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderJobService: onStartJob: collectPackageInBG - com.zynergylabs.forager.app.test
+09-22 11:08:55.844 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderJobService: packageName : com.zynergylabs.forager.app.test, forced : true
+09-22 11:08:55.847 10122 10202 D LauncherApps: onPackageChanged 0,com.zynergylabs.forager.app.test
+09-22 11:08:55.848  2687  2805 D LauncherApps: onPackageChanged 0,com.zynergylabs.forager.app.test
+09-22 11:08:55.848  4244  4244 I HoneySpace.PackageOperationTracker: onPackageChanged - com.zynergylabs.forager.app.test UserHandle{0}
+09-22 11:08:55.848  2687  4153 I AppWidgetServiceImpl: getInstalledProvidersForProfiles lock in com.zynergylabs.forager.app.test
+09-22 11:08:55.849  4244  3286 I HoneySpace.IconCache: remove icon cache & DB : com.zynergylabs.forager.app.test UserHandle{0}
+09-22 11:08:55.849  4244  3286 I HoneySpace.IconCache: removeSpecificIconDb: com.zynergylabs.forager.app.test UserHandle{0}
+09-22 11:08:55.849  3731  6862 D LauncherApps: onPackageChanged 0,com.zynergylabs.forager.app.test
+09-22 11:08:55.850  4244  4244 I HoneySpace.HoneySpaceManagerContainer: refreshHoneyPlugin, packageName: com.zynergylabs.forager.app.test
+09-22 11:08:55.850  4244  2464 I HoneySpace.HoneySpacePackageSourceImpl: Package changed : com.zynergylabs.forager.app.test
+09-22 11:08:55.850  4244  2464 I SearchableManager: invalidate: com.zynergylabs.forager.app.test
+09-22 11:08:55.850  3712  3712 D CarrierSvcBindHelper: onPackageModified: com.zynergylabs.forager.app.test
+09-22 11:08:55.852  4244  4244 I HoneySpace.AppsEdgePanel.ViewModel: packageChanged : com.zynergylabs.forager.app.test
+09-22 11:08:55.853  3712  4256 D ImsResolver: maybeAddedImsService, packageName: com.zynergylabs.forager.app.test
+09-22 11:08:55.853  3712  4256 V ImsResolver: searchForImsServices: package=com.zynergylabs.forager.app.test, users=[UserHandle{0}]
+09-22 11:08:55.853  3712  4256 V ImsResolver: searchForImsServices: package=com.zynergylabs.forager.app.test, users=[UserHandle{0}]
+09-22 11:08:55.854  3712  4264 I SatelliteAppTracker: onPackageModified : com.zynergylabs.forager.app.test
+09-22 11:08:55.855  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_ASSISTANT
+09-22 11:08:55.855  3712  3712 D SatelliteController: packageStateChanged: package:com.zynergylabs.forager.app.test DefaultSmsPackageName:com.google.android.apps.messaging
+09-22 11:08:55.856  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.856  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.samsung.systemui.action.PLUGIN_FACE_WIDGET
+09-22 11:08:55.856  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_GLOBAL_ACTIONS
+09-22 11:08:55.857  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.857  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.858  3731  3731 I GoodLockLifecycle: onPackageChanged: com.zynergylabs.forager.app.test
+09-22 11:08:55.858  3731  3731 I SharedAppWidgetFacade:  onPackageChanged com.zynergylabs.forager.app.test
+09-22 11:08:55.858  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_TOAST
+09-22 11:08:55.859  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_SENSOR_MANAGER
+09-22 11:08:55.859  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_VOLUME
+09-22 11:08:55.859  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_CLOCK_PROVIDER
+09-22 11:08:55.859  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.861  2687  3582 D ShortcutService: changing package: com.zynergylabs.forager.app.test userId=0
+09-22 11:08:55.863  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PEOPLE_HUB_PERSON_EXTRACTOR
+09-22 11:08:55.863  2687  3565 I AppWidgetServiceImpl: Received broadcast: android.intent.action.PACKAGE_CHANGED, Updates all providers with com.zynergylabs.forager.app.test, userId: 0
+09-22 11:08:55.863  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_QS
+09-22 11:08:55.864  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+09-22 11:08:55.864  3731  3873 D PluginActionManager: queryPkg com.zynergylabs.forager.app.test com.android.systemui.action.PLUGIN_OVERLAY
+09-22 11:08:55.865  5031 12207 I ProximityAuth: [RecentAppsMediator] Package added: (user=UserHandle{0}) com.zynergylabs.forager.app.test
+09-22 11:08:55.866  3731  3731 D SecSTQuickControlRequestReceiver: onReceiveForPackage action = android.intent.action.PACKAGE_CHANGED, pkgName = com.zynergylabs.forager.app.test
+09-22 11:08:55.867 11474 11474 I DWBPkgEventReceiver: Received : android.intent.action.PACKAGE_CHANGED, Package : com.zynergylabs.forager.app.test
+09-22 11:08:55.872 10169 10169 I [AirCmd]_ShortcutListController: onReceive : android.intent.action.PACKAGE_CHANGED pkg = com.zynergylabs.forager.app.test
+09-22 11:08:55.876 15191 15393 I Finsky  : [74] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app.test]
+09-22 11:08:55.879 15191 15191 I Finsky  : [2] AIM: AppInfoCacheUpdater -> invalidating apps: [com.zynergylabs.forager.app.test]
+09-22 11:08:55.879 15191 15385 I Finsky  : [72] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app.test]
+09-22 11:08:55.887 11474 11474 I DWBPkgEventService: startId : 1, Received : com.samsung.android.forest.PACKAGE_REMOVED, Package : com.zynergylabs.forager.app.test
+09-22 11:08:55.910 15191 15191 I Finsky  : [2] AIM: AppInfoCacheUpdater -> invalidating apps: [com.zynergylabs.forager.app.test]
+09-22 11:08:55.911 15191 15382 I Finsky  : [71] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app.test]
+09-22 11:08:55.950 15191 15385 I Finsky  : [72] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app.test]
+09-22 11:08:55.975 32026 32026 I adbd    : adbd service requested 'shell:rm -rf "/sdcard/Android/media/com.zynergylabs.forager.app/additional_test_output" ; echo utp_shell_exit_code=$?'
+09-22 11:08:55.986 15191 15382 I Finsky  : [71] Installer package name of package com.zynergylabs.forager.app is 
+09-22 11:08:56.016 32026 32026 I adbd    : adbd service requested 'shell:mkdir -p "/sdcard/Android/media/com.zynergylabs.forager.app/additional_test_output" ; echo utp_shell_exit_code=$?'
+09-22 11:08:56.059 15191 15191 I Finsky  : [2] Received an install/uninstall event for package com.zynergylabs.forager.app.test
+09-22 11:08:56.194 32026 32026 I adbd    : adbd service requested 'shell:am instrument -w -r -e additionalTestOutputDir /sdcard/Android/media/com.zynergylabs.forager.app/additional_test_output -e testTimeoutSeconds 31536000 com.zynergylabs.forager.app.test/androidx.test.runner.AndroidJUnitRunner ; echo utp_shell_exit_code=$?'
+09-22 11:08:56.212 15230 15230 I AccountReloadObserver: [C] received action: android.intent.action.PACKAGE_ADDED, dat: package:com.zynergylabs.forager.app.test
+09-22 11:08:56.212 15230 15230 I AccountReloadObserver: [C] received action: android.intent.action.PACKAGE_CHANGED, dat: package:com.zynergylabs.forager.app.test
+09-22 11:08:56.251  4244  3285 I SearchEngineAppSuggestion: package changed: com.zynergylabs.forager.app.test
+09-22 11:08:56.381  4244 12228 I SearchableManager: invalidate: com.zynergylabs.forager.app
+09-22 11:08:56.385  2687 10989 I ActivityManager: Force stopping com.zynergylabs.forager.app appid=10305 user=0: start instr
+09-22 11:08:56.399  2687  2807 I ActivityManager: Start proc 12308:com.zynergylabs.forager.app/u0a305 for added application com.zynergylabs.forager.app
+09-22 11:08:56.399  2687  2807 D DynamicHiddenApp_BGProtectManager: [SecIpm] it's a ML_TYPE_EMPTYPROCESS protected process com.zynergylabs.forager.app
+09-22 11:08:56.418 12308 12308 I abs.forager.app: Late-enabling -Xcheck:jni
+09-22 11:08:56.434 12308 12308 I abs.forager.app: Using generational CollectorTypeCMC GC.
+09-22 11:08:56.474 12308 12308 W ActivityThread: Package uses different ABI(s) than its instrumentation: package[com.zynergylabs.forager.app]: arm64-v8a, null instrumentation[com.zynergylabs.forager.app.test]: null, null
+09-22 11:08:56.803 10374 10689 I Routine@Core[4.9.07.7]: MetadataLoadManager: collect: com.zynergylabs.forager.app.test
+09-22 11:08:56.803 10374 10689 I Routine@Core[4.9.07.7]: MetadataLoadManager: collectWithCollectors - Collect Start! package = com.zynergylabs.forager.app.test
+09-22 11:08:56.805  4244 12252 I SearchableManager: invalidate: com.zynergylabs.forager.app.test
+09-22 11:08:56.807 10374 10689 I Routine@Core[4.9.07.7]: WatchMetaDataCollector: collect - packageName :com.zynergylabs.forager.app.test
+09-22 11:08:56.900 12308 12308 D nativeloader: Configuring clns-9 for other apk /data/app/~~hlKpidhpOHfSg8xSbdHCrw==/com.zynergylabs.forager.app.test-172YIcAMxQ_4suDW6vWr8A==/base.apk:/data/app/~~WRNkxJLjtH4nPniYe1Pxtg==/com.zynergylabs.forager.app-tUvYN8Tqt6VdB7p9HDHrqw==/base.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~hlKpidhpOHfSg8xSbdHCrw==/com.zynergylabs.forager.app.test-172YIcAMxQ_4suDW6vWr8A==/lib/arm64:/data/app/~~WRNkxJLjtH4nPniYe1Pxtg==/com.zynergylabs.forager.app-tUvYN8Tqt6VdB7p9HDHrqw==/lib/arm64:/data/app/~~hlKpidhpOHfSg8xSbdHCrw==/com.zynergylabs.forager.app.test-172YIcAMxQ_4suDW6vWr8A==/base.apk!/lib/arm64-v8a:/data/app/~~WRNkxJLjtH4nPniYe1Pxtg==/com.zynergylabs.forager.app-tUvYN8Tqt6VdB7p9HDHrqw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.zynergylabs.forager.app
+09-22 11:08:56.905 12308 12308 V GraphicsEnvironment: com.zynergylabs.forager.app is not listed in per-application setting
+09-22 11:08:56.905 12308 12308 V GraphicsEnvironment: com.zynergylabs.forager.app is not listed in ANGLE allowlist or settings, returning default
+09-22 11:08:57.002 10374 10689 I Routine@Core[4.9.07.7]: MetadataLoadManager: doPostCollectionTasks - packageName:com.zynergylabs.forager.app.test
+09-22 11:08:57.316 12308 12308 I AndroidJUnitRunner: newApplication com.zynergylabs.forager.app.ForagerApplication
+09-22 11:08:57.420 12308 12308 D StrictMode: 	at com.zynergylabs.forager.app.crash.CrashFileStore$Companion.forContext(CrashFileStore.kt:77)
+09-22 11:08:57.420 12308 12308 D StrictMode: 	at com.zynergylabs.forager.app.AppContainer.<init>(AppContainer.kt:144)
+09-22 11:08:57.420 12308 12308 D StrictMode: 	at com.zynergylabs.forager.app.ForagerApplication.onCreate(ForagerApplication.kt:38)
+09-22 11:08:57.421 12308 12308 D StrictMode: 	at com.zynergylabs.forager.app.crash.CrashFileStore$Companion.forContext(CrashFileStore.kt:77)
+09-22 11:08:57.421 12308 12308 D StrictMode: 	at com.zynergylabs.forager.app.AppContainer.<init>(AppContainer.kt:144)
+09-22 11:08:57.421 12308 12308 D StrictMode: 	at com.zynergylabs.forager.app.ForagerApplication.onCreate(ForagerApplication.kt:38)
+09-22 11:08:57.429 12308 12324 I TestRequestBuilder: Scanning classpath to find tests in paths [/data/app/~~hlKpidhpOHfSg8xSbdHCrw==/com.zynergylabs.forager.app.test-172YIcAMxQ_4suDW6vWr8A==/base.apk]
+09-22 11:08:57.430 12308 12324 W abs.forager.app: Opening an oat file without a class loader. Are you using the deprecated DexFile APIs?
+09-22 11:08:57.524 12308 12324 I TestRunner: started: torch_goes_on_and_off_with_the_flash_mode(com.zynergylabs.forager.app.photo.CameraXTorchInstrumentedTest)
+09-22 11:08:57.534 12308 12324 D CameraX : QuirkSettings from app metadata: null
+09-22 11:08:57.535 12308 12324 D CameraX : QuirkSettings by default: QuirkSettings{enabledWhenDeviceHasQuirk=true, forceEnabledQuirks=[], forceDisabledQuirks=[]}
+09-22 11:08:57.569 12308 12319 I CameraManagerGlobal: Camera 0 facing CAMERA_FACING_BACK state now CAMERA_STATE_CLOSED for client com.zynergylabs.forager.app API Level 2 User Id 0Device Id 0
+09-22 11:08:57.684 12308 12308 E abs.forager.app: Unable to open libpenguin.so: dlopen failed: library "libpenguin.so" not found.
+09-22 11:08:57.705 12308 12324 I CameraXTorchTest: DEVICE-CHECK torch ON after 0ms; hasFlashUnit=true
+09-22 11:08:57.706 12308 12308 I CameraXCaptureSession: enableTorch(true) superseded by a later request.
+09-22 11:08:57.706 12308 12324 I CameraXTorchTest: DEVICE-CHECK torch OFF after 0ms
+09-22 11:08:57.712 12308 12324 I TestRunner: finished: torch_goes_on_and_off_with_the_flash_mode(com.zynergylabs.forager.app.photo.CameraXTorchInstrumentedTest)
+09-22 11:08:57.712 12308 12308 I CameraXCaptureSession: enableTorch(false) superseded by a later request.
+09-22 11:08:57.716 12308 12324 I TestRunner: started: closing_with_the_torch_on_puts_it_out(com.zynergylabs.forager.app.photo.CameraXTorchInstrumentedTest)
+09-22 11:08:57.735  2248  3181 I CameraService: CameraService::connect call (PID 12308 UID 10305 "com.zynergylabs.forager.app", camera ID 0) and Camera API version 2
+09-22 11:08:57.736  2248  3181 I AttributionAndPermissionUtils: checkPermission (forDataDelivery 0 startDataDelivery 0): Permission hard denied for client attribution [uid 10305, pid 12308, packageName "com.zynergylabs.forager.app"]
+09-22 11:08:57.739 12308 12332 W CXCP    : java.lang.SecurityException: validateClientPermissionsLocked:1997: Caller "com.zynergylabs.forager.app" (PID 12308, UID 10305) cannot open camera "0" without camera permission
+09-22 11:08:57.739 12308 12332 W CXCP    : Caused by: android.os.ServiceSpecificException: validateClientPermissionsLocked:1997: Caller "com.zynergylabs.forager.app" (PID 12308, UID 10305) cannot open camera "0" without camera permission (code 1)
+09-22 11:08:57.765 12308 12331 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = null, template = RequestTemplate(value=1)
+09-22 11:08:57.766 12308 12331 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.aeExposureCompensation)=0, CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = null, template = RequestTemplate(value=1)
+09-22 11:08:57.767 12308 12331 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.aeExposureCompensation)=0, CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = null, template = RequestTemplate(value=1)
+09-22 11:08:57.768 12308 12331 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.aeExposureCompensation)=0, CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = [], template = RequestTemplate(value=1)
+09-22 11:08:57.769 12308 12331 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.aeExposureCompensation)=0, CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = [Stream-4], template = RequestTemplate(value=1)
+09-22 11:08:57.770 12308 12331 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.aeExposureCompensation)=0, CaptureRequest.Key(android.control.aeMode)=1, CaptureRequest.Key(android.control.afMode)=4, CaptureRequest.Key(android.control.awbMode)=1, CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = null, template = RequestTemplate(value=1)
+09-22 11:08:57.771 12308 12331 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.aeExposureCompensation)=0, CaptureRequest.Key(android.control.aeMode)=1, CaptureRequest.Key(android.control.afMode)=4, CaptureRequest.Key(android.control.awbMode)=1, CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = null, template = RequestTemplate(value=1)
+09-22 11:08:57.782 12308 12338 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.aeExposureCompensation)=0, CaptureRequest.Key(android.control.aeMode)=1, CaptureRequest.Key(android.control.afMode)=4, CaptureRequest.Key(android.control.awbMode)=1, CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = null, template = RequestTemplate(value=1)
+09-22 11:08:57.787 12308 12308 I CameraXCaptureSession: enableTorch(true) superseded by a later request.
+09-22 11:08:57.787 12308 12308 I CameraXCaptureSession: enableTorch(false) superseded by a later request.
+09-22 11:08:57.788 12308 12324 I CameraXTorchTest: DEVICE-CHECK close: torchState immediately after close()=0 (0=OFF, 1=ON); OFF observed after 0ms; session.flashMode=Off
+09-22 11:08:57.789 12308 12324 I TestRunner: finished: closing_with_the_torch_on_puts_it_out(com.zynergylabs.forager.app.photo.CameraXTorchInstrumentedTest)
+09-22 11:08:57.795 12308 12338 D CXCP    : UseCaseCameraState#updateState: parameters = {CaptureRequest.Key(android.control.aeExposureCompensation)=0, CaptureRequest.Key(android.control.aeMode)=1, CaptureRequest.Key(android.control.afMode)=4, CaptureRequest.Key(android.control.awbMode)=1, CaptureRequest.Key(android.control.zoomRatio)=1.0}, internalParameters = {Metadata.Key(camerax.tag_bundle)=android.hardware.camera2.CaptureRequest.setTag.CX}, streams = [], template = RequestTemplate(value=1)
+09-22 11:08:57.805  2687  4137 I ActivityManager: Force stopping com.zynergylabs.forager.app appid=10305 user=0: finished inst
+09-22 11:08:57.806  2687  4137 I ActivityManager: Killing 12308:com.zynergylabs.forager.app/u0a305 (adj 0): stop com.zynergylabs.forager.app due to finished inst
+09-22 11:08:57.808  2687  4137 D ActivityManager: proc ProcessRecord{de3832 12308:com.zynergylabs.forager.app/u0a305} already removed. so we skip next process.
+09-22 11:08:57.851  2687  4137 V ActivityManager: Got obituary of 12308:com.zynergylabs.forager.app
+09-22 11:08:57.933 32026 32026 I adbd    : adbd service requested 'shell:[[ -d "/sdcard/Android/media/com.zynergylabs.forager.app/additional_test_output" ]] ; echo utp_shell_exit_code=$?'
+09-22 11:08:57.974 32026 32026 I adbd    : adbd service requested 'shell:ls "/sdcard/Android/media/com.zynergylabs.forager.app/additional_test_output" | cat ; echo utp_shell_exit_code=$?'
+09-22 11:08:57.996 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderJobService: metadataLoadingCompleted: collectPackageInBG - com.zynergylabs.forager.app
+09-22 11:08:58.011 10374 10374 I Routine@Core[4.9.07.7]: MetadataLoaderJobService: metadataLoadingCompleted: collectPackageInBG - com.zynergylabs.forager.app.test
+09-22 11:08:58.108 32026 32026 I adbd    : adbd service requested 'shell:pm uninstall com.zynergylabs.forager.app ; echo utp_shell_exit_code=$?'
+09-22 11:08:58.145  2687 10989 I PackageManager: pkg{com.zynergylabs.forager.app}, user{0}, caller{2000} flags{2}
+09-22 11:08:58.148  2687  2806 I ActivityManager: Force stopping com.zynergylabs.forager.app appid=10305 user=-1: deletePackageX
+09-22 11:08:58.256  2687  3583 D BackgroundInstallControlService: handlePackageRemove: removing com.zynergylabs.forager.app from 0
+09-22 11:08:58.278  2687  2879 D AASA_PackageManager_RESTRICTED: Uninstall : userId = 0, info.uid = 10305, packageName = com.zynergylabs.forager.app
+09-22 11:08:58.282  2687  2879 I ActivityManager: Force stopping com.zynergylabs.forager.app appid=10305 user=0: pkg removed
+09-22 11:08:58.305 32026 32026 I adbd    : adbd service requested 'shell:pm uninstall com.zynergylabs.forager.app.test ; echo utp_shell_exit_code=$?'
+09-22 11:08:58.309  2687  3205 D UsageStatsService: onPackageRemoved com.zynergylabs.forager.app
+09-22 11:08:58.309  2687  3272 V StorageManagerService: Package com.zynergylabs.forager.app does not have legacy storage
+09-22 11:08:58.309  2687  3185 D OverlayManager: onPackageRemoved pkgName=com.zynergylabs.forager.app userId=0
+09-22 11:08:58.309  2687  3185 I OverlayManager: updateOverlaysForTarget() called with: targetPackage = [com.zynergylabs.forager.app], userId = [0], flags = [0]
+09-22 11:08:58.322  3712  3712 D CarrierSvcBindHelper: onPackageRemoved: com.zynergylabs.forager.app
+09-22 11:08:58.325  2687  2805 I SettingsProvider: onPackageRemoved (userId 0) PackageName = com.zynergylabs.forager.app
+09-22 11:08:58.326  2687  2805 I CredentialManager: updateProvidersWhenPackageRemoved)pkg=com.zynergylabs.forager.app (0)
+09-22 11:08:58.327  2687  2805 I SpenThemeManager: package removed = com.zynergylabs.forager.app
+09-22 11:08:58.344  2687  3582 D ShortcutService: removing package: com.zynergylabs.forager.app userId=0
+09-22 11:08:58.346  3712  4264 I SatelliteAppTracker: onPackageRemoved : com.zynergylabs.forager.app
+09-22 11:08:58.349  3731  3731 D Navbar.Store: handleEvent(0) OnPackageRemoved(packageName=com.zynergylabs.forager.app) [Module] NavBarStoreImpl
+09-22 11:08:58.350  3731  3731 D KeyguardShortcutManager: onReceive : Intent.EXTRA_REPLACING false, com.zynergylabs.forager.app
+09-22 11:08:58.355  3712  3712 I VvmPkgInstalledRcvr: packageName: com.zynergylabs.forager.app, systemDialer: com.samsung.android.dialer
+09-22 11:08:58.358 11474 11474 I DWBPkgEventReceiver: Received : android.intent.action.PACKAGE_REMOVED, Package : com.zynergylabs.forager.app
+09-22 11:08:58.361  4546  4633 I PackageInfoManager_FLP: action : ACTION_PACKAGE_REMOVED, packageName = com.zynergylabs.forager.app
+09-22 11:08:58.361 10124 10124 W MediaProvider: WorkProfileOwnerApps cache miss for package com.zynergylabs.forager.app
+09-22 11:08:58.363 10169 10169 I [AirCmd]_ShortcutListController: onReceive : android.intent.action.PACKAGE_REMOVED pkg = com.zynergylabs.forager.app
+09-22 11:08:58.363  2687  3502 W WifiService: Couldn't get PackageInfo for package:com.zynergylabs.forager.app
+09-22 11:08:58.363  2687  3502 D WifiService: Remove settings for package:com.zynergylabs.forager.app
+09-22 11:08:58.363  2687  3502 D WifiConfigManager: Remove all networks for app ApplicationInfo{b59f010 com.zynergylabs.forager.app}
+09-22 11:08:58.364  2687  3502 I PasspointManager: No app ops listener found for com.zynergylabs.forager.app
+09-22 11:08:58.368  2687  2687 D SdpManagerImpl.receiver: On android.intent.action.PACKAGE_REMOVED : DATA = package:com.zynergylabs.forager.app, UID = 10305, UserId = 0, Is replacing? false
+09-22 11:08:58.368  2687  2687 D SdpManagerImpl.receiver: ACTION_PACKAGE_REMOVED packageName:: com.zynergylabs.forager.app
+09-22 11:08:58.369  2687  2687 I Telecom : CarModeTracker: Package com.zynergylabs.forager.app is not tracked.: SSH.oR@Eno
+09-22 11:08:58.369  2687  3525 D LocationManagerService: package com.zynergylabs.forager.app reset
+09-22 11:08:58.371  2687  2687 I ConditionProviders: Disallowing condition provider com.zynergylabs.forager.app (userSet: true)
+09-22 11:08:58.377  2687  3534 D AS.AudioService: com.zynergylabs.forager.app(10305) is removed
+09-22 11:08:58.378  2687  3534 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:58.378  2687  3534 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app, ret=false
+09-22 11:08:58.379  2687 10407 I PackageManager: pkg{com.zynergylabs.forager.app.test}, user{0}, caller{2000} flags{2}
+09-22 11:08:58.380  3731  3731 I GoodLockLifecycle: onPackageRemoved: com.zynergylabs.forager.app
+09-22 11:08:58.380  3731  3731 D FaceWidgetMusicViewModel: onPackageRemoved() pkg = com.zynergylabs.forager.app, r = false
+09-22 11:08:58.380  3731  3731 I SharedAppWidgetFacade:  onPackageRemoved com.zynergylabs.forager.app
+09-22 11:08:58.381  3731  3731 I SharedWidgetListManager:  provider removed com.zynergylabs.forager.app , size = 60 ,  60
+09-22 11:08:58.381  3731  3731 D SecSTQuickControlRequestReceiver: onReceiveForPackage action = android.intent.action.PACKAGE_REMOVED, pkgName = com.zynergylabs.forager.app
+09-22 11:08:58.382  2687  3705 D SdpManagerImpl: handlePackageRemoved - PackageName : com.zynergylabs.forager.app, UserId : 0
+09-22 11:08:58.387  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app
+09-22 11:08:58.387  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app
+09-22 11:08:58.387  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app
+09-22 11:08:58.387  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app
+09-22 11:08:58.387  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app
+09-22 11:08:58.387  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app
+09-22 11:08:58.387  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app
+09-22 11:08:58.387  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app
+09-22 11:08:58.388 10676 10676 I FILP/PackageIntentReceiver: pkgName : com.zynergylabs.forager.app
+09-22 11:08:58.396  2687  3713 I Pageboost: remove app @ runtime : com.zynergylabs.forager.app
+09-22 11:08:58.399 11474 11474 I DWBPkgEventService: startId : 1, Received : com.samsung.android.forest.PACKAGE_REMOVED, Package : com.zynergylabs.forager.app
+09-22 11:08:58.401 10676 12393 I FILP/FilterInstaller: removeFromFS : com.zynergylabs.forager.app, cursor size : 0
+09-22 11:08:58.410  2687  3233 D SEP_UNION_SemDeviceInfoManagerService: Package com.zynergylabs.forager.app is removed on User 0 
+09-22 11:08:58.410  2687  3210 I RollbackManager: broadcast=ACTION_PACKAGE_FULLY_REMOVED pkg=com.zynergylabs.forager.app
+09-22 11:08:58.410  2687  3502 W WifiService: Couldn't get PackageInfo for package:com.zynergylabs.forager.app
+09-22 11:08:58.410  2687  3502 D WifiService: Remove settings for package:com.zynergylabs.forager.app
+09-22 11:08:58.410  2687  3502 D WifiConfigManager: Remove all networks for app ApplicationInfo{754f3bf com.zynergylabs.forager.app}
+09-22 11:08:58.411  2687  2687 D EnterpriseLicenseService: isPackageInstalled() - com.zynergylabs.forager.app not found in user 0
+09-22 11:08:58.411  2687  3502 I PasspointManager: No app ops listener found for com.zynergylabs.forager.app
+09-22 11:08:58.411  2687  2687 D EnterpriseLicenseService: isPackageInstalled() - com.zynergylabs.forager.app not found in user 95
+09-22 11:08:58.412  2687  2687 I AppSearchManagerService: Handling android.intent.action.PACKAGE_FULLY_REMOVED broadcast on package: com.zynergylabs.forager.app
+09-22 11:08:58.414  2687 12395 I Telecom : SamsungTelecomServiceImpl : clearAccounts - packageName : com.zynergylabs.forager.app / callingPid : 2687 / processName : sts / callingUser : UserHandle{0}
+09-22 11:08:58.416 10570 10570 I Finsky:background: [2] Package no longer installed: com.zynergylabs.forager.app
+09-22 11:08:58.417  5031 12188 I ProximityAuth: [RecentAppsMediator] Package removed: (user=UserHandle{0}) com.zynergylabs.forager.app
+09-22 11:08:58.423 10570 10570 I Finsky:background: [2] Package no longer installed: com.zynergylabs.forager.app
+09-22 11:08:58.424 10570 10570 I Finsky:background: [2] Package no longer installed: com.zynergylabs.forager.app
+09-22 11:08:58.428 10570 10666 I Finsky:background: [87] ammo - recording uninstall for com.zynergylabs.forager.app on [iDW81hKmLBCmALvNc_ryoZB3MDusBh5UK3u8T9Ayvtg]
+09-22 11:08:58.428 10570 10671 I Finsky:background: [90] IQ:PSL: onPackageRemoved com.zynergylabs.forager.app, replacing=false existingStatus=[Package:com.zynergylabs.forager.app, isid:t7MdHlDhSa2SBXjxuYIofA] state:INSTALLED
+09-22 11:08:58.429 10676 12393 I FILP/FilterInstaller: Delete all filter DB result : com.zynergylabs.forager.app, 0
+09-22 11:08:58.429 10676 12393 I FILP/FilterInstaller: Delete filter DB result : com.zynergylabs.forager.app, 0
+09-22 11:08:58.429 10676 12393 I FILP/FilterInstaller: Delete my filter DB result : com.zynergylabs.forager.app, 0
+09-22 11:08:58.431  2687  2806 I ActivityManager: Force stopping com.zynergylabs.forager.app.test appid=10332 user=-1: deletePackageX
+09-22 11:08:58.437 10303 10529 E DMASA[C]: [LOGWING][k]Failed to get App version : com.zynergylabs.forager.app
+09-22 11:08:58.437  5031 12201 W RWIPackageIntentOps: Registries cleared for package: com.zynergylabs.forager.app
+09-22 11:08:58.438 11139 11203 I ENTM:Systemprocess: handlePackageRemoved().pkgName: com.zynergylabs.forager.app
+09-22 11:08:58.438 11139 11203 I ENTM:Systemprocess: checkELMActivationForPackageRemoved().START - com.zynergylabs.forager.app
+09-22 11:08:58.442 10676 12393 I FILP/FilterInstaller: uninstallFilters mPackageName: com.zynergylabs.forager.app
+09-22 11:08:58.442 11139 11203 I ENTM:Systemprocess: checkKLMActivationForPackageRemoved().START - com.zynergylabs.forager.app
+09-22 11:08:58.536  2687  2805 I SGM:GameManager: PkgUpdateReceiver, onPackageRemoved(). pkgName=com.zynergylabs.forager.app, userId=0
+09-22 11:08:58.613 11139 11203 I ENTM:DataBaseUtils: isSameTrackerIdInDeviceDB().START: com.zynergylabs.forager.app
+09-22 11:08:58.618  2687  2805 W SGM:Util: isPkgInstalled(), com.zynergylabs.forager.app does not exist. 
+09-22 11:08:58.618  2687  2805 D SGM:Util: isPkgInstalled(). pkgName=com.zynergylabs.forager.app, userId=0, installed=false
+09-22 11:08:58.618  2687  2805 D SGM:GosNotifyThread: sendPackageMessage(), changeType=1, pkgName=com.zynergylabs.forager.app, userHandleId=0
+09-22 11:08:58.621 15191 10348 I Finsky  : [321] Asset module storage cleared for package com.zynergylabs.forager.app.
+09-22 11:08:58.623  2687  3583 D BackgroundInstallControlService: handlePackageRemove: removing com.zynergylabs.forager.app.test from 0
+09-22 11:08:58.627  2687  2879 D AASA_PackageManager_RESTRICTED: Uninstall : userId = 0, info.uid = 10332, packageName = com.zynergylabs.forager.app.test
+09-22 11:08:58.628 15191 15191 I Finsky  : [2] AIM: AppInfoCacheUpdater -> invalidating apps: [com.zynergylabs.forager.app]
+09-22 11:08:58.631 15191 15393 I Finsky  : [74] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app]
+09-22 11:08:58.639  5031 12199 W SQLiteLog: (28) double-quoted string literal: "com.zynergylabs.forager.app"
+09-22 11:08:58.659 15191 15382 I Finsky  : [71] AIM: AppInfoManager-Perf > ItemModel > CacheSize=134, cacheHitCount=0, cacheMissCount=1, total appsWithNoServerDataCount=12. Missed  in cache (limit 10) : [com.zynergylabs.forager.app]
+09-22 11:08:58.665  2687  2805 D MetaDataCollector: onReceive: done pkgName=com.zynergylabs.forager.app
+09-22 11:08:58.668 15191 15382 I Finsky  : [71] AIM: AppInfoManager-Perf > ItemModel > CacheSize=134, cacheHitCount=0, cacheMissCount=1, total appsWithNoServerDataCount=12. Missed  in cache (limit 10) : [com.zynergylabs.forager.app]
+09-22 11:08:58.879  2687  2879 I ActivityManager: Force stopping com.zynergylabs.forager.app.test appid=10332 user=0: pkg removed
+09-22 11:08:58.880  5031 12182 I Icing   : doRemovePackageData com.zynergylabs.forager.app
+09-22 11:08:58.893  2687  3185 D OverlayManager: onPackageRemoved pkgName=com.zynergylabs.forager.app.test userId=0
+09-22 11:08:58.893  2687  3185 I OverlayManager: updateOverlaysForTarget() called with: targetPackage = [com.zynergylabs.forager.app.test], userId = [0], flags = [0]
+09-22 11:08:58.894  2687  3205 D UsageStatsService: onPackageRemoved com.zynergylabs.forager.app.test
+09-22 11:08:58.895  2687  3272 V StorageManagerService: Package com.zynergylabs.forager.app.test does not have legacy storage
+09-22 11:08:58.915  3712  3712 D CarrierSvcBindHelper: onPackageRemoved: com.zynergylabs.forager.app.test
+09-22 11:08:58.916  3712  4264 I SatelliteAppTracker: onPackageRemoved : com.zynergylabs.forager.app.test
+09-22 11:08:58.916  2687  3534 D AS.AudioService: com.zynergylabs.forager.app.test(10332) is removed
+09-22 11:08:58.917  2687  3534 D SGM:GameManager: identifyGamePackage. com.zynergylabs.forager.app.test, mCurrentUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+09-22 11:08:58.917  2687  3534 D SGM:SemGameManager: isGamePackage(), pkgName=com.zynergylabs.forager.app.test, ret=false
+09-22 11:08:58.917  2687  3582 D ShortcutService: removing package: com.zynergylabs.forager.app.test userId=0
+09-22 11:08:58.919  2687  3502 W WifiService: Couldn't get PackageInfo for package:com.zynergylabs.forager.app.test
+09-22 11:08:58.919  2687  3502 D WifiService: Remove settings for package:com.zynergylabs.forager.app.test
+09-22 11:08:58.919  2687  3502 D WifiConfigManager: Remove all networks for app ApplicationInfo{d0921ef com.zynergylabs.forager.app.test}
+09-22 11:08:58.919  2687  3502 I PasspointManager: No app ops listener found for com.zynergylabs.forager.app.test
+09-22 11:08:58.921  3712  3712 I VvmPkgInstalledRcvr: packageName: com.zynergylabs.forager.app.test, systemDialer: com.samsung.android.dialer
+09-22 11:08:58.922  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app.test
+09-22 11:08:58.922  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app.test
+09-22 11:08:58.922  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app.test
+09-22 11:08:58.922  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app.test
+09-22 11:08:58.922  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app.test
+09-22 11:08:58.922  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app.test
+09-22 11:08:58.922  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app.test
+09-22 11:08:58.922  2687 10352 E HCPackageInfoUtils: NameNotFoundException for com.zynergylabs.forager.app.test
+09-22 11:08:58.924  2687  3210 I RollbackManager: broadcast=ACTION_PACKAGE_FULLY_REMOVED pkg=com.zynergylabs.forager.app.test
+09-22 11:08:58.929 10570 10570 I Finsky:background: [2] Package no longer installed: com.zynergylabs.forager.app.test
+09-22 11:08:58.929  2687  2687 D SdpManagerImpl.receiver: On android.intent.action.PACKAGE_REMOVED : DATA = package:com.zynergylabs.forager.app.test, UID = 10332, UserId = 0, Is replacing? false
+09-22 11:08:58.929  2687  2687 D SdpManagerImpl.receiver: ACTION_PACKAGE_REMOVED packageName:: com.zynergylabs.forager.app.test
+09-22 11:08:58.930  2687  2687 I Telecom : CarModeTracker: Package com.zynergylabs.forager.app.test is not tracked.: SSH.oR@EoA
+09-22 11:08:58.930  2687  3525 D LocationManagerService: package com.zynergylabs.forager.app.test reset
+09-22 11:08:58.930 10570 10570 I Finsky:background: [2] Package no longer installed: com.zynergylabs.forager.app.test
+09-22 11:08:58.931  2687  3233 D SEP_UNION_SemDeviceInfoManagerService: Package com.zynergylabs.forager.app.test is removed on User 0 
+09-22 11:08:58.931 10570 10570 I Finsky:background: [2] Package no longer installed: com.zynergylabs.forager.app.test
+09-22 11:08:58.932  2687  3502 W WifiService: Couldn't get PackageInfo for package:com.zynergylabs.forager.app.test
+09-22 11:08:58.932  2687  3502 D WifiService: Remove settings for package:com.zynergylabs.forager.app.test
+09-22 11:08:58.932  2687  3502 D WifiConfigManager: Remove all networks for app ApplicationInfo{8fe52a2 com.zynergylabs.forager.app.test}
+09-22 11:08:58.932  2687  3502 I PasspointManager: No app ops listener found for com.zynergylabs.forager.app.test
+09-22 11:08:58.932  2687  2687 D EnterpriseLicenseService: isPackageInstalled() - com.zynergylabs.forager.app.test not found in user 0
+09-22 11:08:58.932  2687  2687 D EnterpriseLicenseService: isPackageInstalled() - com.zynergylabs.forager.app.test not found in user 95
+09-22 11:08:58.934  3731  3731 D Navbar.Store: handleEvent(0) OnPackageRemoved(packageName=com.zynergylabs.forager.app.test) [Module] NavBarStoreImpl
+09-22 11:08:58.934  3731  3731 D KeyguardShortcutManager: onReceive : Intent.EXTRA_REPLACING false, com.zynergylabs.forager.app.test
+09-22 11:08:58.934  3731  3731 D SecSTQuickControlRequestReceiver: onReceiveForPackage action = android.intent.action.PACKAGE_REMOVED, pkgName = com.zynergylabs.forager.app.test
+09-22 11:08:58.934  3731  3731 I GoodLockLifecycle: onPackageRemoved: com.zynergylabs.forager.app.test
+09-22 11:08:58.934  3731  3731 D FaceWidgetMusicViewModel: onPackageRemoved() pkg = com.zynergylabs.forager.app.test, r = false
+09-22 11:08:58.934  3731  3731 I SharedAppWidgetFacade:  onPackageRemoved com.zynergylabs.forager.app.test
+09-22 11:08:58.934  3731  3731 I SharedWidgetListManager:  provider removed com.zynergylabs.forager.app.test , size = 60 ,  60
+09-22 11:08:58.935 10570 10664 I Finsky:background: [85] IQ:PSL: skipping onPackageRemoved(replacing=false) for untracked package=com.zynergylabs.forager.app.test
+09-22 11:08:58.943 15191 10348 I Finsky  : [321] Asset module storage cleared for package com.zynergylabs.forager.app.test.
+09-22 11:08:58.944  2687  3705 D SdpManagerImpl: handlePackageRemoved - PackageName : com.zynergylabs.forager.app.test, UserId : 0
+09-22 11:08:58.946  2687  2805 D LauncherAppsService: Calling onPackageRemoved: com.zynergylabs.forager.app, EXTRA_REPLACING: false
+09-22 11:08:58.946  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:58.946  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:58.947 10122 10202 D LauncherApps: onPackageRemoved 0,com.zynergylabs.forager.app
+09-22 11:08:58.947 10303 10529 E DMASA[C]: [LOGWING][k]Failed to get App version : com.zynergylabs.forager.app.test
+09-22 11:08:58.948  2687  3713 I Pageboost: remove app @ runtime : com.zynergylabs.forager.app.test
+09-22 11:08:58.952  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:58.952  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:58.952  3731 10475 D LauncherApps: onPackageRemoved 0,com.zynergylabs.forager.app
+09-22 11:08:58.952  4244  4244 I HoneySpace.PackageOperationTracker: onPackageRemoved - com.zynergylabs.forager.app UserHandle{0}
+09-22 11:08:58.953  4244  3285 I HoneySpace.IconCache: remove icon cache & DB : com.zynergylabs.forager.app UserHandle{0}
+09-22 11:08:58.953 15191 15191 I Finsky  : [2] AIM: AppInfoCacheUpdater -> invalidating apps: [com.zynergylabs.forager.app.test]
+09-22 11:08:58.953  4244  3285 I HoneySpace.IconCache: removeSpecificIconDb: com.zynergylabs.forager.app UserHandle{0}
+09-22 11:08:58.954 15191 15393 I Finsky  : [74] AIM: AppInfoManager-Perf > OnDeviceAppInfo > cacheHitCount=0, cacheMissCount=1. Missed  in cache (limit 10) : [com.zynergylabs.forager.app.test]
+09-22 11:08:58.956  4244  4244 I HoneySpace.HoneySpaceManagerContainer: refreshHoneyPlugin, packageName: com.zynergylabs.forager.app
+09-22 11:08:58.956  4244 25894 I HoneySpace.HoneySpacePackageSourceImpl: Package removed : com.zynergylabs.forager.app
+09-22 11:08:58.956  4244 25894 I SearchableManager: com.zynergylabs.forager.app is not legacy engine type
+09-22 11:08:58.956  4244 25894 I SearchableManager: invalidate: com.zynergylabs.forager.app
+09-22 11:08:58.956  4244  4244 I HoneySpace.PackageEventHandler: Package removed : [com.zynergylabs.forager.app/.MainActivity#UserHandle{0}]
+09-22 11:08:58.956  4244  4244 I HoneySpace.DataCache: deleteItem : id=11304, title=Forager, type=APP, containerType=ITEM_GROUP, containerId=20, x=-1, y=-1, rank=16, spanX=-1, spanY=-1, scale=1.0, component=com.zynergylabs.forager.app/.MainActivity, profileId=0, intent=null, restored=0, hidden=UNHIDDEN, appWidgetId=-1, options=0, refPackageName=null (appList) package removed
+09-22 11:08:58.956 15191 15191 I Finsky  : [2] Received an install/uninstall event for package com.zynergylabs.forager.app
+09-22 11:08:58.956  4244 10897 I HoneySpace.DataCache: delete item : (appList) package removed - APP / 11304 / 20 / Forager / com.zynergylabs.forager.app/.MainActivity / -1 / 0
+09-22 11:08:58.957  4244  4244 I HoneySpace.IconView: createScaleAndAlphaAnim start - view=com.honeyspace.ui.common.iconview.IconViewImpl{957bc4f VFED..CL. ........ 1000,476-1250,714 #7f0a02ed app:id/icon} - Forager, visibility:0, alpha:1.0, badge:0, icon:163x163, iconAlpha:255, iconState:NONE, iconSize:158, forceHideBadge:false, isTransparent:false, x=4, y=2
+09-22 11:08:58.960  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app
+09-22 11:08:58.960  2687  2805 D LauncherApps: onPackageRemoved 0,com.zynergylabs.forager.app
+09-22 11:08:58.962 10124 10124 W MediaProvider: WorkProfileOwnerApps cache miss for package com.zynergylabs.forager.app.test
+09-22 11:08:58.964  2687  2687 I ConditionProviders: Disallowing condition provider com.zynergylabs.forager.app.test (userSet: true)
+09-22 11:08:58.965  2687  2687 I AppSearchManagerService: Handling android.intent.action.PACKAGE_FULLY_REMOVED broadcast on package: com.zynergylabs.forager.app.test
+09-22 11:08:58.972  2687  2805 I SettingsProvider: onPackageRemoved (userId 0) PackageName = com.zynergylabs.forager.app.test
+09-22 11:08:58.973  2687  2805 I CredentialManager: updateProvidersWhenPackageRemoved)pkg=com.zynergylabs.forager.app.test (0)
+09-22 11:08:58.976  2687 12421 I Telecom : SamsungTelecomServiceImpl : clearAccounts - packageName : com.zynergylabs.forager.app.test / callingPid : 2687 / processName : sts / callingUser : UserHandle{0}
+09-22 11:08:58.976  7487  7487 D PersistedStoragePackageUninstalledReceiver: Received android.intent.action.PACKAGE_FULLY_REMOVED for com.zynergylabs.forager.app for u0
+09-22 11:08:58.978  2687  2805 I SpenThemeManager: package removed = com.zynergylabs.forager.app.test
+09-22 11:08:58.981 11139 11203 I ENTM:Systemprocess: handlePackageRemoved().pkgName: com.zynergylabs.forager.app.test
+09-22 11:08:58.981 11139 11203 I ENTM:Systemprocess: checkELMActivationForPackageRemoved().START - com.zynergylabs.forager.app.test
+09-22 11:08:58.981 11139 11203 I ENTM:Systemprocess: checkKLMActivationForPackageRemoved().START - com.zynergylabs.forager.app.test
+09-22 11:08:58.984 11139 11203 I ENTM:DataBaseUtils: isSameTrackerIdInDeviceDB().START: com.zynergylabs.forager.app.test
+09-22 11:08:58.987 11474 11474 I DWBPkgEventReceiver: Received : android.intent.action.PACKAGE_FULLY_REMOVED, Package : com.zynergylabs.forager.app
+09-22 11:08:59.006 30668 30668 E SPPClientServiceS: [PackageRemoveReceiver] [handlePkgRemovedEvent] PackageName : com.zynergylabs.forager.app
+09-22 11:08:59.007 11474 11474 I DWBPkgEventService: startId : 1, Received : com.samsung.android.forest.PACKAGE_REMOVED, Package : com.zynergylabs.forager.app
+09-22 11:08:59.007 10124 12426 D MediaProvider: Deleted 0 Android/media items belonging to com.zynergylabs.forager.app on /data/user/0/com.google.android.providers.media.module/databases/external.db
+09-22 11:08:59.010 11474 11474 I DWBPkgEventReceiver: Received : android.intent.action.PACKAGE_REMOVED, Package : com.zynergylabs.forager.app.test
+09-22 11:08:59.015 10124 12426 I FuseDaemon: Successfully deleted rows in leveldb for owner_id:  and ownerPackageIdentifier: com.zynergylabs.forager.app::0
+09-22 11:08:59.017 32026 32026 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color:export ANDROID_LOG_TAGS="''"; exec logcat '-d' '-s' 'CameraXTorchTest''
+09-22 11:08:59.024 11474 11474 I DWBPkgEventReceiver: Received : android.intent.action.PACKAGE_FULLY_REMOVED, Package : com.zynergylabs.forager.app.test
+09-22 11:08:59.030 10124 12426 D MediaGrants: Removed 0 media_grants for 0 user for [com.zynergylabs.forager.app]. Reason: Package orphaned
+09-22 11:08:59.032 30668 30668 E SPPClientServiceS: [PackageRemoveReceiver] [handlePkgRemovedEvent] PackageName : com.zynergylabs.forager.app.test
+09-22 11:08:59.032 11474 11474 I DWBPkgEventService: startId : 2, Received : com.samsung.android.forest.PACKAGE_REMOVED, Package : com.zynergylabs.forager.app.test
+09-22 11:08:59.035 11474 11474 I DWBPkgEventService: startId : 3, Received : com.samsung.android.forest.PACKAGE_REMOVED, Package : com.zynergylabs.forager.app.test
+09-22 11:08:59.061  5031 12206 I ProximityAuth: [RecentAppsMediator] Package removed: (user=UserHandle{0}) com.zynergylabs.forager.app.test
+09-22 11:08:59.081  5031 12202 W RWIPackageIntentOps: Registries cleared for package: com.zynergylabs.forager.app.test
+09-22 11:08:59.126  5031 12175 I Icing   : doRemovePackageData com.zynergylabs.forager.app.test
+09-22 11:08:59.134  5031 12202 W SQLiteLog: (28) double-quoted string literal: "com.zynergylabs.forager.app.test"
+09-22 11:08:59.147 10124 12441 D MediaProvider: Deleted 0 Android/media items belonging to com.zynergylabs.forager.app.test on /data/user/0/com.google.android.providers.media.module/databases/external.db
+09-22 11:08:59.154 10124 12441 I FuseDaemon: Successfully deleted rows in leveldb for owner_id:  and ownerPackageIdentifier: com.zynergylabs.forager.app.test::0
+09-22 11:08:59.160 10124 12441 D MediaGrants: Removed 0 media_grants for 0 user for [com.zynergylabs.forager.app.test]. Reason: Package orphaned
+09-22 11:08:59.213  2687  2805 I SGM:GameManager: PkgUpdateReceiver, onPackageRemoved(). pkgName=com.zynergylabs.forager.app.test, userId=0
+09-22 11:08:59.213  2687  2805 W SGM:Util: isPkgInstalled(), com.zynergylabs.forager.app.test does not exist. 
+09-22 11:08:59.213  2687  2805 D SGM:Util: isPkgInstalled(). pkgName=com.zynergylabs.forager.app.test, userId=0, installed=false
+09-22 11:08:59.213  2687  2805 D SGM:GosNotifyThread: sendPackageMessage(), changeType=1, pkgName=com.zynergylabs.forager.app.test, userHandleId=0
+09-22 11:08:59.252  2687  2805 D MetaDataCollector: onReceive: done pkgName=com.zynergylabs.forager.app.test
+09-22 11:08:59.253  2687  2805 D LauncherAppsService: Calling onPackageRemoved: com.zynergylabs.forager.app.test, EXTRA_REPLACING: false
+09-22 11:08:59.253  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:59.253  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:59.254  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:59.254  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:59.254 10122 10202 D LauncherApps: onPackageRemoved 0,com.zynergylabs.forager.app.test
+09-22 11:08:59.254  3731 10475 D LauncherApps: onPackageRemoved 0,com.zynergylabs.forager.app.test
+09-22 11:08:59.254  2687  2805 D LauncherAppsService: onPackageRemoved: triggering onPackageRemoved for user=UserHandle{0}, packageName=com.zynergylabs.forager.app.test
+09-22 11:08:59.254  2687  2805 D LauncherApps: onPackageRemoved 0,com.zynergylabs.forager.app.test
+09-22 11:08:59.254  4244  4244 I HoneySpace.PackageOperationTracker: onPackageRemoved - com.zynergylabs.forager.app.test UserHandle{0}
+09-22 11:08:59.255  4244 31175 I HoneySpace.IconCache: remove icon cache & DB : com.zynergylabs.forager.app.test UserHandle{0}
+09-22 11:08:59.255  4244 31175 I HoneySpace.IconCache: removeSpecificIconDb: com.zynergylabs.forager.app.test UserHandle{0}
+09-22 11:08:59.255  4244  4244 I HoneySpace.HoneySpaceManagerContainer: refreshHoneyPlugin, packageName: com.zynergylabs.forager.app.test
+09-22 11:08:59.256  4244  3288 I HoneySpace.HoneySpacePackageSourceImpl: Package removed : com.zynergylabs.forager.app.test
+09-22 11:08:59.256  4244  3288 I SearchableManager: com.zynergylabs.forager.app.test is not legacy engine type
+09-22 11:08:59.256  4244  3288 I SearchableManager: invalidate: com.zynergylabs.forager.app.test
+09-22 11:08:59.402  7487  7487 D PersistedStoragePackageUninstalledReceiver: Received android.intent.action.PACKAGE_FULLY_REMOVED for com.zynergylabs.forager.app.test for u0
+09-22 11:08:59.417  8330  8330 D GmsGcmUnregisterRcvr: Package removed or data cleared: com.zynergylabs.forager.app
+09-22 11:08:59.419  4244  4244 I HoneySpace.IconView: createScaleAndAlphaAnim end - view=com.honeyspace.ui.common.iconview.IconViewImpl{957bc4f VFED..CL. ........ 1000,476-1250,714 #7f0a02ed app:id/icon} - Forager, visibility:0, alpha:0.0, badge:0, icon:163x163, iconAlpha:255, iconState:NONE, iconSize:158, forceHideBadge:false, isTransparent:false, x=4, y=2
+09-22 11:08:59.419  4244  4244 I HoneySpace.ApplistCellLayout: removeView [4] (4,2) view=com.honeyspace.ui.common.iconview.IconViewImpl{957bc4f VFED..CL. ........ 1000,476-1250,714 #7f0a02ed app:id/icon} - Forager, visibility:0, alpha:0.0, badge:0, icon:163x163, iconAlpha:255, iconState:NONE, iconSize:158, forceHideBadge:false, isTransparent:false, x=4, y=2
+09-22 11:08:59.424 15191 15191 I Finsky  : [2] Received an install/uninstall event for package com.zynergylabs.forager.app.test
+09-22 11:08:59.450  8330  8330 D GmsGcmUnregisterRcvr: Package removed or data cleared: com.zynergylabs.forager.app.test
+09-22 11:08:59.462 15230 15230 I AccountReloadObserver: [C] received action: android.intent.action.PACKAGE_REMOVED, dat: package:com.zynergylabs.forager.app
+09-22 11:08:59.463 15230 15230 I AccountReloadObserver: [C] received action: android.intent.action.PACKAGE_REMOVED, dat: package:com.zynergylabs.forager.app.test
+09-22 11:08:59.463  8198  8198 W msgr.AppInfoCore: Install status cache EVICT for com.zynergylabs.forager.app (package changed)
+09-22 11:08:59.463  8198  8198 W msgr.AppInfoCore: Install status cache EVICT for com.zynergylabs.forager.app (package changed)
+09-22 11:08:59.479  4546  4633 I PackageInfoManager_FLP: action : ACTION_PACKAGE_REMOVED, packageName = com.zynergylabs.forager.app.test
+09-22 11:08:59.482 10676 10676 I FILP/PackageIntentReceiver: pkgName : com.zynergylabs.forager.app.test
+09-22 11:08:59.488 10169 10169 I [AirCmd]_ShortcutListController: onReceive : android.intent.action.PACKAGE_REMOVED pkg = com.zynergylabs.forager.app.test
+09-22 11:08:59.499 10676 12454 I FILP/FilterInstaller: removeFromFS : com.zynergylabs.forager.app.test, cursor size : 0
+09-22 11:08:59.508 10676 12454 I FILP/FilterInstaller: Delete all filter DB result : com.zynergylabs.forager.app.test, 0
+09-22 11:08:59.509 10676 12454 I FILP/FilterInstaller: Delete filter DB result : com.zynergylabs.forager.app.test, 0
+09-22 11:08:59.509 10676 12454 I FILP/FilterInstaller: Delete my filter DB result : com.zynergylabs.forager.app.test, 0
+09-22 11:08:59.510 10676 12454 I FILP/FilterInstaller: uninstallFilters mPackageName: com.zynergylabs.forager.app.test
+09-22 11:08:59.559 15191 15191 W Finsky  : [2] STU: Failed to get storage stats for package 'com.zynergylabs.forager.app.test' (1601: Error getting stats: android.content.pm.PackageManager.NameNotFoundException)
+09-22 11:08:59.559 15191 15191 W Finsky  : [2] STU: Failed to get storage stats for package 'com.zynergylabs.forager.app.test' (1601: Error getting stats: android.content.pm.PackageManager.NameNotFoundException)
+09-22 11:08:59.559 15191 15191 W Finsky  : [2] STU: Failed to get storage stats for package 'com.zynergylabs.forager.app' (1601: Error getting stats: android.content.pm.PackageManager.NameNotFoundException)
+09-22 11:08:59.559 15191 15191 W Finsky  : [2] STU: Failed to get storage stats for package 'com.zynergylabs.forager.app.test' (1601: Error getting stats: android.content.pm.PackageManager.NameNotFoundException)
+09-22 11:08:59.657  4244  2466 I SearchEngineAppSuggestion: package removed: com.zynergylabs.forager.app.test
+09-22 11:09:38.177 32026 32026 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:dumpsys package com.zynergylabs.forager.app'
+09-22 11:09:38.227 32026 32026 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:am start -n com.zynergylabs.forager.app/.MainActivity'
+09-22 11:09:38.286  2687 10394 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x4 cmp=com.zynergylabs.forager.app/.MainActivity} with LAUNCH_MULTIPLE from uid 2000 result code=-92
+09-22 11:09:44.265 12600 12615 I CameraManagerGlobal: Camera 0 facing CAMERA_FACING_BACK state now CAMERA_STATE_CLOSED for client com.zynergylabs.forager.app API Level 2 User Id 0Device Id 0

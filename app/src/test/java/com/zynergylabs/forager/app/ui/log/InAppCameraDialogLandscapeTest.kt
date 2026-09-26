@@ -20,11 +20,13 @@ import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.GatedFakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
+import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -81,6 +83,9 @@ class InAppCameraDialogLandscapeTest {
                     lockToPortrait = lockToPortrait,
                     onPhotoCaptured = {},
                     onDismiss = {},
+                    gridMode = GridMode.Off,
+                    onGridModeChanged = {},
+                    levelProvider = FakeLevelProvider(),
                     viewfinder = { modifier -> Box(modifier) },
                 )
             }

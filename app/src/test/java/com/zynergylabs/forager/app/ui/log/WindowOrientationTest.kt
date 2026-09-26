@@ -18,9 +18,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
+import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -73,6 +75,9 @@ class WindowOrientationTest {
                     lockToPortrait = lockToPortrait,
                     onPhotoCaptured = {},
                     onDismiss = {},
+                    gridMode = GridMode.Off,
+                    onGridModeChanged = {},
+                    levelProvider = FakeLevelProvider(),
                     viewfinder = { modifier -> Box(modifier) },
                 )
             }

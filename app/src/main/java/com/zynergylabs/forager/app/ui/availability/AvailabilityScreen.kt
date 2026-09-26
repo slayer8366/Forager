@@ -154,6 +154,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import com.zynergylabs.forager.app.domain.GridMode
 import kotlinx.coroutines.launch
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -512,6 +513,9 @@ fun AvailabilityScreen(
     onCloseCamera: () -> Unit = {},
     /** The camera dialog itself; defaults to CameraX. A slot for the same reason [mapSlot] is one: CameraX cannot run under Robolectric. */
     inAppCamera: InAppCameraSlot = CameraXInAppCamera,
+    /** The camera's persisted grid mode and the way to change it, from `CameraGridModeViewModel`. Defaulted like the camera's other inputs. */
+    cameraGridMode: GridMode = GridMode.Off,
+    onCameraGridModeChanged: (GridMode) -> Unit = {},
     /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
     onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
     onOpenLogEntry: (String) -> Unit = {},
@@ -2146,6 +2150,8 @@ fun AvailabilityScreen(
         target = inAppCameraTarget,
         cameraCaptureFiles = cameraCaptureFiles,
         lockToPortrait = uiState.lockCameraToPortrait,
+        gridMode = cameraGridMode,
+        onGridModeChanged = onCameraGridModeChanged,
         onLogEntryPhoto = onAddLogPhoto,
         onAlbumPhoto = onAddGalleryPhoto,
         onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,
