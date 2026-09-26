@@ -549,7 +549,8 @@ class InAppCameraDialogTest {
             composeRule.waitForIdle()
             assertEquals("touch ${i + 1} at $point reached the chip", i + 1, session.setFlashModeCalls)
         }
-        assertEquals("five taps from Off end on Torch", FlashMode.Torch, session.flashMode)
+        // Changed 2026-09-26 (decision B8): the cycle is Off, Auto, On, Torch, so five taps from Off end on Auto.
+        assertEquals("five taps from Off end on Auto", FlashMode.Auto, session.flashMode)
     }
 
     /**
