@@ -750,3 +750,28 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** None from the scope boundary. Beyond the listed checks, added read-only: the kit clone's v0.2 tag object, read to confirm the note's tag and commit IDs. Coder choices not given by the dispatch: four commits, one per numbered scope item; the note's wording, headings and structure, and naming the four intent-plus-`abandoned` pairs (2026-09-26-02 to -09) by ID; the README row's column form, following the header and the four rows above it (three columns, the file in the last); the CLAUDE.md sentence's wording, and placing it on new lines continuing the Roles and gates paragraph with no blank line; the PR body line's wording and position (a paragraph before the footer); fetching the body from the JSON through python3 so no trailing newline was added; waiting for CI on f54f831 before writing this terminal; commit messages. This terminal is written before CI on its own commit has run; that result is reported in the hand-back.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-19
+**Timestamp:** 2026-09-26T04:40:23Z
+**PR:** 118
+**Head:** kit-v0.2-install
+**Base:** main
+**Merge-commit:** d3e73825542cdded9668cda3dfe4ab994ed20161
+**Pre-merge:** af12a69603ab38295099ef27f0b3114c2a9ccd74
+**Backup:** none
+**Merged-by:** owner
+**Carries:** 2026-09-26-01, 2026-09-26-02, 2026-09-26-03, 2026-09-26-04, 2026-09-26-05, 2026-09-26-06, 2026-09-26-07, 2026-09-26-08, 2026-09-26-09, 2026-09-26-10, 2026-09-26-11, 2026-09-26-12, 2026-09-26-13, 2026-09-26-14, 2026-09-26-15, 2026-09-26-16, 2026-09-26-17, 2026-09-26-18
+**Notes:** The record's first `merge` entry, under the owner's cutoff in docs/audits/2026-09-26-recordkeeping-protocol-shift.md: d3e7382 is not an ancestor of af12a69 (git merge-base --is-ancestor exits 1), and it is the only merge on main's first-parent chain past af12a69 (git log --first-parent --merges af12a69..origin/main). Merge-commit and Pre-merge from git log --format=%H%x20%P -1 d3e7382 (parents af12a69603ab38295099ef27f0b3114c2a9ccd74 and 1e9d9413bc465a3a054382555963f802b5c2a7a0). PR, Head, Base, Timestamp (mergedAt) from gh pr view 118 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 118, kit-v0.2-install, main, mergeCommit d3e73825542cdded9668cda3dfe4ab994ed20161, 2026-09-26T04:40:23Z; state MERGED, mergedBy slayer8366. Backup none and Merged-by owner: ~/Zynergy/forager-repo-backups holds no INDEX.md (ls: No such file or directory), so no line names #118. Carries: the IDs git diff af12a69 d3e7382 -- RECORD.md adds, eighteen, 2026-09-26-01 to 2026-09-26-18.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-20
+**Dispatch-file:** preserved/2026-09-26-11.md
+**Type:** build
+**Outcome:** stopped
+**Report:** none in the repository; its coder's hand-back went to the planner. The reason, as preserved/2026-09-26-12.md relays it: the dispatch put a paraphrase of forager-forecast's D57 in quotation marks. Read here: its line 61 quotes "Forager-app is a placeholder for research, and the existing Forager app is the end result", which does not appear in D57 at docs/planning/DECISIONS.md:11 on forecast main 876156b.
+**Notes:** The planner's build dispatch correcting three memory files and the memory index and recording the owner's decision B, preserved 2026-09-26T04:47:26Z at a3d7417. Its coder stopped before writing an intent (coder.md item 8). Consistent with that, read here: the worktree .claude/worktrees/record-memory-and-protection was on local branch record-memory-and-protection at d3e7382, clean, with no commits of its own, and the four memory files' sha256 equal those preserved/2026-09-26-12.md cites as that coder read them. Re-sent with D57 quoted exactly as preserved/2026-09-26-12.md, which carries no Repeat-of line and is recorded by its own intent. Store copy: byte-for-byte from the untracked prompts/preserved/2026-09-26-11.md in the checkout .claude/worktrees/bridge-cse_013QR4ELV3wyYrUUyVCEmDwt, kept under the hook's name, 7401 bytes, sha256 4129e3f337831d4b3fd2c554ef063a432a93c32e6234a10042a8c09b769a89b5, cmp-identical; that original is claimed here and must not be swept again.
+
+---
