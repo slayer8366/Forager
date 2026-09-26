@@ -136,8 +136,6 @@ internal fun InAppCameraDialog(
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    /** The strip's slot (CameraBands.kt); the default is the gated placeholder. A test passes null for the empty strip. */
-    stripContent: (@Composable (edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) -> Unit)? = defaultStripContent(),
     /** Hides the status bar on the Activity's window and puts it back on leaving; a test injects a fake to see which window was asked, and that it was restored. */
     statusBarHider: StatusBarHider = SystemStatusBarHider,
     viewfinder: @Composable (Modifier) -> Unit,
@@ -276,15 +274,15 @@ internal fun InAppCameraDialog(
         // Both bands take the displayRotation read above, the value the arrangement turns on,
         // rather than letting each glyph read its own. That was load-bearing while this was a
         // Dialog, where LocalConfiguration does not invalidate inside the dialog's content and a
-        // glyph's own read went stale the moment the window turned (the placeholder label after a
-        // setting-on landscape open, 2026-09-18). In the Activity's window that local does
+        // glyph's own read went stale the moment the window turned (the strip's since-retired
+        // placeholder label after a setting-on landscape open, 2026-09-18). In the Activity's window that local does
         // invalidate, so the defect cannot recur here — the single source is kept because one
         // source and one invariant is the right shape, not because it is still the only safe one.
         CameraStrip(
             edge = punchHoleEdge(arrangement),
             deviceRotation = session.deviceRotation,
             displayRotation = displayRotation,
-            content = stripContent,
+            chips = stripChips(session),
         )
         CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
             ShutterCluster(
@@ -439,3 +437,13 @@ internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
 internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"
 internal const val SHUTTER_DESCRIPTION = "Take photo"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
+
+/**
+ * The strip's chips for this session, in order along the edge. The flash chip only when the bound
+ * camera has a flash unit: it would hide itself anyway, but a chip that composes nothing would
+ * still leave a band behind it, and a camera with nothing to put in the strip should have no strip
+ * (rule 9). Read in composition, so the chip arrives when the bind reports the unit.
+ */
+private fun stripChips(session: CameraCaptureSession): List<StripChip> = buildList {
+    if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
+}

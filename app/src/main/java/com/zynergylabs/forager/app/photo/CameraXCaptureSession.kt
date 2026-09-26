@@ -5,10 +5,12 @@ import android.util.Log
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
+import androidx.camera.core.TorchState
 import androidx.camera.core.UseCase
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -140,11 +142,11 @@ import kotlinx.coroutines.withContext
  *
  * ## The bound [Camera] is kept
  *
- * `bindToLifecycle` returns the [Camera], and until 2026-09-14 this class discarded it. Nothing
- * reads [camera] yet. It is kept because it is the one object every next feature needs —
- * `cameraControl` for torch and tap-to-focus, `cameraInfo` for `hasFlashUnit` and metering
- * support — and discarding it was the single line that would have forced the bind lambda to be
- * restructured later. Groundwork, recorded as such; the owner's plan of 2026-09-14 names it.
+ * `bindToLifecycle` returns the [Camera], and until 2026-09-14 this class discarded it. It is kept
+ * because it is the one object every next feature needs — `cameraControl` for torch and
+ * tap-to-focus, `cameraInfo` for `hasFlashUnit` and metering support. Since 2026-09-21 the bind
+ * hands its `hasFlashUnit()` and `enableTorch` to [installFlash]; tap-to-focus and metering are
+ * still to come.
  *
  * ## No location is ever attached
  *
@@ -167,7 +169,7 @@ internal class CameraXCaptureSession(
     private var previewView: PreviewView? = null
     private var boundProvider: ProcessCameraProvider? = null
 
-    /** The bound camera. Unread today; see the class doc for why it is kept anyway. */
+    /** The bound camera. Its torch and flash unit are read once, at bind, by [installFlash]; see the class doc. */
     private var camera: Camera? = null
 
     private var orientationListener: OrientationEventListener? = null
@@ -277,6 +279,7 @@ internal class CameraXCaptureSession(
                         preview = newPreview
                         installImageCapture(capture)
                         camera = boundCamera
+                        installFlash(boundCamera.cameraInfo.hasFlashUnit()) { on -> enableTorch(boundCamera, on) }
                         boundProvider = provider
                         // The screen composes the viewfinder only once Ready, so normally there is
                         // no view yet and the attachment happens in Viewfinder. If one exists, attach now.
@@ -294,6 +297,14 @@ internal class CameraXCaptureSession(
     }
 
     override fun close() {
+        // Torch off before anything is unbound, and the flash state reset whether or not open
+        // completed: torch does not persist past the camera closing (owner, 2026-09-21) and
+        // nothing stores it. Unbinding would douse the LED anyway; asking first means the chip's
+        // state and the camera's agree at every step rather than only at the end.
+        if (currentFlashMode == FlashMode.Torch) torch?.invoke(false)
+        torch = null
+        boundHasFlashUnit = false
+        currentFlashMode = FlashMode.Off
         if (!isOpen) return // never opened, never completed, or already closed: nothing to release
         isOpen = false
         openEpoch++
@@ -424,6 +435,60 @@ internal class CameraXCaptureSession(
             }
         }
         return saved
+    }
+
+    private var boundHasFlashUnit: Boolean by mutableStateOf(false)
+    override val hasFlashUnit: Boolean get() = boundHasFlashUnit
+
+    private var currentFlashMode: FlashMode by mutableStateOf(FlashMode.Off)
+    override val flashMode: FlashMode get() = currentFlashMode
+
+    /** Lights or douses the bound camera's torch; null while no camera is bound. See [installFlash]. */
+    private var torch: ((on: Boolean) -> Unit)? = null
+
+    override fun setFlashMode(mode: FlashMode) {
+        val switch = torch
+        if (!boundHasFlashUnit || switch == null) {
+            Log.w(TAG, "setFlashMode($mode) ignored: no flash unit on a bound camera.")
+            return
+        }
+        switch(mode == FlashMode.Torch)
+        currentFlashMode = mode
+    }
+
+    /**
+     * The one place the bound camera's flash is installed: [open]'s bind calls it with
+     * `cameraInfo.hasFlashUnit()` and a torch that calls `cameraControl.enableTorch`, and
+     * `CameraXCaptureSessionFlashTest` calls it with a torch that records what it was asked. A
+     * function rather than two assignments for the same reason as [installImageCapture].
+     */
+    internal fun installFlash(hasFlashUnit: Boolean, torch: (on: Boolean) -> Unit) {
+        boundHasFlashUnit = hasFlashUnit
+        this.torch = torch
+    }
+
+    /**
+     * `enableTorch` on the bound camera, with its result read rather than dropped. A failure is
+     * logged and the mode resynced from the camera's own torch state, so the chip never shows a
+     * torch the camera is not running. A cancellation is not a failure: CameraX cancels a pending
+     * `enableTorch` when a newer one arrives, and the newer one decides.
+     */
+    private fun enableTorch(camera: Camera, on: Boolean) {
+        val future = camera.cameraControl.enableTorch(on)
+        future.addListener(
+            {
+                runCatching { future.get() }.onFailure { error ->
+                    if (error.cause is CameraControl.OperationCanceledException) {
+                        Log.i(TAG, "enableTorch($on) superseded by a later request.")
+                        return@onFailure
+                    }
+                    val lit = camera.cameraInfo.torchState.value == TorchState.ON
+                    Log.w(TAG, "enableTorch($on) failed; the torch is ${if (lit) "on" else "off"}, and the chip now says so.", error)
+                    currentFlashMode = if (lit) FlashMode.Torch else FlashMode.Off
+                }
+            },
+            ContextCompat.getMainExecutor(appContext),
+        )
     }
 
     /**

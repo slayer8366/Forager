@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.log
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -15,13 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,40 +100,48 @@ internal fun BoxScope.CameraBand(
 }
 
 /**
- * The strip: the band on the punch-hole edge and what lives in it. Geometry and structure only —
- * the slot is reserved for the strip controls; none built yet, and no working control lives here.
+ * The strip: the band on the punch-hole edge and the chips that live in it, laid along it. The
+ * flash chip ([FlashChip]) is the first (2026-09-21).
  *
  * **There is no Done control** (owner, 2026-09-18). The overlay build first moved Done in here
  * from the top-left corner, as an outlined ✕; the owner then removed it, because the navigation
  * bar's Back was already wired to the same close — Done's `onClick` and the `Dialog`'s
  * `onDismissRequest` were the one `onDismiss` lambda, reaching `InAppCameraViewModel.close()` —
  * so Done was a second control for one function. Back carries everything Done did: the camera
- * closes, the photos already handed over stand, and the status bar returns with the dialog's
- * window. `InAppCameraDialogTest.kt:269` proves it by pressing Back through the Activity's own
- * `OnBackPressedDispatcher` (`CameraBack.kt:19`), the one the camera's `BackHandler` registers with.
+ * closes, the photos already handed over stand, and the status bar comes back, restored on the
+ * Activity's window when the camera leaves composition (`HideStatusBarWhileCameraIsOpen`,
+ * `CameraWindowChrome.kt`). `InAppCameraDialogTest.kt:269` proves it by pressing Back through the
+ * Activity's own `OnBackPressedDispatcher` (`CameraBack.kt:19`), the one the camera's
+ * `BackHandler` registers with.
  *
- * With nothing resident, **the empty strip is a production state**, not a test-only one: gate
- * the placeholder off and the strip composes nothing and takes no space (rule 9).
+ * With no chips, **the empty strip is a production state**, not a test-only one: on a camera with
+ * no flash unit there is nothing to put here, and the strip composes nothing and takes no space
+ * (rule 9).
  *
- * Along a horizontal edge the strip is a row; along a vertical one, a column. Every glyph turns in
- * place by [rotateWithDevice], the same rule as the shutter band's.
+ * Along a horizontal edge the strip is a row; along a vertical one, a column, chips starting at
+ * the row's or column's start. Every chip turns in place by [rotateWithDevice], the same rule as
+ * the shutter band's; each chip applies it itself, given both rotation terms.
  *
- * **The placeholder** shows the strip at the size a real control row occupies, outlined and with
- * no background, so the owner can judge size, position and legibility before a real control
- * exists. It is **gated by one constant**, [SHOW_STRIP_PLACEHOLDER]: flipping it to `false` is the
- * one edit that removes it from the build. Whether it ships is the owner's decision after seeing
- * it; the default here is on so that it can be seen.
+ * **The placeholder is retired** (2026-09-21). It showed the strip at a control row's size, gated
+ * by `SHOW_STRIP_PLACEHOLDER`, so the owner could judge the strip before a real control existed.
+ * The flash chip is that control, so the placeholder and its gate are gone.
  */
 @Composable
 internal fun BoxScope.CameraStrip(
     edge: ScreenEdge,
     deviceRotation: Int?,
-    /** The dialog-level window rotation, passed rather than read: `currentDisplayRotation()` goes stale inside a Dialog. */
+    /**
+     * The window's rotation, read once by the camera screen and passed in, so every glyph and the
+     * arrangement use the same reading. It was first passed because `currentDisplayRotation()` went
+     * stale inside a Dialog (2026-09-18). The camera has not been a Dialog since 2026-09-19, so that
+     * reason is history; `InAppCameraDialog.kt` records that the local now invalidates and keeps
+     * the single source for its own sake. This session did not measure it.
+     */
     displayRotation: Int,
-    /** The strip's slot, reserved for the strip controls (none built yet), given the edge it runs along and both rotation terms for [rotateWithDevice]; null composes nothing there. */
-    content: (@Composable (edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) -> Unit)? = defaultStripContent(),
+    /** The chips, in order along the edge; an empty list composes nothing. */
+    chips: List<StripChip>,
 ) {
-    if (content == null) return
+    if (chips.isEmpty()) return
     CameraBand(edge = edge, modifier = Modifier.testTag(CAMERA_STRIP_TAG)) {
         if (edge.isHorizontal) {
             Row(
@@ -145,7 +149,7 @@ internal fun BoxScope.CameraStrip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Box(Modifier.weight(1f).fillMaxHeight()) { content(edge, deviceRotation, displayRotation) }
+                chips.forEach { chip -> chip(deviceRotation, displayRotation) }
             }
         } else {
             Column(
@@ -153,45 +157,17 @@ internal fun BoxScope.CameraStrip(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Box(Modifier.weight(1f).fillMaxWidth()) { content(edge, deviceRotation, displayRotation) }
+                chips.forEach { chip -> chip(deviceRotation, displayRotation) }
             }
         }
     }
 }
 
-/** What the strip holds by default: the placeholder while [SHOW_STRIP_PLACEHOLDER] is on, nothing otherwise. */
-internal fun defaultStripContent(): (@Composable (ScreenEdge, Int?, Int) -> Unit)? =
-    if (SHOW_STRIP_PLACEHOLDER) ({ edge, rotation, display -> StripPlaceholder(edge, rotation, display) }) else null
-
-/** An outlined, transparent slot the size of a control row, so the strip can be judged before it has controls. */
-@Composable
-internal fun StripPlaceholder(edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) {
-    val shape = RoundedCornerShape(Spacing.sm)
-    Box(
-        modifier = Modifier
-            .padding(Spacing.xs)
-            .then(if (edge.isHorizontal) Modifier.fillMaxWidth().height(STRIP_ROW_HEIGHT - Spacing.sm) else Modifier.fillMaxHeight().width(STRIP_ROW_HEIGHT - Spacing.sm))
-            .border(OVERLAY_OUTLINE_WIDTH, OverlayOutline, shape)
-            .padding(OVERLAY_OUTLINE_WIDTH / 2)
-            .border(OVERLAY_OUTLINE_WIDTH / 2, OverlayFill, shape)
-            .testTag(CAMERA_STRIP_PLACEHOLDER_TAG),
-        contentAlignment = Alignment.Center,
-    ) {
-        OverlayText(
-            STRIP_PLACEHOLDER_LABEL,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation),
-        )
-    }
-}
-
-/** One edit gates the placeholder: `false` here and it is not composed. Owner's decision after seeing it. */
-internal const val SHOW_STRIP_PLACEHOLDER = true
+/** One control in the strip, given both rotation terms for [rotateWithDevice]. */
+internal typealias StripChip = @Composable (deviceRotation: Int?, displayRotation: Int) -> Unit
 
 /** A control row: Material's minimum touch target. */
 internal val STRIP_ROW_HEIGHT: Dp = 48.dp
 
 internal const val CAMERA_STRIP_TAG = "in-app-camera-strip"
-internal const val CAMERA_STRIP_PLACEHOLDER_TAG = "in-app-camera-strip-placeholder"
-/** Short enough to sit upright inside a one-row-deep strip along a vertical edge without wrapping — "Controls" broke into "Contr/ols" there on the emulator. */
-internal const val STRIP_PLACEHOLDER_LABEL = "Strip"
+

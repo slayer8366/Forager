@@ -54,6 +54,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import com.zynergylabs.forager.app.photo.FlashMode
 
 /**
  * [InAppCameraDialog] driven through its real controls, against a fake [CameraCaptureSession].
@@ -139,7 +144,6 @@ class InAppCameraDialogTest {
     private fun Subject(
         session: CameraCaptureSession,
         viewfinder: @Composable (Modifier) -> Unit = { modifier -> Box(modifier.fillMaxSize()) },
-        stripContent: (@Composable (ScreenEdge, Int?, Int) -> Unit)? = defaultStripContent(),
     ) {
         InAppCameraDialog(
             session = session,
@@ -147,7 +151,6 @@ class InAppCameraDialogTest {
             lockToPortrait = false,
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
-            stripContent = stripContent,
             statusBarHider = recordingStatusBarHider,
             viewfinder = viewfinder,
         )
@@ -430,7 +433,8 @@ class InAppCameraDialogTest {
         assertEquals("one control row deep", STRIP_ROW_HEIGHT.value, strip.height.value, 0.51f)
         assertEquals("the shutter on the port edge, inside the frame's padding", (frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
         assertEquals("centred along it", frame.centreX(), shutter.centreX(), 0.51f)
-        composeRule.onNodeWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertExists()
+        val chip = bounds(CAMERA_FLASH_CHIP_TAG)
+        assertTrue("the flash chip is in the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
     }
 
     /**
@@ -485,19 +489,48 @@ class InAppCameraDialogTest {
         assertEquals("put back, so only the camera rotates this way", before, composeRule.activity.window.attributes.rotationAnimation)
     }
 
-    /** Gated off, the placeholder is not composed, the strip is gone, and nothing else moves. */
+    /** A camera with no flash unit: no chip, so no strip at all, and nothing else moves. */
     @Test
-    fun `with no strip content the placeholder is absent and the shutter is where it was`() {
-        composeRule.setContent { Subject(FakeCameraCaptureSession(), stripContent = null) }
+    fun `with no flash unit there is no chip, no strip, and the shutter is where it was`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession(flashUnitOnOpen = false)) }
         composeRule.waitForIdle()
 
-        composeRule.onAllNodesWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertCountEquals(0)
-        // Rule 9, in production now that nothing else lives in the strip: no band at all.
+        composeRule.onAllNodesWithTag(CAMERA_FLASH_CHIP_TAG).assertCountEquals(0)
+        // Rule 9, in production: with no chip there is no band at all.
         composeRule.onAllNodesWithTag(CAMERA_STRIP_TAG).assertCountEquals(0)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         assertEquals((frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
         assertEquals(frame.centreX(), shutter.centreX(), 0.51f)
+    }
+
+    /**
+     * **A finger on the flash chip reaches it**, with the viewfinder underneath: real touches at
+     * screen coordinates, not a semantic click, which would bypass hit-testing (CLAUDE.md). A
+     * finger is not a point, so five touches across the chip's own bounds, centre and four points
+     * inset from its corners, each of which must reach the session.
+     */
+    @Test
+    fun `a real touch anywhere on the flash chip reaches it, over the viewfinder`() {
+        val session = FakeCameraCaptureSession()
+        composeRule.setContent { Subject(session) }
+        composeRule.waitForIdle()
+        val chip = composeRule.onNodeWithTag(CAMERA_FLASH_CHIP_TAG).fetchSemanticsNode().boundsInRoot
+        val inset = 0.2f
+        val points = listOf(
+            chip.center,
+            Offset(chip.left + chip.width * inset, chip.top + chip.height * inset),
+            Offset(chip.right - chip.width * inset, chip.top + chip.height * inset),
+            Offset(chip.left + chip.width * inset, chip.bottom - chip.height * inset),
+            Offset(chip.right - chip.width * inset, chip.bottom - chip.height * inset),
+        )
+
+        points.forEachIndexed { i, point ->
+            composeRule.onRoot().performTouchInput { click(point) }
+            composeRule.waitForIdle()
+            assertEquals("touch ${i + 1} at $point reached the chip", i + 1, session.setFlashModeCalls)
+        }
+        assertEquals("five taps from Off end on Torch", FlashMode.Torch, session.flashMode)
     }
 
     /** The outline is a second, stroked pass of the same text — it must not become a second text node. */

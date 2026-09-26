@@ -25,16 +25,37 @@ import java.io.File
  *   "a failed capture leaves no file behind" pass whether or not the screen cleaned up. A revert
  *   check found exactly that on the original.
  * - [captureCalls] counts, so "four photos" is distinguishable from "a count that went up".
+ * - **Flash**, as the interface states it: [hasFlashUnit] is false until [open] reaches `Ready`,
+ *   then [flashUnitOnOpen]; [setFlashMode] is counted in [setFlashModeCalls] and changes nothing
+ *   without a unit; [close] puts the mode back to `Off` and drops the unit. A fake more permissive
+ *   than the contract would let the screen pass on behaviour the real session refuses.
  */
 internal class FakeCameraCaptureSession(
     state: CameraSessionState = CameraSessionState.Ready,
     private val readyOnOpen: Boolean = true,
+    /** Whether the camera [open] binds has a flash unit. On by default, so the flash chip is there as on most phones. */
+    private val flashUnitOnOpen: Boolean = true,
 ) : CameraCaptureSession {
 
     override var state: CameraSessionState by mutableStateOf(state)
 
     /** Settable so a test can turn the device and watch the screen's controls follow. */
     override var deviceRotation: Int? by mutableStateOf(null)
+
+    /** Settable so a test can take the unit away mid-session; [open] and [close] set it as the real session does. */
+    override var hasFlashUnit: Boolean by mutableStateOf(false)
+
+    var setFlashModeCalls = 0
+        private set
+
+    private var currentFlashMode: FlashMode by mutableStateOf(FlashMode.Off)
+    override val flashMode: FlashMode get() = currentFlashMode
+
+    override fun setFlashMode(mode: FlashMode) {
+        setFlashModeCalls += 1
+        if (!hasFlashUnit) return // as the interface says: no unit, no change
+        currentFlashMode = mode
+    }
 
     var openCalls = 0
         private set
@@ -52,10 +73,13 @@ internal class FakeCameraCaptureSession(
     override fun open(lifecycleOwner: LifecycleOwner) {
         openCalls += 1
         if (readyOnOpen && state == CameraSessionState.Opening) state = CameraSessionState.Ready
+        if (state == CameraSessionState.Ready) hasFlashUnit = flashUnitOnOpen
     }
 
     override fun close() {
         closeCalls += 1
+        currentFlashMode = FlashMode.Off
+        hasFlashUnit = false
     }
 
     override suspend fun capture(destination: File): Result<Unit> {
