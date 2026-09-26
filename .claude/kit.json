@@ -15,5 +15,5 @@
   "approval_exempt_types": ["pulse"],
   "agent_roles": {"coder": "coder", "pulse": "pulse"},
   "guard_env_prefix": "FORAGER_GUARD_",
-  "backup_dir": "~/forager-backups"
+  "backup_dir": "~/Zynergy/forager-repo-backups"
 }
