@@ -1366,3 +1366,18 @@ Quote this message verbatim in the record.
 **Deviations:** (1) Order: the dispatch's step 8 writes the backup after the fetch that precedes the merge, while step 7 has this terminal written first. The backup was written after a fetch and before this terminal so that it could be cited, as in 2026-09-26-74 and -82. The merge still waits for a fresh git fetch origin confirming origin/pre-main is 429edb9. A coder's choice. (2) The install was retried once with an absolute path after device_guard's refusal of the relative path; the same command, not a different route. (3) Coder's choices, listed in the hand-back under Decisions I made: building and running item 5 from a detached checkout of 429edb9; committing only the screenshots each reading cites, plus the dumps, and keeping the launch and map screenshots out (they showed the phone's grid reference); using a slow drag to scroll the landscape Settings panel; not turning "Lock camera to portrait" on to reach portrait for item 1; using the Photo Gallery entry in the wide layout to reopen the camera; reading the DataStore file with run-as as added evidence for item 7. (4) The item 7 sequence as dispatched ends on the default value, so the after-restart reading cannot distinguish persistence from the default; recorded in the run record, not worked around.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-87
+**Timestamp:** 2026-09-26T10:38:47Z
+**PR:** 124
+**Head:** strip-device-check
+**Base:** pre-main
+**Merge-commit:** 188fa3982375db1124e1e11a0035cbd0dbb92646
+**Pre-merge:** 429edb96a11b8cd2ff29e9682d25b0ca79b004a7
+**Backup:** 2026-09-26-08
+**Merged-by:** coder preserved/2026-09-26-30.md
+**Carries:** 2026-09-26-83, 2026-09-26-84, 2026-09-26-85, 2026-09-26-86
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-31.md, on branch landscape-capture cut from origin/pre-main 188fa3982375db1124e1e11a0035cbd0dbb92646. The one merge on pre-main's first-parent chain newer than 429edb9, the newest merge a `merge` entry records (2026-09-26-84, Base pre-main): git log --first-parent --merges --format='%H %P' 429edb9..origin/pre-main lists only 188fa39, parents 429edb96a11b8cd2ff29e9682d25b0ca79b004a7 and 917332e409c5affccca49e18f29a5082f3ebf2f5. PR, Head, Base, Timestamp (mergedAt) from gh pr view 124 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 124, strip-device-check, pre-main, mergeCommit 188fa3982375db1124e1e11a0035cbd0dbb92646, 2026-09-26T10:38:47Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-08: PR #124 (strip-device-check into pre-main), pre-merge 429edb96a11b8cd2ff29e9682d25b0ca79b004a7, bundle of origin/pre-main, written by coder under intent 2026-09-26-85 (prompts/preserved/2026-09-26-30.md)". Carries: the IDs git diff 429edb9 188fa39 -- RECORD.md adds (it removes no line), 2026-09-26-83 to -86, as the dispatch expected. Main has no merge newer than 76905d4 (git log --first-parent --merges 76905d4..origin/main is empty; origin/main 76905d4993813caaead1caad5db6fd18da5c97e8). No store file on origin/pre-main is unclaimed, so this sweep writes no dispatch-note; preserved/2026-09-26-32.md appeared in the planner worktree after this dispatch's copy and is left for the next sweep (coder.md item 9).
+
+---
