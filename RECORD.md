@@ -864,3 +864,13 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** (1) The coder's mechanism prediction was written after the fast-forward and the sweep, not before the fast-forward as the dispatch's Prediction section asked, because the dispatch's own step order put the intent after the sweep. Its parts (a) and (b) are therefore observations, as the intent says. (2) The PR was opened before this terminal, not after it as scope step 5 lists them, so that this terminal could record the PR and its CI. (3) The pulse copy was first copied into the store with cp. The held file was then moved over that identical copy with mv -f, so the held store ended empty. No other file was removed.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-28
+**Dispatch-file:** preserved/2026-09-26-16.md
+**Type:** build
+**Outcome:** stopped
+**Report:** none in the repository; its coder's hand-back went to the planner. The reason, as the replacing dispatch (preserved/2026-09-26-17.md) states it: "stopped before any work: its finish line needed `update_worktree.py` runs that could not succeed."
+**Notes:** The planner's build dispatch to make `build` and `device` approval-exempt in .claude/kit.json through a new branch kit-approval-exempt-build-device, a merged PR and update_worktree.py runs on the main checkout and this worktree. Preserved 2026-09-26T05:37:59Z by .claude/hooks/dispatch_guard.py, header HEAD b070a2e378526e8e993734f859c687ee71746367, Target subagent coder; 7426 bytes, sha256 f42c5ff0996e995a959c14b564014a038099aaf1f10cb3c67bb9ccb7c0590528. Kept under the hook's own name: the store on this branch and on origin/main 76905d4 holds nothing above 2026-09-26-15, and the name's date equals its Preserved date. Its coder stopped before writing an intent or continuation (coder.md item 8). Consistent with that, read here at b070a2e: no branch kit-approval-exempt-build-device exists and no RECORD.md entry names this file. Its merge authorisation is withdrawn by the planner, as preserved/2026-09-26-17.md records under Closed decisions. Written in the sweep of the dispatch preserved as preserved/2026-09-26-17.md. No `merge` entry is due in this sweep: git log --first-parent --merges origin/main shows 76905d4 as the newest merge, already recorded by 2026-09-26-24.
+
+---
