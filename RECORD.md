@@ -1314,3 +1314,28 @@ Quote this message verbatim in the record.
 **Deviations:** (1) Order: the dispatch's step 8 writes the backup after the fetch before the merge, while its step 7 has this terminal written first; the backup was written after a fetch and before this terminal so that it could be cited, as in 2026-09-26-74, and the merge still waits for a fresh git fetch origin confirming origin/pre-main is 2753a83. A coder's choice. (2) Test code corrected after its tests-first commit, each correction a harness fact found by a failure that did not match its stated reason or by the first run against the implementation, and each named in the commit making it (2c56736, 0249643): the Back test's frame, CaptureCountdownTest's childScope, and InAppCameraTimerTest's exact clock and frames. No assertion's expected value was changed by these. (3) Two probe tests were run and deleted without committing, to measure the compose test clock (CLAUDE.md, data over a further hypothesis); their outputs are quoted in the commit message of 0249643. (4) The pulse's MainActivity.kt:148 is :147 at 2753a83; B8 cites :147 and says so. (5) CI observed on a5fbb00 before this terminal so that it could be cited; the merge waits for CI green on the commit carrying this terminal. (6) Coder's choices within the build, listed in the hand-back under Decisions I made: the timer setting in rememberSaveable; Back cancelling the countdown explicitly before onDismiss; CaptureCountdown.start throwing on a second start; the resync extracted to onTorchRequestFailed with the ImageCapture following the resynced mode; displayLarge for the numerals; parameter names mirroring the handler; `true` as the location value in the existing test callers; the test classes' names and split.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-83
+**Dispatch-file:** preserved/2026-09-26-29.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only pulse on the S22 Ultra test phone (device, installed builds, signing, screen and cut-out, camera and torch state, app data, the save-location setting, test tooling), preserved 2026-09-26T09:26:04Z by .claude/hooks/dispatch_guard.py, header HEAD 2753a8359067dd1acf944d45f42bbed052e0e0f0, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-29.md, 4119 bytes, sha256 b93ee9946febb2a53dc82d66e0adbfc1ddf86d9978de4cffb7c0efa8bac6f84d, equal before and after the move. Kept under the hook's own name, free on origin/pre-main 429edb9. Outcome and Report as preserved/2026-09-26-30.md's scope step 2 specifies them. Written in the sweep of the dispatch preserved as preserved/2026-09-26-30.md, on branch strip-device-check cut from origin/pre-main 429edb96a11b8cd2ff29e9682d25b0ca79b004a7.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-84
+**Timestamp:** 2026-09-26T10:01:36Z
+**PR:** 123
+**Head:** strip-flash-timer-location
+**Base:** pre-main
+**Merge-commit:** 429edb96a11b8cd2ff29e9682d25b0ca79b004a7
+**Pre-merge:** 2753a8359067dd1acf944d45f42bbed052e0e0f0
+**Backup:** 2026-09-26-07
+**Merged-by:** coder preserved/2026-09-26-28.md
+**Carries:** 2026-09-26-80, 2026-09-26-81, 2026-09-26-82
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-30.md, on branch strip-device-check cut from origin/pre-main 429edb96a11b8cd2ff29e9682d25b0ca79b004a7. The one merge on pre-main's first-parent chain newer than 2753a83, the newest merge a `merge` entry records (2026-09-26-80, Base pre-main): git log --first-parent --merges --format='%H %P' 2753a83..origin/pre-main lists only 429edb9, parents 2753a8359067dd1acf944d45f42bbed052e0e0f0 and bdb087218fd4e07cc3f26bcded8cbebd6d3df195. PR, Head, Base, Timestamp (mergedAt) from gh pr view 123 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 123, strip-flash-timer-location, pre-main, mergeCommit 429edb96a11b8cd2ff29e9682d25b0ca79b004a7, 2026-09-26T10:01:36Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-07: PR #123 (strip-flash-timer-location into pre-main), pre-merge 2753a8359067dd1acf944d45f42bbed052e0e0f0, bundle of origin/pre-main, written by coder under intent 2026-09-26-81 (prompts/preserved/2026-09-26-28.md)". Carries: the IDs git diff 2753a83 429edb9 -- RECORD.md adds (it removes no line), 2026-09-26-80 to -82, as the dispatch expected. Main has no merge newer than 76905d4 (git log --first-parent --merges 76905d4..origin/main is empty; origin/main 76905d4993813caaead1caad5db6fd18da5c97e8).
+
+---
