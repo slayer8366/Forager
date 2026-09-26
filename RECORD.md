@@ -516,3 +516,13 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** history_guard refused one compound Bash command (checkers, commit with a heredoc message, push) with "could not parse this push (No closing quotation)"; nothing ran, and the steps were rerun separately with a -m message, so the ea01752 subject reads "the owner option (b)". The prior coder's fail-first and sabotage results in 2026-09-23-30 are relayed from its hand-back, not re-run: this dispatch forbade code changes. Coder choices, not given by the dispatch: the file numbers -19 and -20 and entry IDs -28 to -31; the Report and Notes wording of 2026-09-23-28, including Outcome answered by precedent; writing the -26 terminal's Deviations to name the owner's ruling and the changed live-check setup; re-running the hook tests as a read-only confirmation; the PR title and body.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-01
+**Dispatch-file:** preserved/2026-09-26-01.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only pulse on the camera strip stack (preserved 2026-09-26T02:14:40Z at af12a69, sha256 765aaba937c0421115638e4a93b3e96df1a68869b6b8c8704e5da885904503a8), sent just before build dispatch preserved/2026-09-26-02.md. Swept by that build's coder, who did not see the pulse's answer; Type, Outcome and Report are as that build dispatch states them.
+
+---
