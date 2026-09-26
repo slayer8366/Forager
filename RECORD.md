@@ -1047,3 +1047,33 @@ Quote this message verbatim in the record.
 **Deviations:** (1) Order: the dispatch's steps put the terminal (step 5) before the backup (step 6); coder.md item 10 has a build's terminal cite its backup folder. The backup was written after CI was green on 0beafc8 and before this terminal so that it could be cited; a coder's choice. The merge still waits for CI green on this terminal's commit and for a fresh fetch confirming origin/pre-main is still 0eade34; if it has moved, the backup is rewritten under the next free name. (2) No sweep, by the planner's assignment (the #120 merge entry is the parallel Part A dispatch's).
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-50
+**Timestamp:** 2026-09-26T06:44:05Z
+**PR:** 120
+**Head:** worktree-bridge-cse_01BcqShzosraMo4pUXkqaqRp
+**Base:** pre-main
+**Merge-commit:** 0eade34fd15e1e94a48c2b98d5f2698715a56042
+**Pre-merge:** 76905d4993813caaead1caad5db6fd18da5c97e8
+**Backup:** 2026-09-26-01
+**Merged-by:** coder preserved/2026-09-26-23.md
+**Carries:** 2026-09-26-24, 2026-09-26-25, 2026-09-26-26, 2026-09-26-27, 2026-09-26-28, 2026-09-26-29, 2026-09-26-30, 2026-09-26-31, 2026-09-26-32, 2026-09-26-33, 2026-09-26-34
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-25.md, on branch strip-housekeeping after its merge of origin/pre-main 39f6e74 (0501012). The older of the two merges on pre-main's first-parent chain newer than 76905d4, the newest merge a `merge` entry records (2026-09-26-24, Base main; pre-main was created at 76905d4, so its chain shares that history): git log --first-parent --merges --format='%H %P' 0eade34~1..origin/pre-main lists 39f6e74 and 0eade34. 0eade34 is not an ancestor of af12a69 (git merge-base --is-ancestor exits 1), so it falls after the cutoff in docs/audits/2026-09-26-recordkeeping-protocol-shift.md. Merge-commit and Pre-merge from git log: 0eade34's parents 76905d4993813caaead1caad5db6fd18da5c97e8 and c5693d40e560f9373ebf85eb5f8e435ff1cadf5b. PR, Head, Base, Timestamp (mergedAt) from gh pr view 120 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 120, worktree-bridge-cse_01BcqShzosraMo4pUXkqaqRp, pre-main, mergeCommit 0eade34fd15e1e94a48c2b98d5f2698715a56042, 2026-09-26T06:44:05Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-01: PR #120 (...), pre-merge 76905d4993813caaead1caad5db6fd18da5c97e8, ... written by coder under intent 2026-09-26-32 (prompts/preserved/2026-09-26-23.md)". Carries: the IDs git diff 76905d4 0eade34 -- RECORD.md adds (and it removes no line), 2026-09-26-24 to 2026-09-26-34. The dispatch named -25 to -34; -24 (the #119 merge entry) was written by #120's own sweep commit 136c35a, so #120 carried it. The planner ruled -24 to -34 (planner log line 681, quoted in this dispatch's intent). The #121 merge entry, next, is also this sweep's, by the planner's assignment; the ci.yml dispatch wrote no sweep. Main has no merge newer than 76905d4 (git log --first-parent --merges 76905d4..origin/main is empty).
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-51
+**Timestamp:** 2026-09-26T06:58:32Z
+**PR:** 121
+**Head:** ci-pre-main
+**Base:** pre-main
+**Merge-commit:** 39f6e742e8e6c0084fbce5f67f54b549342e1941
+**Pre-merge:** 0eade34fd15e1e94a48c2b98d5f2698715a56042
+**Backup:** 2026-09-26-02
+**Merged-by:** coder preserved/2026-09-26-24.md
+**Carries:** 2026-09-26-40, 2026-09-26-41
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-25.md. The newer of the two merges on pre-main's first-parent chain after 76905d4 (see 2026-09-26-50). Merge-commit and Pre-merge from git log: 39f6e74's parents 0eade34fd15e1e94a48c2b98d5f2698715a56042 and dff0d5ce4abe69df12db7e47bac60b7ad980a1f1. PR, Head, Base, Timestamp (mergedAt) from gh pr view 121 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 121, ci-pre-main, pre-main, mergeCommit 39f6e742e8e6c0084fbce5f67f54b549342e1941, 2026-09-26T06:58:32Z; state MERGED. Backup and Merged-by: INDEX.md's line "- 2026-09-26-02: PR #121 (ci-pre-main into pre-main), pre-merge 0eade34fd15e1e94a48c2b98d5f2698715a56042, bundle of origin/pre-main, written by coder under intent 2026-09-26-40 (prompts/preserved/2026-09-26-24.md)". Carries: the IDs git diff 0eade34 39f6e74 -- RECORD.md adds (and it removes no line), 2026-09-26-40 and 2026-09-26-41. Assigned to this sweep by the planner (planner log line 667, quoted in this dispatch's intent).
+
+---
