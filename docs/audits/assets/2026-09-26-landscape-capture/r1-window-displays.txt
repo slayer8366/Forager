@@ -1,0 +1,73 @@
+    initCutout=DisplayCutout{insets=Rect(0, 56 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(519, 0 - 561, 56), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2316 physicalDisplayWidth=1440 physicalDisplayHeight=3088 density={2.8125} cutoutSpec={M 0,0 H -10 V 26.66666666666667 H 10 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={0.75}}} sideOverrides={}}
+    baseCutout=DisplayCutout{insets=Rect(0, 75 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(512, 0 - 568, 75), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2316 physicalDisplayWidth=1080 physicalDisplayHeight=2316 density={2.8125} cutoutSpec={M 0,0 H -10 V 26.66666666666667 H 10 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}
+  overrideConfig={1.0 ?mcc0mnc [en_US] ldltr sw384dp w823dp h384dp 450dpi nrml long hdr widecg land night finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 2316, 1080) mAppBounds=Rect(0, 0 - 2316, 1080) mMaxBounds=Rect(0, 0 - 2316, 1080) mDisplayRotation=ROTATION_90 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_90 mStageConfig=undefined mEmbedActivityMode=undefined mPopOver=undefined mOverlappingWithCutout=false} s.2674 fontWeightAdjustment=0 ff=0 bf=-1 bts=0 cst=1.0 nightDim=0 themeSeq=0}
+    * HideDisplayCutout:32:35
+      * HideDisplayCutout:26:31
+      * HideDisplayCutout:18:23
+      * HideDisplayCutout:16:16
+      * HideDisplayCutout:0:14
+      overrideConfig={0.0 ?mcc0mnc ?localeList ?layoutDir ?swdp ?wdp ?hdp ?density ?lsize ?long ?ldr ?wideColorGamut ?orien ?uimode ?night ?touch ?keyb/?/? ?nav/? winConfig={ mBounds=Rect(0, 0 - 0, 0) mAppBounds=null mMaxBounds=Rect(0, 0 - 0, 0) mDisplayRotation=undefined mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=undefined mStageConfig=undefined mEmbedActivityMode=undefined mPopOver=undefined mOverlappingWithCutout=false} ?fontWeightAdjustment ff=0 bf=-1 bts=-1 cst=0.0 nightDim=-1 themeSeq=0}
+    mNavigationBar=Window{c429aed u0 NavigationBar0}
+    mNavigationBarCanMove=true
+    mHasBottomNavigationBar=false
+    mRightGestureHost=Window{c429aed u0 NavigationBar0}
+    mImeInsetsConsumed=false
+    mForceShowNavigationBarEnabled=false mAllowLockscreenWhenOn=false
+    mRemoteInsetsControllerControlsSystemBars=false
+    mDecorInsetsInfo:
+      ROTATION_0={nonDecorInsets=[0,0][0,0], overrideNonDecorInsets=[0,75][0,135], configInsets=[0,0][0,0], overrideConfigInsets=[0,75][0,135], nonDecorFrame=[0,0][1080,2316], overrideNonDecorFrame=[0,75][1080,2181], configFrame=[0,0][1080,2316], overrideConfigFrame=[0,75][1080,2181]}
+      ROTATION_90={nonDecorInsets=[0,0][0,0], overrideNonDecorInsets=[75,0][135,0], configInsets=[0,0][0,0], overrideConfigInsets=[75,84][135,0], nonDecorFrame=[0,0][2316,1080], overrideNonDecorFrame=[75,0][2181,1080], configFrame=[0,0][2316,1080], overrideConfigFrame=[75,84][2181,1080]}
+      ROTATION_180={nonDecorInsets=[0,0][0,0], overrideNonDecorInsets=[0,0][0,210], configInsets=[0,0][0,0], overrideConfigInsets=[0,75][0,210], nonDecorFrame=[0,0][1080,2316], overrideNonDecorFrame=[0,0][1080,2106], configFrame=[0,0][1080,2316], overrideConfigFrame=[0,75][1080,2106]}
+      ROTATION_270={nonDecorInsets=[0,0][0,0], overrideNonDecorInsets=[135,0][75,0], configInsets=[0,0][0,0], overrideConfigInsets=[135,84][75,0], nonDecorFrame=[0,0][2316,1080], overrideNonDecorFrame=[135,0][2241,1080], configFrame=[0,0][2316,1080], overrideConfigFrame=[135,84][2241,1080]}
+      mDisplayCutoutTouchableRegionSize=34
+    {1.0 ?mcc0mnc [en_US] ldltr sw384dp w823dp h384dp 450dpi nrml long hdr widecg land night finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 2316, 1080) mAppBounds=Rect(0, 0 - 2316, 1080) mMaxBounds=Rect(0, 0 - 2316, 1080) mDisplayRotation=ROTATION_90 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_90 mStageConfig=undefined mEmbedActivityMode=undefined mPopOver=undefined mOverlappingWithCutout=false} as.1 s.2178 fontWeightAdjustment=0 ff=0 bf=-1 bts=0 cst=1.0 nightDim=0 themeSeq=0}
+  WindowInsetsStateController
+    InsetsState
+      mDisplayCutout=DisplayCutout{insets=Rect(75, 0 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 512 - 75, 568), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2316 physicalDisplayWidth=1080 physicalDisplayHeight=2316 density={2.8125} cutoutSpec={M 0,0 H -10 V 26.66666666666667 H 10 V 0 H 0 Z @dp} rotation={1} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}
+        InsetsSource id=eda70000 type=statusBars frame=[0,0][2316,84] visible=true flags= sideHint=TOP boundingRects=null
+        InsetsSource id=eda70005 type=mandatorySystemGestures frame=[0,0][2316,84] visible=true flags= sideHint=TOP boundingRects=null
+        InsetsSource id=eda70006 type=tappableElement frame=[0,0][2316,84] visible=true flags= sideHint=TOP boundingRects=null
+        InsetsSource id=facc0001 type=navigationBars frame=[2181,0][2316,1080] visible=true flags= sideHint=RIGHT boundingRects=null
+        InsetsSource id=facc0004 type=systemGestures frame=[0,0][0,0] visible=true flags= sideHint=NONE boundingRects=null
+        InsetsSource id=facc0005 type=mandatorySystemGestures frame=[2181,0][2316,1080] visible=true flags= sideHint=RIGHT boundingRects=null
+        InsetsSource id=facc0006 type=tappableElement frame=[2181,0][2316,1080] visible=true flags= sideHint=RIGHT boundingRects=null
+        InsetsSource id=facc0024 type=systemGestures frame=[0,0][0,0] visible=true flags= sideHint=NONE boundingRects=null
+        InsetsSource id=3 type=ime frame=[0,0][0,0] visible=false flags= sideHint=NONE boundingRects=null
+        InsetsSource id=7 type=displayCutout frame=[0,0][75,1080] visible=true flags= sideHint=LEFT boundingRects=null
+        InsetsSourceControl: {facc0001 mType=navigationBars initiallyVisible mSurfacePosition=Point(2181, 0) mInsetsHint=Insets{left=0, top=0, right=135, bottom=0}}
+        InsetsSourceControl: {3 mType=ime mSurfacePosition=Point(0, 75) mInsetsHint=Insets{left=0, top=0, right=0, bottom=920}}
+        InsetsSourceControl: {eda70000 mType=statusBars initiallyVisible mSurfacePosition=Point(0, 0) mInsetsHint=Insets{left=0, top=84, right=0, bottom=0}}
+    InsetsSourceProviders:
+      ImeInsetsSourceProvider
+        mSource=InsetsSource id=3 type=ime frame=[0,0][0,0] visible=false flags= sideHint=NONE boundingRects=null
+        mControl=InsetsSourceControl mId=3 mType=ime mLeash=Surface(name=Surface(name=dc9d62b InputMethod)/@0x509b734 - animation-leash of insets_animation)/@0xfec36af mInitiallyVisible=false mSurfacePosition=Point(0, 75) mInsetsHint=Insets{left=0, top=0, right=0, bottom=920} mSkipAnimationOnce=false mImeStatsToken=null mControlledByPolicy=false
+        mInsetsHint=Insets{left=0, top=0, right=0, bottom=920} stale
+        mAdapter=ControlAdapter mCapturedLeash=Surface(name=Surface(name=dc9d62b InputMethod)/@0x509b734 - animation-leash of insets_animation)/@0xfec36af
+      InsetsSourceProvider
+        mSource=InsetsSource id=facc0024 type=systemGestures frame=[0,0][0,0] visible=true flags= sideHint=NONE boundingRects=null
+        mWindowContainer=Window{c429aed u0 NavigationBar0}
+      InsetsSourceProvider
+        mSource=InsetsSource id=facc0006 type=tappableElement frame=[2181,0][2316,1080] visible=true flags= sideHint=RIGHT boundingRects=null
+        mWindowContainer=Window{c429aed u0 NavigationBar0}
+      InsetsSourceProvider
+        mSource=InsetsSource id=facc0005 type=mandatorySystemGestures frame=[2181,0][2316,1080] visible=true flags= sideHint=RIGHT boundingRects=null
+        mWindowContainer=Window{c429aed u0 NavigationBar0}
+      InsetsSourceProvider
+        mSource=InsetsSource id=facc0004 type=systemGestures frame=[0,0][0,0] visible=true flags= sideHint=NONE boundingRects=null
+        mWindowContainer=Window{c429aed u0 NavigationBar0}
+      InsetsSourceProvider
+        mSource=InsetsSource id=facc0001 type=navigationBars frame=[2181,0][2316,1080] visible=true flags= sideHint=RIGHT boundingRects=null
+        mControl=InsetsSourceControl mId=facc0001 mType=navigationBars mLeash=Surface(name=Surface(name=c429aed NavigationBar0)/@0xab22b89 - animation-leash of insets_animation)/@0xbaa6d19 mInitiallyVisible=true mSurfacePosition=Point(2181, 0) mInsetsHint=Insets{left=0, top=0, right=135, bottom=0} mSkipAnimationOnce=false mImeStatsToken=null mControlledByPolicy=false
+        mInsetsHint=Insets{left=0, top=0, right=135, bottom=0}
+        mWindowContainer=Window{c429aed u0 NavigationBar0}
+        mAdapter=ControlAdapter mCapturedLeash=Surface(name=Surface(name=c429aed NavigationBar0)/@0xab22b89 - animation-leash of insets_animation)/@0xbaa6d19
+      InsetsSourceProvider
+        mSource=InsetsSource id=eda70006 type=tappableElement frame=[0,0][2316,84] visible=true flags= sideHint=TOP boundingRects=null
+      InsetsSourceProvider
+        mSource=InsetsSource id=eda70005 type=mandatorySystemGestures frame=[0,0][2316,84] visible=true flags= sideHint=TOP boundingRects=null
+      InsetsSourceProvider
+        mSource=InsetsSource id=eda70000 type=statusBars frame=[0,0][2316,84] visible=true flags= sideHint=TOP boundingRects=null
+        mControl=InsetsSourceControl mId=eda70000 mType=statusBars mLeash=Surface(name=Surface(name=4fdb7d8 StatusBar)/@0xda8bbc - animation-leash of insets_animation)/@0x52936c1 mInitiallyVisible=true mSurfacePosition=Point(0, 0) mInsetsHint=Insets{left=0, top=84, right=0, bottom=0} mSkipAnimationOnce=false mImeStatsToken=null mControlledByPolicy=false
+        mInsetsHint=Insets{left=0, top=84, right=0, bottom=0}
+        mAdapter=ControlAdapter mCapturedLeash=Surface(name=Surface(name=4fdb7d8 StatusBar)/@0xda8bbc - animation-leash of insets_animation)/@0x52936c1
+  InsetsPolicy
