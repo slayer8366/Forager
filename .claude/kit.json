@@ -1,6 +1,6 @@
 {
   "android_package": "com.zynergylabs.forager.app",
-  "protected_branches": ["main"],
+  "protected_branches": ["pre-main", "main"],
   "dispatchable_agents": ["coder", "pulse"],
   "type_targets": {"pulse": "pulse", "build": "coder", "device": "coder"},
   "required_sections": {
@@ -12,7 +12,7 @@
                "Out of scope", "Device items", "Merge"],
     "pulse": ["Role", "Base and state", "Rules", "Questions"]
   },
-  "approval_exempt_types": ["pulse"],
+  "approval_exempt_types": ["pulse", "build", "device"],
   "agent_roles": {"coder": "coder", "pulse": "pulse"},
   "guard_env_prefix": "FORAGER_GUARD_",
   "backup_dir": "~/Zynergy/forager-repo-backups"
