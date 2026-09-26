@@ -812,3 +812,28 @@ Design: `docs/process/accountability-design.md`.
 **Deviations:** (1) The memory tool wrote frontmatter changes that the dispatch had not stated, beyond the dispatched edits. forager-app-repo.md: its metadata `modified` changed from 2026-09-21T04:03:24.248Z to 2026-09-26T04:54:50.204Z (its node_type and originSessionId 995801e2-3212-5c9b-a94f-5df2a96b3fcf were already present). Both forecast files: the description is now in double quotes, with the same parsed value; `node_type: memory` was added; `originSessionId: f9fe2a33-605c-54a7-933d-22f7af6314c0` was added; a `modified` timestamp was added (2026-09-26T04:54:51.852Z on forager-forecast-repo.md, 2026-09-26T04:54:53.656Z on forager-forecast-local-clone.md). All three files still parse with yaml.safe_load. Accepted by the owner's ruling, as preserved/2026-09-26-13.md quotes it from the planner session on 2026-09-26: "Accept it (Recommended)", the option reading "Treat it as the memory system's normal stamping, record it as a deviation, then write the closing entry and open the PR." (2) The originSessionId added to the two forecast files is false provenance. It names the planner session, which did not create those files. (3) The previous coder's mechanism prediction (c) and planner prediction 3 did not hold as worded. (c) said forager-app-repo.md would change only on lines 3 and 11, "the metadata block, including its modified timestamp, untouched", and each forecast file only by two added lines, with lines 1 to 7 unchanged. Line 8 of forager-app-repo.md changed, and each forecast file's line 3 changed and three metadata lines were added. Prediction 3 said the edits change only the stated lines. Its second half, valid frontmatter, held. (4) Prediction (f)'s CI premise was wrong: ci.yml triggers on push to main and on pull_request only (ci.yml:8-14), not on every push, so the branch had no CI run until the PR opened. This terminal is written before CI on its own commit has run; that result is reported in the hand-back.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-24
+**Timestamp:** 2026-09-26T05:16:15Z
+**PR:** 119
+**Head:** record-memory-and-protection
+**Base:** main
+**Merge-commit:** 76905d4993813caaead1caad5db6fd18da5c97e8
+**Pre-merge:** d3e73825542cdded9668cda3dfe4ab994ed20161
+**Backup:** none
+**Merged-by:** owner
+**Carries:** 2026-09-26-19, 2026-09-26-20, 2026-09-26-21, 2026-09-26-22, 2026-09-26-23
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-12.md by its hook and re-filed as preserved/2026-09-26-15.md. The only merge on main's first-parent chain newer than d3e7382, the newest merge a `merge` entry records (2026-09-26-19): git log --first-parent --merges af12a69..origin/main lists 76905d4 and d3e7382. 76905d4 is not an ancestor of af12a69 (git merge-base --is-ancestor exits 1), so it falls after the cutoff in docs/audits/2026-09-26-recordkeeping-protocol-shift.md. Merge-commit and Pre-merge from git log --format='%H %P' -1 76905d4 (parents d3e73825542cdded9668cda3dfe4ab994ed20161 and b9c8f7998d2166fe90ef507eaf9f72c33ada6e2f). PR, Head, Base, Timestamp (mergedAt) from gh pr view 119 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 119, record-memory-and-protection, main, mergeCommit 76905d4993813caaead1caad5db6fd18da5c97e8, 2026-09-26T05:16:15Z; state MERGED, mergedBy slayer8366. Backup none and Merged-by owner: ~/Zynergy/forager-repo-backups exists and is empty, with no INDEX.md, so no line names #119. Carries: the IDs git diff d3e7382 76905d4 -- RECORD.md adds, 2026-09-26-19 to 2026-09-26-23.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-25
+**Dispatch-file:** preserved/2026-09-26-14.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's pulse preserved 2026-09-26T05:21:16Z with header HEAD d3e73825542cdded9668cda3dfe4ab994ed20161, Target subagent pulse. Re-filed under the store's next free 2026-09-26 number. Original: the untracked prompts/preserved/2026-09-26-11.md in the checkout .claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp, 3048 bytes, sha256 bc8a8e8d38946c287dffe975e125c7e4914160163083200e5a07f8c5ce216fcc. Its hook name collided with preserved/2026-09-26-11.md already on main (blob 6f24968b1a695440557775d94f51771ae3a62c52, a different file, claimed by 2026-09-26-20). It was moved out to ~/Zynergy/forager-held-store/2026-09-26-11.md before the fast-forward of that checkout to 76905d4 and moved back as preserved/2026-09-26-14.md; the re-filed copy's sha256 is the same, bc8a8e8d38946c287dffe975e125c7e4914160163083200e5a07f8c5ce216fcc, and cmp reports it identical. Ruling: the owner, in the planner session on 2026-09-26, chose "I update the worktree first", which the planner had laid out as quoted in preserved/2026-09-26-15.md: "You move the untracked pulse copy out of prompts/preserved/ and bring this worktree to origin/main… The coder's sweep re-files the pulse copy under the next free number, recording its original name, size and sha256 (item 5's pattern), with your ruling quoted." The owner then said: "Have the coder run that."
+
+---
