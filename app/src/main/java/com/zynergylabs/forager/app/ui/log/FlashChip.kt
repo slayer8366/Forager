@@ -1,7 +1,9 @@
 package com.zynergylabs.forager.app.ui.log
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FlashlightOn
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -13,10 +15,11 @@ import com.zynergylabs.forager.app.photo.FlashMode
 import com.zynergylabs.forager.app.photo.next
 
 /**
- * The strip's flash chip. Its only working mode today is torch: **Off and Torch**, a tap cycling
- * one to the other (owner, 2026-09-21). Torch lives inside the flash chip rather than on a chip of
- * its own, as in Samsung Camera and Open Camera (decision B2,
- * `docs/audits/2026-09-21-camera-strip-basics-decisions.md`).
+ * The strip's flash chip: **Off, Auto, On, Torch**, a tap asking for the next (decision B8,
+ * 2026-09-26, extending B2). Torch came first (owner, 2026-09-21) and lives inside the flash chip
+ * rather than on a chip of its own, as in Samsung Camera and Open Camera (decision B2,
+ * `docs/audits/2026-09-21-camera-strip-basics-decisions.md`); flash on capture, Auto and On,
+ * joined it in the same chip.
  *
  * - **Hidden on a camera with no flash unit**, rather than shown dead: none of the four reference
  *   apps shows a control that cannot work. [CameraCaptureSession.hasFlashUnit] is false until a
@@ -24,12 +27,13 @@ import com.zynergylabs.forager.app.photo.next
  * - **The glyph is the session's mode**, read from [CameraCaptureSession.flashMode] on every
  *   composition. The chip keeps no copy, so a mode the session refused or reset (a failed
  *   `enableTorch`, a close) is what it shows.
- * - **Nothing is stored.** Torch resets when the camera closes, as in all four reference apps.
+ * - **Nothing is stored.** The mode resets to Off when the camera closes; torch did so in all four reference apps.
  * - Built from [OverlayIcon], so it takes the outline rule, and turned in place by
  *   [rotateWithDevice], the same rule as every other camera glyph.
  *
- * **Glyphs:** `Icons.Filled.FlashOff` for Off and `Icons.Filled.FlashlightOn` for Torch, from
- * `material-icons-extended`, which the app already ships. Open Camera's own icons for these two
+ * **Glyphs:** `Icons.Filled.FlashOff` for Off, `FlashAuto` for Auto, `FlashOn` for On and
+ * `FlashlightOn` for Torch, from `material-icons-extended`, which the app already ships. Whether
+ * each reads at a glance over a scene is the owner's verdict on the device. Open Camera's own icons for these two
  * states are a crossed-out bolt and a flashlight; that mapping is from memory and was not checked
  * against Open Camera's source.
  */
@@ -51,8 +55,9 @@ internal data class FlashGlyph(val icon: ImageVector, val label: String)
 
 internal fun flashGlyph(mode: FlashMode): FlashGlyph = when (mode) {
     FlashMode.Off -> FlashGlyph(Icons.Filled.FlashOff, FLASH_OFF_LABEL)
+    FlashMode.Auto -> FlashGlyph(Icons.Filled.FlashAuto, FLASH_AUTO_LABEL)
+    FlashMode.On -> FlashGlyph(Icons.Filled.FlashOn, FLASH_ON_LABEL)
     FlashMode.Torch -> FlashGlyph(Icons.Filled.FlashlightOn, TORCH_ON_LABEL)
-    FlashMode.Auto, FlashMode.On -> FlashGlyph(Icons.Filled.FlashOff, FLASH_OFF_LABEL) // STUB
 }
 
 internal const val CAMERA_FLASH_CHIP_TAG = "in-app-camera-flash-chip"
