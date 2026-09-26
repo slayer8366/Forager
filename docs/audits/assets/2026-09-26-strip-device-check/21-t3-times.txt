@@ -1,0 +1,7 @@
+tap issued host 1790417621.745463996 returned 1790417621.818585004
+21-t3-0 start+0.08 end+1.32 (rel to tap issued)
+21-t3-1 start+1.33 end+2.56 (rel to tap issued)
+21-t3-2 start+2.57 end+3.85 (rel to tap issued)
+21-t3-3 start+3.85 end+5.09 (rel to tap issued)
+21-t3-4 start+5.10 end+6.34 (rel to tap issued)
+21-t3-5 start+6.35 end+7.59 (rel to tap issued)

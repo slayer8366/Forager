@@ -1,0 +1,11 @@
+24-cancel-0 start+2.27 end+3.51
+24-cancel-1 start+3.51 end+4.75
+24-cancel-2 start+4.76 end+6.02
+24-cancel-3 start+6.02 end+7.22
+24-cancel-4 start+7.23 end+8.46
+24-cancel-5 start+8.47 end+9.71
+24-cancel-6 start+9.72 end+10.93
+24-cancel-7 start+10.93 end+12.21
+24-cancel-8 start+12.21 end+13.41
+24-cancel-9 start+13.41 end+14.62
+first tap issued host 1790417719.209668504 (returned +0.06); dump ran +0.06..+2.20; second tap issued +2.20 returned +2.25

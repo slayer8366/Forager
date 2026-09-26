@@ -1,0 +1,13 @@
+tap issued host 1790417685.823957621 returned 1790417685.901303035
+23-t10-0 start+0.08 end+1.28 (rel to tap issued)
+23-t10-1 start+1.28 end+2.52 (rel to tap issued)
+23-t10-2 start+2.52 end+3.76 (rel to tap issued)
+23-t10-3 start+3.76 end+4.99 (rel to tap issued)
+23-t10-4 start+4.99 end+6.24 (rel to tap issued)
+23-t10-5 start+6.25 end+7.51 (rel to tap issued)
+23-t10-6 start+7.51 end+8.74 (rel to tap issued)
+23-t10-7 start+8.75 end+9.96 (rel to tap issued)
+23-t10-8 start+9.97 end+11.24 (rel to tap issued)
+23-t10-9 start+11.25 end+12.48 (rel to tap issued)
+23-t10-10 start+12.49 end+13.70 (rel to tap issued)
+23-t10-11 start+13.70 end+14.91 (rel to tap issued)

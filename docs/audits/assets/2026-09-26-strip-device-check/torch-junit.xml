@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="0.668" timestamp="2026-09-26T10:10:13" hostname="localhost">
+  <testsuite name="com.zynergylabs.forager.app.photo.CameraXTorchInstrumentedTest" tests="2" failures="0" errors="0" skipped="0" time="0.373" timestamp="2026-09-26T10:10:13" hostname="localhost">
+    <properties>
+      <property name="device" value="SM-S908U - 16" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="torch_goes_on_and_off_with_the_flash_mode" classname="com.zynergylabs.forager.app.photo.CameraXTorchInstrumentedTest" time="0.296" />
+    <testcase name="closing_with_the_torch_on_puts_it_out" classname="com.zynergylabs.forager.app.photo.CameraXTorchInstrumentedTest" time="0.077" />
+  </testsuite>
+</testsuites>
