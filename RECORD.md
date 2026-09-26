@@ -1473,3 +1473,18 @@ Quote this message verbatim in the record.
 **Flags:** Thirteen open questions are recorded in the document's Open questions section. Two are contradictions between the closed design and the code, recorded rather than resolved: (a) P12 calls one-action Back close of the drawer a bug fix, but Back unwinding the drawer's Settings to the rest of the Tools drawer is documented as intended (AvailabilityScreen.kt:2478-2479, BackHandler(enabled = showSettings) at :2848); (b) P1's "whatever its width" sends a tablet or foldable window shorter than 480dp to the compact tree, against O3's "tablets and foldables keep the wide tree unchanged". Also (c) P6 "inside the cut-out inset" read as inboard of it, the only reading consistent with P4, not stated by the dispatch. Prior-art URLs were not fetched (no web access).
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-95
+**Timestamp:** 2026-09-26T17:49:20Z
+**PR:** 126
+**Head:** landscape-design
+**Base:** pre-main
+**Merge-commit:** bc54f6dc12e82c8b7be265516c8a3162ac42f9d1
+**Pre-merge:** f7727fe4fa29e7938d52ddad923637d912c6162c
+**Backup:** 2026-09-26-10
+**Merged-by:** coder preserved/2026-09-26-34.md
+**Carries:** 2026-09-26-92, 2026-09-26-93, 2026-09-26-94
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-35.md, on branch landscape-b1 cut from origin/pre-main bc54f6dc12e82c8b7be265516c8a3162ac42f9d1. The one merge on pre-main's first-parent chain newer than f7727fe, the newest merge a `merge` entry records (2026-09-26-92, Base pre-main): git log --first-parent --merges --format='%H %P' f7727fe..origin/pre-main lists only bc54f6d, parents f7727fe4fa29e7938d52ddad923637d912c6162c and 20e84bdc34605bc97570fff2d80bc1bc1187cd7a. PR, Head, Base, Timestamp (mergedAt) from gh pr view 126 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 126, landscape-design, pre-main, mergeCommit bc54f6dc12e82c8b7be265516c8a3162ac42f9d1, 2026-09-26T17:49:20Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-10: PR #126 (landscape-design into pre-main), pre-merge f7727fe4fa29e7938d52ddad923637d912c6162c, bundle of origin/pre-main, written by coder under intent 2026-09-26-93 (prompts/preserved/2026-09-26-34.md)". Carries: the IDs git diff f7727fe bc54f6d -- RECORD.md adds (it removes no line), 2026-09-26-92 to -94, as the dispatch expected. Main has no merge newer than 76905d4 (git log --first-parent --merges 76905d4..origin/main is empty; origin/main 76905d4993813caaead1caad5db6fd18da5c97e8). No dispatch-note in this sweep: check_prompts.py at bc54f6d reported only this dispatch's copy (preserved/2026-09-26-35.md) unclaimed, claimed by the next commit's intent.
+
+---
