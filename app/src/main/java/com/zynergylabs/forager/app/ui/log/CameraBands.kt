@@ -105,7 +105,7 @@ internal fun BoxScope.CameraBand(
 
 /**
  * The strip: the band on the punch-hole edge and what lives in it. Geometry and structure only —
- * what goes in it is PR #103's, and no working control lives here.
+ * the slot is reserved for the strip controls; none built yet, and no working control lives here.
  *
  * **There is no Done control** (owner, 2026-09-18). The overlay build first moved Done in here
  * from the top-left corner, as an outlined ✕; the owner then removed it, because the navigation
@@ -113,7 +113,8 @@ internal fun BoxScope.CameraBand(
  * `onDismissRequest` were the one `onDismiss` lambda, reaching `InAppCameraViewModel.close()` —
  * so Done was a second control for one function. Back carries everything Done did: the camera
  * closes, the photos already handed over stand, and the status bar returns with the dialog's
- * window. `InAppCameraDialogTest` presses Back through the dialog's own dispatcher to prove it.
+ * window. `InAppCameraDialogTest.kt:269` proves it by pressing Back through the Activity's own
+ * `OnBackPressedDispatcher` (`CameraBack.kt:19`), the one the camera's `BackHandler` registers with.
  *
  * With nothing resident, **the empty strip is a production state**, not a test-only one: gate
  * the placeholder off and the strip composes nothing and takes no space (rule 9).
@@ -133,7 +134,7 @@ internal fun BoxScope.CameraStrip(
     deviceRotation: Int?,
     /** The dialog-level window rotation, passed rather than read: `currentDisplayRotation()` goes stale inside a Dialog. */
     displayRotation: Int,
-    /** The strip's slot for what PR #103 adds, given the edge it runs along and both rotation terms for [rotateWithDevice]; null composes nothing there. */
+    /** The strip's slot, reserved for the strip controls (none built yet), given the edge it runs along and both rotation terms for [rotateWithDevice]; null composes nothing there. */
     content: (@Composable (edge: ScreenEdge, deviceRotation: Int?, displayRotation: Int) -> Unit)? = defaultStripContent(),
 ) {
     if (content == null) return
