@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,6 +42,8 @@ import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
+import com.zynergylabs.forager.app.photo.CaptureCountdown
+import com.zynergylabs.forager.app.photo.TimerMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
@@ -141,6 +144,10 @@ internal fun InAppCameraDialog(
     gridMode: GridMode,
     /** Asks for a new grid mode; the chip shows it once it is stored, not before. */
     onGridModeChanged: (GridMode) -> Unit,
+    /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`; the Location chip shows it. */
+    autoSaveLocationToPhotos: Boolean,
+    /** Settings' own handler for that value; the Location chip calls it with the toggle. */
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     /** The level line's roll; collected only while the level is shown. */
     levelProvider: LevelProvider,
     modifier: Modifier = Modifier,
@@ -154,6 +161,12 @@ internal fun InAppCameraDialog(
     var captureError by rememberSaveable { mutableStateOf<String?>(null) }
     var isCapturing by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    // The self-timer (decision B8 / Closed decision C): the setting lasts this camera session,
+    // default Off, gone when the camera closes. The countdown is held here, on this screen's own
+    // scope, so anything that removes the screen — Back included — cancels it (CaptureCountdown).
+    var timerMode by rememberSaveable { mutableStateOf(TimerMode.Off) }
+    val countdown = remember(scope) { CaptureCountdown(scope) }
+    val countdownSeconds by countdown.remainingSeconds.collectAsState()
 
     // The screen opens the session, not the viewfinder — the deadlock fix of 2026-09-15, see
     // CameraCaptureSession.open. Enter opens, leave closes; the `when` below never changes.
@@ -199,7 +212,12 @@ internal fun InAppCameraDialog(
     // rather than a dialog's — it reaches the same `onDismiss` that `onDismissRequest` used to, so
     // everything downstream of closing is unchanged. Enabled for exactly as long as this composable
     // is in composition, which is exactly as long as the camera is open.
-    BackHandler { onDismiss() }
+    // Back during a countdown cancels it and closes as always; leaving composition would cancel
+    // the countdown's scope anyway, and cancelling first means no capture can land in between.
+    BackHandler {
+        countdown.cancel()
+        onDismiss()
+    }
 
     // Both claims are on the Activity's own window now, and both are restored when this leaves
     // composition — see CameraWindowChrome for why that covers every exit, and for why the window
@@ -250,8 +268,21 @@ internal fun InAppCameraDialog(
             LevelLine(gridMode, levelProvider, displayRotation)
         }
 
+        // The countdown's numerals: over the preview, centred, turned upright with the controls,
+        // and drawn only — no pointer input, so a touch there is the viewfinder's as before.
+        countdownSeconds?.let { seconds ->
+            OverlayText(
+                seconds.toString(),
+                style = MaterialTheme.typography.displayLarge,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .rotateWithDevice(session.deviceRotation, displayRotation)
+                    .testTag(CAMERA_COUNTDOWN_TAG),
+            )
+        }
+
         val shutterEnabled = session.state == CameraSessionState.Ready && !isCapturing
-        val onShutter: () -> Unit = {
+        val capture: () -> Unit = {
             // Guarded here as well as by `enabled`: a second tap landing in the same frame as
             // the first would otherwise open two captures onto two files, and the shutter is
             // exactly the control people double-tap.
@@ -277,6 +308,15 @@ internal fun InAppCameraDialog(
                 }
             }
         }
+        // The shutter: with the timer off, the capture at once, as before; with it set, a
+        // countdown whose zero is that same capture; during a countdown, a cancel with no capture.
+        val onShutter: () -> Unit = {
+            when {
+                countdown.isRunning -> countdown.cancel()
+                timerMode == TimerMode.Off -> capture()
+                else -> countdown.start(timerMode.seconds) { capture() }
+            }
+        }
 
         // The region model (CameraBands.kt): this Box is the viewfinder region, full-bleed, and
         // the two bands sit on its punch-hole and charger-port edges, zero-thick at the one
@@ -296,7 +336,15 @@ internal fun InAppCameraDialog(
             edge = punchHoleEdge(arrangement),
             deviceRotation = session.deviceRotation,
             displayRotation = displayRotation,
-            chips = stripChips(session, gridMode, onGridModeChanged),
+            chips = stripChips(
+                session,
+                timerMode,
+                { timerMode = it },
+                gridMode,
+                onGridModeChanged,
+                autoSaveLocationToPhotos,
+                onAutoSaveLocationToPhotosChanged,
+            ),
         )
         CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
             ShutterCluster(
@@ -306,6 +354,7 @@ internal fun InAppCameraDialog(
                 captureError = captureError,
                 photosTaken = photosTaken,
                 shutterEnabled = shutterEnabled,
+                shutterDescription = if (countdownSeconds != null) CANCEL_TIMER_DESCRIPTION else SHUTTER_DESCRIPTION,
                 onShutter = onShutter,
             )
         }
@@ -354,6 +403,8 @@ private fun ShutterCluster(
     captureError: String?,
     photosTaken: Int,
     shutterEnabled: Boolean,
+    /** "Take photo", or "Cancel timer" while a countdown runs. */
+    shutterDescription: String,
     onShutter: () -> Unit,
 ) {
     val readout: @Composable (horizontalAlignment: Alignment.Horizontal) -> Unit = { alignment ->
@@ -381,7 +432,7 @@ private fun ShutterCluster(
         ) {
             readout(Alignment.CenterHorizontally)
             Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
             }
         }
     } else {
@@ -393,9 +444,9 @@ private fun ShutterCluster(
         ) {
             if (portOnRight) {
                 readout(Alignment.End)
-                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
             } else {
-                ShutterButton(enabled = shutterEnabled, onClick = onShutter)
+                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
                 readout(Alignment.Start)
             }
         }
@@ -408,14 +459,14 @@ private fun ShutterCluster(
  * reads over a white scene without moving.
  */
 @Composable
-private fun ShutterButton(enabled: Boolean, onClick: () -> Unit) {
+private fun ShutterButton(enabled: Boolean, description: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(SHUTTER_SIZE_DP.dp)
             .clip(CircleShape)
             .background(if (enabled) OverlayFill else OverlayFill.copy(alpha = DISABLED_SHUTTER_ALPHA))
             .clickable(enabled = enabled, onClick = onClick)
-            .semantics { contentDescription = SHUTTER_DESCRIPTION }
+            .semantics { contentDescription = description }
             .testTag(CAMERA_SHUTTER_TAG)
             // Drawing only, after the node is sized, tagged and clickable at its full 72 dp: the
             // black ring at the outer edge, then the white ring inset by it. The first cut put the
@@ -450,15 +501,31 @@ internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
 internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
 internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"
 internal const val SHUTTER_DESCRIPTION = "Take photo"
+internal const val CANCEL_TIMER_DESCRIPTION = "Cancel timer"
+internal const val CAMERA_COUNTDOWN_TAG = "in-app-camera-countdown"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
 
 /**
- * The strip's chips for this session, in order along the edge. The flash chip only when the bound
- * camera has a flash unit: it would hide itself anyway, but a chip that composes nothing would
- * still take a slot. Read in composition, so the chip arrives when the bind reports the unit. The
- * grid chip always, after it (2026-09-22): every camera can draw a grid.
+ * The strip's chips for this session, in order along the edge: Flash, Timer, Grid, Location
+ * (decision B8, Closed decision A). The flash chip only when the bound camera has a flash unit: it
+ * would hide itself anyway, but a chip that composes nothing would still take a slot. Read in
+ * composition, so the chip arrives when the bind reports the unit. The Timer chip always
+ * (2026-09-26), the grid chip always (2026-09-22), and the Location chip always (2026-09-26):
+ * every camera can time a shot, draw a grid and show the photo-location setting.
  */
-private fun stripChips(session: CameraCaptureSession, gridMode: GridMode, onGridModeChanged: (GridMode) -> Unit): List<StripChip> = buildList {
+private fun stripChips(
+    session: CameraCaptureSession,
+    timerMode: TimerMode,
+    onTimerModeChanged: (TimerMode) -> Unit,
+    gridMode: GridMode,
+    onGridModeChanged: (GridMode) -> Unit,
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+): List<StripChip> = buildList {
     if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
+    add { deviceRotation, displayRotation -> TimerChip(timerMode, onTimerModeChanged, deviceRotation, displayRotation) }
     add { deviceRotation, displayRotation -> GridChip(gridMode, onGridModeChanged, deviceRotation, displayRotation) }
+    add { deviceRotation, displayRotation ->
+        LocationChip(autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, deviceRotation, displayRotation)
+    }
 }

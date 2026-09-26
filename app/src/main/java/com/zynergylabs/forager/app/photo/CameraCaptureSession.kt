@@ -72,7 +72,7 @@ internal interface CameraCaptureSession {
 
     /**
      * The flash mode the camera is in. [FlashMode.Off] until [setFlashMode] changes it, and reset
-     * to `Off` by [close]: torch does not persist past the camera closing, and nothing stores it.
+     * to `Off` by [close]: no flash mode persists past the camera closing, and nothing stores it.
      * Observable, so the chip's glyph follows the session rather than keeping a copy of its own.
      */
     val flashMode: FlashMode
@@ -85,15 +85,22 @@ internal interface CameraCaptureSession {
 }
 
 /**
- * The flash chip's modes. **`Off` and `Torch` only** (owner, 2026-09-21): torch is continuous
- * light for gills and pores under a cap, which is why it comes first. Auto and flash-on-capture are
- * a later dispatch on this same enum, and are deliberately not declared ahead of it.
+ * The flash chip's modes. Torch came first (owner, 2026-09-21): continuous light for gills and
+ * pores under a cap. **Auto and On** — flash on capture — joined it in the same chip on 2026-09-26
+ * (decision B8 in `docs/audits/2026-09-21-camera-strip-basics-decisions.md`, extending B2).
+ *
+ * Each mode sets two things: the torch, lit only at [Torch], and the flash the capture fires —
+ * none at Off and Torch, the camera's choice at Auto, always at On. Whether CameraX honours a
+ * capture flash while the torch is lit is unverified and does not arise: Torch's capture flash is
+ * off.
  */
-internal enum class FlashMode { Off, Torch }
+internal enum class FlashMode { Off, Auto, On, Torch }
 
-/** What a tap on the flash chip asks for next: Off to Torch to Off. */
+/** What a tap on the flash chip asks for next: Off, Auto, On, Torch, and back to Off. */
 internal fun FlashMode.next(): FlashMode = when (this) {
-    FlashMode.Off -> FlashMode.Torch
+    FlashMode.Off -> FlashMode.Auto
+    FlashMode.Auto -> FlashMode.On
+    FlashMode.On -> FlashMode.Torch
     FlashMode.Torch -> FlashMode.Off
 }
 

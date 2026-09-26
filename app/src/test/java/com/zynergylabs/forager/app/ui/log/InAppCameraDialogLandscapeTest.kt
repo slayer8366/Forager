@@ -85,6 +85,8 @@ class InAppCameraDialogLandscapeTest {
                     onDismiss = {},
                     gridMode = GridMode.Off,
                     onGridModeChanged = {},
+                    autoSaveLocationToPhotos = true,
+                    onAutoSaveLocationToPhotosChanged = {},
                     levelProvider = FakeLevelProvider(),
                     viewfinder = { modifier -> Box(modifier) },
                 )
@@ -301,6 +303,38 @@ class InAppCameraDialogLandscapeTest {
         assertTrue("on the opposite side from the shutter: ${strip.right} vs ${shutter.left}", strip.right < shutter.left)
         val chip = bounds(CAMERA_FLASH_CHIP_TAG)
         assertTrue("the flash chip is in the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
+    }
+
+    /**
+     * All four chips fit down the landscape strip (decision B8, Closed decision A), in both
+     * arrangements: each inside the strip, in order Flash, Timer, Grid, Location from its top, none
+     * overlapping the next. This class's window is 360 dp tall; four chips and three gaps are
+     * 216 dp. Robolectric reports zero insets, so this is not evidence about the cut-out.
+     */
+    private fun assertFourChipsDownTheStrip() {
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG)
+        val chips = tags.map { bounds(it) }
+        tags.zip(chips).forEach { (tag, chip) ->
+            assertTrue("$tag inside the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
+        }
+        tags.zip(chips).zipWithNext().forEach { (a, b) ->
+            assertTrue("${a.first} ends before ${b.first} starts: ${a.second} then ${b.second}", a.second.bottom <= b.second.top)
+        }
+    }
+
+    @Test
+    fun `at ROTATION_90 all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+        setDisplayRotation(Surface.ROTATION_90)
+        setDialog(lockToPortrait = false)
+        assertFourChipsDownTheStrip()
+    }
+
+    @Test
+    fun `at ROTATION_270 all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+        setDisplayRotation(Surface.ROTATION_270)
+        setDialog(lockToPortrait = false)
+        assertFourChipsDownTheStrip()
     }
 
     @Test

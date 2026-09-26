@@ -3,6 +3,11 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FlashAuto
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.FlashlightOn
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -47,20 +52,37 @@ class CameraFlashChipTest {
     private fun openedSession(flashUnit: Boolean = true) =
         FakeCameraCaptureSession(flashUnitOnOpen = flashUnit).also { s -> composeRule.runOnUiThread { s.open(composeRule.activity) } }
 
+    /**
+     * Renamed and extended 2026-09-26 (decision B8, planner ruling 2): the cycle is Off, Auto, On,
+     * Torch, Off, so four taps, each asserting the mode it lands on and the glyph the chip then
+     * shows. Was `a tap asks the session for the next mode, Off to Torch to Off`, two taps.
+     */
     @Test
-    fun `a tap asks the session for the next mode, Off to Torch to Off`() {
+    fun `a tap asks the session for the next mode, Off to Auto to On to Torch to Off`() {
         val session = openedSession()
         composeRule.setContent { FlashChip(session, deviceRotation = null, displayRotation = android.view.Surface.ROTATION_0) }
 
-        composeRule.onNodeWithTag(CAMERA_FLASH_CHIP_TAG).performClick()
-        composeRule.waitForIdle()
-        assertEquals("one request", 1, session.setFlashModeCalls)
-        assertEquals("Off to Torch", FlashMode.Torch, session.flashMode)
+        val expected = listOf(
+            FlashMode.Auto to FLASH_AUTO_LABEL,
+            FlashMode.On to FLASH_ON_LABEL,
+            FlashMode.Torch to TORCH_ON_LABEL,
+            FlashMode.Off to FLASH_OFF_LABEL,
+        )
+        expected.forEachIndexed { i, (mode, label) ->
+            composeRule.onNodeWithTag(CAMERA_FLASH_CHIP_TAG).performClick()
+            composeRule.waitForIdle()
+            assertEquals("tap ${i + 1} is one request", i + 1, session.setFlashModeCalls)
+            assertEquals("tap ${i + 1} lands on $mode", mode, session.flashMode)
+            composeRule.onNodeWithTag(CAMERA_FLASH_CHIP_TAG).assertContentDescriptionEquals(label)
+        }
+    }
 
-        composeRule.onNodeWithTag(CAMERA_FLASH_CHIP_TAG).performClick()
-        composeRule.waitForIdle()
-        assertEquals(2, session.setFlashModeCalls)
-        assertEquals("Torch to Off", FlashMode.Off, session.flashMode)
+    @Test
+    fun `each mode has its own glyph and label`() {
+        assertEquals(FlashGlyph(Icons.Filled.FlashOff, "Flash off"), flashGlyph(FlashMode.Off))
+        assertEquals(FlashGlyph(Icons.Filled.FlashAuto, "Flash auto"), flashGlyph(FlashMode.Auto))
+        assertEquals(FlashGlyph(Icons.Filled.FlashOn, "Flash on"), flashGlyph(FlashMode.On))
+        assertEquals(FlashGlyph(Icons.Filled.FlashlightOn, "Torch on"), flashGlyph(FlashMode.Torch))
     }
 
     @Test

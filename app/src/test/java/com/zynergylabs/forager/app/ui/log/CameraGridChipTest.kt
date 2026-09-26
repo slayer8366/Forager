@@ -70,6 +70,8 @@ class CameraGridChipTest {
                 onDismiss = {},
                 gridMode = mode,
                 onGridModeChanged = vm::onGridModeChanged,
+                autoSaveLocationToPhotos = true,
+                onAutoSaveLocationToPhotosChanged = {},
                 levelProvider = FakeLevelProvider(),
                 viewfinder = { modifier -> Box(modifier.fillMaxSize()) },
             )

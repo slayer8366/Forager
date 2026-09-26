@@ -40,6 +40,9 @@ typealias InAppCameraSlot = @Composable (
     /** The persisted grid mode and the way to change it — see `CameraGridModeViewModel`. */
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    /** Settings' "Automatically Save Location to Photos" and its handler — see `AvailabilityViewModel.onAutoSaveLocationToPhotosChanged`. */
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
 ) -> Unit
@@ -50,7 +53,7 @@ typealias InAppCameraSlot = @Composable (
  * viewfinder it draws into. Moved here from `PhotoAcquisitionLaunchers` on 2026-09-15 when the
  * dialog was hoisted; unchanged otherwise.
  */
-internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, onPhotoCaptured, onDismiss ->
+internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
     val context = LocalContext.current.applicationContext
     // One provider per open camera; it registers a sensor listener only while the level is shown.
     val levelProvider = remember { AndroidLevelProvider(context) }
@@ -65,6 +68,8 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToP
         onDismiss = onDismiss,
         gridMode = gridMode,
         onGridModeChanged = onGridModeChanged,
+        autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+        onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
         levelProvider = levelProvider,
         viewfinder = { modifier -> session.Viewfinder(modifier) },
     )
@@ -101,6 +106,9 @@ internal fun InAppCameraHost(
     /** The persisted grid mode, from `CameraGridModeViewModel`; passed straight to the slot. */
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`, and Settings' own handler; passed straight to the slot. */
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     onLogEntryPhoto: (PhotoSource) -> Unit,
     onAlbumPhoto: (PhotoSource) -> Unit,
     onCartographyEntryPhoto: (PhotoSource) -> Unit,
@@ -113,5 +121,5 @@ internal fun InAppCameraHost(
         InAppCameraTarget.ALBUM -> onAlbumPhoto
         InAppCameraTarget.CARTOGRAPHY_ENTRY -> onCartographyEntryPhoto
     }
-    camera(cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, onPhotoCaptured, onDismiss)
+    camera(cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss)
 }

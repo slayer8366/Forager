@@ -453,7 +453,19 @@ internal class CameraXCaptureSession(
             return
         }
         switch(mode == FlashMode.Torch)
+        // The capture flash, on the installed use case; null before the bind, which cannot be
+        // reached here (installFlash runs after installImageCapture, and without it this returned
+        // above). No mode is carried into a later bind: close resets to Off, a fresh ImageCapture
+        // is already FLASH_MODE_OFF (decision B8, planner ruling 3).
+        imageCapture?.flashMode = mode.imageCaptureFlashMode()
         currentFlashMode = mode
+    }
+
+    /** Decision B's table, the ImageCapture column. Torch lights the torch and fires no capture flash. */
+    private fun FlashMode.imageCaptureFlashMode(): Int = when (this) {
+        FlashMode.Off, FlashMode.Torch -> ImageCapture.FLASH_MODE_OFF
+        FlashMode.Auto -> ImageCapture.FLASH_MODE_AUTO
+        FlashMode.On -> ImageCapture.FLASH_MODE_ON
     }
 
     /**
@@ -484,11 +496,28 @@ internal class CameraXCaptureSession(
                     }
                     val lit = camera.cameraInfo.torchState.value == TorchState.ON
                     Log.w(TAG, "enableTorch($on) failed; the torch is ${if (lit) "on" else "off"}, and the chip now says so.", error)
-                    currentFlashMode = if (lit) FlashMode.Torch else FlashMode.Off
+                    onTorchRequestFailed(lit)
                 }
             },
             ContextCompat.getMainExecutor(appContext),
         )
+    }
+
+    /**
+     * What a failed `enableTorch` leaves reported: the mode matches the hardware. A lit torch is
+     * Torch, whatever was asked, with Torch's capture flash (off). An unlit torch contradicts only
+     * Torch, which becomes Off; Off, Auto and On all have the torch off, so they stand — a
+     * successful change to Auto or On is never overwritten by this. The listener in
+     * [enableTorch] delegates here so the rule is testable without a bound camera.
+     */
+    internal fun onTorchRequestFailed(lit: Boolean) {
+        val resynced = when {
+            lit -> FlashMode.Torch
+            currentFlashMode == FlashMode.Torch -> FlashMode.Off
+            else -> currentFlashMode
+        }
+        imageCapture?.flashMode = resynced.imageCaptureFlashMode()
+        currentFlashMode = resynced
     }
 
     /**

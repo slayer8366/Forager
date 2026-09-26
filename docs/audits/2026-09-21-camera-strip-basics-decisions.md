@@ -140,3 +140,72 @@ Added below the entries above, which are not edited. Cites the dispatch "grid an
 
 Persisting across restarts is a separate, per-case decision under CLAUDE.md's UX defaults. B7a
 is that decision for the grid mode, made by the owner in the dispatch.
+
+---
+
+## Added 2026-09-26, strip Part B dispatch: flash on capture, a self-timer, the save-location chip (B8)
+
+Added below the entries above, which are not edited. Cites the build dispatch preserved as
+`prompts/preserved/2026-09-26-28.md` (intent `2026-09-26-81` in `RECORD.md`) and the planner's
+rulings on its one stop (planner log line 863, quoted verbatim in that intent). Extends B2 and
+B5; builds B3 as written; supersedes nothing.
+
+**Whose decisions these are.** The owner's rulings, 2026-09-26, quoted by the dispatch: *"finish
+the camera to basic functionality. that means populate the camera strip with basic camera tools.
+dealer's choice on what they are, since they will change in the near future anyway."*; "Land the
+stack, then extend" and "Use the recorded plan" (flash on capture, a self-timer and save-location,
+as the abandoned `2026-09-26-02` dispatch named them); *"merge into pre main without device check.
+defer device check for later"*; "One coder, three features in a row". **Everything in B8a to
+B8f below is the planner's choice under that delegation**, not an owner ruling. B1 to B7 stand.
+
+| | Decision (planner, under the owner's delegation) | Departs from the abandoned -02 plan? |
+|---|---|---|
+| **B8a** | **Strip order Flash, Timer, Grid, Location.** Flash hidden without a flash unit, as before; Timer and Location always shown. | No. |
+| **B8b** | **Flash on capture joins torch in the one flash chip** (extends B2). `FlashMode` is Off, Auto, On, Torch, a tap cycling in that order. Each mode sets the torch and the `ImageCapture` flash mode: Off (torch off, `FLASH_MODE_OFF`), Auto (off, `FLASH_MODE_AUTO`), On (off, `FLASH_MODE_ON`), Torch (on, `FLASH_MODE_OFF`). One session only: reset to Off on close, the torch-off-before-unbind order unchanged. No flash unit: refused and logged, as before. The torch-failure resync keeps "the reported mode matches the hardware" and never overwrites a successful change to Auto or On. Glyphs `FlashOff` "Flash off", `FlashAuto` "Flash auto", `FlashOn` "Flash on", `FlashlightOn` "Torch on". | **Yes, one case dropped:** -02 required "a mode set before install is applied on install". See below. |
+| **B8c** | **Self-timer chip**, Off, 3 s, 10 s, one session only, default Off, held by the camera screen. A shutter press with the timer set starts a countdown; the capture happens once at zero, through the existing capture path unchanged. Large centred numerals, upright under `rotateWithDevice`, no pointer input. A second shutter press cancels with no capture, the shutter reading "Cancel timer" meanwhile; Back cancels and closes as before. Changing the timer mid-countdown affects the next press only; the photo count moves only on an actual capture; flash applies at the capture. Glyphs `TimerOff` "Timer off", `Timer3` "Timer 3 seconds", `Timer10` "Timer 10 seconds". | **Yes, where the countdown lives.** See below. |
+| **B8d** | **Location chip: the B3 mirror.** Shows and sets "Automatically Save Location to Photos", one state, no per-shot override. Threaded the way `lockToPortrait` is: `uiState.autoSaveLocationToPhotos` and `onAutoSaveLocationToPhotosChanged`, from `AvailabilityScreen` through `InAppCameraHost`, `InAppCameraSlot` and `CameraXInAppCamera` to `InAppCameraDialog`, as required parameters; it never writes the repository. Content description "Save location: On" / "Save location: Off", and per B3's wording rule it is not called a geotag anywhere. Glyphs `LocationOn`, `LocationOff`. The handler's optimistic update is known and left unchanged. | No. |
+| **B8e** | **Not built:** pinch zoom and zoom buttons, tap to focus or meter, exposure, a lens switch, RAW, aspect ratio, a last-shot thumbnail, and B7d's crosshair. | No. |
+| **B8f** | **Glyph availability:** a named icon that did not resolve at compile time would have stopped the build, with no substitute. All nine resolved: eight from `material-icons-extended`, `LocationOn` from `material-icons-core`, both already on the classpath (planner ruling 5). | No. |
+
+**Why the countdown is not in the ViewModel (B8c's departure).** -02 put it "in the camera's
+ViewModel, or in a plain Kotlin class the ViewModel owns". This build holds a plain Kotlin
+`CaptureCountdown` (package `photo`, no Compose or Android UI imports, testable headless under
+virtual time) in `InAppCameraDialog`, with `remember`, on the dialog's own
+`rememberCoroutineScope()`. The reasons, from the pulse the dispatch cites:
+`InAppCameraViewModel` is Activity-scoped (`MainActivity.kt:147` at `2753a83`; the pulse said
+`:148`) and is not passed to the
+dialog; a ViewModel-held countdown would survive Back unless every exit cancelled it explicitly;
+and hoisting it would touch `MainActivity`, `AvailabilityScreen`, the host and every slot lambda.
+Held by the dialog, anything that removes the dialog cancels its scope and the countdown with it.
+
+**Why "a mode set before install is applied on install" was dropped (B8b's departure;
+planner ruling 3).** It cannot happen in production. `open()`'s bind calls `installImageCapture`
+(`CameraXCaptureSession.kt:280` at `2753a83`) before `installFlash` (`:282`), and `setFlashMode`
+refuses until `installFlash` has run (`:451`). Per CLAUDE.md's "check reachability before
+measuring behaviour" it is not tested, and per "no speculative logic" no code carries a
+pre-install mode. It is replaced by two cases: (a) after the bind, the `ImageCapture`'s flash
+mode is `FLASH_MODE_OFF`; (b) On, then close, then a new bind: the session reports Off and the new
+`ImageCapture` is `FLASH_MODE_OFF`. **Their `ImageCapture` halves cannot fail**, because
+`FLASH_MODE_OFF` is a fresh `ImageCapture`'s own default; (b)'s session half can. What does
+evidence the mapping is the four-row table test and its revert check (completion report). Under
+Robolectric `open()` binds nothing, so "after `open()`" is modelled by the bind's own two calls,
+`installImageCapture` then `installFlash`, in that order.
+
+**Existing tests whose expected values changed, because the behaviour changes on purpose.** None
+was silenced or weakened; each is named in the commit that changed it.
+
+- `InAppCameraDialogTest`, the real-touch flash chip test: "five taps from Off end on Torch"
+  became "five taps from Off end on Auto" (B8b's cycle). Commit `cd38624`.
+- `CameraFlashChipTest`: `a tap asks the session for the next mode, Off to Torch to Off` (two
+  taps) renamed `... Off to Auto to On to Torch to Off` and extended to four taps, each asserting
+  the mode and the glyph (B8b; planner ruling 2). Commit `cd38624`.
+- `InAppCameraDialogTest`: `with no flash unit there is no flash chip, the grid chip comes first,
+  and the shutter is where it was` renamed `... the timer chip comes first and the grid chip
+  second, ...`. It asserts the Timer chip in the first slot and the grid chip in the second, each
+  by its offset along the strip against `STRIP_ROW_HEIGHT`, as precise as the old first-slot
+  check. The no-flash-chip and shutter assertions are unchanged. This is the planner applying
+  B8a, made under the owner's delegation (planner ruling 1). Commit `ca34239`.
+
+**Unverified, and a device item:** whether CameraX honours an `ImageCapture` flash mode while
+the torch is lit. It does not arise in this build, since Torch's capture flash is
+`FLASH_MODE_OFF`, but whether Torch plus a capture fires the flash is on the device list.

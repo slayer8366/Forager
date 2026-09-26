@@ -152,6 +152,8 @@ class InAppCameraDialogTest {
         gridMode: GridMode = GridMode.Off,
         onGridModeChanged: (GridMode) -> Unit = {},
         levelProvider: LevelProvider = FakeLevelProvider(),
+        autoSaveLocationToPhotos: Boolean = true,
+        onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
     ) {
         InAppCameraDialog(
             session = session,
@@ -161,6 +163,8 @@ class InAppCameraDialogTest {
             onDismiss = { dismissals += 1 },
             gridMode = gridMode,
             onGridModeChanged = onGridModeChanged,
+            autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+            onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
             levelProvider = levelProvider,
             statusBarHider = recordingStatusBarHider,
             viewfinder = viewfinder,
@@ -449,6 +453,28 @@ class InAppCameraDialogTest {
     }
 
     /**
+     * **All four chips fit** (decision B8, Closed decision A): in portrait the strip is a row along
+     * the top, and Flash, Timer, Grid and Location each sit inside its bounds, in that order, none
+     * overlapping the next. Robolectric reports zero window insets (CLAUDE.md), so this says the
+     * row holds four chips; it says nothing about the punch-hole cut-out, which is a device item.
+     */
+    @Test
+    fun `in portrait all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG)
+        val chips = tags.map { bounds(it) }
+
+        tags.zip(chips).forEach { (tag, chip) ->
+            assertTrue("$tag inside the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
+        }
+        tags.zip(chips).zipWithNext().forEach { (a, b) ->
+            assertTrue("${a.first} ends before ${b.first} starts: ${a.second} then ${b.second}", a.second.right <= b.second.left)
+        }
+    }
+
+    /**
      * The status bar is hidden on **the Activity's** window, once, and shown again when the camera
      * leaves composition. That restore is the cost this design accepted: while the camera was a
      * `Dialog` the bar came back by the dialog's window being destroyed, with no restore path to
@@ -501,22 +527,31 @@ class InAppCameraDialogTest {
     }
 
     /**
-     * A camera with no flash unit: no flash chip, and the grid chip takes the strip's first place;
-     * nothing else moves. Until the grid chip this test also held "no chip, no strip at all"; the
-     * grid chip is always present, so the camera's strip is never empty now, and the empty case is
-     * held at the container, in `CameraStripTest`.
+     * A camera with no flash unit: no flash chip, so the Timer chip takes the strip's first place
+     * and the grid chip the second; nothing else moves. Until the grid chip this test also held "no
+     * chip, no strip at all"; the grid chip is always present, so the camera's strip is never empty
+     * now, and the empty case is held at the container, in `CameraStripTest`.
+     *
+     * Changed 2026-09-26 (decision B8, applying Closed decision A's order Flash, Timer, Grid,
+     * Location; planner ruling 1, planner log line 863): was `with no flash unit there is no flash
+     * chip, the grid chip comes first, ...`, asserting the grid chip in the first slot. Each slot is
+     * checked the way the first one was, by its offset along the strip against [STRIP_ROW_HEIGHT].
      */
     @Test
-    fun `with no flash unit there is no flash chip, the grid chip comes first, and the shutter is where it was`() {
+    fun `with no flash unit there is no flash chip, the timer chip comes first and the grid chip second, and the shutter is where it was`() {
         composeRule.setContent { Subject(FakeCameraCaptureSession(flashUnitOnOpen = false)) }
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithTag(CAMERA_FLASH_CHIP_TAG).assertCountEquals(0)
         val strip = bounds(CAMERA_STRIP_TAG)
+        val timer = bounds(CAMERA_TIMER_CHIP_TAG)
         val grid = bounds(CAMERA_GRID_CHIP_TAG)
-        // The first slot, not the second: a chip's node sits inside its 48 dp touch target, so its
-        // left edge is a few dp in, and a second slot would start a whole row plus the spacing along.
-        assertTrue("the grid chip in the strip's first slot: $grid in $strip", grid.left - strip.left < STRIP_ROW_HEIGHT)
+        // Slot n starts n rows plus n spacings along the strip, and a chip's node sits a few dp
+        // inside its 48 dp touch target. So the first slot is an offset under one row; the second
+        // is at least one row plus the spacing, and under two rows plus the spacing.
+        assertTrue("the timer chip in the strip's first slot: $timer in $strip", timer.left - strip.left < STRIP_ROW_HEIGHT)
+        assertTrue("the grid chip not in the first slot: $grid in $strip", grid.left - strip.left >= STRIP_ROW_HEIGHT + Spacing.sm)
+        assertTrue("the grid chip in the second slot: $grid in $strip", grid.left - strip.left < STRIP_ROW_HEIGHT * 2 + Spacing.sm)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         assertEquals((frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
@@ -549,7 +584,8 @@ class InAppCameraDialogTest {
             composeRule.waitForIdle()
             assertEquals("touch ${i + 1} at $point reached the chip", i + 1, session.setFlashModeCalls)
         }
-        assertEquals("five taps from Off end on Torch", FlashMode.Torch, session.flashMode)
+        // Changed 2026-09-26 (decision B8): the cycle is Off, Auto, On, Torch, so five taps from Off end on Auto.
+        assertEquals("five taps from Off end on Auto", FlashMode.Auto, session.flashMode)
     }
 
     /**
