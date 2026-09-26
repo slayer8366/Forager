@@ -50,6 +50,36 @@ original main()/render_check() were never vendored) but not a copy of
 anything that survives. Their argument surface, output format, and
 check ordering are this file's own design, not a recovery of what
 check_record.py's CLI used to look like.
+
+Claude-kit v0.2 addition: the dispatch-note outcome `stopped`, and the
+`continuation` entry kind. A continuation records a dispatch that
+carries on an open intent without changing its scope boundary,
+predictions or finish line. It requires Kind, ID, Timestamp, Continues,
+Dispatch-file, Reason and Changes, and may not carry Closes,
+Superseded-by, Outcome, Finish line or either prediction field.
+Continues must name an intent that is still open at that point: an
+intent earlier in the file that no earlier terminal closes. A
+continuation opens and closes nothing, so the intent's single terminal
+closes the whole chain. The order of a build's commits (the sweep, then
+the dispatch's store copy with its intent or continuation, then the
+work) is a written rule in coder.md and is not checked here: CI checks
+out a single commit with no history.
+
+Claude-kit review fix R1 addition: the entry kinds `merge` and `revert`,
+a set of terminal outcomes, and the dispatch-note outcome `merged`. A
+merge entry records one merge commit on a protected branch's first-
+parent chain (PR, Head, Base, Merge-commit, Pre-merge, Backup, Merged-by,
+Carries); the next build's sweep writes one for each merge the record
+does not hold yet. A revert entry records the revert of a merge that is
+left out before a promotion; its Reverts must name a merge entry earlier
+in the file, checked by position like a continuation's Continues. Both
+open and close nothing and may not carry Closes, Superseded-by, Outcome,
+Finish line or either prediction field. A terminal's Outcome must be
+one of completed, partial, superseded, abandoned; `partial` requires a
+non-empty Deferred field (the commits reverted on the feature branch
+and the check that failed) and `completed` may not carry one. A
+dispatch-note with Outcome `merged` claims the store copy of a merge
+dispatch, which opens no intent.
 """
 import re
 import subprocess
@@ -71,6 +101,11 @@ INTENT_REQUIRED = [
 TERMINAL_REQUIRED = [
     "Kind", "ID", "Timestamp", "Closes", "Outcome", "Observed", "Deviations",
 ]
+# Claude-kit review fix R1 addition (see module docstring): the only
+# outcomes a terminal may declare. `partial` needs DEFERRED_FIELD;
+# `completed` may not carry it.
+TERMINAL_OUTCOMES = {"completed", "partial", "superseded", "abandoned"}
+DEFERRED_FIELD = "Deferred"
 
 ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{2}$")
 FIELD_RE = re.compile(r"^\*\*(.+?):\*\*\s?(.*)$")
@@ -94,7 +129,7 @@ OUTCOME_FIELD = "Prediction (outcome — planner)"
 SUPPLIED_FIELD = "Prediction-outcome-supplied"
 
 
-# Forager addition (operator ruling, 2026-09-22; RECORD.md 2026-09-22-03).
+# Claude-kit v0.1 addition.
 # A dispatch-note records a dispatch that opens no intent -- a pulse, a
 # build the operator declined, a live exercise of the dispatch hook -- so
 # the prompt the hook preserved for it is still claimed by an entry. It
@@ -103,7 +138,9 @@ SUPPLIED_FIELD = "Prediction-outcome-supplied"
 NOTE_KIND = "dispatch-note"
 NOTE_REQUIRED = ["Kind", "ID", "Dispatch-file", "Type", "Outcome", "Report"]
 NOTE_TYPES = {"build", "device", "pulse"}
-NOTE_OUTCOMES = {"answered", "declined", "exercise"}
+# `merged` (Claude-kit review fix R1) claims the store copy of a merge
+# dispatch, which opens no intent; the merge itself is a `merge` entry.
+NOTE_OUTCOMES = {"answered", "declined", "exercise", "stopped", "merged"}
 NOTE_FORBIDDEN = ["Closes", "Superseded-by", "Finish line",
                   "Prediction (outcome — planner)",
                   "Prediction (mechanism — coder)"]
@@ -131,6 +168,185 @@ def _validate_note(fields, entry_id, label_for_errors):
             errors.append(f"{NOTE_KIND} {label_for_errors}: carries field "
                           f"{label!r}, but a dispatch-note opens and closes "
                           f"nothing and has no prediction or finish line")
+    return errors
+
+
+# Claude-kit v0.2 addition (see module docstring).
+# A continuation carries on an open intent under a new dispatch. Its
+# Continues field must name an intent still open at that point; that is
+# checked by position in _check_continues, after every entry is parsed.
+CONT_KIND = "continuation"
+CONT_REQUIRED = ["Kind", "ID", "Timestamp", "Continues", "Dispatch-file",
+                 "Reason", "Changes"]
+CONT_FORBIDDEN = ["Closes", "Superseded-by", "Outcome", "Finish line",
+                  "Prediction (outcome — planner)",
+                  "Prediction (mechanism — coder)"]
+
+
+def _validate_continuation(fields, entry_id, label_for_errors):
+    errors = []
+    if entry_id and not ID_RE.match(entry_id):
+        errors.append(f"{CONT_KIND} {entry_id}: malformed ID (expected "
+                      f"YYYY-MM-DD-NN)")
+    for req_label in CONT_REQUIRED:
+        if not fields.get(req_label, "").strip():
+            errors.append(f"{CONT_KIND} {label_for_errors}: missing required "
+                          f"field {req_label!r}")
+    for label in CONT_FORBIDDEN:
+        if label in fields:
+            errors.append(f"{CONT_KIND} {label_for_errors}: carries field "
+                          f"{label!r}, but a continuation opens and closes "
+                          f"nothing; the scope, predictions and finish line "
+                          f"stay the intent's")
+    return errors
+
+
+def _check_continues(entries):
+    """Errors for continuations whose Continues does not name an intent
+    still open at the continuation's position. entries is in file order.
+    The first entry holding an ID is the one compared; a duplicate ID is
+    reported separately."""
+    errors = []
+    first = {}
+    for pos, e in enumerate(entries):
+        if e["id"] and e["id"] not in first:
+            first[e["id"]] = (pos, e["kind"])
+    for pos, e in enumerate(entries):
+        if e["kind"] != CONT_KIND:
+            continue
+        target = e["fields"].get("Continues", "").strip()
+        if not target:
+            continue  # already reported as a missing required field
+        label = e["id"] or "(no ID)"
+        found = first.get(target)
+        if found is None:
+            errors.append(f"{CONT_KIND} {label}: Continues {target!r} names "
+                          f"no entry in the record")
+            continue
+        target_pos, target_kind = found
+        if target_kind != "intent":
+            errors.append(f"{CONT_KIND} {label}: Continues {target!r} names "
+                          f"a {target_kind or 'Kind-less'} entry, not an intent")
+            continue
+        if target_pos > pos:
+            errors.append(f"{CONT_KIND} {label}: Continues {target!r} names "
+                          f"an intent that appears later in the file")
+            continue
+        closers = [t["id"] or "(no ID)" for t in entries[:pos]
+                   if t["kind"] == "terminal"
+                   and t["fields"].get("Closes", "").strip() == target]
+        if closers:
+            errors.append(f"{CONT_KIND} {label}: Continues {target!r} names "
+                          f"an intent already closed by terminal "
+                          f"{', '.join(closers)}, earlier in the file")
+    return errors
+
+
+# Claude-kit review fix R1 addition (see module docstring).
+# A merge entry records one merge commit on a protected branch; a revert
+# entry records the revert of a recorded merge. Neither opens or closes
+# an intent. Reverts is checked by position in _check_reverts, after
+# every entry is parsed.
+MERGE_KIND = "merge"
+MERGE_REQUIRED = ["Kind", "ID", "Timestamp", "PR", "Head", "Base",
+                  "Merge-commit", "Pre-merge", "Backup", "Merged-by",
+                  "Carries"]
+REVERT_KIND = "revert"
+REVERT_REQUIRED = ["Kind", "ID", "Timestamp", "Reverts", "Revert-commit",
+                   "PR", "Reason", "Decided-by"]
+MERGE_FORBIDDEN = ["Closes", "Superseded-by", "Outcome", "Finish line",
+                   "Prediction (outcome — planner)",
+                   "Prediction (mechanism — coder)"]
+SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+PR_RE = re.compile(r"^\d+$")
+MERGED_BY_RE = re.compile(r"^(owner|coder\s+\S.*)$")
+
+
+def _validate_merge_like(kind, required, fields, entry_id, label_for_errors):
+    errors = []
+    if entry_id and not ID_RE.match(entry_id):
+        errors.append(f"{kind} {entry_id}: malformed ID (expected "
+                      f"YYYY-MM-DD-NN)")
+    for req_label in required:
+        if not fields.get(req_label, "").strip():
+            errors.append(f"{kind} {label_for_errors}: missing required "
+                          f"field {req_label!r}")
+    pr = fields.get("PR", "").strip()
+    if pr and not PR_RE.match(pr):
+        errors.append(f"{kind} {label_for_errors}: PR {pr!r} is not a "
+                      f"pull request number (digits only)")
+    for label in MERGE_FORBIDDEN:
+        if label in fields:
+            errors.append(f"{kind} {label_for_errors}: carries field "
+                          f"{label!r}, but a {kind} entry opens and closes "
+                          f"nothing and has no prediction or finish line")
+    return errors
+
+
+def _validate_merge(fields, entry_id, label_for_errors):
+    errors = _validate_merge_like(MERGE_KIND, MERGE_REQUIRED, fields,
+                                  entry_id, label_for_errors)
+    shas = {}
+    for label in ("Merge-commit", "Pre-merge"):
+        value = fields.get(label, "").strip()
+        if not value:
+            continue  # already reported as a missing required field
+        if not SHA_RE.match(value):
+            errors.append(f"{MERGE_KIND} {label_for_errors}: {label} "
+                          f"{value!r} is not 40 lowercase hex characters")
+        shas[label] = value
+    if len(shas) == 2 and shas["Merge-commit"] == shas["Pre-merge"]:
+        errors.append(f"{MERGE_KIND} {label_for_errors}: Merge-commit and "
+                      f"Pre-merge are the same commit {shas['Pre-merge']!r}; "
+                      f"Pre-merge is the merge commit's first parent")
+    merged_by = fields.get("Merged-by", "").strip()
+    if merged_by and not MERGED_BY_RE.match(merged_by):
+        errors.append(f"{MERGE_KIND} {label_for_errors}: Merged-by "
+                      f"{merged_by!r} is neither 'owner' nor 'coder' followed "
+                      f"by the dispatch's store file")
+    return errors
+
+
+def _validate_revert(fields, entry_id, label_for_errors):
+    errors = _validate_merge_like(REVERT_KIND, REVERT_REQUIRED, fields,
+                                  entry_id, label_for_errors)
+    value = fields.get("Revert-commit", "").strip()
+    if value and not SHA_RE.match(value):
+        errors.append(f"{REVERT_KIND} {label_for_errors}: Revert-commit "
+                      f"{value!r} is not 40 lowercase hex characters")
+    return errors
+
+
+def _check_reverts(entries):
+    """Errors for reverts whose Reverts does not name a merge entry
+    earlier in the file. entries is in file order. The first entry
+    holding an ID is the one compared; a duplicate ID is reported
+    separately."""
+    errors = []
+    first = {}
+    for pos, e in enumerate(entries):
+        if e["id"] and e["id"] not in first:
+            first[e["id"]] = (pos, e["kind"])
+    for pos, e in enumerate(entries):
+        if e["kind"] != REVERT_KIND:
+            continue
+        target = e["fields"].get("Reverts", "").strip()
+        if not target:
+            continue  # already reported as a missing required field
+        label = e["id"] or "(no ID)"
+        found = first.get(target)
+        if found is None:
+            errors.append(f"{REVERT_KIND} {label}: Reverts {target!r} names "
+                          f"no entry in the record")
+            continue
+        target_pos, target_kind = found
+        if target_kind != MERGE_KIND:
+            errors.append(f"{REVERT_KIND} {label}: Reverts {target!r} names "
+                          f"a {target_kind or 'Kind-less'} entry, not a merge")
+            continue
+        if target_pos > pos:
+            errors.append(f"{REVERT_KIND} {label}: Reverts {target!r} names "
+                          f"a merge entry that appears later in the file")
     return errors
 
 
@@ -202,6 +418,30 @@ def validate_entries(text):
             entries.append({"kind": kind, "id": entry_id, "fields": fields})
             continue
 
+        if kind == CONT_KIND:
+            errors.extend(_validate_continuation(fields, entry_id,
+                                                 label_for_errors))
+            if entry_id:
+                if entry_id in seen_ids:
+                    errors.append(f"duplicate ID {entry_id}: used by entry "
+                                  f"#{seen_ids[entry_id] + 1} and entry #{i + 1}")
+                else:
+                    seen_ids[entry_id] = i
+            entries.append({"kind": kind, "id": entry_id, "fields": fields})
+            continue
+
+        if kind in (MERGE_KIND, REVERT_KIND):
+            validator = _validate_merge if kind == MERGE_KIND else _validate_revert
+            errors.extend(validator(fields, entry_id, label_for_errors))
+            if entry_id:
+                if entry_id in seen_ids:
+                    errors.append(f"duplicate ID {entry_id}: used by entry "
+                                  f"#{seen_ids[entry_id] + 1} and entry #{i + 1}")
+                else:
+                    seen_ids[entry_id] = i
+            entries.append({"kind": kind, "id": entry_id, "fields": fields})
+            continue
+
         if kind not in ("intent", "terminal"):
             errors.append(f"{label_for_errors}: missing or invalid Kind "
                           f"(got {kind!r})")
@@ -237,6 +477,19 @@ def validate_entries(text):
                         f"since nothing there can legitimately be "
                         f"outstanding or absent")
             outcome = fields.get("Outcome", "").strip()
+            if outcome and outcome not in TERMINAL_OUTCOMES:
+                errors.append(f"terminal {label_for_errors}: Outcome "
+                              f"{outcome!r} is not one of "
+                              f"{sorted(TERMINAL_OUTCOMES)}")
+            if outcome == "partial" and not fields.get(DEFERRED_FIELD, "").strip():
+                errors.append(f"terminal {label_for_errors}: outcome "
+                              f"'partial' requires a non-empty field "
+                              f"{DEFERRED_FIELD!r} naming the reverted "
+                              f"commits and the failing check")
+            if outcome == "completed" and DEFERRED_FIELD in fields:
+                errors.append(f"terminal {label_for_errors}: outcome "
+                              f"'completed' carries field {DEFERRED_FIELD!r}; "
+                              f"a build with deferrals is 'partial'")
             if outcome == "superseded" and not fields.get("Superseded-by", "").strip():
                 errors.append(f"terminal {label_for_errors}: outcome "
                               f"'superseded' requires field 'Superseded-by'")
@@ -266,6 +519,9 @@ def validate_entries(text):
                           f"intent ID (closes={closes!r})")
         else:
             closed_ids.add(closes)
+
+    errors.extend(_check_continues(entries))
+    errors.extend(_check_reverts(entries))
 
     # A later-supplied outcome prediction cannot be written into the
     # sentinel's own intent entry -- that entry is already committed, and
@@ -598,6 +854,41 @@ def _minimal_note(id_="2026-01-01-05", **overrides):
         "Kind": "dispatch-note", "ID": id_,
         "Dispatch-file": "preserved/2026-01-01-05.md", "Type": "pulse",
         "Outcome": "answered", "Report": "none",
+    }
+    fields.update(overrides)
+    return _render_entry(fields)
+
+
+def _minimal_continuation(id_="2026-01-01-03", continues="2026-01-01-01",
+                          **overrides):
+    fields = {
+        "Kind": "continuation", "ID": id_,
+        "Timestamp": "2026-01-01T00:00:30Z", "Continues": continues,
+        "Dispatch-file": "preserved/2026-01-01-03.md",
+        "Reason": "r", "Changes": "none",
+    }
+    fields.update(overrides)
+    return _render_entry(fields)
+
+
+def _minimal_merge(id_="2026-01-01-06", **overrides):
+    fields = {
+        "Kind": "merge", "ID": id_, "Timestamp": "2026-01-01T00:02:00Z",
+        "PR": "7", "Head": "feature", "Base": "pre-main",
+        "Merge-commit": "a" * 40, "Pre-merge": "b" * 40,
+        "Backup": "2026-01-01-01",
+        "Merged-by": "coder preserved/2026-01-01-06.md",
+        "Carries": "2026-01-01-01, 2026-01-01-02",
+    }
+    fields.update(overrides)
+    return _render_entry(fields)
+
+
+def _minimal_revert(id_="2026-01-01-07", reverts="2026-01-01-06", **overrides):
+    fields = {
+        "Kind": "revert", "ID": id_, "Timestamp": "2026-01-01T00:03:00Z",
+        "Reverts": reverts, "Revert-commit": "c" * 40, "PR": "8",
+        "Reason": "r", "Decided-by": "owner",
     }
     fields.update(overrides)
     return _render_entry(fields)
@@ -950,7 +1241,7 @@ def render_check():
           "intent ID is accepted",
           check18)
 
-    # ---- Checks 19-23: dispatch-note entries (Forager addition) ------------
+    # ---- Checks 19-23: dispatch-note entries (Claude-kit v0.1 addition) ---------
     def check19():
         text = _minimal_record(_minimal_intent(), _minimal_note())
         entries, errors, unterminated, _ = validate_entries(text)
@@ -1016,7 +1307,270 @@ def render_check():
           "the intent it names",
           check23)
 
-    total = 23
+    # ---- Checks 24-30: outcome `stopped` and continuation entries --------
+    # ---- (Claude-kit v0.2 addition) ----------------------------------------
+    def check24():
+        text = _minimal_record(_minimal_note(Outcome="stopped"))
+        _, errors, _, _ = validate_entries(text)
+        assert not errors, (
+            f"a dispatch-note with Outcome 'stopped' produced errors: {errors}")
+
+    check("check24_dispatch_note_outcome_stopped_accepted",
+          "a dispatch-note whose Outcome is 'stopped' is rejected",
+          check24)
+
+    def check25():
+        text = _minimal_record(_minimal_intent(), _minimal_continuation())
+        entries, errors, unterminated, _ = validate_entries(text)
+        assert not errors, f"a well-formed continuation produced errors: {errors}"
+        assert len(entries) == 2, f"expected 2 entries, got {len(entries)}"
+        assert unterminated == ["2026-01-01-01"], (
+            f"a continuation was counted as closing its intent: {unterminated}")
+
+    check("check25_well_formed_continuation_accepted",
+          "a well-formed continuation of an open intent is rejected, or "
+          "closes the intent it continues",
+          check25)
+
+    def check26():
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_continuation(Reason=None))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-03" in e and "'Reason'" in e for e in errors), (
+            f"continuation missing 'Reason' not reported by ID and field: {errors}")
+
+    check("check26_continuation_missing_field_names_fault",
+          "a continuation missing a required field is accepted, or the "
+          "error does not name both the entry and the field",
+          check26)
+
+    def check27():
+        text = _minimal_record(_minimal_intent(), _minimal_terminal(),
+                               _minimal_continuation())
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-03" in e and "'2026-01-01-01'" in e
+                   and "already closed" in e and "2026-01-01-02" in e
+                   for e in errors), (
+            f"a continuation after its intent's terminal was accepted: {errors}")
+
+    check("check27_continuation_after_terminal_rejected",
+          "a continuation whose intent an earlier terminal already closed "
+          "is accepted",
+          check27)
+
+    def check28():
+        text = _minimal_record(_minimal_intent(), _minimal_note(),
+                               _minimal_continuation(continues="2026-01-01-05"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-03" in e and "'2026-01-01-05'" in e
+                   and "not an intent" in e for e in errors), (
+            f"a continuation naming a dispatch-note was accepted: {errors}")
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_continuation(continues="2026-01-01-99"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-03" in e and "'2026-01-01-99'" in e
+                   and "names no entry" in e for e in errors), (
+            f"a continuation naming an unknown ID was accepted: {errors}")
+
+    check("check28_continues_must_name_an_intent",
+          "a continuation whose Continues names a dispatch-note, or an ID "
+          "no entry has, is accepted",
+          check28)
+
+    def check29():
+        text = _minimal_record(
+            _minimal_intent(),
+            _minimal_continuation(Closes="2026-01-01-01", Outcome="completed"))
+        _, errors, unterminated, _ = validate_entries(text)
+        for label in ("'Closes'", "'Outcome'"):
+            assert any("2026-01-01-03" in e and label in e for e in errors), (
+                f"a continuation carrying {label} was accepted: {errors}")
+        assert unterminated == ["2026-01-01-01"], (
+            f"a continuation's Closes field closed an intent: {unterminated}")
+
+    check("check29_continuation_cannot_close_or_carry_outcome",
+          "a continuation carrying Closes or Outcome is accepted, or closes "
+          "the intent it names",
+          check29)
+
+    def check30():
+        text = _minimal_record(
+            _minimal_intent(),
+            _minimal_continuation(id_="2026-01-01-03"),
+            _minimal_continuation(id_="2026-01-01-04",
+                                  **{"Dispatch-file": "preserved/2026-01-01-04.md"}),
+            _minimal_terminal(id_="2026-01-01-06"))
+        entries, errors, unterminated, _ = validate_entries(text)
+        assert not errors, f"an intent-continuation chain produced errors: {errors}"
+        assert len(entries) == 4, f"expected 4 entries, got {len(entries)}"
+        assert unterminated == [], (
+            f"the chain's single terminal did not close its intent: {unterminated}")
+        ok, dup = check_duplicate_terminals(entries)
+        assert ok, f"the chain was reported as closed twice: {dup}"
+
+    check("check30_intent_continuations_terminal_chain_valid",
+          "a chain of intent, continuation, continuation, terminal is "
+          "rejected, or leaves the intent unterminated",
+          check30)
+
+    # ---- Checks 31-39: merge and revert entries, the terminal outcome set,
+    # ---- outcome `partial` with Deferred, note outcome `merged`
+    # ---- (Claude-kit review fix R1) -------------------------------------
+    def check31():
+        text = _minimal_record(_minimal_intent(), _minimal_merge())
+        entries, errors, unterminated, _ = validate_entries(text)
+        assert not errors, f"a well-formed merge entry produced errors: {errors}"
+        assert len(entries) == 2, f"expected 2 entries, got {len(entries)}"
+        assert unterminated == ["2026-01-01-01"], (
+            f"a merge entry was counted as closing an intent: {unterminated}")
+        entries, errors, unterminated, _ = validate_entries(
+            _minimal_record(_minimal_merge()))
+        assert not errors, f"a merge entry on its own produced errors: {errors}"
+        assert unterminated == [], (
+            f"a merge entry was counted as opening an intent: {unterminated}")
+
+    check("check31_well_formed_merge_entry_accepted",
+          "a well-formed merge entry is rejected as an invalid Kind, or is "
+          "counted as opening or closing an intent",
+          check31)
+
+    def check32():
+        text = _minimal_record(_minimal_merge(PR=None))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-06" in e and "'PR'" in e for e in errors), (
+            f"merge entry missing 'PR' not reported by ID and field: {errors}")
+
+    check("check32_merge_entry_missing_field_names_fault",
+          "a merge entry missing a required field is accepted, or the error "
+          "does not name both the entry and the field",
+          check32)
+
+    def check33():
+        for bad in ("abc123", "A" * 40, "a" * 39):
+            text = _minimal_record(_minimal_merge(**{"Merge-commit": bad}))
+            _, errors, _, _ = validate_entries(text)
+            assert any("2026-01-01-06" in e and "Merge-commit" in e
+                       and repr(bad) in e for e in errors), (
+                f"Merge-commit {bad!r} (not 40 lowercase hex) was accepted: "
+                f"{errors}")
+
+    check("check33_merge_commit_must_be_40_lowercase_hex",
+          "a merge entry whose Merge-commit is not 40 lowercase hex "
+          "characters is accepted, or the error does not name the entry, "
+          "the field and the value",
+          check33)
+
+    def check34():
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_merge(Closes="2026-01-01-01"))
+        _, errors, unterminated, _ = validate_entries(text)
+        assert any("2026-01-01-06" in e and "'Closes'" in e for e in errors), (
+            f"a merge entry carrying Closes was accepted: {errors}")
+        assert unterminated == ["2026-01-01-01"], (
+            f"a merge entry's Closes field closed an intent: {unterminated}")
+
+    check("check34_merge_entry_cannot_close_an_intent",
+          "a merge entry carrying a Closes field is accepted, or closes the "
+          "intent it names",
+          check34)
+
+    def check35():
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_revert(reverts="2026-01-01-01"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-07" in e and "'2026-01-01-01'" in e
+                   and "not a merge" in e for e in errors), (
+            f"a revert naming an intent was accepted: {errors}")
+        text = _minimal_record(_minimal_merge(),
+                               _minimal_revert(reverts="2026-01-01-99"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-07" in e and "'2026-01-01-99'" in e
+                   and "names no entry" in e for e in errors), (
+            f"a revert naming an unknown ID was accepted: {errors}")
+        text = _minimal_record(_minimal_revert(), _minimal_merge())
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-07" in e and "'2026-01-01-06'" in e
+                   and "later" in e for e in errors), (
+            f"a revert naming a merge entry later in the file was accepted: "
+            f"{errors}")
+        text = _minimal_record(_minimal_merge(), _minimal_revert())
+        entries, errors, unterminated, _ = validate_entries(text)
+        assert not errors, f"a well-formed revert produced errors: {errors}"
+        assert len(entries) == 2 and unterminated == [], (
+            f"a revert entry was miscounted: {len(entries)} entries, "
+            f"unterminated {unterminated}")
+
+    check("check35_reverts_must_name_an_earlier_merge_entry",
+          "a revert whose Reverts names an intent, an ID no entry has, or a "
+          "merge entry later in the file is accepted; or a well-formed "
+          "revert of an earlier merge is rejected",
+          check35)
+
+    def check36():
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_terminal(outcome="partial"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-02" in e and "'partial'" in e
+                   and "Deferred" in e for e in errors), (
+            f"a terminal with Outcome 'partial' and no Deferred field was "
+            f"accepted: {errors}")
+        text = _minimal_record(
+            _minimal_intent(),
+            _minimal_terminal(outcome="partial",
+                              Deferred="commit abc1234, tests/test_x.py"))
+        _, errors, unterminated, _ = validate_entries(text)
+        assert not errors, (
+            f"a terminal with Outcome 'partial' and a Deferred field produced "
+            f"errors: {errors}")
+        assert unterminated == [], (
+            f"a 'partial' terminal did not close its intent: {unterminated}")
+
+    check("check36_partial_requires_deferred",
+          "a terminal whose Outcome is 'partial' without a non-empty "
+          "Deferred field is accepted, or one with Deferred is rejected or "
+          "does not close its intent",
+          check36)
+
+    def check37():
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_terminal(Deferred="commit abc1234"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-02" in e and "'completed'" in e
+                   and "Deferred" in e for e in errors), (
+            f"a terminal with Outcome 'completed' carrying Deferred was "
+            f"accepted: {errors}")
+
+    check("check37_completed_cannot_carry_deferred",
+          "a terminal whose Outcome is 'completed' but which carries a "
+          "Deferred field is accepted",
+          check37)
+
+    def check38():
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_terminal(outcome="finished"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-02" in e and "Outcome" in e
+                   and "'finished'" in e for e in errors), (
+            f"a terminal with an Outcome outside completed/partial/"
+            f"superseded/abandoned was accepted: {errors}")
+
+    check("check38_terminal_rejects_unknown_outcome",
+          "a terminal whose Outcome is not completed, partial, superseded "
+          "or abandoned is accepted, or the error does not name the entry "
+          "and the value",
+          check38)
+
+    def check39():
+        text = _minimal_record(_minimal_note(Outcome="merged"))
+        _, errors, _, _ = validate_entries(text)
+        assert not errors, (
+            f"a dispatch-note with Outcome 'merged' produced errors: {errors}")
+
+    check("check39_dispatch_note_outcome_merged_accepted",
+          "a dispatch-note whose Outcome is 'merged' is rejected",
+          check39)
+
+    total = 39
     print(f"\n{'FAIL' if failures else 'PASS'}: {len(failures)} of "
           f"{total} checks failed{': ' + ', '.join(failures) if failures else ''}")
     return 1 if failures else 0

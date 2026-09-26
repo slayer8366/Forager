@@ -1,4 +1,4 @@
-"""dispatch_guard.py: step 4. Crafted Agent payloads against a throwaway
+"""dispatch_guard.py. Crafted Agent payloads against a throwaway
 git repository holding the real checkers."""
 import datetime
 import os
@@ -8,13 +8,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness import HOOKS, run_hook
+from harness import HOOKS, TEST_CONFIG, run_hook, slow_path, write_sleeper
 
 HOOK = "dispatch_guard.py"
+PREFIX = TEST_CONFIG["guard_env_prefix"]
 REPO_ROOT = HOOKS.parent.parent
 
 BUILD_SECTIONS = ["Role", "Base and state", "Scope boundary",
-                  "Closed decisions (operator, 2026-09-22)", "Prediction",
+                  "Closed decisions (operator)", "Prediction",
                   "Finish line and abort conditions", "Checks", "Out of scope",
                   "Device items"]
 PULSE_SECTIONS = ["Role", "Base and state", "Rules", "Questions"]
@@ -115,9 +116,9 @@ class DispatchGuard(unittest.TestCase):
         self.assertIn("check_prompts.py", reason)
         self.assertIn("no RECORD.md entry", reason)
 
-    # Flag 1 (operator ruling, 2026-09-22): a live test showed the planner
-    # dispatching the built-in general-purpose agent, which then ran an MCP
-    # call. Only the named subagents may be dispatched.
+    # A built-in agent carries every tool, MCP included, so a read-only
+    # planner could act through it. Only the configured subagents may be
+    # dispatched.
     def test_only_coder_and_pulse_may_be_dispatched(self):
         for target in ("general-purpose", "Explore", "Plan", "statusline-setup",
                        "claude", "auditor"):
@@ -136,8 +137,8 @@ class DispatchGuard(unittest.TestCase):
         self.assertIn("may not be dispatched", reason)
         self.assertEqual(self.written(), [])
 
-    # Operator ruling, 2026-09-22: Type binds to target. Before this, a
-    # pulse-typed dispatch to coder ran without approval (decision B bypass).
+    # Type binds to target: unbound, a pulse-typed dispatch to coder would
+    # run without the approval builds need.
     def test_type_and_target_mismatch_blocked(self):
         cases = (("pulse", PULSE_SECTIONS, "coder", "'pulse'"),
                  ("build", BUILD_SECTIONS, "pulse", "'coder'"),
@@ -160,6 +161,167 @@ class DispatchGuard(unittest.TestCase):
                                       "tool_input": {"command": "git log"}})
         self.assertIsNone(decision)
 
+    # Values from .claude/kit.json
+    def test_agents_types_and_sections_come_from_config(self):
+        config = dict(TEST_CONFIG, dispatchable_agents=["coder", "reader"],
+                      agent_roles={"coder": "coder", "reader": "pulse"},
+                      type_targets={"pulse": "reader", "build": "coder", "device": "coder"},
+                      required_sections={"pulse": ["Role", "Question"],
+                                         "build": ["Role", "Plan"],
+                                         "device": ["Role", "Plan"]})
+
+        def decide(text, target):
+            return run_hook(HOOK, agent(text, target, cwd=str(self.repo)), config=config)
+        decision, reason = decide(prompt("pulse", ["Role", "Question"]), "reader")
+        self.assertEqual(decision, "allow", reason)
+        decision, reason = decide(prompt("build", ["Role", "Plan"]), "coder")
+        self.assertEqual(decision, "ask", reason)
+        self.assertEqual(len(self.written()), 2)
+        decision, reason = decide(prompt("pulse", ["Role", "Question"]), "pulse")
+        self.assertEqual(decision, "deny")
+        self.assertIn("subagent type 'pulse' may not be dispatched", reason)
+        decision, reason = decide(prompt("pulse", PULSE_SECTIONS), "reader")
+        self.assertEqual(decision, "deny")
+        self.assertIn("missing 1 required section(s): Question.", reason)
+        self.assertEqual(len(self.written()), 2)
+
+    # Approval fails closed: a Type asks the operator unless the config
+    # exempts it by name.
+    def test_type_not_exempt_asks(self):
+        config = dict(TEST_CONFIG,
+                      type_targets=dict(TEST_CONFIG["type_targets"], review="coder"),
+                      required_sections=dict(TEST_CONFIG["required_sections"],
+                                             review=["Role", "Plan"]))
+        decision, reason = run_hook(HOOK, agent(prompt("review", ["Role", "Plan"]), "coder",
+                                                cwd=str(self.repo)), config=config)
+        self.assertEqual(decision, "ask", reason)
+        self.assertIn("Type 'review'", reason)
+        self.assertIn("Operator approval required", reason)
+        self.assertNotIn("pulse", reason.split("\n")[0])
+        self.assertEqual(len(self.written()), 1)
+
+    def test_approval_exemptions_come_from_config(self):
+        def decide(config, type_, sections, target):
+            return run_hook(HOOK, agent(prompt(type_, sections), target, cwd=str(self.repo)),
+                            config=config)
+        none_exempt = dict(TEST_CONFIG, approval_exempt_types=[])
+        decision, reason = decide(none_exempt, "pulse", PULSE_SECTIONS, "pulse")
+        self.assertEqual(decision, "ask", reason)
+        self.assertIn("Type 'pulse'", reason)
+        build_exempt = dict(TEST_CONFIG, approval_exempt_types=["pulse", "build"])
+        decision, reason = decide(build_exempt, "build", BUILD_SECTIONS, "coder")
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("Type 'build'", reason)
+        self.assertIn("approval_exempt_types", reason)
+        self.assertNotIn("pulse", reason.split("\n")[0])
+        decision, reason = decide(build_exempt, "device", BUILD_SECTIONS, "coder")
+        self.assertEqual(decision, "ask", reason)
+
+    def test_checkers_are_found_at_the_root_only(self):
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("check_prompts.py exit ", reason)
+        tools = self.repo / "tools"
+        tools.mkdir()
+        for name in ("check_record.py", "check_prompts.py"):
+            (self.repo / name).rename(tools / name)
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("check_prompts.py not found at the repository root", reason)
+
+    # T1: every worktree of a clone draws saved-dispatch names from one
+    # sequence, a locked counter in the shared git directory.
+    def worktree(self):
+        parent = Path(tempfile.mkdtemp(prefix="dispatch_guard_wt_"))
+        self.addCleanup(shutil.rmtree, parent, ignore_errors=True)
+        path = parent / "wt"
+        subprocess.run(["git", "-C", str(self.repo), "worktree", "add", "-q", str(path)],
+                       check=True)
+        return path
+
+    def test_two_worktrees_draw_distinct_names(self):
+        other = self.worktree()
+        other_store = other / "prompts" / "preserved"
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(other)))
+        self.assertEqual(decision, "allow", reason)
+        names = self.written() + sorted(p.name for p in other_store.glob("*.md"))
+        self.assertEqual(names, [f"{self.today}-01.md", f"{self.today}-02.md"])
+
+    def test_unreachable_counter_blocks(self):
+        # A regular file where the counter directory belongs: it cannot be created.
+        blocker = self.repo.resolve() / ".git" / "claude-kit"
+        blocker.write_text("not a directory\n")
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("shared dispatch counter could not be reached", reason)
+        self.assertIn(str(blocker / "dispatch-seq"), reason)
+        self.assertEqual(self.written(), [])
+
+    def test_counter_starts_above_the_store(self):
+        self.store.mkdir(parents=True)
+        (self.store / f"{self.today}-05.md").write_text("earlier\n")
+        decision, reason = run_hook(HOOK, agent(prompt("build", BUILD_SECTIONS),
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "ask", reason)
+        self.assertEqual(self.written(), [f"{self.today}-05.md", f"{self.today}-06.md"])
+
+    # T10: a prompt identical to a stored dispatch's text is saved as a
+    # re-send of it, naming the earliest such file.
+    def stored(self, name, text):
+        self.store.mkdir(parents=True, exist_ok=True)
+        (self.store / name).write_text(
+            "HEAD: fixture\nTarget subagent: pulse\nType: pulse\n"
+            "Preserved: 2026-01-01T00:00:00Z by .claude/hooks/dispatch_guard.py\n"
+            "--- verbatim prompt follows ---\n" + text)
+
+    def saved_header(self, name):
+        saved = (self.store / name).read_text()
+        header, sep, _ = saved.partition("\n--- verbatim prompt follows ---\n")
+        self.assertTrue(sep, f"no verbatim delimiter in: {saved[:300]!r}")
+        return header
+
+    def test_r1_identical_text_is_marked_repeat(self):
+        text = prompt("pulse", PULSE_SECTIONS)
+        self.stored(f"{self.today}-01.md", text)
+        decision, reason = run_hook(HOOK, agent(text, "pulse", cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        self.assertEqual(self.written(), [f"{self.today}-01.md", f"{self.today}-02.md"])
+        header = self.saved_header(f"{self.today}-02.md")
+        self.assertIn(f"\nRepeat-of: preserved/{self.today}-01.md", header)
+
+    def test_r2_one_byte_different_is_not_a_repeat(self):
+        text = prompt("pulse", PULSE_SECTIONS)
+        self.stored(f"{self.today}-01.md", text + " ")
+        decision, reason = run_hook(HOOK, agent(text, "pulse", cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        self.assertNotIn("Repeat-of", self.saved_header(f"{self.today}-02.md"))
+        self.assertNotIn("repeat of", reason)
+
+    def test_r3_earliest_identical_file_is_named(self):
+        text = prompt("pulse", PULSE_SECTIONS)
+        self.stored(f"{self.today}-03.md", text)
+        self.stored("2026-01-01-07.md", text)
+        decision, reason = run_hook(HOOK, agent(text, "pulse", cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        header = self.saved_header(f"{self.today}-04.md")
+        self.assertIn("\nRepeat-of: preserved/2026-01-01-07.md", header)
+        self.assertEqual(header.count("Repeat-of"), 1)
+
+    def test_r4_reason_names_the_repeat(self):
+        text = prompt("build", BUILD_SECTIONS)
+        self.stored(f"{self.today}-01.md", text)
+        decision, reason = run_hook(HOOK, agent(text, cwd=str(self.repo)))
+        self.assertEqual(decision, "ask", reason)
+        self.assertIn(f"repeat of preserved/{self.today}-01.md (identical text)", reason)
+        self.assertIn(f"prompts/preserved/{self.today}-02.md", reason)
+
     def test_outside_a_repository_blocks(self):
         outside = tempfile.mkdtemp(prefix="dispatch_guard_norepo_")
         try:
@@ -170,6 +332,18 @@ class DispatchGuard(unittest.TestCase):
             self.assertIn("preserve", reason)
         finally:
             shutil.rmtree(outside, ignore_errors=True)
+
+    # Every git the hook runs has the kit's timeout: a git that answers too
+    # slowly blocks the dispatch by name instead of being waited for.
+    def test_slow_git_denied_by_name(self):
+        fake = Path(tempfile.mkdtemp(prefix="dispatch_guard_slow_"))
+        self.addCleanup(shutil.rmtree, fake, ignore_errors=True)
+        write_sleeper(fake / "git", 5, str(self.repo))
+        env = {"PATH": slow_path(fake), PREFIX + "TIMEOUT": "1"}
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)), env=env)
+        self.assertEqual(decision, "deny", f"got {decision!r}: {reason}")
+        self.assertIn("timed out", reason)
 
 
 if __name__ == "__main__":

@@ -1,25 +1,30 @@
-"""PreToolUse on Bash, every role: protect the owner's phone and its data.
-
-Traced to the 2026-09-22 device run, where connectedAndroidTest uninstalled
-the app and wiped the owner's data, taps landed in another app, and a
-screenshot caught personal data.
+"""PreToolUse on Bash, every role: protect a connected Android device and
+the app data on it. Off entirely when the config's android_package is null.
 
 - connectedAndroidTest (any variant) is blocked unless the command keeps the
-  APKs installed after the run.
+  APKs installed after the run, since the default uninstall wipes app data.
 - `adb uninstall`, `pm uninstall` and `pm clear` are blocked.
 - `adb install` is blocked unless each APK's signing certificate matches the
   installed package's. A package that is not installed is allowed.
 - `adb shell input` and any screencap are blocked unless the resumed
-  activity belongs to Forager.
+  activity belongs to android_package, so input cannot land in another app
+  and a screenshot cannot catch one.
+
+adb, aapt2 and apksigner can be replaced through the environment variables
+<guard_env_prefix>ADB, <guard_env_prefix>AAPT2 and <guard_env_prefix>APKSIGNER.
 
 Wherever the guard needs a device or tool answer and cannot get one, it
-denies and says what it could not determine. These are patterns over the
-command text; see the bypass table in the completion report.
+denies and says what it could not determine. Every tool call has guardlib's
+command timeout (20 seconds by default, `<guard_env_prefix>TIMEOUT`
+overrides): a tool that does not answer in time is denied naming the
+command and the seconds. These are patterns over the command text, not
+every program that could do the same thing.
+
+Known bypasses: .claude/hooks/BYPASSES.md B-06
 """
 import glob
 import os
 import re
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -44,7 +49,11 @@ RESUMED = re.compile(
 SIGNER_DIGEST = re.compile(r"certificate SHA-256 digest:\s*([0-9a-fA-F]+)")
 
 
-def tool(env_name, sdk_name):
+def tool(override, sdk_name):
+    """The program to run for sdk_name: <guard_env_prefix><override> from the
+    environment if set, else adb from PATH, else the newest SDK build-tools
+    copy."""
+    env_name = g.CONFIG["guard_env_prefix"] + override
     if os.environ.get(env_name):
         return os.environ[env_name]
     if sdk_name == "adb":
@@ -71,11 +80,11 @@ def adb_target(tokens):
 
 
 def run(cmd):
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    return g.run_command(cmd)  # guardlib's timeout; a CommandTimeout is a deny by name
 
 
 def foreground_package(target):
-    r = run([tool("FORAGER_GUARD_ADB", "adb"), *target, "shell", "dumpsys",
+    r = run([tool("ADB", "adb"), *target, "shell", "dumpsys",
              "activity", "activities"])
     if r.returncode != 0:
         return None, f"`dumpsys activity activities` failed: {r.stderr.strip() or r.returncode}"
@@ -86,7 +95,7 @@ def foreground_package(target):
 
 
 def signer_digests(apk):
-    r = run([tool("FORAGER_GUARD_APKSIGNER", "apksigner"), "verify", "--print-certs", apk])
+    r = run([tool("APKSIGNER", "apksigner"), "verify", "--print-certs", apk])
     digests = set(d.lower() for d in SIGNER_DIGEST.findall(r.stdout))
     if r.returncode != 0 or not digests:
         raise RuntimeError(f"apksigner could not read the signature of {apk}: "
@@ -98,10 +107,10 @@ def check_install(tokens, target):
     apks = [t for t in tokens if t.endswith(".apk")]
     if not apks:
         return "could not find an .apk argument to check its signature"
-    adb = tool("FORAGER_GUARD_ADB", "adb")
+    adb = tool("ADB", "adb")
     for apk in apks:
         try:
-            r = run([tool("FORAGER_GUARD_AAPT2", "aapt2"), "dump", "badging", apk])
+            r = run([tool("AAPT2", "aapt2"), "dump", "badging", apk])
             m = re.search(r"package: name='([^']+)'", r.stdout)
             if r.returncode != 0 or not m:
                 return (f"could not read the package name of {apk}: "
@@ -135,6 +144,9 @@ def check_install(tokens, target):
 def guard(payload):
     if payload.get("tool_name") != "Bash":
         return None
+    package = g.CONFIG["android_package"]
+    if package is None:
+        return None  # no Android app configured: the device guard is off
     command = g.command_of(payload)
 
     if CONNECTED_TEST.search(command) and LEAVE_INSTALLED not in command:
@@ -143,7 +155,7 @@ def guard(payload):
     for name, pattern in UNINSTALLS:
         if pattern.search(command):
             return ("deny", f"device_guard: `{name}` removes the app or its data "
-                            f"from the owner's phone and is never run by an agent.")
+                            f"from the device and is never run by an agent.")
 
     gated_install = INSTALL.search(command)
     gated_fg = FOREGROUND_GATED.search(command)
@@ -165,9 +177,9 @@ def guard(payload):
         if problem:
             return ("deny", f"device_guard: `{gated_fg.group(1)}` blocked: could not "
                             f"read the foreground app ({problem}).")
-        if pkg != g.FORAGER_PACKAGE:
+        if pkg != package:
             return ("deny", f"device_guard: `{gated_fg.group(1)}` blocked: the "
-                            f"foreground app is {pkg}, not {g.FORAGER_PACKAGE}.")
+                            f"foreground app is {pkg}, not {package}.")
     return None
 
 
