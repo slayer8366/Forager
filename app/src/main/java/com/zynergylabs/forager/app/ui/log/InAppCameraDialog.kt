@@ -144,6 +144,8 @@ internal fun InAppCameraDialog(
     gridMode: GridMode,
     /** Asks for a new grid mode; the chip shows it once it is stored, not before. */
     onGridModeChanged: (GridMode) -> Unit,
+    autoSaveLocationToPhotos: Boolean, // STUB
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit, // STUB
     /** The level line's roll; collected only while the level is shown. */
     levelProvider: LevelProvider,
     modifier: Modifier = Modifier,

@@ -2152,6 +2152,8 @@ fun AvailabilityScreen(
         lockToPortrait = uiState.lockCameraToPortrait,
         gridMode = cameraGridMode,
         onGridModeChanged = onCameraGridModeChanged,
+        autoSaveLocationToPhotos = false, // STUB
+        onAutoSaveLocationToPhotosChanged = {}, // STUB
         onLogEntryPhoto = onAddLogPhoto,
         onAlbumPhoto = onAddGalleryPhoto,
         onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,
