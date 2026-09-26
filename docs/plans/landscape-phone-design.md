@@ -507,3 +507,105 @@ Recorded only; no earlier text in either plan is edited.
   (`:2482-2483`).
 - The dispatch cited the capture's window dumps as outside the repo; they are
   also committed (see Evidence).
+
+## Resolutions — added 2026-09-26
+
+Appended by the B1 build dispatch (store copy
+`prompts/preserved/2026-09-26-35.md`, record intent `2026-09-26-96`). Nothing
+above this heading was changed. The coder recorded these and decided none of
+them. R1 is the owner's ruling. R2 to R11 are the planner's, as written in the
+B1 dispatch under O4. R12 to R18 are the planner's, from its ruling on the B1
+coder's stop (planner log line 1427, quoted in full in intent `2026-09-26-96`),
+also under O4.
+
+- **R1. P1 against O3 (open question 1).** Owner: "Classify by window". Any
+  window under 480 dp tall gets the sideways-phone layout, whatever the
+  device. A full-screen tablet is never that short.
+- **R2. P12 corrected (open questions 4 and 5).** Back unwinding the drawer's
+  Settings panel to the rest of the Tools drawer is documented behaviour
+  (`AvailabilityScreen.kt:2478-2479`, `:2848`) and stays. The planner's "bug"
+  label was wrong. The only fix P12 keeps is that a scrim tap closes the
+  drawer, as `:865` and `:2335-2338` expect. It must not re-enable
+  swipe-to-open over the map. That fix belongs to B3, not B1.
+- **R3. P6 (open question 2).** "Inside the cut-out inset" means inboard of
+  it: the cluster sits clear of the cut-out.
+- **R4. Cluster side memory (open question 3).** In landscape the cluster's
+  side is remembered as *port side* or *punch-hole side*, not left or right.
+  Turning between 90 and 270 keeps it on the same device edge. Portrait keeps
+  today's memory. B2.
+- **R5. Search sheet and HUD (open question 7).** They share the rail side.
+  The search sheet is modal and covers the HUD while it is open. B2.
+- **R6. Keyboard (open question 9).** In the search sheet the field sits at the
+  top and results shrink with the IME. No full-screen extract UI. B2.
+- **R7. Information architecture (open question 8).** Settings and
+  Album stay inside the tools drawer, as in the compact tree. No new
+  destinations.
+- **R8. P7 is landscape-only (open question 13).** Portrait's compass strip is
+  unchanged.
+- **R9. Shared helpers (open questions 10 and 11).** The rotation-to-edge
+  mapping is shared with the camera, with no camera behaviour change (B1).
+  `READABLE_CONTENT_MAX_WIDTH` (`AvailabilityResultsUi.kt:303`, `private`)
+  becomes shared when B3 needs it, not in B1.
+- **R10. Implementation checks, made while building (open questions 6 and
+  12).** Whether Material 3 `1.5.0-alpha26` can anchor a drawer or side sheet
+  to the end edge (B2/B3 need it; B1 only records what it finds), and whether
+  Robolectric can set `ROTATION_90` and `ROTATION_270` distinctly. B1's
+  findings are in its completion report.
+- **R11. The drift list** above stays as recorded. No edits to older plans.
+- **R12. The rail is a layout region, not an overlay.** In a short landscape
+  window `compactMainScaffold` lays out one opaque `NavigationRail` on the
+  port edge and the content beside it. Neither `ForagerBottomNav` call site
+  renders there; the map `Box` and all its controls sit in the area beside the
+  rail. *Reason (planner):* a rail is a layout region in Material 3; height,
+  not width, is the scarce axis, so 80 dp of width costs little; and it avoids
+  the rail covering the cluster at `ROTATION_90`, where both would otherwise
+  sit on the right edge. This supersedes the B1 dispatch's "at both call
+  sites".
+- **R13. Fullscreen in a short landscape window — interim, until B2.** While
+  the Map tab is fullscreen the rail is hidden, with no animation, and the
+  content picks up the `navigationBars` inset on the port side so no control
+  sits under the system bar. P10's slide toward the port edge stays in B2.
+- **R14. No Search action in the rail header in B1.** It comes with P8 in B2.
+- **R15. What "landscape" means.** `LocalConfiguration.orientation ==
+  ORIENTATION_LANDSCAPE`, the camera's own test (`InAppCameraDialog.kt:201`).
+- **R16. Where the mapping lives.** `ScreenEdge` stays in
+  `ui/log/CameraArrangement.kt`. A new `ui/adaptive` function holds the
+  rotation mapping, and `cameraArrangement` calls it.
+- **R17. The punch-hole side.** The map content is padded by
+  `displayCutout`, so tiles do not draw under the cut-out (P4 permitted it;
+  this does not use that permission in B1).
+- **R18. No stale bottom band.** `bottomNavHeightPx` is 0 while the rail
+  shows, so nothing reserves space at the bottom for a bar that is not there.
+
+### Revised on the owner's correction — added 2026-09-26
+
+**R12, R13 and R17 above are superseded by the revised entries below.** They
+are left as written, not deleted. The owner, in the planner session on
+2026-09-26 (planner log line 1443), verbatim: "The problem with it not being
+an overlay is that the map resizes when hiding the UI and that's a UX
+problem". The planner's revisions follow, from its message at planner log
+line 1447 (quoted in full in terminal `2026-09-26-97`). R14, R15, R16 and R18
+stand; for R18, in landscape `bottomNavHeightPx` is 0 and the rail-width
+padding takes its place.
+
+- **R12 (revised), the Map tab.** In a short landscape window the map stays
+  full-bleed across the whole window. The rail is an **overlay** on the port
+  edge, drawn over the map the way `ForagerBottomNav` overlays it in
+  portrait: the same translucency, composed in the same overlay layer as that
+  call site. The map controls layer (cluster, strip, and everything else in
+  that `Box`) is padded by the rail's width on the port side, the way
+  portrait pads controls by the measured bottom-nav height. The rail never
+  sits over a control. The map itself is never padded or resized by the rail,
+  and showing or hiding the rail never changes the map's size.
+- **R12 (revised), the other tabs.** List, Seasonal, Journal and the rest keep
+  an opaque rail beside the content. No map resizes there, and text under a
+  translucent rail would hurt readability. It is the same rail, with the same
+  destinations and order; only its container differs by tab.
+- **R13 (revised), fullscreen on the Map tab.** The rail is hidden and the map
+  does not change size. The controls layer drops the rail-width padding but
+  keeps the `navigationBars` inset on the port side, so no control sits under
+  the system bar. The rail's show and hide animation stays in B2; none in B1.
+- **R17 (revised), the punch-hole side.** Map tiles draw under the cut-out,
+  full-bleed. Only the controls layer is padded by `displayCutout`. This
+  returns to the B1 dispatch's step 6(e) and reverses the acceptance of the
+  coder's reading that the map content is padded by the cut-out.
