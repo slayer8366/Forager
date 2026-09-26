@@ -890,3 +890,23 @@ Design: `docs/process/accountability-design.md`.
 **Notes:** Tests-only step (scope step 3), the positive control's base result. Script /tmp/approval_control/control.py (outside the repository) copies the worktree's hooks via .claude/hooks/tests/harness.py hooks_with and runs dispatch_guard.py with the worktree's .claude/kit.json read at run time as its config, against a throwaway git repository holding copies of check_record.py and check_prompts.py. With approval_exempt_types ['pulse']: build to coder "ask", "Operator approval required: Type 'build' is not in approval_exempt_types."; device to coder "ask", "Operator approval required: Type 'device' is not in approval_exempt_types."; pulse to pulse "allow", "Type 'pulse' is in approval_exempt_types, so it runs without approval."; unknown type 'refactor' to coder "deny", "unknown Type 'refactor'. Known types: build, device, pulse."; build to pulse "deny", "Type 'build' may only be dispatched to 'coder', not 'pulse'."; build missing Checks "deny", "this build dispatch is missing 1 required section(s): Checks. ...". The temp store received 2026-09-26-01 to -03 (the three passing cases). ls of this worktree's prompts/preserved/ before and after the run: last three names 2026-09-26-15.md, -16.md, -17.md both times; git status --short unchanged. No test file added: hooks and tests are out of scope. Store copy: this dispatch's copy kept under the hook's name preserved/2026-09-26-17.md, 7373 bytes, sha256 caaf2bcbdd25273f154cb5212d3f7276a63681b775efbbde2ce0a31f968d07c9, Preserved 2026-09-26T05:40:44Z, header HEAD b070a2e; the name is free on this branch and on origin/main. Planner's calls, recorded as the planner's: the edit is applied on the planner branch rather than through a separate PR and merge, because the gate reads this worktree's kit.json; the -16 dispatch's merge authorisation is withdrawn.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-30
+**Dispatch-file:** preserved/2026-09-26-18.md
+**Type:** build
+**Outcome:** stopped
+**Report:** none in the repository; its coder's hand-back went to the planner. The reason, as the dispatch preserved as preserved/2026-09-26-23.md states it: the dispatch "continued -29 and stopped because a pulse's store copy appeared mid-run."
+**Notes:** The planner's build dispatch continuing intent 2026-09-26-29 after the owner made the kit.json edit personally at 2d34a44. Preserved 2026-09-26T06:00:11Z by .claude/hooks/dispatch_guard.py, header HEAD 2d34a4409f61d42079c85bacd78b33b0694fad72, Target subagent coder; 5989 bytes, sha256 32f0dc26464aefa55b99e42c8dc778569aea418fde3b5289bc3e48131ac2f4a8, both equal to what preserved/2026-09-26-23.md states. Its coder stopped before writing a continuation (coder.md item 8): no entry names it and no commit follows 2d34a44 other than the owner's 29e4e09. Kept under the hook's own name: the name is free on this branch and on origin/pre-main 76905d4. Written in the sweep of the dispatch preserved as preserved/2026-09-26-23.md.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-31
+**Dispatch-file:** preserved/2026-09-26-19.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's pulse on the camera strip's Part B premises (remote strip heads, merge risk from main, the flash, timer and location chips), preserved 2026-09-26T06:00:31Z by .claude/hooks/dispatch_guard.py, header HEAD 2d34a4409f61d42079c85bacd78b33b0694fad72, Target subagent pulse; 4990 bytes, sha256 23d29c7f0a4b2b661bb2544202c60ea305570af518529ff16668bb9b1f092bc0, both equal to what preserved/2026-09-26-23.md states. Kept under the hook's own name: the name is free on this branch and on origin/pre-main 76905d4. Outcome and Report as preserved/2026-09-26-23.md's scope step 1 specifies them. No merge entry is written in this sweep: git log --first-parent --merges 76905d4..origin/pre-main and 76905d4..origin/main list nothing, both branches being at 76905d4993813caaead1caad5db6fd18da5c97e8, the merge 2026-09-26-24 records. Written in the sweep of the dispatch preserved as preserved/2026-09-26-23.md.
+
+---
