@@ -482,3 +482,17 @@ here.
   repository at all, in either direction. What is visible is that the tree does
   contain the Functions. Recorded as unverified rather than dropped, because the
   pattern they describe is the one above.
+
+## Roles and gates
+
+Planner, coder and pulse are held apart by hooks, not by instruction. The
+design is `docs/process/accountability-design.md`; the subagents are in
+`.claude/agents/`, the gates in `.claude/hooks/`, and the dispatch record in
+`RECORD.md` and `prompts/preserved/`. A main session in this repository is the
+planner and is read-only. Added at the end of this file so that line 253 does
+not move. The hooks, agents and checkers are vendored from Claude-kit release
+`v0.2`: `.claude/kit.json` is the kit's config, `.claude/kit.lock` its lock
+and `check_kit.py` its drift check.
+`docs/audits/2026-09-26-recordkeeping-protocol-shift.md` records when
+recordkeeping moved to the kit's protocols, and the cutoff for `merge`
+entries is there.
