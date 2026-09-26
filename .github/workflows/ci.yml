@@ -6,8 +6,11 @@ name: CI
 # so a build is downloadable without anyone building one by hand.
 
 on:
+  # pre-main is the working trunk that builds merge into before promotion to main
+  # (docs/audits/2026-09-26-pre-main-working-trunk.md), so a merge into it needs its own
+  # recorded result, not only the PR's pull_request run.
   push:
-    branches: [main]
+    branches: [main, pre-main]
   # No branches: filter here (unlike push above): this project stacks PRs against other
   # working branches, not just main (e.g. PR #49, claude/l4-close-out-beta-prep-night-maps
   # against claude/l4-close-out-beta-prep) -- restricting to main left every PR in that chain
@@ -19,10 +22,13 @@ permissions:
 
 # A newer push to the same branch makes the in-flight run's answer stale, so cancel it.
 # Runs on main are exempt: main's history is what release APKs are built from, and a
-# cancelled run there would leave a commit with no recorded result.
+# cancelled run there would leave a commit with no recorded result. Runs on pre-main are
+# exempt too: it is the working trunk builds merge into
+# (docs/audits/2026-09-26-pre-main-working-trunk.md), each merge into it needs its own
+# recorded result, and a cancelled run would leave a merge commit with none.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/pre-main' }}
 
 env:
   # Deliberately outside the workspace. resolveBuildIdentity (app/build.gradle.kts) runs
