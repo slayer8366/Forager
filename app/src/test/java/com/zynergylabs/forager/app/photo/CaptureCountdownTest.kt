@@ -26,8 +26,13 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class CaptureCountdownTest {
 
-    /** A child scope of the test's, so a test can cancel it the way a removed dialog cancels its own. */
-    private fun TestScope.childScope(): CoroutineScope = CoroutineScope(coroutineContext + Job(coroutineContext[Job]))
+    /**
+     * A scope on the test's virtual time that a test can cancel the way a removed dialog cancels
+     * its own. A child of `backgroundScope`, not of the test's own job: an open child `Job` under
+     * the test's job never completes, and `runTest` fails on it after a minute of real time.
+     */
+    private fun TestScope.childScope(): CoroutineScope =
+        CoroutineScope(backgroundScope.coroutineContext + Job(backgroundScope.coroutineContext[Job]))
 
     private fun TestScope.fromZero(countdown: CaptureCountdown, seconds: Int, body: () -> Unit) {
         try {

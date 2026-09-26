@@ -18,6 +18,9 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -49,7 +52,13 @@ import org.robolectric.annotation.Config
  * `captureCalls` is the count of actual captures.
  *
  * **Time is the test's.** Each countdown test stops the main clock's auto-advance and moves it by
- * hand, so "nothing at 2.9 s, one at 3 s" is read at exactly those instants of virtual time.
+ * hand, so "nothing at 2.9 s, one at 3 s" is read at exactly those instants of virtual time. Two
+ * facts about the clock, measured with a probe before these were written: `performClick` itself
+ * moves the clock one frame, and the countdown starts at the clock's time when it returns (a 3 s
+ * countdown captured at exactly +3000 ms from there, not at +2999 or +3015); and
+ * `advanceTimeBy` rounds up to whole frames unless told not to, so [advance] passes
+ * `ignoreFrameDuration`. Anything read from the screen needs a frame after the change, which is
+ * [frame]; each one moves the clock 16 ms, and the arithmetic below counts them.
  *
  * **Every test that starts a countdown ends it in a `finally`** (CLAUDE.md, the unstopped poll
  * loop): it removes the dialog, which cancels the dialog's coroutine scope and the countdown with
@@ -118,10 +127,20 @@ class InAppCameraTimerTest {
         }
     }
 
+    /** Exactly [millis] of virtual time, not rounded up to a frame. */
     private fun advance(millis: Long) {
-        composeRule.mainClock.advanceTimeBy(millis)
+        composeRule.mainClock.advanceTimeBy(millis, ignoreFrameDuration = true)
         composeRule.waitForIdle()
     }
+
+    /** One frame (16 ms), so a change reaches the screen before it is read. */
+    private fun frame() {
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.waitForIdle()
+    }
+
+    private fun countdownNumerals(text: String) =
+        composeRule.onNode(hasTestTag(CAMERA_COUNTDOWN_TAG) and hasAnyDescendant(hasText(text)))
 
     // ── The chip ─────────────────────────────────────────────────────────────────────────────
 
@@ -224,17 +243,17 @@ class InAppCameraTimerTest {
         setTimer(1)
         withHandClock {
             shutter().performClick()
-            advance(0)
-            composeRule.onNodeWithTag(CAMERA_COUNTDOWN_TAG).assertTextEquals("3")
-            val frame = composeRule.onNodeWithTag(IN_APP_CAMERA_TAG).fetchSemanticsNode().boundsInRoot
+            frame() // +16 ms
+            countdownNumerals("3").assertExists()
+            val camera = composeRule.onNodeWithTag(IN_APP_CAMERA_TAG).fetchSemanticsNode().boundsInRoot
             val numerals = composeRule.onNodeWithTag(CAMERA_COUNTDOWN_TAG).fetchSemanticsNode().boundsInRoot
-            assertEquals("centred across", frame.center.x, numerals.center.x, 1f)
-            assertEquals("centred down", frame.center.y, numerals.center.y, 1f)
-            advance(1_000)
-            composeRule.onNodeWithTag(CAMERA_COUNTDOWN_TAG).assertTextEquals("2")
-            advance(1_000)
-            composeRule.onNodeWithTag(CAMERA_COUNTDOWN_TAG).assertTextEquals("1")
-            advance(1_000)
+            assertEquals("centred across", camera.center.x, numerals.center.x, 1f)
+            assertEquals("centred down", camera.center.y, numerals.center.y, 1f)
+            advance(1_000); frame() // +1032 ms
+            countdownNumerals("2").assertExists()
+            advance(1_000); frame() // +2048 ms
+            countdownNumerals("1").assertExists()
+            advance(1_000); frame() // +3064 ms
             composeRule.onAllNodesWithTag(CAMERA_COUNTDOWN_TAG).assertCountEquals(0)
         }
     }
@@ -247,9 +266,9 @@ class InAppCameraTimerTest {
         setTimer(1)
         withHandClock {
             shutter().performClick()
-            advance(500)
+            advance(500); frame()
             shutter().assertContentDescriptionEquals("Cancel timer")
-            advance(2_500)
+            advance(2_500); frame()
             assertEquals("precondition: the capture happened", 1, session.captureCalls)
             shutter().assertContentDescriptionEquals(SHUTTER_DESCRIPTION)
         }
@@ -262,9 +281,9 @@ class InAppCameraTimerTest {
         setTimer(1)
         withHandClock {
             shutter().performClick()
-            advance(1_500)
+            advance(1_500); frame()
             shutter().performClick()
-            advance(30_000)
+            advance(30_000); frame()
             assertEquals("no capture, ever", 0, session.captureCalls)
             composeRule.onAllNodesWithTag(CAMERA_COUNTDOWN_TAG).assertCountEquals(0)
             shutter().assertContentDescriptionEquals(SHUTTER_DESCRIPTION)
@@ -298,9 +317,10 @@ class InAppCameraTimerTest {
         setTimer(1)
         withHandClock {
             shutter().performClick()
-            advance(2_000)
+            advance(2_000); frame() // +2016 ms
             composeRule.onNodeWithText(photoCountLabel(0)).assertTextEquals(photoCountLabel(0))
-            advance(1_000)
+            advance(1_000); frame() // +3032 ms, past the capture at +3000
+            assertEquals("precondition: the capture happened", 1, session.captureCalls)
             composeRule.onNodeWithText(photoCountLabel(1)).assertTextEquals(photoCountLabel(1))
         }
     }
@@ -313,19 +333,24 @@ class InAppCameraTimerTest {
         withHandClock {
             shutter().performClick()
             advance(1_000)
-            timerChip().performClick() // 3 s to 10 s, mid-countdown
-            advance(0)
+            timerChip().performClick() // 3 s to 10 s, mid-countdown; the click's own frame is +16 ms
+            // Two frames, measured by probe: with the clock stopped and nothing read in between, a
+            // click's state change reaches the screen on the second frame after it, with or without
+            // a countdown running.
+            frame(); frame() // +1048 ms
             timerChip().assertContentDescriptionEquals(TIMER_10_LABEL)
-            advance(1_900)
+            advance(1_852) // +2900 ms
             assertEquals("nothing at 2.9 s", 0, session.captureCalls)
             advance(100)
             assertEquals("the running countdown kept its 3 s", 1, session.captureCalls)
 
-            shutter().performClick()
+            frame()
+            shutter().performClick() // the next countdown counts from here
             advance(9_900)
             assertEquals("the next press counts 10 s: nothing at 9.9 s", 1, session.captureCalls)
             advance(100)
             assertEquals("one at 10 s", 2, session.captureCalls)
         }
     }
+
 }
