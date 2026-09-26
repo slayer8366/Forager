@@ -1,6 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
-import android.view.Surface
+import com.zynergylabs.forager.app.ui.adaptive.portEdgeFor
 
 /**
  * Which of the camera dialog's arrangements a session uses — chosen once when the camera opens and
@@ -134,7 +134,10 @@ internal fun cameraArrangement(
     // the emulator 2026-09-19 — so anything that makes 180 reachable again needs a fourth
     // arrangement built with it. See this function's doc comment.
     lockToPortrait || !windowIsLandscape -> CameraArrangement.Portrait
-    displayRotation == Surface.ROTATION_270 -> CameraArrangement.LandscapePortLeft
+    // The rotation-to-port-edge mapping is shared with the main window's navigation rail and
+    // lives in one place, ui/adaptive's portEdgeFor (landscape B1, Resolution R16). Unchanged:
+    // ROTATION_270 is the port on the left, anything else in landscape the port on the right.
+    portEdgeFor(windowIsLandscape = true, displayRotation) == ScreenEdge.Left -> CameraArrangement.LandscapePortLeft
     else -> CameraArrangement.LandscapePortRight
 }
 
