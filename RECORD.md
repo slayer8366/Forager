@@ -1397,3 +1397,13 @@ Quote this message verbatim in the record.
 **Notes:** Store copy moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-31.md, 9516 bytes, sha256 f94711b437670273641af3a4f0e98ba358058105f74ec9696a8bfe098f2cc74e (equal before and after the move); Preserved 2026-09-26T11:17:57Z by .claude/hooks/dispatch_guard.py, header HEAD 188fa39, Target subagent coder, Type device. Kept under the hook's name, free on origin/pre-main. Parallel dispatch: preserved/2026-09-26-32.md appeared in the planner worktree after this copy was moved, and is left there for the next sweep. Owner's words quoted by the dispatch: "we do need to redesign the sideways feature. Since the phone is rotated sideways idle, how about you design the sideways layout?"; scope "The whole app in landscape"; problem "Looks broken" and "Not designed at all". Planner's calls: location-bearing captures stay outside the repo; no data is created.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-89
+**Dispatch-file:** preserved/2026-09-26-32.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only code pulse mapping the landscape layout code at origin/pre-main 188fa39, preserved 2026-09-26T11:18:11Z by .claude/hooks/dispatch_guard.py, header HEAD 188fa3982375db1124e1e11a0035cbd0dbb92646, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-32.md, 3846 bytes, sha256 3157a3d4f982dfcfece6458352437a2d0117f69dd07ee5d95188d7b090d28c90, equal before and after the move. Kept under the hook's own name, free on origin/pre-main 188fa39 and origin/landscape-capture 0050668. Left for the next sweep by 2026-09-26-87 and -88. Outcome and Report as the planner's ruling on this dispatch's stop specifies them (planner log line 1259, re-sent at 1275, quoted in 2026-09-26-90). Written in the sweep of the dispatch preserved as preserved/2026-09-26-33.md, on branch landscape-capture at 00506680da268fafef2f15a89d446e5b223a7f63. No merge on pre-main's first-parent chain is newer than 188fa39 (recorded by 2026-09-26-87; origin/pre-main is 188fa39), and main has none newer than 76905d4, so this sweep writes no merge entry.
+
+---
