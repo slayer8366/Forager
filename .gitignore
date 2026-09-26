@@ -40,6 +40,10 @@ local.properties
 !.claude/settings.json
 !.claude/agents/
 !.claude/hooks/
+# Claude-kit's config and lock (RECORD.md 2026-09-26-12) are shared config too: kit.json is the
+# adopter's settings for the vendored hooks, kit.lock the tag and hashes check_kit.py compares.
+!.claude/kit.json
+!.claude/kit.lock
 
 # Written by Gradle's daemon-JVM feature, machine-local.
 gradle/gradle-daemon-jvm.properties
