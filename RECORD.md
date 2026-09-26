@@ -1430,3 +1430,18 @@ Quote this message verbatim in the record.
 **Flags:** Two drawer findings, for the planner's landscape design, each seen once on R5CT321008R at build 1.0.899+g429edb96 and not further verified. (a) A scrim tap does not close the compact drawer: the drawer sets gesturesEnabled = false (app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreen.kt:2088), and the scrim tap at (1046,1158) left it open; that Material3 gates the scrim's close on that flag is unverified against the AndroidX source; the comment at AvailabilityScreen.kt:865 expects "scrim tap, back button" to close it. (b) Back from the Settings panel switches the drawer to its Search panel instead of closing it, although BackHandler(enabled = isDrawerOpen) at AvailabilityScreen.kt:900 closes the drawer; which handler took the key first was not located.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-92
+**Timestamp:** 2026-09-26T17:23:55Z
+**PR:** 125
+**Head:** landscape-capture
+**Base:** pre-main
+**Merge-commit:** f7727fe4fa29e7938d52ddad923637d912c6162c
+**Pre-merge:** 188fa3982375db1124e1e11a0035cbd0dbb92646
+**Backup:** 2026-09-26-09
+**Merged-by:** coder preserved/2026-09-26-33.md
+**Carries:** 2026-09-26-87, 2026-09-26-88, 2026-09-26-89, 2026-09-26-90, 2026-09-26-91
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-34.md, on branch landscape-design cut from origin/pre-main f7727fe4fa29e7938d52ddad923637d912c6162c. The one merge on pre-main's first-parent chain newer than 188fa39, the newest merge a `merge` entry records (2026-09-26-87, Base pre-main): git log --first-parent --merges --format='%H %P' 188fa39..origin/pre-main lists only f7727fe, parents 188fa3982375db1124e1e11a0035cbd0dbb92646 and b8a197c620f74dfe7a53fe0d7a08c7101e69bfce. PR, Head, Base, Timestamp (mergedAt) from gh pr view 125 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 125, landscape-capture, pre-main, mergeCommit f7727fe4fa29e7938d52ddad923637d912c6162c, 2026-09-26T17:23:55Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-09: PR #125 (landscape-capture into pre-main), pre-merge 188fa3982375db1124e1e11a0035cbd0dbb92646, bundle of origin/pre-main, written by coder under intent 2026-09-26-88 (continuation 2026-09-26-90, prompts/preserved/2026-09-26-33.md)". Carries: the IDs git diff 188fa39 f7727fe -- RECORD.md adds (it removes no line), 2026-09-26-87 to -91, as the dispatch expected. Main has no merge newer than 76905d4 (git log --first-parent --merges 76905d4..origin/main is empty; origin/main 76905d4993813caaead1caad5db6fd18da5c97e8). No dispatch-note in this sweep: check_prompts.py at f7727fe plus this dispatch's moved copy reports only that copy (preserved/2026-09-26-34.md) as unclaimed, and the planner worktree's prompts/preserved/ held no other untracked copy.
+
+---
