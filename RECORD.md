@@ -1171,3 +1171,48 @@ Quote this message verbatim in the record.
 **Deviations:** (1) Wrong premise, the planner's: the dispatch gave #120's merge entry Carries 2026-09-26-25 to -34; the diff shows -24 to -34 (-24 written by #120's sweep commit 136c35a). The coder stopped; the planner ruled -24 to -34 (planner log line 681, re-sent at 698, both quoted in 2026-09-26-52). (2) A gap, not a premise: strip-grid-level was checked out in worktree bridge-cse_016ud6iSpE7PzdbwnmhuLqZe, so git worktree add could not take it; the planner ruled a detached worktree (line 593). (3) The HOLD (line 611) arrived with the first merge against 0eade34 in conflict and unresolved; the coder ran git merge --abort (accepted by the planner, line 667), and the build restarted against 39f6e74 (line 667). (4) CI was observed on the three heads before this terminal so that it could be cited here; the dispatch lists CI (step 5) after the terminal (step 4). The merges into pre-main still wait for CI green on the heads that carry this terminal. A coder's choice. (5) The first merge commit 0501012 took git's own merge message and carries no Co-Authored-By line; it was pushed, so it was not amended. (6) Planner messages in 2026-09-26-52 are quoted with "> " at the start of each line so that "**Ruling:**" is not read as a record field; a coder's choice.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-70
+**Timestamp:** 2026-09-26T07:24:58Z
+**PR:** 111
+**Head:** strip-housekeeping
+**Base:** pre-main
+**Merge-commit:** 2337047e80d2c692cc80e1d837bb093fbd658ae1
+**Pre-merge:** 39f6e742e8e6c0084fbce5f67f54b549342e1941
+**Backup:** 2026-09-26-03
+**Merged-by:** coder preserved/2026-09-26-25.md
+**Carries:** 2026-09-26-50, 2026-09-26-51, 2026-09-26-52, 2026-09-26-53
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-27.md, on branch main-checkout-fix cut from origin/pre-main 60173da62c4877d907643e20e1a88467589eccb0. The oldest of the three merges on pre-main's first-parent chain newer than 39f6e74, the newest merge a `merge` entry records (2026-09-26-51, Base pre-main): git log --first-parent --merges --format='%H %P' 39f6e74..origin/pre-main lists 2337047, 8b5414e and 60173da. Merge-commit and Pre-merge from git log: 2337047's parents 39f6e742e8e6c0084fbce5f67f54b549342e1941 and 21ca97928411e83d18123bd1aa3f4f554c650378. PR, Head, Base, Timestamp (mergedAt) from gh pr view 111 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 111, strip-housekeeping, pre-main, mergeCommit 2337047e80d2c692cc80e1d837bb093fbd658ae1, 2026-09-26T07:24:58Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-03: PR #111 (strip-housekeeping into pre-main), pre-merge 39f6e742e8e6c0084fbce5f67f54b549342e1941, bundle of origin/pre-main, written by coder under intent 2026-09-26-52 (prompts/preserved/2026-09-26-25.md)". Carries: the IDs git diff 39f6e74 2337047 -- RECORD.md adds (it removes no line), 2026-09-26-50 to -53, as the dispatch expected. Main has no merge newer than 76905d4 (git log --first-parent --merges 76905d4..origin/main is empty).
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-71
+**Timestamp:** 2026-09-26T07:25:48Z
+**PR:** 112
+**Head:** strip-torch
+**Base:** pre-main
+**Merge-commit:** 8b5414e62e09486e074b307476b019a024121beb
+**Pre-merge:** 2337047e80d2c692cc80e1d837bb093fbd658ae1
+**Backup:** 2026-09-26-04
+**Merged-by:** coder preserved/2026-09-26-25.md
+**Carries:** none
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-27.md. The second of the three merges after 39f6e74 (see 2026-09-26-70). Merge-commit and Pre-merge from git log: 8b5414e's parents 2337047e80d2c692cc80e1d837bb093fbd658ae1 and 4c5e6efcf42115333c78e30202fc02306de97854. PR, Head, Base, Timestamp (mergedAt) from gh pr view 112 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 112, strip-torch, pre-main, mergeCommit 8b5414e62e09486e074b307476b019a024121beb, 2026-09-26T07:25:48Z; state MERGED. Backup and Merged-by: INDEX.md's line "- 2026-09-26-04: PR #112 (strip-torch into pre-main), pre-merge 2337047e80d2c692cc80e1d837bb093fbd658ae1, bundle of origin/pre-main, written by coder under intent 2026-09-26-52 (prompts/preserved/2026-09-26-25.md)". Carries: git diff 2337047 8b5414e -- RECORD.md is empty, so the PR carried no record entry; it is not `record only`, since it carries app changes. The value `none` is the coder's wording, the dispatch having said "none new".
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-72
+**Timestamp:** 2026-09-26T07:26:24Z
+**PR:** 113
+**Head:** strip-grid-level
+**Base:** pre-main
+**Merge-commit:** 60173da62c4877d907643e20e1a88467589eccb0
+**Pre-merge:** 8b5414e62e09486e074b307476b019a024121beb
+**Backup:** 2026-09-26-05
+**Merged-by:** coder preserved/2026-09-26-25.md
+**Carries:** none
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-27.md. The newest of the three merges after 39f6e74 (see 2026-09-26-70), and origin/pre-main's tip when this sweep was written. Merge-commit and Pre-merge from git log: 60173da's parents 8b5414e62e09486e074b307476b019a024121beb and 7a5151f80ab6afd8d26131e04df5f42ec845b44a. PR, Head, Base, Timestamp (mergedAt) from gh pr view 113 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 113, strip-grid-level, pre-main, mergeCommit 60173da62c4877d907643e20e1a88467589eccb0, 2026-09-26T07:26:24Z; state MERGED. Backup and Merged-by: INDEX.md's line "- 2026-09-26-05: PR #113 (strip-grid-level into pre-main), pre-merge 8b5414e62e09486e074b307476b019a024121beb, bundle of origin/pre-main, written by coder under intent 2026-09-26-52 (prompts/preserved/2026-09-26-25.md)". Carries: git diff 8b5414e 60173da -- RECORD.md is empty, so the PR carried no record entry; not `record only`, since it carries app changes. The value `none` is the coder's wording. No dispatch-note in this sweep: check_prompts.py at 60173da reports only this dispatch's own untracked store copy as unclaimed, so every file in prompts/preserved/ is claimed. Untracked hook copies outside the store sit in other worktrees (bridge-cse_01UaJLvLqRfppskJ6Kb4kFVc: 2026-09-26-20, -21, -22, pulses; bridge-cse_01Sa2R5fTtBVJUG1hJsBAQu3: 2026-09-26-26, a build preserved 07:18:07Z); they are not in the store, and this dispatch forbids touching other worktrees, so they are flagged to the planner, not claimed here.
+
+---
