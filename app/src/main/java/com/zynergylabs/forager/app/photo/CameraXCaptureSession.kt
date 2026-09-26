@@ -484,11 +484,16 @@ internal class CameraXCaptureSession(
                     }
                     val lit = camera.cameraInfo.torchState.value == TorchState.ON
                     Log.w(TAG, "enableTorch($on) failed; the torch is ${if (lit) "on" else "off"}, and the chip now says so.", error)
-                    currentFlashMode = if (lit) FlashMode.Torch else FlashMode.Off
+                    onTorchRequestFailed(lit)
                 }
             },
             ContextCompat.getMainExecutor(appContext),
         )
+    }
+
+    /** STUB: the old resync, unchanged. */
+    internal fun onTorchRequestFailed(lit: Boolean) {
+        currentFlashMode = if (lit) FlashMode.Torch else FlashMode.Off
     }
 
     /**

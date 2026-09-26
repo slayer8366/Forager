@@ -52,8 +52,11 @@ internal data class FlashGlyph(val icon: ImageVector, val label: String)
 internal fun flashGlyph(mode: FlashMode): FlashGlyph = when (mode) {
     FlashMode.Off -> FlashGlyph(Icons.Filled.FlashOff, FLASH_OFF_LABEL)
     FlashMode.Torch -> FlashGlyph(Icons.Filled.FlashlightOn, TORCH_ON_LABEL)
+    FlashMode.Auto, FlashMode.On -> FlashGlyph(Icons.Filled.FlashOff, FLASH_OFF_LABEL) // STUB
 }
 
 internal const val CAMERA_FLASH_CHIP_TAG = "in-app-camera-flash-chip"
 internal const val FLASH_OFF_LABEL = "Flash off"
 internal const val TORCH_ON_LABEL = "Torch on"
+internal const val FLASH_AUTO_LABEL = "Flash auto"
+internal const val FLASH_ON_LABEL = "Flash on"

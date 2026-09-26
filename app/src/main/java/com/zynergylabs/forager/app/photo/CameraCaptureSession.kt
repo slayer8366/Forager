@@ -89,12 +89,13 @@ internal interface CameraCaptureSession {
  * light for gills and pores under a cap, which is why it comes first. Auto and flash-on-capture are
  * a later dispatch on this same enum, and are deliberately not declared ahead of it.
  */
-internal enum class FlashMode { Off, Torch }
+internal enum class FlashMode { Off, Auto, On, Torch }
 
-/** What a tap on the flash chip asks for next: Off to Torch to Off. */
+/** What a tap on the flash chip asks for next: Off to Torch to Off. STUB: Auto and On not cycled yet. */
 internal fun FlashMode.next(): FlashMode = when (this) {
     FlashMode.Off -> FlashMode.Torch
     FlashMode.Torch -> FlashMode.Off
+    FlashMode.Auto, FlashMode.On -> FlashMode.Off
 }
 
 /**
