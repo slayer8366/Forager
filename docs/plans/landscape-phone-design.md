@@ -576,3 +576,36 @@ also under O4.
   this does not use that permission in B1).
 - **R18. No stale bottom band.** `bottomNavHeightPx` is 0 while the rail
   shows, so nothing reserves space at the bottom for a bar that is not there.
+
+### Revised on the owner's correction — added 2026-09-26
+
+**R12, R13 and R17 above are superseded by the revised entries below.** They
+are left as written, not deleted. The owner, in the planner session on
+2026-09-26 (planner log line 1443), verbatim: "The problem with it not being
+an overlay is that the map resizes when hiding the UI and that's a UX
+problem". The planner's revisions follow, from its message at planner log
+line 1447 (quoted in full in terminal `2026-09-26-97`). R14, R15, R16 and R18
+stand; for R18, in landscape `bottomNavHeightPx` is 0 and the rail-width
+padding takes its place.
+
+- **R12 (revised), the Map tab.** In a short landscape window the map stays
+  full-bleed across the whole window. The rail is an **overlay** on the port
+  edge, drawn over the map the way `ForagerBottomNav` overlays it in
+  portrait: the same translucency, composed in the same overlay layer as that
+  call site. The map controls layer (cluster, strip, and everything else in
+  that `Box`) is padded by the rail's width on the port side, the way
+  portrait pads controls by the measured bottom-nav height. The rail never
+  sits over a control. The map itself is never padded or resized by the rail,
+  and showing or hiding the rail never changes the map's size.
+- **R12 (revised), the other tabs.** List, Seasonal, Journal and the rest keep
+  an opaque rail beside the content. No map resizes there, and text under a
+  translucent rail would hurt readability. It is the same rail, with the same
+  destinations and order; only its container differs by tab.
+- **R13 (revised), fullscreen on the Map tab.** The rail is hidden and the map
+  does not change size. The controls layer drops the rail-width padding but
+  keeps the `navigationBars` inset on the port side, so no control sits under
+  the system bar. The rail's show and hide animation stays in B2; none in B1.
+- **R17 (revised), the punch-hole side.** Map tiles draw under the cut-out,
+  full-bleed. Only the controls layer is padded by `displayCutout`. This
+  returns to the B1 dispatch's step 6(e) and reverses the acceptance of the
+  coder's reading that the map content is padded by the cut-out.
