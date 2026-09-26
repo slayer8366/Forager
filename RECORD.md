@@ -959,3 +959,64 @@ The steps, the finish line, the Merge authorisation (PR #120 into `pre-main` onl
 **Deviations:** -29's step 4 was made by the owner, not its coder, after the classifier refusal; the refusal was not pursued by another route. -29 wrote no terminal of its own; this entry closes it.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-26-34
+**Timestamp:** 2026-09-26T06:37:15Z
+**Closes:** 2026-09-26-32
+**Outcome:** completed
+**Observed:** (1) After-control, /tmp/approval_control/control.py against the worktree's kit.json ["pulse", "build", "device"]: build to coder "allow", "Type 'build' is in approval_exempt_types, so it runs without approval."; device to coder "allow", same with 'device'; pulse to pulse "allow"; unknown Type 'refactor' "deny", build to pulse "deny", build missing Checks "deny", each deny reason byte-identical to 2026-09-26-29's base run (diff of the two runs' deny lines empty). Temp store -01 to -03; ls prompts/preserved/ in this worktree identical before and after (47 names, last 2026-09-26-18.md, -19.md, -23.md). Matches outcome prediction 1 and mechanism (a). (2) python3 -m unittest discover -s .claude/hooks/tests -p 'test_*.py': "Ran 179 tests", "OK"; check_kit.py: "PASS: 26 vendored file(s) match .claude/kit.lock (kit v0.2)." Matches outcome prediction 2 and mechanism (b). (3) Notes a2d0ac2: docs/audits/2026-09-26-approval-exempt-build-device.md and docs/audits/2026-09-26-pre-main-working-trunk.md, and two rows appended to docs/audits/README.md (git diff: 2 insertions, no deletions). (4) gh api repos/slayer8366/Forager/branches/pre-main/protection: HTTP 404 {"message":"Branch not protected"}; branches/pre-main "protected": false. Recorded in the pre-main note, nothing changed. (5) PR #120 retargeted to pre-main, retitled "Record and config: approval-exempt build/device, pre-main as working trunk (first merge into pre-main)", body rewritten (see Deviations 3). CI run 36224004557 (pull_request, head a2d0ac277f0e8194b176cdc040a14004abb6d0a4, job "Build, test, publish APK"): success. Runs 36223660154 (e8d0732) and 36223771607 (e51c6d6) were cancelled by the next push. CI on this terminal's own commit is not observable from inside it; the hand-back reports it, and the merge waits for it. (6) Backup, after git fetch (origin/pre-main and git ls-remote refs/heads/pre-main both 76905d4993813caaead1caad5db6fd18da5c97e8): folder ~/Zynergy/forager-repo-backups/2026-09-26-01 with pre-main-76905d4.bundle (git bundle create of refs/remotes/origin/pre-main; list-heads "76905d4993813caaead1caad5db6fd18da5c97e8 refs/remotes/origin/pre-main"), merge.json {"pr": 120, "branch": "pre-main", "sha": "76905d4993813caaead1caad5db6fd18da5c97e8", "bundle": "pre-main-76905d4.bundle"}, MANIFEST.sha256 (merge.json 361aae92202b0183f036c837be3104460cc47296f4bb06dc33f3db3f1769ed58, bundle 7abbc161741d2ae2955e1362a03413ae8ebfde44ecb4f5f71ed2a9687304982e; sha256sum -c OK), and INDEX.md, created with its first line "- 2026-09-26-01: PR #120 (worktree-bridge-cse_01BcqShzosraMo4pUXkqaqRp into pre-main), pre-merge 76905d4993813caaead1caad5db6fd18da5c97e8, bundle of origin/pre-main, written by coder under intent 2026-09-26-32 (prompts/preserved/2026-09-26-23.md)". Folder name confirmed by the planner. (7) Record IDs used: 2026-09-26-30 to -34; before each record commit none appeared in origin/pre-main's RECORD.md. Per coder.md item 3 the merge of #120 and the update_worktree.py runs come after this terminal and are recorded by the next sweep's merge entry; outcome predictions 3 and 4 are therefore not observed here.
+**Working-state:** RECORD.md, prompts/preserved/2026-09-26-18.md, -19.md, -23.md, the two new notes and docs/audits/README.md (two rows) only. Nothing under .claude/, CLAUDE.md, check_*.py or app code touched; no other PR or branch; the main checkout, the worktree bridge-cse_01UaJLvLqRfppskJ6Kb4kFVc, GitHub settings and the phone untouched. Outside the repository: the backup folder and INDEX.md above.
+**Deviations:** (1) Wrong planner premise: the dispatch expected its own store copy at preserved/2026-09-26-20.md; the hook saved it as -23, -20 to -22 having been taken from the shared counter by a separate planner session (worktree bridge-cse_01UaJLvLqRfppskJ6Kb4kFVc). The coder stopped; the planner's first message (quoted in 2026-09-26-32) ruled to proceed with -23. (2) Wrong planner premise, second: scope step 4 had the pre-main note record that "the kit README describing pre-main is newer than the vendored v0.2 tag". In ~/Zynergy/Claude-kit, 5ba1581 is an ancestor of v0.2 (b1bb0bd; git merge-base --is-ancestor exits 0), git diff 5ba1581 v0.2 -- README.md is empty, the README is not vendored, and all 26 kit.lock hashes match the files at v0.2. The coder stopped; the planner's second message (below, re-sent as the third) ruled to record the fact instead, which the pre-main note's section 5 does. (3) gh pr edit 120 --base pre-main --title ... --body-file ... exited 1 with "GraphQL: Projects (classic) is being deprecated in favor of the new Projects experience ... (repository.pullRequest.projectCards)" (gh 2.46.0) and changed nothing (base still main, title and body unchanged, by gh api). The second attempt used the REST equivalent, gh api -X PATCH repos/slayer8366/Forager/pulls/120 with base, title and body, which applied; a coder's choice, not the dispatch's. Not a guard or classifier refusal. (4) The classifier refusal was quoted from the -29 coder's subagent log (file and line), since -29's RECORD entry does not hold it; accepted by the planner's second message. (5) Mechanism prediction (c) and (d) and outcome predictions 3 and 4 concern steps after this terminal and are unobserved here.
+**Planner message:** Second planner message, received after the coder's second stop. Planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Forager--claude-worktrees-bridge-cse-01BcqShzosraMo4pUXkqaqRp/321c677d-f4cb-5bb7-8265-014f29328807.jsonl line 453 (SendMessage to a4e643faa35745a15, 2026-09-26T06:29:09.873Z). Verbatim:
+
+Planner ruling on your second stop: go ahead with option 1. The wrong premise is the planner's, again.
+
+1. **README premise.** In the pre-main note, replace the claim "the kit README describing pre-main is newer than the vendored v0.2 tag" with the fact you found. Commit 5ba1581 is an ancestor of v0.2 (b1bb0bd). `git diff 5ba1581 v0.2 -- README.md` is empty. So v0.2 already describes the pre-main model. The kit README is not among the vendored files, and all 26 kit.lock hashes match v0.2. Record this second wrong planner premise in the new intent's terminal Deviations, next to the -20 premise.
+
+2. **Where the -20 premise goes.** You read it correctly: it goes in the new intent's own terminal, not in -33.
+
+3. **Backup folder name.** `2026-09-26-01` under `~/Zynergy/forager-repo-backups/`, following `<UTC date>-NN`, is confirmed. Claude-kit's own record names backups the same way (its merge entry for PR #38 cites "backup 2026-09-26-06"). Record in the note that the planner confirmed the name.
+
+4. **Recorded, not acted on.** Record each of these in the pre-main note's "does not yet match" list, and take no action on any of them:
+   - `pre-main` is not protected on GitHub. `gh api` returns 404 "Branch not protected".
+   - ci.yml's push trigger is `main` only, so merges into pre-main get only the PR's `pull_request` run.
+   - the -20 to -22 pulse copies are held unclaimed in worktree `bridge-cse_01UaJLvLqRfppskJ6Kb4kFVc`. That is the owner's journal-research planner session. Its copies stay out of this record.
+
+5. **Your other decisions are accepted.** That covers the classifier quote from the -29 coder's log with file and line, the separate `Planner message` field, and stopping rather than self-correcting.
+
+6. **Carry on with steps 4 to 8.** Everything else is unchanged: the ID block, the ID-collision check, the Merge authorisation (PR #120 into pre-main only), the planner-worktree-only update, and every abort condition. Quote this message verbatim in the record, as you did the first one.
+**Planner message (re-send):** Third planner message, a re-send of the second's ruling. Planner log same file, line 472 (SendMessage to a4e643faa35745a15, 2026-09-26T06:29:35.988Z). Verbatim:
+
+Resume at step 4. This re-sends the planner's ruling on your second stop, in case the first copy arrived after your hand-back. If you already have it, carry on. If not, the ruling is as follows.
+
+1. **The README claim.** Go with option 1.
+   - In the pre-main note, replace the claim "the kit README describing pre-main is newer than the vendored v0.2 tag" with what you found:
+     - 5ba1581 is an ancestor of v0.2 (b1bb0bd);
+     - `git diff 5ba1581 v0.2 -- README.md` is empty, so v0.2 already describes pre-main;
+     - the kit README is not vendored;
+     - all 26 kit.lock hashes match v0.2.
+   - Record this second wrong planner premise in the new intent's terminal Deviations, next to the -20 premise.
+   - The -20 premise goes in the new intent's own terminal, not in -33, as you read it.
+
+2. **The backup folder.** `2026-09-26-01` under `~/Zynergy/forager-repo-backups/` is confirmed, following `<UTC date>-NN`. Claude-kit's own record names its backups the same way: its merge entry for PR #38 cites "backup 2026-09-26-06". Record in the note that the planner confirmed the name.
+
+3. **Record only; take no action.** These go in the pre-main note's "does not yet match" list:
+   - `pre-main` is not protected on GitHub (404 "Branch not protected");
+   - the push trigger in `ci.yml` covers `main` only;
+   - the pulse copies -20 to -22 sit unclaimed in worktree `bridge-cse_01UaJLvLqRfppskJ6Kb4kFVc`. That is the owner's journal-research planner session, and those copies stay out of this record.
+
+4. **Your other decisions.** They are accepted:
+   - the classifier quote from the -29 coder's log;
+   - the `Planner message` field;
+   - stopping rather than correcting it yourself.
+
+5. **Carry on with steps 4 to 8.** Nothing else changes:
+   - the ID block and the ID-collision check;
+   - the Merge authorisation, which covers PR #120 into pre-main only;
+   - updating the planner worktree only;
+   - every abort condition.
+
+Quote this message verbatim in the record.
+
+---
