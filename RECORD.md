@@ -1243,3 +1243,18 @@ Quote this message verbatim in the record.
 **Deviations:** (1) Order: the dispatch's step 9 writes the backup after the fetch that precedes the merge, while step 7 has this terminal cite it; the backup was written after a fetch and before this terminal so that it could be cited, and the merge still waits for a fresh git fetch origin confirming origin/pre-main is 60173da (if it has moved, the build stops). A coder's choice, as in 2026-09-26-41. (2) Mechanism prediction's first draft counted 33 worktrees before the add; corrected before the intent was committed to 32 before and 33 after main-checkout-fix. (3) Merge entries -71 and -72 give Carries "none", the coder's wording for a PR whose RECORD.md diff is empty and which is not record only.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-80
+**Timestamp:** 2026-09-26T07:47:37Z
+**PR:** 122
+**Head:** main-checkout-fix
+**Base:** pre-main
+**Merge-commit:** 2753a8359067dd1acf944d45f42bbed052e0e0f0
+**Pre-merge:** 60173da62c4877d907643e20e1a88467589eccb0
+**Backup:** 2026-09-26-06
+**Merged-by:** coder preserved/2026-09-26-27.md
+**Carries:** 2026-09-26-70, 2026-09-26-71, 2026-09-26-72, 2026-09-26-73, 2026-09-26-74
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-28.md, on branch strip-flash-timer-location cut from origin/pre-main 2753a8359067dd1acf944d45f42bbed052e0e0f0. The one merge on pre-main's first-parent chain newer than 60173da, the newest merge a `merge` entry records (2026-09-26-72, Base pre-main): git log --first-parent --merges --format='%H %P' 60173da..origin/pre-main lists only 2753a83, parents 60173da62c4877d907643e20e1a88467589eccb0 and 6d3d8325692bc7d11316e2d5778d2549d61f0cda. PR, Head, Base, Timestamp (mergedAt) from gh pr view 122 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 122, main-checkout-fix, pre-main, mergeCommit 2753a8359067dd1acf944d45f42bbed052e0e0f0, 2026-09-26T07:47:37Z. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-06: PR #122 (main-checkout-fix into pre-main), pre-merge 60173da62c4877d907643e20e1a88467589eccb0, bundle of origin/pre-main, written by coder under intent 2026-09-26-73 (prompts/preserved/2026-09-26-27.md)". Carries: the IDs git diff 60173da 2753a83 -- RECORD.md adds (it removes no line), 2026-09-26-70 to -74, as the dispatch expected. No dispatch-note in this sweep: check_prompts.py at 2753a83 plus this dispatch's untracked copy reports only that copy as unclaimed. Hook copies left untracked in other worktrees are not part of this store and not part of this sweep, per the planner's acceptance quoted in the dispatch.
+
+---
