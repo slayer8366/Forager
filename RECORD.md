@@ -1516,3 +1516,18 @@ Quote this message verbatim in the record.
 **Flags:** (a) InAppCameraHost.kt's doc comment still says a phone in landscape is WindowWidthClass.MEDIUM; false after this build; not edited (camera code is out of scope). (b) In a 384 dp window the map cluster is nearly full height (8-376 dp); B2 inherits that. (c) The tapped-sighting bubble is not padded for the rail; a bubble for a sighting just beside the rail can extend under it. (d) The search dropdown is not padded for the rail and covers it while open; B2's search sheet replaces it. (e) The Tools drawer still opens from the left at both rotations (B3). (f) Two docs/audits/README.md rows above this build's row (the strip device check and the landscape capture) have no File cell; not touched.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-26-98
+**Timestamp:** 2026-09-26T18:54:01Z
+**PR:** 127
+**Head:** landscape-b1
+**Base:** pre-main
+**Merge-commit:** 15e79009945a1d40d24f5a9cbaa8d26f6f04907c
+**Pre-merge:** bc54f6dc12e82c8b7be265516c8a3162ac42f9d1
+**Backup:** 2026-09-26-11
+**Merged-by:** coder preserved/2026-09-26-35.md
+**Carries:** 2026-09-26-95, 2026-09-26-96, 2026-09-26-97
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-36.md, on branch landscape-b2 cut from origin/pre-main 15e79009945a1d40d24f5a9cbaa8d26f6f04907c. The one merge on pre-main's first-parent chain newer than bc54f6d, the newest merge a `merge` entry records (2026-09-26-95, Base pre-main): git log --first-parent --merges --format='%H %P' bc54f6d..origin/pre-main lists only 15e7900, parents bc54f6dc12e82c8b7be265516c8a3162ac42f9d1 and 76e1a4fa2f57d9dc726f256d2446514fddd25dd1. PR, Head, Base, Timestamp (mergedAt) from gh pr view 127 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 127, landscape-b1, pre-main, mergeCommit 15e79009945a1d40d24f5a9cbaa8d26f6f04907c, 2026-09-26T18:54:01Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-11: PR #127 (landscape-b1 into pre-main), pre-merge bc54f6dc12e82c8b7be265516c8a3162ac42f9d1, bundle of origin/pre-main, written by coder under intent 2026-09-26-96 (prompts/preserved/2026-09-26-35.md)". Carries: the IDs git diff bc54f6d 15e7900 -- RECORD.md adds (it removes no line), 2026-09-26-95 to -97, as the dispatch expected. Main has no merge newer than 76905d4 (git log --first-parent --merges 76905d4..origin/main is empty; origin/main 76905d4993813caaead1caad5db6fd18da5c97e8). No dispatch-note in this sweep: check_prompts.py at 15e7900 reported PASS with every store file claimed, and the planner worktree's prompts/preserved/ held only this dispatch's copy (preserved/2026-09-26-36.md), claimed by the next commit's intent.
+
+---
