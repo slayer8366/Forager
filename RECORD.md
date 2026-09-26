@@ -526,3 +526,137 @@ Design: `docs/process/accountability-design.md`.
 **Notes:** The planner's read-only pulse on the camera strip stack (preserved 2026-09-26T02:14:40Z at af12a69, sha256 765aaba937c0421115638e4a93b3e96df1a68869b6b8c8704e5da885904503a8), sent just before build dispatch preserved/2026-09-26-02.md. Swept by that build's coder, who did not see the pulse's answer; Type, Outcome and Report are as that build dispatch states them.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-26-02
+**Timestamp:** 2026-09-26T03:49:12Z
+**Title:** Camera strip: merge main into the three stacked strip PRs, then build flash-on-capture, a self-timer chip and the save-location chip (written after the fact)
+**Dispatch-file:** preserved/2026-09-26-02.md
+**Change:** As the dispatch states it. Part A: merge origin/main into strip-housekeeping (#111), the updated strip-housekeeping into strip-torch (#112), the updated strip-torch into strip-grid-level (#113), push each; the only hand edit is keeping every row of docs/audits/README.md. Part B: a new branch strip-flash-timer-location cut from the updated strip-grid-level, with FlashMode Off, Auto, On, Torch in the one flash chip, a session-only timer chip (Off, 3 s, 10 s) and the save-location chip through AvailabilityViewModel (B3, B6), a B8 addendum, a completion report, one README row, and a PR against main stacked on #113. Record work on branch worktree-bridge-cse_013QR4ELV3wyYrUUyVCEmDwt with a record-only PR.
+**Scope boundary:** From the dispatch: app code and tests under app/; the B8 addendum to docs/audits/2026-09-21-camera-strip-basics-decisions.md; one completion report and one README row; no new dependency and no version change; RECORD.md and prompts/ on the record branch only. Not touched: the phone, main, any hook, CLAUDE.md, Claude-kit. Out of scope: its Closed decisions E, Settings' location handler, merging, tagging, rebasing, force-pushing, deleting.
+**Baseline:** origin/main af12a69603ab38295099ef27f0b3114c2a9ccd74 (the HEAD line of its store copy); stack heads strip-housekeeping 1b82b15f30622b43b9a22b8456a4e95c42b37438, strip-torch 1f196042e9146b3d2d77cb33886d0fb0accaf416, strip-grid-level 6bcbe4c68d144e8cab05cacce383708c02e986f9, as the dispatch states them.
+**Prediction (outcome — planner):** From the dispatch: 1. merging main into strip-housekeeping conflicts only in docs/audits/README.md, the chained merges at most there, and after the push all three PRs are MERGEABLE with CI green; 2. flash-on-capture needs only ImageCapture.setFlashMode plus carrying the mode through installImageCapture; 3. the location chip needs no new repository and no new DataStore key; 4. the full suite grows by 20 to 45 tests with 0 failures and skipped stays at 24.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** From the dispatch: the sweep and then the store copy with its intent pushed on the record branch; the three merges pushed, each PR MERGEABLE with CI green; Part B pushed in one-change commits with failing-first tests; the Part B PR open with CI green; the B8 addendum, report and README row on the Part B branch; a terminal closing the intent, both checkers passing, the record branch pushed and its PR open.
+**Abort conditions:** From the dispatch: a wrong premise; a Part A conflict outside docs/audits/README.md; keeping every row would need a row edited or dropped; an unavailable glyph; a suite failure outside the work; two failed fixes on one symptom; any guard blocking a step; a new unclaimed store file whose outcome was not seen.
+**Notes:** Written after the fact under the dispatch preserved as preserved/2026-09-26-08.md (intent 2026-09-26-12), following the precedent of 2026-09-22-01, so that this dispatch's store copy is claimed. Its coder wrote no intent. The Timestamp is the time of writing. The coder's mechanism prediction is `not authored` because the dispatch places it in the intent, which that coder never wrote. The store copy is a byte-for-byte copy of the untracked prompts/preserved/2026-09-26-02.md in the checkout .claude/worktrees/bridge-cse_013QR4ELV3wyYrUUyVCEmDwt, 17765 bytes, sha256 94d9e88bbfa40b6892e453869437e727246d03806b8195a11947cdc68ef76bae, cmp-identical; that original is a superseded copy, claimed here, and must not be swept again.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-26-03
+**Timestamp:** 2026-09-26T03:49:12Z
+**Closes:** 2026-09-26-02
+**Outcome:** abandoned
+**Observed:** Its coder made one commit, the sweep a3d7417f6f142551d8b355bfeb450ae232bc17bf (2026-09-26T02:30:48Z, dispatch-note 2026-09-26-01), and pushed it: git ls-remote at about 03:47Z shows worktree-bridge-cse_013QR4ELV3wyYrUUyVCEmDwt at a3d7417. Nothing else from it was observed: at the same reading strip-housekeeping, strip-torch and strip-grid-level were unchanged at 1b82b15, 1f19604 and 6bcbe4c; no strip-flash-timer-location branch exists on the remote; ~/Zynergy/forager-strip-merge does not exist; git worktree list shows no worktree it added. Why it stopped, as relayed by the planner and not re-observed here: the dispatch preserved as preserved/2026-09-26-05.md says it stopped after its sweep on two of its abort conditions, a history_guard refusal of a command holding a heredoc record entry ("could not parse this push (No closing quotation)", with no push in the command) and new unclaimed store files (-03, -04) appearing, and that its hand-back reached the planner. The earlier dispatch preserved/2026-09-26-03.md had said its hand-back never reached the planner; the later account is the one relayed here.
+**Working-state:** a3d7417 pushed on worktree-bridge-cse_013QR4ELV3wyYrUUyVCEmDwt. No intent, no store copy committed by it (the copy is committed by this sweep), no merge, no strip code, no worktree.
+**Deviations:** Closed `abandoned` by the owner's answer in preserved/2026-09-26-08.md ("an intent plus an abandoned terminal for the stopped coder dispatches"), not `superseded` as the dispatches preserved as -03, -04 and -05 each proposed. Not recorded as the kit's `stopped` dispatch-note, which Forager's check_record.py at this base does not accept. None of its work is carried into another dispatch; the strip merges remain undone.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-26-04
+**Timestamp:** 2026-09-26T03:49:12Z
+**Title:** Camera strip: merge main into the three stacked strip PRs, merges only (written after the fact)
+**Dispatch-file:** preserved/2026-09-26-03.md
+**Change:** As the dispatch states it: merge origin/main into strip-housekeeping, the new strip-housekeeping into strip-torch, the new strip-torch into strip-grid-level, each in a new detached worktree at ~/Zynergy/forager-strip-merge/<branch>, pushed with git push origin HEAD:<branch>; record the work on branch worktree-bridge-cse_013QR4ELV3wyYrUUyVCEmDwt, recording preserved/2026-09-26-02.md as superseded by this dispatch; a record-only PR against main.
+**Scope boundary:** From the dispatch: git merge with merge commits only, never rebase, amend or force-push; the only hand edit is docs/audits/README.md; record work in RECORD.md and three store files on this worktree's branch. Not touched: bridge-cse_016ud6iSpE7PzdbwnmhuLqZe and every other worktree, main, app code, hooks, CLAUDE.md, the phone, Claude-kit.
+**Baseline:** a3d7417f6f142551d8b355bfeb450ae232bc17bf (the HEAD line of its store copy); the dispatch premised origin/main af12a69 and the three stack heads 1b82b15, 1f19604 and 6bcbe4c, and premised this branch at af12a69 and not on the remote.
+**Prediction (outcome — planner):** From the dispatch: 1. merge 1 conflicts only in docs/audits/README.md; 2. merges 2 and 3 conflict at most in that file; 3. after the pushes #111, #112 and #113 are MERGEABLE and CI passes on each new head; 4. each branch's diff from old head to new head lists only paths main changed since 89f53a4, none under app/.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** From the dispatch: the sweep and intent pushed; the three merges pushed; each PR MERGEABLE with CI green or pending runs reported; a terminal closing the intent; both checkers passing; the record branch pushed and its PR open.
+**Abort conditions:** From the dispatch: a wrong premise, including a moved head; a conflict outside docs/audits/README.md; a resolution needing a row edited or dropped; CI failing on a new head; a guard blocking a step; a store file other than the three named appearing unclaimed; two failed attempts at one step.
+**Notes:** Written after the fact under the dispatch preserved as preserved/2026-09-26-08.md, following the precedent of 2026-09-22-01. Its coder wrote no intent; the Timestamp is the time of writing and the mechanism prediction is `not authored` for the same reason as 2026-09-26-02. Store copy: byte-for-byte from the untracked prompts/preserved/2026-09-26-03.md in the checkout .claude/worktrees/bridge-cse_013QR4ELV3wyYrUUyVCEmDwt, 7994 bytes, sha256 a7b6994edd11c4675f15493c4d01bf0c66f7c39fca8328f902fe2a7e184661ab, cmp-identical; that original is a superseded copy, claimed here, and must not be swept again.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-26-05
+**Timestamp:** 2026-09-26T03:49:12Z
+**Closes:** 2026-09-26-04
+**Outcome:** abandoned
+**Observed:** It stopped at its premise check and wrote nothing, as preserved/2026-09-26-08.md states. The wrong premise was the planner's, as preserved/2026-09-26-04.md and -05.md state it: the dispatch said this branch was not on the remote and that -02 had left no commit, when the branch was on the remote at a3d7417, -02's sweep. Consistent with writing nothing, and read here: the three strip heads are unchanged on the remote, no ~/Zynergy/forager-strip-merge exists, and the branch has no commit past a3d7417.
+**Working-state:** Nothing written. No commit, merge, worktree or record entry from it.
+**Deviations:** Closed `abandoned` by the owner's answer in preserved/2026-09-26-08.md, not `superseded` as preserved/2026-09-26-04.md proposed. Not recorded as the kit's `stopped` dispatch-note, which Forager's check_record.py at this base does not accept.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-26-06
+**Timestamp:** 2026-09-26T03:49:12Z
+**Title:** Camera strip: merge main into the three stacked strip PRs, merges only, second version (written after the fact)
+**Dispatch-file:** preserved/2026-09-26-04.md
+**Change:** As the dispatch states it: the same three merges as preserved/2026-09-26-03.md, in detached worktrees at ~/Zynergy/forager-strip-merge/<branch>, with README rows ordered by date (main's rows first on a shared date, byte-identical rows once, no row edited); record -02 and -03 as intents written after the fact, each closed `superseded` by this dispatch's intent; a record-only PR against main. It corrected -03's premise about this worktree and added a concurrency guard because the -02 coder might still be running.
+**Scope boundary:** From the dispatch: git merge with merge commits only; the only hand edit is docs/audits/README.md; record work in RECORD.md and the store files -02, -03 and its own copy on this worktree's branch. Not touched: other worktrees, main, app code, hooks, CLAUDE.md, the phone, Claude-kit, commit a3d7417 and dispatch-note 2026-09-26-01.
+**Baseline:** a3d7417f6f142551d8b355bfeb450ae232bc17bf (the HEAD line of its store copy, which the dispatch premised as this branch's local and remote head); origin/main af12a69603ab38295099ef27f0b3114c2a9ccd74; stack heads 1b82b15, 1f19604 and 6bcbe4c, as the dispatch states them.
+**Prediction (outcome — planner):** From the dispatch: 1. merge 1 conflicts only in docs/audits/README.md; 2. merges 2 and 3 at most there; 3. after the pushes #111, #112 and #113 are MERGEABLE and CI passes on each new head; 4. each branch's diff from old head to new head lists only paths main changed since 89f53a4, none under app/.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** From the dispatch: the sweep and intent pushed; the three merges pushed; each PR MERGEABLE with CI green or pending runs reported; a terminal whose Deviations name the planner's wrong premise in -03; both checkers passing; the record branch pushed and its PR open.
+**Abort conditions:** From the dispatch: a wrong premise; its concurrency guard firing; a conflict outside docs/audits/README.md; a resolution needing a row edited or dropped; CI failing on a new head; a guard blocking a step; two failed attempts at one step.
+**Notes:** Written after the fact under the dispatch preserved as preserved/2026-09-26-08.md, following the precedent of 2026-09-22-01. Its coder wrote no intent; the Timestamp is the time of writing and the mechanism prediction is `not authored` for the same reason as 2026-09-26-02. Store copy: byte-for-byte from the untracked prompts/preserved/2026-09-26-04.md in the checkout .claude/worktrees/bridge-cse_013QR4ELV3wyYrUUyVCEmDwt, 8795 bytes, sha256 3cf9d0a44da92826ddfe50d7b150c2621cac9a0a0e432a86676f6580699e5921, cmp-identical; that original is a superseded copy, claimed here, and must not be swept again.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-26-07
+**Timestamp:** 2026-09-26T03:49:12Z
+**Closes:** 2026-09-26-06
+**Outcome:** abandoned
+**Observed:** It stopped before writing anything, as preserved/2026-09-26-08.md states. The reason, as preserved/2026-09-26-05.md relays it and not re-observed here: its record order would have committed a Superseded-by naming an intent not yet written, which check_superseded_by in check_record.py fails; the order error was the planner's. Consistent with writing nothing, and read here: the three strip heads are unchanged on the remote, no ~/Zynergy/forager-strip-merge exists, and the branch has no commit past a3d7417.
+**Working-state:** Nothing written. No commit, merge, worktree or record entry from it. Its coder previewed a merge plan and README order, which preserved/2026-09-26-05.md carried forward; that preview is not in the repository.
+**Deviations:** Closed `abandoned` by the owner's answer in preserved/2026-09-26-08.md, not `superseded` as preserved/2026-09-26-05.md proposed. Not recorded as the kit's `stopped` dispatch-note, which Forager's check_record.py at this base does not accept.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-26-08
+**Timestamp:** 2026-09-26T03:49:12Z
+**Title:** Camera strip: merge main into the three stacked strip PRs, merges only, third version (written after the fact)
+**Dispatch-file:** preserved/2026-09-26-05.md
+**Change:** As the dispatch states it: the same three merges in detached worktrees at ~/Zynergy/forager-strip-merge/<branch>, with README results expected at 164, 165 and 167 rows; record order fixed: a sweep holding intents written after the fact for -02, -03 and -04, then this dispatch's store copy, intent and three `superseded` terminals, then the merges and a terminal; a record-only PR against main.
+**Scope boundary:** From the dispatch: git merge with merge commits only; the only hand edit is docs/audits/README.md; main's RECORD.md and prompts/ carried into the camera branches by the merge, with no new record content there; record work in RECORD.md and the store files -02 to -05 on this worktree's branch. Not touched: other worktrees, main, app code, hooks, CLAUDE.md, the phone, Claude-kit, commit a3d7417.
+**Baseline:** a3d7417f6f142551d8b355bfeb450ae232bc17bf (the HEAD line of its store copy); origin/main af12a69603ab38295099ef27f0b3114c2a9ccd74; stack heads 1b82b15, 1f19604 and 6bcbe4c; merge base 89f53a4, as the dispatch states them.
+**Prediction (outcome — planner):** From the dispatch: 1. merge 1 conflicts only in docs/audits/README.md; 2. merges 2 and 3 at most there; 3. after the pushes #111, #112 and #113 are MERGEABLE and CI passes on each new head; 4. each branch's diff from old head to new head lists only paths main changed since 89f53a4, none under app/; 5. row counts 164, 165 and 167.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** From the dispatch: sweep pushed; second commit pushed; the three merges pushed; each PR MERGEABLE with CI green or pending runs reported; a terminal whose Deviations name the planner's two record-premise errors from -03 and -04; both checkers passing; the record branch pushed and its PR open.
+**Abort conditions:** From the dispatch: a wrong premise; its concurrency guard firing; a conflict outside docs/audits/README.md; a resolution needing a row edited or dropped; CI failing on a new head; a guard blocking a step; a checker result differing from what its record order says it must be; two failed attempts at one step.
+**Notes:** Written after the fact under the dispatch preserved as preserved/2026-09-26-08.md, following the precedent of 2026-09-22-01. Its coder wrote no intent; the Timestamp is the time of writing and the mechanism prediction is `not authored` for the same reason as 2026-09-26-02. Store copy: byte-for-byte from the untracked prompts/preserved/2026-09-26-05.md in the checkout .claude/worktrees/bridge-cse_013QR4ELV3wyYrUUyVCEmDwt, 10684 bytes, sha256 d106be3bf580ba603ac77673c2b6dd745cc481754cfd3b4092e3463822ab1443, cmp-identical; that original is a superseded copy, claimed here, and must not be swept again.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-26-09
+**Timestamp:** 2026-09-26T03:49:12Z
+**Closes:** 2026-09-26-08
+**Outcome:** abandoned
+**Observed:** It did nothing visible; the owner reports that it stopped (preserved/2026-09-26-08.md). Why it stopped is not known to this coder: no account of its stop reason is in the dispatch or the repository. Read here: the three strip heads are unchanged on the remote, no ~/Zynergy/forager-strip-merge exists, the branch has no commit past a3d7417, and the planner worktree held only untracked store files (git status --short at this dispatch's start).
+**Working-state:** Nothing visible written. No commit, merge, worktree or record entry from it was found.
+**Deviations:** Closed `abandoned` by the owner's answer in preserved/2026-09-26-08.md. Not recorded as the kit's `stopped` dispatch-note, which Forager's check_record.py at this base does not accept. Its stop reason is unrecorded.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-10
+**Dispatch-file:** preserved/2026-09-26-06.md
+**Type:** pulse
+**Outcome:** declined
+**Report:** none; the owner rejected the pulse before it ran (preserved/2026-09-26-08.md)
+**Notes:** The planner's read-only pulse on installing Claude-kit v0.2 into Forager, preserved 2026-09-26T03:25:02Z at a3d7417. Store copy: byte-for-byte from the untracked prompts/preserved/2026-09-26-06.md in the checkout .claude/worktrees/bridge-cse_013QR4ELV3wyYrUUyVCEmDwt, 6085 bytes, sha256 2e7d697fd355d01d386957a3c66f160b14a26f0c01cc0d95e45ff563afef0a76, cmp-identical; that original is a superseded copy, claimed here, and must not be swept again.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-26-11
+**Timestamp:** 2026-09-26T03:49:12Z
+**Title:** Adopt Claude-kit v0.2 in Forager, first send (written after the fact)
+**Dispatch-file:** preserved/2026-09-26-07.md
+**Change:** As the dispatch states it: on a branch kit-v0.2-install from origin/main in a fresh worktree, run Forager's two checkers and the kit's check_record.py at v0.2; re-include .claude/kit.json and .claude/kit.lock in .gitignore; replace .claude/settings.json with v0.2's; write .claude/kit.json from the v0.2 template with android_package com.zynergylabs.forager.app and guard_env_prefix FORAGER_GUARD_; run install.py at v0.2 and then check_kit.py, the vendored hook tests and both checkers; add one sentence to CLAUDE.md naming the kit's config, lock and drift check; record it in RECORD.md.
+**Scope boundary:** From the dispatch: steps 1 to 7, each its own commit. Out of scope: Forager's open pull requests (#104 included), Forager's stale main checkout, any Forager code, tags.
+**Baseline:** origin/main af12a69603ab38295099ef27f0b3114c2a9ccd74 as the dispatch names it; the HEAD line of its store copy is a3d7417f6f142551d8b355bfeb450ae232bc17bf.
+**Prediction (outcome — planner):** From the dispatch: step 1, both of Forager's checkers pass and the kit's check_record.py at v0.2 passes Forager's RECORD.md; step 5 before step 3 would stop with "settings.json exists and differs", after step 3 it writes 27 files and kit.lock, prints each path, and check_kit.py passes; the vendored hook tests report "Ran 179 tests" OK, or the count at v0.2; the device guard with the package set still denies adb shell input while another app is in front.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** From the dispatch: the seven commits pushed, CI green, a pull request open into main with the install diff and check outputs in its body.
+**Abort conditions:** From the dispatch: any checker failing at step 1; install.py stopping for a reason other than the predicted settings difference; check_kit.py or the hook tests failing after install; a premise mismatch; decision A unanswered when step 4 is reached.
+**Notes:** Written after the fact under the dispatch preserved as preserved/2026-09-26-08.md, which re-sends this one with the owner's answers applied. Its coder stopped before any write, on four gaps the owner has since answered: fill the blanks from the planner's session; cut from a3d7417; an intent plus an abandoned terminal for the stopped coder dispatches; step 1 makes no commit, and the fail-first install is run (as preserved/2026-09-26-08.md lists them). Its coder verified the premises read-only and, in a scratch clone at af12a69, ran Forager's check_record.py (pass, 42 entries, 28-commit walk), check_prompts.py (pass, 27 claimed) and the kit's v0.2 check_record.py (pass), as relayed by preserved/2026-09-26-08.md. The Timestamp is the time of writing, and the mechanism prediction is `not authored` because its coder stopped before writing an intent. Its terminal is written in the next commit, beside the intent that supersedes it. Store copy: byte-for-byte from the untracked prompts/preserved/2026-09-26-07.md in the checkout .claude/worktrees/bridge-cse_013QR4ELV3wyYrUUyVCEmDwt, 5578 bytes, sha256 22b8f999d7160a8f09fb62b6173b7133bd59b58c13a2a14b7fdedc72138d87a0, cmp-identical; that original is a superseded copy, claimed here, and must not be swept again.
+
+---
