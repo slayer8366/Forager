@@ -41,6 +41,7 @@ import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
+import com.zynergylabs.forager.app.photo.TimerMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
@@ -154,6 +155,7 @@ internal fun InAppCameraDialog(
     var captureError by rememberSaveable { mutableStateOf<String?>(null) }
     var isCapturing by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    var timerMode by rememberSaveable { mutableStateOf(TimerMode.Off) } // STUB
 
     // The screen opens the session, not the viewfinder — the deadlock fix of 2026-09-15, see
     // CameraCaptureSession.open. Enter opens, leave closes; the `when` below never changes.
@@ -296,7 +298,7 @@ internal fun InAppCameraDialog(
             edge = punchHoleEdge(arrangement),
             deviceRotation = session.deviceRotation,
             displayRotation = displayRotation,
-            chips = stripChips(session, gridMode, onGridModeChanged),
+            chips = stripChips(session, timerMode, { timerMode = it }, gridMode, onGridModeChanged),
         )
         CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
             ShutterCluster(
@@ -450,6 +452,7 @@ internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
 internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
 internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"
 internal const val SHUTTER_DESCRIPTION = "Take photo"
+internal const val CAMERA_COUNTDOWN_TAG = "in-app-camera-countdown"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
 
 /**
@@ -458,7 +461,14 @@ internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
  * still take a slot. Read in composition, so the chip arrives when the bind reports the unit. The
  * grid chip always, after it (2026-09-22): every camera can draw a grid.
  */
-private fun stripChips(session: CameraCaptureSession, gridMode: GridMode, onGridModeChanged: (GridMode) -> Unit): List<StripChip> = buildList {
+private fun stripChips(
+    session: CameraCaptureSession,
+    timerMode: TimerMode,
+    onTimerModeChanged: (TimerMode) -> Unit,
+    gridMode: GridMode,
+    onGridModeChanged: (GridMode) -> Unit,
+): List<StripChip> = buildList {
     if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
+    add { deviceRotation, displayRotation -> TimerChip(timerMode, onTimerModeChanged, deviceRotation, displayRotation) }
     add { deviceRotation, displayRotation -> GridChip(gridMode, onGridModeChanged, deviceRotation, displayRotation) }
 }

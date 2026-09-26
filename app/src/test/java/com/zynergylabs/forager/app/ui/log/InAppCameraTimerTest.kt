@@ -280,6 +280,9 @@ class InAppCameraTimerTest {
             shutter().performClick()
             advance(1_000)
             composeRule.pressBackOnCamera()
+            // The clock is the test's, so the host's removal is composed only on the next frame.
+            composeRule.mainClock.advanceTimeByFrame()
+            composeRule.waitForIdle()
             assertEquals("Back closed the camera as today", 1, dismissals)
             composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)
             advance(30_000)
