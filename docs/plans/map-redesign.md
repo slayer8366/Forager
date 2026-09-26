@@ -538,3 +538,26 @@ here either.
    actually shipped (not just the add-button wiring — e.g. if Phase 1 also
    touched navigation structure), stop and report rather than silently
    picking a resolution, per `CLAUDE.md`'s ambiguity rule.
+
+## Addendum, 2026-09-26: short windows superseded by the landscape-phone design
+
+Appended; no earlier text in this document is edited.
+
+For windows shorter than 480 dp — a phone held sideways — the compact-only
+scope decision above ("Scope decision made after this doc was written") and
+the `MEDIUM` deferral under "Known defect in the untouched path (recorded
+2026-08-25, deferred)" are superseded by
+[`landscape-phone-design.md`](landscape-phone-design.md). The owner decided on
+2026-09-26 that a sideways phone gets this redesign, adapted, with the bottom
+navigation bar becoming a navigation rail on the charger-port side; that
+document records the decisions, their reasons, and the open questions.
+
+The deferral's binding reason was that no medium-width device was in the loop.
+A sideways phone is one: the S22 Ultra in landscape is 823 x 384 dp, width
+class `MEDIUM` (`docs/audits/2026-09-26-landscape-capture-record.md`).
+
+**Tablets and foldables are unchanged.** A window 480 dp tall or more keeps
+the rule this document records: `COMPACT` below 600 dp wide, the
+`PermanentNavigationDrawer` + `CombinedResultsPane` tree otherwise. The known
+`MEDIUM` defect and the open `EXPANDED` question above stand for those
+windows.

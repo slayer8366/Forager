@@ -1006,3 +1006,19 @@ inspection-through-cleaning — it holds the motion replacement, the width
 classes and the component mapping as well as the touch-interception
 inspection. Noted at review and deliberately not reorganised: the churn
 would cost more than the imprecision does.
+
+## Addendum, 2026-09-26: short windows superseded by the landscape-phone design
+
+Appended; no earlier text in this document is edited.
+
+For windows shorter than 480 dp — a phone held sideways — the medium-window
+deferral ("Medium (600–840dp) — deferred, not built", and "Medium-window
+navigation rail — not approved" under Decisions) is superseded by
+[`landscape-phone-design.md`](landscape-phone-design.md). The owner decided on
+2026-09-26 that a sideways phone gets the compact redesign, adapted, with a
+navigation rail on the charger-port side; that document records the
+decisions, their reasons, and the open questions.
+
+**Tablets and foldables are unchanged.** A window 480 dp tall or more keeps
+the treatment this document gives it: medium deferred and the rail not
+approved; expanded tokens only.
