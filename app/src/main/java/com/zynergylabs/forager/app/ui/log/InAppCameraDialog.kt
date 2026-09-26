@@ -144,8 +144,10 @@ internal fun InAppCameraDialog(
     gridMode: GridMode,
     /** Asks for a new grid mode; the chip shows it once it is stored, not before. */
     onGridModeChanged: (GridMode) -> Unit,
-    autoSaveLocationToPhotos: Boolean, // STUB
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit, // STUB
+    /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`; the Location chip shows it. */
+    autoSaveLocationToPhotos: Boolean,
+    /** Settings' own handler for that value; the Location chip calls it with the toggle. */
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     /** The level line's roll; collected only while the level is shown. */
     levelProvider: LevelProvider,
     modifier: Modifier = Modifier,
@@ -334,7 +336,15 @@ internal fun InAppCameraDialog(
             edge = punchHoleEdge(arrangement),
             deviceRotation = session.deviceRotation,
             displayRotation = displayRotation,
-            chips = stripChips(session, timerMode, { timerMode = it }, gridMode, onGridModeChanged),
+            chips = stripChips(
+                session,
+                timerMode,
+                { timerMode = it },
+                gridMode,
+                onGridModeChanged,
+                autoSaveLocationToPhotos,
+                onAutoSaveLocationToPhotosChanged,
+            ),
         )
         CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
             ShutterCluster(
@@ -496,11 +506,12 @@ internal const val CAMERA_COUNTDOWN_TAG = "in-app-camera-countdown"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
 
 /**
- * The strip's chips for this session, in order along the edge: Flash, Timer, Grid (decision B8,
- * Closed decision A). The flash chip only when the bound camera has a flash unit: it would hide
- * itself anyway, but a chip that composes nothing would still take a slot. Read in composition, so
- * the chip arrives when the bind reports the unit. The Timer chip always (2026-09-26), and the
- * grid chip always (2026-09-22): every camera can time a shot and draw a grid.
+ * The strip's chips for this session, in order along the edge: Flash, Timer, Grid, Location
+ * (decision B8, Closed decision A). The flash chip only when the bound camera has a flash unit: it
+ * would hide itself anyway, but a chip that composes nothing would still take a slot. Read in
+ * composition, so the chip arrives when the bind reports the unit. The Timer chip always
+ * (2026-09-26), the grid chip always (2026-09-22), and the Location chip always (2026-09-26):
+ * every camera can time a shot, draw a grid and show the photo-location setting.
  */
 private fun stripChips(
     session: CameraCaptureSession,
@@ -508,8 +519,13 @@ private fun stripChips(
     onTimerModeChanged: (TimerMode) -> Unit,
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    autoSaveLocationToPhotos: Boolean,
+    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
 ): List<StripChip> = buildList {
     if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
     add { deviceRotation, displayRotation -> TimerChip(timerMode, onTimerModeChanged, deviceRotation, displayRotation) }
     add { deviceRotation, displayRotation -> GridChip(gridMode, onGridModeChanged, deviceRotation, displayRotation) }
+    add { deviceRotation, displayRotation ->
+        LocationChip(autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, deviceRotation, displayRotation)
+    }
 }

@@ -40,6 +40,7 @@ typealias InAppCameraSlot = @Composable (
     /** The persisted grid mode and the way to change it — see `CameraGridModeViewModel`. */
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    /** Settings' "Automatically Save Location to Photos" and its handler — see `AvailabilityViewModel.onAutoSaveLocationToPhotosChanged`. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     onPhotoCaptured: (PhotoSource) -> Unit,
@@ -105,6 +106,7 @@ internal fun InAppCameraHost(
     /** The persisted grid mode, from `CameraGridModeViewModel`; passed straight to the slot. */
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`, and Settings' own handler; passed straight to the slot. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     onLogEntryPhoto: (PhotoSource) -> Unit,
