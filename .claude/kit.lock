@@ -1,0 +1,31 @@
+{
+  "tag": "v0.2",
+  "files": {
+    ".claude/agents/coder.md": "2c10e174d6b59862c058b873617321292fce25630684907740d036b52b33c68c",
+    ".claude/agents/pulse.md": "6f24d8cde0b5ee12490fd03d7dab5017d0ac0895accf3728c4e6798eb8631ada",
+    ".claude/hooks/BYPASSES.md": "608c481dd4a7caa4818d152329cee1f39e6b973e959b45b1cb7f2b3af75c091e",
+    ".claude/hooks/device_guard.py": "56abb15375aa8c743dee57dae53241cd512398d6d1cdb159aa6772bb6cd099cb",
+    ".claude/hooks/dispatch_guard.py": "537b4d82df857ec8c8ea05b0f41cd6434c29e1b7083304fbfafaa19aaffc3676",
+    ".claude/hooks/guardlib.py": "4d4e13abe6990ae389cad45c3cd83502c27644b5b85fc88e42d797ce8acba97a",
+    ".claude/hooks/history_guard.py": "a470b233c5affe6af952cd61913b035974a9ce94f0d327e19de830f18d82fa08",
+    ".claude/hooks/role_guard.py": "db61fc62efe60c83df22c9c1b9194897d3f78f64d11f0a0b13228e3792ed5078",
+    ".claude/hooks/session_check.py": "065f1308d63ced5194bb28d03cc0f1111cdc36318567cc9347203ce407517917",
+    ".claude/hooks/tests/harness.py": "1f3bceb69d0f557413976015c70ec94783e278f855a4809ef967161a54f883a7",
+    ".claude/hooks/tests/test_bypasses.py": "9723ff1075d99f7d22ecf040309966c362036c241e0eab8f4b33c52e7ef4ceb8",
+    ".claude/hooks/tests/test_config.py": "fc6a6a70b3bab908bce16f23b47e44f4ef428e6b8a37164614e0fee9e238873a",
+    ".claude/hooks/tests/test_device_guard.py": "13e1d1762faca97ec8866880b34fa5b099429f4ee22eaf2800706bfaf1797345",
+    ".claude/hooks/tests/test_dispatch_guard.py": "97992f8aeddd5ba8c8e9e37c93789810d4e216e666ad37c3aba51594d0b48e5a",
+    ".claude/hooks/tests/test_history_guard.py": "5725fbe7d6e47787bd461744fbc60dd5275e6f7b7d31cfb1ddfd2d4d5eb2a3e3",
+    ".claude/hooks/tests/test_role_guard.py": "9e0d683d35a1c6d4590405e31208a520ff27bee7bacb4c2a33aa6b103f3bf8c6",
+    ".claude/hooks/tests/test_session_check.py": "6248e40bf23d93e17cd83949eb6d1cc847b1defc2eaa5c847f744bfa0dae8fad",
+    ".claude/settings.json": "b1c9d1693a6f2525a7424cf9a108771bdd81270448f6eca567aa2cf33b3d6d58",
+    "check_kit.py": "1ac47c07353a343914d36bc196778fc5152ae43f47b16fabcfc13ea276f18edb",
+    "check_prompts.py": "9e1316d5a65890601409cd4d1cd2f578155b2f459c01bef8ed16b0dc1431c7ab",
+    "check_record.py": "31534cc339124b21fcee68ef1f4accc53cc81c9c09a4ef7e036916114c3ee159",
+    "find_dispatches.py": "363a8b2cb326931abce70b708680d765adfe34d713d02540c1f664f5364fd878",
+    "launch_session.py": "874c941a59cc7728b8d04d1a7329dc56f557898541037d48176fdf096df7a6ac",
+    "run_exercise.py": "13e4231f408a00de5e17c0b1d41a148265e026878bf2ef5884b243121a7e52b9",
+    "session_agents.py": "7cd76e950f75fcfce2f6e1e89aac77a6b17a9d1da61333be1308681a550206f6",
+    "update_worktree.py": "24b4ccc569ac9b0ba2d719fefa0045e25891e74cc05b1f6d9d22a56ef3855d06"
+  }
+}
