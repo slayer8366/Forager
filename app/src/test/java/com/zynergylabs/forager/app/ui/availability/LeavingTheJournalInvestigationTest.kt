@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
@@ -658,6 +659,11 @@ class LeavingTheJournalInvestigationTest {
         )
         assertEquals("nothing is marked unsaved any more", false, cartographyViewModel.uiState.value.hasUnsavedChanges)
         assertEquals("the store still holds the original text", COMMITTED_DAY_ENTRY.text, storedDayEntry(COMMITTED_DAY_ENTRY.id)?.text)
+        // What the user sees on Entries: the card carries the typed text, not the stored one.
+        composeRule.onNode(hasTestTag("entry-card-${COMMITTED_DAY_ENTRY.id}") or hasTestTag("entry-row-${COMMITTED_DAY_ENTRY.id}"))
+            .assert(hasText(TYPED_TEXT, substring = true))
+        composeRule.onNode(hasTestTag("entry-card-${COMMITTED_DAY_ENTRY.id}") or hasTestTag("entry-row-${COMMITTED_DAY_ENTRY.id}"))
+            .assert(!hasText(COMMITTED_DAY_ENTRY.text, substring = true))
 
         // Reopened, the report shows the typed text though it was never stored.
         composeRule.onNode(hasTestTag("entry-card-${COMMITTED_DAY_ENTRY.id}") or hasTestTag("entry-row-${COMMITTED_DAY_ENTRY.id}")).performClick()
@@ -690,7 +696,12 @@ class LeavingTheJournalInvestigationTest {
     @Test
     fun `a committed day entry's editor left with a waypoint withheld comes back in its report view without that waypoint, and the store still keeps it`() {
         setScreen()
-        openCommittedDayEntryEditor()
+        openCommittedDayEntry()
+        // The report shows the kept waypoint before any edit, so its absence below is the edit's.
+        composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Withhold").performScrollTo().performClick()
         composeRule.waitForIdle()
