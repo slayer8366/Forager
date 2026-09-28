@@ -242,7 +242,17 @@ the user loses is their place: they come back to the gallery, not the find.
 From a cleared results directory (`rm -rf app/build/test-results/testDebugUnitTest`), then
 `LC_ALL=C.UTF-8 ./gradlew --offline :app:testDebugUnitTest --continue` on this branch.
 
-SUITE_RESULT_PLACEHOLDER
+Run on `9b828da`'s tree. The only later commits on this branch are this report, which is docs only. `BUILD SUCCESSFUL`, exit 0,
+no compile errors in the log, no OOM.
+
+- **Counts, read from the JUnit XML:** 268 result files, 2206 tests, 0 failures, 0 errors, 24 skipped.
+  I did not examine the 24 skipped tests. They are `@Ignore`s and assumptions already on the base, not
+  added by this branch, which only adds the new class.
+- **The run was fresh.** Every XML file is timestamped between 10:44:40Z and 10:47:02Z, after the
+  results directory was cleared.
+- **The new class:** 13/0/0/0.
+- **The held flaky classes passed on this run:** `JournalPendingDeleteTest` 52/0/0/0 and
+  `JournalTabTest` 17/0/0/0. One green run says nothing about their flake rate.
 
 ## D58
 
