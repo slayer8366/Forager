@@ -485,14 +485,28 @@ here.
 
 ## Roles and gates
 
-Planner, coder and pulse are held apart by hooks, not by instruction. The
-design is `docs/process/accountability-design.md`; the subagents are in
-`.claude/agents/`, the gates in `.claude/hooks/`, and the dispatch record in
-`RECORD.md` and `prompts/preserved/`. A main session in this repository is the
-planner and is read-only. Added at the end of this file so that line 253 does
-not move. The hooks, agents and checkers are vendored from Claude-kit release
-`v0.2`: `.claude/kit.json` is the kit's config, `.claude/kit.lock` its lock
-and `check_kit.py` its drift check.
-`docs/audits/2026-09-26-recordkeeping-protocol-shift.md` records when
-recordkeeping moved to the kit's protocols, and the cutoff for `merge`
+A main session in this repository is the planner. It writes dispatches,
+launches coders and pulses, rules on what it may and brings the rest to the
+owner, and writes the record. It writes no app code, though it re-runs the full
+suite itself before closing a build stage. A coder builds, or drives a device,
+under one dispatch; a pulse only reads.
+
+The roles are held apart by instruction, not by hooks. The owner disabled the
+Claude-kit hooks on 2026-09-27 (`c5b2a10`, `disableAllHooks` in
+`.claude/settings.json`), and `journal-redesign` removes the kit (`e136330`).
+The kit's files that remain on `main` (`.claude/kit.json`, `.claude/kit.lock`,
+`.claude/hooks/`, `check_kit.py` and the record checkers) are not in use.
+
+- The subagents' instructions are in `.claude/agents/`.
+- Each dispatch is committed to `prompts/preserved/` before it runs, and it
+  governs over any summary of it.
+- `RECORD.md` is written by the planner by hand: intents, continuations,
+  dispatch-notes and terminals.
+- A coder's evidence is its completion report or run record in
+  `docs/audits/`.
+
+The design the hooks enforced is `docs/process/accountability-design.md`, kept
+as the record of it. This section is at the end of the file so that line 253
+does not move. `docs/audits/2026-09-26-recordkeeping-protocol-shift.md` records
+when recordkeeping moved to the kit's protocols, and the cutoff for `merge`
 entries is there.
