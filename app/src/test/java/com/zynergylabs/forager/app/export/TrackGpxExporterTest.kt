@@ -9,7 +9,9 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -120,5 +122,32 @@ class TrackGpxExporterTest {
             file.readText(),
         )
         assertTrue("the waypoint's own id must reach the file", file.readText().contains("id=\"w1\""))
+    }
+
+    // ---- exports leave the cache after an hour (F5, dispatch 2026-09-28-216, owner "3 A") ------
+
+    private fun File.agedMinutes(minutes: Long): File = apply { check(setLastModified(System.currentTimeMillis() - minutes * 60_000L)) }
+
+    @Test
+    fun `write first removes an export older than an hour and keeps one that is not`() {
+        val dir = tempFolder.newFolder("tracks")
+        val stale = File(dir, "forager-track-old.gpx").apply { writeText("<gpx/>") }.agedMinutes(61)
+        val fresh = File(dir, "forager-track-recent.gpx").apply { writeText("<gpx/>") }.agedMinutes(59)
+
+        val written = TrackGpxExporter(dir).write(track, fullRecord = fullRecord, waypoints = emptyList())
+
+        assertFalse("an export 61 minutes old is still in the cache", stale.exists())
+        assertTrue("an export 59 minutes old was deleted", fresh.exists())
+        assertTrue("the new export is there", written.exists())
+    }
+
+    @Test
+    fun `write leaves an old file that is not a gpx export alone`() {
+        val dir = tempFolder.newFolder("tracks")
+        val other = File(dir, "notes.txt").apply { writeText("keep") }.agedMinutes(600)
+
+        TrackGpxExporter(dir).write(track, fullRecord = fullRecord, waypoints = emptyList())
+
+        assertTrue("a file that is not a .gpx export was deleted", other.exists())
     }
 }

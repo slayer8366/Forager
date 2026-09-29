@@ -45,3 +45,17 @@ Revert checks planned, each from a copy saved before editing:
 - remove the deletion call from `write`: test 5 fails; remove it from `onCreate`: test 7 fails.
 
 Not testable here: the real share sheet and a receiving app still reading the file (device only).
+
+## Tests first, at base `445b292b` (before any fix)
+
+Run: `./gradlew --offline :app:testDebugUnitTest --tests '*JournalBackupTest' --tests '*TrackGpxExporterTest' --tests '*ForagerApplicationGpxStartTest'`, results directory cleared first, every XML newer than the run's start. 51 tests, 4 failed, 0 errors; build log has no compile errors. Exactly the four predicted, each for the stated reason:
+
+| # | Test | Result | Message |
+|---|------|--------|---------|
+| 1 | backup made with searches holds no rows | FAIL | `cached_searches rows in the backup's snapshot expected:<0> but was:<2>` |
+| 2 | no trace of search text in the snapshot | FAIL | `search text found in the snapshot file` |
+| 3 | Replace leaves the phone's searches | PASS (predicted) | |
+| 4 | Merge leaves the phone's searches | PASS (predicted) | |
+| 5 | `write` removes an export older than an hour | FAIL | `an export 61 minutes old is still in the cache` |
+| 6 | `write` leaves a non-gpx file alone | PASS (predicted) | |
+| 7 | app start removes a stale export | FAIL | `an export 61 minutes old is still in the cache after startup` |
