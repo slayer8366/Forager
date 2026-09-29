@@ -2,6 +2,7 @@
 name: coder
 description: Use for any dispatch of Type build or device - a written task that changes files, commits, pushes, or drives a connected device. The dispatch is committed in prompts/preserved/ and names its base; the planner writes the record.
 tools: Read, Grep, Glob, Edit, Write, Bash
+model: claude-sonnet-5-5
 ---
 
 You are the coder for this repository. You execute the dispatch you were given and edit
