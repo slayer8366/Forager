@@ -59,3 +59,56 @@ Run: `./gradlew --offline :app:testDebugUnitTest --tests '*JournalBackupTest' --
 | 5 | `write` removes an export older than an hour | FAIL | `an export 61 minutes old is still in the cache` |
 | 6 | `write` leaves a non-gpx file alone | PASS (predicted) | |
 | 7 | app start removes a stale export | FAIL | `an export 61 minutes old is still in the cache after startup` |
+
+## What landed (on `privacy-fixes-redo-sonnet`)
+
+- `RoomJournalBackup.kt`: new `clearSearchesFromSnapshot`, called in `doBackUp` right after `takeSnapshot`; opens the snapshot **copy** read-write and runs `DELETE FROM cached_searches`. The live database is never written. The no-op `DELETE ... WHERE 0` in `takeSnapshot` is unchanged (it still takes the write lock). Restore is unchanged: it never touched `cached_searches`, and tests 3 and 4 now hold that.
+- `TrackGpxExporter.kt`: `deleteStaleExports()` returns a `StaleSweep(found, deleted)` for `.gpx` files in the export directory last modified over `MAX_EXPORT_AGE_MILLIS` (one hour) ago; `write` calls it first.
+- `ForagerApplication.kt`: `onCreate` calls `deleteStaleGpxExports()`, on `applicationScope` like the capture sweep, logging a count at INFO and a warning if a file could not be deleted.
+- Tests: 4 in `JournalBackupTest`, 2 in `TrackGpxExporterTest`, new `ForagerApplicationGpxStartTest` (1).
+
+Commits: `9b54e5a2` (fix), `29d009ae` (VACUUM dropped); pre-registration `76b71b41`, tests first `eea15726`.
+
+## Verification
+
+- **Tests forward:** the three classes, 51 tests, 0 failures (before the VACUUM change), then the same after.
+- **Revert checks** (each from a copy saved before editing, restored from that copy, build log with 0 compile errors, forward change confirmed present afterwards by `cmp` and `git diff`):
+
+| Check | Edit | Result |
+|-------|------|--------|
+| R1 (twice, once on the final code) | remove the `DELETE` | tests 1 and 2 fail: `expected:<0> but was:<2>`; `search text found in the snapshot file` |
+| R2 | remove the `VACUUM` (since dropped) | **nothing failed. Prediction wrong**, see Findings |
+| R3a | Replace also copies `cached_searches` | test 3 fails, `schema 16 backup, Replace: the phone's searches expected:...` |
+| R3b | Merge also copies `cached_searches` | test 4 fails, `schema 16 backup, Merge: ...` |
+| R4 | `write` no longer sweeps | test 5 fails: `an export 61 minutes old is still in the cache` |
+| R5 | `onCreate` no longer sweeps | test 7 fails: `... still in the cache after startup` |
+
+- **Full suite**, results directory cleared, every XML newer than the run start: 379 files, **3145 tests, 0 failures, 0 errors, 24 skipped** (second run). The first run had **1 failure**, `LeavingTheJournalFixesTest` "F3 the Maps search bar shows on Maps while a find is kept open on the Journal", `IllegalArgumentException: performMeasureAndLayout called during measure layout`. Unrelated to this change (Compose layout, none of these files); the class then passed 34/34 three times alone, and the whole suite passed on rerun. Not touched. It reads as a flake seen once in three runs of that class's code, with no cause established.
+
+## Findings
+
+1. **A prediction failed (R2).** I predicted that `DELETE` alone would leave the deleted text in the file and that test 2 would fail without a `VACUUM`. It passed. A probe (a throwaway test, not committed) showed `PRAGMA secure_delete` reads 1 by default under Robolectric's SQLite 3.44.3, and that the text was also absent with `secure_delete=OFF` on a whole-table `DELETE`. So test 2 cannot tell `DELETE` from `DELETE` + `VACUUM`. I dropped the `VACUUM` (see Decisions). Test 2 still bites the `DELETE` (R1).
+2. **The base had no F5** and the branch the dispatch names already holds the landed F5 (from the Opus run); this is a redo on a new branch. See the top of this report.
+3. **The code shows no share-completion signal** (`TrackExportPanel.kt:266`, `startActivity(Intent.createChooser(...))`, no result). The dispatch's "stop if sharper" did not trigger; the one-hour rule is what was built.
+
+## Decisions I made
+
+- Branch and worktree names `privacy-fixes-redo-sonnet` (the owner said "a new branch"; `privacy-fixes` and `privacy-fixes-sonnet` are in use). Pushed to that branch, not `journal-redesign`, on the owner's "new branch". Report file name differs from the dispatch's `2026-09-29-privacy-fixes-completion-report.md`, which the landed F5 holds on `journal-redesign`.
+- Base `445b292b`, the dispatch's, so the redo is comparable and the new branch has an F5 to build.
+- `VACUUM` added then removed (Finding 1). The owner or planner may prefer an explicit `PRAGMA secure_delete=ON`; it costs nothing, but no test could bite it here either.
+- Only `.gpx` files are swept, by last-modified time, not every file in `cacheDir/tracks`.
+- The sweep at start runs off the main thread, like the capture sweep.
+- `deleteStaleExports` returns `StaleSweep(found, deleted)`, not a bare count, so a file that could not be deleted is logged instead of swallowed.
+
+## Flags outside scope
+
+- The landed F5 on `journal-redesign` and this branch do the same job differently; they will conflict if both are merged. Which one is kept is for the owner. Merge is not authorised and was not done.
+- `/home/zynergy-labs/Zynergy/forager-wt/privacy-fixes-sonnet` had a live session with uncommitted F5 edits from base `445b292b` (seen 13:23 PDT). Possibly a duplicate of this run; not touched.
+- The `LeavingTheJournalFixesTest` flake above.
+- Planner role moved during the session (to the session "You are the planner...", ref `05172f`); the hand-back goes there.
+
+## Not tested / device-only
+
+- On a phone: make a backup with a search on it, unzip it, and confirm `forager.db` has no `cached_searches` rows and no search text (`strings forager.db | grep`), and that the phone's searches still show afterwards. This also settles whether `secure_delete` is on in the device's SQLite, which was only probed under Robolectric.
+- On a phone: share a track, and confirm the receiving app opens it; confirm the file is gone from the app's cache after an hour and a restart (`run-as ... ls cache/tracks`).
+- The one-hour boundary itself is tested at 59 and 61 minutes, not at exactly 60.
