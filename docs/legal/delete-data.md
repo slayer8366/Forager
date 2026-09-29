@@ -1,10 +1,13 @@
 # Deleting your Forager data
 
-**Last updated: 2026-09-11.**
+**Last updated: DRAFT, 2026-09-29, not yet published.**
 
-Forager stores everything on your own device. There is no account, no server, and no copy of your
-data anywhere except the phone in your hand. That shapes what deletion means here: there is nothing
-to request, because there is no one holding a copy to ask.
+> **Draft status (remove before publishing).** Describes the build with the Journal redesign (journal
+> backup and restore, Save to Gallery). Not to be published before that build reaches testers.
+
+Forager stores everything on your own device. There is no account and no server, and the only copies
+of your data outside the app are ones you saved yourself. That shapes what deletion means here:
+there is nothing to request, because there is no one holding a copy to ask.
 
 ## Delete individual items in the app
 
@@ -12,27 +15,41 @@ Anything you create can be deleted from inside Forager, item by item, and the de
 immediately:
 
 - **Journal entries** — including any coordinate attached to a find.
-- **Photos** — whether taken with your camera app or imported from your gallery. Deleting a photo
-  removes the stored file, not just the reference to it.
+- **Photos** — whether taken with Forager's camera or imported from your gallery. Deleting a photo
+  removes the stored file, not just the reference to it. It does not remove a copy you saved to your
+  Gallery.
 - **Recorded tracks** — the track and every GPS point in it.
 - **Waypoints** — including vehicle and origin markers.
 - **Downloaded offline map regions.**
 - **Planned trips.**
 
-## Uninstalling removes everything
+## Uninstalling removes what Forager stores
 
-Uninstalling Forager deletes all of it: the database, the photo files, downloaded map regions, saved
-preferences and any crash reports. Nothing is left behind on the device.
+Uninstalling Forager deletes everything in its own storage: the database, the photo files,
+downloaded map regions, saved preferences and any crash reports.
+
+**It does not delete files you saved outside the app**, because those are yours and Forager cannot
+reach them once saved:
+
+- **Journal backups** — `.zip` files in the place you chose. A scheduled backup writes a new file
+  each time and never deletes old ones, so check the folder you picked for it. Backup files are not
+  encrypted.
+- **Photos saved to your Gallery** — in the "Forager" album, or the folder you picked on Android 8
+  and 9.
+- **Exported GPX tracks** — wherever you sent them.
+
+Delete those in your Files or Gallery app. If you saved a backup to a cloud folder, delete it there
+too.
 
 Forager also sets `allowBackup="false"`, which means Android does **not** copy your Forager data into
-Google's automatic backup. There is no cloud copy to survive the uninstall and reappear on your next
-phone. That is a deliberate choice: it costs you the convenience of a restore, and it means
-uninstalling really is the end of the data.
+Google's automatic backup. There is no automatic cloud copy to survive the uninstall and reappear on
+your next phone. Moving your journal to a new phone is done with Forager's own backup, which you make
+and place yourself.
 
 ## There is nothing stored on a server
 
 Forager has no account system and uploads nothing you create. Your entries, photos, tracks and
-waypoints never leave the device.
+waypoints leave the device only as files you choose to save or share yourself.
 
 What does leave the device, while you are online, is **where you are looking** — the coordinates a
 species or weather lookup runs on, and the map tiles for the area on screen. Those requests go to
