@@ -759,7 +759,7 @@ class JournalBackupTest {
         val a = phone().apply { seedFullJournal(); seedSearches() }
         val snapshot = readZip(a.backUp()).getValue("forager.db")
 
-        // Deleting rows leaves their bytes in the file's free pages until the file is rebuilt, so the rows being gone is not enough.
+        // The rows being gone is not the claim: the text they held must not survive in the file's free pages either.
         val text = String(snapshot, Charsets.ISO_8859_1)
         assertFalse("search text found in the snapshot file", "SEARCH_TEXT_ONE_9f3a" in text || "SEARCH_TEXT_TWO_9f3a" in text)
     }

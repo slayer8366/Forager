@@ -177,13 +177,13 @@ class RoomJournalBackup(
     /**
      * A backup holds no `cached_searches` rows (F5, dispatch 2026-09-28-216; owner, "2 A. Leave searches out of
      * backups"): each carries the coordinates it was run for. Cleared in the snapshot **copy** only, never on the
-     * live database. `DELETE` alone leaves the rows' bytes in the file's free pages, so the copy is then
-     * `VACUUM`ed, which rewrites it without them.
+     * live database. No `VACUUM`: Android's SQLite defaults `secure_delete` on, which zeroes deleted content in
+     * place (probed under Robolectric, where `PRAGMA secure_delete` reads 1; not probed on a device), and a
+     * `VACUUM` would rewrite the whole snapshot for nothing.
      */
     private fun clearSearchesFromSnapshot(snapshot: File) {
         SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
             db.execSQL("DELETE FROM cached_searches")
-            db.execSQL("VACUUM")
         }
     }
 
