@@ -241,8 +241,10 @@ permission internal to the app, added by a support library and held by no other 
   (`PhotoAcquisitionLaunchers.kt`).
 - **Notifications, vibrate, foreground service** (`POST_NOTIFICATIONS`, `VIBRATE`,
   `FOREGROUND_SERVICE`) — the off-track alert (a notification and a vibration, only while you are
-  navigating back), the ongoing recording notification, and the backup notifications below.
-  Nothing is sent anywhere to produce any of them. On Android 13 and later Forager asks for the
+  navigating back), the sundown alerts (a turnaround warning and one at sunset, while a track is
+  recording), the ongoing recording notification, and the backup notifications below. The sundown
+  alerts are computed on the device from the clock and your position; nothing is sent anywhere to
+  produce any of them. On Android 13 and later Forager asks for the
   notification permission when you start a recording (`MainActivity.kt`), and once when you first
   turn scheduled backups on.
 - **Notifications, for backups** — in a channel named "Backups" (`AndroidBackupNotifier.kt`). A
