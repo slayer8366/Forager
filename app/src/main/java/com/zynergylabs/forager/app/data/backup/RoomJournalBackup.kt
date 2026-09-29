@@ -106,6 +106,7 @@ class RoomJournalBackup(
         try {
             val snapshot = File(scratch, BackupManifest.DATABASE_ENTRY)
             takeSnapshot(snapshot)
+            clearSearchesFromSnapshot(snapshot)
             val (schemaVersion, photoPaths) = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 requireIntegrity(db, "the snapshot")
                 val paths = db.rawQuery("SELECT relativePath FROM log_photos", null).use { c ->
@@ -171,6 +172,19 @@ class RoomJournalBackup(
         }
         targetWal.delete()
         File(target.path + "-shm").delete()
+    }
+
+    /**
+     * A backup holds no `cached_searches` rows (F5, dispatch 2026-09-28-216; owner, "2 A. Leave searches out of
+     * backups"): each carries the coordinates it was run for. Cleared in the snapshot **copy** only, never on the
+     * live database. `DELETE` alone leaves the rows' bytes in the file's free pages, so the copy is then
+     * `VACUUM`ed, which rewrites it without them.
+     */
+    private fun clearSearchesFromSnapshot(snapshot: File) {
+        SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("DELETE FROM cached_searches")
+            db.execSQL("VACUUM")
+        }
     }
 
     // ---- restore -------------------------------------------------------------------------------
