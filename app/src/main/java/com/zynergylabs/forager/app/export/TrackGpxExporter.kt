@@ -44,6 +44,7 @@ class TrackGpxExporter(private val exportDir: File) {
      * own points do not name.
      */
     fun write(track: Track, fullRecord: List<TrackPointRecord>, waypoints: List<Waypoint>): File {
+        deleteStaleExports()
         exportDir.mkdirs()
         val file = File(exportDir, fileNameFor(track))
         file.writeText(
@@ -59,6 +60,23 @@ class TrackGpxExporter(private val exportDir: File) {
         return file
     }
 
+    /**
+     * Deletes the `.gpx` files in the export directory that were last written more than [MAX_EXPORT_AGE_MILLIS]
+     * ago, and returns what it found and deleted (F5, dispatch 2026-09-28-216; owner, "3 A"). Called before each new export
+     * and at app start. An hour, not the moment the share sheet closes: the receiving app may still be reading
+     * the shared file then, and the code has no completion signal from the share (`startActivity` of a chooser
+     * returns nothing). A file that cannot be deleted shows as [StaleSweep.found] above
+     * [StaleSweep.deleted] for the caller to log; the next call tries again.
+     */
+    fun deleteStaleExports(): StaleSweep {
+        val cutoff = System.currentTimeMillis() - MAX_EXPORT_AGE_MILLIS
+        val stale = exportDir.listFiles { f -> f.isFile && f.extension == "gpx" && f.lastModified() < cutoff } ?: return StaleSweep(found = 0, deleted = 0)
+        return StaleSweep(found = stale.size, deleted = stale.count { it.delete() })
+    }
+
+    /** What a sweep found and what it managed to delete; [found] above [deleted] means a file could not be removed. */
+    data class StaleSweep(val found: Int, val deleted: Int)
+
     private fun fileNameFor(track: Track): String {
         val timestamp = FILE_NAME_FORMAT.format(
             Instant.ofEpochMilli(track.startedAtEpochMillis).atZone(ZoneId.systemDefault()),
@@ -67,6 +85,9 @@ class TrackGpxExporter(private val exportDir: File) {
     }
 
     companion object {
+        /** How long an exported file stays in the cache: long enough for the app it was shared to to finish reading it. */
+        const val MAX_EXPORT_AGE_MILLIS = 60L * 60L * 1000L
+
         private val FILE_NAME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")
 
         /**

@@ -7,6 +7,7 @@ import com.zynergylabs.forager.app.crash.CrashUncaughtExceptionHandler
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependencies
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependenciesProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.export.TrackGpxExporter
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
 import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
@@ -53,6 +54,7 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         installCrashHandler()
         initializeMapLibreAtStart()
         sweepOrphanedCaptures(startedAt)
+        deleteStaleGpxExports()
     }
 
     /**
@@ -100,6 +102,18 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
             if (deleted > 0) Log.i(TAG, "Deleted $deleted orphaned capture file(s) left by an earlier process.")
             // The same number, somewhere a phone with no logcat can read it (debug builds only).
             diagnostics.recordSweep(deleted)
+        }
+    }
+
+    /**
+     * [TrackGpxExporter.deleteStaleExports] at start (F5, dispatch 2026-09-28-216; owner, "3 A"), so an
+     * export the phone never shared again does not sit in the cache. Off the main thread, like the capture sweep.
+     */
+    private fun deleteStaleGpxExports() {
+        applicationScope.launch {
+            val sweep = TrackGpxExporter.forContext(this@ForagerApplication).deleteStaleExports()
+            if (sweep.deleted > 0) Log.i(TAG, "Deleted ${sweep.deleted} exported GPX file(s) more than an hour old.")
+            if (sweep.found > sweep.deleted) Log.w(TAG, "${sweep.found - sweep.deleted} exported GPX file(s) more than an hour old could not be deleted.")
         }
     }
 
