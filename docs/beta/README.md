@@ -34,8 +34,10 @@ and it is more useful than going quiet.
 
 ## Before anything else: what leaves the phone and what does not
 
-> **Draft status (remove before publishing).** This section describes the build with the Journal
-> redesign (backup and restore, Save to Gallery); it is not the build testers have today.
+> **Draft status (remove before publishing).** This section describes the build that PR #140 ships
+> (the Journal redesign: track delete, backup and restore, Save to Gallery); it is not the build
+> testers have today. Every claim was re-read against the code at `journal-redesign` `f645e8f9`;
+> the file and line behind each is in `docs/audits/2026-09-29-legal-docs-l1-completion-report.md`.
 
 Forager has no account, no sign-in, no sync and no telemetry. Your tracks, your journal entries and
 your photos are written to the phone's own storage, and the app never uploads them.
@@ -46,23 +48,45 @@ weather lookup sends the coordinates it is searching on to iNaturalist and to Op
 from OpenStreetMap, OpenTopoMap, USGS and a Cloudflare Worker this project runs — a tile request is
 a `z/x/y` square, which is the patch of ground on your screen (`Basemap.kt`, `OfflineStyle.kt`).
 Those requests carry no name and no account, because there is none, but they carry a place and your
-IP address, and the servers answering them can log both. A downloaded offline region removes the
-tile half while you are inside it; nothing removes the search half except not searching.
+IP address, and the servers answering them can log both. Denying the location permission does not
+stop them: a place you type in or a map you move still goes out. A downloaded offline region is
+stored on the phone, but nothing removes the search half of those requests except not searching.
+Forager also keeps your last five searches (place, radius, month, filter
+and the species list returned) on the phone, so a search you have run before still answers with no
+signal (`RoomSearchCacheRepository.kt`).
 
-Two more honest details. A photo taken with Forager's own camera has all its embedded metadata,
-location included, stripped when it is stored; only its orientation is kept (`FilePhotoStore.kt`,
+Two more honest details. A photo taken with Forager's own camera has its embedded metadata,
+location included, stripped when it is stored; only what the picture needs to display is kept — its
+orientation, its colour profile and two small technical headers (`FilePhotoStore.kt`,
 `PhotoMetadataScrub.kt`). A photo you import from your gallery is not stripped by Forager: Android
-10 and up removes its GPS tags from the copy the app reads, but on Android 8 and 9 it can keep them,
-and "Save to Gallery" saves an import exactly as it was imported.
+10 and up normally withholds its GPS tags from the copy the app reads, but on Android 8 and 9 it can
+keep them, and "Save to Gallery" saves an import exactly as it was imported (`PhotoExporter.kt`). The
+owner, verbatim: "Imported photos taken outside the app are not within our scope. They can use a
+scrubbing app to remove it if they want it removed. All photos taken inside the app are scrubbed
+either way and that's our scope". Save to Gallery writes the photo's own time as the copy's "date
+taken", when the app has one, and never a location.
 
 And Android's own backup is switched off for Forager (`android:allowBackup="false"`,
 `app/src/main/AndroidManifest.xml`), permanently and on purpose. Nothing your phone does copies
 Forager's tracks, entries or photos to a Google account, and nothing hands them across during a new
 phone's setup. Moving your own data is the app's job instead: **Backup** in Tools, then Settings,
-writes one `.zip` file to a place you choose, and **Restore** reads one back, replacing or merging.
-Scheduled backups are off unless you turn them on. The backup file is not encrypted and holds your
-entries, finds, photos and full GPS tracks, so put it somewhere you trust; and because it lives
+writes one `.zip` file to a place you choose, and **Restore** reads one back, replacing or merging
+(it asks each time; it does not add an offline map region the phone already has, `RegionMatch.kt`).
+Scheduled backups are off unless you turn them on, and the first one runs after a full interval
+rather than at once. The app keeps the newest five files a scheduled backup made and deletes older
+ones it made itself, never a backup you made by hand or anything else in the folder
+(`BackupSchedule.kt`). A scheduled backup that fails, or leaves some photos out, posts a "Backups"
+notification, and the notification permission is asked once, when you first turn scheduled backups
+on; if you decline, the same words appear once in the app the next time you open it
+(`ScheduledBackupNotice.kt`, `BackupViewModel.kt`). The backup file is not encrypted and holds your
+entries, finds, photos, full GPS tracks, waypoints, planned trips and offline-region details, and
+also the list of your last five searches, so put it somewhere you trust; and because it lives
 outside the app, uninstalling Forager does not delete it.
+
+Deleting a track (a swipe in Records, or Delete on its details; never while it is recording) does not
+remove what a journal entry kept about it: an entry keeps its own copy of a track's name, distance
+and, once the track is deleted, its path, and of a waypoint's or offline region's name and position,
+until you delete the entry (`CartographyEntryEntity.kt`, `DeleteTrackUseCase.kt`).
 
 The templates never ask where a tester was — foragers mark spots they do not want found — and ask
 for terrain and sky instead: "dense fir canopy", "open ridge", "car park". Every field in them is
@@ -81,8 +105,9 @@ before", which is useless as data. The handle is the join: the tester picks it, 
 name, and it appears on both.
 
 **Why the trip report asks whether the track looked shorter than the walk (added 2026-09-08,
-after the GPX full-record pre-build report):** the app keeps a track point only when its timestamp
-lands on a whole second (`NetworkProviderFix.kt`). That is a proxy for "this fix came from GPS, not
+after the GPX full-record pre-build report):** the app counts a track point only when its timestamp
+lands on a whole second (`NetworkProviderFix.kt`; every point is still stored, the rule applies when
+a track is read). That is a proxy for "this fix came from GPS, not
 the network provider" — it has held across five data sets, all from one phone. On a phone whose GPS
 fixes carry milliseconds, the same rule throws away good fixes, and the symptom is not a spike or a
 blank: it is a track that looks fine and is simply shorter than the ground walked, with corners cut
