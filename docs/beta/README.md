@@ -34,6 +34,9 @@ and it is more useful than going quiet.
 
 ## Before anything else: what leaves the phone and what does not
 
+> **Draft status (remove before publishing).** This section describes the build with the Journal
+> redesign (backup and restore, Save to Gallery); it is not the build testers have today.
+
 Forager has no account, no sign-in, no sync and no telemetry. Your tracks, your journal entries and
 your photos are written to the phone's own storage, and the app never uploads them.
 
@@ -46,21 +49,20 @@ Those requests carry no name and no account, because there is none, but they car
 IP address, and the servers answering them can log both. A downloaded offline region removes the
 tile half while you are inside it; nothing removes the search half except not searching.
 
-Two more honest details. Forager does not itself strip location metadata from the photo it stores:
-a gallery import is redacted by Android on Android 10 and up, but a photo taken inside Forager is
-written straight into the app's own folder by the camera app, where that redaction does not apply
-(`FilePhotoStore.kt`, `CameraCaptureFiles.kt`).
+Two more honest details. A photo taken with Forager's own camera has all its embedded metadata,
+location included, stripped when it is stored; only its orientation is kept (`FilePhotoStore.kt`,
+`PhotoMetadataScrub.kt`). A photo you import from your gallery is not stripped by Forager: Android
+10 and up removes its GPS tags from the copy the app reads, but on Android 8 and 9 it can keep them,
+and "Save to Gallery" saves an import exactly as it was imported.
 
 And Android's own backup is switched off for Forager (`android:allowBackup="false"`,
 `app/src/main/AndroidManifest.xml`), permanently and on purpose. Nothing your phone does copies
 Forager's tracks, entries or photos to a Google account, and nothing hands them across during a new
-phone's setup — not the app, and not the operating system either. Moving your own data is the app's
-job rather than Android's: the design is an export you tap in Forager, which writes one file that
-goes exactly where you send it and nowhere else — a cable, Bluetooth, a folder you choose — and an
-import that reads that file back and rebuilds tracks, entries, waypoints and photos from it.
-**That export and import are not in the build you are testing** — they are the plan, not a feature
-of this APK, and this page will not pretend otherwise. So for the length of this test, what you
-record stays on the phone that recorded it.
+phone's setup. Moving your own data is the app's job instead: **Backup** in Tools, then Settings,
+writes one `.zip` file to a place you choose, and **Restore** reads one back, replacing or merging.
+Scheduled backups are off unless you turn them on. The backup file is not encrypted and holds your
+entries, finds, photos and full GPS tracks, so put it somewhere you trust; and because it lives
+outside the app, uninstalling Forager does not delete it.
 
 The templates never ask where a tester was — foragers mark spots they do not want found — and ask
 for terrain and sky instead: "dense fir canopy", "open ridge", "car park". Every field in them is

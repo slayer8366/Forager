@@ -1,7 +1,13 @@
 # Forager — privacy policy
 
-**Last updated: 2026-09-09.** Applies to the Forager Android app (package `com.zynergylabs.forager.app`),
-including its Google Play closed test.
+**Last updated: DRAFT, 2026-09-29, not yet published.** Applies to the Forager Android app (package
+`com.zynergylabs.forager.app`), including its Google Play closed test.
+
+> **Draft status (remove before publishing).** This draft describes the build that includes the
+> Journal redesign (branch `journal-redesign`): Save to Gallery, and journal backup and restore. It
+> must not be published before that build reaches testers. Sections marked *true today* already
+> describe the app on `main` and could be published sooner. Planner's draft for the owner's
+> approval; the reasoning, item by item, is in `docs/audits/2026-09-29-privacy-site-update-report.md`.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
 actually does; where a claim comes from a particular file, that file is named so the claim can be
@@ -11,6 +17,10 @@ checked rather than trusted.
 
 Forager has no account, no sign-in, no sync and no analytics. Nothing you record — tracks, journal
 entries, photos, offline map regions, settings — is uploaded to the developer or to anyone else.
+
+You can choose to save copies outside the app: a backup of your journal, a track as a GPX file, or a
+photo into your Gallery. Each of those is a file you place yourself, and Forager never sends one
+anywhere on its own. Once saved, a copy is outside Forager's control and outlives uninstalling it.
 
 What is transmitted, while the phone is online, is **where you are looking**: the coordinates a
 search runs on, and the map tiles for the area on screen. Those go to iNaturalist, Open-Meteo, the
@@ -34,21 +44,41 @@ Stored in the app's own private storage, readable by no other app:
 - Crash traces, written locally when the app crashes (`CrashFileStore.kt`). They stay on the phone
   and are only ever shared if you choose to share one from the app's crash screen.
 
-None of this is transmitted by the app. It is deleted when you uninstall the app or clear its data.
+None of this is transmitted by the app. It is deleted when you uninstall the app or clear its data,
+**except for copies you have saved outside the app**, described in the next section.
 
 **Android's own backup is switched off for this app.** The manifest sets
 `android:allowBackup="false"` (`app/src/main/AndroidManifest.xml`), which turns off both Android
 Auto Backup and the device-to-device transfer that runs during a new phone's setup. Your phone
 therefore does not copy Forager's data to your Google account, and does not hand it to another
 device on your behalf. This is a permanent decision, not a setting for the closed test: moving your
-data belongs to the app rather than to the operating system. The design is an export you trigger
-inside Forager, writing a single file that goes only where you send it — a cable, Bluetooth, a
-folder or cloud drive you pick — and an import that reads that file and rebuilds tracks, entries,
-waypoints and photos from it. Nothing sends that file anywhere on its own.
+data belongs to the app rather than to the operating system, through the backup described below.
 
-**That export and import are not built yet**, and this policy will not describe them as if they
-were. As of the date at the top of this document, data recorded in Forager stays on the device that
-recorded it until you have an app version that can export it.
+## Copies you save outside the app
+
+Each of these happens only when you ask for it, and each writes an ordinary file that Forager does
+not control afterwards. Uninstalling Forager or clearing its data does **not** remove them.
+
+- **Journal backup** (`app/src/main/java/com/zynergylabs/forager/app/data/backup/`). One `.zip`
+  file, saved where you choose through Android's file picker — the phone, an SD card, or a cloud
+  folder if you pick one. It holds your journal entries and finds with their coordinates, your
+  photos, your recorded tracks with every GPS point, your waypoints, your planned trips, and the
+  details of your offline map regions (their name and area, not the map tiles). It does not hold
+  your settings. **The backup file is not encrypted**: anyone who has the file can read what is
+  in it, so keep it somewhere you trust. If you save it to a cloud folder, that service stores a copy
+  under its own terms; Forager does not upload it and has no copy.
+- **Scheduled backups** write the same kind of file on a schedule you set (daily, weekly or monthly)
+  to a folder you choose. They are **off unless you turn them on**. Each run writes a new file and
+  Forager never deletes old ones, so the folder keeps every backup until you remove them.
+- **Restore** reads a backup file you pick and either replaces the journal on the phone or merges it
+  in. Nothing is fetched from anywhere else.
+- **Track export** (*true today*; `TrackExportPanel.kt`, `TrackGpxExporter.kt`). A recorded track
+  can be exported as a GPX file through Android's share sheet, to wherever you send it. The file
+  contains the track's coordinates and times.
+- **Save to Gallery** (`PhotoExporter.kt`). A photo can be saved from the photo viewer into the
+  phone's Gallery, in a "Forager" album, on Android 10 and later; on Android 8 and 9 into a folder you
+  pick. Saved copies are visible to other apps that can read your photos. What a saved copy carries
+  is described under *Photos and location metadata* below.
 
 ## What is transmitted, to whom, and why
 
@@ -108,22 +138,29 @@ shared with anyone else, or used for advertising or profiling.
 
 ## Photos and location metadata
 
-Photos stay on the phone. What the app does with the location metadata embedded in a photo file is
-narrower than it may sound, and is stated here as it actually is (`FilePhotoStore.kt`):
+Photos stay on the phone unless you save or share one yourself; the app never transmits one. What
+happens to the metadata inside a photo file depends on how the photo got into Forager:
 
-- Forager does not run an EXIF-stripping step over the photo it stores.
-- For a **gallery import** on Android 10 (API 29) and later, the platform itself redacts GPS tags
-  from the copy the app reads, because the app does not opt in to the original via
-  `MediaStore.setRequireOriginal` for that read. On Android 9 and earlier (the app supports back to
-  Android 8.0) there is no such redaction, and an imported photo's copy can keep its embedded GPS
-  tags.
-- For a **photo taken inside Forager**, the camera app writes into a file in Forager's own directory
-  (`CameraCaptureFiles.kt`). That is not a MediaStore read, so the platform redaction above does not
-  apply to it; whatever GPS tags the camera app wrote are in the stored file.
+- **Photos taken with Forager's camera** (*true today*). Forager has its own camera screen
+  (`CameraCapturePhotoSource.kt`). Each photo it takes is stripped of all embedded metadata when it
+  is stored — location, camera details, timestamps, thumbnails, and every other tag — and only the
+  orientation is put back so the photo displays the right way up (`FilePhotoStore.kt`,
+  `PhotoMetadataScrub.kt`). The strip keeps an allowlist rather than removing a list of known tags,
+  so a tag nobody thought of is removed too.
+- **Photos imported from your gallery** are not stripped by Forager. On Android 10 and later the
+  platform removes GPS tags from the copy the app reads, because Forager does not ask for the
+  original for that copy; other metadata, such as the camera model and the time, can remain. On
+  Android 8 and 9 there is no such removal, and an imported photo's copy can keep its GPS tags.
+  Separately, Forager reads an import's original date and location (with the `ACCESS_MEDIA_LOCATION`
+  permission) so a find can be dated and placed; that goes into the app's own database, not into
+  the photo.
+- **Saving to the Gallery.** A saved copy is an exact copy of the photo as Forager stored it. A
+  photo taken with Forager's camera therefore has no location in it. An imported photo is saved as
+  it was imported: if it carried a location or other details, so does the copy. If you want those
+  removed, use a metadata-removal app. Forager adds the photo's time to the Gallery's "date taken"
+  field and never writes a location.
 
-This matters only if you export or share a photo yourself — the app never transmits one. A find's
-coordinate, when the app records one, is stored in the app's own database, not read out of a camera
-capture's EXIF.
+A find's coordinate is stored in the app's own database, not read out of a camera capture.
 
 ## Permissions and what they are used for
 
@@ -139,9 +176,8 @@ capture's EXIF.
   notification, not because the app holds background location access. Outside those two states,
   the app in the foreground or a recording running in the foreground service, the app receives no
   location at all.
-- **Photos** — you can attach a photo to a journal entry, taken with your device's camera app or
-  chosen from your gallery. The photo is stored on your device. Forager does not request camera
-  permission.
+- **Camera** (`CAMERA`, *true today*) — taking a photo for a journal entry with Forager's own camera.
+  Photos can also be chosen from your gallery. The photo is stored on your device.
 - **`ACCESS_MEDIA_LOCATION`** — reading the capture date and coordinate of a photo you import, so a
   find can be dated and placed. Read separately from the stored copy's bytes.
 - **Notifications, vibrate, foreground service** — the off-track alert, the sundown alerts
@@ -149,6 +185,15 @@ capture's EXIF.
   notification. The sundown alerts are computed on the device from the clock and your
   position; nothing is sent anywhere to produce them.
 - **Internet** — the requests listed above.
+- **Network and Wi-Fi state** (`ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, *true today*) — added by
+  the MapLibre map library to know whether the phone is online (WorkManager, below, also declares
+  network state). They read connection state only; nothing is sent because of them.
+- **Run at startup and keep awake** (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`) — added by Android's
+  WorkManager library, which runs scheduled backups. They let a scheduled backup you turned on keep
+  its schedule after the phone restarts and finish once started. With scheduled backups off, Forager
+  has nothing for them to run.
+- **Notifications, for backups** — if a scheduled backup cannot finish, or has to leave some photos
+  out, a notification says so; tapping it opens the Backup settings.
 
 ## No analytics, no ads, no tracking
 
@@ -162,13 +207,55 @@ yourself.
 Forager is not directed at children and collects nothing about anyone, including children, beyond
 what is described above.
 
+## The beta signup list
+
+Separate from the app, and the one place Zynergy Labs holds personal data about you: if you fill in
+the form at <https://zynergy-labs.com/beta-signup>, what you type is stored. This is website data, not
+app data. The app never sees it, and it is outside the scope of the Play Data safety declaration,
+which covers the app.
+
+What is stored:
+
+- Your email address, both as you typed it and lower-cased, the second so that one person signing
+  up twice is recognised as one person.
+- Optionally, a name, a device type, an Android version, and whatever you write in the free-text
+  box. All four can be left empty.
+- A two-letter country code, derived from your connection by Cloudflare rather than asked for, and
+  the date and time you signed up.
+- Whether the notification to us about your signup succeeded, and the error if it did not.
+
+Your IP address is not stored. To stop the form being flooded, a separate table keeps a salted
+SHA-256 hash of the connecting address with a counter and a timestamp. That is enough to recognise a
+repeat submission within the hour and not enough to recover the address it came from.
+
+The list lives in a Cloudflare D1 database we operate, on Cloudflare's infrastructure and under its
+privacy policy as our processor. When you sign up, a notification carrying what you entered is
+emailed to Zynergy Labs support through Resend, our mail provider, which processes it in order to
+deliver it. Nobody else receives it. It is not sold, not shared and not used for any mailing beyond
+the beta.
+
+How long it is kept: until the beta ends or you ask for it to be removed, whichever comes first. We
+publish no figure beyond that because there is no automatic expiry that would produce one. To have
+your signup removed, email privacy@zynergy-labs.com. Removing it deletes the record; it does not
+delete anything on your phone.
+
+*(This section was on the published page and missing from this file; it is copied from
+zynergy-site `privacy/index.html` at `0688e4d`, so this file is the source of truth again.)*
+
 ## Deleting your data
 
 Everything Forager stores is on your device and can be deleted from inside the app, item by item —
 journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips.
-Uninstalling removes all of it, including the database, the photo files and any crash reports; with
-`allowBackup="false"` there is no cloud copy to survive and reappear. Nothing is held on a server, so
-there is no deletion request to make. Full detail is at <https://www.zynergy-labs.com/delete-data/>,
+Uninstalling removes everything Forager stores in its own storage, including the database, the photo
+files and any crash reports; with `allowBackup="false"` there is no Google backup copy to survive
+and reappear.
+
+**Files you saved outside the app are not removed by uninstalling**: backup files, exported GPX
+tracks, and photos saved to your Gallery. Delete those yourself in your Files or Gallery app, and
+check the folder a scheduled backup writes to, since it keeps every backup.
+
+Nothing is held on a server, so for the app's own data there is no deletion request to make. The one
+exception is the beta signup list above. Full detail is at <https://www.zynergy-labs.com/delete-data/>,
 generated from `docs/legal/delete-data.md`, and that page is the URL given in the Play Data safety
 declaration.
 
