@@ -45,7 +45,7 @@ Stored in the app's own private storage, readable by no other app:
   (`CartographyEntryEntity.kt`).
 - Photos taken in the app or imported from the gallery (`filesDir/photos/`, `FilePhotoStore.kt`).
 - Downloaded offline map regions.
-- Your last five searches: the place searched (latitude, longitude and radius), the month, the
+- Your last five searches (*true today*): the place searched (latitude, longitude and radius), the month, the
   filter, and the species list iNaturalist returned, so that a search you have run before still
   shows an answer with no signal (`RoomSearchCacheRepository.kt`, `CachedSearchEntity.kt`). A sixth
   search replaces the oldest, and the app has no button to clear the list.
@@ -163,11 +163,11 @@ Cloudflare, as the host, processes these requests under its own privacy policy. 
 figure is published here, because no setting of ours produces one**: `wrangler.toml` configures no
 log retention.
 
-One onward request: for map detail beyond the zoom range of the Worker's own archive, the Worker
-itself asks Protomaps' public build server (`build.protomaps.com`) for the tile, and keeps a copy in
-its own bucket so the next request for that tile need not ask again
-(`server/pmtiles-worker/src/index.ts`). That request is the Worker's, not your phone's, and it names
-a tile address.
+One onward request (*true of the Worker's code in this repository today*): for map detail beyond
+the zoom range of the Worker's own archive, the Worker itself asks Protomaps' public build server
+(`build.protomaps.com`) for the tile, and keeps a copy in its own bucket so the next request for
+that tile need not ask again (`server/pmtiles-worker/src/index.ts`). That request is the Worker's,
+not your phone's, and it names a tile address.
 
 Nothing about these requests is linked to any account, because the app has none. Nothing is sold or
 used for advertising or profiling.
@@ -237,19 +237,22 @@ permission internal to the app, added by a support library and held by no other 
   your device.
 - **`ACCESS_MEDIA_LOCATION`** — reading the capture date and coordinate of a photo you import, so a
   find can be dated and placed. Read separately from the stored copy's bytes, and asked for when you
-  first import a photo (`PhotoAcquisitionLaunchers.kt`).
+  start an import, not at launch, within Android's own limits on repeat requests
+  (`PhotoAcquisitionLaunchers.kt`).
 - **Notifications, vibrate, foreground service** (`POST_NOTIFICATIONS`, `VIBRATE`,
   `FOREGROUND_SERVICE`) — the off-track alert (a notification and a vibration, only while you are
-  navigating back), the ongoing recording notification, and the backup notifications below. Nothing is sent anywhere to produce any of them. On Android 13 and later Forager asks for
-  the notification permission when you start a recording (`MainActivity.kt`), and once when you first
+  navigating back), the ongoing recording notification, and the backup notifications below.
+  Nothing is sent anywhere to produce any of them. On Android 13 and later Forager asks for the
+  notification permission when you start a recording (`MainActivity.kt`), and once when you first
   turn scheduled backups on.
 - **Notifications, for backups** — in a channel named "Backups" (`AndroidBackupNotifier.kt`). A
   scheduled backup posts a notification only when it could not finish ("Scheduled backup didn't
   finish", with a "Try again" button) or when it saved but had to leave some photos out ("Scheduled
   backup saved. N photos couldn't be backed up."). A backup that goes cleanly posts nothing
   (`ScheduledBackupNotice.kt`). Tapping a notification opens the Backup settings. **The permission
-  is asked once**, the first time you turn scheduled backups on with a folder chosen, and never
-  again for backups (`BackupViewModel.kt`, `askNotificationPermissionOnce`; `BackupSection.kt`). If
+  is asked once** (on Android 13 and later, where notifications need permission): the first time you
+  turn scheduled backups on with a folder chosen, and never again for backups
+  (`BackupViewModel.kt`, `askNotificationPermissionOnce`; `BackupSection.kt`). If
   you decline, or notifications are off, the schedule still runs; when a scheduled backup then has
   one of those two things to report, the same words are shown in the app, once, the next time you
   open it.
