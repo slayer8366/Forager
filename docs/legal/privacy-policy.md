@@ -1,13 +1,15 @@
 # Forager — privacy policy
 
-**Last updated: DRAFT, 2026-09-29, not yet published.** Applies to the Forager Android app (package
-`com.zynergylabs.forager.app`), including its Google Play closed test.
+**Last updated: DRAFT, date left for the owner to set on publishing, not yet published.** Applies to
+the Forager Android app (package `com.zynergylabs.forager.app`), including its Google Play closed test.
 
-> **Draft status (remove before publishing).** This draft describes the build that includes the
-> Journal redesign (branch `journal-redesign`): Save to Gallery, and journal backup and restore. It
-> must not be published before that build reaches testers. Sections marked *true today* already
-> describe the app on `main` and could be published sooner. Planner's draft for the owner's
-> approval; the reasoning, item by item, is in `docs/audits/2026-09-29-privacy-site-update-report.md`.
+> **Draft status (remove before publishing).** This draft describes the build that PR #140 ships (the
+> Journal redesign, branch `journal-redesign`): track delete, Save to Gallery, and journal backup and
+> restore. It must not be published before that build reaches testers. Sections marked *true today*
+> already describe the app on `main` and could be published sooner. Every claim was re-read against
+> the code at `journal-redesign` `f645e8f9`; the reasoning, item by item, is in
+> `docs/audits/2026-09-29-privacy-site-update-report.md` (with its "Addendum after the follow-ups")
+> and `docs/audits/2026-09-29-legal-docs-l1-completion-report.md`. For the owner's approval.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
 actually does; where a claim comes from a particular file, that file is named so the claim can be
@@ -37,18 +39,34 @@ Stored in the app's own private storage, readable by no other app:
 
 - Recorded tracks and their individual GPS points (latitude, longitude, timestamp, elevation,
   accuracy, speed).
-- Journal / log entries, including any coordinate attached to a find.
+- Journal / log entries, including any coordinate attached to a find. An entry also keeps a copy of
+  what it noted about each track, waypoint, offline map region, find and photo it lists, and that
+  copy stays when the item itself is deleted; see *Deleting your data* below
+  (`CartographyEntryEntity.kt`).
 - Photos taken in the app or imported from the gallery (`filesDir/photos/`, `FilePhotoStore.kt`).
 - Downloaded offline map regions.
+- Your last five searches: the place searched (latitude, longitude and radius), the month, the
+  filter, and the species list iNaturalist returned, so that a search you have run before still
+  shows an answer with no signal (`RoomSearchCacheRepository.kt`, `CachedSearchEntity.kt`). A sixth
+  search replaces the oldest, and the app has no button to clear the list.
 - Preferences (units, map mode, and similar).
-- Crash traces, written locally when the app crashes (`CrashFileStore.kt`). They stay on the phone
-  and are only ever shared if you choose to share one from the app's crash screen.
+- The file made when you share a track as GPX (*true today*): Forager writes it to its own cache
+  folder first and hands that copy to the share sheet (`TrackGpxExporter.kt`, `cacheDir/tracks`).
+  Nothing in Forager removes it afterwards; it goes when Android or you clear the app's cache, or
+  when you uninstall.
 
 None of this is transmitted by the app. It is deleted when you uninstall the app or clear its data,
 **except for copies you have saved outside the app**, described in the next section.
 
+**Crash traces are the one exception to "private" (*true today*).** When the app crashes it writes a
+plain-text trace (the time, the thread's name, the Android version number and the stack trace) to a
+folder of its own inside the phone's shared storage area, `getExternalFilesDir(null)/crashes`, on
+purpose so that the phone's file manager can reach it (`CrashFileStore.kt`). It keeps the last ten. A
+trace is shared only if you choose to share one from the app's crash screen
+(`CrashLogPanel.kt`, `ACTION_SEND`). Android removes that folder when you uninstall.
+
 **Android's own backup is switched off for this app.** The manifest sets
-`android:allowBackup="false"` (`app/src/main/AndroidManifest.xml`), which turns off both Android
+`android:allowBackup="false"` (`app/src/main/AndroidManifest.xml:134`), which turns off both Android
 Auto Backup and the device-to-device transfer that runs during a new phone's setup. Your phone
 therefore does not copy Forager's data to your Google account, and does not hand it to another
 device on your behalf. This is a permanent decision, not a setting for the closed test: moving your
@@ -63,21 +81,40 @@ not control afterwards. Uninstalling Forager or clearing its data does **not** r
   file, saved where you choose through Android's file picker — the phone, an SD card, or a cloud
   folder if you pick one. It holds your journal entries and finds with their coordinates, your
   photos, your recorded tracks with every GPS point, your waypoints, your planned trips, and the
-  details of your offline map regions (their name and area, not the map tiles). It does not hold
-  your settings. **The backup file is not encrypted**: anyone who has the file can read what is
-  in it, so keep it somewhere you trust. If you save it to a cloud folder, that service stores a copy
-  under its own terms; Forager does not upload it and has no copy.
-- **Scheduled backups** write the same kind of file on a schedule you set (daily, weekly or monthly)
-  to a folder you choose. They are **off unless you turn them on**. Each run writes a new file and
-  Forager never deletes old ones, so the folder keeps every backup until you remove them.
-- **Restore** reads a backup file you pick and either replaces the journal on the phone or merges it
-  in. Nothing is fetched from anywhere else.
+  details of your offline map regions (their name and area, not the map tiles). Because it is a
+  copy of the app's whole database, it also carries the list of your last five searches described
+  above, though a restore does not bring that list back (`RoomJournalBackup.kt`, `takeSnapshot`
+  copies the database file; `JournalTables.kt`). It does not hold your settings
+  (`BackupArchive.kt`). **The backup file is not encrypted**: nothing in the backup code encrypts
+  it, so anyone who has the file can read what is in it; keep it somewhere you trust. If you save
+  it to a cloud folder, that service stores a copy under its own terms; Forager does not upload it
+  and has no copy.
+- **Scheduled backups** write the same kind of file on a schedule you set (daily, weekly or monthly;
+  weekly until you change it) into a folder you choose. They are **off unless you turn them on**, and
+  turning them on does not run one straight away: the first backup runs after one full interval
+  (`ScheduledBackup.kt`, `WorkManagerBackupScheduler`). **Forager keeps the newest five files a
+  scheduled backup made and deletes the older ones it made itself.** It knows which files those are
+  from a list it keeps in its own storage, so it never deletes a backup you made by hand or any
+  other file in that folder (`BackupSchedule.kt`, `RunScheduledBackupUseCase`). That has two limits.
+  If the list is lost, because you clear the app's data or reinstall, files made before then are no
+  longer known to Forager and stay until you delete them. And if Android refuses a delete, the file
+  stays: the failure is logged on the phone and not retried. A backup you start from a failed
+  scheduled backup's "Try again" counts as one of the scheduled ones.
+- **Restore** reads a backup file you pick and, each time you ask, either replaces the journal on the
+  phone or merges it in. It does not add an offline map region the phone already has, meaning one
+  with the same name and radius and a centre within one metre (`RegionMatch.kt`). Nothing is fetched
+  from anywhere else.
 - **Track export** (*true today*; `TrackExportPanel.kt`, `TrackGpxExporter.kt`). A recorded track
   can be exported as a GPX file through Android's share sheet, to wherever you send it. The file
-  contains the track's coordinates and times.
-- **Save to Gallery** (`PhotoExporter.kt`). A photo can be saved from the photo viewer into the
-  phone's Gallery, in a "Forager" album, on Android 10 and later; on Android 8 and 9 into a folder you
-  pick. Saved copies are visible to other apps that can read your photos. What a saved copy carries
+  contains the track's coordinates, times and elevations, the waypoints dropped while it recorded
+  (with their names and notes), and every point Forager stored for the track, including the ones
+  the app leaves out of the track it shows, each marked as kept or excluded (`GpxCodec.kt`). Forager
+  also leaves the file it wrote in its own cache folder, as described above.
+- **Save to Gallery** (`PhotoExporter.kt`, `PhotoViewerDialog.kt`). A photo can be saved from the
+  photo viewer into the phone's Gallery, in a "Forager" album (`Pictures/Forager`), on Android 10 and
+  later; on Android 8 and 9 the control reads "Save to folder" and writes to a place and name you
+  choose with Android's file picker. A copy in the Gallery is visible to other apps that can read
+  your photos, because Forager adds it to Android's shared photo library. What a saved copy carries
   is described under *Photos and location metadata* below.
 
 ## What is transmitted, to whom, and why
@@ -104,8 +141,9 @@ One thing the app does not request itself: tapping an observation to open it on 
 app, under its own terms, not a request Forager makes.
 
 Downloading an offline region issues a large number of tile requests to the Cloudflare Worker in a
-short time, covering the whole region — that is the download. Once a region is downloaded, viewing
-the map inside it makes no tile requests at all. Searching still does.
+short time, covering the whole region — that is the download (`OfflineStyle.kt`,
+`MapLibreOfflineMapRepository.kt`). Searching sends its lookups as described in the table above,
+whether or not a region has been downloaded.
 
 ## The Cloudflare Worker
 
@@ -113,28 +151,26 @@ The map tile endpoint above is operated by the developer of this app, on Cloudfl
 serving tiles out of a Cloudflare R2 bucket.
 
 **We keep no request logs.** The Worker's own code writes no log lines
-(`server/pmtiles-worker/src/`), and Workers Logs is explicitly disabled rather than left to the
-platform default: `wrangler.toml` sets `[observability] enabled = false`. Verified in the Cloudflare
-dashboard on 2026-09-09, where the Worker's Logs tab reported observability disabled.
+(`server/pmtiles-worker/src/index.ts` and `shared.ts` contain no logging call), and Workers Logs is
+explicitly disabled rather than left to the platform default: `wrangler.toml` sets
+`[observability] enabled = false`.
 
-The setting is pinned deliberately. Cloudflare documents `observability.enabled` as defaulting to
-`true` for newly created Workers, so an absent block would have left this claim resting on a default
-that can move.
-
-No per-request log is available to us by any other route either. Logpush and Logpull are
-Enterprise-only, Workers Trace Events Logpush requires the Workers Paid plan, and the zone-level
-`httpRequestsAdaptive` dataset that retains 7 days on the Free plan covers `zynergy-labs.com`, not
-`*.workers.dev`. Workers metrics show aggregate request counts, not individual requests.
+The setting is pinned deliberately, and `wrangler.toml` says why: invocation logs record the request
+URL, and this Worker's URLs are tile coordinates, so a log there would be a record of which areas
+people looked at.
 
 Cloudflare, as the host, processes these requests under its own privacy policy. **No retention
-figure is published here, because no setting of ours produces one.** That is the answer to the
-retention question rather than a number, and it is the only accurate one available while Cloudflare
-documents no figure for host-level records. This section previously carried an open question asking for a
-retention figure, with an instruction not to guess one. The resolution turned out to be that no
-figure applies.
+figure is published here, because no setting of ours produces one**: `wrangler.toml` configures no
+log retention.
 
-Nothing about these requests is linked to any account, because the app has none. Nothing is sold,
-shared with anyone else, or used for advertising or profiling.
+One onward request: for map detail beyond the zoom range of the Worker's own archive, the Worker
+itself asks Protomaps' public build server (`build.protomaps.com`) for the tile, and keeps a copy in
+its own bucket so the next request for that tile need not ask again
+(`server/pmtiles-worker/src/index.ts`). That request is the Worker's, not your phone's, and it names
+a tile address.
+
+Nothing about these requests is linked to any account, because the app has none. Nothing is sold or
+used for advertising or profiling.
 
 ## Photos and location metadata
 
@@ -142,58 +178,91 @@ Photos stay on the phone unless you save or share one yourself; the app never tr
 happens to the metadata inside a photo file depends on how the photo got into Forager:
 
 - **Photos taken with Forager's camera** (*true today*). Forager has its own camera screen
-  (`CameraCapturePhotoSource.kt`). Each photo it takes is stripped of all embedded metadata when it
-  is stored — location, camera details, timestamps, thumbnails, and every other tag — and only the
-  orientation is put back so the photo displays the right way up (`FilePhotoStore.kt`,
-  `PhotoMetadataScrub.kt`). The strip keeps an allowlist rather than removing a list of known tags,
-  so a tag nobody thought of is removed too.
-- **Photos imported from your gallery** are not stripped by Forager. On Android 10 and later the
-  platform removes GPS tags from the copy the app reads, because Forager does not ask for the
-  original for that copy; other metadata, such as the camera model and the time, can remain. On
-  Android 8 and 9 there is no such removal, and an imported photo's copy can keep its GPS tags.
-  Separately, Forager reads an import's original date and location (with the `ACCESS_MEDIA_LOCATION`
-  permission) so a find can be dated and placed; that goes into the app's own database, not into
-  the photo.
-- **Saving to the Gallery.** A saved copy is an exact copy of the photo as Forager stored it. A
-  photo taken with Forager's camera therefore has no location in it. An imported photo is saved as
-  it was imported: if it carried a location or other details, so does the copy. If you want those
-  removed, use a metadata-removal app. Forager adds the photo's time to the Gallery's "date taken"
-  field and never writes a location.
+  (`CameraCapturePhotoSource.kt`, `CameraXCaptureSession.kt`), and it never attaches a location to a
+  capture. Each photo it takes is stripped of embedded metadata when it is stored — location, camera
+  details, timestamps, thumbnails, and every other tag — and what is kept is only what the picture
+  needs to display correctly: its orientation, its colour profile and two small technical headers
+  (pixel density and colour transform) (`FilePhotoStore.kt`, `PhotoMetadataScrub.kt`,
+  `isKeptSegment`). The strip keeps an allowlist rather than removing a list of known tags, so a tag
+  nobody thought of is removed too. If the strip cannot complete, the photo is stored as it was and
+  the failure is logged on the phone, rather than losing the photo (`PhotoMetadataScrub.kt`).
+- **Photos imported from your gallery** are not stripped by Forager: it stores the file exactly as
+  Android hands it over (`FilePhotoStore.kt`). On Android 10 and later Android normally withholds a
+  photo's GPS tags from an app that has not asked for the original, and Forager does not ask for the
+  original for that copy, so the stored copy normally has none; other metadata, such as the camera
+  model and the time, can remain. On Android 8 and 9 there is no such step, and an imported photo's
+  copy can keep its GPS tags. Separately, on Android 10 and later Forager reads an import's original
+  date and location (with the `ACCESS_MEDIA_LOCATION` permission) so a find can be dated and placed;
+  that goes into the app's own database, not into the photo.
+- **Saving to the Gallery.** A saved copy is an exact copy of the photo as Forager stored it
+  (`PhotoExporter.kt`: the stored file's bytes, unchanged). A photo taken with Forager's camera
+  therefore has no location in it. An imported photo is saved as it was imported: if it carried a
+  location or other details, so does the copy. Our position, in the owner's words: "Imported photos
+  taken outside the app are not within our scope. They can use a scrubbing app to remove it if they
+  want it removed. All photos taken inside the app are scrubbed either way and that's our scope".
+  Forager writes the time it has on record for the photo as the copy's "date taken" — for a photo from
+  Forager's camera, when it was taken; for an import, the capture time read from the file when
+  Android allows it, otherwise the moment it was imported — and only when the app has one; it never
+  writes a location (`PhotoExporter.kt`, `FilePhotoStore.kt`). The copy's file name carries the same
+  time.
 
 A find's coordinate is stored in the app's own database, not read out of a camera capture.
 
 ## Permissions and what they are used for
 
+This list was checked against the merged manifest of the build (the app's own
+`app/src/main/AndroidManifest.xml` together with what its libraries add), built with
+`:app:processDebugMainManifest`. That manifest declares exactly these permissions: `INTERNET`,
+`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `CAMERA`, `ACCESS_MEDIA_LOCATION`,
+`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`, `VIBRATE`,
+`ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`, and one
+permission internal to the app, added by a support library and held by no other app
+(`DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`).
+
 - **Location** (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `FOREGROUND_SERVICE_LOCATION`) —
   showing your position, recording a track, navigating back, and the coordinates a species or
-  weather lookup searches on. Location is not confined to recording: `AvailabilityViewModel.init`
-  subscribes to live fixes at a one-second floor for the ViewModel's lifetime on every tab, and
-  `AvailabilityScreen` fires locate-me once per launch, so fixes flow whenever the app is in the
-  foreground. When you leave the app, it releases its location subscription rather than relying on
-  Android to withhold it.
+  weather lookup searches on. Location is not confined to recording: while the app is on screen it
+  listens for your position on every tab, at most once a second (`AvailabilityViewModel.kt`,
+  `onEnteredForeground`; `AndroidLocationTracker.kt`, `MIN_UPDATE_INTERVAL_MILLIS`), and on a
+  phone-sized window it asks for a fix once as the Maps screen opens
+  (`AvailabilityCompactScaffold.kt`). When you leave the app it releases that subscription rather
+  than relying on Android to withhold it (`onLeftForeground`).
   `ACCESS_BACKGROUND_LOCATION` is **not** declared (`app/src/main/AndroidManifest.xml`). A recording
   continues with the screen off because it runs as a foreground service with an ongoing
   notification, not because the app holds background location access. Outside those two states,
   the app in the foreground or a recording running in the foreground service, the app receives no
   location at all.
 - **Camera** (`CAMERA`, *true today*) — taking a photo for a journal entry with Forager's own camera.
-  Photos can also be chosen from your gallery. The photo is stored on your device.
+  Photos can also be chosen from your gallery, which needs no permission. The photo is stored on
+  your device.
 - **`ACCESS_MEDIA_LOCATION`** — reading the capture date and coordinate of a photo you import, so a
-  find can be dated and placed. Read separately from the stored copy's bytes.
-- **Notifications, vibrate, foreground service** — the off-track alert, the sundown alerts
-  (a turnaround warning and one at sunset, while a track is recording), and the recording
-  notification. The sundown alerts are computed on the device from the clock and your
-  position; nothing is sent anywhere to produce them.
+  find can be dated and placed. Read separately from the stored copy's bytes, and asked for when you
+  first import a photo (`PhotoAcquisitionLaunchers.kt`).
+- **Notifications, vibrate, foreground service** (`POST_NOTIFICATIONS`, `VIBRATE`,
+  `FOREGROUND_SERVICE`) — the off-track alert (a notification and a vibration, only while you are
+  navigating back), the ongoing recording notification, and the backup notifications below. Nothing is sent anywhere to produce any of them. On Android 13 and later Forager asks for
+  the notification permission when you start a recording (`MainActivity.kt`), and once when you first
+  turn scheduled backups on.
+- **Notifications, for backups** — in a channel named "Backups" (`AndroidBackupNotifier.kt`). A
+  scheduled backup posts a notification only when it could not finish ("Scheduled backup didn't
+  finish", with a "Try again" button) or when it saved but had to leave some photos out ("Scheduled
+  backup saved. N photos couldn't be backed up."). A backup that goes cleanly posts nothing
+  (`ScheduledBackupNotice.kt`). Tapping a notification opens the Backup settings. **The permission
+  is asked once**, the first time you turn scheduled backups on with a folder chosen, and never
+  again for backups (`BackupViewModel.kt`, `askNotificationPermissionOnce`; `BackupSection.kt`). If
+  you decline, or notifications are off, the schedule still runs; when a scheduled backup then has
+  one of those two things to report, the same words are shown in the app, once, the next time you
+  open it.
 - **Internet** — the requests listed above.
 - **Network and Wi-Fi state** (`ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, *true today*) — added by
-  the MapLibre map library to know whether the phone is online (WorkManager, below, also declares
-  network state). They read connection state only; nothing is sent because of them.
-- **Run at startup and keep awake** (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`) — added by Android's
-  WorkManager library, which runs scheduled backups. They let a scheduled backup you turned on keep
-  its schedule after the phone restarts and finish once started. With scheduled backups off, Forager
-  has nothing for them to run.
-- **Notifications, for backups** — if a scheduled backup cannot finish, or has to leave some photos
-  out, a notification says so; tapping it opens the Backup settings.
+  the MapLibre map library (version 13.5.0, which `main` also uses) to know whether the phone is
+  online; other bundled libraries, including WorkManager below, also declare network state. They
+  read connection state only; nothing is sent because of them.
+- **Run at startup and keep awake** (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`) — declared by Android's
+  WorkManager library (`androidx.work` 2.12.0), not by Forager's own manifest, and not used by
+  Forager's own code. Forager uses WorkManager only to run scheduled backups and a "Try again"
+  backup (`ScheduledBackup.kt`, `AndroidBackupNotifier.kt`). With scheduled backups off, Forager has
+  no scheduled job (`WorkManagerBackupScheduler.apply` cancels it).
 
 ## No analytics, no ads, no tracking
 
@@ -225,8 +294,8 @@ What is stored:
 - Whether the notification to us about your signup succeeded, and the error if it did not.
 
 Your IP address is not stored. To stop the form being flooded, a separate table keeps a salted
-SHA-256 hash of the connecting address with a counter and a timestamp. That is enough to recognise a
-repeat submission within the hour and not enough to recover the address it came from.
+SHA-256 hash of the connecting address with a counter and a timestamp, which is used to recognise a
+repeat submission within the hour.
 
 The list lives in a Cloudflare D1 database we operate, on Cloudflare's infrastructure and under its
 privacy policy as our processor. When you sign up, a notification carrying what you entered is
@@ -239,20 +308,46 @@ publish no figure beyond that because there is no automatic expiry that would pr
 your signup removed, email privacy@zynergy-labs.com. Removing it deletes the record; it does not
 delete anything on your phone.
 
-*(This section was on the published page and missing from this file; it is copied from
-zynergy-site `privacy/index.html` at `0688e4d`, so this file is the source of truth again.)*
+(The facts in this section are those of the site's own code, in the zynergy-site repository:
+`functions/api/beta-signup.js` and `db/schema.sql`, read at `0688e4d`.)
 
 ## Deleting your data
 
-Everything Forager stores is on your device and can be deleted from inside the app, item by item —
-journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips.
+Almost everything you create in Forager can be deleted from inside the app, item by item — journal
+entries, finds, photos, recorded tracks, waypoints, offline map regions and planned trips. A recorded
+track is deleted with a swipe on its row in Records, or with Delete on its details, and each has an
+Undo; a track that is still recording cannot be deleted (`RecordsLogbookList.kt`,
+`RecordDetailsSheet.kt`, `TrackRecordingViewModel.kt`). Two things have no delete button: the list of
+your last five searches, which a newer search replaces, and the cache copy of an exported GPX file,
+both described above.
+
+**Deleting an item does not always remove every copy of it.** A journal entry keeps a copy of what it
+noted about each track, waypoint, offline map region, find and photo it lists, and that copy stays
+when the item is deleted. Deleting a track, waypoint or offline map region does not remove the copy a
+journal entry kept; delete the entry to remove it. What an entry keeps, by kind
+(`CartographyEntryEntity.kt`):
+
+- a **waypoint**: its name and its position;
+- an **offline map region**: its name, the position of its centre and its radius;
+- a **track**: its name, distance, duration and number of points; and, once the track is deleted, its
+  **path** — the latitude and longitude of each point, in order, without times — saved into every
+  journal entry that has recorded a decision about the track, including an entry where you chose to
+  leave it out (`DeleteTrackUseCase.kt`, `CartographyEntryDao.kt`);
+- a **find**: its date and your own identification of it;
+- a **photo**: the date you attached it.
+
+The copies go when you delete the entry itself, and only then. They are also in the backups you make
+(`JournalTables.kt`).
+
 Uninstalling removes everything Forager stores in its own storage, including the database, the photo
 files and any crash reports; with `allowBackup="false"` there is no Google backup copy to survive
 and reappear.
 
 **Files you saved outside the app are not removed by uninstalling**: backup files, exported GPX
-tracks, and photos saved to your Gallery. Delete those yourself in your Files or Gallery app, and
-check the folder a scheduled backup writes to, since it keeps every backup.
+tracks, and photos saved to your Gallery. Delete those yourself in your Files or Gallery app. In the
+folder a scheduled backup writes to, Forager keeps the newest five files it made and deletes older
+ones it made itself; anything else there is yours to remove, including your own backups and any
+scheduled backup that Forager no longer knows about or could not delete.
 
 Nothing is held on a server, so for the app's own data there is no deletion request to make. The one
 exception is the beta signup list above. Full detail is at <https://www.zynergy-labs.com/delete-data/>,
@@ -270,5 +365,3 @@ If the two ever disagree, this file is correct and the page needs regenerating.
 ## Contact
 
 privacy@zynergy-labs.com
-
-Verified as receiving mail on 2026-09-09.
