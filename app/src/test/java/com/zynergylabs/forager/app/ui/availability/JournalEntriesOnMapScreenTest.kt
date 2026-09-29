@@ -352,7 +352,10 @@ internal abstract class JournalEntriesOnMapHarness {
     }
 
     protected fun assertReportShowing(text: String) {
-        composeRule.onNodeWithText(text).assertIsDisplayed()
+        // J6a: on the wide tree the report is in the right side's detail pane while the Entries list, whose
+        // card carries the same text, stays in the left column, so the text is read inside the pane there.
+        val inPane = composeRule.onAllNodesWithTag("journal-detail-pane").fetchSemanticsNodes().isNotEmpty()
+        (if (inPane) composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag("journal-detail-pane"))) else composeRule.onNodeWithText(text)).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
         assertEquals("the report, not the editor", 0, composeRule.onAllNodes(hasText("Your own account (optional)") and hasSetTextAction()).fetchSemanticsNodes().size)
     }
@@ -714,7 +717,10 @@ internal class JournalEntriesOnMapWideTest : JournalEntriesOnMapHarness() {
         val slot = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot()
         composeRule.onNodeWithText("1 journal entry on map").assertIsDisplayed()
         assertTrue("on the map ($chip, $slot)", chip.left >= slot.left && chip.right <= slot.right && chip.top >= slot.top)
-        assertTrue("at its top ($chip, $slot)", chip.top - slot.top < 32.dp)
+        // J6c (ruling 3): the compass strip runs across the top of the map with the chip row below it, so the chip is at
+        // the top of what the strip leaves (this read "< 32.dp" from the map's own top).
+        val strip = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
+        assertTrue("below the strip, at the top of the map ($chip, $strip, $slot)", chip.top >= strip.bottom && chip.top - strip.bottom < 32.dp)
         val midY = (chip.top + chip.bottom) / 2
         val before = map.taps
 
@@ -731,7 +737,8 @@ internal class JournalEntriesOnMapWideTest : JournalEntriesOnMapHarness() {
 
         touchCentreOf(mapBubbleEntryLineTag("entry-a"))
 
-        composeRule.onNodeWithText("Mushroom Log").assertExists()
+        // J6a header ruling (prompts/preserved/2026-09-29-25.md): the panel's header reads "Journal".
+        composeRule.onNodeWithText("Journal").assertExists()
         assertReportShowing(ENTRY_A_TEXT)
         assertEquals("entry-a", cartographyViewModel.uiState.value.editingEntry?.id)
     }

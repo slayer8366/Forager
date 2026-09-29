@@ -230,6 +230,8 @@ internal fun JournalTab(
     onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the cards' thumbnails; see [CartographyEntryListScreen]. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /** [CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i — see that composable's doc comment. */
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     /** [CartographyEntryReportScreen]'s own fullscreen recenter button — fullscreen-maps dispatch, see that composable's own doc comment, "Fullscreen." */
@@ -245,6 +247,7 @@ internal fun JournalTab(
     onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /** GPX full-record export dispatch — see [com.zynergylabs.forager.app.ui.track.TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
@@ -252,6 +255,10 @@ internal fun JournalTab(
     waypoints: List<Waypoint>,
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
+    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
+    tracksErrorMessage: String? = null,
     waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** See this composable's own doc comment, "The map '+' routing bug" — Stage 2d. `null` (the default) is a no-op, so every other caller of this tab is unaffected. */
     pendingDestination: PendingJournalDestination? = null,
@@ -301,6 +308,13 @@ internal fun JournalTab(
      */
     findEntryModeState: MutableState<JournalEntryMode> = remember { mutableStateOf(JournalEntryMode.REPORT) },
     findOverViewState: MutableState<FindOverView?> = remember { mutableStateOf(null) },
+    /**
+     * J6a (ruling 1, list-detail): the wide tree's detail slot, handed by [LogPanel]. With it, an open
+     * find (its report, editor and pickers), an open day entry ([CartographyScreen]) and a record's
+     * details ([RecordsTab]) register there and take the whole right side while the lists stay where
+     * they are. `null` (the default, every compact caller) draws each in place, as before.
+     */
+    detailSlot: JournalDetailSlot? = null,
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -456,7 +470,11 @@ internal fun JournalTab(
     // composable's own doc comment. A closure, not a separate file-level composable, so it keeps
     // reading/writing mode/pickingLocationForEditingEntry/pullingPhotoForEditingEntry via this
     // function's own remembered state regardless of which RecordsTab sub-tab slot renders it.
-    val findsSection: @Composable ColumnScope.() -> Unit = {
+    // J6a: the Finds section is two parts, so the wide tree can put them in different places. The list
+    // (the gallery) stays with the Records chip; the detail (an open find's report, editor and pickers)
+    // is what the right side shows when there is a slot. With no slot, [findsSection] draws whichever
+    // applies exactly as the one `when` did before the split.
+    val findsDetail: @Composable ColumnScope.() -> Unit = {
         when {
             editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
                 mapSlot = mapSlot,
@@ -519,35 +537,45 @@ internal fun JournalTab(
                 onBack = onCloseEntry,
                 modifier = Modifier.weight(1f),
             )
-
-            else -> FindsGalleryScreen(
-                entries = uiState.entries,
-                draftEntries = uiState.draftEntries,
-                isLoading = uiState.isLoadingEntries,
-                onOpenEntry = { id ->
-                    mode = JournalEntryMode.REPORT
-                    onOpenEntry(id)
-                },
-                onOpenDraftEntry = { id ->
-                    // Workstream L4b-R: reinstates straight into EDIT, not REPORT — a draft (live,
-                    // incidentally-exited, or crash-orphaned; see MushroomLogUiState.draftEntries) is
-                    // inherently something to finish, not something to view a report of yet. No
-                    // onStartEditingEntry() call needed: it's already a draft, so that would be a no-op.
-                    mode = JournalEntryMode.EDIT
-                    onOpenEntry(id)
-                },
-                onAddEntry = {
-                    mode = JournalEntryMode.EDIT
-                    onStartEntry(null, LocalDate.now())
-                },
-                modifier = Modifier.weight(1f),
-                loadErrorMessage = uiState.loadErrorMessage,
-                // J4b L1: a tile's long-press menu. Delete is the report's own pending delete (J4);
-                // Edit opens the find straight into its edit form.
-                onDeleteEntry = onDeleteEntry,
-                onEditEntry = editFind,
-            )
+            else -> Unit
         }
+    }
+    val findsList: @Composable ColumnScope.() -> Unit = {
+        FindsGalleryScreen(
+            entries = uiState.entries,
+            draftEntries = uiState.draftEntries,
+            isLoading = uiState.isLoadingEntries,
+            onOpenEntry = { id ->
+                mode = JournalEntryMode.REPORT
+                onOpenEntry(id)
+            },
+            onOpenDraftEntry = { id ->
+                // Workstream L4b-R: reinstates straight into EDIT, not REPORT — a draft (live,
+                // incidentally-exited, or crash-orphaned; see MushroomLogUiState.draftEntries) is
+                // inherently something to finish, not something to view a report of yet. No
+                // onStartEditingEntry() call needed: it's already a draft, so that would be a no-op.
+                mode = JournalEntryMode.EDIT
+                onOpenEntry(id)
+            },
+            onAddEntry = {
+                mode = JournalEntryMode.EDIT
+                onStartEntry(null, LocalDate.now())
+            },
+            modifier = Modifier.weight(1f),
+            loadErrorMessage = uiState.loadErrorMessage,
+            // J4b L1: a tile's long-press menu. Delete is the report's own pending delete (J4);
+            // Edit opens the find straight into its edit form.
+            onDeleteEntry = onDeleteEntry,
+            onEditEntry = editFind,
+        )
+    }
+    val findsSection: @Composable ColumnScope.() -> Unit = {
+        if (editing != null) findsDetail() else findsList()
+    }
+    // J6a: with a slot, an open find registers as a detail (the whole right side) and the Finds chip
+    // keeps only the list. Above every other detail in priority: a find opened over a day entry covers it.
+    JournalDetail(detailSlot, active = editing != null, priority = JournalDetailPriority.FIND) {
+        Column(modifier = Modifier.fillMaxSize()) { findsDetail() }
     }
 
     fun selectTopTab(tab: JournalTopTab) {
@@ -669,6 +697,7 @@ internal fun JournalTab(
                 // trackUiState.tracks, through AvailabilityScreen and CompactMainScaffold), joined in
                 // memory by the Entries cards for their thumbnails.
                 tracks = tracks,
+                getSavedTrackPaths = getSavedTrackPaths,
                 // J3, C5: the album's find badge marks saved finds only; the draft finds' ids are
                 // already in this tab's MushroomLogUiState.
                 draftFindIds = uiState.draftEntries.mapTo(HashSet()) { it.id },
@@ -683,6 +712,7 @@ internal fun JournalTab(
                 openEntryRequest = entryOpenRequest,
                 onOpenEntryRequestConsumed = { entryOpenRequest = null },
                 onSetShownOnMap = onSetCartographyEntryShownOnMap,
+                detailSlot = detailSlot,
             )
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
@@ -696,6 +726,8 @@ internal fun JournalTab(
                     waypoints = waypoints,
                     waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
+                    onDeleteTrack = onDeleteTrack,
+                    tracksErrorMessage = tracksErrorMessage,
                     waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                     availabilityUiState = availabilityUiState,
                     distanceUnit = distanceUnit,
@@ -711,12 +743,14 @@ internal fun JournalTab(
                     onOfflineMapsOpened = onOfflineMapsOpened,
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
                     onDeleteOfflineRegion = onDeleteOfflineRegion,
+                    onDownloadAgain = onDownloadAgain,
                     tracks = tracks,
                     onTracksOpened = onTracksOpened,
                     getFullRecord = getFullRecord,
                     // M1: while a find is open over the view, the Finds slot under it draws nothing,
                     // so the find is composed once, in the overlay.
-                    findsContent = { if (findOverView == null) findsSection() },
+                    // J6a: with a slot the open find is the pane's, so the Finds chip keeps only its list.
+                    findsContent = { if (detailSlot != null) findsList() else if (findOverView == null) findsSection() },
                     finds = uiState.entries,
                     // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
                     // opens the report there, exactly as the Finds gallery's own tile does.
@@ -736,6 +770,7 @@ internal fun JournalTab(
                     // gets out of the way while the list scrolls, with the tighter chip spacing.
                     shortWindow = shortLandscape,
                     backEnabled = backEnabled,
+                    detailSlot = detailSlot,
                 )
             }
         }
@@ -744,7 +779,8 @@ internal fun JournalTab(
     // M1: the find opened from a map bubble, over the view (FindOverView). An opaque Surface, so no
     // touch reaches the view under it, and its own Back handler, composed after everything under it,
     // so Back unwinds the find first (a picker, the edit form, then the report) and only then the view.
-    if (findOverViewVisible) {
+    // J6a: not with a slot, where the open find is drawn by the pane and there is nothing to overlay.
+    if (findOverViewVisible && detailSlot == null) {
         BackHandler(enabled = backEnabled) { unwindFindsSection() }
         Surface(modifier = Modifier.fillMaxSize().testTag(FIND_OVER_VIEW_TAG)) {
             Column(modifier = Modifier.fillMaxSize()) { findsSection() }

@@ -142,7 +142,7 @@ class LogEntryDetailScreenTest {
     /**
      * Workstream G2: [LogPhotoThumbnail] now delegates to the shared [DecodedPhoto] rather than
      * its own hand-rolled decode — this proves the converted call site still renders a photo
-     * (rather than asserting anything G2-specific, which [DecodedPhotoTest]/[PhotoGalleryScreenTest]
+     * (rather than asserting anything G2-specific, which [DecodedPhotoTest]/the removed PhotoGalleryScreenTest
      * already own).
      */
     @Test

@@ -227,7 +227,7 @@ private fun PhotosSection(
     onAcquisitionInFlightChanged: (Boolean) -> Unit,
 ) {
     // The Camera-permission-then-capture and system-Gallery-picker launchers — shared with
-    // PhotoGalleryScreen's own Camera/Gallery buttons (standalone-photos dispatch) via this one
+    // the album's own Camera/Import buttons (standalone-photos dispatch) via this one
     // function, rather than a second hand-copy of the ActivityResultContracts/permission wiring.
     val photoAcquisition = rememberPhotoAcquisitionLaunchers(onPhotoSourceSelected, onOpenCamera)
     LaunchedEffect(photoAcquisition.isAcquisitionInFlight) {

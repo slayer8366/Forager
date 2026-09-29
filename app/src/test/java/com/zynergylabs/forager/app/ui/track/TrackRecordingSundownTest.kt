@@ -5,6 +5,8 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
@@ -121,6 +123,7 @@ class TrackRecordingSundownTest {
             getWaypoints = GetWaypointsUseCase(waypoints),
             createWaypoint = CreateWaypointUseCase(waypoints, currentTime = clock, idGenerator = { "waypoint-${++waypointIds}" }),
             deleteWaypoint = DeleteWaypointUseCase(waypoints),
+            deleteTrack = DeleteTrackUseCase(repository, waypoints, InMemoryKeptTrackPaths()),
             computeReturnToStart = ComputeReturnToStartUseCase(),
             detectOffTrack = DetectOffTrackUseCase(),
             locationTracker = tracker,

@@ -477,13 +477,7 @@ class AvailabilityViewModel(
      * draw (CLAUDE.md, Errors).
      */
     fun onMapShown() {
-        viewModelScope.launch {
-            val records = getMapRecords()
-            records.failures.forEach { failure ->
-                errorLog.w(TAG, "Couldn't load ${mapRecordKindLabel(failure.kind)} for the map.", failure.error)
-            }
-            _uiState.update { it.copy(mapRecords = records) }
-        }
+        viewModelScope.launch { loadMapRecords() }
         viewModelScope.launch {
             val week = isoWeekStart(today())
             val groups = when (val availability = forecastCellStore.availability(week)) {
@@ -492,6 +486,15 @@ class AvailabilityViewModel(
             }
             _uiState.update { it.copy(forecastWeek = week, forecastGroups = groups) }
         }
+    }
+
+    /** The Maps tab's saved records, read now; the read [onMapShown] does and [reloadAfterRestore] repeats. */
+    private suspend fun loadMapRecords() {
+        val records = getMapRecords()
+        records.failures.forEach { failure ->
+            errorLog.w(TAG, "Couldn't load ${mapRecordKindLabel(failure.kind)} for the map.", failure.error)
+        }
+        _uiState.update { it.copy(mapRecords = records) }
     }
 
     /**
@@ -807,8 +810,8 @@ class AvailabilityViewModel(
         refresh(region, summary.month, summary.filter)
     }
 
-    private fun loadPlannedTrips() {
-        viewModelScope.launch {
+    private fun loadPlannedTrips(): Job {
+        return viewModelScope.launch {
             getPlannedTrips().fold(
                 onSuccess = { trips -> _uiState.update { it.copy(plannedTrips = trips, plannedTripsErrorMessage = null) } },
                 onFailure = { error ->
@@ -896,6 +899,60 @@ class AvailabilityViewModel(
      * a `listRegions` re-read has no side effect beyond what [loadOfflineRegions] already does on
      * every call.
      */
+    /**
+     * "Download again" on a region restored from a backup (owner, "1 B"). It downloads from the row's stored centre and
+     * radius through the same [OfflineMapRepository.download] a new download uses, held to the same tile budget. The
+     * download makes a new MapLibre region with a new id, so on success the restored row is replaced by it and every
+     * reference to the old id follows ([OfflineMapRepository.replaceRegion]). A failure leaves the row as it was.
+     * The picker's fields are not touched: this is not the picker's download.
+     */
+    fun onDownloadAgain(id: Long) {
+        val row = _uiState.value.offlineRegions.firstOrNull { it.id == id && !it.isDownloaded } ?: return
+        val estimatedTiles = estimateServedOfflineTileCount(row.region)
+        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - _uiState.value.offlineRegions.sumOf { it.tileCount }
+        if (estimatedTiles > remainingBudget) {
+            _uiState.update {
+                it.copy(
+                    offlineDownloadStatus = OfflineMapStatus.Failed(
+                        "This region needs about $estimatedTiles tiles, but only $remainingBudget remain in your " +
+                            "${OfflineMapRepository.TILE_COUNT_LIMIT}-tile budget. Delete a region or pick a smaller radius.",
+                    ),
+                )
+            }
+            return
+        }
+        _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
+        viewModelScope.launch {
+            offlineMapRepository.download(row.name, row.region) { downloaded, total ->
+                _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
+            }.fold(
+                onSuccess = { downloadedRegion ->
+                    offlineMapRepository.replaceRegion(row.id, downloadedRegion.id).onFailure { error ->
+                        errorLog.w(TAG, "Downloaded ${row.name} again, but couldn't move region ${row.id}'s references to ${downloadedRegion.id}.", error)
+                    }
+                    _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Succeeded) }
+                    loadOfflineRegions()
+                },
+                onFailure = { error ->
+                    errorLog.w(TAG, "Couldn't download offline maps again.", error)
+                    _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Failed("Couldn't download offline maps.")) }
+                },
+            )
+        }
+    }
+
+    /**
+     * Reads everything this ViewModel holds from the database again, after a restore, and returns when it is done:
+     * the planned trips ([loadPlannedTrips]), the offline regions with their reference counts ([loadOfflineRegions]),
+     * and the Maps tab's records ([loadMapRecords]). The journal highlights are derived from those, the entries and the
+     * waypoints, in the screen, so they follow. `loadRecentSearches` is not reloaded: the search cache is not restored.
+     */
+    suspend fun reloadAfterRestore() {
+        loadPlannedTrips().join()
+        loadOfflineRegions().join()
+        loadMapRecords()
+    }
+
     fun onOfflineMapsOpened() {
         viewModelScope.launch {
             val result = locationProvider.getCurrentLocation()
@@ -920,10 +977,16 @@ class AvailabilityViewModel(
      * failure gets. The prior list is kept on a failed refresh rather than cleared, so a transient
      * read error doesn't make regions that are still on disk disappear.
      */
-    private fun loadOfflineRegions() {
-        viewModelScope.launch {
+    private fun loadOfflineRegions(): Job {
+        return viewModelScope.launch {
             offlineMapRepository.listRegions().fold(
-                onSuccess = { regions ->
+                onSuccess = { downloaded ->
+                    // Regions restored from a backup with no tiles here are listed after the downloaded ones (owner, "1 B").
+                    val restored = offlineMapRepository.listNotDownloadedRegions().getOrElse { error ->
+                        errorLog.w(TAG, "Couldn't read restored offline regions.", error)
+                        emptyList()
+                    }
+                    val regions = downloaded + restored
                     _uiState.update { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = null) }
                     // One query per region — see TrackRecordingViewModel.loadWaypoints' identical
                     // choice for why this scale doesn't need a batched read.

@@ -54,6 +54,21 @@ interface OfflineMapRepository {
      */
     suspend fun listRegions(): Result<List<OfflineRegionSummary>>
 
+    /**
+     * Regions whose Room row exists and whose MapLibre region does not (a restored backup's, on a phone that never
+     * downloaded them), as summaries with [OfflineRegionSummary.isDownloaded] `false`. **Separate from [listRegions]
+     * on purpose**: the map's circles, the entry report's covering-region lookup and the trip report read
+     * [listRegions] and must never take a region with no tiles for one that has them. Nothing here deletes a row.
+     */
+    suspend fun listNotDownloadedRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
+
+    /**
+     * After a "Download again" finished under a new MapLibre id: points every reference to [oldId] at [newId] and
+     * removes the old row, in one transaction. A no-op success when the two are the same id.
+     */
+    suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> =
+        Result.failure(UnsupportedOperationException("this repository does not replace a region's id"))
+
     companion object {
         /**
          * The tile ceiling this app enforces itself before ever starting a download — see
@@ -202,4 +217,10 @@ data class OfflineRegionSummary(
     val tileCount: Int,
     val sizeBytes: Long,
     val createdAtEpochMillis: Long,
+    /**
+     * `false` for a region whose Room row is here and whose tiles are not: one restored from a backup onto a phone
+     * whose MapLibre store never had it (owner, "1 B"). Such a row lists as "Not downloaded" with a "Download again"
+     * that re-downloads from its stored centre and radius. [tileCount] and [sizeBytes] are 0 for it.
+     */
+    val isDownloaded: Boolean = true,
 )

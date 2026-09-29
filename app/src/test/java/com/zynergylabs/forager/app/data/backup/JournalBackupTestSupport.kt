@@ -67,6 +67,7 @@ internal class Phone(
                 is Long -> cv.put(f.name, v)
                 is Int -> cv.put(f.name, v)
                 is Double -> cv.put(f.name, v)
+                is ByteArray -> cv.put(f.name, v)
                 else -> error("unsupported seed value for $table.${f.name}: $v")
             }
         }
@@ -120,7 +121,7 @@ internal class Phone(
     private fun Cursor.columnName(i: Int): String = getColumnName(i)
 
     companion object {
-        const val SCHEMA = 16
+        const val SCHEMA = 17
         val LINK_COLUMNS = setOf("trackId", "originWaypointId", "offlineRegionId", "draftOfEntryId")
 
         fun allTables(): List<String> = SchemaAssets.entities(SCHEMA).map { it.first }
@@ -174,12 +175,16 @@ internal fun Phone.seedFullJournal() {
     insert("mushroom_log_entries", "id" to "f2", "entryNotes" to "A draft", "isDraft" to 1L, "draftOfEntryId" to "f1")
     insert("log_entry_photos", "entryId" to "f1", "photoId" to "p1")
     insert("log_entry_photos", "entryId" to "f1", "photoId" to "p2")
+    insert("planned_trips", "id" to "trip-1", "name" to "Chanterelle weekend", "date" to "2026-10-04")
+    insert("planned_trips", "id" to "trip-2", "name" to "Morels", "date" to "2027-04-20")
     insert("cartography_entries", "id" to "e1", "text" to "A good day", "isDraft" to 0L)
     insert("cartography_entry_track_refs", "entryId" to "e1", "trackId" to "t1")
     insert("cartography_entry_waypoint_refs", "entryId" to "e1", "waypointId" to "w1")
     insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 7L)
     insert("cartography_entry_find_refs", "entryId" to "e1", "findId" to "f1")
     insert("cartography_entry_photo_refs", "entryId" to "e1", "photoId" to "p3")
+    // F3: e1's kept track t1 has a saved path too (a real one, so a restore that mangled the bytes would show).
+    insert("cartography_entry_track_paths", "entryId" to "e1", "trackId" to "t1", "path" to com.zynergylabs.forager.app.domain.TrackPathCodec.encode(listOf(com.zynergylabs.forager.app.domain.model.LatLng(45.2, -122.5), com.zynergylabs.forager.app.domain.model.LatLng(45.21, -122.51))))
 }
 
 /** Each table's primary key columns, in key order, from `<version>.json`. */

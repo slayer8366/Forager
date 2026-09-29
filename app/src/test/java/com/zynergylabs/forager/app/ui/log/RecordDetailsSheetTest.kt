@@ -491,13 +491,35 @@ class RecordDetailsSheetTest {
 
     // ── The wide tree (LogPanel shares RecordsTab) ──
 
+    /**
+     * J6a (ruling 6.1, "The record details open in the right side, not as a sheet"): on the wide tree a
+     * Records row opens its details in the detail pane, not `RecordDetailsSheet`, with the same content
+     * (the body is shared) and closes on Back. The compact Journal's sheet tests above are unchanged.
+     */
     @Config(qualifiers = WIDE)
     @Test
-    fun `wide tree - a waypoint row in LogPanel's Records opens its details sheet`() {
+    fun `wide tree - a waypoint row in LogPanel's Records opens its details in the right side pane`() {
         setScreen()
         openRecords(wide = true)
-        tapAcrossRowOpensSheet(waypointRow("W1"), "Creek pin") { assertWaypointCreekContent() }
-        tapAcrossRowOpensSheet(regionRow(), "Molalla Ridge") { assertRegionContent() }
+        tapAcrossRowOpensPane(waypointRow("W1"), "Creek pin") { assertWaypointCreekContent() }
+        tapAcrossRowOpensPane(regionRow(), "Molalla Ridge") { assertRegionContent() }
+    }
+
+    private fun paneShowing(): Boolean = composeRule.onAllNodesWithTag(RECORD_DETAILS_PANE_TAG).fetchSemanticsNodes().isNotEmpty()
+
+    private fun tapAcrossRowOpensPane(rowTag: String, expectedTitle: String, whileOpen: () -> Unit = {}) {
+        for (point in ROW_SAMPLES) {
+            assertTrue("no pane before the tap at $point", !paneShowing())
+            touch(rowTag, point)
+            assertTrue("a tap at $point of $rowTag opens the details pane", paneShowing())
+            assertTrue("not as a sheet", !sheetShowing())
+            composeRule.onNodeWithTag(RECORD_DETAILS_PANE_TAG).assertIsDisplayed()
+            composeRule.onNodeWithTag(TITLE).assertTextEquals(expectedTitle)
+            whileOpen()
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+            composeRule.waitForIdle()
+            assertTrue("Back closes the pane (after the tap at $point)", !paneShowing())
+        }
     }
 
     // ── Helpers ──

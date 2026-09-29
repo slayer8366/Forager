@@ -6,6 +6,7 @@ import android.app.Application
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
+import com.zynergylabs.forager.app.data.repository.RoomKeptTrackPathRepository
 import com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepository
 import com.zynergylabs.forager.app.data.repository.RoomTrackRepository
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
@@ -58,7 +59,7 @@ class GetCartographyEntryMapDataUseCaseTest {
         ).build()
         trackRepository = RoomTrackRepository(database.trackDao())
         mushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
-        useCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository)
+        useCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, RoomKeptTrackPathRepository(database.cartographyEntryDao()))
     }
 
     @After
@@ -110,10 +111,31 @@ class GetCartographyEntryMapDataUseCaseTest {
         assertEquals(RecordPolyline("track-2", listOf(LatLng(46.00, -123.00))), result.trackPolylines[1])
     }
 
+    // Edited by F3 (was: "a kept track deleted from Records draws nothing and does not error", asserting
+    // an empty polyline list and isEmpty). Dispatch 2026-09-28-195 item 7, quoted: "F1's tests that pin
+    // 'a deleted track draws no line' (TrackDeleteEntryRefsTest, and GetCartographyEntryMapDataUseCaseTest:114)
+    // now expect the saved line." The case is unchanged (a decision whose track has no row) except that the
+    // entry now has a saved path for it. The old assertion survives as the next test, which has no saved path.
     @Test
-    fun `a kept track deleted from Records draws nothing and does not error`() = runTest {
+    fun `a kept track deleted from Records draws its saved line and does not error`() = runTest {
+        val entry = baseEntry.copy(
+            trackDecisions = listOf(
+                TrackDecision(trackId = "deleted-track", name = "Gone Now Loop", distanceMeters = 100.0, durationMillis = 1_000L, pointCount = 2, kept = true),
+            ),
+        )
+        val saved = listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51))
+        savePath("entry-1", "deleted-track", saved)
+
+        val result = useCase(entry, galleryPhotos = emptyList())
+
+        assertEquals(listOf(RecordPolyline("deleted-track", saved)), result.trackPolylines)
+        assertEquals("the saved line is content, so the entry has something to draw", saved, result.drawablePoints)
+    }
+
+    @Test
+    fun `a kept track deleted from Records with no saved path draws nothing and does not error`() = runTest {
         // Never inserted into the database at all -- the dangling-reference case this use case
-        // exists to tolerate, per its own doc comment.
+        // exists to tolerate, per its own doc comment. F1's original test, unchanged in what it asserts.
         val entry = baseEntry.copy(
             trackDecisions = listOf(
                 TrackDecision(trackId = "deleted-track", name = "Gone Now Loop", distanceMeters = 100.0, durationMillis = 1_000L, pointCount = 1, kept = true),
@@ -124,6 +146,74 @@ class GetCartographyEntryMapDataUseCaseTest {
 
         assertTrue(result.trackPolylines.isEmpty())
         assertTrue(result.isEmpty)
+    }
+
+    @Test
+    fun `the live track is drawn, not the saved path, while the track exists`() = runTest {
+        val live = Track(
+            id = "track-1", name = "Ridge Loop", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 2_000L,
+            points = listOf(TrackPoint(lat = 45.20, lng = -122.50, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
+        )
+        trackRepository.create(live).getOrThrow()
+        trackRepository.appendPoints(live.id, live.points).getOrThrow()
+        savePath("entry-1", "track-1", listOf(LatLng(10.0, 10.0), LatLng(11.0, 11.0)))
+        val entry = baseEntry.copy(trackDecisions = listOf(TrackDecision("track-1", "Ridge Loop", 100.0, 1_000L, 1, kept = true)))
+
+        val result = useCase(entry, galleryPhotos = emptyList())
+
+        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))), result.trackPolylines)
+    }
+
+    @Test
+    fun `a withheld track's saved path is not drawn`() = runTest {
+        savePath("entry-1", "deleted-track", listOf(LatLng(45.20, -122.50)))
+        val entry = baseEntry.copy(trackDecisions = listOf(TrackDecision("deleted-track", "Gone", 100.0, 1_000L, 1, kept = false)))
+
+        val result = useCase(entry, galleryPhotos = emptyList())
+
+        assertTrue(result.trackPolylines.isEmpty())
+    }
+
+    @Test
+    fun `another entry's saved path for the same track is not drawn`() = runTest {
+        savePath("entry-2", "deleted-track", listOf(LatLng(45.20, -122.50)))
+        val entry = baseEntry.copy(trackDecisions = listOf(TrackDecision("deleted-track", "Gone", 100.0, 1_000L, 1, kept = true)))
+
+        val result = useCase(entry, galleryPhotos = emptyList())
+
+        assertTrue(result.trackPolylines.isEmpty())
+    }
+
+    @Test
+    fun `an empty saved path contributes no polyline, as an empty live track does not`() = runTest {
+        savePath("entry-1", "deleted-track", emptyList())
+        val entry = baseEntry.copy(trackDecisions = listOf(TrackDecision("deleted-track", "Gone", 100.0, 1_000L, 0, kept = true)))
+
+        val result = useCase(entry, galleryPhotos = emptyList())
+
+        assertTrue(result.trackPolylines.isEmpty())
+        assertTrue(result.isEmpty)
+    }
+
+    @Test
+    fun `a saved path that cannot be read draws nothing for that track, the other tracks still draw, and nothing throws`() = runTest {
+        val live = Track(
+            id = "track-1", name = "Ridge Loop", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 2_000L,
+            points = listOf(TrackPoint(lat = 45.20, lng = -122.50, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
+        )
+        trackRepository.create(live).getOrThrow()
+        trackRepository.appendPoints(live.id, live.points).getOrThrow()
+        val failing = InMemoryKeptTrackPaths().apply { failRead = true }
+        val entry = baseEntry.copy(
+            trackDecisions = listOf(
+                TrackDecision("track-1", "Ridge Loop", 100.0, 1_000L, 1, kept = true),
+                TrackDecision("deleted-track", "Gone", 100.0, 1_000L, 1, kept = true),
+            ),
+        )
+
+        val result = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, failing)(entry, galleryPhotos = emptyList())
+
+        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))), result.trackPolylines)
     }
 
     @Test
@@ -283,5 +373,13 @@ class GetCartographyEntryMapDataUseCaseTest {
         val result = useCase(entry, galleryPhotos = emptyList())
 
         assertEquals(setOf(LatLng(45.4, -122.4), LatLng(45.6, -122.6)), result.allPoints.toSet())
+    }
+
+    /** A saved-path row as the delete-time copy writes it, seeded directly so these tests do not depend on that copy. */
+    private fun savePath(entryId: String, trackId: String, path: List<LatLng>) {
+        database.openHelper.writableDatabase.execSQL(
+            "INSERT OR REPLACE INTO cartography_entry_track_paths (entryId, trackId, path) VALUES (?, ?, ?)",
+            arrayOf<Any?>(entryId, trackId, TrackPathCodec.encode(path)),
+        )
     }
 }

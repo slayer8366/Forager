@@ -31,7 +31,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * the same [DecodedPhoto] G2 built for exactly this extension, wrapped in its own clickable `Card`
  * — [DecodedPhoto] itself gains no selection affordance, per that component's own doc comment.
  *
- * Deliberately a separate composable from [PhotoGalleryScreen] rather than a "selection mode" on
+ * Deliberately a separate composable from the removed Photo Gallery screen rather than a "selection mode" on
  * it: that screen's own interaction is tap-to-delete (Workstream G3's own warn-then-remove flow),
  * and folding a second, incompatible interaction (tap-to-pick here) into the same component would
  * make both harder to read for a difference this small — a plain grid of `DecodedPhoto` tiles
@@ -49,10 +49,10 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * directly would have left `MushroomLogUiState.galleryPhotos` stale — `GetGalleryPhotosUseCase` is
  * a one-shot suspend call, not a reactive `Flow`). Reuses [rememberPhotoAcquisitionLaunchers]
  * unmodified, the same shared Camera-permission-then-capture and system-picker component
- * [LogEntryDetailScreen] and [PhotoGalleryScreen] already use — no second copy of that wiring.
+ * [LogEntryDetailScreen] and the removed Photo Gallery screen already use — no second copy of that wiring.
  *
  * The buttons row is unconditional, above either the grid or the empty-state message, matching
- * [PhotoGalleryScreen]'s own shape (buttons above content, not swapped out when the list is
+ * the removed Photo Gallery screen's own shape (buttons above content, not swapped out when the list is
  * empty) — before this dispatch the empty state's own message sent the user elsewhere to find
  * buttons that, after this dispatch, sit right here.
  */

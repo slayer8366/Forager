@@ -522,7 +522,11 @@ internal fun CartographyEntryReportScreen(
                 MapBubbleLayer(
                     tapped = tapped,
                     onDismiss = { tapped = null },
-                    sources = mapBubbleSources.copy(snapshotWaypoints = entryMapWaypoints(entry, resolvedMapData.waypointMarkers)),
+                    sources = mapBubbleSources.copy(
+                        snapshotWaypoints = entryMapWaypoints(entry, resolvedMapData.waypointMarkers),
+                        // F3: a kept track gone from Records still has its saved line drawn; a tap on it names it from the entry.
+                        snapshotTracks = entry.trackDecisions.filter { it.kept },
+                    ),
                     forecast = null,
                     onViewSightingOnINaturalist = { tapped = null },
                     backEnabled = backEnabled && !showLayersSheet,

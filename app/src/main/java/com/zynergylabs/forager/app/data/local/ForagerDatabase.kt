@@ -163,8 +163,9 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryOfflineRegionRefEntity::class,
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
+        CartographyEntryTrackPathEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -221,10 +222,10 @@ abstract class ForagerDatabase : RoomDatabase() {
         private val ALL_MIGRATIONS = arrayOf(
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
-            MIGRATION_15_16,
+            MIGRATION_15_16, MIGRATION_16_17,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 16
+        const val SCHEMA_VERSION = 17
     }
 }

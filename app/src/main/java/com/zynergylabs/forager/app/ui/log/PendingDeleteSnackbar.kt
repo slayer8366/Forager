@@ -12,6 +12,7 @@ import com.zynergylabs.forager.app.domain.PendingDelete
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +70,22 @@ internal fun waypointDeleteNotice(
         type = PendingDeleteKind.WAYPOINT,
         token = p.token,
         message = pendingDeleteMessage("Waypoint", p.entryReferenceCount),
+        onUndo = { onUndo(id) },
+        onCommit = { onCommit(id) },
+    )
+}
+
+/** The track snackbar for [pending] ("Track deleted", the chip's own noun), or `null` when none is pending. Part 2 follow-ups F1 item 5. */
+internal fun trackDeleteNotice(
+    pending: PendingDelete<Track>?,
+    onUndo: (String) -> Unit,
+    onCommit: (String) -> Unit,
+): PendingDeleteNotice? = pending?.let { p ->
+    val id = p.item.id
+    PendingDeleteNotice(
+        type = PendingDeleteKind.TRACK,
+        token = p.token,
+        message = pendingDeleteMessage("Track", p.entryReferenceCount),
         onUndo = { onUndo(id) },
         onCommit = { onCommit(id) },
     )
@@ -170,7 +187,7 @@ internal const val CHANGES_DISCARDED_MESSAGE = "Changes discarded"
  * entries and gallery photos, which are not Records types, so the slot got its own enum rather than
  * two values bolted onto the type the chips and colour roles read.
  */
-internal enum class PendingDeleteKind { WAYPOINT, OFFLINE_REGION, FIND, CARTOGRAPHY_ENTRY, GALLERY_PHOTO }
+internal enum class PendingDeleteKind { WAYPOINT, TRACK, OFFLINE_REGION, FIND, CARTOGRAPHY_ENTRY, GALLERY_PHOTO }
 
 /**
  * The entry snackbar for [pending] (J4b L2): "Entry deleted", or "Draft deleted" for an unfinished

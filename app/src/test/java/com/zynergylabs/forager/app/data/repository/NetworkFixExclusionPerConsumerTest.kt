@@ -11,6 +11,8 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase
@@ -262,7 +264,7 @@ class NetworkFixExclusionPerConsumerTest {
         val entry = CartographyEntry.draft(id = "e1", date = LocalDate.of(1970, 1, 1), updatedAtEpochMillis = 0L).copy(
             trackDecisions = listOf(TrackDecision(trackId = "t1", name = null, distanceMeters = 0.0, durationMillis = 0L, pointCount = 0, kept = true)),
         )
-        val mapData = GetCartographyEntryMapDataUseCase(trackRepository, logRepository)(entry, emptyList())
+        val mapData = GetCartographyEntryMapDataUseCase(trackRepository, logRepository, InMemoryKeptTrackPaths())(entry, emptyList())
         assertEquals(survivors.map { it.lat }, mapData.trackPolylines.single().points.map { it.lat })
 
         // A region whose footprint holds only the two excluded points: coverage must not count them.
@@ -288,6 +290,7 @@ class NetworkFixExclusionPerConsumerTest {
             getWaypoints = GetWaypointsUseCase(waypointRepository),
             createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "wp-${++waypointIds}" }),
             deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
+            deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository, InMemoryKeptTrackPaths()),
             computeReturnToStart = ComputeReturnToStartUseCase(),
             detectOffTrack = DetectOffTrackUseCase(),
             locationTracker = object : LocationTracker { override val fixes: Flow<LocationFix> = emptyFlow() },

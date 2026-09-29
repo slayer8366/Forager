@@ -172,6 +172,8 @@ private class RecordingOfflineMapRepository(
     var downloadResult: Result<OfflineRegionSummary> = Result.failure(IllegalStateException("downloadResult not configured"))
     var progressSteps: List<Pair<Int, Int>> = emptyList()
     var deleteRegionResult: Result<Unit> = Result.success(Unit)
+    var notDownloaded: List<OfflineRegionSummary> = emptyList()
+    val replaced = mutableListOf<Pair<Long, Long>>()
 
     var downloadCalled = false
     var lastName: String? = null
@@ -204,6 +206,14 @@ private class RecordingOfflineMapRepository(
     }
 
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = listRegionsResult
+
+    override suspend fun listNotDownloadedRegions(): Result<List<OfflineRegionSummary>> = Result.success(notDownloaded)
+
+    override suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> {
+        replaced += oldId to newId
+        notDownloaded = notDownloaded.filterNot { it.id == oldId }
+        return Result.success(Unit)
+    }
 }
 
 class AvailabilityViewModelOfflineMapsTest {
@@ -619,5 +629,88 @@ class AvailabilityViewModelOfflineMapsTest {
         advanceUntilIdle()
 
         assertEquals(listOf(1L), repository.deletedIds)
+    }
+
+    // ---- restored regions (dispatch 2026-09-28-137, item 1, owner "1 B") ---------------------------------
+
+    private val restoredRegion = REFERENCE_REGION_SUMMARY.copy(
+        id = 5L, name = "Cedar Creek", region = Region(lat = 45.5, lng = -122.6, radiusKm = 8),
+        tileCount = 0, sizeBytes = 0L, isDownloaded = false,
+    )
+
+    @Test
+    fun `a restored region with no tiles is listed beside the downloaded ones, marked as not downloaded`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY)))
+        repository.notDownloaded = listOf(restoredRegion)
+
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        val regions = vm.uiState.value.offlineRegions
+        assertEquals(listOf(1L, 5L), regions.map { it.id })
+        assertEquals(listOf(true, false), regions.map { it.isDownloaded })
+    }
+
+    @Test
+    fun `Download again downloads from the row's stored centre and radius through the existing download, then replaces the old row`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository()
+        repository.notDownloaded = listOf(restoredRegion)
+        repository.downloadResult = Result.success(REFERENCE_REGION_SUMMARY.copy(id = 42L, name = "Cedar Creek", region = restoredRegion.region))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onDownloadAgain(5L)
+        advanceUntilIdle()
+
+        assertEquals("the stored centre and radius", Region(lat = 45.5, lng = -122.6, radiusKm = 8), repository.lastRegion)
+        assertEquals("the stored name", "Cedar Creek", repository.lastName)
+        assertEquals("the old row now stands for the new region, and its references follow", listOf(5L to 42L), repository.replaced)
+        assertEquals(listOf(42L), vm.uiState.value.offlineRegions.map { it.id })
+        assertEquals(OfflineMapStatus.Succeeded, vm.uiState.value.offlineDownloadStatus)
+    }
+
+    @Test
+    fun `Download again is held to the same tile budget as any download`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository()
+        repository.notDownloaded = listOf(restoredRegion.copy(region = Region(lat = 45.5, lng = -122.6, radiusKm = 400)))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onDownloadAgain(5L)
+        advanceUntilIdle()
+
+        assertTrue("the download was never attempted", !repository.downloadCalled)
+        assertTrue(vm.uiState.value.offlineDownloadStatus is OfflineMapStatus.Failed)
+        assertEquals("and the row stays", listOf(5L), vm.uiState.value.offlineRegions.map { it.id })
+    }
+
+    @Test
+    fun `a failed Download again keeps the row and reports the failure as a download failure`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository()
+        repository.notDownloaded = listOf(restoredRegion)
+        repository.downloadResult = Result.failure(java.io.IOException("offline"))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onDownloadAgain(5L)
+        advanceUntilIdle()
+
+        assertEquals(OfflineMapStatus.Failed("Couldn't download offline maps."), vm.uiState.value.offlineDownloadStatus)
+        assertEquals(listOf(5L), vm.uiState.value.offlineRegions.map { it.id })
+        assertTrue("nothing was replaced", repository.replaced.isEmpty())
+    }
+
+    @Test
+    fun `reloading after a restore reads the region lists again`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        assertEquals(emptyList<Long>(), vm.uiState.value.offlineRegions.map { it.id })
+        repository.listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY))
+        repository.notDownloaded = listOf(restoredRegion)
+
+        vm.reloadAfterRestore()
+
+        assertEquals(listOf(1L, 5L), vm.uiState.value.offlineRegions.map { it.id })
     }
 }

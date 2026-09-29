@@ -28,6 +28,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import java.time.LocalDate
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,8 +92,8 @@ class CartographyViewModel(
         loadEntries()
     }
 
-    fun loadEntries() {
-        viewModelScope.launch {
+    fun loadEntries(): Job {
+        return viewModelScope.launch {
             _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
             getEntries().fold(
                 onSuccess = { entries ->
@@ -107,6 +108,33 @@ class CartographyViewModel(
                     _uiState.update { it.copy(isLoadingEntries = false, loadErrorMessage = "Entries unavailable.") }
                 },
             )
+        }
+    }
+
+    /**
+     * After a restore (dispatch 2026-09-28-182, item 5): reads the entries and drafts again, then closes the open entry, with
+     * the candidates and the unsaved flag that belong to it, if its record is in neither list now. [loadEntries] never touches
+     * the open entry, so a Replace that deleted it would leave it on screen. A read that failed closes nothing.
+     */
+    fun reloadAfterRestore(): Job {
+        return viewModelScope.launch {
+            loadEntries().join()
+            _uiState.update { state ->
+                val open = state.editingEntry
+                when {
+                    open == null || state.loadErrorMessage != null -> state
+                    (state.entries + state.draftEntries).any { it.id == open.id } -> state
+                    else -> {
+                        Log.i(TAG, "A restore removed the open entry '${open.id}'; it is closed.")
+                        state.copy(
+                            editingEntry = null,
+                            candidatesForEditingEntry = null,
+                            candidateOfflineRegionsForEditingEntry = emptyList(),
+                            hasUnsavedChanges = false,
+                        )
+                    }
+                }
+            }
         }
     }
 

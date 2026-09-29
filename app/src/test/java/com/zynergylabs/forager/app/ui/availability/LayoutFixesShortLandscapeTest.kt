@@ -75,8 +75,11 @@ class LayoutFixesShortLandscapeTest {
     private fun pill(): DpRect = tag("control-pill")
     private fun mapArea(): DpRect = tag(LAYOUT_FIXES_MAP_TAG)
 
-    /** The MapIconBar's own bounds: its first and last rows and its 4 dp vertical padding. */
-    private fun bar(): DpRect = DpRect(fullscreenRow().left, fullscreenRow().top - 4.dp, fullscreenRow().right, addRow().bottom + 4.dp)
+    /**
+     * The MapIconBar's own bounds: its first and last rows. Superseded 2026-09-29 (dispatch 2026-09-28-160, the owner's "A"): the
+     * landscape bar has no spacing between rows and no end padding, so its bounds are its rows' (was: the rows and 4 dp of padding).
+     */
+    private fun bar(): DpRect = DpRect(fullscreenRow().left, fullscreenRow().top, fullscreenRow().right, addRow().bottom)
 
     // ── The reshape (option A) ──
 
@@ -86,7 +89,12 @@ class LayoutFixesShortLandscapeTest {
         val b = bar()
         val m = mapArea()
         val ret = tag("control-pill-return-to-vehicle")
-        assertTrue("the cluster ${c.describe()} is the bar's height ${b.describe()}", (c.bottom - c.top) <= (b.bottom - b.top) + 1.dp)
+        // TR1 superseded 2026-09-29 (dispatch 2026-09-28-160). It pinned "the cluster is at or below the bar's span" for the
+        // side-by-side shape. The owner's ruling, verbatim: "Have the icon bar shrink a little and turn the small pill 90°, then
+        // half of the small pill can fit beneath the icon bar, and extend out", then, on the height, "A": the bar is 240, an 8 dp
+        // gap, the 48 dp pill, 296 in all.
+        assertEquals("the cluster ${c.describe()} is 296 tall: the 240 bar, the 8 gap, the 48 pill", 296f, (c.bottom - c.top).value, 0.5f)
+        assertEquals("the bar ${b.describe()} is 240 tall", 240f, (b.bottom - b.top).value, 0.5f)
         assertTrue("the cluster ${c.describe()} lies inside the map area ${m.describe()}", c.top >= m.top && c.bottom <= m.bottom)
         assertEquals("the return button ${ret.describe()} is whole, 48 dp tall", 48f, (ret.bottom - ret.top).value, 0.5f)
         assertTrue("the return button ${ret.describe()} lies inside the cluster ${c.describe()}", ret.top >= c.top && ret.bottom <= c.bottom)
@@ -96,26 +104,36 @@ class LayoutFixesShortLandscapeTest {
 
     @Test fun `TR1 at ROTATION_270 the cluster fits the map area and its pill's rows are whole`() = assertClusterFits(Surface.ROTATION_270)
 
-    /** The pill is beside the bar on its inboard side, towards the screen's centre, and bottom-aligned with it. */
+    /**
+     * The pill is beneath the bar, turned horizontal: its outer end flush with the bar's outer edge, record under the bar and
+     * return extending inboard, 8 dp below the bar. Superseded 2026-09-29 (dispatch 2026-09-28-160): this pinned the pill beside
+     * the bar, bottom-aligned, per the owner's "option A" for the short landscape column; the owner's later ruling, verbatim, is
+     * "Oh yeah on either side it looks like an L. On the right side it just looks like an inverse L".
+     */
     private fun assertPillInboardAndBottomAligned(clusterOnLeft: Boolean) {
         val p = pill()
         val b = bar()
+        val record = tag("control-pill-record")
+        val ret = tag("control-pill-return-to-vehicle")
+        assertEquals("the pill ${p.describe()} is 8 dp below the bar ${b.describe()}", 8f, (p.top - b.bottom).value, 0.5f)
+        assertEquals("the pill ${p.describe()} is 48 thick", 48f, (p.bottom - p.top).value, 0.5f)
         if (clusterOnLeft) {
-            assertTrue("the pill ${p.describe()} is right of (inboard of) the bar ${b.describe()}", p.left >= b.right - 0.5.dp)
+            assertEquals("the pill ${p.describe()}'s outer (left) end is flush with the bar ${b.describe()}'s", b.left.value, p.left.value, 0.5f)
+            assertTrue("the return button ${ret.describe()} extends inboard (right) of the record button ${record.describe()}", ret.left >= record.right - 0.5.dp)
         } else {
-            assertTrue("the pill ${p.describe()} is left of (inboard of) the bar ${b.describe()}", p.right <= b.left + 0.5.dp)
+            assertEquals("the pill ${p.describe()}'s outer (right) end is flush with the bar ${b.describe()}'s", b.right.value, p.right.value, 0.5f)
+            assertTrue("the return button ${ret.describe()} extends inboard (left) of the record button ${record.describe()}", ret.right <= record.left + 0.5.dp)
         }
-        assertEquals("the pill ${p.describe()} is bottom-aligned with the bar ${b.describe()}", b.bottom.value, p.bottom.value, 1f)
     }
 
     @Test
-    fun `TR2 at ROTATION_90 the pill sits beside the bar on its inboard side, bottom-aligned`() {
+    fun `TR2 at ROTATION_90 the pill sits beneath the bar, flush on its outer end, extending inboard`() {
         setScreen(Surface.ROTATION_90)
         assertPillInboardAndBottomAligned(clusterOnLeft = true)
     }
 
     @Test
-    fun `TR2 at ROTATION_270 the pill sits beside the bar on its inboard side, bottom-aligned`() {
+    fun `TR2 at ROTATION_270 the pill sits beneath the bar, flush on its outer end, extending inboard`() {
         setScreen(Surface.ROTATION_270)
         assertPillInboardAndBottomAligned(clusterOnLeft = false)
     }
@@ -140,7 +158,7 @@ class LayoutFixesShortLandscapeTest {
     private fun handleCentre(): Pair<Dp, Dp> = tag("map-icon-bar-minimize-handle").let { (it.left + it.right) / 2 to (it.top + it.bottom) / 2 }
 
     @Test
-    fun `TR4 at ROTATION_90 a snap to the far side keeps the pill inboard of the bar`() {
+    fun `TR4 at ROTATION_90 a snap to the far side keeps the pill beneath the bar, extending inboard`() {
         setScreen(Surface.ROTATION_90)
         val (x, y) = handleCentre()
         composeRule.longPressDrag(x, y, 200.dp, 0.dp)
@@ -149,7 +167,7 @@ class LayoutFixesShortLandscapeTest {
     }
 
     @Test
-    fun `TR4 at ROTATION_270 a snap to the far side keeps the pill inboard of the bar`() {
+    fun `TR4 at ROTATION_270 a snap to the far side keeps the pill beneath the bar, extending inboard`() {
         setScreen(Surface.ROTATION_270)
         val (x, y) = handleCentre()
         composeRule.longPressDrag(x, y, (-200).dp, 0.dp)
@@ -177,9 +195,17 @@ class LayoutFixesShortLandscapeTest {
         assertTrue("a touch on the restore handle brought it back at the same place (${cluster().describe()})", abs((cluster().top - after.top).value) <= 1f)
     }
 
-    @Test fun `TR5 at ROTATION_90 the handle drags the cluster down and minimises and restores it`() = assertDragAndHandlesWork(Surface.ROTATION_90)
+    // Marked NATIVE on the planner's authority (dispatch 2026-09-28-178, option (1), quoted in the report): the assertion and the 40 dp drag are
+    // unchanged; only the text metrics change, from Robolectric's legacy ones (the search bar 85 dp tall, which no device shows) to real
+    // ones (45 dp), as T9 and the chip tests already are. Under the legacy metrics the L, held below the search bar by the owner's
+    // ruling (a) of 2026-09-28-172, has 3 dp of travel in the 384 dp window and no drag of 40 dp can move it.
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `TR5 at ROTATION_90 the handle drags the cluster down and minimises and restores it`() = assertDragAndHandlesWork(Surface.ROTATION_90)
 
-    @Test fun `TR5 at ROTATION_270 the handle drags the cluster down and minimises and restores it`() = assertDragAndHandlesWork(Surface.ROTATION_270)
+    // Marked NATIVE on the planner's authority (dispatch 2026-09-28-178, option (1), quoted in the report): the assertion and the 40 dp drag are
+    // unchanged; only the text metrics change, from Robolectric's legacy ones (the search bar 85 dp tall, which no device shows) to real
+    // ones (45 dp), as T9 and the chip tests already are. Under the legacy metrics the L, held below the search bar by the owner's
+    // ruling (a) of 2026-09-28-172, has 3 dp of travel in the 384 dp window and no drag of 40 dp can move it.
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `TR5 at ROTATION_270 the handle drags the cluster down and minimises and restores it`() = assertDragAndHandlesWork(Surface.ROTATION_270)
 
     // ── Item 9 ──
 

@@ -45,4 +45,35 @@ class ContentResolverBackupFilesTest {
         assertEquals(2, target.length())
         assertTrue(target.readBytes().contentEquals(byteArrayOf(1, 2)))
     }
+
+    @Test
+    fun `delete removes the file at the URI and reports it gone, and touches nothing beside it`() {
+        val target = File(tmp.root, "created.zip").apply { writeBytes(byteArrayOf(1)) }
+        val neighbour = File(tmp.root, "older-backup.zip").apply { writeBytes(byteArrayOf(2)) }
+
+        val deleted = files.delete(Uri.fromFile(target).toString())
+
+        assertTrue(deleted)
+        assertTrue(!target.exists())
+        assertTrue("the other backup is untouched", neighbour.exists())
+    }
+
+    @Test
+    fun `delete of a file that is not there reports false`() {
+        assertEquals(false, files.delete(Uri.fromFile(File(tmp.root, "never-existed.zip")).toString()))
+    }
+
+    @Test
+    fun `sizeOf reports how many bytes the file holds now, 0 for a new empty one`() {
+        val filled = File(tmp.root, "old.zip").apply { writeBytes(ByteArray(5) { 1 }) }
+        val empty = File(tmp.root, "new.zip").apply { writeBytes(ByteArray(0)) }
+
+        assertEquals(5L, files.sizeOf(Uri.fromFile(filled).toString()))
+        assertEquals(0L, files.sizeOf(Uri.fromFile(empty).toString()))
+    }
+
+    @Test
+    fun `sizeOf is null, not 0, when the provider cannot say`() {
+        assertEquals(null, files.sizeOf(Uri.fromFile(File(tmp.root, "no-such-file.zip")).toString()))
+    }
 }

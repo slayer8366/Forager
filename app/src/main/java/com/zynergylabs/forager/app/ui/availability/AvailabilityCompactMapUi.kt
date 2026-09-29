@@ -16,6 +16,8 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
+import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -51,6 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,6 +79,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -92,6 +96,8 @@ import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
+import com.zynergylabs.forager.app.ui.map.mapIconChromeFillColor
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
@@ -166,32 +172,6 @@ internal class MapIconClusterPositionState {
     var landscapeUserChosenOffsetPx by mutableStateOf(0f)
     val landscapeDisplayedOffsetPx = Animatable(0f)
     var landscapeIsMinimized by mutableStateOf(false)
-}
-
-/**
- * Landscape B2 (S6): "is the cluster on the window's left" for a short landscape window, read and
- * written through [MapIconClusterPositionState.landscapeOnPortSide] against the current port and
- * punch-hole edges.
- */
-private class LandscapeClusterSide(
-    private val state: MapIconClusterPositionState,
-    private val portEdge: ScreenEdge,
-    private val punchHoleEdge: ScreenEdge,
-) : ReadWriteProperty<Any?, Boolean> {
-    override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean =
-        (if (state.landscapeOnPortSide) portEdge else punchHoleEdge) == ScreenEdge.Left
-
-    override fun setValue(thisRef: Any?, property: KProperty<*>, value: Boolean) {
-        state.landscapeOnPortSide = (if (value) ScreenEdge.Left else ScreenEdge.Right) == portEdge
-    }
-}
-
-/** The portrait side, [MapIconClusterPositionState.isOnLeftSide], unchanged, behind the same delegate type. */
-private class PortraitClusterSide(private val state: MapIconClusterPositionState) : ReadWriteProperty<Any?, Boolean> {
-    override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean = state.isOnLeftSide
-    override fun setValue(thisRef: Any?, property: KProperty<*>, value: Boolean) {
-        state.isOnLeftSide = value
-    }
 }
 
 @Composable
@@ -386,117 +366,17 @@ internal fun CompactMapTab(
     var resumeTrackingRequestId by remember { mutableStateOf(0) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
     var resetOrientationRequestId by remember { mutableStateOf(0) }
-    // Icon-bar-unify-container dispatch: MapIconBar's own vertical centre, in px relative to the
-    // top of the cluster container it now sits in (measured on the bar via boundsInParent(), so
-    // it tracks whatever the bar's real height and position in the container are). This replaces
-    // mapIconBarBottomPx — the bar's bottom edge that TrailheadControls used to offset itself by —
-    // rather than redefining it: that value's one consumer became the container Column's own
-    // spacing, so the measurement itself went away. What remains is everything that used to
-    // *assume* the bar's centre sat at this Box's centre plus the drag offset — the two panels'
-    // row anchors and both handles' mid-height placement — which is true of the *container* now,
-    // not the bar, and would silently be ~60dp off otherwise. Combined with mapIconClusterHeightPx
-    // as (centreInCluster − clusterHeight / 2), the bar's centre relative to the container's.
-    var mapIconBarCentreInClusterPx by remember { mutableStateOf(0f) }
-    // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking handle to
-    // restore it") — independent of isMapFullscreen by design (that item's own "do not tie it to
-    // isMapFullscreen" instruction). Held in clusterPosition (see MapIconClusterPositionState) so
-    // it survives leaving and returning to the Map tab: that dispatch's own "minimising resets
-    // when the user leaves the Map tab" was a planner rule, and the owner's standing UX default
-    // (CLAUDE.md, "UX defaults") is that user-set state survives a tab change unless an exception
-    // is stated explicitly for the case — none has been for this.
-    // Landscape B2 (S6): in a short landscape window the cluster reads and writes its own landscape
-    // position (MapIconClusterPositionState's landscape fields); portrait is exactly as before.
-    val landscapeCluster = railPortEdge != null && punchHoleEdge != null
-    var isMapIconBarMinimized by (if (landscapeCluster) clusterPosition::landscapeIsMinimized else clusterPosition::isMinimized)
-    // Direct owner request (not part of the fullscreen-fixes dispatch): the icon bar can be
-    // dragged up/down to reposition it, and snaps to the left or right edge — for left-handed
-    // users who want it within thumb reach on that side. Held in clusterPosition (see
-    // MapIconClusterPositionState) so it survives a tab change, per the owner's later ask; still
-    // session-only — not persisted to DataStore (CLAUDE.md's Room/DataStore split would put a
-    // "last-used side" preference there, since it's a flat, unrelated toggle). Worth revisiting
-    // if the owner wants that choice to survive an app restart.
-    val clusterSide: ReadWriteProperty<Any?, Boolean> = if (railPortEdge != null && punchHoleEdge != null) {
-        LandscapeClusterSide(clusterPosition, portEdge = railPortEdge, punchHoleEdge = punchHoleEdge)
-    } else {
-        PortraitClusterSide(clusterPosition)
-    }
-    var isMapIconBarOnLeftSide by clusterSide
-    // Icon-bar-position-memory dispatch: the bar's vertical position is two values that derive
-    // one from the other, never two that can drift. mapIconBarUserChosenOffsetPx is the single
-    // source of truth — the offset the user last dragged the bar (or its restore handle) to, and
-    // the only thing a drag writes. mapIconBarDisplayedOffsetPx is what's actually drawn: always
-    // clampMapIconBarVerticalOffset(userChosen) under the bounds *currently* in force, snapped to
-    // the finger during a drag and animated (navigationMotionSpec(), the nav's own slide spec, so
-    // the bar's move and the nav's arrival stay in step rather than crossing) whenever the bounds
-    // themselves change — leaving fullscreen brings the nav back over the bar's bottom band and
-    // pushes the bar up out of its way; re-entering removes that bound and the bar glides back to
-    // where the user had put it, because the push never touched the memory. A drag in either
-    // state replaces the memory, so it only ever holds a position the user chose. The previous
-    // shape (one offset, overwritten in place by an instant re-clamp) was exactly the one-way
-    // correction the owner found on device. The spring's few pixels of overshoot at a bound are
-    // accepted, not clamped away: every other slide here uses the same spec and accepts the same.
-    // Both live in clusterPosition (see MapIconClusterPositionState) so they survive leaving and
-    // returning to this tab — the owner's later ask, reversing the earlier "nothing survives a
-    // tab change" ruling for the position. Session-only still.
-    var mapIconBarUserChosenOffsetPx by (if (landscapeCluster) clusterPosition::landscapeUserChosenOffsetPx else clusterPosition::userChosenOffsetPx)
-    val mapIconBarDisplayedOffsetPx = if (landscapeCluster) clusterPosition.landscapeDisplayedOffsetPx else clusterPosition.displayedOffsetPx
-    val mapIconBarOffsetScope = rememberCoroutineScope()
-    // Horizontal drag distance accumulated only during an in-progress drag gesture — read once, at
-    // gesture end, to decide whether to flip isMapIconBarOnLeftSide, then reset to 0 regardless of
-    // whether the side actually flipped. This keeps the bar's own resting modifier exactly
-    // Alignment.CenterStart/CenterEnd with no leftover offset once a drag finishes, rather than a
-    // real-time "follows the finger, then snaps back" visual (a smaller, later polish, not this
-    // request's own ask).
-    var mapIconBarHorizontalDragPx by remember { mutableStateOf(0f) }
-    // This tab's own content Box's real measured height, in px — what mapIconBarDisplayedOffsetPx is
-    // clamped against below, so a drag can't carry the bar (or its restore handle) fully off
-    // screen. Set via onGloballyPositioned on that Box itself, a few lines down.
-    var mapContentBoxHeightPx by remember { mutableStateOf(0f) }
-    // A drag distance past this point (either direction) commits the bar to the opposite side —
-    // deliberately more than a light brush, since a small accidental sideways slip while actually
-    // trying to reposition vertically should not also relocate the whole bar to the other side of
-    // the screen.
-    val mapIconBarSideSnapThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
-    // Keeps at least one full touch target's worth of the bar/handle on screen at either vertical
-    // extreme of a drag — reuses MIN_TOUCH_TARGET (MapChrome.kt) rather than inventing a second
-    // margin constant for the same "don't let a control go fully off-screen" idea.
-    val mapIconBarVerticalDragMarginPx = with(LocalDensity.current) { MIN_TOUCH_TARGET.toPx() }
-    // Icon-bar-unify-container dispatch: the real measured height, in px, of the cluster container
-    // that holds MapIconBar and ControlPill together — what both drag clamps below
-    // use to know where the cluster's top and bottom edges currently sit, since
-    // Alignment.CenterEnd/CenterStart centres the container vertically before
-    // mapIconBarDisplayedOffsetPx is applied. Measured on the container's own Surface, never
-    // derived from what's inside it: this is the third time the same shape of bug appeared on
-    // this surface — "fully on screen" was insufficient because the nav overlays the bar, then
-    // "the bar is in bounds" was insufficient because the pills extend past it (on device: the
-    // record pill hanging off the bottom in fullscreen, the directions pill left sitting on the
-    // nav after exiting). Each time the measured object was smaller than the thing that had to
-    // stay reachable. Measuring the container makes the bound correct by construction, and
-    // anything added to the cluster later inherits it instead of becoming a fourth instance
-    // (the since-removed DistanceArm was inside it too, and the drag range shrank by its height
-    // while returning — the same mechanism will cover whatever stage two adds). Written by the
-    // container only (icon-bar-
-    // position-memory dispatch's ruling, carried over): the restore handle is bounded by the
-    // cluster's own range, not its own 48dp, so it can never sit where the cluster could not.
-    // Keeps its last value while minimised, which is what the handle's drag is clamped against.
-    var mapIconClusterHeightPx by remember { mutableStateOf(0f) }
-    // Part 1 layout fixes, items 1 and 2 in landscape (planner message 2026-09-28-109): the container's
-    // measured width, written where the height is, so the legend can sit just inboard of the cluster in a
-    // short landscape window. Keeps its last value while minimised, so the legend does not jump.
-    var mapIconClusterWidthPx by remember { mutableStateOf(0f) }
-    // Expanded-panels dispatch: this tab's own ForagerBottomNav overlay's real measured height, in
-    // px — kept here (as well as reported up via onBottomNavHeightMeasured) because the drag
-    // clamp's downward bound needs it: that nav is composed *after* MapIconBar in this tab's Box
-    // (drawn over it, hit-tested first — see its own call-site comment for why that ordering is
-    // load-bearing), so "the bar's bottom edge is on screen" is not enough for its lower rows to
-    // be tappable outside fullscreen; they have to stay above the nav's own top edge. Read as 0
-    // while fullscreen, where the nav has slid off entirely.
-    var mapBottomNavHeightPx by remember { mutableStateOf(0f) }
-    // Map layers L0b (owner's ruling on Q4, "Cluster stops above it"): the legend chip's current top
-    // edge, in this tab's content Box's own coordinates, or null while no chip is shown. Measured live,
-    // so the cluster's clamp follows the chip's height as it expands and collapses.
-    var legendChipTopPx by remember { mutableStateOf<Float?>(null) }
-    var mapContentBoxTopInRootPx by remember { mutableStateOf(0f) }
+    // J6c: the cluster's state and its measurements live in MapIconClusterState (AvailabilityMapIconCluster.kt),
+    // shared with the tablet's map. The names below are aliases, so what this tab still reads (the bar's side,
+    // the container's width, the nav's height, the legend chip's top) reads as it did.
+    val cluster = rememberMapIconClusterState(clusterPosition, railPortEdge, punchHoleEdge)
+    val landscapeCluster = cluster.landscape
+    val isMapIconBarOnLeftSide by cluster::isOnLeftSide
+    var mapContentBoxHeightPx by cluster::mapContentBoxHeightPx
+    var mapContentBoxTopInRootPx by cluster::mapContentBoxTopInRootPx
+    val mapIconClusterWidthPx by cluster::clusterWidthPx
+    var mapBottomNavHeightPx by cluster::bottomNavHeightPx
+    var legendChipTopPx by cluster::legendChipTopPx
     // Landscape B1 (Resolution R18): with no bottom bar composed, its last measured height would
     // otherwise stay behind as a phantom bottom band for the cluster's drag clamp and the
     // centre-pin confirm row — onGloballyPositioned stops firing once the bar is gone.
@@ -532,22 +412,7 @@ internal fun CompactMapTab(
     }
 
     val context = LocalContext.current
-    LaunchedEffect(uiState.locateMeStatus) {
-        when (uiState.locateMeStatus) {
-            LocateMeStatus.PermissionDenied ->
-                Toast.makeText(context, "Location permission denied. Can't center on your position.", Toast.LENGTH_SHORT).show()
-            LocateMeStatus.Unavailable ->
-                Toast.makeText(context, "Couldn't determine your location.", Toast.LENGTH_SHORT).show()
-            else -> Unit
-        }
-    }
-    // Same one-shot-per-transition shape as the locateMeStatus effect above: a refused/failed
-    // startRecording() is an event ("the action you just took didn't happen"), not a persistent
-    // condition — the field only clears on the next successful startRecording() (see
-    // TrackRecordingViewModel), so a banner would outlive the moment it's relevant.
-    LaunchedEffect(startRecordingErrorMessage) {
-        startRecordingErrorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
-    }
+    MapControlToasts(uiState.locateMeStatus, startRecordingErrorMessage)
 
     when {
         uiState.isLoadingSightings -> Column(
@@ -704,7 +569,18 @@ internal fun CompactMapTab(
                 // this Box) is what makes its translucency actually work.
                 // The strip's own measured height goes with it, so a notice in the slot can be placed below the strip
                 // (item 2). Zero while the strip is not composed.
-                searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
+                // Owner's ruling (b), continuation 2026-09-28-172: in the landscape L, a notice on the same side as the L is inset on
+                // that side by 8 + the L's measured width + 8, as the legend makes room (legendEndPadding below). Elsewhere none.
+                val noticeAnchoredLeft = punchHoleEdge == ScreenEdge.Left
+                val noticeInsetDp = MAP_ICON_BAR_EDGE_INSET + with(compassStripDensity) { cluster.clusterWidthPx.toDp() } + Spacing.sm
+                val searchNoticeInset = when {
+                    !landscapeCluster || cluster.isOnLeftSide != noticeAnchoredLeft -> SearchNoticeInset.None
+                    cluster.isOnLeftSide -> SearchNoticeInset(left = noticeInsetDp)
+                    else -> SearchNoticeInset(right = noticeInsetDp)
+                }
+                CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset) {
+                    searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
+                }
                 // minY = compassStripClearance, a real measurement of the strip's own type style: the
                 // strip is composed after this in the same Box (so its own controls win any overlap)
                 // and is full-width against the map's top edge, so a glyph tapped near the top would
@@ -726,394 +602,86 @@ internal fun CompactMapTab(
                     minY = topInset + compassStripClearance,
                     backEnabled = !isDrawerOpen && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                 )
-                // MapIconBar composed *before* CompassElevationStrip now, not after — field-test
-                // dispatch item 2 gave the strip a real touch target at its own far right edge, the
-                // same horizontal column MapIconBar's CenterEnd alignment already claims.
-                // MapIconBar's Surface intercepts touches across its full bounds (see this
-                // composable's own CLAUDE.md-documented precedent), and on a short enough viewport
-                // its vertically-centered row stack reaches all the way up into the compass strip's
-                // own row — confirmed directly by AvailabilityScreenMapIconStackTest's own
-                // touch-interaction test on a w360dp-h640dp viewport, not assumed from visual review
-                // alone (the exact class of miss that same file's own history warns visual review
-                // alone won't catch). Composition order is paint AND hit-test order for overlapping
-                // siblings in a Box, so moving this earlier guarantees the strip's own control wins
-                // any overlap on every screen size, not just typical ones — a small cosmetic cost
-                // (the strip's background, at the map chrome's alpha, could cover a sliver of one icon bar row on a
-                // screen too short for MapIconBar's own rows to fit at all — already a degraded
-                // state before this change) traded for a control that always actually works. Still
-                // true after MapIconBar's own return-to-vehicle row was removed (see that
-                // composable's own doc comment) — the overlap this guards against is with the bar's
-                // Surface as a whole, not specifically with that one row.
-                // Fullscreen-fixes dispatch, Item 3 ("the icon bar can minimise, with a peeking
-                // handle to restore it"). MapIconBar and TrailheadControls hide/show together,
-                // gated on isMapIconBarMinimized rather than isMapFullscreen — that item's own "do
-                // not tie it to isMapFullscreen" instruction, and the owner's own "Minimise means
-                // the chrome goes away, not that it fragments." Since the icon-bar-unify-container
-                // dispatch they are one cluster container, so hiding together is by construction
-                // rather than two gates that happen to agree.
-                //
-                // MapIconBarMinimizeHandle is composed as a later sibling of that container (at the
-                // bar's own vertical centre — "mid-height" — via mapIconBarCentreShiftOffset below,
-                // and moving with it) rather than nested inside it: Surface clips to its shape and
-                // the handle's mark straddles the container's outer edge by design, and there is no
-                // on-screen room to place a full 48dp touch target beside the bar without
-                // overlapping it (the bar's own Spacing.sm edge inset is far narrower than that),
-                // so the handle deliberately overlaps the bar's own outermost sliver, attached to
-                // its edge the way the owner described. Composed after the container (and so
-                // painted and hit-tested on top of it) so it wins that overlap, the same
-                // composition-order-is-hit-test-order convention this file already uses for
-                // the container itself against CompassElevationStrip (see this block's own comment
-                // above).
-                //
-                // Direct owner request, layered on top of the above: the cluster (and its two
-                // handles) can be dragged to reposition vertically and snaps to either screen edge
-                // — see isMapIconBarOnLeftSide/mapIconBarUserChosenOffsetPx's own doc comments
-                // above. mapIconBarSideAlignment/mapIconBarPositionOffset are shared by the
-                // container and whichever handle is currently showing so they always move and
-                // land on the same side together, as one unit. detectDragGesturesAfterLongPress,
-                // not a plain drag detector or Modifier.draggable: a quick tap must keep reaching
-                // Surface's own onClick (minimize/restore) unambiguously, and the long-press
-                // threshold is what lets a tap and a drag share the same control with no gesture
-                // conflict, a well-established Compose combination for exactly this pairing.
-                // TrailheadControls follows the same side flip because it is laid out inside the
-                // container, and nothing inside it needs mirroring (the since-removed DistanceArm
-                // extended downward, side-agnostic by construction, for the same reason).
-                val mapIconBarSideAlignment = if (isMapIconBarOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
-                val mapIconBarPositionOffset = Modifier.offset {
-                    IntOffset(mapIconBarHorizontalDragPx.roundToInt(), mapIconBarDisplayedOffsetPx.value.roundToInt())
-                }
-                // Icon-bar-drag-refinements dispatch, Item 4: the bar cannot be dragged up far
-                // enough to rise above where SearchDropdown itself starts. compactMainScaffold's
-                // own searchDropdownTopOffset (a different, outer composable scope, not reachable
-                // from here) is searchBarHeight + compassStripClearance; topInset (this composable's
-                // own parameter, ≈ searchBarHeight — see that parameter's own doc comment) plus this
-                // exact scope's own compassStripClearance above equal the same value, reachable
-                // here without new plumbing — and already the established way this file computes
-                // "how far below the top the search chrome reaches" (see the taxon filter chip's
-                // own topInset + compassStripClearance padding a little further down).
-                val dropdownTopPx = with(compassStripDensity) { (topInset + compassStripClearance).toPx() }
-                // Stale-clamp-bound dispatch (owner finding on device): every input to the clamp
-                // below must be *live state*, never a plain value closed over. mapIconBarDragModifier's
-                // pointerInput(Unit) block is started lazily on the first pointer event and never
-                // restarted (its key is Unit, and a changed lambda instance does not restart it),
-                // so the drag callback keeps the closure from the user's *first drag* for the life
-                // of the handle. isFullscreen (a plain Boolean parameter) and dropdownTopPx (a
-                // plain Float) were captured that way: whichever fullscreen state existed at the
-                // first drag bounded every later drag — a first drag in fullscreen let later drags
-                // outside it pass under the nav; a first drag outside it capped later fullscreen
-                // drags at the nav's former top — while the LaunchedEffect below, re-run per
-                // recomposition, always read the fresh values and corrected the position, which
-                // the next drag then undid. Reproduced under Robolectric (enter fullscreen, drag
-                // low, exit, drag low: 640dp vs the nav's 560dp top) before this fix. The nav's
-                // height does not vary by theme; the theme the owner noticed was a different
-                // first-drag order after the tab change a theme switch goes through. Every other
-                // clamp input is already a MutableState delegate, read live. rememberUpdatedState
-                // is the standard shape for a long-lived gesture block reading composition values —
-                // one clamp, derived live, used by the drag path and the effect alike; no path
-                // holds its own copy, and nothing re-runs the effect more often to paper over it.
-                val currentIsFullscreen by rememberUpdatedState(isFullscreen)
-                val currentDropdownTopPx by rememberUpdatedState(dropdownTopPx)
-                // Part 1 layout fixes (the owner's "2 A", planner message 2026-09-29-04): not in short
-                // landscape, where the legend now sits beside the cluster and no longer lies below it.
-                // Map layers L0b (Q4): the chip's top, only while the chip is on the cluster's side
-                // (it sits at the bottom-end corner), less a gap, as a further lowest edge for the
-                // cluster. Display-only, like the nav's: the remembered position is never changed.
-                val legendClusterGapPx = with(compassStripDensity) { Spacing.sm.toPx() }
-                val legendBoundPx = legendChipTopPx?.takeIf { !isMapIconBarOnLeftSide && !landscapeCluster }?.let { it - legendClusterGapPx }
-                val currentLegendBoundPx by rememberUpdatedState(legendBoundPx)
-                // See the comment on the LaunchedEffect below for both bounds' derivations.
-                fun clampBelowChromeVerticalOffset(offsetPx: Float): Float {
-                    // The lowest edge the bar may reach: this Box's own bottom in fullscreen, the
-                    // nav's own top edge otherwise (mapBottomNavHeightPx's own doc comment).
-                    val navBoundPx = mapContentBoxHeightPx - (if (currentIsFullscreen) 0f else mapBottomNavHeightPx)
-                    val bottomBoundPx = currentLegendBoundPx?.let { minOf(it, navBoundPx) } ?: navBoundPx
-                    val fallbackDownwardOffsetPx = (bottomBoundPx - mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
-                    val maxDownwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
-                        (bottomBoundPx - (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2f).coerceAtLeast(0f)
-                    } else {
-                        fallbackDownwardOffsetPx
-                    }
-                    // Upward (negative) bound: the bar's own top edge, once centered then shifted
-                    // by the offset, is (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2 + offset —
-                    // solved for the smallest offset that keeps that top edge at or below
-                    // dropdownTopPx, so the bar can't rise into the dropdown's own space
-                    // (icon-bar-drag-refinements dispatch, Item 4).
-                    val maxUpwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
-                        (currentDropdownTopPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f)
-                            .coerceIn(-fallbackDownwardOffsetPx, 0f)
-                    } else {
-                        -fallbackDownwardOffsetPx
-                    }
-                    // Part 1 layout fixes, item 2 (the owner's Q4 ruling, "the cluster moves up when the
-                    // legend expands"; planner message 2026-09-28-98): the floor above keeps the cluster
-                    // at its centred position at the least, so a legend reaching above the centred
-                    // cluster's bottom was overlapped rather than cleared (122 px on the S22). Where the
-                    // legend is the lowest edge and its edge is above the centred bottom, the cluster
-                    // rises above centre: the downward limit is the legend's own (negative) offset, and
-                    // the upward limit reaches as far as that needs and never past the dropdown's top,
-                    // which still wins where the two meet. The nav's floor, and every state without a
-                    // legend, is unchanged.
-                    val legendLiftPx = currentLegendBoundPx
-                        ?.takeIf { it <= navBoundPx && mapIconClusterHeightPx > 0f }
-                        ?.let { it - (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2f }
-                        ?.takeIf { it < 0f }
-                    if (legendLiftPx != null) {
-                        val dropdownLimitPx = currentDropdownTopPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f
-                        val liftedUpwardOffsetPx = minOf(maxUpwardOffsetPx, maxOf(legendLiftPx, dropdownLimitPx))
-                        return offsetPx.coerceIn(liftedUpwardOffsetPx, maxOf(liftedUpwardOffsetPx, legendLiftPx))
-                    }
-                    return offsetPx.coerceIn(maxUpwardOffsetPx, maxOf(maxUpwardOffsetPx, maxDownwardOffsetPx))
-                }
-                // Dispatch 2026-09-28-104, item 2: while a search notice shows, the cluster's top is held at or below the
-                // notice's measured bottom, as far down as the cluster may go at all (the lowest edge the clamp above
-                // allows), and the clamp above already lets it rise back when the notice clears, because this is the
-                // user-chosen offset clamped for display, never a change to the memory. Its own function on the clamp above,
-                // not a condition inside it. The floor is the offset that puts the cluster's top edge at the notice's bottom:
-                // the same arithmetic as the clamp's upward bound (the top edge is (box - cluster) / 2 + offset).
-                val currentNoticeBottomPx by rememberUpdatedState(with(compassStripDensity) { searchNoticeBottom.toPx() })
-                fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
-                    val clamped = clampBelowChromeVerticalOffset(offsetPx)
-                    if (currentNoticeBottomPx <= 0f || mapIconClusterHeightPx <= 0f) return clamped
-                    val noticeFloorPx = currentNoticeBottomPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f
-                    val lowestPx = clampBelowChromeVerticalOffset(Float.MAX_VALUE)
-                    return maxOf(clamped, minOf(noticeFloorPx, lowestPx))
-                }
-                // Expanded-panels dispatch: where AddActionTile below anchors — the bar's live
-                // position, not its default one. (The map mode popover anchored here too until map
-                // layers L0b replaced it with the Layers sheet, a bottom sheet with no anchor.)
-                // Panels align to the same edge the bar is on (mapIconBarSideAlignment) and are
-                // inset from it by the bar's own MAP_ICON_BAR_EDGE_INSET, so a panel's outer edge
-                // lands exactly on the bar's
-                // outer edge on either side (the same overlap the old fixed CenterEnd/-Spacing.sm
-                // pair produced on the right, now mirrored on the left with a positive inset).
-                // The vertical term is the bar's own drag offset (the same px
-                // mapIconBarPositionOffset applies to the bar), converted to dp for
-                // DpOffset; each caller adds its own row's mapIconBarRowAnchorOffset on top. The
-                // horizontal drag px is included too — it is always zero once a drag ends, and no
-                // panel can open mid-drag (the finger is on the handle), so this is parity with
-                // mapIconBarPositionOffset rather than a visible effect.
-                val mapIconBarPanelAnchorOffset = with(compassStripDensity) {
-                    DpOffset(
-                        x = (if (isMapIconBarOnLeftSide) MAP_ICON_BAR_EDGE_INSET else -MAP_ICON_BAR_EDGE_INSET) +
-                            mapIconBarHorizontalDragPx.toDp(),
-                        // Plus the bar's own centre relative to the container's — see
-                        // mapIconBarCentreInClusterPx's own doc comment: the container is what's
-                        // centred here now, the bar sits in its top part.
-                        y = (mapIconBarDisplayedOffsetPx.value + mapIconBarCentreInClusterPx - mapIconClusterHeightPx / 2f).toDp(),
-                    )
-                }
-                // Keyed on the two edges (landscape B2, S6): the gesture block keeps the closure it
-                // started with, so a turn (portrait to landscape, or 90 to 270) must restart it or a
-                // drag would write through the previous orientation's position and side. Constant
-                // in portrait (both null), so portrait behaves as the Unit key did.
-                val mapIconBarDragModifier = Modifier.pointerInput(railPortEdge, punchHoleEdge) {
-                    detectDragGesturesAfterLongPress(
-                        onDragEnd = {
-                            when {
-                                mapIconBarHorizontalDragPx <= -mapIconBarSideSnapThresholdPx -> isMapIconBarOnLeftSide = true
-                                mapIconBarHorizontalDragPx >= mapIconBarSideSnapThresholdPx -> isMapIconBarOnLeftSide = false
-                            }
-                            mapIconBarHorizontalDragPx = 0f
+                // The icon cluster (the bar and the record | return pill, their handles, drag, snap and clamps):
+                // MapIconCluster, shared with the tablet's map (J6c). Composed *before* CompassElevationStrip,
+                // not after: composition order is paint and hit-test order for overlapping siblings in this
+                // Box, and MapIconBar's Surface intercepts touches across its full bounds, which on a short
+                // viewport reach up into the strip's row; the strip's own control must win any overlap
+                // (AvailabilityScreenMapIconStackTest's touch-interaction test on a w360dp-h640dp viewport).
+                val phoneBar: @Composable (Modifier, Color, Dp, Boolean) -> Unit = { barModifier, barFill, barRowSpacing, barFullSquareHits ->
+                    MapIconBar(
+                        isFullscreen = isFullscreen,
+                        onToggleFullscreen = onToggleFullscreen,
+                        onLocateMe = {
+                            resumeTrackingRequestId++
+                            onLocateMe()
                         },
-                        onDragCancel = { mapIconBarHorizontalDragPx = 0f },
-                    ) { change, dragAmount ->
-                        change.consume()
-                        mapIconBarHorizontalDragPx += dragAmount.x
-                        // The finger is the source of truth during a drag: the clamped position
-                        // becomes the memory and is drawn immediately (snapTo, which also cancels
-                        // any bounds-change glide still in flight) — see
-                        // mapIconBarUserChosenOffsetPx's own doc comment.
-                        val draggedToPx = clampMapIconBarVerticalOffset(mapIconBarDisplayedOffsetPx.value + dragAmount.y)
-                        mapIconBarUserChosenOffsetPx = draggedToPx
-                        mapIconBarOffsetScope.launch { mapIconBarDisplayedOffsetPx.snapTo(draggedToPx) }
-                    }
-                }
-                // Expanded-panels dispatch (sweep finding, owner-approved "fix the clamp"): the
-                // bar's own measured top and bottom edges both stay on screen now, not just "at
-                // least one touch target's worth of it". The old downward bound (bar centre no
-                // further than MIN_TOUCH_TARGET above the Box's bottom) let the bar's last two
-                // rows — layers and add, the rows the map mode popover (since replaced by the
-                // Layers sheet) and AddActionTile anchored to — leave the screen at the bottom of
-                // the drag range, which would have carried both panels off with them once they
-                // followed the bar. Symmetric with Item 4's own upward bound: the bar's bottom edge, once centered then shifted by the
-                // offset, is (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2 + offset — solved
-                // for the largest offset that keeps it at or above the lowest reachable edge
-                // (the nav's top outside fullscreen, this Box's bottom in it — the nav is drawn
-                // over this bar, so "on screen" alone would still leave the bottom rows under
-                // it, untappable; a decision taken beyond the approved "keep the bottom edge on
-                // screen", reported as such). Falls back to the old margin-based bound before
-                // mapIconClusterHeightPx has its first real measurement, same as the upward bound
-                // always did. Re-applied (the LaunchedEffect below) whenever a bound's input
-                // changes, not only during a drag: a bar dragged to the very bottom while
-                // fullscreen would otherwise end up under the nav once fullscreen is exited — the
-                // same untappable-rows outcome this fix exists to rule out, just reached by a
-                // different route. (The other route this used to catch — the restore handle
-                // dragged lower than the bar may sit — no longer exists: the handle is bounded by
-                // the bar's own measured height now, see mapIconClusterHeightPx's own doc comment.)
-                //
-                // Icon-bar-position-memory dispatch: the target is always the clamp of the
-                // *user-chosen* offset, never of the displayed one, and the move is animated on
-                // the nav's own spec — so the push-up on leaving fullscreen and the glide back on
-                // re-entry read as one behaviour, and the memory survives the push untouched. See
-                // mapIconBarUserChosenOffsetPx's own doc comment. Not keyed on the memory itself:
-                // a drag snaps the displayed value directly and is never animated.
-                val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
-                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen, landscapeCluster, legendBoundPx, currentNoticeBottomPx) {
-                    val targetPx = clampMapIconBarVerticalOffset(mapIconBarUserChosenOffsetPx)
-                    if (targetPx != mapIconBarDisplayedOffsetPx.value) {
-                        mapIconBarDisplayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
-                    }
-                }
-                // Owner request (alongside the fullscreen-slide-out-fixes dispatch): minimising
-                // slides this cluster off whichever edge it's on, and the restore handle slides in
-                // from that same edge, instead of the instant cut this used to be — "like the rest
-                // of the UI," i.e. the same AnimatedVisibility slide SearchEntryBar and
-                // ForagerBottomNav use for fullscreen. navigationMotionSpec(), the nav's own slide
-                // spec — this is navigation chrome, not a panel. Pure translations of Box
-                // children, no effect on this Box's own size, same reasoning as those two slides.
-                //
-                // Icon-bar-unify-container dispatch: what used to be three wrappers (bar, minimize
-                // handle, TrailheadControls, each aligned separately and each trusting the others
-                // to land in the right place) is now one wrapper around one filled container —
-                // MapIconBar and TrailheadControls in a Column, the gap between them the Column's
-                // own spacing rather than an offset from a measured bottom edge. The container is
-                // what gets measured (mapIconClusterHeightPx), dragged, clamped and minimised, so
-                // the bound is right by construction. The minimize handle is a *sibling* of the
-                // container, not a child: Surface clips to its shape, and the handle's visible
-                // mark straddles the container's outer edge by design, so inside it half the mark
-                // would vanish. Both handles sit at the bar's own mid-height, not the container's
-                // (mapIconBarCentreShiftOffset below), which is what "mid-height of the icon bar"
-                // has always meant; the restore handle uses the last-measured values since the
-                // bar is unmounted while minimised. The cluster, not the bar, is what's centred
-                // at rest — so the bar sits ~60dp higher by default than it did as a lone
-                // centred object. Owner's call: a default derived from the container is honest,
-                // and correcting it back to preserve the old look would reintroduce exactly the
-                // bar-specific arithmetic the container exists to remove.
-                val mapIconBarSlideOffset: (Int) -> Int = { fullWidth -> if (isMapIconBarOnLeftSide) -fullWidth else fullWidth }
-                val mapIconBarCentreShiftOffset = Modifier.offset {
-                    IntOffset(0, (mapIconBarCentreInClusterPx - mapIconClusterHeightPx / 2f).roundToInt())
-                }
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = isMapIconBarMinimized,
-                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
-                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
-                    modifier = Modifier
-                        .align(mapIconBarSideAlignment)
-                        .padding(controlsPadding)
-                        .then(mapIconBarPositionOffset)
-                        .then(mapIconBarCentreShiftOffset),
-                ) {
-                    MapIconBarRestoreHandle(
-                        onRestore = { isMapIconBarMinimized = false },
-                        onLeftSide = isMapIconBarOnLeftSide,
-                        // Reports nothing into mapIconClusterHeightPx — its drag is clamped to
-                        // the cluster's own range, see that variable's doc comment.
-                        modifier = Modifier.then(mapIconBarDragModifier),
+                        onResetOrientation = { resetOrientationRequestId++ },
+                        mapMode = mapMode,
+                        onOpenLayers = { showLayersSheet = true },
+                        onAdd = {
+                            // No location to grab any more — the button just opens
+                            // the menu; the location comes from
+                            // CentrePinLocationPickerOverlay's own camera tracking
+                            // once a choice is made. See this function's own doc
+                            // comment.
+                            showActionMenu = true
+                        },
+                        fillColor = barFill,
+                        rowSpacing = barRowSpacing,
+                        fullSquareHits = barFullSquareHits,
+                        modifier = barModifier,
                     )
                 }
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = !isMapIconBarMinimized,
-                    enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
-                    exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
-                    modifier = Modifier
-                        .align(mapIconBarSideAlignment)
-                        // Landscape B1: clear of the overlaid rail and the cut-out band.
-                        .padding(controlsPadding)
-                        .then(mapIconBarPositionOffset),
-                ) {
-                    Box {
-                        Surface(
-                            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-                            // The lighter of the two layered fills — see
-                            // MAP_ICON_CLUSTER_CONTAINER_ALPHA's own doc comment for the
-                            // compositing arithmetic and the values chosen.
-                            color = mapIconClusterContainerColor(),
-                            shadowElevation = 2.dp,
-                            border = BorderStroke(1.dp, mapIconStackBorderColor()),
-                            modifier = Modifier
-                                .padding(MAP_ICON_BAR_EDGE_INSET)
-                                // Feeds both drag clamps above — see mapIconClusterHeightPx's own
-                                // doc comment. Measured on the container, never on its contents.
-                                .onGloballyPositioned { coordinates ->
-                                    mapIconClusterHeightPx = coordinates.size.height.toFloat()
-                                    mapIconClusterWidthPx = coordinates.size.width.toFloat()
-                                }
-                                .testTag(MAP_ICON_CLUSTER_TAG),
-                        ) {
-                            // Part 1 layout fixes, the owner's ruling "For icon column in short landscape:
-                            // option A" (planner message 2026-09-28-99): in a short landscape window the
-                            // ControlPill sits beside the bar instead of below it (ShortLandscapeClusterRow),
-                            // so the cluster is the bar's height and fits the window. Portrait keeps the Column.
-                            val clusterBar: @Composable () -> Unit = {
-                                MapIconBar(
-                                    isFullscreen = isFullscreen,
-                                    onToggleFullscreen = onToggleFullscreen,
-                                    onLocateMe = {
-                                        resumeTrackingRequestId++
-                                        onLocateMe()
-                                    },
-                                    onResetOrientation = { resetOrientationRequestId++ },
-                                    mapMode = mapMode,
-                                    onOpenLayers = { showLayersSheet = true },
-                                    onAdd = {
-                                        // No location to grab any more — the button just opens
-                                        // the menu; the location comes from
-                                        // CentrePinLocationPickerOverlay's own camera tracking
-                                        // once a choice is made. See this function's own doc
-                                        // comment.
-                                        showActionMenu = true
-                                    },
-                                    fillColor = mapIconClusterChildColor(),
-                                    // Feeds the panels' and handles' anchors — see
-                                    // mapIconBarCentreInClusterPx's own doc comment.
-                                    modifier = Modifier.onGloballyPositioned { coordinates ->
-                                        mapIconBarCentreInClusterPx = coordinates.boundsInParent().center.y
-                                    },
-                                )
-                            }
-                            val clusterPill: @Composable () -> Unit = {
-                                // Composed whenever MapIconBar is (regardless of isRecording —
-                                // record start/stop must stay reachable before the first
-                                // recording starts, the same as it was as an always-enabled
-                                // MapIconBar row before this dispatch; isRecording flows in as a
-                                // plain parameter, see TrailheadControls' own doc comment, not a
-                                // presence check, so a tester never sees this pill appear from
-                                // nowhere the first time they hit record). Inside the container
-                                // rather than gated separately: it minimises, slides, drags and
-                                // clamps with the bar because it is laid out with it.
-                                TrailheadControls(
-                                    isRecording = isRecording,
-                                    onToggleRecording = onToggleRecording,
-                                    returnToStart = returnToStart,
-                                    isReturning = isReturning,
-                                    isOffTrack = isOffTrack,
-                                    onToggleReturning = onToggleReturning,
-                                    distanceUnit = uiState.distanceUnit,
-                                    onLeftSide = isMapIconBarOnLeftSide,
-                                )
-                            }
-                            if (landscapeCluster) {
-                                ShortLandscapeClusterRow(onLeftSide = isMapIconBarOnLeftSide, bar = clusterBar, pill = clusterPill)
-                            } else {
-                                Column(
-                                    horizontalAlignment = if (isMapIconBarOnLeftSide) Alignment.Start else Alignment.End,
-                                    verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
-                                ) {
-                                    clusterBar()
-                                    clusterPill()
-                                }
-                            }
-                        }
-                        MapIconBarMinimizeHandle(
-                            onMinimize = { isMapIconBarMinimized = true },
-                            onLeftSide = isMapIconBarOnLeftSide,
-                            modifier = Modifier
-                                .align(mapIconBarSideAlignment)
-                                .then(mapIconBarCentreShiftOffset)
-                                .then(mapIconBarDragModifier),
+                MapIconCluster(
+                    state = cluster,
+                    isFullscreen = isFullscreen,
+                    // The cluster cannot rise above where SearchDropdown itself starts: topInset (about the
+                    // search bar's height) plus the strip's own clearance (icon-bar-drag-refinements, Item 4).
+                    // Owner's ruling (a), continuation 2026-09-28-172 ("never above the search bar's bottom"): in the landscape L the limit is
+                    // topInset, the search bar's own bottom, without the strip clearance (the compass strip is in the other corner there,
+                    // nothing else is drawn in that band beside the notice and the chips, which make room for the L, and the SearchDropdown
+                    // starts below it); the L pushes down to it as well as up. Portrait keeps topInset + the clearance.
+                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) topInset else topInset + compassStripClearance).toPx() },
+                    noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
+                    controlsPadding = controlsPadding,
+                    bar = { barModifier -> phoneBar(barModifier, mapIconClusterChildColor(), Spacing.xs, false) },
+                    // Landscape L: the bar's rows 48 dp apart with no end padding (240 dp), one layer at the standing 0.8 fill, every row
+                    // taking touches across its full 48 x 48 square (owner's "A" and ruling (d), continuations -160 and -172).
+                    landscapeBar = { barModifier -> phoneBar(barModifier, Color.Unspecified, MAP_ICON_BAR_LANDSCAPE_ROW_SPACING, true) },
+                    pill = { onLeftSide ->
+                        // Composed whenever MapIconBar is (regardless of isRecording — record start/stop must
+                        // stay reachable before the first recording starts; isRecording flows in as a plain
+                        // parameter, see TrailheadControls' own doc comment, not a presence check).
+                        TrailheadControls(
+                            isRecording = isRecording,
+                            onToggleRecording = onToggleRecording,
+                            returnToStart = returnToStart,
+                            isReturning = isReturning,
+                            isOffTrack = isOffTrack,
+                            onToggleReturning = onToggleReturning,
+                            distanceUnit = uiState.distanceUnit,
+                            onLeftSide = onLeftSide,
                         )
-                    }
-                }
+                    },
+                    // Landscape L: the pill turned horizontal (record under the bar's column, return inboard, 96 x 48), one layer at the
+                    // standing 0.8 fill, both buttons taking touches across their full 48 x 48 squares.
+                    landscapePill = { onLeftSide ->
+                        TrailheadControls(
+                            isRecording = isRecording,
+                            onToggleRecording = onToggleRecording,
+                            returnToStart = returnToStart,
+                            isReturning = isReturning,
+                            isOffTrack = isOffTrack,
+                            onToggleReturning = onToggleReturning,
+                            distanceUnit = uiState.distanceUnit,
+                            onLeftSide = onLeftSide,
+                            horizontal = true,
+                            fillColor = mapIconChromeFillColor(),
+                            rowSpacing = MAP_ICON_BAR_LANDSCAPE_ROW_SPACING,
+                        )
+                    },
+                )
                 // Not composed at all while navigating (navigation-chrome dispatch, item 1) — the
                 // HUD below carries the heading, elevation and coordinates then, and on device
                 // both showing meant the heading appeared three times. Removed from composition
@@ -1150,7 +718,7 @@ internal fun CompactMapTab(
                                 .padding(top = topInset)
                                 // After the padding, so it is the strip's own height (item 2).
                                 .onSizeChanged { compassStripHeightPx = it.height }
-                        },
+                        }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
                         contentWidth = railPortEdge != null,
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
@@ -1204,7 +772,7 @@ internal fun CompactMapTab(
                                 .align(Alignment.TopCenter)
                                 .padding(controlsPadding)
                                 .padding(top = topInset + compassStripClearance + Spacing.sm)
-                        },
+                        }.mapKeepOut(MapKeepOutIds.CHIPS),
                     ) {
                         mapTaxonFilterLabel?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
                         if (shownJournalEntries.isNotEmpty()) {
@@ -1252,7 +820,7 @@ internal fun CompactMapTab(
                                 .padding(controlsPadding)
                                 .fillMaxWidth()
                                 .padding(top = topInset)
-                        },
+                        }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
                     )
                 }
 
@@ -1284,6 +852,7 @@ internal fun CompactMapTab(
                             .align(Alignment.BottomEnd)
                             .padding(controlsPadding)
                             .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+                            .mapKeepOut(MapKeepOutIds.LEGEND)
                             .onGloballyPositioned { coordinates ->
                                 legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
                             },
@@ -1340,6 +909,7 @@ internal fun CompactMapTab(
                             onTabSelected = onBottomNavTabSelected,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .mapKeepOut(MapKeepOutIds.BOTTOM_NAV)
                                 .onGloballyPositioned { coordinates ->
                                     mapBottomNavHeightPx = coordinates.size.height.toFloat()
                                     onBottomNavHeightMeasured(coordinates.size.height.toFloat())
@@ -1373,7 +943,7 @@ internal fun CompactMapTab(
                             onTabSelected = onBottomNavTabSelected,
                             portEdge = railPortEdge,
                             containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
-                            modifier = Modifier.onGloballyPositioned { coordinates ->
+                            modifier = Modifier.mapKeepOut(MapKeepOutIds.RAIL).onGloballyPositioned { coordinates ->
                                 onRailWidthMeasured(coordinates.size.width.toFloat())
                             },
                         )
@@ -1403,11 +973,10 @@ internal fun CompactMapTab(
                     modifier = Modifier.fillMaxSize().padding(controlsPadding),
                     // Expanded-panels dispatch: anchored to the bar's live side and drag offset
                     // (see mapIconBarPanelAnchorOffset above), plus this panel's own row.
-                    anchor = mapIconBarSideAlignment,
-                    anchorOffset = DpOffset(
-                        x = mapIconBarPanelAnchorOffset.x,
-                        y = mapIconBarPanelAnchorOffset.y + ADD_TILE_ANCHOR_OFFSET,
-                    ),
+                    anchor = cluster.sideAlignment,
+                    anchorOffset = cluster.panelAnchorOffset(LocalDensity.current).let { anchor ->
+                        DpOffset(x = anchor.x, y = anchor.y + (if (landscapeCluster) ADD_TILE_ANCHOR_OFFSET_LANDSCAPE else ADD_TILE_ANCHOR_OFFSET))
+                    },
                     growsFrom = if (isMapIconBarOnLeftSide) Alignment.BottomStart else Alignment.BottomEnd,
                 )
 
@@ -1503,52 +1072,6 @@ internal fun CompactMapTab(
         )
     }
 }
-
-/**
- * Gap between [MapIconBar]'s bottom edge and [ControlPill]'s top edge — matches [MapIconBar]'s own
- * `Spacing.sm` inset from the screen edge, so the pill reads as continuing the same margin rather
- * than sitting at an arbitrarily different distance. Icon-bar-unify-container dispatch: now the
- * cluster container Column's own `spacedBy`, no longer an offset from a measured bottom edge —
- * the gap was structural (produced by `Modifier.offset`, not padding in a shared parent), and
- * unifying the container is what changed how it is expressed. It is filled by the container at
- * [com.zynergylabs.forager.app.ui.map.MAP_ICON_CLUSTER_CONTAINER_ALPHA] and no longer passes touches to the
- * map, which is intentional; the two `@Ignore`d gap-touch tests in
- * `AvailabilityScreenMapIconStackTest` now carry a false premise on top of the Robolectric reason
- * they were parked for, and are left for the owner's own separate look.
- */
-private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
-
-/**
- * The icon cluster's contents in a short landscape window (Part 1 layout fixes; the owner's ruling "For
- * icon column in short landscape: option A", planner message `2026-09-28-99`): [pill] (the ControlPill,
- * record and return) beside [bar] (MapIconBar) instead of below it, so the cluster is the bar's height,
- * 264 dp, and fits a 384 dp window where the stacked 380 dp column filled it from top to bottom.
- *
- * The placement is this dispatch's proposal, stated in its report: the pill on the bar's inboard side
- * (towards the screen's centre), so the bar keeps the screen edge and the minimise handle that
- * straddles the container's outer edge at the bar's mid-height is where it was; bottom-aligned with the
- * bar, so the record button stays low where a thumb reaches; and the gap portrait has between them,
- * [CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR]. The container around both stays one surface, as the portrait
- * gap is, so the space above the pill is the container's.
- */
-@Composable
-private fun ShortLandscapeClusterRow(onLeftSide: Boolean, bar: @Composable () -> Unit, pill: @Composable () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
-    ) {
-        if (onLeftSide) {
-            bar()
-            pill()
-        } else {
-            pill()
-            bar()
-        }
-    }
-}
-
-/** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
-internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
 
 /** Landscape B2 (S4): the navigation HUD's width cap in the rail-side top corner. */
 private val LANDSCAPE_HUD_MAX_WIDTH = 360.dp

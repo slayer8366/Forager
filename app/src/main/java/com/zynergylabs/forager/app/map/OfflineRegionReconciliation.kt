@@ -124,3 +124,25 @@ internal fun incompleteRegionDecision(
 /** What [MapLibreOfflineMapRepository.listRegions] makes of `OfflineManager`'s `onList` payload: a null list is a failed read, never an empty one. */
 internal fun <T> regionListOrFailure(read: List<T>?): List<T> =
     read ?: throw java.io.IOException("listOfflineRegions returned no list.")
+
+/**
+ * The Room rows with no MapLibre region in [liveIds], as summaries that say so ([OfflineRegionSummary.isDownloaded]
+ * `false`, no tiles, no size): what a backup restored onto a phone that never downloaded them leaves (owner, "1 B").
+ * A read of what to list; **it deletes nothing**, and -106's guarantee (only the user's own delete removes a row)
+ * stands. The caller must pass ids from a read it trusts: [MapLibreOfflineMapRepository.listNotDownloadedRegions]
+ * fails, rather than passing an empty set, when `OfflineManager`'s read fails.
+ */
+internal fun notDownloadedRegions(rows: List<OfflineRegionEntity>, liveIds: Set<Long>): List<OfflineRegionSummary> =
+    rows.filter { it.id !in liveIds }.map { row ->
+        OfflineRegionSummary(
+            id = row.id,
+            name = row.name,
+            region = Region(row.lat, row.lng, row.radiusKm),
+            minZoom = row.minZoom,
+            maxZoom = row.maxZoom,
+            tileCount = 0,
+            sizeBytes = 0L,
+            createdAtEpochMillis = row.createdAtEpochMillis,
+            isDownloaded = false,
+        )
+    }

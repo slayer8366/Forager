@@ -49,14 +49,29 @@ internal object JournalTables {
             softLinks = listOf(Reference("offlineRegionId", "offline_regions"), Reference("draftOfEntryId", "mushroom_log_entries")),
         ),
         TableSpec("cartography_entries", Kind.RECORD, listOf("id")),
+        // Backed up and restored (owner, "4 A"). Its id is a UUID (SavePlannedTripUseCase), not a per-phone counter, so the
+        // ordinary id rule holds: on a Merge an id already present is skipped and the phone's copy wins.
+        TableSpec("planned_trips", Kind.RECORD, listOf("id")),
         TableSpec("track_points", Kind.OWNED, listOf("id"), autoKey = true, owner = Reference("trackId", "tracks")),
         TableSpec(
             "log_entry_photos", Kind.OWNED, listOf("entryId", "photoId"),
             owner = Reference("entryId", "mushroom_log_entries"), needs = listOf(Reference("photoId", "log_photos")),
         ),
+        // No `needs` (F3, dispatch 2026-09-28-195; owner, 2026-09-29: "Option B", "All recommended"): a track ref is kept by a
+        // Merge even when its track is on neither phone, because the entry keeps its snapshot and, in
+        // cartography_entry_track_paths, the line the track drew. This reverses the backup report's decision 8 for track
+        // refs only; the waypoint, region and find refs below keep it. Alternative rejected: keeping `needs` and
+        // exempting rows that have a saved path, which would still drop a ref whose track was deleted before F3 saved
+        // paths existed, losing its snapshot for no reason (the snapshot needs nothing from the track).
         TableSpec(
             "cartography_entry_track_refs", Kind.OWNED, listOf("entryId", "trackId"),
-            owner = Reference("entryId", "cartography_entries"), needs = listOf(Reference("trackId", "tracks")),
+            owner = Reference("entryId", "cartography_entries"),
+        ),
+        // The saved path of a kept track (F3): journal data owned by its entry, with no `needs`, so it arrives with
+        // its entry whether or not the track is on the phone. Not soft-linked to `tracks`: the track is gone by design.
+        TableSpec(
+            "cartography_entry_track_paths", Kind.OWNED, listOf("entryId", "trackId"),
+            owner = Reference("entryId", "cartography_entries"),
         ),
         TableSpec(
             "cartography_entry_waypoint_refs", Kind.OWNED, listOf("entryId", "waypointId"),
@@ -78,7 +93,6 @@ internal object JournalTables {
 
     /** Tables in the schema that are deliberately not journal data, and why (ruling 3 B does not list them). */
     val excluded: Map<String, String> = mapOf(
-        "planned_trips" to "not in ruling 3 B's list, and the premise pulse classes it as not journal data; a restore leaves the phone's planned trips alone",
         "cached_searches" to "a rebuildable cache of network results, not journal data",
     )
 }

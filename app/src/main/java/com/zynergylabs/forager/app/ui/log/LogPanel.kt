@@ -25,7 +25,7 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,50 +59,26 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
 /**
- * The mushroom log's drawer destination — one of the ModalNavigationDrawer's panels in
- * `AvailabilityScreen`, reached the same way `DrawerPanel.Settings` is (see that file's
- * `DrawerPanel` enum and `SettingsEntryRow`'s call site).
+ * The Journal on the wide tree (MEDIUM and EXPANDED windows): the permanent drawer's `DrawerPanel.Log`,
+ * reached from the Search panel's "Mushroom Log" row. Since J6a (dispatch 2026-09-28-152) it is a
+ * back-arrow row labelled "Journal" above [JournalTab], the phone's own Journal, so the wide Journal
+ * and the phone's are one implementation and the phone's rulings (the Entries | Records switch, the
+ * report step and "+" tile on finds, the counts and delete paths, hoisted state, the leave rules) hold
+ * here without a second copy. What is left here is only what the wide tree has and the phone does not:
+ * the header row, the one Back handler that returns the Journal to the Search panel, and the hand-off
+ * of the detail slot ([JournalDetailSlot]).
  *
- * **Two tabs (journal restructure Stage 1), same shell as [JournalTab]'s compact equivalent** —
- * see that composable's own doc comment for the owner's "logbook vs. journal" framing this
- * mirrors, and for Stage 2b's restructure (Cartography's new [CartographyScreen], Finds relocated
- * into [RecordsTab]) this panel gained identically. This window class had no Records surface of
- * any kind before Stage 1 (unlike compact, where Waypoints/Offline Maps/Recorded Tracks were at
- * least reachable, just scattered across the Tools drawer and Settings) — `SearchControls`' own
- * Waypoints section and `DrawerPanel`'s `OfflineMaps`/`Tracks` panels were siblings of [Log], not
- * inside it, so giving this panel a Records tab is this window class's first time surfacing them
- * from here at all. [selectedTopTab] is local `remember` state, not a nav destination — this
- * codebase has no navigation library.
+ * **Why the header is a back row.** The drawer is a stack of panels over one column, and this row is
+ * the wide tree's only visible route from the Journal back to Search (the phone has a bottom bar). The
+ * owner's ruling on the words (`prompts/preserved/2026-09-29-25.md`): "Journal", the phone's name.
  *
- * **Finds relocated into Records, working exactly as they did in Cartography before this
- * dispatch** — [pickingLocationForEditingEntry]/[pullingPhotoForEditingEntry] are unchanged from
- * Stage 1, just rendered into [RecordsTab]'s `findsContent` slot instead of directly into a
- * "Cartography" tab. This panel never had a report step (see the "no separate report step" note
- * below), so its relocated Finds section has no `mode` the way [JournalTab]'s does.
+ * **Why the Journal's own state comes from above.** [journalState] and the mode holders are
+ * `AvailabilityScreen`'s, the same ones it hands the compact tree, so an open detail, the Timeline or
+ * Album view, the Records chip and a find over a view survive switching panels and a change of tree
+ * (J6a, ruling 5). The parameters default to local state only for callers that host this panel alone
+ * (tests).
  *
- * [uiState].editingEntry is the relocated Finds section's own list/detail navigation state — see
- * [MushroomLogUiState]'s doc comment.
- *
- * [mapSlot]/[region]/[basemap] serve two things now: [LogEntryDetailScreen]'s "Add Location"
- * picker (Workstream L4, `docs/plans/pr26-rework.md`) as before, and the Records tab's own Offline
- * Maps region picker (Stage 1) — [JournalTab]'s own identical dual use, mirrored here since both
- * composables render the same [LogEntryDetailScreen]/[RecordsTab]. This window class has no
- * entry-creation entry point of its own ([FindsGalleryScreen], this panel's list state, gets no
- * `onAddEntry` here — see that composable's own doc comment); an entry only ever arrives here already created,
- * via the map's "Log a find" option, so the picker below only ever edits an existing entry's
- * location, never places one for a not-yet-created entry the way it once did.
- *
- * **Leaving Records mid-find-edit is an incidental exit** — see [JournalTab]'s own doc comment for
- * the identical inverted-from-Stage-1 guard, mirrored here: [onLeaveEditingIncidentally] fires
- * whenever the top-level tab switches away from Records, or [RecordsTab]'s own sub-tab switches
- * away from Finds, while [MushroomLogUiState.editingEntry] is non-null.
- *
- * [pendingDestination]/[onPendingDestinationConsumed] mirror [JournalTab]'s own identical parameters
- * — see that composable's doc comment, "The map '+' routing bug," for the full Stage 2d trace.
- * Simpler here than there: this panel has no `mode` (see "no separate report step" above) — the
- * expanded window's own copy of the map "+" routing fix only ever needs to set [selectedTopTab] and
- * stage [RecordsSubTab.FINDS] into this panel's own `recordsPendingSubTab` latch, never a report/edit
- * mode, since opening an entry here always means editing it already.
+ * The parameters that are not documented here are documented where [JournalTab] takes them.
  */
 @Composable
 internal fun LogPanel(
@@ -152,9 +128,9 @@ internal fun LogPanel(
     onPullPhoto: (LogPhoto) -> Unit,
     onDeleteEntry: (String) -> Unit,
     onBackToSearch: () -> Unit,
-    /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — see [MushroomLogViewModel.onSaveErrorDismissed]. */
+    /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (`JournalTab`'s) has shown — see [MushroomLogViewModel.onSaveErrorDismissed]. */
     onSaveErrorDismissed: () -> Unit,
-    /** Threaded straight through into [CartographyScreen]'s own Album tab — this window class's first time showing it directly (it previously only reached the standalone photo library via `DrawerPanel.PhotoGallery`, a sibling panel, not this one). */
+    /** Threaded straight through into [CartographyScreen]'s own Album tab — the wide Journal's album, the one place photos are browsed and, since J6a, long-press deleted. */
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     isLoadingGalleryPhotos: Boolean = false,
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
@@ -184,7 +160,7 @@ internal fun LogPanel(
     /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See [CartographyScreen]'s own lifecycle-observer doc comment. */
     onSaveCartographyEntryAsDraft: () -> Unit = {},
     /**
-     * Clears [CartographyUiState.saveErrorMessage] once its Toast (below) has shown, the day entries'
+     * Clears [CartographyUiState.saveErrorMessage] once its Toast (`JournalTab`'s) has shown, the day entries'
      * counterpart of [onSaveErrorDismissed] (intent `2026-09-28-68`, continuation `2026-09-28-76`).
      * The default is only for callers that host this on its own (tests); `AvailabilityScreen` passes
      * `CartographyViewModel.onSaveErrorDismissed`.
@@ -193,6 +169,8 @@ internal fun LogPanel(
     onDeleteCartographyEntry: (String) -> Unit,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /** [CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i — see that composable's doc comment. */
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     /** [CartographyEntryReportScreen]'s own fullscreen recenter button — fullscreen-maps dispatch, see that composable's own doc comment, "Fullscreen." */
@@ -208,6 +186,7 @@ internal fun LogPanel(
     onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /** GPX full-record export dispatch — see [com.zynergylabs.forager.app.ui.track.TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this panel changes. */
@@ -215,6 +194,10 @@ internal fun LogPanel(
     waypoints: List<Waypoint>,
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
+    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
+    tracksErrorMessage: String? = null,
     waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** See this composable's own doc comment — Stage 2d. `null` (the default) is a no-op, so every other caller of this panel is unaffected. */
     pendingDestination: PendingJournalDestination? = null,
@@ -226,350 +209,141 @@ internal fun LogPanel(
     onPendingDestinationConsumed: () -> Unit = {},
     /** J8-3: the entry report's "Show on map" and "Hide from map", threaded to [CartographyScreen]. `null` offers neither. */
     onSetCartographyEntryShownOnMap: ((entryId: String, shown: Boolean) -> Unit)? = null,
+    /** Starts a find with no picked location, the Finds gallery's "+" tile (`JournalTab`'s `onStartEntry`). J6a: the wide Journal has the tile now. */
+    onStartEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
+    /** The find report's Edit (`JournalTab`'s `onStartEditingEntry`); `AvailabilityScreen` passes `onStartEditingLogEntry`. */
+    onStartEditingEntry: () -> Unit = {},
+    /** A day entry's swipe Delete, a pending delete with Undo (J4b L2); `null` leaves the cards without the swipe. */
+    onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
+    /** An album photo's long-press Delete, a pending delete with Undo (J4b L3; J6a, ruling 10). `null` leaves the photos without the menu. */
+    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
+    /**
+     * The Journal's user-set state, held above the tree so it outlives this panel (J6a, ruling 5; J10):
+     * the top tab, the Records chip, the Timeline/Album view. `AvailabilityScreen` passes the same
+     * holders it hands the compact tree, so a panel switch or a change of tree keeps them.
+     */
+    journalState: JournalScreenState = rememberJournalScreenState(),
+    cartographyEntryModeState: MutableState<CartographyEntryMode> = remember { mutableStateOf(CartographyEntryMode.VIEW) },
+    findEntryModeState: MutableState<JournalEntryMode> = remember { mutableStateOf(JournalEntryMode.REPORT) },
+    findOverViewState: MutableState<FindOverView?> = remember { mutableStateOf(null) },
+    /** Where an opened entry, find, record's details or picker is drawn: the whole right side (J6a, ruling 1). `null` draws them in place, in this column. */
+    detailSlot: JournalDetailSlot? = null,
     modifier: Modifier = Modifier,
 ) {
-    // Same one-shot-per-transition Toast shape as CompactMapTab's startRecordingErrorMessage
-    // effect (AvailabilityScreen.kt) — belief-changing per docs/error-presentation-spec.md, so it
-    // is told rather than absorbed. Unlike that field, this one also clears itself right after
-    // showing: saveErrorMessage has no dismiss affordance to clear it from (the spec calls the
-    // Toast provisional, explicitly ruling one out), so "cleared on dismiss" means clearing it the
-    // moment the one-shot Toast has been shown — the other half of "dismiss or next successful
-    // save, whichever comes first" is the five write sites in MushroomLogViewModel clearing it
-    // themselves on success.
-    val context = LocalContext.current
-    LaunchedEffect(uiState.saveErrorMessage) {
-        uiState.saveErrorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            onSaveErrorDismissed()
-        }
-    }
-    // Intent 2026-09-28-68, continuation 2026-09-28-76: the day entries' counterpart, as JournalTab's.
-    LaunchedEffect(cartographyUiState.saveErrorMessage) {
-        cartographyUiState.saveErrorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            onCartographySaveErrorDismissed()
-        }
-    }
+    // J6a, ruling 5: the last step of one Back order, whichever way the Journal was reached. Registered
+    // first, before anything under it, so every deeper handler (a picker, an editor, a report, the
+    // details, Records to Entries, the album to the timeline, the drafts list) is registered later and
+    // outranks it (the most recently registered enabled handler wins). It is what is left once the
+    // Journal has nothing to unwind: the Search panel. It replaces the route-dependent reset that only
+    // a map route reached (`AvailabilityScreen`'s `isDrawerOpen`), and nothing here is enabled at the
+    // Search panel, where Back reaches the exit handler as before.
+    BackHandler(onBack = onBackToSearch)
 
-    var pickingLocationForEditingEntry by remember { mutableStateOf(false) }
-    // Same shape as pickingLocationForEditingEntry, for LogEntryDetailScreen's "From Album" button
-    // (Workstream G3) instead of "Add Location".
-    var pullingPhotoForEditingEntry by remember { mutableStateOf(false) }
-    val editing = uiState.editingEntry
-
-    var selectedTopTab by remember { mutableStateOf(JournalTopTab.CARTOGRAPHY) }
-
-    // The local latch this composable's own doc comment describes — staged here rather than
-    // forwarding pendingDestination straight to RecordsTab, since RecordsTab only exists in the
-    // composition once selectedTopTab has already become RECORDS. See JournalTab's identical latch
-    // for the fuller reasoning.
-    var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
-
-    // J8-4: a VIEW_ENTRY request's entry, staged for CartographyScreen as JournalTab stages it.
-    var entryOpenRequest by remember { mutableStateOf<String?>(null) }
-
-    // M1: a find opened from a map bubble, over this panel (FindOverView), in its report: this panel
-    // has no report step of its own (its gallery opens a find to edit), so the report the owner asked
-    // for (Q3, "Open drawer to the find") is shown here, and its Edit goes on into the edit form.
-    var findOverView by remember { mutableStateOf<FindOverView?>(null) }
-    var findOverViewReport by remember { mutableStateOf(true) }
-    LaunchedEffect(findOverView, editing?.id) {
-        findOverView = nextFindOverView(findOverView, editing?.id)
-    }
-    val findOverViewVisible = editing != null && findOverView.let { it != null && (it.shown || editing.id == it.findId) }
-    fun openFindOverView(findId: String) {
-        findOverViewReport = true
-        findOverView = FindOverView(findId)
-    }
-
-    LaunchedEffect(pendingDestination) {
-        when (pendingDestination) {
-            PendingJournalDestination.EDIT_NEW_FIND -> {
-                selectedTopTab = JournalTopTab.RECORDS
-                recordsPendingSubTab = RecordsSubTab.FINDS
-                onPendingDestinationConsumed()
-            }
-            // M1, the Maps tab's "Open in Journal" on the wide layout: the caller has opened the find
-            // and this panel; the find shows over it, which keeps its top tab and Records chip.
-            PendingJournalDestination.VIEW_FIND -> {
-                pendingFindId?.let(::openFindOverView)
-                onPendingDestinationConsumed()
-            }
-            // J8-4, the Maps tab's "Open entry" on the wide layout (the drawer, as M1's find route):
-            // the entry opens on this panel's Entries, in its report, through CartographyScreen.
-            PendingJournalDestination.VIEW_ENTRY -> {
-                selectedTopTab = JournalTopTab.CARTOGRAPHY
-                entryOpenRequest = pendingEntryId
-                onPendingDestinationConsumed()
-            }
-            null -> Unit
-        }
-    }
-
-    // See this composable's own doc comment on "leaving Records mid-find-edit" for why this now
-    // guards leaving Records (inverted from Stage 1, which guarded leaving Cartography — finds
-    // lived there then).
-    fun leaveFindEditingIfNeeded() {
-        if (editing != null) onLeaveEditingIncidentally()
-    }
-
-    // This panel had no BackHandler before pickers existed — nothing here previously needed to
-    // intercept system back, since the drawer's own chrome handled it. Workstream L4b adds the
-    // editing != null branch: back out of an open entry (with no picker open) is "leaving without
-    // answering," the same incidental-exit auto-save as the form's own back arrow, a tab switch, or
-    // backgrounding — never Cancel, which only the form's explicit button triggers. This closes a
-    // gap the L4b scoping pulse found: this panel previously had no way to close an open entry via
-    // back at all, falling through to whatever AvailabilityScreen's top-level handling did instead.
-    //
-    // Extracted to a val (back-nav-and-save-flow dispatch, Item 1) — see JournalTab's identical
-    // extraction for why: reused both to gate the new Records→Cartography step below and to tell
-    // RecordsTab's own new sub-tab-stepping BackHandler to stay out of the way while this one is
-    // live.
-    val findsSectionHasBackStack = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry
-    BackHandler(enabled = findsSectionHasBackStack) {
-        when {
-            pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
-            pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
-            editing != null -> onLeaveEditingIncidentally()
-        }
-    }
-
-    // Back-nav-and-save-flow dispatch, Item 1: Records → Cartography, the same single unconditional
-    // step JournalTab's own identical handler adds — see that composable's own doc comment.
-    BackHandler(enabled = selectedTopTab == JournalTopTab.RECORDS && !findsSectionHasBackStack) {
-        selectedTopTab = JournalTopTab.CARTOGRAPHY
-    }
-
-    // Journal Stage 2b, relocated verbatim from this panel's own former Cartography branch — see
-    // this composable's own doc comment.
-    val findsSection: @Composable ColumnScope.() -> Unit = {
-        if (editing != null && pickingLocationForEditingEntry) {
-            CentrePinLocationPicker(
-                mapSlot = mapSlot,
-                region = findLocationPickerRegion(deviceLocation, region),
-                basemap = basemap,
-                night = night,
-                onConfirm = { location ->
-                    pickingLocationForEditingEntry = false
-                    onEntryChanged(editing.copy(foundAt = location))
-                },
-                onCancel = { pickingLocationForEditingEntry = false },
-                modifier = Modifier.weight(1f),
-            )
-        } else if (editing != null && pullingPhotoForEditingEntry) {
-            // Entry-photo-acquisition dispatch, Item 2 — see JournalTab's own identical call site
-            // for the full reasoning on reusing onAddPhoto/onPhotoAcquisitionInFlightChanged here
-            // rather than defaulting them away.
-            PullPhotoPickerScreen(
-                photos = uiState.galleryPhotos,
-                onPhotoSelected = { photo ->
-                    pullingPhotoForEditingEntry = false
-                    onPullPhoto(photo)
-                },
-                onOpenCamera = onOpenCameraForLogEntry,
-                onPhotoAcquired = onAddPhoto,
-                onAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
-                modifier = Modifier.weight(1f),
-            )
-        } else if (editing != null) {
-            LogEntryDetailScreen(
-                entry = editing,
-                onOpenCamera = onOpenCameraForLogEntry,
-                onEntryChanged = onEntryChanged,
-                onAddPhoto = onAddPhoto,
-                onRemovePhoto = onRemovePhoto,
-                onPullPhoto = { pullingPhotoForEditingEntry = true },
-                onAddLocation = { pickingLocationForEditingEntry = true },
-                onSave = onSaveEntry,
-                onCancel = onCancelEditing,
-                onDeleteEntry = { onDeleteEntry(editing.id) },
-                onBack = onLeaveEditingIncidentally,
-                onPhotoAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
-                modifier = Modifier.weight(1f),
-            )
-        } else {
-            Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                FindsGalleryScreen(
-                    entries = uiState.entries,
-                    draftEntries = uiState.draftEntries,
-                    isLoading = uiState.isLoadingEntries,
-                    // This panel has no separate report step (see its own doc comment) —
-                    // opening an entry goes straight to LogEntryDetailScreen above, so it must
-                    // already be a draft by the time that happens. onOpenEntryForEditing is a
-                    // no-op-shaped success for a row already a draft and creates the draft row
-                    // for a committed one — correct for either case on its own, so
-                    // FindsGalleryScreen's onOpenDraftEntry can default to this same callback
-                    // (its own default) rather than needing an override here.
-                    onOpenEntry = onOpenEntryForEditing,
-                    modifier = Modifier.weight(1f),
-                    loadErrorMessage = uiState.loadErrorMessage,
-                    // No onAddEntry here, matching this panel's former list shape: the expanded
-                    // window starts a new find via the map's "Log a find" flow, not a tile inside
-                    // this list — see FindsGalleryScreen's own doc comment on its onAddEntry param.
-                    columns = EXPANDED_GRID_COLUMNS,
-                )
-            }
-        }
-    }
-
-    // M1: the entry map's bubbles, as JournalTab builds them; "Open find" opens the find over the entry.
-    val entryMapBubbleSources = MapRecordSources(
-        finds = uiState.entries,
-        galleryPhotos = galleryPhotos,
-        photoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
-        waypoints = waypoints,
-        waypointEntryReferenceCounts = waypointEntryReferenceCounts,
-        tracks = tracks,
-        offlineRegions = availabilityUiState.visibleOfflineRegions,
-        distanceUnit = distanceUnit,
-        staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
-        nowEpochMillis = currentTime::nowEpochMillis,
-        getFullRecord = getFullRecord,
-        onOpenFind = { id ->
-            leaveFindEditingIfNeeded()
-            openFindOverView(id)
-            onOpenEntryForReport(id)
-        },
-        openFindLabel = OPEN_FIND_LABEL,
-    )
-
-    Box(modifier = modifier.fillMaxWidth()) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()) {
         LogHeader(onBack = onBackToSearch)
 
-        SecondaryTabRow(selectedTabIndex = selectedTopTab.ordinal) {
-            Tab(
-                selected = selectedTopTab == JournalTopTab.CARTOGRAPHY,
-                onClick = {
-                    // Leaving Records mid-find-edit for Cartography is an incidental exit — see
-                    // this composable's own doc comment.
-                    leaveFindEditingIfNeeded()
-                    selectedTopTab = JournalTopTab.CARTOGRAPHY
-                },
-                text = { Text("Cartography") },
-            )
-            Tab(
-                selected = selectedTopTab == JournalTopTab.RECORDS,
-                onClick = { selectedTopTab = JournalTopTab.RECORDS },
-                text = { Text("Records") },
-            )
-        }
-
-        when (selectedTopTab) {
-            JournalTopTab.CARTOGRAPHY -> CartographyScreen(
-                uiState = cartographyUiState,
-                galleryPhotos = galleryPhotos,
-                isLoadingGalleryPhotos = isLoadingGalleryPhotos,
-                galleryLoadErrorMessage = galleryLoadErrorMessage,
-                galleryPhotoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
-                onDeleteGalleryPhoto = onDeleteGalleryPhoto,
-                onOpenCameraForAlbum = onOpenCameraForAlbum,
-                onOpenCameraForEntry = onOpenCameraForCartographyEntry,
-                onAddGalleryPhoto = onAddGalleryPhoto,
-                distanceUnit = distanceUnit,
-                mapSlot = mapSlot,
-                night = night,
-                initialMapMode = MapMode.forBasemap(basemap),
-                mapLayers = mapLayers,
-                onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
-                getMapData = getCartographyEntryMapData,
-                getCoveringOfflineRegion = getCartographyEntryOfflineRegion,
-                getCurrentLocation = getCartographyEntryCurrentLocation,
-                onOpenEntry = onOpenCartographyEntry,
-                onStartEntry = onStartCartographyEntry,
-                onCloseEntry = onCloseCartographyEntry,
-                onTextChanged = onCartographyTextChanged,
-                onTagsChanged = onCartographyTagsChanged,
-                onSetFindDecision = onSetFindDecision,
-                onSetTrackDecision = onSetTrackDecision,
-                onSetWaypointDecision = onSetWaypointDecision,
-                onSetOfflineRegionDecision = onSetOfflineRegionDecision,
-                onToggleKeptPhoto = onToggleKeptPhoto,
-                onAcquirePhotoForEntry = onAcquirePhotoForCartographyEntry,
-                onFinishEntry = onFinishCartographyEntry,
-                onSaveEntry = onSaveCartographyEntry,
-                onDiscardEntryChanges = onDiscardCartographyEntryChanges,
-                onSaveEntryAsDraft = onSaveCartographyEntryAsDraft,
-                onDeleteEntry = onDeleteCartographyEntry,
-                // Expanded gets more grid columns, per owner decision #3 ("more of the same thing
-                // at once") — see CartographyScreen's own doc comment.
-                columns = EXPANDED_GRID_COLUMNS,
-                modifier = Modifier.weight(1f),
-                mapBubbleSources = entryMapBubbleSources,
-                openEntryRequest = entryOpenRequest,
-                onOpenEntryRequestConsumed = { entryOpenRequest = null },
-                onSetShownOnMap = onSetCartographyEntryShownOnMap,
-            )
-
-            JournalTopTab.RECORDS -> RecordsTab(
-                modifier = Modifier.weight(1f),
-                waypoints = waypoints,
-                waypointsErrorMessage = waypointsErrorMessage,
-                onDeleteWaypoint = onDeleteWaypoint,
-                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
-                availabilityUiState = availabilityUiState,
-                distanceUnit = distanceUnit,
-                currentTime = currentTime,
-                mapSlot = mapSlot,
-                night = night,
-                onOfflineMapRegionPicked = { location ->
-                    onOfflineMapLatChanged(location.lat.toString())
-                    onOfflineMapLngChanged(location.lng.toString())
-                },
-                onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = onOfflineMapNameChanged,
-                onOfflineMapsOpened = onOfflineMapsOpened,
-                onDownloadOfflineMaps = onDownloadOfflineMaps,
-                onDeleteOfflineRegion = onDeleteOfflineRegion,
-                tracks = tracks,
-                onTracksOpened = onTracksOpened,
-                getFullRecord = getFullRecord,
-                // M1: while a find is open over the panel, the Finds slot under it draws nothing.
-                findsContent = { if (findOverView == null) findsSection() },
-                onFindsTabLeft = ::leaveFindEditingIfNeeded,
-                findsEditingInProgress = findsSectionHasBackStack,
-                pendingSubTab = recordsPendingSubTab,
-                onPendingSubTabConsumed = { recordsPendingSubTab = null },
-            )
-        }
-    }
-
-    // M1: the find opened from a map bubble, over the panel: its report first, then (after Edit) the
-    // Finds section's own edit form and pickers. Opaque, and its Back handler is composed after
-    // everything under it, so Back unwinds the find first and then leaves the view as it was.
-    if (findOverViewVisible) {
-        val open = editing!!
-        BackHandler {
-            when {
-                pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
-                pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
-                findOverViewReport -> onCloseEntry()
-                else -> onLeaveEditingIncidentally()
-            }
-        }
-        Surface(modifier = Modifier.fillMaxSize().testTag(FIND_OVER_VIEW_TAG)) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                if (findOverViewReport) {
-                    LogEntryReportScreen(
-                        entry = open,
-                        onEdit = {
-                            findOverViewReport = false
-                            onOpenEntryForEditing(open.id)
-                        },
-                        onDeleteEntry = { onDeleteEntry(open.id) },
-                        onBack = onCloseEntry,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    findsSection()
-                }
-            }
-        }
-    }
+        // J6a: the phone's Journal (`JournalTab`: the Entries | Records switch, the report step and "+"
+        // tile on finds, the counts, the delete paths, the state holders, F2 and F3), so the wide
+        // Journal is one implementation with the phone's and the two cannot drift. What is the wide
+        // tree's own is around it: the header above, and the detail slot (list-detail).
+        JournalTab(
+            uiState = uiState,
+            onOpenCameraForLogEntry = onOpenCameraForLogEntry,
+            onOpenCameraForAlbum = onOpenCameraForAlbum,
+            onOpenCameraForCartographyEntry = onOpenCameraForCartographyEntry,
+            mapSlot = mapSlot,
+            pickerRegion = region,
+            deviceLocation = deviceLocation,
+            basemap = basemap,
+            night = night,
+            mapLayers = mapLayers,
+            onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
+            onOpenEntry = onOpenEntryForReport,
+            onCloseEntry = onCloseEntry,
+            onStartEntry = onStartEntry,
+            onEntryChanged = onEntryChanged,
+            onStartEditingEntry = onStartEditingEntry,
+            onSaveEntry = onSaveEntry,
+            onCancelEditing = onCancelEditing,
+            onLeaveEditingIncidentally = onLeaveEditingIncidentally,
+            onPhotoAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
+            onAddPhoto = onAddPhoto,
+            onRemovePhoto = onRemovePhoto,
+            onPullPhoto = onPullPhoto,
+            onDeleteEntry = onDeleteEntry,
+            onSaveErrorDismissed = onSaveErrorDismissed,
+            galleryPhotos = galleryPhotos,
+            isLoadingGalleryPhotos = isLoadingGalleryPhotos,
+            onDeleteGalleryPhoto = onDeleteGalleryPhoto,
+            onAddGalleryPhoto = onAddGalleryPhoto,
+            galleryLoadErrorMessage = galleryLoadErrorMessage,
+            galleryPhotoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
+            cartographyUiState = cartographyUiState,
+            onOpenCartographyEntry = onOpenCartographyEntry,
+            onStartCartographyEntry = onStartCartographyEntry,
+            onCloseCartographyEntry = onCloseCartographyEntry,
+            onCartographyTextChanged = onCartographyTextChanged,
+            onCartographyTagsChanged = onCartographyTagsChanged,
+            onSetFindDecision = onSetFindDecision,
+            onSetTrackDecision = onSetTrackDecision,
+            onSetWaypointDecision = onSetWaypointDecision,
+            onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+            onToggleKeptPhoto = onToggleKeptPhoto,
+            onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
+            onFinishCartographyEntry = onFinishCartographyEntry,
+            onSaveCartographyEntry = onSaveCartographyEntry,
+            onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
+            onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+            onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
+            onDeleteCartographyEntry = onDeleteCartographyEntry,
+            onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
+            onOpenEntryForEditing = onOpenEntryForEditing,
+            onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
+            getCartographyEntryMapData = getCartographyEntryMapData,
+            getSavedTrackPaths = getSavedTrackPaths,
+            getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
+            getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
+            availabilityUiState = availabilityUiState,
+            distanceUnit = distanceUnit,
+            currentTime = currentTime,
+            onOfflineMapLatChanged = onOfflineMapLatChanged,
+            onOfflineMapLngChanged = onOfflineMapLngChanged,
+            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+            onOfflineMapNameChanged = onOfflineMapNameChanged,
+            onOfflineMapsOpened = onOfflineMapsOpened,
+            onDownloadOfflineMaps = onDownloadOfflineMaps,
+            onDeleteOfflineRegion = onDeleteOfflineRegion,
+            onDownloadAgain = onDownloadAgain,
+            tracks = tracks,
+            onTracksOpened = onTracksOpened,
+            getFullRecord = getFullRecord,
+            waypoints = waypoints,
+            waypointsErrorMessage = waypointsErrorMessage,
+            onDeleteWaypoint = onDeleteWaypoint,
+            onDeleteTrack = onDeleteTrack,
+            tracksErrorMessage = tracksErrorMessage,
+            waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+            pendingDestination = pendingDestination,
+            pendingFindId = pendingFindId,
+            pendingEntryId = pendingEntryId,
+            onPendingDestinationConsumed = onPendingDestinationConsumed,
+            onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
+            journalState = journalState,
+            cartographyEntryModeState = cartographyEntryModeState,
+            findEntryModeState = findEntryModeState,
+            findOverViewState = findOverViewState,
+            detailSlot = detailSlot,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
-/** Mirrors `AvailabilityScreen`'s `SettingsHeader` shape exactly — see that composable's own call site for why. */
+/**
+ * The row above the Journal: a back arrow to the Search panel, labelled with the phone's name for this
+ * tab, "Journal" (its bottom-bar label; owner's ruling, `prompts/preserved/2026-09-29-25.md`, replacing
+ * "Mushroom Log"). Mirrors `AvailabilityScreen`'s `SettingsHeader` shape exactly — see that composable's
+ * own call site for why.
+ */
 @Composable
 private fun LogHeader(onBack: () -> Unit) {
     Row(
@@ -582,9 +356,6 @@ private fun LogHeader(onBack: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
-        Text("Mushroom Log", style = MaterialTheme.typography.titleMedium)
+        Text("Journal", style = MaterialTheme.typography.titleMedium)
     }
 }
-
-/** 3, not [CartographyEntryListScreen]'s own compact default of 2 — the medium/expanded drawer panel is wider, so "more of the same thing at once" (owner decision #3) means one more grid column, not a different arrangement. */
-private const val EXPANDED_GRID_COLUMNS = 3

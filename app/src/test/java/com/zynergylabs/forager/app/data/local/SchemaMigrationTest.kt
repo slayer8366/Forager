@@ -20,6 +20,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,12 +28,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 15→16, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 16→17, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→16.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→17.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -125,15 +126,31 @@ class SchemaMigrationTest {
             assertEquals(0L, db.scalar("SELECT shownOnMap FROM cartography_entries"))
         }
 
+    // F3 (dispatch 2026-09-28-195): a new table, so nothing is rebuilt. Room validates the result against
+    // 17.json (the table's columns, its (entryId, trackId) key and its trackId index); the seeded track ref
+    // beside it is carried by assertEverySeededValueSurvived; and migrate() asserts the new table starts empty,
+    // because no track has ever been deletable, so no path has ever needed saving (the design's "no backfill").
+    @Test fun `16 to 17 - cartography_entry_track_paths is created empty, keyed by entry and track, and the refs beside it are carried`() =
+        migrate(16, 17, MIGRATION_16_17, overrides = mapOf("cartography_entry_track_refs" to mapOf("entryId" to "e-1", "trackId" to "t-1", "name" to "Ridge Loop"))) { db ->
+            assertEquals("Ridge Loop", db.scalar("SELECT name FROM cartography_entry_track_refs"))
+            db.execSQL("INSERT INTO cartography_entry_track_paths (entryId, trackId, path) VALUES ('e-1', 't-1', x'0102')")
+            db.execSQL("INSERT INTO cartography_entry_track_paths (entryId, trackId, path) VALUES ('e-1', 't-2', x'')")
+            db.execSQL("INSERT INTO cartography_entry_track_paths (entryId, trackId, path) VALUES ('e-2', 't-1', x'')")
+            assertEquals("a row's path bytes are stored and read back", "0102", db.scalar("SELECT hex(path) FROM cartography_entry_track_paths WHERE entryId = 'e-1' AND trackId = 't-1'"))
+            val duplicate = runCatching { db.execSQL("INSERT INTO cartography_entry_track_paths (entryId, trackId, path) VALUES ('e-1', 't-1', x'03')") }
+            assertTrue("a second row for the same (entryId, trackId) is refused, so the key is the pair", duplicate.exceptionOrNull() is android.database.sqlite.SQLiteConstraintException)
+            assertEquals("the trackId index the delete-time copy and any 'who keeps this track' lookup use", 1L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_cartography_entry_track_paths_trackId'"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // J8: the chain now ends at 16, the current version (it ended at 15 before MIGRATION_15_16).
-    @Test fun `4 to 16 - the full chain, validated against 16_json, every seeded value survives`() {
+    // F3: the chain now ends at 17, the current version (it ended at 16 before MIGRATION_16_17).
+    @Test fun `4 to 17 - the full chain, validated against 17_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 16, true, *ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 17, true, *ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 16)
+            assertEverySeededValueSurvived(db, seeded, 4, 17)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }
@@ -215,7 +232,7 @@ class SchemaMigrationTest {
     }
 
     private companion object {
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
     }
 }
 

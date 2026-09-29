@@ -515,13 +515,17 @@ class AvailabilityScreenMapLayersWideTest {
     }
 
     @Test
-    fun `the legend chip sits above the add button, and touches around it reach the map`() {
+    fun `the legend chip is at the map's bottom-end corner with the icon cluster kept above it, and touches around it reach the map`() {
+        // J6c (the owner's item 5): the separate "+" this chip used to stack above is a row of the icon cluster now, and
+        // the chip is placed as on the phone (the bottom-end corner, above the attribution), with the cluster's clamp
+        // keeping the cluster above it (this test read "the chip sits above the add button").
         setScreen(FixedForecastStore(BOTH_FORECAST_GROUPS))
         val chip = composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).getUnclippedBoundsInRoot()
-        val add = composeRule.onNodeWithContentDescription("Plan a trip or log a find here").getUnclippedBoundsInRoot()
+        val cluster = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).getUnclippedBoundsInRoot()
+        val slot = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot()
 
-        assertTrue("above the add button ($chip, $add)", chip.bottom <= add.top)
-        assertTrue("on its side ($chip, $add)", abs((chip.right - add.right).value) <= 1f)
+        assertTrue("the cluster stops above the legend chip ($cluster, $chip)", cluster.bottom <= chip.top)
+        assertTrue("the chip is at the pane's bottom-end corner ($chip, $slot)", abs((chip.right - (slot.right - 8.dp)).value) <= 1f && slot.bottom - chip.bottom < 64.dp)
 
         val before = map.taps
         composeRule.touchMapAt(chip.left - 12.dp, (chip.top + chip.bottom) / 2)

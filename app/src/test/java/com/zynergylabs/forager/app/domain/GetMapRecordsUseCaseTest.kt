@@ -220,5 +220,8 @@ class GetMapRecordsUseCaseTest {
         override suspend fun download(name: String, region: Region, onProgress: (downloaded: Int, total: Int) -> Unit): Result<OfflineRegionSummary> = error("not used")
         override suspend fun deleteRegion(id: Long): Result<Unit> = error("not used")
         override suspend fun listRegions() = regions
+        override suspend fun listNotDownloadedRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
+
+        override suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> = Result.success(Unit)
     }
 }

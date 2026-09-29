@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,6 +36,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
@@ -75,6 +77,12 @@ internal val MIN_TOUCH_TARGET = 48.dp
 internal val MAP_ICON_BAR_EDGE_INSET = Spacing.sm
 
 /**
+ * The landscape L's row spacing and end padding (dispatch 2026-09-28-160; the owner's "A"): none. Five 48 dp rows are 240 dp,
+ * and the horizontal pill uses the same zero so its two 48 dp buttons are 96 dp and record sits exactly under the bar's column.
+ */
+internal val MAP_ICON_BAR_LANDSCAPE_ROW_SPACING = 0.dp
+
+/**
  * Offset from [MapIconBar]'s own vertical center (where both `AddActionTile` and [MapModePicker]
  * anchor their `Alignment.CenterEnd`-based popups) to the center of one of its rows, counting from
  * the top. Promoted here from `AvailabilityScreen.kt` (fullscreen-fixes dispatch, Item 2) so the
@@ -87,10 +95,10 @@ internal val MAP_ICON_BAR_EDGE_INSET = Spacing.sm
 // rowCount re-derived directly against the tree, not assumed: this bar sits at 5 rows as of the
 // fullscreen-maps dispatch (fullscreen, orientation-reset, locate-me, map mode, fifth row) — see
 // MapIconBar's own doc comment.
-internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
+internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int, rowSpacing: Dp = Spacing.xs): Dp {
     val rowCount = 5
-    val contentHeight = MIN_TOUCH_TARGET * rowCount + Spacing.xs * (rowCount - 1)
-    val rowCenterFromTop = (MIN_TOUCH_TARGET + Spacing.xs) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
+    val contentHeight = MIN_TOUCH_TARGET * rowCount + rowSpacing * (rowCount - 1)
+    val rowCenterFromTop = (MIN_TOUCH_TARGET + rowSpacing) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
     return rowCenterFromTop - contentHeight / 2
 }
 
@@ -305,6 +313,12 @@ internal fun srcOverAlpha(top: Float, bottom: Float): Float = top + bottom * (1f
 internal fun mapIconClusterContainerColor(): Color =
     (if (LocalForagerDarkTheme.current) Bark else Cream).copy(alpha = MAP_ICON_CLUSTER_CONTAINER_ALPHA)
 
+/** The standing single-layer chrome fill ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight], 0.8) for whichever theme is current — the landscape L's pill, which has no container under it. */
+@Composable
+@ReadOnlyComposable
+internal fun mapIconChromeFillColor(): Color =
+    if (LocalForagerDarkTheme.current) MapIconStackButtonColorDark else MapIconStackButtonColorLight
+
 /** The fill of each child inside the cluster container — see [MAP_ICON_CLUSTER_CHILD_ALPHA]. */
 @Composable
 @ReadOnlyComposable
@@ -414,6 +428,20 @@ internal fun MapIconBar(
      */
     mapModePickerEnabled: Boolean = true,
     /**
+     * Landscape L (dispatch 2026-09-28-160): the gap between rows and the padding at the bar's two ends. [Spacing.xs] for every
+     * caller that has always had it (the portrait cluster, the Cartography entry map); the short-landscape cluster passes
+     * [MAP_ICON_BAR_LANDSCAPE_ROW_SPACING], no spacing at all, so its five 48 dp rows are 240 dp.
+     */
+    rowSpacing: Dp = Spacing.xs,
+    /**
+     * Landscape L (owner's ruling (d), continuation 2026-09-28-172): every row takes touches across its full 48 x 48 square, corners
+     * included, even where the bar's rounded end curves away. The default draws the fill, border and shadow on a `Surface` that
+     * also holds the rows, so the `Surface`'s rounded clip decides which touches the end rows get; with this set the drawn shape is a
+     * sibling underneath (a content-less `Surface` sized to the rows) and the rows sit above it unclipped. Nothing outside the rows'
+     * squares takes a touch: the shape lies inside their union. `false` for every other caller.
+     */
+    fullSquareHits: Boolean = false,
+    /**
      * The bar's 5th (last) row — fullscreen-maps dispatch: a second map surface (the Cartography
      * entry map) needs this row to mean something other than "plan a trip or log a find here,"
      * since neither concept exists there. A "+" button captioned for trip-planning that actually
@@ -439,17 +467,13 @@ internal fun MapIconBar(
     // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
     // comment for why the two axes are kept separate rather than one steering the other.
     val isDarkTheme = LocalForagerDarkTheme.current
-    Surface(
-        shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-        color = fillColor.takeOrElse { if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight },
-        contentColor = if (isDarkTheme) Color.White else Bark,
-        shadowElevation = 2.dp,
-        border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
-        modifier = modifier,
-    ) {
+    val barFill = fillColor.takeOrElse { if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight }
+    val barContentColor = if (isDarkTheme) Color.White else Bark
+    val barBorder = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
+    val rows: @Composable () -> Unit = {
         Column(
-            modifier = Modifier.padding(vertical = Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            modifier = Modifier.padding(vertical = rowSpacing),
+            verticalArrangement = Arrangement.spacedBy(rowSpacing),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             MapBarIconButton(
@@ -479,6 +503,27 @@ internal fun MapIconBar(
             }
             fifthRow(isDarkTheme)
         }
+    }
+    if (fullSquareHits) {
+        Box(modifier = modifier) {
+            Surface(
+                shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+                color = barFill,
+                shadowElevation = 2.dp,
+                border = barBorder,
+                modifier = Modifier.matchParentSize(),
+            ) {}
+            CompositionLocalProvider(LocalContentColor provides barContentColor) { rows() }
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+            color = barFill,
+            contentColor = barContentColor,
+            shadowElevation = 2.dp,
+            border = barBorder,
+            modifier = modifier,
+        ) { rows() }
     }
 }
 
@@ -519,6 +564,12 @@ internal fun MapIconBarMinimizeHandle(
      * so the rounding still faces inward rather than reading backwards once the bar is over there.
      */
     onLeftSide: Boolean = false,
+    /**
+     * The tap box's height. [HANDLE_DEFAULT_TAP_HEIGHT] (72 dp) everywhere it has always been; the landscape L passes 48 dp, one row's
+     * height, so with the rows 48 dp apart the box is centred on the locate row and reaches neither the compass nor the Layers row
+     * (owner's ruling (c), continuation 2026-09-28-172). The mark is 48 dp tall either way and fills the shorter box exactly.
+     */
+    tapHeight: Dp = HANDLE_DEFAULT_TAP_HEIGHT,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val shape = if (onLeftSide) {
@@ -573,7 +624,7 @@ internal fun MapIconBarMinimizeHandle(
     // the edge, on or beside the mark.
     Box(
         modifier = modifier
-            .size(width = HANDLE_TAP_WIDTH, height = MIN_TOUCH_TARGET * 1.5f)
+            .size(width = HANDLE_TAP_WIDTH, height = tapHeight)
             .clickable(onClick = onMinimize)
             .semantics { contentDescription = "Hide map controls" }
             .testTag("map-icon-bar-minimize-handle"),
@@ -585,8 +636,7 @@ internal fun MapIconBarMinimizeHandle(
                     start = if (onLeftSide) HANDLE_MARK_EDGE_PADDING else 0.dp,
                     end = if (onLeftSide) 0.dp else HANDLE_MARK_EDGE_PADDING,
                 )
-                .padding(vertical = Spacing.md)
-                .fillMaxHeight()
+                .height(HANDLE_MARK_HEIGHT)
                 .width(HANDLE_VISIBLE_MARK_WIDTH)
                 .testTag("map-icon-bar-minimize-handle-mark")
                 .background(color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight, shape = shape)
@@ -598,6 +648,14 @@ internal fun MapIconBarMinimizeHandle(
         )
     }
 }
+
+/**
+ * The minimise handle's default tap-box height, and the drawn mark's height: the mark was the box less [Spacing.md] above and below,
+ * 72 - 24 = 48. Now a constant so a shorter box (the landscape L's, [MapIconBarMinimizeHandle]'s `tapHeight`) leaves the mark as it
+ * was, 48 tall, filling that box exactly.
+ */
+internal val HANDLE_DEFAULT_TAP_HEIGHT = MIN_TOUCH_TARGET * 1.5f
+private val HANDLE_MARK_HEIGHT = HANDLE_DEFAULT_TAP_HEIGHT - Spacing.md * 2
 
 /** How much of [MapIconBarMinimizeHandle]'s / [MapIconBarRestoreHandle]'s own 48dp-wide tap target is actually drawn — see either composable's own doc comment for why this is much narrower than the hit area itself. */
 private val HANDLE_VISIBLE_MARK_WIDTH = 10.dp

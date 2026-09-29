@@ -271,6 +271,7 @@ class TrackRecordingServiceTest {
             container.getTracksUseCase,
             container.alertDelivery,
             container.alertAudibility,
+            deleteTrack = container.deleteTrackUseCase,
         )
         try {
             viewModel.startRecording()

@@ -976,3 +976,29 @@ val MIGRATION_15_16: Migration = object : Migration(15, 16) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_isDraft` ON `cartography_entries` (`isDraft`)")
     }
 }
+
+/**
+ * Adds `cartography_entry_track_paths` — F3, a kept track keeps its path (dispatch 2026-09-28-195; owner,
+ * 2026-09-29: "Option B" and "All recommended"). A new table, not a column on the ref table: a column would need
+ * a rebuild of `cartography_entry_track_refs` (the V12-V15 fixtures declare that entity directly, see
+ * [MIGRATION_12_13]), and would be loaded for every entry and rewritten on every draft save.
+ *
+ * Created empty and **not backfilled**: the table is written when a track is deleted, and no track has ever been
+ * deletable, so no entry has a path that needs saving. The SQL is `17.json`'s `createSql` and index, as Room
+ * exported them; [SchemaMigrationTest] validates the result against that file. Nothing else is touched, so no
+ * existing row is read or rewritten.
+ */
+val MIGRATION_16_17: Migration = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_track_paths` (
+            `entryId` TEXT NOT NULL,
+            `trackId` TEXT NOT NULL,
+            `path` BLOB NOT NULL,
+            PRIMARY KEY(`entryId`, `trackId`))
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entry_track_paths_trackId` ON `cartography_entry_track_paths` (`trackId`)")
+    }
+}

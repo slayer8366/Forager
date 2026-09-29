@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.log.JOURNAL_DETAIL_PANE_TAG
 import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
@@ -47,6 +48,8 @@ import com.zynergylabs.forager.app.domain.ForecastCellsResult
 import com.zynergylabs.forager.app.domain.ForecastDriver
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.TrackDecision
+import com.zynergylabs.forager.app.ui.log.formatTrackDuration
 import com.zynergylabs.forager.app.domain.model.FindDecision
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -604,12 +607,17 @@ class AvailabilityScreenMapBubblesWideTest {
 
         composeRule.touchCentreOf(MAP_BUBBLE_OPEN_FIND_TAG)
 
-        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Mushroom Log").assertExists()
+        // J6a (ruling 1, list-detail): the find opened from the bubble is the whole right side's detail pane
+        // now, not the overlay (FIND_OVER_VIEW_TAG) it was drawn in over the drawer panel.
+        composeRule.onNodeWithTag(JOURNAL_DETAIL_PANE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        // J6a header ruling (prompts/preserved/2026-09-29-25.md): the Journal panel's header row reads
+        // "Journal" (it read "Mushroom Log"); the Search panel's own "Mushroom Log" row is unchanged.
+        composeRule.onNodeWithText("Journal").assertExists()
         assertEquals("find-1", log.editingEntry?.id)
 
         composeRule.back()
-        composeRule.onAllNodesWithTag(FIND_OVER_VIEW_TAG).assertCountEqualsZero()
+        composeRule.onAllNodesWithTag(JOURNAL_DETAIL_PANE_TAG).assertCountEqualsZero()
         assertEquals(null, log.editingEntry)
     }
 }
@@ -646,7 +654,7 @@ class CartographyEntryMapBubblesTest {
         offlineRegionCircles = emptyList(),
     )
 
-    private fun setScreen(glyphs: BubbleMapSlot = map) {
+    private fun setScreen(glyphs: BubbleMapSlot = map, entry: CartographyEntry = this.entry) {
         val store = OneCellStore()
         val viewModel = mapLayersViewModel(store = store)
         composeRule.setContent {
@@ -681,6 +689,31 @@ class CartographyEntryMapBubblesTest {
         ).assertIsDisplayed()
         composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
         composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertExists()
+    }
+
+    // F3 (dispatch 2026-09-28-195, item 5): the bubble for a tapped track line, mirroring the waypoint case
+    // above. The entry kept a track that has since left Records; its line is drawn from the saved path, and a
+    // tap on it must still name the track from the entry's own snapshot, with no Details (there is no record).
+    @Test
+    fun `on the entry map a kept track's bubble names it from the entry, with no details, for a track gone from Records`() {
+        val keptTrack = TrackDecision("trk-gone", "Old ridge", 1234.0, 3_660_000L, 5, kept = true)
+        val withTrack = entry.copy(trackDecisions = listOf(keptTrack))
+        val entryMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.KEPT_TRACKS, "trk-gone", 60.dp, 120.dp, LatLng(45.4, -122.5))))
+        setScreen(entryMap, withTrack)
+        composeRule.onNodeWithText("A wet morning on the ridge.").assertExists()
+
+        composeRule.touchCentreOf(glyphTag("trk-gone"))
+
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        composeRule.onNode(
+            androidx.compose.ui.test.hasText("Old ridge") and androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag(MAP_BUBBLE_TAG)),
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
+        composeRule.onNode(
+            androidx.compose.ui.test.hasText(formatTrackDuration(3_660_000L), substring = true) and androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag(MAP_BUBBLE_TAG)),
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
+        composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
     }
 
     @Test

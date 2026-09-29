@@ -21,7 +21,7 @@ internal data class AlbumDay(val date: LocalDate?, val photos: List<GalleryPhoto
  * - **Within a day, input order** (the gallery's own order, `MushroomLogUiState.galleryPhotos`),
  *   so the album never reorders photos the gallery already ordered.
  * - **Unknown dates last, in one group.** A migrated photo's creation time is not knowable
- *   (`LogPhoto.createdAtEpochMillis`'s doc comment), and [PhotoGalleryScreen] shows "Date unknown"
+ *   (`LogPhoto.createdAtEpochMillis`'s doc comment), and the removed Photo Gallery screen shows "Date unknown"
  *   rather than inventing one; this does the same at group level rather than filing it under a
  *   fabricated day.
  * - Day boundaries are device-local ([zone] defaults to the system zone), the convention

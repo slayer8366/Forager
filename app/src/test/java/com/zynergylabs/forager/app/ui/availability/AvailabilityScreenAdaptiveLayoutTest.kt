@@ -249,26 +249,27 @@ class AvailabilityScreenWideWindowLayoutTest {
     }
 
     /**
-     * Workstream G2 (`docs/plans/pr26-rework.md`) made the gallery a top-level destination on both
-     * window classes; map/navigation redesign dispatch B folded the compact half into
-     * `LogGalleryScreen`'s own Album tab instead (see `PhotoGalleryScreen`'s own doc comment for
-     * why), but left this medium/expanded drawer entry untouched. This is that untouched half;
-     * `AvailabilityScreenBackNavigationTest`'s own "Album" tab test covers the compact one.
+     * Workstream G2 (`docs/plans/pr26-rework.md`) made the gallery a top-level destination with a
+     * Photo Gallery row in this drawer; the owner's J6 ruling 2 (2026-09-28) removed that panel, so the
+     * row is gone and the photo is reached in the Journal's album, as on the phone. This test kept its
+     * setup (a real gallery photo in real state) and its place, and now asserts the ruling.
      */
     @Test
-    fun `the drawer's Photo Gallery entry is shown without opening the drawer, and opens the gallery`() {
+    fun `the drawer has no Photo Gallery entry, and the photo is in the Journal's album`() {
         val photo = com.zynergylabs.forager.app.domain.model.GalleryPhoto(
             photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
             referencingEntryIds = emptyList(),
         )
         setScreen(SEARCHED_STATE, logUiState = com.zynergylabs.forager.app.ui.log.MushroomLogUiState(galleryPhotos = listOf(photo)))
-        composeRule.onNodeWithText("Photo Gallery").assertIsDisplayed()
+        // J6a (owner's ruling 2, 2026-09-28: "the old Photo Gallery panel is removed. Only the album
+        // remains, as on the phone"): the drawer no longer has the row this test used to tap.
+        assertEquals("the Photo Gallery row is gone", 0, composeRule.onAllNodesWithText("Photo Gallery").fetchSemanticsNodes().size)
 
-        composeRule.onNodeWithText("Photo Gallery").performClick()
-
-        // Proves the real PhotoGalleryScreen is hosted here, with the real gallery state — not
-        // just that a panel switched to some empty placeholder.
-        composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
+        // The photo, from the same real gallery state, is in the Journal's album.
+        composeRule.onNodeWithText("Mushroom Log").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.albumPhotoTestTag("p1")).assertIsDisplayed()
     }
 
     /**
@@ -279,8 +280,14 @@ class AvailabilityScreenWideWindowLayoutTest {
      * Used to assert on [ConditionsCard]'s "Current Conditions" for the List-unique half; that card
      * now lives in the Seasonal tab instead (PANEL-CONTENTS-DISPATCH.md item 2), so this asserts on
      * the ranked list's own content ([FORECAST]) rather than a card that no longer sits here.
+     *
+     * J6b (the owner's ruling 2, 2026-09-29): this is at 1,280 dp now, not this class's 840 dp. Beside the
+     * 360 dp drawer and 360 dp list an 840 dp window leaves the map 119 dp, under the 480 dp minimum, so
+     * there List and Maps are real tabs (`WideMapTabsTest` covers that, and the 480 dp boundary from both
+     * sides). At 1,280 dp the map is 559 dp, so the reveal pattern this test is about still holds.
      */
     @Test
+    @Config(qualifiers = "w1280dp-h900dp-mdpi")
     fun `list and map content are both displayed together without switching tabs`() {
         setScreen(SEARCHED_STATE.copy(forecast = FORECAST, selectedMonth = LocalDate.now().monthValue))
 
@@ -417,6 +424,11 @@ class AvailabilityScreenWideWindowLayoutTest {
                     val opened = logUiState.entries.first { it.id == id }
                     logUiState = logUiState.copy(editingEntry = if (opened.isDraft) opened else opened.copy(isDraft = true))
                 },
+                // J6a (item 6.5): the wide Journal opens a find in its report, and the report's Edit starts the
+                // edit (the phone's path), so the draft copy is made there, by the same in-place stand-in.
+                onStartEditingLogEntry = {
+                    logUiState = logUiState.copy(editingEntry = logUiState.editingEntry?.let { if (it.isDraft) it else it.copy(isDraft = true) })
+                },
                 onLeaveLogEntryEditingIncidentally = {
                     logUiState = logUiState.copy(editingEntry = null)
                 },
@@ -429,6 +441,9 @@ class AvailabilityScreenWideWindowLayoutTest {
         // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab (LogPanel shares RecordsTab).
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
         composeRule.onNodeWithText("Find on 2026-08-01").performClick()
+        // The find opens in its report; its Edit opens the edit form this test is about leaving.
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithContentDescription("Back to your log").performClick()
 
         composeRule.waitUntil(timeoutMillis = 5_000) {

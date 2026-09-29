@@ -52,13 +52,12 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * same split [CartographyScreen] already uses), never a different arrangement.
  *
  * **No Album tab here** — Stage 2b follow-up dispatch, point 3. The former `LogGalleryScreen`
- * embedded [PhotoGalleryScreen] as a third tab (Log/Drafts/Album); that was a second, independent
+ * embedded the standalone Photo Gallery screen (removed in J6) as a third tab (Log/Drafts/Album); that was a second, independent
  * path to the same [com.zynergylabs.forager.app.domain.model.GalleryPhoto] data [CartographyScreen]'s own Album
  * submenu already shows, flagged as deliberate-but-unwanted duplication in the original Stage 2b
  * dispatch's closing disclosure. [CartographyScreen]'s Album is now the sole path from both window
- * classes' Records/Finds side; the drawer-hosted `DrawerPanel.PhotoGallery` destination
- * ([AvailabilityScreen]'s own, medium/expanded-only) is untouched — that duplication predates Stage
- * 2b and is out of this dispatch's scope. [LogEntryListScreen] never embedded an Album tab to begin
+ * classes' Records/Finds side; the drawer-hosted `DrawerPanel.PhotoGallery` destination this note once
+ * left untouched has since been removed (J6, the owner's ruling 2, 2026-09-28). [LogEntryListScreen] never embedded an Album tab to begin
  * with, so nothing is newly unreachable for the expanded window either.
  */
 @Composable

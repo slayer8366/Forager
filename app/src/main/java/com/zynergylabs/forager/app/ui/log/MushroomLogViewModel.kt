@@ -31,6 +31,7 @@ import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -177,7 +178,7 @@ class MushroomLogViewModel(
     private val commitDraftEntry: CommitDraftEntryUseCase,
     private val deleteEntry: DeleteMushroomLogEntryUseCase,
     private val addPhoto: AddPhotoToLogEntryUseCase,
-    /** Standalone-photos dispatch: acquisition with no owning find — [PhotoGalleryScreen]'s own Camera/Gallery buttons. See [onAddGalleryPhoto]. */
+    /** Standalone-photos dispatch: acquisition with no owning find — the album's own Camera/Import buttons. See [onAddGalleryPhoto]. */
     private val addPhotoToGallery: AddPhotoToGalleryUseCase,
     private val removePhoto: RemovePhotoFromLogEntryUseCase,
     private val getGalleryPhotos: GetGalleryPhotosUseCase,
@@ -244,8 +245,8 @@ class MushroomLogViewModel(
         loadGalleryPhotos()
     }
 
-    fun loadEntries() {
-        viewModelScope.launch {
+    fun loadEntries(): Job {
+        return viewModelScope.launch {
             _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
             // Workstream L4c: the read and the editingEntry merge it feeds are one critical section
             // — see this class's own "Serialized editing-entry mutations" doc comment. Acquired here
@@ -289,9 +290,35 @@ class MushroomLogViewModel(
         }
     }
 
-    /** Loads [MushroomLogUiState.galleryPhotos] for [PhotoGalleryScreen] — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
-    fun loadGalleryPhotos() {
-        viewModelScope.launch {
+    /**
+     * After a restore (dispatch 2026-09-28-182, item 5): reads the entries and drafts again, then closes the open find if its
+     * record is in neither list now. A Replace deletes rows behind this ViewModel's back, and [loadEntries] deliberately leaves
+     * the open row alone (it only merges the photos in), so without this the report of a deleted find stays on screen. A read
+     * that failed closes nothing: the lists are then the old ones, and "not in the list" would mean nothing. Its own function,
+     * so the ordinary refresh's rule is untouched.
+     */
+    fun reloadAfterRestore(): Job {
+        return viewModelScope.launch {
+            loadEntries().join()
+            editingEntryMutex.withLock {
+                _uiState.update { state ->
+                    val open = state.editingEntry
+                    when {
+                        open == null || state.loadErrorMessage != null -> state
+                        (state.entries + state.draftEntries).any { it.id == open.id } -> state
+                        else -> {
+                            Log.i(TAG, "A restore removed the open entry '${open.id}'; it is closed.")
+                            state.copy(editingEntry = null)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Loads [MushroomLogUiState.galleryPhotos] for the photo album — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
+    fun loadGalleryPhotos(): Job {
+        return viewModelScope.launch {
             _uiState.update { it.copy(isLoadingGalleryPhotos = true, galleryLoadErrorMessage = null) }
             getGalleryPhotos().fold(
                 onSuccess = { photos ->
@@ -792,7 +819,7 @@ class MushroomLogViewModel(
                 addPhoto(entry, source).fold(
                     onSuccess = { updated ->
                         _uiState.update { it.copy(editingEntry = updated, isSavingPhoto = false, saveErrorMessage = null) }
-                        // A freshly added photo is a new gallery row PhotoGalleryScreen's already-loaded
+                        // A freshly added photo is a new gallery row the album's already-loaded
                         // state doesn't know about yet — without this, it wouldn't appear there until
                         // the ViewModel is recreated. Detach has no equivalent need: it never removes a
                         // gallery row, only a reference nothing in this screen currently displays.
@@ -891,7 +918,7 @@ class MushroomLogViewModel(
     }
 
     /**
-     * Standalone-photos dispatch: acquires [source] via [PhotoGalleryScreen]'s own Camera/Gallery
+     * Standalone-photos dispatch: acquires [source] via the album's own Camera/Import
      * buttons — persisted and added to the gallery only, never attached to anything (see
      * [AddPhotoToGalleryUseCase]'s own doc comment for why this stops one step short of
      * [onAddPhoto]). No [editingEntryMutex] needed: unlike [onAddPhoto], this never reads or writes
@@ -1048,8 +1075,8 @@ class MushroomLogViewModel(
 
     /**
      * Workstream G3: deletes [photo] from the gallery — the user has already confirmed, including
-     * seeing how many entries reference it (see [com.zynergylabs.forager.app.ui.log.PhotoGalleryScreen]'s own
-     * confirmation flow). Refreshes both the gallery and the entry list on success: an entry left
+     * seeing how many entries reference it (the removed Photo Gallery screen's confirmation flow; since J4b the
+     * album's long-press Delete is a pending delete that names the same count in its Undo snackbar). Refreshes both the gallery and the entry list on success: an entry left
      * open in the background (e.g. across a tab switch — nothing closes [MushroomLogUiState.editingEntry]
      * on its own) must not keep showing a reference to a photo that no longer exists. See this
      * class's own doc comment on the [loadEntries] hazard for why that refresh no longer risks

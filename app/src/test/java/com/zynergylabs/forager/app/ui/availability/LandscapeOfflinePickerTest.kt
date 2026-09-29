@@ -11,6 +11,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -165,8 +168,16 @@ class LandscapeOfflinePickerTest {
         // OK confirmed a point, so Download is enabled now.
         val downloadRect = bounds(download())
         assertWhollyInWindow("Download", downloadRect)
-        for ((fx, fy) in fractions) touch(downloadRect, fx, fy)
-        assertEquals("every sampled touch on Download reached it", fractions.size, downloads)
+        // Part 2 follow-ups F1 item 4: a touch on Download Maps now opens the confirmation instead of
+        // starting the download, so "reached it" is the confirmation appearing; Cancel closes it again.
+        for ((fx, fy) in fractions) {
+            touch(downloadRect, fx, fy)
+            composeRule.onNodeWithText("Download this area?").assertIsDisplayed()
+            composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Download this area?").assertDoesNotExist()
+        }
+        assertEquals("no touch on Download Maps started a download: the confirmation comes first", 0, downloads)
     }
 
     @Test fun `L1 at ROTATION_90 OK, Cancel and Download are shown and take real touches across their bounds without scrolling`() =

@@ -74,6 +74,7 @@ import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -143,6 +144,7 @@ internal fun OfflineMapsPanel(
     onOfflineMapNameChanged: (String) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     /**
      * Journal redesign J5c: passed through to the downloaded-region rows, where a tap on a closed row
      * opens that region's details sheet, given its id. The picker and download code above does not
@@ -237,12 +239,32 @@ internal fun OfflineMapsPanel(
         OfflineDownloadStatusContent(uiState.offlineDownloadStatus)
     }
     val isDownloading = uiState.offlineDownloadStatus is OfflineMapStatus.Downloading
+    // "Download Maps" asks first (owner, 2026-09-29: "Approve the Download Maps wording as is";
+    // docs/plans/journal-redesign.md, "'Download Maps' asks first: the approved copy"). Part 2 finding (c):
+    // one tap used to start a real download. Saveable, so a rotation or a night-mode rebuild with the
+    // question up keeps asking it.
+    var confirmingDownload by rememberSaveable { mutableStateOf(false) }
     val downloadButton: @Composable (Modifier) -> Unit = { buttonModifier ->
         Button(
-            onClick = onDownloadOfflineMaps,
+            onClick = { confirmingDownload = true },
             enabled = hasValidRegion && !isDownloading,
             modifier = buttonModifier.fillMaxWidth(),
         ) { Text("Download Maps") }
+    }
+    val confirmDownloadDialog: @Composable () -> Unit = {
+        if (confirmingDownload) {
+            AlertDialog(
+                onDismissRequest = { confirmingDownload = false },
+                title = { Text("Download this area?") },
+                text = {
+                    Text(offlineDownloadConfirmationBody(uiState.offlineMapNameText, uiState.offlineMapRadiusKm, distanceUnit, estimateServedOfflineTileCount(pickerRegion)))
+                },
+                confirmButton = {
+                    TextButton(onClick = { confirmingDownload = false; onDownloadOfflineMaps() }) { Text("Download") }
+                },
+                dismissButton = { TextButton(onClick = { confirmingDownload = false }) { Text("Cancel") } },
+            )
+        }
     }
     val regionsSection: @Composable () -> Unit = {
         HorizontalDivider()
@@ -257,6 +279,7 @@ internal fun OfflineMapsPanel(
             distanceUnit = distanceUnit,
             nowEpochMillis = now,
             onDeleteOfflineRegion = onDeleteOfflineRegion,
+            onDownloadAgain = onDownloadAgain,
             onOpenRegionDetails = onOpenRegionDetails,
         )
     }
@@ -272,6 +295,7 @@ internal fun OfflineMapsPanel(
             confirmActions = confirmActions,
             downloadButton = downloadButton,
         )
+        confirmDownloadDialog()
         return
     }
 
@@ -314,6 +338,18 @@ internal fun OfflineMapsPanel(
 
         regionsSection()
     }
+    confirmDownloadDialog()
+}
+
+/**
+ * The confirmation's body, in the owner's approved wording: "<name> · <radius> around the pin · about <N>
+ * tiles", or "<radius> around the pin · about <N> tiles" when the name is blank. [radiusKm] is shown in the
+ * units setting ([formatDistanceKm]).
+ */
+internal fun offlineDownloadConfirmationBody(name: String, radiusKm: Int, unit: DistanceUnit, estimatedTiles: Int): String {
+    val area = "${formatDistanceKm(radiusKm, unit)} around the pin · about $estimatedTiles tiles"
+    val trimmed = name.trim()
+    return if (trimmed.isEmpty()) area else "$trimmed · $area"
 }
 
 /**
@@ -475,6 +511,7 @@ private fun OfflineRegionsSection(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     onOpenRegionDetails: ((Long) -> Unit)?,
 ) {
 
@@ -523,6 +560,7 @@ private fun OfflineRegionsSection(
                             distanceUnit = distanceUnit,
                             nowEpochMillis = nowEpochMillis,
                             onClick = onOpenRegionDetails?.let { open -> { open(region.id) } },
+                            onDownloadAgain = { onDownloadAgain(region.id) },
                         )
                     }
                 }
@@ -555,6 +593,8 @@ internal fun OfflineRegionRow(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     onClick: (() -> Unit)? = null,
+    /** What "Download again" does on a region restored from a backup ([OfflineRegionSummary.isDownloaded] `false`); unused for a downloaded one. */
+    onDownloadAgain: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -566,18 +606,31 @@ internal fun OfflineRegionRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
                 Text(region.name, style = MaterialTheme.typography.bodyMedium)
-                if (isStale) {
+                if (isStale && region.isDownloaded) {
                     Text("Stale", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
             }
-            Text(
-                "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around " +
-                    "${decimalDegreesLabel(region.region.lat, region.region.lng)} — " +
-                    "${region.tileCount} tiles, ${offlineRegionSizeLabel(region)} — " +
-                    "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(offlineRegionZoomNote(region), style = MaterialTheme.typography.bodySmall)
+            if (!region.isDownloaded) {
+                // A region restored from a backup onto a phone that never downloaded it (owner, "1 B"): its stored centre
+                // and radius, no tile count or "downloaded ... ago" it cannot honestly claim, and a way to get its tiles.
+                Text("Not downloaded", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                Text(
+                    "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around ${decimalDegreesLabel(region.region.lat, region.region.lng)}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (onDownloadAgain != null) {
+                    OutlinedButton(onClick = onDownloadAgain) { Text("Download again") }
+                }
+            } else {
+                Text(
+                    "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around " +
+                        "${decimalDegreesLabel(region.region.lat, region.region.lng)} — " +
+                        "${region.tileCount} tiles, ${offlineRegionSizeLabel(region)} — " +
+                        "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(offlineRegionZoomNote(region), style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

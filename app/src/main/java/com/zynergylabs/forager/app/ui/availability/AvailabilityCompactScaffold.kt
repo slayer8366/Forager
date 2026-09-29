@@ -53,6 +53,8 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
+import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -285,6 +287,8 @@ internal fun CompactMainScaffold(
     /** J4b L1: a find tile's long-press Edit (`MushroomLogViewModel.onOpenEntryForEditing`); see [JournalTab]. */
     onOpenLogEntryForEditing: ((String) -> Unit)? = null,
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     getCartographyEntryCurrentLocation: suspend () -> LocationResult,
     onOfflineMapLatChanged: (String) -> Unit,
@@ -294,9 +298,14 @@ internal fun CompactMainScaffold(
     onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     onTracksOpened: () -> Unit,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteWaypoint: (String) -> Unit,
+    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
+    tracksErrorMessage: String? = null,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
@@ -600,6 +609,20 @@ internal fun CompactMainScaffold(
             label = "attributionBottomInset",
         )
         val safeAttributionBottomInset = animatedAttributionBottomInset.coerceAtLeast(0.dp)
+        // Part 2 follow-ups F1 item 2 (Part 2 item 37): in portrait fullscreen the inset above is 0 (the caption
+        // goes to the true edge, the owner's ruling), which left MapLibre's own "i" inside the system navigation
+        // band, where two real taps opened nothing. The button clears the navigation bar there instead: the real
+        // inset, queried from the window, never a constant (Robolectric reports zero for it, so what MapLibre then
+        // draws and whether a finger reaches the button is device-only). Out of fullscreen it is the nav's
+        // measured height, the caption's own value, which already includes the bar. Not set (null) in the short
+        // landscape window, where the rail and the end-edge inset above already govern the button, unchanged.
+        val navigationBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        val animatedAttributionButtonBottomInset by animateDpAsState(
+            targetValue = if (isMapFullscreen()) navigationBarBottom else bottomNavHeight,
+            animationSpec = MotionTokens.navigationMotionSpec(),
+            label = "attributionButtonBottomInset",
+        )
+        val attributionButtonBottomInset: Dp? = if (showRail) null else animatedAttributionButtonBottomInset.coerceAtLeast(0.dp)
         // Part 1 layout fixes, item 5 (planner message 2026-09-28-98): MapLibre's "i" sits at the map's
         // bottom end, so beside the bottom inset above it keeps clear of whatever is on that end edge:
         // the overlaid rail, in a short landscape window at the rotation that puts the port there (90 in
@@ -877,7 +900,7 @@ internal fun CompactMainScaffold(
                                 // Text's own padding — no map effect keys on it or on renderMode as a
                                 // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
                                 // re-measures or re-fits the map.
-                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset),
+                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
                                 mapLayers = mapLayers,
@@ -1015,7 +1038,7 @@ internal fun CompactMainScaffold(
                                                 Modifier.padding(mapControlsPadding)
                                             },
                                         ) {
-                                        Column(modifier = Modifier.onSizeChanged { searchChromeHeightPx = it.height }) {
+                                        Column(modifier = Modifier.mapKeepOut(MapKeepOutIds.SEARCH_BAR).onSizeChanged { searchChromeHeightPx = it.height }) {
                                             SearchEntryBar(
                                                 uiState = uiState,
                                                 distanceUnit = distanceUnit,
@@ -1107,6 +1130,7 @@ internal fun CompactMainScaffold(
                                 onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
                                 onOpenEntryForEditing = onOpenLogEntryForEditing,
                                 getCartographyEntryMapData = getCartographyEntryMapData,
+                                getSavedTrackPaths = getSavedTrackPaths,
                                 getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                                 getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
                                 // Journal restructure Stage 1: the Records tab's three submenus — see
@@ -1121,12 +1145,15 @@ internal fun CompactMainScaffold(
                                 onOfflineMapsOpened = onOfflineMapsOpened,
                                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                                 onDeleteOfflineRegion = onDeleteOfflineRegion,
+                                onDownloadAgain = onDownloadAgain,
                                 tracks = tracks,
                                 onTracksOpened = onTracksOpened,
                                 getFullRecord = getFullRecord,
                                 waypoints = waypoints,
                                 waypointsErrorMessage = waypointsErrorMessage,
                                 onDeleteWaypoint = onDeleteWaypoint,
+                                onDeleteTrack = onDeleteTrack,
+                                tracksErrorMessage = tracksErrorMessage,
                                 waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                                 pendingDestination = pendingJournalDestination(),
                                 pendingFindId = pendingJournalFindId(),

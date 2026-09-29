@@ -960,3 +960,281 @@ The planner's reading:
 - The Street / Topographical / Satellite row is centred horizontally between the sheet's sides.
 - Its vertical place is unchanged.
 - The code is at `MapLayersSheet.kt:263`: a `Row` with `spacedBy(Spacing.xs)` and no width, so it hugs the start.
+
+**Stage device check Part 2 and J6: how they start (owner, 2026-09-29).** The planner asked two questions:
+- whether Part 2 runs backup and restore on the S22 as a full round trip behind a verified full copy (A), restores only on the tablet (B), or only backs up (C);
+- whether J6 launches now (A) or after the backup coder (B).
+
+The owner, verbatim: "1 A / 2 A / Wait until the last coder is done building to begin this stage please, so both can be done side by side as planned."
+
+The planner's reading:
+- **Part 2 runs the full backup-and-restore round trip on the S22,** behind a verified full copy of the phone's data: a backup, a Replace restore and a Merge restore, each confirmed against that copy.
+- **Part 2 and J6 launch together, side by side,** once the backup coder (-137) has finished building. Both prompts are prepared now.
+
+### J6 design rulings (owner, 2026-09-29)
+
+Asked after the J6 refresh pulse (`docs/audits/2026-09-29-j6-premise-refresh-pulse.md`, read at `db756faa`), the owner answered, verbatim:
+
+> 1 to 5 I'll take your recommendations
+>
+> For smaller calls...
+>
+> 1 to 6 I'll take your recommendations
+>
+> 7 if there's room to not need it scroll then it should be used. Tablets allow the space. If not, then have it scroll.
+>
+> 8 yes
+>
+> 9 there's no reason not to have them. If the phone has them, add them in. The worst that happens is they don't get used. Now is the time to get it going for tablets.
+>
+> 10 give the photo album a long press delete option for photos in tablet mode
+
+What that rules, from the options as they were put:
+1. **An opened entry or find takes the whole right side, search bar included.** That is about 465 dp in portrait and 958 dp in landscape.
+2. **List and Maps become real tabs whenever the combined pane would leave the map narrower than 480 dp** (the planner's suggested minimum, taken with the recommendation). Otherwise they stay side by side. The J8 chip row clears the Layers button either way.
+3. **With the Journal open and nothing selected,** the right side is unchanged: the list and the map, under ruling 2.
+4. **Columns:** Entries 1, Finds 2, Album 3, as on the phone.
+5. **One Back order whatever the route:**
+   1. picker;
+   2. editor, with its save prompts;
+   3. report;
+   4. close the detail;
+   5. Records to Entries;
+   6. Journal to Search;
+   7. exit.
+
+   Open items and views survive switching panels, because the existing Journal state holders are passed to the wide tree.
+6. **Smaller calls 1-6:**
+   1. The record details open in the right side, not as a sheet.
+   2. The photo viewer stays full screen.
+   3. The map pickers open in the right side.
+   4. The drafts list is in the left column.
+   5. Tablet finds get the report view and the "+" tile, and the All logbook lists finds.
+   6. The tablet draws its map before any search, so planned trips show.
+7. **The Records chip row:** no scrolling when the chips fit the column; they scroll only when they do not.
+8. **Headers match the phone:** Entries / Records.
+9. **Map chrome parity:** the tablet map gets the phone map's controls (locate, compass, record, and the rest the phone has). This reverses the planner's recommendation to leave them out.
+10. **The album gets a long-press delete for photos on the tablet,** as on the phone. The old Photo Gallery panel is removed (ruling 2 of 2026-09-28).
+
+**The planner's split, stated to the owner.** J6 is built as two parts, in one coder window, pushed and reported in order:
+- **J6a, the Journal:** rulings 1 and 3-8, 10, and J1-J10 parity.
+- **J6b, the tablet map:** rulings 2, 6.6 and 9, and the chip row's clearance.
+
+**Backup follow-up and Part 2's shape (owner, 2026-09-29).** These answer the -137 stop and flags (record -150), and Part 2's scope. The owner, verbatim: "1 A / 2 A / 3 A / 4 A / For the previous 4 questions".
+
+1. **A new notification channel named "Backups".**
+   - On Android 13 and later, the notification permission is asked when the user turns scheduled backups on.
+   - If it is declined, the schedule still runs. A problem is then shown in the app at its next launch, using the approved notification wording.
+2. **Replace gives restored offline regions fresh ids,** as Merge does, and rewrites the references. A later MapLibre download can then never collide with a restored row.
+3. **Saving over a file that already has contents asks first:** "Replace the existing backup file?"
+4. **Part 2 includes the two unassigned checks** (the search bar after an entry, and drawer Back). It is split into sessions by area:
+   1. layout and the map;
+   2. the Journal flows;
+   3. backup and restore last, after the backup follow-up lands.
+
+**The icon bar and the record pill: an L shape (owner, 2026-09-29).** The owner sent a screenshot of the Maps tab, kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-icon-bar-and-pill.jpg`. It shows:
+- the vertical icon bar: fullscreen, compass, locate, Layers, and the green "+";
+- beside it, the smaller vertical record/return pill;
+- a translucent fill above the pill that joins them.
+
+The owner, verbatim: "This can't ship like this.  That's a UX problem. Have the icon bar shrink a little and turn the small pill 90°, then half of the small pill can fit beneath the icon bar, and extend out. / Make the pill the same size as the bar".
+
+The planner's reading, to be confirmed with the owner before any dispatch:
+- The bar gets a little shorter.
+- The record/return pill turns horizontal and sits beneath the bar. Half of it is under the bar, and the other half extends out toward the middle of the screen, mirrored when the cluster is on the other side.
+- The pill is as thick as the bar is wide, so the two read as one L.
+
+**Status:** a ship blocker. The cluster items of Part 2 Session 1 (inventory items 38, 39 and 42) will need re-checking after it.
+
+**The L shape, confirmed from the planner's diagrams (owner, 2026-09-29).** The planner redrew the reading as letter diagrams:
+- the bar at the left, with the pill beneath it, record under the bar and return extending out;
+- mirrored at the right, with return extending toward the middle.
+
+The owner, verbatim: "Oh yeah on either side it looks like an L. On the right side it just looks like an inverse L". The shape and the mirroring are confirmed. The pill's thickness, the height rule, the fill's removal and which screens are still being asked.
+
+**The L shape: where it applies, and the details (owner, 2026-09-29).** Answering the planner's six follow-up questions, the owner said, verbatim: "4: Only apply on landscape phone mode. Never on portrait or tablet mode. / The rest I'll take what's recommended."
+
+So:
+1. **The pill's thickness equals the bar's width,** so the L reads as one piece.
+2. **The whole L is no taller than today's bar and pill,** and every button stays at least 48 dp.
+3. **The translucent fill that joins them today is removed.**
+4. **The L is for phone landscape only** (the compact tree's short window). Phone portrait keeps its current arrangement. The tablet (the wide tree, J6b's controls parity) never takes the L.
+5. **Part 2 Session 1 starts now.** Its landscape cluster items are deferred and re-checked after the L lands.
+6. **J6's header is a back-arrow row labelled "Journal",** with the Entries / Records switch below it. It returns to the Search panel, as the "Mushroom Log" row does today.
+
+**The L's height (owner, 2026-09-29).** The cluster-geometry pulse (`docs/audits/2026-09-29-icon-cluster-geometry-pulse.md`) showed three things:
+- the pill is already 48 dp thick, as the bar is wide;
+- stacking cannot keep the L to today's 264 dp in landscape with 48 dp buttons, so the planner's "no taller than today" rule could not be met;
+- an L drawn inside today's rectangular container would leave a corner that takes touches.
+
+The planner offered three options:
+- A: remove the spacing between the bar's buttons, keep them 48 dp, and keep a gap above the pill, making the L 296 dp;
+- B: the same with no gap, 288 dp;
+- C: buttons of about 44 dp to stay at 264.
+
+The owner, verbatim: "A".
+
+So:
+- The bar is five 48 dp rows with no spacing or end padding: 240 dp.
+- An 8 dp gap, then the horizontal pill (48 dp thick): **296 dp in all.**
+- Nothing is drawn around the L, and touches outside its two shapes reach the map.
+
+**The L's pill: the icons stack fully (owner, 2026-09-29).** The L coder asked how long the turned pill is:
+- 96 dp: two 48 dp buttons with no spacing, exactly half under the bar;
+- 108 dp: today's padding, putting record 4 dp off the bar's edge.
+
+The owner, verbatim: "the icons need to stack fully. Make sure that happens and have the pill extend outward like the L".
+
+So:
+- **The pill is 96 dp.**
+- **Record's 48 dp box sits exactly under the bar's 48 dp column,** so its left and right edges equal the bar's. The record icon stacks fully under the bar's icons.
+- Return extends outward, inboard of the screen, forming the L.
+
+**Disk space (owner, 2026-09-29).** The disk filled (about 114 MB free of 67 GB), stopping -160 before any test ran. The planner offered to delete about 4.5 GB of old build output in 28 finished worktrees. The owner, verbatim: "1 C". The owner clears space. The planner deletes nothing.
+
+The owner confirmed the pill's length, verbatim: "2 is  Awith that message". That is option A, 96 dp, together with the "stack fully" message above, which is what -162 carries.
+
+**Part 2 Session 1's questions and J6a's questions (owner, 2026-09-29).** The owner, verbatim: "I'll take your recommendations". That answers the four open recommendations:
+1. **"Download Maps" asks first,** with a confirmation that shows the area. Its wording goes to the owner before the dispatch. Part 2 follow-ups.
+2. **A track's details sheet gets a Delete.** Part 2 follow-ups.
+3. **J6a's record-details pane keeps its back row labelled "Details".**
+4. **PhotoGalleryScreen.kt and its test are deleted in J6b.** They have had no production caller since J6a.
+
+**The L's conflicts, J6c, the investigation, and the rest (owner, 2026-09-29).** Asked for all open items, the owner answered, verbatim: "1 2 3  I'll take your recommendations / 4 paste it here / 5 defer for tomorrow / 6 authorized and always allowed now".
+
+1. **The L** (record -170):
+   - (a) the top limit pushes the L down, below the search bar;
+   - (b) in landscape, the search notice stops before the L's side, the way the legend makes room, so the two never overlap;
+   - (c) the minimise handle's touch area is 48 dp tall, level with the locate row;
+   - (d) every button's full 48 dp square is its touch target, corners included. Nothing else around the L takes touches.
+2. **J6c, the tablet map controls** (record -171):
+   - drag, snap and minimise, as on the phone, within the tablet map's edges;
+   - fullscreen hides the Journal column and the search bar;
+   - the compass strip across the top of the tablet map, with the chip row below it;
+   - the phone's cluster extracted into one shared composable, rather than copied;
+   - Layers and "+" become bar rows.
+
+   The tablet takes the portrait arrangement, never the L.
+3. **The intermittent-failure investigation** is queued after the builds.
+4. **Part 2 Session 3** is pasted to the owner.
+5. **The owner's judgement of Session 1's captures** (rings, chips, highlight colours, night views) is deferred to 2026-09-30.
+6. **The tablet is authorized for USB debugging,** "always allowed". adb reads R52T506412L as a device.
+
+**Tracks thinner when zoomed out, again (owner, 2026-09-29).** The owner sent a screenshot of a journal entry's map at night: a short track under its find and photo glyphs, drawn as a thick lilac line. It is kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-track-thickness.jpg`. The owner, verbatim: "One thing about tracks: when zoomed out they're still thick on the line. Can they be thinned when zoomed out even further? It's hard to read it accurately from a distance".
+
+Today (`ui/map/layers/TrackWidthByZoom.kt`, `TRACK_WIDTH_ZOOM_STOPS`):
+- a track line is 6 dp, plus a 1.5 dp casing each side, 9 dp in all, at zoom 15 and above;
+- it is 40% of that at zoom 11 and below (2.4 dp line, 5.4 dp in all);
+- it is linear in between.
+
+These stops were the planner's proposal of 2026-09-28-34, "for the owner to judge on the phone". The new stops are put to the owner as options.
+
+**The entry map in landscape: the left side cut off (owner, 2026-09-29).** The owner sent a phone screenshot in landscape: a journal entry's map in fullscreen, with the Entries / Records switch above it and the rail on the right. It is kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-landscape-entry-map-cut.jpg`. The owner, verbatim: "On landscape a lot of the map is gone.  The entire left side is cut off for no reason."
+
+What the screenshot shows, read by the planner:
+- The map starts about 122 px in from the left edge, the width of the camera cut-out band in that rotation. The band is left black.
+- The Entries / Records row sits above the map, in its own band across the top.
+- The Maps tab's own map does reach into the cut-out band: Part 2 Session 1 found its "i" there at 270 (item 37). So the entry map differs from Maps.
+
+The fix's shape goes to the owner as options.
+
+The owner then asked, verbatim: "Unless that's a scaffolding for more map functions". The planner checked the code: the band is not reserved for map functions.
+- In short landscape, only the Maps tab lets its map run under the cut-out. `AvailabilityCompactScaffold.kt:679-683` sets `contentWindowInsets` to the top only, "the map runs the whole width, under the cut-out", and pads the controls one by one (`mapControlsPadding`, :552-575).
+- Every other tab, the Journal included, takes `shortLandscapeContentInsets()` (:684-685). That keeps the whole tab, lists and text included, out of the cut-out band.
+- The entry map lives inside the Journal tab, so it inherits that margin.
+
+**The landscape entry map's left band: dropped (owner, 2026-09-29).** Asked whether "Nevermind that part" meant the entry map's black band in landscape, the owner answered, verbatim: "Yes drop that". The request is withdrawn. The entry map keeps the Journal tab's cut-out margin, and nothing is dispatched.
+
+**Tracks by zoom, revised, and Session 3's backup findings (owner, 2026-09-29).** The owner, verbatim: "2 A, 3 I'll take your recommendations".
+
+**2 A: new track width stops,** replacing the 2026-09-28-34 proposal:
+- zoom 18 and above: full width, 100%. The line is 6 dp plus a 1.5 dp casing each side, 9 dp in all;
+- zoom 16: about 67%;
+- zoom 14: about 42%;
+- zoom 12 and below: 25%. The line is 1.5 dp, 2.25 dp with its casing;
+- linear between stops.
+
+The casing and the highlight halo keep following the stops, as today.
+
+**3: Session 3's backup findings,** the planner's recommendations:
+1. **A restore skips a region that matches one already on the phone** (same name, centre and radius), so the phone that made the backup does not get duplicates.
+2. **The first scheduled backup waits for its scheduled time.** Turning the schedule on, or off and on, does not run one at once.
+3. **Scheduled backups keep the newest 5.** Older scheduled backup files in the chosen folder are deleted. Manual backups are never touched.
+4. **The notification permission is asked once,** when scheduled backups are first turned on. If it is declined, it is not asked again for backups; the in-app notice covers it.
+
+**The parked items wait for PR #140 (owner, 2026-09-29).** PR #140 is the single Journal PR: journal-redesign into pre-main, currently a draft. The owner, verbatim: "15 to 22 can come after PR 140 merge". That refers to the planner's open-items list, whose items 15-22 were parked:
+- the "MapView destroyed" log flood and the StrictMode disk reads at start-up;
+- the offline-region cases not yet tested (P1/P3, and no network);
+- the light theme's legibility;
+- the portrait dropdown's second Back;
+- Android 8-10 with no device;
+- non-JPEG imports stored under a .jpg name;
+- Session 3's leftovers on the S22 (the Backups channel, and possibly a folder grant);
+- the cause of the restore's unequal first pass.
+
+None of these block PR #140.
+
+**"Download Maps" asks first: the approved copy (owner, 2026-09-29).** The owner, verbatim: "Approve the Download Maps wording as is". The dialog opens over the picker when "Download Maps" is tapped:
+- **title:** "Download this area?"
+- **body:** "<name> · <radius> around the pin · about <N> tiles". Without a name it is "<radius> around the pin · about <N> tiles". The radius follows the units setting.
+- **buttons:** "Cancel" and "Download".
+
+**Track delete, built like waypoints (owner, 2026-09-29).** The F1 coder found that no track delete exists in the app. The planner's earlier "swipe in the list" had never been checked (record -190). The owner, verbatim: "Option A". The option was put as:
+- tracks delete as waypoints do: a swipe in the Records list and a Delete on the track's details, both with Undo;
+- a track still recording is never offered Delete;
+- a journal entry that kept the track follows the same rule as an entry that kept a since-deleted waypoint.
+
+This also makes the delete-data page's "Recorded tracks" line true.
+
+**A kept track keeps its path (owner, 2026-09-29).** The F1 coder found that deleting a waypoint leaves an entry's ref rows and snapshot in place, and applied the same to tracks. But a track's snapshot has no path, so an entry that kept a deleted track could no longer draw its line. The planner offered:
+- A: accept that;
+- B: save the track's path into the entry when it is kept, so a later delete does not affect the entry's map.
+
+The owner, verbatim: "Option B".
+
+The planner's placement: B changes the database (a place for the path), the backup's table list and Merge rules, and the entry map's drawing. So it is its own stage, F3, after F1, built on a read-only pulse of how kept snapshots are stored. F1's track delete lands first, and the two land before PR #140.
+
+**Kept track paths: F3's design (owner, 2026-09-29).** Asked after the kept-track-path pulse (`docs/audits/2026-09-29-kept-track-path-pulse.md`), the owner answered, verbatim: "All recommended. I'll review the other items".
+1. **The path is copied only when a track is deleted.** Just before the delete, it goes into every journal entry that has the track, kept or withheld. It is stored in a new table, `cartography_entry_track_paths(entryId, trackId, path)`, as the read-seam-filtered lat/lng in time order. No backfill is needed.
+2. **Backup Merge keeps an entry's track refs, and their saved paths, even when the phone lacks the track.** This reverses the backup report's decision 8 for track refs only.
+3. **The saved path shows wherever the entry shows the track:** its map, its card thumbnail, and the bubble for a tapped track line. The Maps tab's highlight stays live, per the earlier "Live records" ruling.
+4. **Drafts get the saved path too.**
+
+Sequencing: F1's track delete lands first and F3 right after, both before PR #140.
+
+**Stacked map markers fan out on tap (owner, 2026-09-29).** Part 2 Session 2 (item 52) and F1's item 10 found that when markers overlap, for example two photos at one spot, a tap reaches only the top one. The planner offered:
+- A: a chooser list;
+- B: clustering;
+- C: fan out on tap;
+- D: leave it.
+
+The owner, verbatim: "Option C / This sounds better than the other options  and honestly, it's like A, but it keeps the icons, which is more robust for UX."
+
+The planner's proposed behaviour, from the common map convention of fanning a stack out around its point, goes to the owner to confirm before a dispatch (F4).
+
+**Fan-out: the behaviour (owner, 2026-09-29).** The owner, verbatim: "Confirm 1 to 5 / 6 Give it a .4s animation speed. / 7 confirm". The behaviour is:
+1. **A stack** is markers whose touch areas overlap at the current zoom.
+2. **Tapping a stack** fans its markers out in a small ring around their spot. Each keeps its own icon, with a thin line back to its true position. The map does not move.
+3. **More than 8 markers** fan out in a spiral instead of a ring.
+4. **Tapping a fanned-out marker** opens its bubble as usual.
+5. **Tapping the map, panning, zooming or pressing Back** folds them back.
+6. **The fan-out animation takes 0.4 s.** With the system's animations off, the markers appear spread out at once.
+7. **It works everywhere:** the Maps tab and a journal entry's map, on the phone and on the tablet.
+
+**Fan-out: what fans, and staying on screen (owner, 2026-09-29).** Asked after F4 (record -206), the owner answered, verbatim: "1 A / 2 A".
+1. **Only the owner's own records fan out:** finds, photos, waypoints and planned trips. iNaturalist sighting dots keep their existing tap behaviour and are never part of a fan.
+2. **The fan is shifted so the whole ring or spiral lands on screen,** clear of the icon cluster, the legend and the chip row. The leader lines still point to the markers' true spot.
+
+**Map chrome: one colour, the navigation bar's (owner, 2026-09-29).** The owner sent a screenshot of the Maps tab with the search panel open over the map, the icon bar showing through it, and the bottom navigation bar below. It is kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-chrome-colours.jpg`. The owner, verbatim: "The map chrome isn't aligned. The search panel and map icon bar are the wrong color. Have them be the same color as the bottom app navigation bar. Make sure any other pop up or bubble, or the tool panel, is the same color as the app navigation bar also please".
+
+The planner's reading:
+- Every piece of map chrome takes the bottom navigation bar's colour: the search panel, the icon bar and pill, pop-ups, bubbles, and the Tools panel.
+- The 80% opacity over a map (UX default, "Nothing fully obstructs the map view") stays as it is.
+
+A read-only pulse maps every chrome surface's colour and alpha against the navigation bar's first.
+
+The owner then answered the planner's question about the icon bar showing through the open search panel, verbatim: "Option B / That's not a problem. My problem is exactly how I stated: the wrong color. / Opacity for the icon bar is fine as is."
+
+So:
+- The bar stays visible through the panel.
+- **Only colour changes.** Every alpha, including the icon bar's, is left as it is.

@@ -6,7 +6,7 @@ import com.zynergylabs.forager.app.domain.model.PhotoSource
 /**
  * Persists a new photo via [photoStore] and adds it to the gallery — standalone-photos dispatch:
  * acquisition with no owning find. The two writes [AddPhotoToLogEntryUseCase] does before its own
- * third (attach), extracted so [PhotoGalleryScreen]'s own Camera/Gallery buttons can stop short of
+ * third (attach), extracted so the album's own Camera/Import buttons (first the removed Photo Gallery screen's) can stop short of
  * attaching to anything. [AddPhotoToLogEntryUseCase] itself is untouched — same constructor, same
  * body, same three-step behavior from [LogEntryDetailScreen] — since the two use cases duplicate
  * only the two lines below rather than sharing a dependency edge that doesn't otherwise need to

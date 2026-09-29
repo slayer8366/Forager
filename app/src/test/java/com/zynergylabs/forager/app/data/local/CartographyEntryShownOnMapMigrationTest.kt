@@ -81,11 +81,15 @@ class CartographyEntryShownOnMapMigrationTest {
             // The shared CartographyEntryEntity now declares shownOnMap, which a real version-15
             // install never had — dropped so the file reaches MIGRATION_15_16 in its true shape.
             legacyDb.openHelper.writableDatabase.execSQL("ALTER TABLE `cartography_entries` DROP COLUMN `shownOnMap`")
+            // Likewise the fixture must list CartographyEntryTrackPathEntity, because the shared DAO now has queries
+            // against it (F3) and Room checks them against the fixture's schema; a real version-15 install had no
+            // such table, so it is dropped (its index goes with it) and MIGRATION_16_17 creates it, as it would on a phone.
+            legacyDb.openHelper.writableDatabase.execSQL("DROP TABLE `cartography_entry_track_paths`")
         } finally {
             legacyDb.close()
         }
         return Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_15_16)
+            .addMigrations(MIGRATION_15_16, MIGRATION_16_17)
             .build()
     }
 
@@ -162,6 +166,7 @@ class CartographyEntryShownOnMapMigrationTest {
         CartographyEntryOfflineRegionRefEntity::class,
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
+        CartographyEntryTrackPathEntity::class,
     ],
     version = 15,
     exportSchema = false,

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.only
@@ -74,6 +75,7 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.snapshotFlow
@@ -101,6 +103,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -624,7 +627,10 @@ internal fun SearchNotice(
     Surface(
         color = noticeColor,
         contentColor = noticeContentColor,
-        modifier = Modifier.testTag(SEARCH_NOTICE_TAG).mapChromeContainerColor(noticeColor),
+        modifier = Modifier
+            .absolutePadding(left = LocalSearchNoticeInset.current.left, right = LocalSearchNoticeInset.current.right)
+            .testTag(SEARCH_NOTICE_TAG)
+            .mapChromeContainerColor(noticeColor),
     ) {
         Text(
             text = message,
@@ -637,6 +643,19 @@ internal fun SearchNotice(
         )
     }
 }
+
+/**
+ * Room [SearchNotice] leaves at its left and right ends. The landscape L's map tab provides the L's side and width here (owner's
+ * ruling (b), continuation 2026-09-28-172): the notice and the L must not overlap, and a composition local reaches the notice inside
+ * the search slot without widening the slot's signature. [None] everywhere else, so every other notice is as it was.
+ */
+internal data class SearchNoticeInset(val left: Dp = 0.dp, val right: Dp = 0.dp) {
+    companion object {
+        val None = SearchNoticeInset()
+    }
+}
+
+internal val LocalSearchNoticeInset = compositionLocalOf { SearchNoticeInset.None }
 
 /**
  * The text [SearchNotice] shows, or `null` when it shows nothing. One definition for the banner and for the Maps tab's layout, which
