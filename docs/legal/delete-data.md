@@ -27,7 +27,7 @@ is removed when the Undo closes; a planned trip is deleted at once.
   This removes the track and every GPS point in it. A track that is still recording cannot be
   deleted. It does not remove the copy a journal entry kept of the track, or a GPX file you shared
   from it; see below.
-- **Waypoints** — including vehicle and origin markers. This does not remove the copy a journal
+- **Waypoints** — including the start and end waypoints a recording drops (`WaypointDesignation.kt`). This does not remove the copy a journal
   entry kept of the waypoint; see below.
 - **Downloaded offline map regions.** This does not remove the copy a journal entry kept of the
   region; see below.
