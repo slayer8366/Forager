@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.initializer
+import kotlinx.coroutines.joinAll
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
@@ -32,6 +33,9 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
+import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
+import com.zynergylabs.forager.app.data.backup.opensBackupSection
+import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
 import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
@@ -42,6 +46,7 @@ import com.zynergylabs.forager.app.ui.log.cartographyEntryDeleteNotice
 import com.zynergylabs.forager.app.ui.log.findDeleteNotice
 import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
+import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
@@ -155,10 +160,15 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127). After a restore that worked,
-     * the screens that read the journal once and hold it are told to read again: there is no Flow anywhere in
-     * `data/local`, so nothing else would refresh them. The offline-region list is not reloaded here (its
-     * loader is private to [AvailabilityViewModel]), and restored regions are not shown anyway; see the report.
+     * Settings' Backup section (journal backup and restore, dispatches 2026-09-28-127 and -137). After a restore that
+     * worked, everything that reads the journal once and holds it is told to read again, and the restore's loading
+     * page waits for all of them: there is no Flow anywhere in `data/local`, so nothing else refreshes. The list, with
+     * where each read is: the entries and drafts (`CartographyViewModel.reloadAfterRestore`), the finds and drafts
+     * (`MushroomLogViewModel.reloadAfterRestore`; both also close an open entry or find whose record the restore removed,
+     * dispatch 2026-09-28-182 item 5) and the gallery photos with their reference counts (`MushroomLogViewModel.loadGalleryPhotos`), the tracks
+     * and the waypoints with their reference counts (`TrackRecordingViewModel.loadTracks`, `loadWaypoints`), and the
+     * planned trips, the offline regions with their reference counts, and the Maps tab's records
+     * (`AvailabilityViewModel.reloadAfterRestore`).
      */
     private val backupViewModel: BackupViewModel by viewModels {
         viewModelFactory {
@@ -169,12 +179,16 @@ class MainActivity : ComponentActivity() {
                     scheduler = container.backupScheduler,
                     files = container.backupFiles,
                     errorLog = androidErrorLog,
-                    afterRestore = {
-                        cartographyViewModel.loadEntries()
-                        mushroomLogViewModel.loadEntries()
-                        mushroomLogViewModel.loadGalleryPhotos()
-                        trackRecordingViewModel.loadTracks()
-                        trackRecordingViewModel.loadWaypoints()
+                    isRecording = { trackRecordingViewModel.uiState.value.isRecording },
+                    reloadAfterRestore = {
+                        listOf(
+                            cartographyViewModel.reloadAfterRestore(),
+                            mushroomLogViewModel.reloadAfterRestore(),
+                            mushroomLogViewModel.loadGalleryPhotos(),
+                            trackRecordingViewModel.loadTracks(),
+                            trackRecordingViewModel.loadWaypoints(),
+                        ).joinAll()
+                        viewModel.reloadAfterRestore()
                     },
                 )
             }
@@ -214,6 +228,8 @@ class MainActivity : ComponentActivity() {
                     container.alertAudibility,
                     androidErrorLog,
                     getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
+                    getTrackReferenceCount = { id -> trackEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forTrack, androidErrorLog) },
+                    deleteTrack = container.deleteTrackUseCase,
                 )
             }
         }
@@ -281,8 +297,29 @@ class MainActivity : ComponentActivity() {
         return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
     }
 
+    /**
+     * Counts up each time a backup notification's tap reaches the app (dispatch 2026-09-28-153): the screen opens Tools, then
+     * Settings, at the Backup section. Read from the launching intent and from every later one ([onNewIntent]); the extra is
+     * removed once read, so a rotation does not open it again.
+     */
+    private var openBackupRequest by androidx.compose.runtime.mutableIntStateOf(0)
+
+    private fun noteBackupIntent(intent: Intent?) {
+        if (opensBackupSection(intent)) {
+            openBackupRequest++
+            intent?.removeExtra(EXTRA_OPEN_BACKUP_SECTION)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        noteBackupIntent(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) noteBackupIntent(intent)
         // The off-track alert's channel is created by AndroidAlertDelivery when AppContainer
         // builds it (alert-delivery dispatch) — nothing alert-related lives in this Activity now.
         // Release the live-fix OS subscription whenever this Activity is not started, and
@@ -480,6 +517,9 @@ class MainActivity : ComponentActivity() {
                     onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
                     backup = backupViewModel.controls(backupUiState),
+                    returnToMapRequest = backupUiState.returnToMapRequest,
+                    openBackupRequest = openBackupRequest,
+                    onDownloadAgain = viewModel::onDownloadAgain,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     onMapShown = viewModel::onMapShown,
@@ -553,6 +593,13 @@ class MainActivity : ComponentActivity() {
                     onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
                     onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
+                    // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
+                    getSavedTrackPaths = { entryId ->
+                        container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
+                            androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
+                            emptyMap()
+                        }
+                    },
                     getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                     getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
                     isRecording = trackUiState.isRecording,
@@ -604,7 +651,12 @@ class MainActivity : ComponentActivity() {
                     navigationTarget = trackUiState.originWaypoint,
                     pathHomeMeters = trackUiState.pathHome?.totalMeters,
                     crashFileStore = container.crashFileStore,
-                    tracks = trackUiState.tracks,
+                    // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
+                    // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
+                    // pending delete, and never for a track that is still recording.
+                    tracks = trackUiState.visibleTracks,
+                    onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
+                    tracksErrorMessage = trackUiState.tracksErrorMessage,
                     onTracksOpened = trackRecordingViewModel::loadTracks,
                     getFullRecord = trackRecordingViewModel::getFullRecord,
                     pendingDeleteNotices = listOfNotNull(
@@ -612,6 +664,11 @@ class MainActivity : ComponentActivity() {
                             trackUiState.pendingWaypointDelete,
                             onUndo = trackRecordingViewModel::undoRemoveWaypoint,
                             onCommit = trackRecordingViewModel::commitRemoveWaypoint,
+                        ),
+                        trackDeleteNotice(
+                            trackUiState.pendingTrackDelete,
+                            onUndo = trackRecordingViewModel::undoRemoveTrack,
+                            onCommit = trackRecordingViewModel::commitRemoveTrack,
                         ),
                         offlineRegionDeleteNotice(
                             uiState.pendingOfflineRegionDelete,
@@ -635,6 +692,8 @@ class MainActivity : ComponentActivity() {
                         ),
                     ),
                 )
+                // The restore's loading page, over everything (dispatch 2026-09-28-137, item 6); nothing when there is none.
+                BackupRestoreOverlay(backupViewModel.controls(backupUiState))
             }
         }
     }
@@ -674,6 +733,20 @@ internal suspend fun waypointEntryReferenceCountOrZero(
     errorLog: ErrorLog,
 ): Int = countEntriesReferencingWaypoint(waypointId).getOrElse { error ->
     errorLog.w("WaypointReferenceCount", "Couldn't count journal entries keeping waypoint $waypointId; showing 0.", error)
+    0
+}
+
+/**
+ * How many journal entries keep track [trackId], for the Records Undo snackbar's warning
+ * (`TrackRecordingViewModel.loadTracks`, read by `requestRemoveTrack`). Logged when the 0 fallback
+ * fires, as [waypointEntryReferenceCountOrZero] (Part 2 follow-ups F1 item 5).
+ */
+internal suspend fun trackEntryReferenceCountOrZero(
+    trackId: String,
+    countEntriesReferencingTrack: suspend (String) -> Result<Int>,
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingTrack(trackId).getOrElse { error ->
+    errorLog.w("TrackReferenceCount", "Couldn't count journal entries keeping track $trackId; showing 0.", error)
     0
 }
 

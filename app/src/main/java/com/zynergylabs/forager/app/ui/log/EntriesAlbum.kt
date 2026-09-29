@@ -54,14 +54,13 @@ import java.time.format.DateTimeFormatter
  * The album view of Entries — journal redesign J2, T3 (plan J3): every gallery photo, grouped by
  * day ([groupAlbumByDay]: newest day first, unknown dates last), in 3 columns with 3 dp gaps.
  *
- * **Why a new composable, not a change to [PhotoGalleryScreen].** [PhotoGalleryScreen] is also the
- * wide tree's drawer panel (`AvailabilityScreen.kt`, `DrawerPanel.PhotoGallery`), which the
- * dispatch says must keep working and may keep its look until J6. Leaving it untouched keeps that
- * caller exactly as it was; this view reuses its parts instead: the same acquisition launchers
+ * **Why a new composable, not a change to the standalone Photo Gallery screen** (removed in J6, with its
+ * drawer panel, `DrawerPanel.PhotoGallery`). It was also the wide tree's drawer panel, which had to keep
+ * working and could keep its look until J6; this view reused its parts instead: the same acquisition launchers
  * ([rememberPhotoAcquisitionLaunchers]), the same Take photo/Import actions (now behind the Add photo button), the same full-screen viewer
  * ([PhotoViewerDialog], stepping through the photos in the order shown here). It also reused the
- * delete confirmation ([GalleryPhotoDeleteDialog]) for a corner delete button until picker-fixes F5
- * removed that button (see [AlbumPhotoTile]); the dialog stays [PhotoGalleryScreen]'s.
+ * delete confirmation (`GalleryPhotoDeleteDialog`, in the removed Photo Gallery screen) for a corner delete button until picker-fixes F5
+ * removed that button (see [AlbumPhotoTile]).
  *
  * **Badges** ([AlbumAttachmentBadges], added by the second J2 coder): one for a photo a journal
  * entry keeps, a distinct one for a photo attached to a find, both when both. The first coder found
@@ -115,7 +114,7 @@ internal fun EntriesAlbum(
      */
     showAddPhotoButton: Boolean = true,
 ) {
-    // The id, not the index, and saveable — as PhotoGalleryScreen's own viewer state.
+    // The id, not the index, and saveable — as the removed Photo Gallery screen's own viewer state.
     var viewingPhotoId by rememberSaveable { mutableStateOf<String?>(null) }
     val days = remember(photos) { groupAlbumByDay(photos) }
     val shownInOrder = remember(days) { days.flatMap { it.photos } }
@@ -232,9 +231,8 @@ internal const val ENTRIES_FAB_MENU_IMPORT_TAG = "entries-fab-menu-import"
  * (Recommended)", then "Remove everywhere now"). J4b left two deletes on the tile that behaved
  * differently: the long-press Delete, pending with Undo, and the corner trash button, which confirmed
  * in a dialog and then deleted the row and file at once. Now the long-press Delete is the only one.
- * Where it is not wired ([onRequestDelete] `null`: the wide tree's `LogPanel`, until J6) the album
- * has no delete of its own, by the owner's choice; those photos are deleted from the drawer's
- * [PhotoGalleryScreen], which keeps its own button and dialog.
+ * Where it is not wired ([onRequestDelete] `null`) the photo has no delete of its own. Since J6a the wide
+ * tree's `LogPanel` wires it, so this is the phone's and the tablet's one delete path for a photo.
  */
 @Composable
 private fun AlbumPhotoTile(

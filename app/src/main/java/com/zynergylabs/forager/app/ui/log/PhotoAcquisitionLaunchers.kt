@@ -18,14 +18,14 @@ import com.zynergylabs.forager.app.photo.GalleryImportPhotoSource
 
 /**
  * The Camera-permission-then-open and system-Gallery-picker launchers both [LogEntryDetailScreen]'s
- * `PhotosSection` and [PhotoGalleryScreen] need — extracted once both screens needed the exact same
+ * `PhotosSection` and the removed Photo Gallery screen need — extracted once both screens needed the exact same
  * `ActivityResultContracts`/permission wiring (standalone-photos dispatch: "reuse the existing
  * contracts, `CameraCaptureFiles`, and FileProvider... reuse; do not reimplement"), rather than a
  * second hand-copy of it drifting from the first over time.
  *
  * Returns the two trigger functions only, not rendered buttons — each screen keeps its own button
  * layout and labels ([LogEntryDetailScreen]'s own `FlowRow` alongside its unrelated "From Album"
- * button; [PhotoGalleryScreen]'s a plain pair above its grid), which differ enough between the two
+ * button; the removed Photo Gallery screen's a plain pair above its grid), which differ enough between the two
  * hosts that sharing the button `Composable`s themselves, not just the launcher logic, would need a
  * slot API for no real savings over each screen writing its own two-line `Button`.
  *

@@ -145,7 +145,8 @@ class PhotoViewerSaveToGalleryTest {
         assertEquals(
             "and published afterwards",
             0,
-            FakeMediaProvider.updated.single { it.first == row.uri }.second.getAsInteger(MediaStore.MediaColumns.IS_PENDING),
+            // F1 item 7: the record's time is written after the publish too, so the publish is the one update that carries IS_PENDING.
+            FakeMediaProvider.updated.single { it.first == row.uri && it.second.containsKey(MediaStore.MediaColumns.IS_PENDING) }.second.getAsInteger(MediaStore.MediaColumns.IS_PENDING),
         )
         assertArrayEquals("the stored bytes were written", EXPORT_TEST_JPEG, row.file.readBytes())
         assertTrue("no location column is written", listOf("latitude", "longitude").none { row.values.containsKey(it) })

@@ -75,6 +75,19 @@ class FilePhotoExporter(
                 val output = resolver.openOutputStream(row) ?: error("The media store gave no stream for $row")
                 output.use { out -> file.inputStream().use { it.copyTo(out) } }
                 resolver.update(row, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+                // Part 2 follow-ups F1 item 7 (Part 2 Session 1, item 61: the Gallery row read back with a NULL
+                // datetaken though the insert above wrote one). The planner's unverified guess, not confirmed
+                // (device-only): publishing (IS_PENDING to 0) makes the media scan re-derive DATE_TAKEN from the
+                // file's own metadata, and a scrubbed photo has none, so the scan replaces what the insert wrote.
+                // The time is therefore written again after the publish, so the last word is the record's. Never a
+                // made-up time: only when the record has one.
+                // A failure here does not undo the save: the photo is published and saved, only its date taken is
+                // the scan's. It is logged at WARN, not swallowed.
+                photo.createdAtEpochMillis?.let { takenAt ->
+                    runCatching { resolver.update(row, ContentValues().apply { put(MediaStore.MediaColumns.DATE_TAKEN, takenAt) }, null, null) }
+                        .onSuccess { rows -> if (rows == 0) Log.w(TAG, "The media store updated no row when restoring the date taken of $row.") }
+                        .onFailure { Log.w(TAG, "Saved '${photo.relativePath}' to the Gallery but couldn't restore its date taken.", it) }
+                }
             } catch (failure: Throwable) {
                 // A half-written pending row is worse than none. Deleted even when the save was cancelled.
                 withContext(NonCancellable) {

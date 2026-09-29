@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +32,12 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.networkFixExclusionNote
 import com.zynergylabs.forager.app.export.TrackGpxExporter
+import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.TrackThumbnail
+import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
+import com.zynergylabs.forager.app.ui.log.rememberSwipeRevealGroup
+import com.zynergylabs.forager.app.ui.log.swipeRevealTouchWatcher
+import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import com.zynergylabs.forager.app.ui.log.opensRecordDetails
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
@@ -74,7 +80,18 @@ internal fun TrackExportList(
      * given the track's id. `null`, the default, leaves the rows without a tap, as before.
      */
     onOpenTrackDetails: ((String) -> Unit)? = null,
+    /**
+     * Part 2 follow-ups F1 item 5 (owner "Option A"): a swipe on a **finished** track's row (a short swipe
+     * reveals Delete, a full swipe deletes, or the row's "Delete" accessibility action) asks for a pending
+     * delete with Undo, as a waypoint's row does. A track that is still recording has no swipe, and no Delete
+     * anywhere. `null`, the default, leaves every row as it was.
+     */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed delete failed and the track is back: shown above the list, as the waypoints list shows its own. */
+    errorMessage: String? = null,
 ) {
+    // One open row at a time, and a touch elsewhere on the list closes it (J4b L6).
+    val swipeGroup = rememberSwipeRevealGroup()
     if (tracks.isEmpty()) {
         Text(
             "No recorded tracks yet.",
@@ -86,17 +103,36 @@ internal fun TrackExportList(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .swipeRevealTouchWatcher(swipeGroup)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
+        if (errorMessage != null) {
+            Text(errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
         tracks.forEach { track ->
-            TrackExportRow(
-                track = track,
-                waypoints = waypoints,
-                getFullRecord = getFullRecord,
-                onClick = onOpenTrackDetails?.let { open -> { open(track.id) } },
-            )
+            key(track.id) {
+                val row: @Composable () -> Unit = {
+                    TrackExportRow(
+                        track = track,
+                        waypoints = waypoints,
+                        getFullRecord = getFullRecord,
+                        onClick = onOpenTrackDetails?.let { open -> { open(track.id) } },
+                    )
+                }
+                if (onDeleteTrack != null && track.canBeDeleted) {
+                    TwoStageSwipeRow(
+                        testTag = swipeToDeleteTag(RecordType.TRACKS, track.id),
+                        rowKey = track.id,
+                        group = swipeGroup,
+                        onDelete = { onDeleteTrack(track.id) },
+                        onEdit = null,
+                    ) { row() }
+                } else {
+                    row()
+                }
+            }
         }
     }
 }
@@ -183,6 +219,9 @@ private fun formatTrackTimestamp(track: Track): String = formatRecordTimestamp(t
  */
 internal fun formatRecordTimestamp(epochMillis: Long): String =
     DISPLAY_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+
+/** Whether Delete may be offered for this track: never while it is still recording (its end time is null). Part 2 follow-ups F1 item 5. */
+internal val Track.canBeDeleted: Boolean get() = endedAtEpochMillis != null
 
 /** A track's name, or its start time when it has none: what the row shows as its title (J5c's sheet title too). */
 internal fun trackTitle(track: Track): String = track.name ?: formatTrackTimestamp(track)

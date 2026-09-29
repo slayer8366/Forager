@@ -161,7 +161,7 @@ data class CartographyEntryFindRefEntity(
  *
  * Also behind 4b's deletion warning now, alongside track/waypoint/offline-region — see
  * [com.zynergylabs.forager.app.domain.CartographyEntryRepository.countEntriesReferencingPhoto] and
- * [com.zynergylabs.forager.app.ui.log.PhotoGalleryScreen]'s own confirm dialog.
+ * a photo delete's warning (first the removed Photo Gallery screen's confirm dialog, now the album's Undo snackbar).
  */
 @Entity(
     tableName = "cartography_entry_photo_refs",
@@ -172,4 +172,31 @@ data class CartographyEntryPhotoRefEntity(
     val entryId: String,
     val photoId: String,
     val attachedAtEpochMillis: Long,
+)
+
+/**
+ * The saved path of a track an entry kept, written when the track is deleted (F3, dispatch
+ * 2026-09-28-195; owner, 2026-09-29: "Option B", "All recommended"). One row per (entry, track) ref
+ * row, so it is untouched by draft saves and by list loads (the pulse's option O2,
+ * `docs/audits/2026-09-29-kept-track-path-pulse.md`). [path] is [com.zynergylabs.forager.app.domain.TrackPathCodec]'s
+ * bytes: the track's read-seam-filtered lat/lng in timestamp order.
+ *
+ * **Written only when the track is deleted** ([com.zynergylabs.forager.app.domain.DeleteTrackUseCase]), for every
+ * ref row naming it; a row therefore means "the track this entry kept is gone, and this is the line it drew". No
+ * backfill was needed: no track had ever been deletable before F1. While the track exists the entry draws it live.
+ *
+ * **Zero `@ForeignKey`**, for the reason [CartographyEntryTrackRefEntity] records. The row is deleted with its
+ * entry ([CartographyEntryDao.deleteEntryAndRefs]) and by nothing else: a saved path is not cleaned up when a save
+ * drops the ref it belonged to, and no path is written for a ref that is added after its track was deleted
+ * (a decision the edit screen cannot add for a track that is not in Records).
+ */
+@Entity(
+    tableName = "cartography_entry_track_paths",
+    primaryKeys = ["entryId", "trackId"],
+    indices = [Index(value = ["trackId"])],
+)
+data class CartographyEntryTrackPathEntity(
+    val entryId: String,
+    val trackId: String,
+    val path: ByteArray,
 )

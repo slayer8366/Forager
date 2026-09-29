@@ -14,6 +14,10 @@ package com.zynergylabs.forager.app.ui.availability
 // CompactToolsDrawerContent, whose callers stay in AvailabilityScreen.kt. No symbol left behind is
 // reached from here. Seam F (the wide layout) was released by the owner for this split, as recorded
 // in the Understory amendment merged in #130.
+//
+// J6 (2026-09-29): PhotoGalleryEntryRow and PhotoGalleryHeader, two of the rows moved here, were removed
+// with the standalone Photo Gallery panel (the owner's ruling 2, 2026-09-28: "the old Photo Gallery panel
+// is removed. Only the album remains, as on the phone"), and the list above records the move as it was.
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -41,6 +45,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.flow.first
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -176,28 +186,6 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
 }
 
 /**
- * The Search panel's sticky-footer entry into the photo gallery (Workstream G2) — same shape as
- * [MushroomLogEntryRow] right above it, since both are entries into mushroom-log-area
- * destinations. No `navigationBarsPadding()` here for the same reason [MushroomLogEntryRow] has
- * none: [SettingsEntryRow] below is still the last row in the sheet and carries that inset.
- */
-@Composable
-internal fun PhotoGalleryEntryRow(onClick: () -> Unit) {
-    HorizontalDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
-        Text("Photo Gallery", style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-/**
  * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
  * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
  * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
@@ -215,23 +203,6 @@ internal fun SettingsHeader(onBack: () -> Unit) {
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
         Text("Settings", style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-/** [DrawerPanel.PhotoGallery]'s header — mirrors [SettingsHeader]'s back-arrow-plus-title shape exactly, for the same reason: there's nothing else on screen suggesting how to get back to Search. */
-@Composable
-internal fun PhotoGalleryHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
-        Text("Photo Gallery", style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -270,6 +241,7 @@ private fun CompactSettingsTab(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
     backup: BackupControls,
+    showBackupRequest: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     var showCrashLogs by remember { mutableStateOf(false) }
@@ -319,6 +291,7 @@ private fun CompactSettingsTab(
                     onOpenCrashLogs = { showCrashLogs = true },
                     onOpenDiagnostics = { showDiagnostics = true },
                     backup = backup,
+                    showBackupRequest = showBackupRequest,
                 )
                 BuildIdentityFooter()
             }
@@ -360,10 +333,23 @@ internal fun SettingsContent(
     onOpenDiagnostics: () -> Unit,
     /** The Backup section's state and callbacks (journal backup and restore, dispatch 2026-09-28-127). */
     backup: BackupControls = BackupControls(),
+    /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
+    showBackupRequest: Int = 0,
 ) {
+    // Scrolls to the Backup section when a notification's tap asks (dispatch 2026-09-28-153): its top is measured as it is
+    // laid out, and the scroll waits for that measurement, so a section that is not yet laid out (the drawer still opening)
+    // is not scrolled to a position it does not have yet.
+    val scrollState = rememberScrollState()
+    var backupTop by remember { mutableIntStateOf(-1) }
+    LaunchedEffect(showBackupRequest) {
+        if (showBackupRequest > 0) {
+            val top = snapshotFlow { backupTop }.first { it >= 0 }
+            scrollState.animateScrollTo(top)
+        }
+    }
     Column(
         modifier = modifier
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
@@ -375,7 +361,7 @@ internal fun SettingsContent(
         PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
         CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
         HorizontalDivider()
-        BackupSection(controls = backup)
+        BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
         DiagnosticsEntryRow(onClick = onOpenDiagnostics)
@@ -579,6 +565,8 @@ internal fun CompactToolsDrawerContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
     backup: BackupControls = BackupControls(),
+    /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
+    openSettingsRequest: Int = 0,
 ) {
     // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
     // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
@@ -587,6 +575,9 @@ internal fun CompactToolsDrawerContent(
     // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
     // AvailabilityScreen's own top-level BackHandler chain already documents.
     var showSettings by remember { mutableStateOf(false) }
+    LaunchedEffect(openSettingsRequest) {
+        if (openSettingsRequest > 0) showSettings = true
+    }
     BackHandler(enabled = showSettings) {
         showSettings = false
     }
@@ -605,6 +596,7 @@ internal fun CompactToolsDrawerContent(
             onThemeModeChanged = onThemeModeChanged,
             crashFileStore = crashFileStore,
             backup = backup,
+            showBackupRequest = openSettingsRequest,
             modifier = Modifier.fillMaxSize(),
         )
         return

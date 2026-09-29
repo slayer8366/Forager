@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.ui.availability.OfflineRegionRow
 import com.zynergylabs.forager.app.ui.availability.WaypointRow
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.TrackExportRow
+import com.zynergylabs.forager.app.ui.track.canBeDeleted
 import com.zynergylabs.forager.app.ui.track.trackTitle
 import java.time.LocalDate
 import java.time.ZoneId
@@ -85,6 +86,9 @@ internal fun RecordsLogbookList(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteWaypoint: (String) -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    /** Part 2 follow-ups F1 item 5: a finished track row's swipe (pending delete with Undo); `null` leaves track rows without one. A recording track never has one. */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    onDownloadAgain: (Long) -> Unit = {},
     onOpenFind: (String) -> Unit,
     modifier: Modifier = Modifier,
     /** J4b L1: a find tile's long-press Delete (pending, with Undo); `null` leaves the tiles tap-only. */
@@ -149,13 +153,29 @@ internal fun RecordsLogbookList(
             }
             day.timed.forEach { record ->
                 when (record) {
-                    is TimedRecord.TrackRecord -> BadgedRow(
-                        type = RecordType.TRACKS,
-                        recordId = record.track.id,
-                        detailsName = trackTitle(record.track),
-                        onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.TrackDetails(record.track.id)) } },
-                    ) {
-                        TrackExportRow(track = record.track, waypoints = waypoints, getFullRecord = getFullRecord)
+                    is TimedRecord.TrackRecord -> key(RecordType.TRACKS, record.track.id) {
+                        val row: @Composable () -> Unit = {
+                            BadgedRow(
+                                type = RecordType.TRACKS,
+                                recordId = record.track.id,
+                                detailsName = trackTitle(record.track),
+                                onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.TrackDetails(record.track.id)) } },
+                            ) {
+                                TrackExportRow(track = record.track, waypoints = waypoints, getFullRecord = getFullRecord)
+                            }
+                        }
+                        // Never a track that is still recording: it gets the plain row, no swipe.
+                        if (onDeleteTrack != null && record.track.canBeDeleted) {
+                            TwoStageSwipeRow(
+                                testTag = swipeToDeleteTag(RecordType.TRACKS, record.track.id),
+                                rowKey = RecordType.TRACKS to record.track.id,
+                                group = swipeGroup,
+                                onDelete = { onDeleteTrack(record.track.id) },
+                                onEdit = null,
+                            ) { row() }
+                        } else {
+                            row()
+                        }
                     }
                     is TimedRecord.WaypointRecord -> key(RecordType.WAYPOINTS, record.waypoint.id) {
                         TwoStageSwipeRow(
@@ -194,6 +214,7 @@ internal fun RecordsLogbookList(
                                     isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
                                     distanceUnit = distanceUnit,
                                     nowEpochMillis = now,
+                                    onDownloadAgain = { onDownloadAgain(record.region.id) },
                                 )
                             }
                         }

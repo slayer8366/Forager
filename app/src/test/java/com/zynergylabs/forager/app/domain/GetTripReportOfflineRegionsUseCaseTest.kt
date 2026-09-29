@@ -161,5 +161,8 @@ class GetTripReportOfflineRegionsUseCaseTest {
         override suspend fun deleteRegion(id: Long): Result<Unit> = error("not used by this test")
 
         override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(regions)
+        override suspend fun listNotDownloadedRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
+
+        override suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> = Result.success(Unit)
     }
 }

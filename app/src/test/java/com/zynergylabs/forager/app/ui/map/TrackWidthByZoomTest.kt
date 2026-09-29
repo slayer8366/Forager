@@ -11,11 +11,11 @@ import org.junit.Test
 import org.maplibre.android.style.expressions.Expression
 
 /**
- * Track widths by zoom (owner, 2026-09-28: "Can we have the track lines thin out as we zoom out?").
- * The stops are the planner's proposal in dispatch 2026-09-28-34: today's width at zoom 15 and above,
- * 40% of it at zoom 11 and below, linear in between, with each casing keeping today's ratio to its
- * line. The expected numbers below are that proposal's arithmetic on today's widths (a 6 dp line, a
- * 9 dp casing), written out, not read back from the stop data.
+ * Track widths by zoom. Stops: owner "2 A" (2026-09-29, `docs/plans/journal-redesign.md`, "Tracks by
+ * zoom, revised"), replacing the 2026-09-28-34 proposal: 100% at zoom 18 and above, about 67% at 16,
+ * about 42% at 14, 25% at 12 and below, linear between. The expected numbers below are that ruling's
+ * arithmetic on today's widths (a 6 dp line, a 9 dp casing), written out, not read back from the stop
+ * data.
  */
 class TrackWidthByZoomTest {
 
@@ -26,40 +26,44 @@ class TrackWidthByZoomTest {
     private val keptTrackCasing = specs.getValue(MapLayerIds.KEPT_TRACKS_CASING)
 
     @Test
-    fun `the stops are 40 percent of the full width at zoom 11 and the full width at zoom 15`() {
-        assertEquals(listOf(ZoomWidthStop(11f, 0.4f), ZoomWidthStop(15f, 1f)), TRACK_WIDTH_ZOOM_STOPS)
+    fun `the stops are 25 percent at zoom 12, 42 at 14, 67 at 16 and the full width at 18`() {
+        assertEquals(
+            listOf(ZoomWidthStop(12f, 0.25f), ZoomWidthStop(14f, 0.42f), ZoomWidthStop(16f, 0.67f), ZoomWidthStop(18f, 1f)),
+            TRACK_WIDTH_ZOOM_STOPS,
+        )
     }
 
     @Test
-    fun `each track line is 2,4 dp at zoom 11 and 6 dp at zoom 15, and each casing 3,6 dp and 9 dp`() {
-        for ((name, spec, low, full) in listOf(
-            Quad("breadcrumb", breadcrumb, 2.4f, 6f),
-            Quad("breadcrumb casing", breadcrumbCasing, 3.6f, 9f),
-            Quad("kept track", keptTrack, 2.4f, 6f),
-            Quad("kept-track casing", keptTrackCasing, 3.6f, 9f),
+    fun `each track line is 1,5 2,52 4,02 and 6 dp at zoom 12 14 16 and 18, and each casing 2,25 3,78 6,03 and 9 dp`() {
+        for ((name, spec, widths) in listOf(
+            Row("breadcrumb", breadcrumb, listOf(1.5f, 2.52f, 4.02f, 6f)),
+            Row("breadcrumb casing", breadcrumbCasing, listOf(2.25f, 3.78f, 6.03f, 9f)),
+            Row("kept track", keptTrack, listOf(1.5f, 2.52f, 4.02f, 6f)),
+            Row("kept-track casing", keptTrackCasing, listOf(2.25f, 3.78f, 6.03f, 9f)),
         )) {
             val stops = lineWidthStops(spec)
             assertNotNull("$name has zoom stops", stops)
-            assertEquals("$name has two stops", 2, stops!!.size)
-            assertEquals("$name first stop's zoom", 11f, stops[0].first, 0f)
-            assertEquals("$name width at zoom 11", low, stops[0].second, 1e-4f)
-            assertEquals("$name last stop's zoom", 15f, stops[1].first, 0f)
-            assertEquals("$name width at zoom 15", full, stops[1].second, 1e-4f)
+            assertEquals("$name has four stops", 4, stops!!.size)
+            listOf(12f, 14f, 16f, 18f).forEachIndexed { i, zoom ->
+                assertEquals("$name stop $i's zoom", zoom, stops[i].first, 0f)
+                assertEquals("$name width at zoom $zoom", widths[i], stops[i].second, 1e-4f)
+            }
         }
     }
 
     @Test
-    fun `below zoom 11 and above zoom 15 the width holds, and in between it is linear`() {
-        for ((name, spec, low, full) in listOf(
-            Quad("breadcrumb", breadcrumb, 2.4f, 6f),
-            Quad("kept-track casing", keptTrackCasing, 3.6f, 9f),
+    fun `below zoom 12 and above zoom 18 the width holds, and between the stops it is linear`() {
+        for ((name, spec, widths) in listOf(
+            Row("breadcrumb", breadcrumb, listOf(1.5f, 2.52f, 4.02f, 6f)),
+            Row("kept-track casing", keptTrackCasing, listOf(2.25f, 3.78f, 6.03f, 9f)),
         )) {
-            assertEquals("$name at zoom 5", low, lineWidthAtZoom(spec, 5f), 1e-4f)
-            assertEquals("$name at zoom 11", low, lineWidthAtZoom(spec, 11f), 1e-4f)
-            assertEquals("$name at zoom 13, halfway", (low + full) / 2, lineWidthAtZoom(spec, 13f), 1e-4f)
-            assertEquals("$name at zoom 14", low + (full - low) * 0.75f, lineWidthAtZoom(spec, 14f), 1e-4f)
-            assertEquals("$name at zoom 15", full, lineWidthAtZoom(spec, 15f), 1e-4f)
-            assertEquals("$name at zoom 20", full, lineWidthAtZoom(spec, 20f), 1e-4f)
+            assertEquals("$name at zoom 5", widths[0], lineWidthAtZoom(spec, 5f), 1e-4f)
+            assertEquals("$name at zoom 12", widths[0], lineWidthAtZoom(spec, 12f), 1e-4f)
+            assertEquals("$name at zoom 13, halfway 12 to 14", (widths[0] + widths[1]) / 2, lineWidthAtZoom(spec, 13f), 1e-4f)
+            assertEquals("$name at zoom 15, halfway 14 to 16", (widths[1] + widths[2]) / 2, lineWidthAtZoom(spec, 15f), 1e-4f)
+            assertEquals("$name at zoom 17, halfway 16 to 18", (widths[2] + widths[3]) / 2, lineWidthAtZoom(spec, 17f), 1e-4f)
+            assertEquals("$name at zoom 18", widths[3], lineWidthAtZoom(spec, 18f), 1e-4f)
+            assertEquals("$name at zoom 22", widths[3], lineWidthAtZoom(spec, 22f), 1e-4f)
         }
     }
 
@@ -72,7 +76,7 @@ class TrackWidthByZoomTest {
                 zoom += 0.5f
             }
         }
-        assertNotEquals("the widths do change with zoom", lineWidthAtZoom(keptTrack, 11f), lineWidthAtZoom(keptTrack, 15f))
+        assertNotEquals("the widths do change with zoom", lineWidthAtZoom(keptTrack, 12f), lineWidthAtZoom(keptTrack, 18f))
     }
 
     @Test
@@ -80,8 +84,10 @@ class TrackWidthByZoomTest {
         val expected = Expression.interpolate(
             Expression.linear(),
             Expression.zoom(),
-            Expression.stop(11f, 2.4f),
-            Expression.stop(15f, 6f),
+            Expression.stop(12f, 1.5f),
+            Expression.stop(14f, 2.52f),
+            Expression.stop(16f, 4.02f),
+            Expression.stop(18f, 6f),
         )
         assertEquals(expected, lineWidthExpression(keptTrack))
         assertEquals(expected, lineWidthExpression(breadcrumb))
@@ -93,9 +99,9 @@ class TrackWidthByZoomTest {
         assertNotNull("the kept track thins out", lineWidthStops(keptTrack))
         assertNull("the offline outline has no stops", lineWidthStops(outline))
         assertEquals(Expression.literal(1.5f), lineWidthExpression(outline))
-        assertEquals(1.5f, lineWidthAtZoom(outline, 11f), 0f)
-        assertEquals(1.5f, lineWidthAtZoom(outline, 15f), 0f)
+        assertEquals(1.5f, lineWidthAtZoom(outline, 12f), 0f)
+        assertEquals(1.5f, lineWidthAtZoom(outline, 18f), 0f)
     }
 
-    private data class Quad(val name: String, val spec: LineLayerSpec, val low: Float, val full: Float)
+    private data class Row(val name: String, val spec: LineLayerSpec, val widths: List<Float>)
 }

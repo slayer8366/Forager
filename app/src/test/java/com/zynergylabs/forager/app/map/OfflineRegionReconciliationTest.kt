@@ -157,4 +157,38 @@ class OfflineRegionReconciliationTest {
     private fun neverFinishedMetadata() = RegionMetadata("Ridge", Region(1.0, 2.0, 5), 6.0, 12.0, downloadedAtEpochMillis = 0L).toBytes()
 
     private fun finishedMetadata() = RegionMetadata("Ridge", Region(1.0, 2.0, 5), 6.0, 12.0, downloadedAtEpochMillis = 1_000L).toBytes()
+
+    // ---- restored regions (dispatch 2026-09-28-137, item 1) ----
+
+    @Test
+    fun `a Room row with no MapLibre region is offered as not downloaded, with its stored centre, radius and zoom`() {
+        val rows = listOf(row(1), row(2).copy(name = "Cedar Creek", lat = 45.5, lng = -122.6, radiusKm = 8, minZoom = 10.0, maxZoom = 15.0))
+
+        val listed = notDownloadedRegions(rows, liveIds = setOf(1L))
+
+        assertEquals(listOf(2L), listed.map { it.id })
+        val region = listed.single()
+        assertEquals(false, region.isDownloaded)
+        assertEquals("Cedar Creek", region.name)
+        assertEquals(com.zynergylabs.forager.app.domain.model.Region(lat = 45.5, lng = -122.6, radiusKm = 8), region.region)
+        assertEquals(10.0, region.minZoom, 0.0)
+        assertEquals(15.0, region.maxZoom, 0.0)
+        assertEquals(0, region.tileCount)
+        assertEquals(0L, region.sizeBytes)
+    }
+
+    @Test
+    fun `a Room row MapLibre does have is not offered as not downloaded`() {
+        assertEquals(emptyList<Long>(), notDownloadedRegions(listOf(row(1), row(2)), liveIds = setOf(1L, 2L)).map { it.id })
+    }
+
+    @Test
+    fun `an empty read offers every row, and listing them deletes nothing`() {
+        val dao = FakeDao(listOf(row(1), row(2)))
+
+        val listed = notDownloadedRegions(runBlocking { dao.getAll() }, liveIds = emptySet())
+
+        assertEquals(setOf(1L, 2L), listed.map { it.id }.toSet())
+        assertEquals("both rows are still in the store", setOf(1L, 2L), dao.rows.keys)
+    }
 }

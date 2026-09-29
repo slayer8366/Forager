@@ -8,6 +8,8 @@ import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
@@ -133,6 +135,7 @@ class TrackRecordingViewModelTest {
         // waypoint per recording, and a fixed id would make the second silently replace the first.
         createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "waypoint-${++waypointIds}" }),
         deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
+        deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository, InMemoryKeptTrackPaths()),
         computeReturnToStart = ComputeReturnToStartUseCase(),
         detectOffTrack = DetectOffTrackUseCase(),
         locationTracker = locationTracker,
@@ -626,6 +629,19 @@ class TrackRecordingViewModelTest {
 
         assertFalse(vm.uiState.value.isReturning)
         assertFalse(vm.uiState.value.isOffTrack)
+    }
+
+    @Test
+    fun `the loaders return a Job, and once joined show waypoints and tracks written behind the screen's back`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        advanceUntilIdle()
+        waypointRepository.save(Waypoint(id = "restored-w", lat = 45.0, lng = -122.0, altitude = null, name = "Restored oak", note = "", createdAtEpochMillis = 1_000L))
+
+        vm.loadWaypoints().join()
+        vm.loadTracks().join()
+
+        assertEquals(listOf("restored-w"), vm.uiState.value.waypoints.map { it.id })
     }
 
     @Test

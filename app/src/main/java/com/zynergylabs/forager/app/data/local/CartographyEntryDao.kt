@@ -42,6 +42,26 @@ abstract class CartographyEntryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun upsertEntry(entity: CartographyEntryEntity)
 
+    @Query("SELECT * FROM cartography_entry_track_paths WHERE entryId = :entryId")
+    abstract suspend fun getTrackPaths(entryId: String): List<CartographyEntryTrackPathEntity>
+
+    /**
+     * F3: writes [path] for every ref row naming [trackId], in one statement, so the lookup of which entries have
+     * the track and the writes cannot disagree. No `kept` and no `isDraft` condition, on purpose: a withheld
+     * decision or a draft's ref is still a ref row, and what the reader draws is decided by `kept` at read time
+     * (`GetCartographyEntryMapDataUseCase`), not here. `INSERT OR REPLACE` makes it idempotent.
+     */
+    @Query(
+        """
+        INSERT OR REPLACE INTO cartography_entry_track_paths (entryId, trackId, path)
+        SELECT entryId, trackId, :path FROM cartography_entry_track_refs WHERE trackId = :trackId
+        """,
+    )
+    abstract suspend fun copyTrackPathToEveryRef(trackId: String, path: ByteArray)
+
+    @Query("DELETE FROM cartography_entry_track_paths WHERE entryId = :entryId")
+    abstract suspend fun deleteTrackPathsForEntry(entryId: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertTrackRefs(refs: List<CartographyEntryTrackRefEntity>)
 
@@ -110,9 +130,10 @@ abstract class CartographyEntryDao {
         insertPhotoRefs(photoRefs)
     }
 
-    /** Removes an entry's own row and all five of its kept-item ref tables' rows for it. */
+    /** Removes an entry's own row, all five of its kept-item ref tables' rows for it, and its saved track paths (F3). */
     @Transaction
     open suspend fun deleteEntryAndRefs(id: String) {
+        deleteTrackPathsForEntry(id)
         deleteTrackRefsForEntry(id)
         deleteWaypointRefsForEntry(id)
         deleteOfflineRegionRefsForEntry(id)

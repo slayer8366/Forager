@@ -4,14 +4,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
@@ -57,6 +62,7 @@ import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
+import com.zynergylabs.forager.app.ui.track.canBeDeleted
 import com.zynergylabs.forager.app.ui.track.shareTrackGpx
 import com.zynergylabs.forager.app.ui.track.trackTitle
 import kotlinx.coroutines.launch
@@ -156,6 +162,8 @@ internal fun RecordDetailsSheet(
     nowEpochMillis: Long,
     staleThresholdDays: Int,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    /** The track's Delete: a pending delete with Undo, as the list's swipe asks for (Part 2 follow-ups F1 item 5, owner "Option A"). `null` shows none; a track still recording never shows one. */
+    onDeleteTrack: ((String) -> Unit)? = null,
     onDismiss: () -> Unit,
     /**
      * Whether a map is drawn on screen beneath the sheet (map chrome at 80%, dispatch 2026-09-28-56 as
@@ -197,12 +205,109 @@ internal fun RecordDetailsSheet(
                 .padding(bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            when {
-                waypoint != null -> WaypointDetails(waypoint, tracks, waypointEntryReferenceCounts)
-                track != null -> TrackDetails(track, waypoints, distanceUnit, getFullRecord)
-                region != null -> OfflineRegionDetails(region, distanceUnit, nowEpochMillis, staleThresholdDays)
-            }
+            RecordDetailsBody(
+                waypoint = waypoint,
+                track = track,
+                region = region,
+                waypoints = waypoints,
+                tracks = tracks,
+                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                distanceUnit = distanceUnit,
+                nowEpochMillis = nowEpochMillis,
+                staleThresholdDays = staleThresholdDays,
+                getFullRecord = getFullRecord,
+                onDeleteTrack = onDeleteTrack,
+            )
         }
+    }
+}
+
+/**
+ * The record's details as the wide tree's right-side pane instead of [RecordDetailsSheet]'s modal sheet
+ * (J6a, ruling 6.1: "The record details open in the right side, not as a sheet"). The same fields, from
+ * the same body ([RecordDetailsBody]); a back-arrow row closes it, and Back does too (`RecordsTab`).
+ * A record that has left its list closes the pane, as the sheet does, rather than showing nothing.
+ */
+@Composable
+internal fun RecordDetailsPane(
+    target: RecordDetailsTarget,
+    waypoints: List<Waypoint>,
+    tracks: List<Track>,
+    offlineRegions: List<OfflineRegionSummary>,
+    waypointEntryReferenceCounts: Map<String, Int>,
+    distanceUnit: DistanceUnit,
+    nowEpochMillis: Long,
+    staleThresholdDays: Int,
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    /** The track's Delete: a pending delete with Undo, as the list's swipe asks for (Part 2 follow-ups F1 item 5, owner "Option A"). `null` shows none; a track still recording never shows one. */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    onDismiss: () -> Unit,
+) {
+    val waypoint = (target as? RecordDetailsTarget.WaypointDetails)?.let { t -> waypoints.firstOrNull { it.id == t.id } }
+    val track = (target as? RecordDetailsTarget.TrackDetails)?.let { t -> tracks.firstOrNull { it.id == t.id } }
+    val region = (target as? RecordDetailsTarget.OfflineRegionDetails)?.let { t -> offlineRegions.firstOrNull { it.id == t.id } }
+    if (waypoint == null && track == null && region == null) {
+        LaunchedEffect(target) { onDismiss() }
+        return
+    }
+    Column(modifier = Modifier.fillMaxSize().testTag(RECORD_DETAILS_PANE_TAG)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(role = Role.Button, onClick = onDismiss)
+                .padding(horizontal = Spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close details")
+            Text("Details", style = MaterialTheme.typography.titleMedium)
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.lg)
+                .padding(bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            RecordDetailsBody(
+                waypoint = waypoint,
+                track = track,
+                region = region,
+                waypoints = waypoints,
+                tracks = tracks,
+                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                distanceUnit = distanceUnit,
+                nowEpochMillis = nowEpochMillis,
+                staleThresholdDays = staleThresholdDays,
+                getFullRecord = getFullRecord,
+                onDeleteTrack = onDeleteTrack,
+            )
+        }
+    }
+}
+
+/** What the record's details show, whichever container holds them: the sheet ([RecordDetailsSheet]) or the wide tree's pane ([RecordDetailsPane]). Exactly one of [waypoint], [track], [region] is non-null. */
+@Composable
+private fun RecordDetailsBody(
+    waypoint: Waypoint?,
+    track: Track?,
+    region: OfflineRegionSummary?,
+    waypoints: List<Waypoint>,
+    tracks: List<Track>,
+    waypointEntryReferenceCounts: Map<String, Int>,
+    distanceUnit: DistanceUnit,
+    nowEpochMillis: Long,
+    staleThresholdDays: Int,
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    onDeleteTrack: ((String) -> Unit)?,
+) {
+    when {
+        waypoint != null -> WaypointDetails(waypoint, tracks, waypointEntryReferenceCounts)
+        track != null -> TrackDetails(track, waypoints, distanceUnit, getFullRecord, onDeleteTrack)
+        region != null -> OfflineRegionDetails(region, distanceUnit, nowEpochMillis, staleThresholdDays)
     }
 }
 
@@ -242,6 +347,7 @@ private fun TrackDetails(
     waypoints: List<Waypoint>,
     distanceUnit: DistanceUnit,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    onDeleteTrack: ((String) -> Unit)?,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -269,6 +375,19 @@ private fun TrackDetails(
         ) {
             Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
             Text("Share", modifier = Modifier.padding(start = Spacing.sm))
+        }
+        // Part 2 follow-ups F1 item 5 (owner "Option A"): the same pending delete and Undo as the row's swipe,
+        // labelled "Delete" as the swipe's revealed button and its accessibility action are (DELETE_ACTION_LABEL,
+        // SwipeToDelete.kt). Never for a track that is still recording. The sheet or pane closes by itself when the
+        // track leaves the list it reads (the pending track is hidden at once).
+        if (onDeleteTrack != null && track.canBeDeleted) {
+            OutlinedButton(
+                onClick = { onDeleteTrack(track.id) },
+                modifier = Modifier.testTag(RECORD_DETAILS_DELETE_TAG),
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(DELETE_ACTION_LABEL, modifier = Modifier.padding(start = Spacing.sm))
+            }
         }
     }
 }
@@ -353,6 +472,9 @@ private val FIELD_LABEL_WIDTH = 112.dp
 private val TRACK_THUMBNAIL_SIZE = 96.dp
 
 internal const val RECORD_DETAILS_SHEET_TAG = "record-details-sheet"
+
+/** The record details' pane on the wide tree ([RecordDetailsPane]). */
+internal const val RECORD_DETAILS_PANE_TAG = "record-details-pane"
 internal const val RECORD_DETAILS_TITLE_TAG = "record-details-title"
 internal const val RECORD_DETAILS_STALE_TAG = "record-details-stale"
 internal const val RECORD_DETAILS_NOTE_TAG = "record-details-note"
@@ -360,6 +482,7 @@ internal const val RECORD_DETAILS_ZOOM_TAG = "record-details-zoom"
 internal const val RECORD_DETAILS_THUMBNAIL_TAG = "record-details-thumbnail"
 internal const val RECORD_DETAILS_DIRECTIONS_TAG = "record-details-directions"
 internal const val RECORD_DETAILS_SHARE_TAG = "record-details-share"
+internal const val RECORD_DETAILS_DELETE_TAG = "record-details-delete"
 
 internal fun recordDetailsFieldTag(key: String): String = "record-details-field-$key"
 

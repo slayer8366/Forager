@@ -16,6 +16,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -25,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -70,6 +73,13 @@ internal fun CartographyEntryListScreen(
     /** The already-loaded recorded tracks, which a card's thumbnail is looked up in by id (J3, C3; see [entryThumbnailTracks]). */
     tracks: List<Track> = emptyList(),
     /**
+     * F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, read for the entries
+     * whose kept track is not in [tracks] ([entriesNeedingSavedPaths]) and re-read when [entries] or [tracks]
+     * change, so a track deleted on the Records side keeps its card's thumbnail with no refresh from elsewhere.
+     * A failed read is the caller's to log; this draws no thumbnail for that entry.
+     */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
+    /**
      * J4b L2 (owner ruling "Lists swipe, grids long-press (Recommended)"): when set, every card is a
      * [TwoStageSwipeRow] whose revealed Delete, full swipe and "Delete" accessibility action call
      * this with the entry's id (a *pending* delete with Undo). `null` (the default, `LogPanel`'s
@@ -105,6 +115,9 @@ internal fun CartographyEntryListScreen(
     val months = remember(entries) { groupEntriesByMonth(entries) }
     val photosById = remember(galleryPhotos) { galleryPhotos.associateBy { it.photo.id } }
     val tracksById = remember(tracks) { tracks.associateBy { it.id } }
+    val savedPathsByEntry by produceState(initialValue = emptyMap<String, Map<String, List<LatLng>>>(), entries, tracksById) {
+        value = entriesNeedingSavedPaths(entries, tracksById).associateWith { getSavedTrackPaths(it) }
+    }
     // J4b L2: one open card at a time; a touch elsewhere on the list or a scroll closes it.
     val swipeGroup = rememberSwipeRevealGroup()
     val gridState = rememberLazyGridState()
@@ -139,6 +152,7 @@ internal fun CartographyEntryListScreen(
                             entry = entry,
                             hero = hero,
                             tracksById = tracksById,
+                            savedPaths = savedPathsByEntry[entry.id].orEmpty(),
                             distanceUnit = distanceUnit,
                             onOpen = open,
                             onDelete = onDeleteEntry?.let { delete -> { delete(entry.id) } },
@@ -154,7 +168,7 @@ internal fun CartographyEntryListScreen(
                                     distanceUnit = distanceUnit,
                                     onClick = open,
                                     hero = hero?.let { photo -> { EntryHeroPhoto(entry.id, photo) } },
-                                    thumbnail = entryThumbnailTracks(entry, tracksById).takeIf { it.isNotEmpty() }?.let { found -> { EntryTrackThumbnail(entry.id, found) } },
+                                    thumbnail = entryThumbnailTracksOrSaved(entry, tracksById, savedPathsByEntry[entry.id].orEmpty()).takeIf { it.isNotEmpty() }?.let { found -> { EntryTrackThumbnail(entry.id, found) } },
                                 )
                             }
                         }
@@ -187,6 +201,7 @@ private fun SidewaysEntryItem(
     entry: CartographyEntry,
     hero: GalleryPhoto?,
     tracksById: Map<String, Track>,
+    savedPaths: Map<String, List<LatLng>>,
     distanceUnit: DistanceUnit,
     onOpen: () -> Unit,
     onDelete: (() -> Unit)?,
@@ -196,7 +211,7 @@ private fun SidewaysEntryItem(
         if (isCollapsedEntry(entry, hasHero = hero != null)) {
             SidewaysCollapsedEntryRow(entry = entry, distanceUnit = distanceUnit, onClick = onOpen, options = options)
         } else {
-            val slot = entrySlotContent(hero, entryThumbnailTracks(entry, tracksById), entryStats(entry, distanceUnit))
+            val slot = entrySlotContent(hero, entryThumbnailTracksOrSaved(entry, tracksById, savedPaths), entryStats(entry, distanceUnit))
             SidewaysEntryCard(
                 entry = entry,
                 distanceUnit = distanceUnit,

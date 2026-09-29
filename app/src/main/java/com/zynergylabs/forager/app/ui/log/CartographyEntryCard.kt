@@ -31,7 +31,9 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.YearMonth
@@ -344,6 +346,39 @@ private val ENTRY_HERO_HEIGHT = 140.dp
  */
 internal fun entryThumbnailTracks(entry: CartographyEntry, tracksById: Map<String, Track>): List<Track> =
     entry.trackDecisions.filter { it.kept }.mapNotNull { tracksById[it.trackId] }
+
+/**
+ * The entries whose thumbnail needs a saved path (F3, dispatch 2026-09-28-195 item 5; owner, "C: list screen loads
+ * lazily"): those with a **kept** track that is not in the loaded list. The list asks for these entries' saved
+ * paths and no others, so an entry whose tracks all exist never reads the table, and a withheld track's path is
+ * never asked for.
+ */
+internal fun entriesNeedingSavedPaths(entries: List<CartographyEntry>, tracksById: Map<String, Track>): List<String> =
+    entries.filter { entry -> entry.trackDecisions.any { it.kept && it.trackId !in tracksById } }.map { it.id }
+
+/**
+ * [entryThumbnailTracks] with the path saved when a kept track was deleted: for each kept decision, in decision
+ * order, the live track if it is loaded, else its entry in [savedPaths] (this entry's, by track id), else nothing.
+ * The live track wins whenever it exists. A withheld decision draws nothing either way.
+ *
+ * A saved path becomes a [Track] carrying only what a path holds: its id, the decision's name, and points with the
+ * saved lat/lng. **Its timestamps are 0 and its accuracy and altitude null, not measured values**: the thumbnail
+ * reads only `id` and each point's lat/lng ([TracksThumbnail]), and nothing that consumes this list may read
+ * anything else from a track it draws from a saved path. Rejected: changing [TracksThumbnail] and
+ * `projectTracksToBox` to take bare lat/lng, which would touch their own tests for one more caller.
+ */
+internal fun entryThumbnailTracksOrSaved(entry: CartographyEntry, tracksById: Map<String, Track>, savedPaths: Map<String, List<LatLng>>): List<Track> =
+    entry.trackDecisions.filter { it.kept }.mapNotNull { decision ->
+        tracksById[decision.trackId] ?: savedPaths[decision.trackId]?.let { path ->
+            Track(
+                id = decision.trackId,
+                name = decision.name,
+                startedAtEpochMillis = 0L,
+                endedAtEpochMillis = 0L,
+                points = path.map { TrackPoint(lat = it.lat, lng = it.lng, altitude = null, accuracyMeters = null, timestampEpochMillis = 0L) },
+            )
+        }
+    }
 
 /** A card's track thumbnail: [TracksThumbnail] in a small square at the card's end, every kept track found drawn in it. */
 @Composable

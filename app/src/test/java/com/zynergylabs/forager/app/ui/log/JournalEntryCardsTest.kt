@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +27,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
@@ -38,6 +40,7 @@ import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.FindDecision
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoAttachment
@@ -98,9 +101,12 @@ class JournalEntryCardsTest {
         tracks: List<Track> = emptyList(),
         logState: MushroomLogUiState = MushroomLogUiState(),
         distanceUnit: DistanceUnit = DistanceUnit.KILOMETERS,
+        getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
+        tracksState: State<List<Track>>? = null,
+        drafts: List<CartographyEntry> = emptyList(),
     ) {
         composeRule.setContent {
-            var cartographyState by remember { mutableStateOf(CartographyUiState(entries = entries)) }
+            var cartographyState by remember { mutableStateOf(CartographyUiState(entries = entries, draftEntries = drafts)) }
             JournalTab(
                 uiState = logState,
                 onOpenCameraForLogEntry = {},
@@ -140,6 +146,7 @@ class JournalEntryCardsTest {
                 onFinishCartographyEntry = {},
                 onDeleteCartographyEntry = {},
                 getCartographyEntryMapData = { _, _ -> CARDS_EMPTY_MAP_DATA },
+                getSavedTrackPaths = getSavedTrackPaths,
                 getCartographyEntryOfflineRegion = { _, _ -> null },
                 getCartographyEntryCurrentLocation = { LocationResult.LocationUnavailable },
                 availabilityUiState = AvailabilityUiState(),
@@ -152,7 +159,7 @@ class JournalEntryCardsTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                tracks = tracks,
+                tracks = tracksState?.value ?: tracks,
                 onTracksOpened = {},
                 waypoints = emptyList(),
                 waypointsErrorMessage = null,
@@ -385,6 +392,76 @@ class JournalEntryCardsTest {
         inCard(entryThumbTag(WITHHELD_TRACK_CARD.id)).assertDoesNotExist()
     }
 
+    // ── F3: a kept track keeps its path (dispatch 2026-09-28-195, item 5; owner, 2026-09-29, "C: list screen loads lazily") ──
+    //
+    // Through JournalTab, the tab's real entry point. The lambda stands for the read of one entry's saved paths;
+    // recording which entries it is asked about is what shows the read is lazy.
+
+    @Test
+    fun `a card whose kept track is gone from the loaded list draws the path saved for it`() {
+        val asked = mutableListOf<String>()
+        setScreen(listOf(TRACK_CARD), tracks = emptyList(), getSavedTrackPaths = { id -> asked += id; mapOf("tr-a" to SAVED_PATH) })
+
+        inCard(entryThumbTag(TRACK_CARD.id)).assertIsDisplayed()
+        assertEquals(listOf(TRACK_CARD.id), asked.distinct())
+    }
+
+    @Test
+    fun `a saved path is asked for only the entries whose kept track is not in the loaded list`() {
+        val asked = mutableListOf<String>()
+        setScreen(
+            listOf(TRACK_CARD, TRACK_CARD_B),
+            tracks = listOf(track("tr-a", points = 3)),
+            getSavedTrackPaths = { id -> asked += id; mapOf("tr-b" to SAVED_PATH) },
+        )
+
+        inCard(entryThumbTag(TRACK_CARD.id)).assertExists()
+        inCard(entryThumbTag(TRACK_CARD_B.id)).assertExists()
+        assertEquals("only the entry whose track is gone is read", listOf(TRACK_CARD_B.id), asked.distinct())
+    }
+
+    @Test
+    fun `a card keeps its thumbnail when its track is deleted from the loaded list`() {
+        val loaded = mutableStateOf(listOf(track("tr-a", points = 3)))
+        setScreen(listOf(TRACK_CARD), tracksState = loaded, getSavedTrackPaths = { mapOf("tr-a" to SAVED_PATH) })
+        inCard(entryThumbTag(TRACK_CARD.id)).assertIsDisplayed()
+
+        composeRule.runOnIdle { loaded.value = emptyList() }
+        composeRule.waitForIdle()
+
+        inCard(entryThumbTag(TRACK_CARD.id)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a withheld track's saved path gives no thumbnail and is not asked for`() {
+        val asked = mutableListOf<String>()
+        setScreen(listOf(WITHHELD_TRACK_CARD), tracks = emptyList(), getSavedTrackPaths = { id -> asked += id; mapOf("tr-w" to SAVED_PATH) })
+
+        node(cardTag(WITHHELD_TRACK_CARD.id)).assertExists()
+        inCard(entryThumbTag(WITHHELD_TRACK_CARD.id)).assertDoesNotExist()
+        assertEquals(emptyList<String>(), asked)
+    }
+
+    @Test
+    fun `a saved path of one point gives no thumbnail, as a live track of one point does not`() {
+        setScreen(listOf(TRACK_CARD), tracks = emptyList(), getSavedTrackPaths = { mapOf("tr-a" to listOf(LatLng(45.0, -122.0))) })
+
+        node(cardTag(TRACK_CARD.id)).assertExists()
+        inCard(entryThumbTag(TRACK_CARD.id)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a draft card in the drafts list draws the path saved for its kept track that is gone, through the Journal tab`() {
+        val draftA = CartographyEntry.draft(id = "draft-a", date = LocalDate.of(2026, 9, 12), updatedAtEpochMillis = 2L).copy(text = "Half a loop", trackDecisions = listOf(trackDecision("tr-a", meters = 1_500.0, millis = 30 * 60_000L)))
+        val draftB = CartographyEntry.draft(id = "draft-b", date = LocalDate.of(2026, 9, 11), updatedAtEpochMillis = 1L).copy(text = "Another")
+        setScreen(listOf(TRACK_CARD), drafts = listOf(draftA, draftB), getSavedTrackPaths = { mapOf("tr-a" to SAVED_PATH) })
+
+        node("entries-drafts-continue").performClick()
+        composeRule.waitForIdle()
+
+        inCard(entryThumbTag(draftA.id)).assertIsDisplayed()
+    }
+
     // ── J4, D5: several kept tracks (owner rulings "All in one box" and "Sum, with a count") ──
 
     @Test
@@ -582,6 +659,8 @@ private val WITHHELD_TRACK_CARD: CartographyEntry = committed("withheld-track", 
     text = "Kept nothing of the walk",
     trackDecisions = listOf(trackDecision("tr-w", meters = 800.0, millis = 20 * 60_000L, kept = false)),
 )
+
+private val SAVED_PATH = listOf(LatLng(45.0, -122.0), LatLng(45.001, -122.002), LatLng(45.002, -122.004))
 
 private const val VIEW_ALBUM = "entries-view-album"
 private fun albumPhotoTag(id: String): String = "entries-album-photo-$id"

@@ -32,8 +32,8 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
  * draft row with a new id — see [MushroomLogViewModel]'s own doc comment on the standalone-draft
  * model.
  *
- * [galleryPhotos]/[isLoadingGalleryPhotos]/[galleryLoadErrorMessage] are [PhotoGalleryScreen]'s own
- * state (Workstream G2) — deliberately separate loading/error fields from [entries]' own, mirroring
+ * [galleryPhotos]/[isLoadingGalleryPhotos]/[galleryLoadErrorMessage] are the photo album's own
+ * state (Workstream G2; the standalone Photo Gallery screen that first read them was removed in J6) — deliberately separate loading/error fields from [entries]' own, mirroring
  * how [isLoadingEntries]/[loadErrorMessage] are entry-specific rather than one shared "is something
  * loading" flag: the gallery and the entry list are independent reads
  * ([com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase] vs. [com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase]),

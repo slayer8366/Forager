@@ -1,6 +1,9 @@
 package com.zynergylabs.forager.app.ui.backup
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -16,9 +19,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.semantics.Role
 import com.zynergylabs.forager.app.domain.BackupFrequency
 import com.zynergylabs.forager.app.domain.RestoreMode
@@ -45,6 +51,8 @@ internal fun backupFrequencyTag(frequency: BackupFrequency) = "backup-frequency-
 @Composable
 internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifier) {
     val state = controls.state
+    val context = LocalContext.current
+    val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { /* granted or declined: the schedule is already on */ }
     val createBackupFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) controls.onBackUpNow(uri.toString())
     }
@@ -53,6 +61,24 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
     }
     val chooseBackupFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) controls.onRestoreFileChosen(uri.toString())
+    }
+
+    // "Try again" after a failed write asks for a new file: the file it made is gone, so the Save picker opens again.
+    LaunchedEffect(state.createFileRequested) {
+        if (state.createFileRequested) {
+            controls.onCreateFileRequestHandled()
+            createBackupFile.launch(backupFileName(System.currentTimeMillis()))
+        }
+    }
+
+    // Turning it on with a folder chosen, the first time only (owner 3.4), is the moment a scheduled run's notification becomes
+    // possible, so the ViewModel raises this one-shot and it is asked for here (API 33+). Declining does not stop the schedule: a
+    // run's notice then waits for the app, and the permission is not asked for again for backups.
+    LaunchedEffect(state.askNotificationPermission) {
+        if (state.askNotificationPermission) {
+            controls.onNotificationPermissionRequestHandled()
+            if (needsNotificationPermission(context)) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -71,7 +97,7 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
             Text("Automatic backup", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Switch(
                 checked = state.schedule.enabled,
-                onCheckedChange = controls.onAutomaticChanged,
+                onCheckedChange = { on -> controls.onAutomaticChanged(on) },
                 modifier = Modifier.testTag(BACKUP_AUTOMATIC_SWITCH_TAG),
             )
         }
@@ -107,7 +133,7 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
         OutlinedButton(onClick = { chooseFolder.launch(null) }) { Text("Choose folder") }
 
         OutlinedButton(
-            onClick = { chooseBackupFile.launch(RESTORE_MIME_TYPES) },
+            onClick = { if (controls.onRestoreRequested()) chooseBackupFile.launch(RESTORE_MIME_TYPES) },
             enabled = !state.busy,
         ) { Text("Restore from backup") }
 
@@ -117,6 +143,50 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
     }
 
     if (state.pendingRestoreUri != null) RestorePrompt(controls)
+    when (val prompt = state.prompt) {
+        is BackupPrompt.UnreadablePhotos -> UnreadablePhotosPrompt(prompt, controls)
+        BackupPrompt.WriteFailed -> WriteFailedPrompt(controls)
+        is BackupPrompt.ReplaceExisting -> ReplaceExistingPrompt(controls)
+        null -> Unit
+    }
+}
+
+/** "N photos couldn't be backed up." with Try again, Continue without file(s) and Cancel (owner, "3 A"; copy "5 approve, add a Continue button..."). */
+@Composable
+private fun UnreadablePhotosPrompt(prompt: BackupPrompt.UnreadablePhotos, controls: BackupControls) {
+    AlertDialog(
+        onDismissRequest = controls.onPhotosCancel,
+        text = { Text(prompt.text) },
+        dismissButton = { TextButton(onClick = controls.onPhotosCancel) { Text("Cancel") } },
+        confirmButton = {
+            Row {
+                TextButton(onClick = controls.onPhotosTryAgain) { Text("Try again") }
+                TextButton(onClick = controls.onPhotosContinue) { Text("Continue without file(s)") }
+            }
+        },
+    )
+}
+
+/** "Replace the existing backup file?" with Replace and Cancel (owner, "3 A"): asked before anything is written into a file that has contents. */
+@Composable
+private fun ReplaceExistingPrompt(controls: BackupControls) {
+    AlertDialog(
+        onDismissRequest = controls.onReplaceExistingCancelled,
+        text = { Text(BackupPrompt.ReplaceExisting.TEXT) },
+        dismissButton = { TextButton(onClick = controls.onReplaceExistingCancelled) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = controls.onReplaceExistingConfirmed) { Text("Replace") } },
+    )
+}
+
+/** "Couldn't finish the backup. The incomplete file was removed." with Try again and Cancel (owner, "7 A"). */
+@Composable
+private fun WriteFailedPrompt(controls: BackupControls) {
+    AlertDialog(
+        onDismissRequest = controls.onWriteFailedCancel,
+        text = { Text(BackupPrompt.WriteFailed.TEXT) },
+        dismissButton = { TextButton(onClick = controls.onWriteFailedCancel) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = controls.onWriteFailedTryAgain) { Text("Try again") } },
+    )
 }
 
 @Composable
@@ -140,6 +210,11 @@ private fun RestorePrompt(controls: BackupControls) {
         },
     )
 }
+
+/** API 33 and later, and the permission not yet granted. */
+private fun needsNotificationPermission(context: android.content.Context): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
 
 private val BackupFrequency.label: String
     get() = when (this) {

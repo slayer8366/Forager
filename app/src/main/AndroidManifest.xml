@@ -165,6 +165,12 @@
             </intent-filter>
         </activity>
 
+        <!-- The "Try again" action on the failed scheduled-backup notification: runs one backup to the same
+             folder (dispatch 2026-09-28-153). Not exported: only this app's own PendingIntent reaches it. -->
+        <receiver
+            android:name=".data.backup.BackupRetryReceiver"
+            android:exported="false" />
+
         <service
             android:name=".service.TrackRecordingService"
             android:exported="false"

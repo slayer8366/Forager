@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -83,6 +84,8 @@ internal fun DraftsListScreen(
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     /** For a draft card's track thumbnail (J3, C3), as on the timeline. */
     tracks: List<Track> = emptyList(),
+    /** F3: a draft card's saved track paths, as on the timeline; see [CartographyEntryListScreen]. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /** J4b L2: a draft card's swipe Delete (pending, with Undo); `null` leaves the cards unswipeable. See [CartographyEntryListScreen]. */
     onDeleteDraft: ((String) -> Unit)? = null,
     /** J4b L2: a draft card's swipe Edit. */
@@ -109,6 +112,7 @@ internal fun DraftsListScreen(
             distanceUnit = distanceUnit,
             galleryPhotos = galleryPhotos,
             tracks = tracks,
+            getSavedTrackPaths = getSavedTrackPaths,
             columns = columns,
             modifier = Modifier.weight(1f),
             onDeleteEntry = onDeleteDraft,

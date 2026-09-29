@@ -222,6 +222,15 @@ data class MapRenderMode(
      * short landscape window, whose overlaid rail sits on that edge at one rotation.
      */
     val attributionEndInset: Dp = 0.dp,
+    /**
+     * How far MapLibre's attribution button ("i") keeps from the map's bottom edge, when that differs from
+     * [bottomInset], which the app's own always-visible caption follows. `null` (the default, every caller
+     * but the compact Maps tab) means the button follows [bottomInset], as it always has. Part 2 follow-ups
+     * F1 item 2 (Part 2 item 37): in portrait fullscreen [bottomInset] is 0 (the caption goes to the true
+     * edge, the owner's ruling recorded in `AvailabilityCompactScaffold`), which put the "i" under the
+     * system navigation band, where real taps opened nothing.
+     */
+    val attributionBottomInset: Dp? = null,
 )
 
 /**
@@ -509,6 +518,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         journalHighlights = content.journalHighlights,
         cameraMemory = renderMode.cameraMemory,
         attributionEndInset = renderMode.attributionEndInset,
+        attributionBottomInset = renderMode.attributionBottomInset,
         modifier = modifier,
     )
 }

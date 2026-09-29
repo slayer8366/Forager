@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.map
 import android.content.Context
 import android.util.Log
 import com.zynergylabs.forager.app.data.local.OfflineRegionDao
+import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacer
 import com.zynergylabs.forager.app.data.local.OfflineRegionEntity
 import com.zynergylabs.forager.app.data.repository.runCatchingCancellable
 import com.zynergylabs.forager.app.domain.GeoDistance
@@ -86,6 +87,7 @@ import org.maplibre.android.offline.OfflineTilePyramidRegionDefinition
 class MapLibreOfflineMapRepository(
     context: Context,
     private val offlineRegionDao: OfflineRegionDao,
+    private val regionIdReplacer: RoomOfflineRegionIdReplacer,
 ) : OfflineMapRepository {
 
     private val appContext = context.applicationContext
@@ -173,6 +175,14 @@ class MapLibreOfflineMapRepository(
             createdAtEpochMillis = downloadedAt,
         )
     }
+
+    override suspend fun listNotDownloadedRegions(): Result<List<OfflineRegionSummary>> = runCatchingCancellable {
+        // A failed or null read throws (listOfflineRegionsSuspend), so it is a failure here, never "every row is missing".
+        val liveIds = offlineManager().listOfflineRegionsSuspend().map { it.id }.toSet()
+        notDownloadedRegions(offlineRegionDao.getAll(), liveIds)
+    }
+
+    override suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> = regionIdReplacer.replace(oldId, newId)
 
     override suspend fun deleteRegion(id: Long): Result<Unit> = runCatchingCancellable {
         offlineManager().listOfflineRegionsSuspend().firstOrNull { it.id == id }?.deleteSuspend()

@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import android.provider.MediaStore
 import java.io.File
 import java.util.Base64
 
@@ -38,6 +39,18 @@ internal class FakeMediaProvider : ContentProvider() {
 
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int {
         updated += uri to ContentValues(values)
+        // Part 2 follow-ups F1 item 7: the row as the provider now holds it, so a test can read what a
+        // Gallery would show once every write has landed, not only what each write asked for.
+        val row = inserted.firstOrNull { it.uri == uri }
+        if (row != null && values != null) {
+            current.getOrPut(uri) { ContentValues(row.values) }.putAll(values)
+            // The behaviour the device showed (Part 2 Session 1, item 61: the row read back with a NULL
+            // datetaken though the exporter had written one at insert): publishing a row re-derives
+            // DATE_TAKEN from the file's own metadata, and a scrubbed photo has none. Off unless a test turns it on.
+            if (scanOnPublishClearsDateTaken && values.getAsInteger(MediaStore.MediaColumns.IS_PENDING) == 0) {
+                current.getValue(uri).putNull(MediaStore.MediaColumns.DATE_TAKEN)
+            }
+        }
         return 1
     }
 
@@ -54,8 +67,15 @@ internal class FakeMediaProvider : ContentProvider() {
         val updated = mutableListOf<Pair<Uri, ContentValues>>()
         val deleted = mutableListOf<Uri>()
         var refuseInsert = false
+        var scanOnPublishClearsDateTaken = false
+        private val current = mutableMapOf<Uri, ContentValues>()
+
+        /** The values [uri]'s row holds after every insert and update so far, including a modelled scan. */
+        fun rowNow(uri: Uri): ContentValues = current[uri] ?: ContentValues(inserted.first { it.uri == uri }.values)
 
         fun reset() {
+            current.clear()
+            scanOnPublishClearsDateTaken = false
             inserted.clear()
             updated.clear()
             deleted.clear()

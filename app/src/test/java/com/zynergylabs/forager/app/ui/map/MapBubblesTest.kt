@@ -21,6 +21,7 @@ import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.model.TrackDecision
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
@@ -214,6 +215,48 @@ class MapBubblesTest {
             mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-1"), sources),
         )
         assertEquals("1h 0m", formatTrackDuration(stats.durationMillis))
+    }
+
+    // F3 (dispatch 2026-09-28-195, item 5): the track's counterpart of the waypoint case above. A kept track
+    // gone from Records is named from the entry's snapshot (name, distance and duration are on the decision),
+    // with no details (there is no record to open) and no date (the snapshot never held one; a wrong date
+    // would be worse than none).
+    @Test
+    fun `an entry map's kept track gone from Records is named from the entry's snapshot, with no date and no details`() {
+        val kept = TrackDecision("trk-gone", "Old ridge", 1234.0, 3_660_000L, 5, kept = true)
+        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-gone"), sources.copy(snapshotTracks = listOf(kept)))
+        assertEquals(
+            MapBubbleContent.TrackContent(
+                trackId = "trk-gone",
+                title = "Old ridge",
+                date = null,
+                distance = formatDistanceMeters(1234.0, DistanceUnit.KILOMETERS),
+                duration = formatTrackDuration(3_660_000L),
+                hasDetails = false,
+            ),
+            content,
+        )
+    }
+
+    @Test
+    fun `a snapshot track with no name is titled as the entry report titles it`() {
+        val kept = TrackDecision("trk-gone", null, 10.0, 60_000L, 1, kept = true)
+        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-gone"), sources.copy(snapshotTracks = listOf(kept))) as MapBubbleContent.TrackContent
+        assertEquals("Recorded track", content.title)
+    }
+
+    @Test
+    fun `a track still in Records is the record, with details, even when a snapshot exists too`() {
+        val kept = TrackDecision("trk-1", "Old name", 1.0, 1L, 1, kept = true)
+        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-1"), sources.copy(snapshotTracks = listOf(kept))) as MapBubbleContent.TrackContent
+        assertEquals("Morning loop", content.title)
+        assertEquals(true, content.hasDetails)
+        assertEquals(formatRecordTimestamp(1_700_000_000_000L), content.date)
+    }
+
+    @Test
+    fun `a track that is in neither Records nor the snapshots has no bubble`() {
+        assertEquals(null, mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-nowhere"), sources))
     }
 
     @Test

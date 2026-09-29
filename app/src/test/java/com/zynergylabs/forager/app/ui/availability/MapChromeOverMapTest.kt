@@ -2,6 +2,8 @@
 
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.test.onAllNodesWithTag
+import com.zynergylabs.forager.app.ui.log.JOURNAL_DETAIL_PANE_TAG
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -126,6 +128,10 @@ internal class MapChromeScreenState {
     var tripStartWarning by mutableStateOf<RecordingNotice?>(null)
     var cartography by mutableStateOf(CartographyUiState())
     var entryMapData: CartographyEntryMapData = NO_ENTRY_MAP
+    var returnToMapRequest by mutableStateOf(0)
+    var openBackupRequest by mutableStateOf(0)
+    val downloadedAgain = mutableListOf<Long>()
+    var backup by mutableStateOf(com.zynergylabs.forager.app.ui.backup.BackupControls())
 }
 
 private val NO_ENTRY_MAP = CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
@@ -142,6 +148,8 @@ internal fun MapChromeTestScreen(
     roles: MapChromeRoles,
     // Continuation 2026-09-29-12: a test that records the render modes of every map brings its own slot.
     mapSlotOverride: com.zynergylabs.forager.app.ui.map.MapSlot? = null,
+    // Dispatch 2026-09-28-137: something drawn over the screen, as MainActivity draws the restore's loading page.
+    overlay: @Composable () -> Unit = {},
 ) {
     ForagerTheme(darkTheme = true) {
         roles.Capture()
@@ -180,7 +188,12 @@ internal fun MapChromeTestScreen(
             tripStartWarning = state.tripStartWarning,
             cartographyUiState = state.cartography,
             getCartographyEntryMapData = { _, _ -> state.entryMapData },
+            backup = state.backup,
+            returnToMapRequest = state.returnToMapRequest,
+            openBackupRequest = state.openBackupRequest,
+            onDownloadAgain = { state.downloadedAgain += it },
         )
+        overlay()
     }
 }
 
@@ -581,6 +594,20 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
         composeRule.waitForIdle()
     }
 
+    /**
+     * The details are solid, not at the map chrome's alpha. In the compact Journal they are a sheet; in
+     * the wide tree they are the right side's detail pane (J6a, ruling 6.1: "The record details open in
+     * the right side, not as a sheet"), whose container is `surface`.
+     */
+    private fun assertDetailsSolid() {
+        if (wide) {
+            composeRule.assertSolid(JOURNAL_DETAIL_PANE_TAG, roles.surface)
+            assertEquals("the wide tree has no details sheet", 0, composeRule.onAllNodesWithTag(RECORD_DETAILS_SHEET_TAG).fetchSemanticsNodes().size)
+        } else {
+            composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        }
+    }
+
     /** A real touch on [rowTag], upper middle, after scrolling it into view. */
     private fun touchRow(rowTag: String) {
         composeRule.onNodeWithTag(rowTag).performScrollTo()
@@ -599,7 +626,7 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
         if (pickerMapBesideList) {
             composeRule.assertOverMap(RECORD_DETAILS_SHEET_TAG, roles.sheet, roles.onSurface)
         } else {
-            composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+            assertDetailsSolid()
         }
     }
 
@@ -607,21 +634,21 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
     fun `an offline region's details sheet from All stays solid`() {
         openRecords(RecordsSubTab.ALL)
         touchRow("records-swipe-offline-maps-${BUBBLE_REGION.id}")
-        composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        assertDetailsSolid()
     }
 
     @Test
     fun `a waypoint's details sheet from the Waypoints sub-tab stays solid`() {
         openRecords(RecordsSubTab.WAYPOINTS)
         touchRow("records-swipe-waypoints-${BUBBLE_WAYPOINT.id}")
-        composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        assertDetailsSolid()
     }
 
     @Test
     fun `a track's details sheet from the Tracks sub-tab stays solid`() {
         openRecords(RecordsSubTab.RECORDED_TRACKS)
         touchRow("track-row-${BUBBLE_TRACK.id}")
-        composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        assertDetailsSolid()
     }
 }
 
@@ -715,10 +742,19 @@ class MapChromeWideTest {
         assertEquals("trip-date-picker: container", Color.Transparent, composeRule.colourOn(TRIP_DATE_PICKER_TAG, MapChromeContainerColor))
     }
 
+    /**
+     * J6c (the owner's item 5: "The tablet's separate Layers button and "+" are replaced by the bar's Layers
+     * and "+" rows"): the wide map's own Layers button, which this test read at the map chrome's alpha, no
+     * longer exists. Its replacement is a row of the icon cluster, the same `MapIconBar` and container the phone's
+     * Maps tab draws, whose fill the compact tests guard. What is asserted here is what is left to say about the
+     * wide map: the separate button is gone and the Layers control is the cluster's row. A direct alpha
+     * assertion on that row is not made: the cluster's fill is not marked with `MapChromeContainerColor`.
+     */
     @Test
-    fun `on the wide layout the Layers button over the map is at the map chrome's alpha`() {
+    fun `on the wide layout the Layers control is the icon cluster's row, and the separate Layers button is gone`() {
         setScreen()
-        composeRule.assertOverMap(WIDE_LAYERS_BUTTON_TAG, roles.surface, roles.onSurface)
+        assertEquals("the cluster is on the wide map", 1, composeRule.onAllNodesWithTag(MAP_ICON_CLUSTER_TAG).fetchSemanticsNodes().size)
+        assertEquals("the separate Layers button is gone", 0, composeRule.onAllNodesWithTag("wide-layers-button").fetchSemanticsNodes().size)
     }
 
     @Test

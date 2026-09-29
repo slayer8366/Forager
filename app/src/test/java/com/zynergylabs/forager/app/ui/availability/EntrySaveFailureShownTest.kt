@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.test.onAllNodesWithTag
 import android.app.Application
 import android.content.ComponentName
 import android.util.Log
@@ -317,7 +318,10 @@ internal abstract class EntrySaveFailureHarness {
     protected fun openSavedEntryReport() {
         openJournal()
         scrollToAndTouch(entryCard(SAVED.id))
-        composeRule.onNodeWithText(SAVED_TEXT).assertIsDisplayed()
+        // J6a: on the wide tree the open entry's report is in the right side's detail pane while the Entries
+        // list, whose card carries the same text, stays in the left column, so the text is read inside the pane there.
+        val inPane = composeRule.onAllNodesWithTag("journal-detail-pane").fetchSemanticsNodes().isNotEmpty()
+        (if (inPane) composeRule.onNode(hasText(SAVED_TEXT) and androidx.compose.ui.test.hasAnyAncestor(hasTestTag("journal-detail-pane"))) else composeRule.onNodeWithText(SAVED_TEXT)).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
     }
 

@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependencies
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependenciesProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
+import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
 import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +41,7 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
     override val scheduledBackupDependencies: ScheduledBackupDependencies
         get() = object : ScheduledBackupDependencies {
             override val runScheduledBackup: RunScheduledBackupUseCase = container.runScheduledBackupUseCase
+            override val reporter: ScheduledBackupReporter = container.scheduledBackupReporter
             override val errorLog: ErrorLog = container.errorLog
         }
 

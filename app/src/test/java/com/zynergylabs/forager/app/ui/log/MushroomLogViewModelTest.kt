@@ -241,6 +241,63 @@ class MushroomLogViewModelTest {
     // never calls PhotoStore at all any more (see its own doc comment on why), so there is no
     // photo-file-deletion step left for this test to prove resilience against.
 
+    /** Restore (dispatch 2026-09-28-137, item 6): each loader returns a Job the caller can wait on, and reads the store again. */
+    @Test
+    fun `the loaders return a Job, and once joined show what was written behind the screen's back`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+        repository.save(entry)
+
+        vm.loadEntries().join()
+        vm.loadGalleryPhotos().join()
+
+        assertEquals(listOf(entry.id), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+        assertEquals(false, vm.uiState.value.isLoadingGalleryPhotos)
+    }
+
+    /** Dispatch 2026-09-28-182, item 5: a Replace deletes rows behind the screen's back; the open find must not stay on screen. */
+    @Test
+    fun `after a restore, an open find whose record is gone is closed, and one that is still there stays open`() = runTest(dispatcher) {
+        val other = entry.copy(id = "entry-2")
+        val repository = FakeMushroomLogRepository(listOf(entry, other))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals(entry.id, vm.uiState.value.editingEntry?.id)
+
+        repository.delete(entry.id).getOrThrow()
+        vm.reloadAfterRestore().join()
+
+        assertNull("the deleted find's report is closed", vm.uiState.value.editingEntry)
+        assertEquals("and the list no longer holds it", listOf(other.id), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+
+        vm.onOpenEntry(other.id)
+        advanceUntilIdle()
+        vm.reloadAfterRestore().join()
+        assertEquals("a find that is still there stays open", other.id, vm.uiState.value.editingEntry?.id)
+    }
+
+    @Test
+    fun `after a restore, an open draft whose record is gone is closed too`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        advanceUntilIdle()
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        assertTrue("an edit session on a draft of the entry", vm.uiState.value.editingEntry!!.isDraft)
+
+        repository.delete(draftId).getOrThrow()
+        vm.reloadAfterRestore().join()
+
+        assertNull(vm.uiState.value.editingEntry)
+    }
+
     /** Workstream G2: [MushroomLogViewModel.loadGalleryPhotos] runs alongside [MushroomLogViewModel.loadEntries] on init, independently populating [MushroomLogUiState.galleryPhotos]. */
     @Test
     fun `the gallery photos load on init, independent of the entry list`() = runTest(dispatcher) {
@@ -256,7 +313,7 @@ class MushroomLogViewModelTest {
     }
 
     /**
-     * Without this, a freshly added photo would only show up in [PhotoGalleryScreen] after the
+     * Without this, a freshly added photo would only show up in the removed Photo Gallery screen after the
      * ViewModel is recreated — see [MushroomLogViewModel.onAddPhoto]'s own inline comment on why
      * this refresh exists. Reworked to open a real draft session first (Workstream L4b-R): photo
      * actions, like field edits, only make sense against a draft row, never a merely-viewed
@@ -281,7 +338,7 @@ class MushroomLogViewModelTest {
     }
 
     /**
-     * Standalone-photos dispatch: [MushroomLogViewModel.onAddGalleryPhoto] is [PhotoGalleryScreen]'s
+     * Standalone-photos dispatch: [MushroomLogViewModel.onAddGalleryPhoto] is the removed Photo Gallery screen's
      * own Camera/Gallery entry point — no open entry needed at all (unlike [onAddPhoto] above, which
      * requires a draft session), and the resulting photo has no owning find.
      */
@@ -330,7 +387,7 @@ class MushroomLogViewModelTest {
         assertEquals(newPhoto.id, persistedId)
     }
 
-    /** The default's whole point (entry-photo-acquisition dispatch, Item 2): every call site before this dispatch — [PhotoGalleryScreen]'s own Camera/Import buttons among them — omits [onAddGalleryPhoto]'s new [onPersisted] parameter entirely, so this proves that path still succeeds unchanged rather than merely compiling. */
+    /** The default's whole point (entry-photo-acquisition dispatch, Item 2): every call site before this dispatch — the removed Photo Gallery screen's own Camera/Import buttons among them — omits [onAddGalleryPhoto]'s new [onPersisted] parameter entirely, so this proves that path still succeeds unchanged rather than merely compiling. */
     @Test
     fun `onAddGalleryPhoto with no onPersisted argument still persists and refreshes the gallery`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository()

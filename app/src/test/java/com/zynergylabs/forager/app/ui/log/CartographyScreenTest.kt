@@ -354,7 +354,7 @@ class CartographyScreenTest {
      * Entry-photo-acquisition dispatch, Item 2: Cartography's own acquire-and-attach path,
      * reachable for the first time. Only button *presence* is asserted — tapping either one
      * launches a real system Activity ([rememberPhotoAcquisitionLaunchers]) Robolectric cannot
-     * meaningfully drive, the same established limit [PhotoGalleryScreenTest]/[LogEntryDetailScreenTest]
+     * meaningfully drive, the same established limit the removed PhotoGalleryScreenTest and [LogEntryDetailScreenTest]
      * already document for the identical buttons elsewhere. What happens after a tap (persist, then
      * attach via [onAcquirePhotoForEntry]) is proven separately: the persist half by
      * `MushroomLogViewModelTest`'s own "onAddGalleryPhoto invokes onPersisted..." test, the attach

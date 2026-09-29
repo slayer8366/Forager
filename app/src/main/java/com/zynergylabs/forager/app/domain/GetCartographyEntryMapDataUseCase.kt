@@ -18,7 +18,9 @@ import com.zynergylabs.forager.app.domain.model.Region
  * Per kept-reference type — see the Stage 2d dispatch's own table for why these differ:
  * - **Waypoints** / **offline regions**: already carry lat/lng (and, for a region, radius) in their
  *   own snapshot, no fetch needed — mapped directly.
- * - **Tracks**: [TrackRepository.getById] per kept [com.zynergylabs.forager.app.domain.model.TrackDecision.trackId].
+ * - **Tracks**: [TrackRepository.getById] per kept [com.zynergylabs.forager.app.domain.model.TrackDecision.trackId];
+ *   when that track is gone, the path saved for this entry when it was deleted ([KeptTrackPathRepository], F3:
+ *   "a kept track keeps its path"). The live track wins whenever it exists, so an edit to a track still shows.
  * - **Finds**: [MushroomLogRepository.getForDay] per distinct kept
  *   [com.zynergylabs.forager.app.domain.model.FindDecision.foundOn] (there is no `getById`), then filtered by
  *   id — one call per distinct day among the kept finds, not one per find.
@@ -27,7 +29,8 @@ import com.zynergylabs.forager.app.domain.model.Region
  *   fetch of any kind for this one, unlike the other three.
  *
  * **A dangling or unresolvable reference contributes nothing, never a failure** — a kept track
- * deleted from Records ([TrackRepository.getById] returning `null`), a kept find likewise gone, or
+ * deleted from Records ([TrackRepository.getById] returning `null`) that has no saved path either (F3 saves one on
+ * delete, so this is now a track that was never deleted through the app), a kept find likewise gone, or
  * a photo with a null coordinate (the ordinary case — see [com.zynergylabs.forager.app.domain.model.LogPhoto]'s
  * own doc comment) or a missing gallery row, all fall out of their respective `mapNotNull` silently.
  * This deliberately does **not** short-circuit the whole result on one repository failure the way
@@ -64,11 +67,22 @@ import com.zynergylabs.forager.app.domain.model.Region
 class GetCartographyEntryMapDataUseCase(
     private val trackRepository: TrackRepository,
     private val mushroomLogRepository: MushroomLogRepository,
+    private val keptTrackPaths: KeptTrackPathRepository,
 ) {
     suspend operator fun invoke(entry: CartographyEntry, galleryPhotos: List<GalleryPhoto>): CartographyEntryMapData {
-        val trackPolylines = entry.trackDecisions.filter { it.kept }.mapNotNull { decision ->
-            trackRepository.getById(decision.trackId).getOrNull()?.points?.takeIf { it.isNotEmpty() }
-                ?.let { points -> RecordPolyline(decision.trackId, points.map { LatLng(it.lat, it.lng) }) }
+        // The live track, else the path saved when it was deleted (F3). Read at most once per entry, and only
+        // when some kept decision's track is gone: an entry whose tracks all exist never touches the table.
+        var savedPaths: Map<String, List<LatLng>>? = null
+        val trackPolylines = mutableListOf<RecordPolyline>()
+        for (decision in entry.trackDecisions.filter { it.kept }) {
+            val live = trackRepository.getById(decision.trackId).getOrNull()
+            val path = if (live != null) {
+                live.points.map { LatLng(it.lat, it.lng) }
+            } else {
+                val saved = savedPaths ?: keptTrackPaths.getForEntry(entry.id).getOrNull().orEmpty().also { savedPaths = it }
+                saved[decision.trackId].orEmpty()
+            }
+            if (path.isNotEmpty()) trackPolylines += RecordPolyline(decision.trackId, path)
         }
 
         val keptFinds = entry.findDecisions.filter { it.kept }

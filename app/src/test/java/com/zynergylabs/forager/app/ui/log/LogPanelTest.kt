@@ -135,6 +135,10 @@ class LogPanelTest {
                 },
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
                 onBackToSearch = {},
+                // J6a: LogPanel is JournalTab under a header, and JournalTab draws an open find in its report
+                // unless told it is being edited. These tests set `editingEntry` directly, the state the old
+                // LogPanel (which had no report step) meant by "open", so they say it is being edited.
+                findEntryModeState = remember { mutableStateOf(JournalEntryMode.EDIT) },
                 onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
                 // Journal Stage 2b: Cartography's own new-entity navigation — this file tests the
                 // relocated Finds section, so these are inert fixtures, not exercised by any test.
@@ -274,9 +278,9 @@ class LogPanelTest {
     /**
      * Picker-fixes dispatch F5, in the wide tree (owner: "Remove everywhere now"): `LogPanel`'s
      * Journal album, reached through `CartographyScreen`'s Entries toolbar, shows no corner trash
-     * button. It has no long-press Delete either (`LogPanel` passes no `onRequestDeleteGalleryPhoto`);
-     * until J6 the wide tree's photos are deleted from the drawer's `PhotoGalleryScreen`, which keeps
-     * its own button.
+     * button. (When this was written it had no long-press Delete either and the wide tree's photos were
+     * deleted from the drawer's Photo Gallery screen; J6a removed that screen and gave the album the long-press
+     * Delete, which `WideJournalTest` covers.)
      */
     @Test
     fun `the wide tree's Journal album photo has no corner delete control`() {
@@ -286,7 +290,8 @@ class LogPanelTest {
         )
         setScreen(MushroomLogUiState(), galleryPhotos = listOf(photo))
         // setScreen lands on Records' Finds chip for this file's find tests; the album is Cartography's.
-        composeRule.onNodeWithText("Cartography").performClick()
+        // J6a header ruling: the "Cartography | Records" tab row is the phone's Entries | Records switch.
+        composeRule.onNodeWithText("Entries").performClick()
         composeRule.onNodeWithTag(ENTRIES_VIEW_ALBUM_TAG).performClick()
         composeRule.waitForIdle()
 
