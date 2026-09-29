@@ -733,6 +733,63 @@ class JournalBackupTest {
         assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
     }
 
+    // ---- recent searches stay out of backups (F5, dispatch 2026-09-28-216, owner "2 A") ---------
+
+    private fun Phone.seedSearches() {
+        insert("cached_searches", "key" to "s1", "entriesJson" to "SEARCH_TEXT_ONE_9f3a", "lat" to 45.123456, "lng" to -122.654321)
+        insert("cached_searches", "key" to "s2", "entriesJson" to "SEARCH_TEXT_TWO_9f3a", "lat" to 46.5, "lng" to -121.5)
+    }
+
+    @Test
+    fun `a backup made with searches on the phone holds no cached_searches rows, and the phone keeps its searches`() {
+        val a = phone().apply { seedFullJournal(); seedSearches() }
+        val searchesBefore = a.dump(listOf("cached_searches"))
+        assertEquals("the seed put two searches on the phone", 2L, a.count("cached_searches"))
+        val snapshot = tmp.newFile("snapshot.db").apply { writeBytes(readZip(a.backUp()).getValue("forager.db")) }
+
+        SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY).use {
+            assertEquals("cached_searches rows in the backup's snapshot", 0L, it.rawQuery("SELECT COUNT(*) FROM cached_searches", null).use { c -> c.moveToFirst(); c.getLong(0) })
+            assertTrue("the rest of the journal is still in it", it.rawQuery("SELECT COUNT(*) FROM waypoints", null).use { c -> c.moveToFirst(); c.getLong(0) } > 0)
+        }
+        assertEquals("the live database still has its searches, whole", searchesBefore, a.dump(listOf("cached_searches")))
+    }
+
+    @Test
+    fun `no trace of a search's text or coordinates is left in the backup's snapshot file`() {
+        val a = phone().apply { seedFullJournal(); seedSearches() }
+        val snapshot = readZip(a.backUp()).getValue("forager.db")
+
+        // Deleting rows leaves their bytes in the file's free pages until the file is rebuilt, so the rows being gone is not enough.
+        val text = String(snapshot, Charsets.ISO_8859_1)
+        assertFalse("search text found in the snapshot file", "SEARCH_TEXT_ONE_9f3a" in text || "SEARCH_TEXT_TWO_9f3a" in text)
+    }
+
+    @Test
+    fun `Replace of a backup that holds searches leaves the phone's own searches untouched and adds none of the backup's`() {
+        for (version in listOf(16, 17)) {
+            val old = OlderBackup.build(OlderBackup.helper(), tmp.newFolder(), version)
+            val b = phone().apply { seedSearches() }
+            val searches = b.dump(listOf("cached_searches"))
+
+            b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
+
+            assertEquals("schema $version backup, Replace: the phone's searches", searches, b.dump(listOf("cached_searches")))
+        }
+    }
+
+    @Test
+    fun `Merge of a backup that holds searches leaves the phone's own searches untouched and adds none of the backup's`() {
+        for (version in listOf(16, 17)) {
+            val old = OlderBackup.build(OlderBackup.helper(), tmp.newFolder(), version)
+            val b = phone().apply { seedSearches() }
+            val searches = b.dump(listOf("cached_searches"))
+
+            b.restore(old.archive, RestoreMode.MERGE).getOrThrow()
+
+            assertEquals("schema $version backup, Merge: the phone's searches", searches, b.dump(listOf("cached_searches")))
+        }
+    }
+
     // ---- versions ------------------------------------------------------------------------------
 
     @Test
