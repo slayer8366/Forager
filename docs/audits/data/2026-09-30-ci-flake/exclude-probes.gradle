@@ -1,0 +1,6 @@
+// ci-flake (-296), /tmp only, never committed: full-suite runs match CI's suite by leaving out the scratch probes.
+allprojects {
+    tasks.withType(Test).configureEach {
+        filter { excludeTestsMatching 'com.zynergylabs.forager.app.ui.log.probe.*' }
+    }
+}

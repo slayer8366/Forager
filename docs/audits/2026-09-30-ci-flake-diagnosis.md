@@ -197,7 +197,22 @@ started. They were re-run as `fix-1cpu-b` and are not counted twice.
 
 ### 4d. Full suites, base plus the inert hook, probes excluded
 
-**Pending**; filled in when the three runs finish (section 8a covers the stall watchdog).
+Three runs (`fullsuite`), unpinned, with the scratch probes left out by an init script kept in `/tmp` and
+never committed (copied to the data dir as `exclude-probes.gradle`), and the stall watchdog of section 8a
+on my own worker:
+
+| Run | Tests | Failures | Errors | Skipped | Time |
+|---|---:|---:|---:|---:|---|
+| 1 | 3182 | 0 | 0 | 24 | 4 m 36 s |
+| 2 | 3182 | 0 | 0 | 24 | 4 m 13 s |
+| 3 | 3182 | 0 | 0 | 24 | 3 m 56 s |
+
+- **Reachability:** 391 XML files per run, 0 of them probe classes. `JournalPendingDeleteTest`,
+  `JournalTabTest` and `DrawerBackOverJournalTest` each ran in every run, with fresh timestamps. The count
+  reconciles with CI's 3173 at `c6c83723`: the base adds `AvailabilityScreenFanBackDrawerTest` (4) and
+  `FindDeleteReappearsOnMapTest` (5), and 3173 + 9 = 3182.
+- **Result:** 0/3, matching the unpinned class-alone 0/6 (4a) and the dispatch's three 0-failure local
+  suites. Unpinned on this machine the race rarely fires, and that is what makes CI's rate look CI-only.
 
 ## 5. Mechanism
 
@@ -313,14 +328,61 @@ settles (the drawer's, or the album spinner if the album were somehow shown load
 running; or something outside Compose that the idle wait counts (an `IdlingResource`, or Robolectric's
 looper-idle loop) never draining.
 
-**How my runs will cover it** (once the planner's "go" arrives): `DrawerBackOverJournalTest` is inside the
-full-suite runs of section 4. Each run gets a watchdog on **my own** test worker only: if the run's
-`TEST-*.xml` stops growing for 5 minutes, it takes `jstack` of that worker (PID found by my own run's
-command line) into `docs/audits/data/2026-09-30-ci-flake/`, then lets the run continue. A stall then leaves a
-kept dump, which this one did not. Separately, the class alone will be run in a loop sized like section 4.
-It stalled 1 time in 1 full run and 0 in 12 class-alone runs, so no rate can be derived yet, and that is
-said rather than guessed.
+**How the runs covered it, and what they showed.** `DrawerBackOverJournalTest` ran alone 6 times
+(`drawer-alone`, 6 tests each, **0 failures, no stall**) and inside the 3 full suites of 4d (**no stall**).
+`/tmp/cif/watchdog.sh` (copied to the data dir) watched my own run only: had the results directory gained no
+`TEST-*.xml` for 300 s, it would have taken `jstack` of the Test Executor whose working directory is this
+worktree. It fired **0 times**. So the stall was **not reproduced**: 0 in 9 runs that include the class,
+against -297's 1 in 1 full run. Its cause stays undetermined, and the reading above (probably not the
+gesture-swap race) stays an inference. The watchdog is the reusable part: kept with the data, it would
+have left the dump the -297 stall did not.
 
 ## 9. Disclosures
 
-PENDING
+**Confirmed (observed or counted):**
+- The CI sample and rates (section 1).
+- Each album failure's line and message. All 82 are one outcome, a lost gesture, seen through three
+  assertions (section 5).
+- The mechanism, by a deterministic probe, 6/6 each way (4b).
+- The fix on that probe (3/3), and 0/18 against 4/18 pinned (4c; Fisher p ≈ 0.10, so the probe carries the
+  confirmation).
+- The local rate: unpinned 0/6 class-alone and 0/3 full suite; pinned 4/18.
+- `JournalTabTest` From Album as the unwaited edit-form decode, with CI's exact message and 0 nodes (section 8).
+
+**Inferred, not confirmed:**
+- That CI's higher rate comes from its runner's CPU speed or load. Locally, starving the CPU turns it on;
+  CI's runner was not measured.
+- That a real device drops a touch the same way.
+- That the -297 stall is a different cause.
+
+**Could not determine:**
+- What kept Compose from going idle in the -297 stall (not reproduced in 9 runs, and -297's dump was not kept).
+- CI's locale, time zone and vCPU count from the logs.
+- Whether the `WideJournalTest` "FAILS AT BASE" reds were deliberate. Its album long-press test shares
+  the symptom text and is probably the same race; that was not checked.
+- Whether other `DecodedPhoto` call sites carry a gesture on the swapped modifier (not audited).
+
+**Premises that were wrong:**
+- The dispatch's "last 13 finished runs … 2 were cancelled" counts cancelled runs as finished.
+- The failures are not in the Undo snackbar path: every album failure is at the first gesture.
+- "Both involve album photos": the shared factor is `DecodedPhoto`, and `JournalTabTest`'s case is the
+  find form's picker.
+- The resume note (after the terminal disconnect) listed "the 12 pinned (2-CPU) runs with the fix" as
+  still to do. They had already finished, 12/12 clean, before the disconnect.
+- The planner's "14:10 and 14:16 UTC" for -310's runs were PDT. Mapped to 21:10 and 21:16 UTC, and the
+  planner confirmed.
+- **The first session's own reading was wrong:** section 5's first version treated
+  `… is not displayed!` as "the node exists", and so could not account for 36 of the failures. The probe
+  showed that message comes from a missing node. That same misreading underlies the 2026-09-15
+  report's "not an unwaited load" (section 8).
+
+**Decided beyond scope:**
+- Nothing left `ci-flake`. The hook (`d63e103a`), the probe files (`app/src/test/…/ui/log/probe/`) and the
+  fix trial (reverted) are scratch, never to merge.
+- No existing test file is changed. The one-time append to `JournalPendingDeleteTest.kt`/`JournalTabTest.kt`
+  (`46401a45`) was undone in `71d76f0a` when the owner chose a new file.
+- No CI run was started. `gh` was used read-only.
+- The first build of the probes did not compile, and no result was read from it.
+- One loop iteration was running when the terminal disconnected and the resume said to wait for "go". It was
+  left to finish, and it is disclosed and marked.
+- The non-album CI failures were listed, not investigated.
