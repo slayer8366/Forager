@@ -253,14 +253,10 @@ private fun AlbumPhotoTile(
             // J4b L3: the same photo, taking the tap and a long-press on one node; the menu is
             // anchored at the tile. Delete only: there is no photo edit screen to open.
             LongPressOptionsBox(longClickLabel = "Options for photo", onEdit = null, onDelete = onRequestDelete, modifier = Modifier.fillMaxSize()) { options ->
-                // ci-flake (-296) THROWAWAY fix trial, never merged: the gesture on a node that stays
-                // put when DecodedPhoto swaps its placeholder for the decoded Image.
-                Box(modifier = Modifier.fillMaxSize().tileClickable(onClick = onOpen, options = options, onClickLabel = "Open full screen")) {
-                    DecodedPhoto(
-                        relativePath = galleryPhoto.photo.relativePath,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+                DecodedPhoto(
+                    relativePath = galleryPhoto.photo.relativePath,
+                    modifier = Modifier.fillMaxSize().tileClickable(onClick = onOpen, options = options, onClickLabel = "Open full screen"),
+                )
             }
         }
         AlbumAttachmentBadges(
