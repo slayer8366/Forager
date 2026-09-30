@@ -1,0 +1,7 @@
+iter	head	exit	compile_error	tests	failures	errors	skipped	failing
+1	58ed65e2	0	0	52	0	0	0	
+2	58ed65e2	1	0	52	1	0	0	JournalPendingDeleteTest>a long-press anywhere on an album photo opens a menu of exac
+3	58ed65e2	0	0	52	0	0	0	
+4	58ed65e2	0	0	52	0	0	0	
+5	58ed65e2	1	0	52	1	0	0	JournalPendingDeleteTest>Undo on an album photo brings it back and deletes neither ro
+6	58ed65e2	0	0	52	0	0	0	
