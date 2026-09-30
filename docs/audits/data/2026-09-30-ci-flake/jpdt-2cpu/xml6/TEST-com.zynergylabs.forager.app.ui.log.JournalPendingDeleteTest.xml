@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" tests="52" skipped="0" failures="1" errors="0" timestamp="2026-09-30T20:33:44.548Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="24.135">
+  <properties/>
+  <testcase name="a waypoint no entry uses says only Waypoint deleted" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="7.774"/>
+  <testcase name="a long-press anywhere on an album photo opens a menu of exactly Delete" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.43">
+    <failure message="java.lang.AssertionError: Failed to assert count of nodes.&#10;Reason: Expected exactly '1' node but could not find any node that satisfies: ((OnClick is defined) &amp;&amp; (hasAnyAncestorThat(IsPopup is defined)))&#10;" type="java.lang.AssertionError">java.lang.AssertionError: Failed to assert count of nodes.
+Reason: Expected exactly '1' node but could not find any node that satisfies: ((OnClick is defined) &amp;&amp; (hasAnyAncestorThat(IsPopup is defined)))
+
+	at androidx.compose.ui.test.AssertionsKt.assertCountEquals(Assertions.kt:311)
+	at com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest.a long-press anywhere on an album photo opens a menu of exactly Delete(JournalPendingDeleteTest.kt:1268)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$testWithDisposal$1.evaluate(AndroidComposeTestRule.android.kt:426)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invokeSuspend(AndroidComposeTestRule.android.kt:448)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invokeSuspend(ComposeUiTest.android.kt:689)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(ComposeUiTest.android.kt)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(ComposeUiTest.android.kt)
+	at androidx.compose.ui.test.IdlingStrategy.withStrategy$suspendImpl(IdlingStrategy.android.kt:55)
+	at androidx.compose.ui.test.IdlingStrategy.withStrategy(IdlingStrategy.android.kt)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invokeSuspend(ComposeUiTest.android.kt:686)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(ComposeUiTest.android.kt)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(ComposeUiTest.android.kt)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+	at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:98)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:326)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:309)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:1)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:167)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:1)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:665)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:447)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="a find tile's Edit opens that find in its edit form" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.98"/>
+  <testcase name="the region's tile delete runs once, with its id, only when the snackbar times out" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.794"/>
+  <testcase name="the region row has no Delete button any more" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.31"/>
+  <testcase name="a find tile's Delete hides it, says Find deleted, and deletes it once on timeout" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.274"/>
+  <testcase name="when the snackbar times out, exactly one delete runs, with the swiped waypoint's id" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.327"/>
+  <testcase name="when the find's snackbar times out, exactly one delete runs, with the find's id" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.368"/>
+  <testcase name="touching a card's revealed Edit, anywhere on it, opens that entry in the editor" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.752"/>
+  <testcase name="a revealed waypoint row closes on a swipe back, and opening another row closes the first" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.454"/>
+  <testcase name="a draft deleted from the drafts list says Draft deleted, and its Edit opens that draft" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.413"/>
+  <testcase name="waypoint and region rows carry a Delete accessibility action and no Edit, since neither has an edit path" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.182"/>
+  <testcase name="a card's Edit and Delete accessibility actions open the editor and pend the delete" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.184"/>
+  <testcase name="an album photo's Delete accessibility action and long-press label, and no Edit action" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.185"/>
+  <testcase name="the region row's Delete accessibility action does the same pending delete" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.237"/>
+  <testcase name="a short swipe on an entry card leaves it open with Edit and Delete behind it, and deletes nothing" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.381"/>
+  <testcase name="an album photo has no corner delete control, and a long-press at that corner opens the Delete menu" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.267"/>
+  <testcase name="the waypoint row has no trash icon any more" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.13"/>
+  <testcase name="Undo brings the waypoint row back and deletes nothing, even after the timeout would have passed" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.237"/>
+  <testcase name="the waypoint row's Delete accessibility action does the same pending delete" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.233"/>
+  <testcase name="a second swipe commits the first waypoint when its snackbar replaces the first" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.275"/>
+  <testcase name="a short swipe on a region row reveals Delete, whose touch pends the region and runs no tile delete until the snackbar ends" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.696"/>
+  <testcase name="a pending region is gone from its chip count, from All, and from All's count" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.239"/>
+  <testcase name="Undo on an album photo brings it back and deletes neither row nor file" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.165"/>
+  <testcase name="swiping start to end does not delete a waypoint" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.138"/>
+  <testcase name="a find tile's Edit and Delete accessibility actions, and its long-press label" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.197"/>
+  <testcase name="an album photo's Delete hides it and warns of its uses, and deletes its row and file only when the snackbar ends" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.204"/>
+  <testcase name="a slow swipe past the delete threshold deletes, and one short of it only opens the row" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.723"/>
+  <testcase name="a pending find is gone from the Finds count, from All, and from All's count" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.427"/>
+  <testcase name="Delete in a new find's form, with no committed original, still says Find deleted" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.17"/>
+  <testcase name="Undo brings the region back and deletes no tiles, even after the timeout" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.214"/>
+  <testcase name="opening a second card closes the first" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.167"/>
+  <testcase name="a long-press anywhere on a find tile opens a menu of exactly Edit and Delete" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.573"/>
+  <testcase name="Delete in a re-edited find's form discards only the draft and says Changes discarded, not Find deleted" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.356"/>
+  <testcase name="find tiles have no swipe" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.281"/>
+  <testcase name="a pending waypoint is gone from its chip count, from All, and from All's count" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.201"/>
+  <testcase name="a find tile in All has the same menu, whose Delete pends it and whose Edit opens its form under the Finds chip" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.265"/>
+  <testcase name="touching a waypoint row's revealed Delete, anywhere on it, is J4's pending delete with its snackbar" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.348"/>
+  <testcase name="Undo brings the find back to the gallery, leaves its report closed, and deletes nothing" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.234"/>
+  <testcase name="a revealed row in All closes when a touch lands elsewhere on the list" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.309"/>
+  <testcase name="a plain tap on a card still opens its report, not the editor" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.242"/>
+  <testcase name="deleting a find from its report closes the report, hides the find, says Find deleted, and deletes nothing yet" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.33"/>
+  <testcase name="a full swipe on an entry card deletes it through the same snackbar, once, on timeout" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.186"/>
+  <testcase name="a plain tap on an album photo still opens the viewer" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.209"/>
+  <testcase name="swiping a waypoint row end to start hides it, warns of its references, and deletes nothing yet" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.195"/>
+  <testcase name="swiping a region row hides it, warns of its references, and runs no tile delete yet" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.258"/>
+  <testcase name="touching a card's revealed Delete, anywhere on it, hides it and says Entry deleted, and deletes only on timeout" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.197"/>
+  <testcase name="Undo on Changes discarded deletes nothing, even after the timeout" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.339"/>
+  <testcase name="a plain tap on a find tile still opens its report" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.187"/>
+  <testcase name="a region swipe after a waypoint swipe commits the waypoint when the region's snackbar replaces it" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.159"/>
+  <testcase name="a tap on a revealed card's body closes it without opening the entry" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.141"/>
+  <testcase name="a short swipe on a waypoint row leaves it open with only Delete behind it, and deletes nothing" classname="com.zynergylabs.forager.app.ui.log.JournalPendingDeleteTest" time="0.172"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
