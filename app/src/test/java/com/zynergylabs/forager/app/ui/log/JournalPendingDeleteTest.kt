@@ -1369,6 +1369,139 @@ class JournalPendingDeleteTest {
         composeRule.onNodeWithTag(PHOTO_VIEWER_TAG).assertExists()
         menuItems().assertCountEquals(0)
     }
+
+    // ── ci-flake (-296) scratch probes, never merged ──
+    // DecodeProbe (DecodedPhoto.kt, scratch) holds each tile's IO decode, so the placeholder-to-Image
+    // swap can be put at a chosen point of a real gesture. The clock is taken off auto-advance while a
+    // pointer is held, so no long-press timeout can fire except where an arm advances past it.
+
+    private val probePoint = 0.3f to 0.7f
+
+    private fun decodedNodes(id: String) = composeRule.onAllNodes(
+        hasAnyAncestor(hasTestTag(albumPhotoTestTag(id))) and androidx.compose.ui.test.hasContentDescription("Log photo"),
+    ).fetchSemanticsNodes().size
+
+    private fun probeOpenAlbumHeld(): java.util.concurrent.CountDownLatch {
+        val gate = java.util.concurrent.CountDownLatch(1)
+        DecodeProbe.gate = gate
+        DecodeProbe.finished = java.util.concurrent.CountDownLatch(2)
+        setScreen(photos = listOf(PD_PHOTO_A, PD_PHOTO_B), openRecords = false)
+        openAlbum()
+        assertEquals("reachability: tile A still shows the placeholder while the gate is shut", 0, decodedNodes(PD_PHOTO_A.photo.id))
+        return gate
+    }
+
+    /** Opens the gate, waits for both decodes, then runs single frames until tile A has swapped. */
+    private fun probeSwapNow(gate: java.util.concurrent.CountDownLatch) {
+        gate.countDown()
+        check(DecodeProbe.finished!!.await(5, java.util.concurrent.TimeUnit.SECONDS)) { "decodes did not finish" }
+        var frames = 0
+        while (decodedNodes(PD_PHOTO_A.photo.id) == 0 && frames < 10) { composeRule.mainClock.advanceTimeByFrame(); frames++ }
+        println("PROBE swap applied after $frames frame(s)")
+        assertEquals("reachability: tile A swapped to the decoded Image", 1, decodedNodes(PD_PHOTO_A.photo.id))
+    }
+
+    private fun probeReset() { DecodeProbe.gate?.countDown(); DecodeProbe.gate = null; DecodeProbe.finished = null; composeRule.mainClock.autoAdvance = true }
+
+    private fun probeDown() = photoTile(PD_PHOTO_A.photo.id).performTouchInput { down(Offset(width * probePoint.first, height * probePoint.second)) }
+
+    private fun probeUp() = photoTile(PD_PHOTO_A.photo.id).performTouchInput { up() }
+
+    @Test
+    fun `PROBE tap, swap between down and up`() {
+        try {
+            val gate = probeOpenAlbumHeld()
+            composeRule.mainClock.autoAdvance = false
+            probeDown()
+            probeSwapNow(gate)
+            probeUp()
+            composeRule.mainClock.autoAdvance = true
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(PHOTO_VIEWER_TAG).assertExists()
+        } finally { probeReset() }
+    }
+
+    @Test
+    fun `PROBE tap, swap before down`() {
+        try {
+            val gate = probeOpenAlbumHeld()
+            composeRule.mainClock.autoAdvance = false
+            probeSwapNow(gate)
+            probeDown()
+            composeRule.mainClock.advanceTimeByFrame()
+            probeUp()
+            composeRule.mainClock.autoAdvance = true
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(PHOTO_VIEWER_TAG).assertExists()
+        } finally { probeReset() }
+    }
+
+    @Test
+    fun `PROBE tap, swap after up`() {
+        try {
+            val gate = probeOpenAlbumHeld()
+            composeRule.mainClock.autoAdvance = false
+            probeDown()
+            composeRule.mainClock.advanceTimeByFrame()
+            probeUp()
+            composeRule.mainClock.autoAdvance = true
+            composeRule.waitForIdle()
+            composeRule.mainClock.autoAdvance = false
+            probeSwapNow(gate)
+            composeRule.mainClock.autoAdvance = true
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(PHOTO_VIEWER_TAG).assertExists()
+        } finally { probeReset() }
+    }
+
+    @Test
+    fun `PROBE long-press, swap between down and the long-press timeout`() {
+        try {
+            val gate = probeOpenAlbumHeld()
+            composeRule.mainClock.autoAdvance = false
+            probeDown()
+            probeSwapNow(gate)
+            composeRule.mainClock.advanceTimeBy(1_000L)
+            probeUp()
+            composeRule.mainClock.autoAdvance = true
+            composeRule.waitForIdle()
+            menuItems().assertCountEquals(1)
+            touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+        } finally { probeReset() }
+    }
+
+    @Test
+    fun `PROBE long-press, swap after the long-press fired but before up`() {
+        try {
+            val gate = probeOpenAlbumHeld()
+            composeRule.mainClock.autoAdvance = false
+            probeDown()
+            composeRule.mainClock.advanceTimeBy(1_000L)
+            probeSwapNow(gate)
+            probeUp()
+            composeRule.mainClock.autoAdvance = true
+            composeRule.waitForIdle()
+            menuItems().assertCountEquals(1)
+            touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+        } finally { probeReset() }
+    }
+
+    @Test
+    fun `PROBE long-press, swap before down`() {
+        try {
+            val gate = probeOpenAlbumHeld()
+            composeRule.mainClock.autoAdvance = false
+            probeSwapNow(gate)
+            probeDown()
+            composeRule.mainClock.advanceTimeBy(1_000L)
+            probeUp()
+            composeRule.mainClock.autoAdvance = true
+            composeRule.waitForIdle()
+            menuItems().assertCountEquals(1)
+            touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+        } finally { probeReset() }
+    }
+
 }
 
 private const val SNACKBAR_LONG_MILLIS = 10_000L
