@@ -56,7 +56,9 @@ internal fun DecodedPhoto(
     var bitmap by remember(relativePath) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(relativePath) {
         bitmap = withContext(Dispatchers.IO) {
-            runCatching {
+            // ci-flake (-296) scratch probe, never merged: null unless a probe test sets it.
+            DecodeProbe.gate?.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            try { runCatching {
                 val file = File(context.filesDir, relativePath)
                 val options = BitmapFactory.Options().apply { inSampleSize = DECODE_SAMPLE_SIZE }
                 val decoded = BitmapFactory.decodeFile(file.absolutePath, options)
@@ -69,7 +71,7 @@ internal fun DecodedPhoto(
                 decoded.oriented(readPhotoOrientation(file))
             }.onFailure { error ->
                 Log.w(TAG, "Couldn't decode photo at '$relativePath'.", error)
-            }.getOrNull()?.asImageBitmap()
+            }.getOrNull()?.asImageBitmap() } finally { DecodeProbe.finished?.countDown() }
         }
     }
 
@@ -79,6 +81,16 @@ internal fun DecodedPhoto(
     } else {
         Box(modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant))
     }
+}
+
+/**
+ * ci-flake (-296) scratch probe, never merged: lets a test hold every `DecodedPhoto` decode on
+ * its IO thread ([gate]) and learn when each one has finished ([finished]), so the placeholder to
+ * image swap can be placed at a chosen point of a gesture instead of wherever real time puts it.
+ */
+internal object DecodeProbe {
+    @Volatile var gate: java.util.concurrent.CountDownLatch? = null
+    @Volatile var finished: java.util.concurrent.CountDownLatch? = null
 }
 
 /** Internal, not private, so [DecodedPhotoTest] derives its expected rendered sizes from the value actually used. */
