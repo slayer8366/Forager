@@ -211,6 +211,52 @@ being in the tree off screen while the edit form's decode is pending, a reading 
 the picker load) would not have covered. **That is inferred and was not checked.** This sample's 5
 messages are byte-identical to that report's.
 
+## 8a. The -297 stall in `DrawerBackOverJournalTest` (added at the owner's request, "2 yes")
+
+**Source:** `docs/audits/2026-09-30-delete-siblings-completion-report.md`, "The stall" (read on
+`origin/journal-redesign`). One full-suite run on `delete-siblings` hung for about 17 min. A thread dump of
+the test worker put the main thread in `DrawerBackOverJournalTest.touchTools` (`:420`), from the test
+`portrait, Back with the drawer open over the Entries album view closes the drawer and keeps the album`
+(`:538`), with about 88 s of main-thread CPU. The class alone passed 6/6 on `delete-siblings` and 6/6 on
+`9c806ae1`. **The dump itself was not kept.** No file on this machine mentions `touchTools` or that class
+in a thread dump (searched `/tmp`), so everything below rests on the report's one-line summary of it.
+
+**Observed (read):**
+- `:420` on `delete-siblings` (identical in `touchTools` at base) is `composeRule.waitForIdle()`, directly
+  after a coordinate click on the **Tools nav item**, not on an album tile (`:414-422`). So the main
+  thread was not stuck in a gesture. It was in a wait for Compose to go idle that did not end.
+- 88 s of CPU in about 17 min of wall time means the main thread was mostly **not** running. That fits a
+  wait loop that sleeps between idle checks better than a tight recomposition spin (inferred from the two
+  figures, not from the dump).
+- The test's data loads synchronously: Room with direct query and transaction executors and main-thread
+  queries (`DrawerBackOverJournalTest.kt:202-209`). So the album's one infinite animation, the loading
+  spinner at `EntriesAlbum.kt:124-126` (shown only while `isLoading && photos.isEmpty()`), has no slow load
+  to wait behind here.
+- The album's photo is a real file of 4 bytes (`:216-217`), so `DecodedPhoto`'s shadow decode "succeeds"
+  and the tile swaps from placeholder to `Image` once, off the test clock, as in section 2.
+- Within reach of that screen there are two unbounded tickers in `main/`: `NavigationHud.kt:192` (a
+  one-second age ticker, composed only while the navigation HUD is showing) and
+  `TrackRecordingViewModel.kt:446` (the poll loop CLAUDE.md already names as this repo's stall cause, and
+  it runs only while recording). Whether either was active in that test was **not** checked.
+
+**Does it share the album gesture-swap cause? Inferred: no, not as the same mechanism.** The swap fires once
+per tile and replaces one node. That can drop a gesture in flight (a fast assertion failure, which is what
+CI shows 82 times) but has no way to keep Compose busy for 17 minutes. The stalled wait also follows a
+touch on the Tools item, which is not a tile. The one tie is timing: the swap, being off-clock, could land
+inside that `waitForIdle`. A single extra recomposition there explains nothing about a stall, though.
+**What would make it never idle is not determined.** Candidates, none checked: an animation that never
+settles (the drawer's, or the album spinner if the album were somehow shown loading); a ticker left
+running; or something outside Compose that the idle wait counts (an `IdlingResource`, or Robolectric's
+looper-idle loop) never draining.
+
+**How my runs will cover it** (once the planner's "go" arrives): `DrawerBackOverJournalTest` is inside the
+full-suite runs of section 4. Each run gets a watchdog on **my own** test worker only: if the run's
+`TEST-*.xml` stops growing for 5 minutes, it takes `jstack` of that worker (PID found by my own run's
+command line) into `docs/audits/data/2026-09-30-ci-flake/`, then lets the run continue. A stall then leaves a
+kept dump, which this one did not. Separately, the class alone will be run in a loop sized like section 4.
+It stalled 1 time in 1 full run and 0 in 12 class-alone runs, so no rate can be derived yet, and that is
+said rather than guessed.
+
 ## 9. Disclosures
 
 **Confirmed (read or counted):** the CI counts and rates in section 1, and their sample; the source line
@@ -221,7 +267,7 @@ decode and branch swap; the gesture modifier passed into it; the `ci.yml` and bu
 runner speed sets the rate; that the fix in section 7 removes it; that a real device shows the same
 dropped touch; that `JournalTabTest` fails through the unwaited edit-form decode.
 
-**Could not determine:** any local rate (nothing run); how the 36 "exists but not displayed" menu failures
+**Could not determine:** what kept Compose from going idle in the -297 stall (section 8a; the dump was not kept); any local rate (nothing run); how the 36 "exists but not displayed" menu failures
 arise; CI's locale, time zone and vCPU count from the logs; whether the `WideJournalTest` "FAILS AT BASE"
 reds were deliberate.
 
