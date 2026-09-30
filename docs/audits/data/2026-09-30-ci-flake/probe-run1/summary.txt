@@ -1,0 +1,11 @@
+com.zynergylabs.forager.app.ui.log.probe.AlbumGestureSwapProbeTest tests 6 fail 2 err 0 2026-09-30T20:11:36.021Z
+   PROBE long-press, swap between down and the long-press timeout -> FAIL: java.lang.AssertionError: Failed to assert count of nodes. Reason: Expected exactly '1' node but could not find any node that satisfies: ((OnClick is defined) && (hasAnyAncestorThat(IsPopup is defined))) 
+   PROBE tap, swap between down and up -> FAIL: java.lang.AssertionError: Failed: assertExists. Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'photo-viewer') 
+   PROBE long-press, swap after the long-press fired but before up -> pass
+   PROBE tap, swap before down -> pass
+   PROBE tap, swap after up -> pass
+   PROBE long-press, swap before down -> pass
+  out: ['PROBE swap applied after 1 frame(s)', 'PROBE swap applied after 1 frame(s)', 'PROBE swap applied after 1 frame(s)', 'PROBE swap applied after 1 frame(s)', 'PROBE swap applied after 1 frame(s)', 'PROBE swap applied after 1 frame(s)']
+com.zynergylabs.forager.app.ui.log.probe.JournalTabFromAlbumProbeTest tests 1 fail 1 err 0 2026-09-30T20:11:45.649Z
+   PROBE From Album with the edit form's decode held at the last assertion -> FAIL: java.lang.AssertionError: Assert failed: The component with ContentDescription = 'Log photo' (ignoreCase: false) is not displayed!
+  out: ['PROBE Log photo nodes at the last assertion: 0']

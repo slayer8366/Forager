@@ -1,4 +1,6 @@
-package com.zynergylabs.forager.app.ui.log
+package com.zynergylabs.forager.app.ui.log.probe
+
+import com.zynergylabs.forager.app.ui.log.*
 
 // SCRATCH, ci-flake (-296) only, NEVER MERGE. A copy of JournalPendingDeleteTest's harness (setScreen and its
 // file-private fakes, unchanged) holding only decode-race probe tests; JournalPendingDeleteTest.kt itself is untouched.
