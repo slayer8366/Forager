@@ -1,10 +1,17 @@
-# CI flake diagnosis on `journal-redesign` (dispatch 2026-09-28-296): partial, stopped at a permission refusal
+# CI flake diagnosis on `journal-redesign` (dispatch 2026-09-28-296, continued by -300 and -301)
 
-**Status: stopped before reproduction.** The CI data is collected and the mechanism is narrowed to one
-candidate with strong circumstantial support, but it is **not confirmed**: no local run was made, and the
-probe that would confirm it was refused by the permission system (section 6). Per the dispatch ("If the
-permission system refuses a command, stop and hand back"), this report records what was done and hands
-back. Nothing here is a fix, and no shared code or test was changed.
+**Status: the album-photo failures are diagnosed and confirmed.** `DecodedPhoto` swaps its placeholder for
+the decoded image on a real IO thread, off the test clock. The album tile's tap and long-press sit on the
+node that swap replaces, so a gesture in flight when it lands is lost. That was confirmed by a probe that
+places the swap deterministically (it fails 6/6 when the swap is inside the gesture and passes 6/6 when it
+is not). It was reproduced locally by starving the CPU (4 failures in 18 pinned runs, 0 in 12 unpinned).
+A throwaway fix, the gesture on a stable wrapper, turned the failing probe arms green (3/3) and gave **0
+failures in 18** pinned runs. The `JournalTabTest` From Album failure is the same off-clock decode read
+without a wait, confirmed by the same probe. The fix is proposed, not applied. Everything here is on
+`ci-flake`, and nothing leaves it.
+
+The first session stopped at a permission refusal (section 6, kept as written). The owner then allowed the
+scratch hook (`RECORD.md` -300, "Allow the temp hook") and a new scratch test file (-301, "Option 1").
 
 - **Base:** `origin/journal-redesign` at `4f3a02ad` (head when the worktree was cut). `9c806ae1..4f3a02ad`
   changes only `RECORD.md` and `prompts/preserved/2026-09-30-13..15.md` (`git diff --stat`), so the code
@@ -119,45 +126,98 @@ long-press … opens a Delete menu"), and is noted as possibly the same cause, n
 
 Nothing in the configuration differs in a way that selects these tests. The only difference that bears on the
 candidate mechanism is **machine speed and load**, which sets when an IO thread finishes relative to the
-main-thread gesture. That is inferred, not measured.
+main-thread gesture. Locally that was measured (section 4a: 0/6 unpinned, 4/18 pinned to 1–2 CPUs). CI's own runner speed was not.
 
-## 4. Reproduction: none run
+## 4. Reproduction
 
-**No local run was made.** At the first check (before any Gradle invocation), available memory was
-**2008 MB** and free disk **1962 MB**, both under the dispatch's 2048 MB floor, and another dispatch's
-Gradle test executor was running (a daemon in `forager-wt/delete-siblings`, -297). At the second check
-memory was 2790 MB but disk had fallen to **1772 MB**. The floor was never met, so no build was started.
+All runs are local, on this machine (8 logical CPUs, Temurin 21.0.12.1), through `/tmp/cif/loop.sh`. Before
+each iteration it waits for 2048 MB of memory and disk and for no other Gradle wrapper or worker. It deletes
+the previous results, runs, refuses the result if the log shows a compile error, and copies that iteration's
+XML aside. Every run cited below had **0 compile errors**. Every iteration's XML carries its own fresh
+`timestamp` (checked, none repeated) with no `UP-TO-DATE` test task, so no count below is a stale run. The
+tallies are in `docs/audits/data/2026-09-30-ci-flake/<label>/tally.tsv`.
 
-**Sizing, for whoever runs it** (exact binomial, not `9/p`): at CI's per-run album rate, 67/119 = 0.563,
-the number of class-alone runs needed to see at least one failure is ⌈ln(1−c)/ln(1−p)⌉ = **3 / 4 / 6** for
-c = 0.90 / 0.95 / 0.99. At the interval's lower bound, 0.473, it is 4 / 5 / 8. A clean result at those
-sizes shows the local rate is well below CI's, which is itself a finding, not a null. **Local rates were
-not counted**: the dispatch's "0-failure local suites (3173/3177/3178)" were not re-derived here.
+**Sizing** (exact binomial, ⌈ln(1−c)/ln(1−p)⌉, not `9/p`): at CI's per-run rate 0.563, 6 runs give a 99%
+chance of at least one failure if the local rate matched CI's.
 
-## 5. Mechanism: candidate, not confirmed
+### 4a. `JournalPendingDeleteTest` alone (52 tests), base code plus the inert hook
 
-**Candidate: the album tile's gesture node is replaced mid-gesture by `DecodedPhoto`'s placeholder-to-image
-swap.** A real touch starts on the placeholder `Box`'s `combinedClickable`. The IO decode finishes, and the
-recomposition that publishes the bitmap replaces the `Box` with an `Image`. The pointer-input node that saw
-the `down` is detached, so the new node never saw a `down`: the tap's `up`, or the long-press timeout,
-produces nothing. The window is the real time the injected gesture takes, and a long-press is the widest
-(it advances the clock past the long-press timeout, running frames that apply the swap).
+| Condition | Label | Runs | Failures | Which |
+|---|---|---:|---:|---|
+| Unpinned (8 CPUs) | `jpdt-alone` | 6 | **0** | – |
+| Pinned to 2 CPUs (`taskset -c 0,1`, `--no-daemon` so the worker inherits the pin) | `jpdt-2cpu`, `jpdt-2cpu-b` | 12 | **2** | long-press anywhere ×2, at `:1268`, CI's message |
+| Pinned to 1 CPU (`taskset -c 0`) | `jpdt-1cpu` | 6 | **2** | long-press anywhere (`:1268`), Undo (`tile-options-delete … is not displayed`), both CI's messages |
+
+- **Unpinned 0/6:** if the local rate were CI's 0.563, six clean runs would happen by chance 0.437⁶ ≈ 0.7% of
+  the time. So the local rate is far below CI's. That is now measured, not inherited from the dispatch.
+- **Pinned 4/18 = 22%** (Wilson 95% 9.0%–45.2%). Starving the CPU turns it on. Every pinned failure is one
+  of CI's own assertions with CI's own message.
+- `DrawerBackOverJournalTest` alone, unpinned: **0 in 6** (`drawer-alone`). See section 8a.
+
+### 4b. The deterministic probe (scratch, `ci-flake` only)
+
+`DecodedPhoto.kt` carries a scratch `DecodeProbe` (`d63e103a`): a latch each decode waits on, and a latch
+it counts down when done, both `null` (inert) unless a probe sets them. The probes are in
+`app/src/test/…/ui/log/probe/` (`AlbumGestureSwapProbeTest`, `JournalTabFromAlbumProbeTest`): copies of the two
+classes' harnesses holding only probe tests. No existing test file is changed. (The first build of them
+failed to compile, with 157 `Redeclaration` errors: private top-level fakes clash across files in one
+package. No result was read from it. They were moved to the `probe` subpackage.) Each album arm first
+asserts that tile A shows the placeholder, then that the swap happened, which checks reachability before
+the measurement. The swap was applied in 1 frame every time.
+
+| Arm | Predicted (written before any run) | Base: 6 runs | With the fix: 3 runs |
+|---|---|---|---|
+| Tap, swap between `down` and `up` | fail, CI's viewer message | **fail 6/6**, `…could not find any node… (TestTag = 'photo-viewer')` | **pass 3/3** |
+| Tap, swap before `down` | pass | pass 6/6 | pass 3/3 |
+| Tap, swap after `up` | pass | pass 6/6 | pass 3/3 |
+| Long-press, swap between `down` and the timeout | fail, CI's menu-count message | **fail 6/6**, `Failed to assert count of nodes … IsPopup` | **pass 3/3** |
+| Long-press, swap after it fired, before `up` | no prediction | pass 6/6 | pass 3/3 |
+| Long-press, swap before `down` | pass | pass 6/6 | pass 3/3 |
+| `JournalTabTest` From Album, the edit form's decode held at the last assertion | fail, CI's exact message | **fail 6/6**, `'Log photo' … is not displayed!`, with **0** `Log photo` nodes | fail 3/3 (the fix does not touch it, section 8) |
+
+The failure messages were byte-identical across the 5 loop runs (md5 of the failure lines). With the fix,
+the same runs also ran the whole `JournalPendingDeleteTest`: **52/52 pass** in each of the 3 runs.
+
+### 4c. The fix under CPU starvation
+
+The throwaway fix (`3f71086c`, re-applied as `d4558d14`, reverted in `dc5ef5c5` and `6bf115e0`), run as in 4a:
+
+| Condition | Runs | Failures |
+|---|---:|---:|
+| Pinned to 2 CPUs (`fix-2cpu`) | 12 | **0** |
+| Pinned to 1 CPU (`fix-1cpu` 1-3, `fix-1cpu-b` 1-3) | 6 | **0** |
+
+**Base 4/18 against fix 0/18**, under the same pins. At the base rate, 18 clean runs by chance is
+(1 − 4/18)¹⁸ ≈ 1.1%. Fisher's exact two-sided p for 4/18 vs 0/18 is about 0.10: on its own this comparison
+is suggestive, not conclusive. The deterministic probe in 4b carries the confirmation. **Contention:**
+`fix-1cpu-b` runs 1 and 2 overlapped -310's Gradle runs (the planner's report, and a `pgrep` seen during
+run 2). Run 3's overlap is unknown. Extra load widens the race, so those clean runs are not weaker evidence.
+They are still marked (`fix-runs-contention.md`). A container restart lost `fix-1cpu` 4-6 before they
+started. They were re-run as `fix-1cpu-b` and are not counted twice.
+
+### 4d. Full suites, base plus the inert hook, probes excluded
+
+**Pending**; filled in when the three runs finish (section 8a covers the stall watchdog).
+
+## 5. Mechanism
+
+**The album tile's gesture node is replaced mid-gesture by `DecodedPhoto`'s placeholder-to-image swap.** A
+real touch starts on the placeholder `Box`'s `combinedClickable`. The IO decode finishes, and the
+recomposition that publishes the bitmap replaces the `Box` with an `Image` (`DecodedPhoto.kt:76-81`). The
+pointer-input node that saw the `down` is detached, and the new node never saw one, so the tap's `up`, or
+the long-press timeout, does nothing. Under Robolectric the decode always "succeeds", even for a missing
+file (`DecodedPhotoTest.kt:36-43`), so the swap happens in every album test, at a moment set by an IO thread
+and not by the test clock.
 
 | Part | Status |
 |---|---|
-| The swap happens in every album test, once per tile, off the test clock | **Observed in code** (`DecodedPhoto.kt:57-81`) plus `DecodedPhotoTest.kt:36-43`'s recorded probe that the shadow decode always returns a bitmap |
-| The branch switch replaces the node that carries `combinedClickable` | **Observed in code** (`EntriesAlbum.kt:256-259` passes the gesture modifier into `DecodedPhoto`, which puts it on either branch) |
-| All 82 album failures are "a real touch had no effect", and the only no-touch album test has 0 failures in 77 | **Observed** (CI data, section 1) |
-| Detaching a `combinedClickable` mid-gesture drops the click or long-press | **Inferred** from how Compose's hit path works; not demonstrated here |
-| The swap lands inside the gesture on CI more often than locally because of runner speed | **Inferred**; nothing measured |
-| The 36 "exists but is not displayed" failures fit the same mechanism | **Not determined.** A missing menu (23) and a missing viewer (23) fit directly. A menu item that exists but is not displayed needs a second step (e.g. the swap landing after the long-press fired but while the popup is positioned against the replaced node) that was not checked |
-
-**The confirming probe that was refused** (section 6): a scratch-only hook in `DecodedPhoto` (a latch the
-decode waits on, and one it counts down when done), with probe tests that place the swap **between `down`
-and `up`**, **before `down`**, and **after `up`**. The prediction was that the first fails deterministically
-with the CI message and the other two pass deterministically. The same hook would test the `JournalTabTest`
-case (close the gate before the picker tile is tapped, and see whether `:last` fails with CI's exact
-"exists … is not displayed" message).
+| The swap happens off the test clock, once per tile | **Observed** in code, and in the probe (`PROBE swap applied after 1 frame(s)`) |
+| The gesture modifier rides on the swapped node | **Observed** in code (`EntriesAlbum.kt:256-259`) |
+| A swap inside a tap or before the long-press timeout loses the gesture, and outside it does not | **Confirmed**: probe 6/6 each way (4b) |
+| Moving the gesture to a stable wrapper removes it | **Confirmed** on the probe (3/3), supported by 0/18 against 4/18 pinned (4c) |
+| Machine speed sets the rate | **Observed** locally: 0/6 unpinned, 4/18 pinned. CI's runner speed is not measured |
+| All 82 CI album failures are this one outcome | **Observed**: the 36 `tile-options-delete … is not displayed` failures come only from the two tests that call `touchMenuItem`'s `assertIsDisplayed` straight after the long-press. In this Compose version that message is what a **missing** node gives (the `JournalTabTest` probe shows it with 0 nodes). The 23 count failures come only from the two tests that check `menuItems()` first, and the 23 viewer failures from the tap test |
+| A swap after the long-press fired is harmless | **Observed**: that arm passes 6/6 |
 
 ## 6. Why this stopped
 
@@ -178,38 +238,42 @@ workaround was attempted.
    file is touched, but the split between the two conditions is left to real time, so it needs repeats.
 3. Either way, the class-alone and suite runs of section 4, when the machine is above the floor.
 
-## 7. Proposed fix, conditional on confirmation
+## 7. Proposed fix (for the owner; not applied)
 
-**Keep the gesture on a node that does not change when the photo arrives.** In `AlbumPhotoTile`, put
-`tileClickable` on a wrapping `Box(Modifier.fillMaxSize().tileClickable(…))` and give `DecodedPhoto` only
-`Modifier.fillMaxSize()`, so the placeholder-to-image swap happens *inside* the gesture node instead of
-replacing it. Alternatively, restructure `DecodedPhoto` itself to one outer node whose child switches.
-That would cover every call site but moves `DecodedPhotoTest`'s size expectations, so it is the owner's
-choice.
+**Keep the gesture on a node that does not change when the photo arrives.** In `AlbumPhotoTile`, wrap
+`DecodedPhoto` in `Box(Modifier.fillMaxSize().tileClickable(onClick = onOpen, options = options,
+onClickLabel = "Open full screen"))` and give `DecodedPhoto` only `Modifier.fillMaxSize()`, exactly as trial
+commit `3f71086c` does. The alternative, making `DecodedPhoto` itself one stable outer node with a
+switching child, covers every call site. It changes `DecodedPhotoTest`'s size expectations, though, and
+was not tried: that choice belongs to the owner.
 
-- **Why it treats the cause, not the symptom:** the race is between a user's touch and a decode. On a real
-  device, a long-press or tap started on an album tile before its thumbnail finishes decoding would
-  plausibly be dropped too, a production bug the test is catching by accident (**inferred, not seen on a
-  device**). A test-side wait for the decode before each gesture would make CI green and leave that bug
-  in place.
-- **What would show it working:** the refused probe's "swap between `down` and `up`" arm turning from
-  deterministic fail to deterministic pass with the fix applied, and then the CI album rate falling from
-  67/119. To distinguish that from luck, around 6 consecutive green runs are needed (at p = 0.563,
-  0.437⁶ ≈ 0.7% chance of 6 greens by luck).
+- **Why it treats the cause, not the symptom:** the race is between a touch and a decode, not between a
+  test and a clock. A test-side wait for the decode before each gesture would turn CI green and leave the
+  race in the app. On a device, a tap or long-press started on a tile whose thumbnail is still decoding
+  would plausibly be dropped the same way (**inferred, not seen on a device**; a real photo's decode at
+  `inSampleSize` 4 takes real time, which is when the window is open).
+- **What would show it working:** the "between" probe arms turning from 6/6 fail to pass (done, 3/3); the
+  pinned rate falling (done, 0/18 against 4/18); then on CI, album failures stopping. At CI's 0.563 per run,
+  6 consecutive green runs have a 0.7% chance of happening by luck.
+- **Other `DecodedPhoto` call sites with a gesture on the same modifier** were not audited. A `git grep` of
+  `DecodedPhoto(` for a `clickable`/`tileClickable` modifier is the next step. Section 9 lists it as not done.
 
-## 8. Does `JournalTabTest` From Album share the cause?
+## 8. `JournalTabTest` From Album: same decode, different step. Confirmed
 
-**Same component, and probably not the same step.** That test asserts, as its last line, that a *newly
-composed* `DecodedPhoto` on the edit form shows its `"Log photo"` image, with no wait. The `waitUntil`
-before it covers only the picker's decode. So it reads the same off-clock IO decode, but as an unwaited
-load, with no gesture involved. The 2026-09-10 archive read
-(`2026-09-10-journaltabtest-flake-origin-archive-read.md:105-178`) already named `DecodedPhoto`'s
-`Dispatchers.IO` decode as its candidate, and this repeats that rather than finding it.
-`2026-09-15-journaltabtest-from-album-intermittent-failure.md` states it is "not an unwaited load"
-because the node *exists but is not displayed*. That is consistent with the picker's decoded `Image` still
-being in the tree off screen while the edit form's decode is pending, a reading that report's check (of
-the picker load) would not have covered. **That is inferred and was not checked.** This sample's 5
-messages are byte-identical to that report's.
+The test's last line asserts that a *newly composed* `DecodedPhoto` on the edit form shows its `Log photo`
+image, with no wait. Its `waitUntil` covers only the picker's decode. The probe holds the edit form's decode
+at that assertion. It fails **6/6 with CI's byte-identical message**, `The component with ContentDescription
+= 'Log photo' (ignoreCase: false) is not displayed!`, and **0 `Log photo` nodes exist at that moment**.
+So:
+- **It shares the cause:** the same off-clock decode. It is **not** a lost gesture. It is an unwaited load,
+  and the album fix does not touch it (the arm still fails with the fix, 3/3).
+- **It overturns a prior reading.** `2026-09-15-journaltabtest-from-album-intermittent-failure.md` read the
+  message as "the node exists and is not displayed", so "not an unwaited load". In this Compose version
+  that message is also what a missing node gives. The 2026-09-10 archive read
+  (`2026-09-10-journaltabtest-flake-origin-archive-read.md:105-178`) named this decode as its candidate, and
+  this confirms it. The 09-15 report is superseded on this point, not edited.
+- **Its fix is a separate owner decision:** wait for the decoded image in the test (this is a test of the
+  pull, not of decode timing), or make the thumbnail's arrival observable. That was not tried.
 
 ## 8a. The -297 stall in `DrawerBackOverJournalTest` (added at the owner's request, "2 yes")
 
@@ -259,26 +323,4 @@ said rather than guessed.
 
 ## 9. Disclosures
 
-**Confirmed (read or counted):** the CI counts and rates in section 1, and their sample; the source line
-and JUnit message of every album failure; the 0-in-77 for the no-touch album test; `DecodedPhoto`'s IO
-decode and branch swap; the gesture modifier passed into it; the `ci.yml` and build settings in section 3.
-
-**Inferred, not confirmed:** that the swap detaching `combinedClickable` is what drops the gestures; that
-runner speed sets the rate; that the fix in section 7 removes it; that a real device shows the same
-dropped touch; that `JournalTabTest` fails through the unwaited edit-form decode.
-
-**Could not determine:** what kept Compose from going idle in the -297 stall (section 8a; the dump was not kept); any local rate (nothing run); how the 36 "exists but not displayed" menu failures
-arise; CI's locale, time zone and vCPU count from the logs; whether the `WideJournalTest` "FAILS AT BASE"
-reds were deliberate.
-
-**Premises that were wrong or imprecise:**
-- The dispatch's "last 13 finished runs … 7 succeeded, 6 failed, 2 were cancelled" counts cancelled runs as
-  finished. The 6 failures it lists are correct.
-- The failures are not in the Undo snackbar path: the Undo test fails at its first long-press (`:1138`).
-- "Both involve album photos": the common factor is `DecodedPhoto`. The `JournalTabTest` case is the find
-  form's photo picker, not the album.
-- "It fails more on CI than locally" was left unverified, as the dispatch said.
-
-**Decided beyond scope:** nothing changed in shared code or tests. No CI run was started or re-run. `gh` was
-used read-only (`run list`, `api …/runs`, `…/jobs`, `…/logs`, `…/artifacts`, artifact zip download). The
-non-album failures in section 1 were listed, not investigated.
+PENDING
