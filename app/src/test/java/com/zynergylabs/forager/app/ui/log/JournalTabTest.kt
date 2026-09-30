@@ -548,6 +548,35 @@ class JournalTabTest {
 
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
+
+    /**
+     * ci-flake (-296) scratch probe, never merged: the From Album test with the edit form's own
+     * decode held (DecodeProbe, DecodedPhoto.kt scratch) at the moment of its last assertion. If the
+     * CI failure is that unwaited decode, this fails every time with CI's exact message.
+     */
+    @Test
+    fun `PROBE From Album with the edit form's decode held at the last assertion`() {
+        val galleryPhoto = com.zynergylabs.forager.app.domain.model.GalleryPhoto(
+            photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "gallery-1", relativePath = "photos/gallery-1.jpg", createdAtEpochMillis = null),
+            referencingEntryIds = emptyList(),
+        )
+        try {
+            setScreen(MushroomLogUiState(galleryPhotos = listOf(galleryPhoto)))
+            composeRule.onNodeWithContentDescription("New log entry").performClick()
+            composeRule.onNodeWithText("From Album").performClick()
+            composeRule.waitUntil(timeoutMillis = 5_000) {
+                composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
+            }
+            DecodeProbe.gate = java.util.concurrent.CountDownLatch(1)
+            composeRule.onNodeWithContentDescription("Log photo").performClick()
+            composeRule.onNodeWithText("From Album").assertIsDisplayed()
+            println("PROBE Log photo nodes at the last assertion: " +
+                composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().size)
+            composeRule.onNodeWithContentDescription("Log photo").assertIsDisplayed()
+        } finally {
+            DecodeProbe.gate?.countDown(); DecodeProbe.gate = null
+        }
+    }
 }
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)
