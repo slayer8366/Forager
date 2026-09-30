@@ -242,7 +242,7 @@ here.
   fullscreen, so the tab cannot be left from there at all — the tab
   handler's explicit exit holds an invariant rather than resetting anything
   the user could still be relying on.
-
+- **Don't make me think.** The owner, 2026-09-30, verbatim: "One thing about mobile design: users hate to think. So the biggest principle to consider when designing, is to not make users think. 'Don't make me think.' was a common phrase said by my design professor 15 years ago in college." When pricing options for a control, a behaviour or a fix, count what each asks the end user to notice, decide or do, and weigh that above implementation cost: an automatic, sensible default beats a new setting, prompt or manual step. The worst case is a state the user could misread as broken (a mode that looks switched off, a silent failure), because it makes them think and costs trust. First application: topo night mode switches automatically to Street tiles below map zoom 9.5, with a crossfade, rather than turning light or making the user change basemap to zoom out (records -324, -328, -329; `BasemapStyles.kt`). This bullet is one line, in place of a blank line, so that line 253 does not move.
 ## Documentation
 
 - Record why a non-obvious decision was made and what alternative was
