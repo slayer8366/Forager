@@ -36,6 +36,7 @@ import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import com.zynergylabs.forager.app.ui.map.rememberMapFanSpace
 import com.zynergylabs.forager.app.ui.map.trackMapFanSpace
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -194,9 +195,19 @@ abstract class MarkerFanOutPlacementScreenTests(private val rotation: Int) {
         }
         for ((m, at) in placed) {
             for ((dx, dy) in listOf(0f to 0f, -20f to -20f, 20f to -20f, -20f to 20f, 20f to 20f)) {
+                if (!fan.isOpen) {
+                    // The fan folds on a tap on one of its icons (dispatch 2026-09-28-381): let it finish, and tap the stack again.
+                    composeRule.mainClock.advanceTimeBy(1_000)
+                    composeRule.waitForIdle()
+                    composeRule.touchAt(x.dp, y.dp)
+                    composeRule.mainClock.advanceTimeBy(1_000)
+                    composeRule.waitForIdle()
+                    assertTrue("$name: the stack fanned again", fan.isOpen)
+                }
                 sinks.events.clear()
                 composeRule.touchAt((at.first + dx).dp, (at.second + dy).dp)
                 assertEquals("$name: a real touch $dx,$dy from ${m.key.featureId} at $at", listOf("feature:${MapLayerIds.PHOTOS}:${m.key.featureId}"), sinks.events)
+                assertFalse("$name: the fan folds on that one tap", fan.isOpen)
             }
         }
         fan.fold()

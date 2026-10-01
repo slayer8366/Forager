@@ -509,9 +509,12 @@ fun SightingsMap(
                     focusedFeaturePosition(FocusedMapFeature(key.layerId, key.featureId), currentPlannedTrips, currentWaypoints, currentFindMarkers, currentPhotoMarkers)
                 },
                 space = fanSpace,
-                // One layer at a time (amendment -255): a bubble showing on a sighting or a point glyph, which is
-                // what a fanned marker's bubble is, means an empty-map tap closes it and leaves the fan.
+                // One layer at a time (amendment -255): a bubble showing on a sighting or a point glyph means an empty-map tap closes it and
+                // leaves the fan. A tap on a fanned icon no longer produces that pair (it folds the fan, dispatch 2026-09-28-381); a tap on a stack
+                // beside a bubble, and the return from a find's page, still do.
                 bubbleOpen = { currentFocusedObservationId != null || currentFocusedFeature != null },
+                // The fan an icon was just picked from (null on any other tap), for the way back from that find's page.
+                onFannedFrom = { picked -> currentReturnMemory?.fannedFrom = picked },
                 drawOrder = { orderedLayers(MAP_LAYER_REGISTRY, currentLayersState) },
                 // A record on a layer switched off is not drawn, so it is not a fan member.
                 warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
@@ -811,7 +814,7 @@ fun SightingsMap(
     // A fanned stack folds only when what the map draws changes a member (a record gone or moved, its layer switched off); a change
     // that leaves its members alone keeps it (intent 2026-09-28-274, "Fold only if members change"), and so does a replaced style
     // (dispatch 2026-09-28-279): the effects below draw the fan's layers, frame, circle colour and fade again on the new one.
-    // Not when a bubble opens (focusedObservationId, focusedFeature): tapping a fanned marker keeps the fan up.
+    // Not when a bubble opens (focusedObservationId, focusedFeature): a bubble opening does not itself change what the map draws. A tap on a fanned icon folds the fan in the tap handler.
     LaunchedEffect(loadedStyle, sightings, plannedTrips, waypoints, findMarkers, photoMarkers, drawnLayersState, journalHighlights) {
         fanReopen.onContentEffect(loadedStyle != null, loadedStyle)
     }

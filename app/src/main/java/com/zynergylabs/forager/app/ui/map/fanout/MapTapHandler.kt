@@ -45,12 +45,17 @@ interface MapTapSinks {
  * A map tap, decided. `SightingsMap`'s click listener hands every tap to [onMapTap], which is the old
  * resolution (`resolveTap`, then `mapTapOutcome`, unchanged) with the fan-out in front of and behind it:
  *
- *  - **A fan is open and the tap is on a fanned marker:** that marker's own outcome, as a tap on it
- *    would have been (the owner's choice, dispatch 2026-09-28-197). The fan stays open behind its bubble.
+ *  - **A fan is open and the tap is on a fanned marker:** that marker's own outcome, as a tap on it would have been (the owner's choice, dispatch
+ *    2026-09-28-197), and the fan folds on that same tap (the owner, dispatch 2026-09-28-381: "when an icon gets tapped, immediately display the icon and
+ *    dismiss the fan upon that single tap"). The outcome is given where the marker sits in its stack (what the fan folds back to) and with the marker's
+ *    own coordinates, not where the finger landed on its displaced copy, so a bubble points at the marker. [onFannedFrom] is told which fan the icon was
+ *    picked from, for the way back from a find's page.
  *  - **A fan is open and the tap is anywhere else:** the fan folds, and the tap goes on as it would
  *    have (a plain tap dismisses a bubble, a tap on another marker opens that one). **Except** while a
  *    bubble is showing ([bubbleOpen]) and the tap is on empty map: that tap closes the bubble only and
- *    the fan stays, so the next empty tap folds it (dispatch 2026-09-29-57, item 7, amendment -255).
+ *    the fan stays, so the next empty tap folds it (dispatch 2026-09-29-57, item 7, amendment -255). A tap on a fanned icon no longer leaves a bubble
+ *    and a fan up together, but two ways still do: a tap on a stack while a bubble is up fans it beside the bubble, and Back from a find's page brings
+ *    the find's bubble and its fan back together; this exception serves those.
  *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack): the stack
  *    fans out and nothing else is reported (the owner's choice, dispatch 2026-09-28-197).
  *
@@ -75,9 +80,14 @@ class MapTapHandler(
         val density = probe.density
         var holdFanForEmptyTap = false
         if (fan.isOpen) {
-            val picked = fanMemberAt(liveMembers(), fan.progress, xPx / density, yPx / density)
+            val live = liveMembers()
+            val picked = fanMemberAt(live, fan.progress, xPx / density, yPx / density)
             if (picked != null) {
-                dispatch(mapTapOutcome(TapHit(picked.key.layerId, picked.key.featureId)), at, xPx, yPx)
+                // Given where the marker sits in its stack and with its own coordinates, not where the finger landed on its displaced copy: the fan is
+                // folding home, and a bubble left pointing at the copy's place would point at nothing (dispatch 2026-09-28-381, rule 5).
+                onFannedFrom(FannedFrom(picked.key, live.map { it.key }))
+                dispatch(mapTapOutcome(TapHit(picked.key.layerId, picked.key.featureId)), LatLng(picked.lat, picked.lng), picked.trueXDp * density, picked.trueYDp * density)
+                fan.fold()
                 return
             }
             // One layer at a time (amendment -255): with a bubble showing, a tap on empty map closes the bubble and
@@ -86,6 +96,7 @@ class MapTapHandler(
             if (!holdFanForEmptyTap) fan.fold()
         }
 
+        onFannedFrom(null)
         val order = drawOrder()
         val tappable = tappableLayerIds(order)
         val winner = resolveTap(

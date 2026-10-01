@@ -115,7 +115,7 @@ class MapTapHandlerFanHoldsTest {
 
         tapAtPx(x, y)
 
-        assertTrue("the fan stays open behind the bubble", fan.isOpen)
+        assertFalse("the tap folded the fan on that one tap (dispatch 2026-09-28-381)", fan.isOpen)
         assertEquals(listOf("feature:${target.key.layerId}:${target.key.featureId}"), sinks.events)
     }
 

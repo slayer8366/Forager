@@ -37,6 +37,15 @@ class MapTapHandlerTest {
 
     private fun fullyOpen() { fan.progress = 1f }
 
+    /** The fan folds on a tap on one of its icons (dispatch 2026-09-28-381), so the next icon's tap needs it opened again: the host lets go of the folded members, and the stack is tapped. */
+    private fun reopen() {
+        fan.release()
+        sinks.events.clear()
+        tapAtSpot()
+        fullyOpen()
+        assertTrue("the fan is open again", fan.isOpen)
+    }
+
     /** Where a fanned member is drawn, in px, at full spread. */
     private fun placeOf(m: FanMember): Pair<Float, Float> {
         val at = memberPositionDp(m, 1f)
@@ -112,14 +121,16 @@ class MapTapHandlerTest {
         tapAtSpot()
         fullyOpen()
         assertEquals(5, fan.members.size)
-        for (member in fan.members.toList()) {
-            val (cx, cy) = placeOf(member)
+        for (key in fan.members.map { it.key }) {
             val reach = 20f * scene.density
             for ((dx, dy) in listOf(0f to 0f, -reach to -reach, reach to -reach, -reach to reach, reach to reach)) {
+                reopen()
+                val member = fan.members.single { it.key == key }
+                val (cx, cy) = placeOf(member)
                 sinks.events.clear()
                 tap(cx + dx, cy + dy)
-                assertEquals("touch at $dx,$dy from ${member.key.featureId}", listOf("feature:${MapLayerIds.PHOTOS}:${member.key.featureId}"), sinks.events)
-                assertTrue("the fan stays open behind its bubble", fan.isOpen)
+                assertEquals("touch at $dx,$dy from ${key.featureId}", listOf("feature:${MapLayerIds.PHOTOS}:${key.featureId}"), sinks.events)
+                assertFalse("the fan folds on that one tap", fan.isOpen)
             }
         }
     }
@@ -131,7 +142,9 @@ class MapTapHandlerTest {
         tapAtSpot()
         fullyOpen()
         assertEquals(12, fan.members.size)
-        val opened = fan.members.toList().map { member ->
+        val opened = fan.members.map { it.key }.map { key ->
+            reopen()
+            val member = fan.members.single { it.key == key }
             sinks.events.clear()
             val (x, y) = placeOf(member)
             tap(x, y)
