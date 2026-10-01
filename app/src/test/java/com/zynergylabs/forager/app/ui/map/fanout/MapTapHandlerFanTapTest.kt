@@ -147,8 +147,11 @@ class MapTapHandlerFanTapTest {
         assertFalse(fan.isOpen)
     }
 
+    // A tap on a stack closes a bubble that is showing, as the fan opens (the owner, continuation -383: "1 yes"). Before this it fanned the stack beside the bubble,
+    // which these tests recorded first (aa1db78e).
+
     @Test
-    fun `a tap on a stack while a bubble is up fans it and leaves the bubble, which is what the app does today`() {
+    fun `a tap on a stack while a bubble is up closes the bubble and opens the fan`() {
         bubbleUp = true // a bubble from a single marker is showing and no fan is open
         scene.add(MapLayerIds.FINDS, "m1", lat = 45.0001, lng = -122.0001)
         scene.add(MapLayerIds.PHOTOS, "o1")
@@ -156,7 +159,53 @@ class MapTapHandlerFanTapTest {
         tapAtSpot()
 
         assertTrue("the stack fanned", fan.isOpen)
-        assertTrue("no plain tap went on to close the bubble", sinks.events.isEmpty())
+        assertEquals("and the bubble was closed, once, by the plain tap that closes it", listOf("plain"), sinks.events)
+    }
+
+    @Test
+    fun `a tap on a stack with no bubble up opens the fan and reports nothing, as before`() {
+        bubbleUp = false
+        scene.add(MapLayerIds.FINDS, "m1", lat = 45.0001, lng = -122.0001)
+        scene.add(MapLayerIds.PHOTOS, "o1")
+
+        tapAtSpot()
+
+        assertTrue(fan.isOpen)
+        assertTrue(sinks.events.isEmpty())
+    }
+
+    @Test
+    fun `a tap on another stack with a fan open and a bubble up folds the old fan, opens the new one and closes the bubble`() {
+        openFanWith(MapLayerIds.FINDS)
+        bubbleUp = true
+        scene.addAtScreen(MapLayerIds.WAYPOINTS, "w1", 100f, 1500f)
+        scene.addAtScreen(MapLayerIds.PLANNED_TRIPS, "t1", 100f, 1500f)
+
+        tapAtPx(100f, 1500f)
+
+        assertEquals("the new fan", setOf("w1", "t1"), fan.members.map { it.key.featureId }.toSet())
+        assertTrue(fan.isOpen)
+        assertEquals(listOf("plain"), sinks.events)
+    }
+
+    @Test
+    fun `a tap on a single marker with a bubble up gives that marker's outcome and no extra plain tap, as before`() {
+        bubbleUp = true
+        scene.addAtScreen(MapLayerIds.WAYPOINTS, "w-single", 100f, 1700f)
+
+        tapAtPx(100f, 1700f)
+
+        assertEquals(listOf("feature:${MapLayerIds.WAYPOINTS}:w-single"), sinks.events)
+        assertFalse(fan.isOpen)
+    }
+
+    @Test
+    fun `a tap on empty map with a bubble up and no fan is the plain tap that closes it, as before`() {
+        bubbleUp = true
+
+        tapAtPx(900f, 1900f)
+
+        assertEquals(listOf("plain"), sinks.events)
     }
 
     @Test
