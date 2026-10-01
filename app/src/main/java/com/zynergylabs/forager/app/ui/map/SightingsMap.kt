@@ -510,8 +510,8 @@ fun SightingsMap(
                 },
                 space = fanSpace,
                 // One layer at a time (amendment -255): a bubble showing on a sighting or a point glyph means an empty-map tap closes it and
-                // leaves the fan. A tap on a fanned icon no longer produces that pair (it folds the fan, dispatch 2026-09-28-381); a tap on a stack
-                // beside a bubble, and the return from a find's page, still do.
+                // leaves the fan. A tap on a fanned icon no longer produces that pair (it folds the fan, dispatch 2026-09-28-381), nor does a tap on a stack
+                // (it closes the bubble as the fan opens, continuation -383); the return from a find's page still does.
                 bubbleOpen = { currentFocusedObservationId != null || currentFocusedFeature != null },
                 // The fan an icon was just picked from (null on any other tap), for the way back from that find's page.
                 onFannedFrom = { picked -> currentReturnMemory?.fannedFrom = picked },

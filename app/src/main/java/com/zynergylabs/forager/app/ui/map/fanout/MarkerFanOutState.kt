@@ -91,8 +91,8 @@ fun MarkerFanOutHost(state: MarkerFanOutState) {
  * composed **only while the fan is open**: a `BackHandler` composed later is asked first, so this one
  * sits above every handler already on the screen, whether or not that handler is enabled yet (a
  * bubble's own is always composed and enabled when its bubble shows, which can happen before the fan
- * opens: a tap on a stack beside a bubble, or the way back from a find's page. A tap on a fanned icon no
- * longer leaves a bubble and a fan up together, dispatch 2026-09-28-381). `MarkerFanOutHostTest` asserts that order against a real dispatcher.
+ * opens: the way back from a find's page brings both. A tap on a fanned icon no longer leaves a bubble and a
+ * fan up together, dispatch 2026-09-28-381, and a tap on a stack closes a showing bubble, continuation -383). `MarkerFanOutHostTest` asserts that order against a real dispatcher.
  *
  * **Except while a bubble shows ([bubbleOpen]):** then the bubble goes first and the fan second (dispatch
  * 2026-09-29-57, item 7, amendment -255, which supersedes the earlier "fan before bubble"). The handler is

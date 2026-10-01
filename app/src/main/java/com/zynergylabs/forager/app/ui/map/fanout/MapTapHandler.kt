@@ -54,8 +54,8 @@ interface MapTapSinks {
  *    have (a plain tap dismisses a bubble, a tap on another marker opens that one). **Except** while a
  *    bubble is showing ([bubbleOpen]) and the tap is on empty map: that tap closes the bubble only and
  *    the fan stays, so the next empty tap folds it (dispatch 2026-09-29-57, item 7, amendment -255). A tap on a fanned icon no longer leaves a bubble
- *    and a fan up together, but two ways still do: a tap on a stack while a bubble is up fans it beside the bubble, and Back from a find's page brings
- *    the find's bubble and its fan back together; this exception serves those.
+ *    and a fan up together, and a tap on a stack closes a showing bubble as the fan opens (continuation -383); Back from a find's page still brings
+ *    the find's bubble and its fan back together, and this exception serves that.
  *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack): the stack
  *    fans out and nothing else is reported (the owner's choice, dispatch 2026-09-28-197).
  *
@@ -79,6 +79,7 @@ class MapTapHandler(
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
         var holdFanForEmptyTap = false
+        val bubbleWasUp = bubbleOpen()
         if (fan.isOpen) {
             val live = liveMembers()
             val picked = fanMemberAt(live, fan.progress, xPx / density, yPx / density)
@@ -105,7 +106,12 @@ class MapTapHandler(
             drawOrder = order,
         )
         if (holdFanForEmptyTap && winner != null) fan.fold()
-        if (winner != null && openStackAround(winner, order, xPx, yPx)) return
+        if (winner != null && openStackAround(winner, order, xPx, yPx)) {
+            // A tap on a stack closes a bubble that is showing, as the fan opens (the owner, continuation 2026-09-28-383: "1 yes"). The plain tap is the one
+            // that closes it; it was not sent before, and the bubble stayed beside the new fan.
+            if (bubbleWasUp) sinks.onPlainTap()
+            return
+        }
         dispatch(mapTapOutcome(winner), at, xPx, yPx)
     }
 
