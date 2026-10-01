@@ -1,0 +1,45 @@
+// SCRATCH, UNRUN, UNCOMPILED (dispatch 2026-09-28-349). Stored as .kt.txt so no build picks it up.
+// To use: copy to app/src/test/.../ui/availability/ as a scratch class beside a copy of
+// LeavingTheJournalFixesTest's fixture (setScreen etc.), register
+// @Config(shadows = [GatedBitmapFactoryShadow::class]) (package ui.log, from -317), copy ThreadProbe.kt from
+// origin/decoded-photo-thread@081d9ed5 (-348), and wrap AvailabilityScreen in ParkBox(...) inside setContent.
+// Nothing here has been compiled or run; the API calls below are from memory of Compose/Robolectric and may need fixing.
+
+object Park {
+    @Volatile var armed = false
+    val parked = java.util.concurrent.CountDownLatch(1)      // main counts down when it is inside measure
+    val resume = java.util.concurrent.CountDownLatch(1)      // helper counts down to let main leave measure
+    val tick = androidx.compose.runtime.mutableStateOf(0)    // read in measure, so a write dirties this node's measurement
+}
+
+/** A layout modifier whose measure reads Park.tick and, when armed, parks the calling thread on Park.resume. */
+fun Modifier.parkInMeasure(): Modifier = this.layout { measurable, constraints ->
+    Park.tick.value                                          // the state read that makes a write remeasure this node
+    if (Park.armed) {
+        Park.armed = false
+        ThreadProbe.record("PARK-ENTER")                     // logs thread, main?, isDeferringContinuations
+        Park.parked.countDown()
+        Park.resume.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        ThreadProbe.record("PARK-EXIT")
+    }
+    val p = measurable.measure(constraints)
+    layout(p.width, p.height) { p.place(0, 0) }
+}
+
+// Attempt 1 (test body, after openFindEditor() has been reached WITH GatedDecode.holdDecodes(n) set BEFORE opening the editor,
+// so the editor's DecodedPhoto IO decode is blocked inside the shadow's decodeFile):
+//   val helper = Thread {
+//       Park.parked.await(5, SECONDS)                        // main is now inside a Choreographer-driven measure
+//       GatedDecode.release()                                // IO worker's decode returns, effect resumes inline on the worker
+//       Thread.sleep(300)                                    // let the worker's apply start
+//       Park.resume.countDown()                              // release main
+//   }.also { it.start() }
+//   Park.armed = true
+//   composeRule.runOnUiThread { Park.tick.value++ ; androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications() }
+//   shadowOf(Looper.getMainLooper()).idle()                  // NOT waitForIdle(): drives Choreographer.doFrame -> performTraversals -> onLayout
+//   helper.join()
+//   // Read probe.log: PARK-ENTER thread/deferring, then any OFFMAIN line, and any uncaught exception on the worker
+//   // (install Thread.setDefaultUncaughtExceptionHandler to log it).
+//
+// Attempt 2, only if attempt 1 shows the worker's continuation was queued (deferring=true at PARK-ENTER, no OFFMAIN apply):
+//   park from a LaunchedEffect/idle callback instead, so the flag is false at the park; same helper.
