@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
+import com.zynergylabs.forager.app.ui.map.fanout.FannedFrom
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -106,5 +107,88 @@ class MapReturnMemoryTest {
         memory.clearRestore()
         assertNull(memory.takeFanKeys())
         assertNull(memory.takeBubble(findMarkers))
+    }
+
+    // A find picked from a fan (dispatch 2026-09-28-381): the fan folded on that tap, so the open fan's keys are empty by the time "Open in Journal" is tapped.
+
+    private val find1 = FanKey(MapLayerIds.FINDS, "find-1")
+
+    @Test
+    fun `a find picked from a fan brings the same fan back, though the fan had folded by Open in Journal`() {
+        memory.fannedFrom = FannedFrom(find1, keys)
+        memory.openFanKeys = emptyList() // the fan folded on the tap that showed the bubble
+        memory.remember("find-1", anchor, 0f)
+
+        assertTrue(memory.onFindClosed("find-1"))
+
+        assertEquals(keys, memory.pendingFanKeys)
+        assertEquals(keys, memory.takeFanKeys())
+    }
+
+    @Test
+    fun `a deleted find from a fan returns the fan without it`() {
+        memory.fannedFrom = FannedFrom(find1, keys)
+        memory.remember("find-1", anchor, 0f)
+
+        assertTrue(memory.onFindDeleted("find-1"))
+
+        assertEquals("one member is left, which the map will not fan", listOf(FanKey(MapLayerIds.PHOTOS, "ph-1")), memory.pendingFanKeys)
+    }
+
+    @Test
+    fun `a find that was not picked from a fan returns no fan`() {
+        memory.fannedFrom = null
+        memory.openFanKeys = emptyList()
+        memory.remember("find-1", anchor, 0f)
+
+        assertTrue(memory.onFindClosed("find-1"))
+
+        assertNull(memory.pendingFanKeys)
+        assertNull(memory.takeFanKeys())
+    }
+
+    @Test
+    fun `a fan picked from for a different find is not used for this one`() {
+        memory.fannedFrom = FannedFrom(FanKey(MapLayerIds.FINDS, "find-9"), keys)
+        memory.openFanKeys = emptyList()
+        memory.remember("find-1", anchor, 0f)
+
+        assertTrue(memory.onFindClosed("find-1"))
+
+        assertNull(memory.pendingFanKeys)
+    }
+
+    @Test
+    fun `closing the bubble without opening the page leaves nothing remembered`() {
+        memory.fannedFrom = FannedFrom(find1, keys) // the bubble was shown from a fan, then closed; remember() was never called
+
+        assertFalse("nothing was remembered, so closing a find's page is nothing to return from", memory.onFindClosed("find-1"))
+        assertNull(memory.pendingFanKeys)
+    }
+
+    @Test
+    fun `the fan picked from is used once, and the next round reads the open fan`() {
+        memory.fannedFrom = FannedFrom(find1, keys)
+        memory.remember("find-1", anchor, 0f)
+        assertTrue(memory.onFindClosed("find-1"))
+        assertNull("used up", memory.fannedFrom)
+
+        val reopened = listOf(FanKey(MapLayerIds.FINDS, "find-1"), FanKey(MapLayerIds.WAYPOINTS, "w-1"))
+        memory.openFanKeys = reopened // the returned fan is open again
+        memory.remember("find-1", anchor, 0f)
+        assertTrue(memory.onFindClosed("find-1"))
+
+        assertEquals(reopened, memory.pendingFanKeys)
+    }
+
+    @Test
+    fun `forgetting the origin forgets the fan picked from`() {
+        memory.fannedFrom = FannedFrom(find1, keys)
+        memory.remember("find-1", anchor, 0f)
+
+        memory.forget()
+
+        assertNull(memory.fannedFrom)
+        assertFalse(memory.onFindClosed("find-1"))
     }
 }

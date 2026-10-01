@@ -148,8 +148,25 @@ class AvailabilityScreenFanBubbleDismissalTest {
         s.addAtScreen(MapLayerIds.PHOTOS, "ph-1", SPOT_X * density, SPOT_Y * density)
     }
 
-    /** Fans the stack, then a real touch on the fanned find opens its bubble with the fan still open. */
+    /**
+     * A bubble up and a fan open together. A tap on a fanned icon no longer leaves both (it folds the fan, dispatch 2026-09-28-381), so the state is reached
+     * the way that still can: the find's bubble first, while it is alone on the spot, then a photo joins it and a tap on the stack fans it with the bubble up.
+     */
     private fun fanWithFindBubbleOpen() {
+        setScreen()
+        val s = checkNotNull(scene)
+        s.addAtScreen(MapLayerIds.FINDS, "find-1", SPOT_X * density, SPOT_Y * density)
+        touchMap(SPOT_X, SPOT_Y)
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Golden chanterelle", useUnmergedTree = true).assertIsDisplayed()
+        s.addAtScreen(MapLayerIds.PHOTOS, "ph-1", SPOT_X * density, SPOT_Y * density)
+        touchMap(SPOT_X, SPOT_Y)
+        assertTrue("the stack fanned with the bubble still up", fan.isOpen)
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a real touch on a fanned find shows its bubble and folds the fan on that one tap`() {
         setScreen()
         stackAtSpot()
         touchMap(SPOT_X, SPOT_Y)
@@ -157,10 +174,26 @@ class AvailabilityScreenFanBubbleDismissalTest {
         composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertDoesNotExist()
         val find = fan.members.single { it.key.featureId == "find-1" }
         val at = memberPositionDp(find, fan.progress)
+
         touchMap(at.xDp, at.yDp)
+
         composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Golden chanterelle", useUnmergedTree = true).assertIsDisplayed()
-        assertTrue("the fan stays open behind its member's bubble", fan.isOpen)
+        assertFalse("the fan folded on the same tap", fan.isOpen)
+    }
+
+    @Test
+    fun `a real touch on a fanned photo shows its bubble and folds the fan on that one tap`() {
+        setScreen()
+        stackAtSpot()
+        touchMap(SPOT_X, SPOT_Y)
+        val photo = fan.members.single { it.key.featureId == "ph-1" }
+        val at = memberPositionDp(photo, fan.progress)
+
+        touchMap(at.xDp, at.yDp)
+
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        assertFalse("the fan folded on the same tap", fan.isOpen)
     }
 
     @Test

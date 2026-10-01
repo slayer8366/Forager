@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
+import com.zynergylabs.forager.app.ui.map.fanout.FannedFrom
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 
 /**
@@ -33,6 +34,9 @@ class MapReturnMemory(
 ) {
     /** Written by the map while a fan is open (its members' keys), empty while none is; read when "Open in Journal" is tapped. */
     var openFanKeys: List<FanKey> = emptyList()
+
+    /** The fan the tapped marker was just picked from, kept until the next map tap or the return (dispatch 2026-09-28-381); `null` when the last tap was not on a fanned icon. */
+    var fannedFrom: FannedFrom? = null
 
     private var request: MapReturnRequest? = null
     private var bubbleRestore: MapReturnRequest? = null
