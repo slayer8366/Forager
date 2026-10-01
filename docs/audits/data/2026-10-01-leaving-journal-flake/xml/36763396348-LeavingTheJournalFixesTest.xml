@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" tests="31" skipped="0" failures="1" errors="0" timestamp="2026-09-30T19:15:04.084Z" hostname="runnervm8df0l" time="8.142">
+  <properties/>
+  <testcase name="F1 short landscape, viewing a committed find then leaving on the rail shows no Saved to Drafts snackbar and deletes nothing" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.157"/>
+  <testcase name="F2 a new day entry, a draft, left in its editor comes back in its editor" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.129"/>
+  <testcase name="F4 portrait, Back with the drawer open over the Map tab's Log a find picker closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.08"/>
+  <testcase name="F1 a committed find opened in its editor and left by Back unchanged shows no snackbar, and its unchanged draft copy is gone" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.112"/>
+  <testcase name="F3 a committed find open in its report view is still open in it back on Journal, with no snackbar and nothing deleted" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.139"/>
+  <testcase name="F3 a committed find open in its editor with a change is still in its editor back on Journal, the change held" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.139"/>
+  <testcase name="F4 portrait, Back with the drawer open over the search dropdown on Maps closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.17"/>
+  <testcase name="F4 portrait, Back with the drawer open over the search dropdown on the Journal closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.222"/>
+  <testcase name="F3 the Tools drawer opened over an open find leaves it open, and Back closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.16"/>
+  <testcase name="F2 after that return, Back from the editor asks Save or Discard, and Discard leaves Entries showing the stored text" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.159"/>
+  <testcase name="F1 viewing a committed find then leaving for Maps shows no Saved to Drafts snackbar and deletes nothing" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.083"/>
+  <testcase name="F3 backgrounding with a find open in its report view keeps it open, with no snackbar and nothing deleted" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="2.1"/>
+  <testcase name="F1 viewing a committed find then opening the Tools drawer shows no Saved to Drafts snackbar and deletes nothing" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.082"/>
+  <testcase name="F3 a bubble's Open in Journal over a changed kept find leaves it first, its draft in Drafts at once with Saved to Drafts" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.122"/>
+  <testcase name="F4 portrait, a real touch on Tools with the add-action menu open dismisses the menu and opens no drawer" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.082"/>
+  <testcase name="F3 backgrounding with a find open in its editor with a change keeps the editor, the change held" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="2.104"/>
+  <testcase name="F3 a find opened over Entries from a map bubble is still over Entries back on Journal" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.073"/>
+  <testcase name="F2 closing a day entry with unsaved changes leaves the Entries list and card on the stored text" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.178"/>
+  <testcase name="F3 Log a find on Maps over an unchanged kept re-edit leaves no duplicate draft row" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.127">
+    <failure message="java.lang.IllegalArgumentException: performMeasureAndLayout called during measure layout" type="java.lang.IllegalArgumentException">java.lang.IllegalArgumentException: performMeasureAndLayout called during measure layout
+	at androidx.compose.ui.internal.InlineClassHelperKt.throwIllegalArgumentException(InlineClassHelper.kt:36)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:914)
+	at androidx.compose.ui.platform.AndroidComposeView.onLayout(AndroidComposeView.android.kt:2037)
+	at android.view.View.layout(View.java:25626)
+	at android.view.ViewGroup.layout(ViewGroup.java:6460)
+	at androidx.compose.ui.platform.AbstractComposeView.internalOnLayout$ui(ComposeView.android.kt:504)
+	at androidx.compose.ui.platform.AbstractComposeView.onLayout(ComposeView.android.kt:494)
+	at android.view.View.layout(View.java:25626)
+	at android.view.ViewGroup.layout(ViewGroup.java:6460)
+	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+	at android.view.View.layout(View.java:25626)
+	at android.view.ViewGroup.layout(ViewGroup.java:6460)
+	at android.widget.LinearLayout.setChildFrame(LinearLayout.java:1891)
+	at android.widget.LinearLayout.layoutVertical(LinearLayout.java:1729)
+	at android.widget.LinearLayout.onLayout(LinearLayout.java:1638)
+	at android.view.View.layout(View.java:25626)
+	at android.view.ViewGroup.layout(ViewGroup.java:6460)
+	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+	at com.android.internal.policy.DecorView.onLayout(DecorView.java:775)
+	at android.view.View.layout(View.java:25626)
+	at android.view.ViewGroup.layout(ViewGroup.java:6460)
+	at android.view.ViewRootImpl.performLayout(ViewRootImpl.java:5074)
+	at android.view.ViewRootImpl.performTraversals(ViewRootImpl.java:4218)
+	at android.view.ViewRootImpl.doTraversal(ViewRootImpl.java:3076)
+	at android.view.ViewRootImpl$TraversalRunnable.run(ViewRootImpl.java:10643)
+	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1570)
+	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1579)
+	at android.view.Choreographer.doCallbacks(Choreographer.java:1179)
+	at android.view.Choreographer.doFrame(Choreographer.java:1108)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at org.robolectric.shadows.ShadowChoreographer$ChoreographerReflector$$Reflector60.doFrame(Unknown Source)
+	at org.robolectric.shadows.ShadowChoreographer.lambda$doFrame$1(ShadowChoreographer.java:208)
+	at org.robolectric.util.PerfStatsCollector.measure(PerfStatsCollector.java:83)
+	at org.robolectric.shadows.ShadowChoreographer.doFrame(ShadowChoreographer.java:208)
+	at android.view.Choreographer.doFrame(Choreographer.java)
+	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1553)
+	at android.os.Handler.handleCallback(Handler.java:995)
+	at android.os.Handler.dispatchMessage(Handler.java:103)
+	at org.robolectric.shadows.ShadowPausedLooper$IdlingRunnable.doRun(ShadowPausedLooper.java:677)
+	at org.robolectric.shadows.ShadowPausedLooper$ControlRunnable.run(ShadowPausedLooper.java:599)
+	at org.robolectric.shadows.ShadowPausedLooper$HandlerExecutor.execute(ShadowPausedLooper.java:849)
+	at org.robolectric.shadows.ShadowPausedLooper.executeOnLooper(ShadowPausedLooper.java:765)
+	at org.robolectric.shadows.ShadowPausedLooper.idle(ShadowPausedLooper.java:109)
+	at org.robolectric.android.internal.LocalControlledLooper.drainMainThreadUntilIdle(LocalControlledLooper.java:19)
+	at androidx.test.espresso.Espresso.onIdle(Espresso.java:11)
+	at androidx.test.espresso.Espresso.onIdle(Espresso.java:1)
+	at androidx.compose.ui.test.EspressoLink_androidKt.runEspressoOnIdle(EspressoLink.android.kt:88)
+	at androidx.compose.ui.test.RobolectricIdlingStrategy.runUntilIdle$lambda$0(RobolectricIdlingStrategy.android.kt:107)
+	at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:35)
+	at androidx.compose.ui.test.RobolectricIdlingStrategy.runUntilIdle(RobolectricIdlingStrategy.android.kt:66)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.waitForIdle(ComposeUiTest.android.kt:716)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$waitForIdle(ComposeUiTest.android.kt:481)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitForIdle(ComposeUiTest.android.kt:859)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitForIdle(AndroidComposeTestRule.android.kt:495)
+	at com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest.openFindEditor(LeavingTheJournalFixesTest.kt:412)
+	at com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest.F3 Log a find on Maps over an unchanged kept re-edit leaves no duplicate draft row(LeavingTheJournalFixesTest.kt:1094)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$testWithDisposal$1.evaluate(AndroidComposeTestRule.android.kt:426)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invokeSuspend(AndroidComposeTestRule.android.kt:448)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invokeSuspend(ComposeUiTest.android.kt:689)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(ComposeUiTest.android.kt)
+	at androidx.compose.ui.test.IdlingStrategy.withStrategy$suspendImpl(IdlingStrategy.android.kt:55)
+	at androidx.compose.ui.test.IdlingStrategy.withStrategy(IdlingStrategy.android.kt)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invokeSuspend(ComposeUiTest.android.kt:686)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(ComposeUiTest.android.kt)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+	at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:98)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:326)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:309)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:1)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:167)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:1)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:665)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:447)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at org.junit.rules.RunRules.evaluate(RunRules.java:20)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="F3 short landscape, a committed find open in its report view is still open after the rail's Maps and Journal" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.22"/>
+  <testcase name="F4 portrait, Back with the drawer open over the search dropdown's Set on map picker closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.192"/>
+  <testcase name="F1 a new find left by Back offers Discard, and once that find is saved the Discard deletes nothing" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.11"/>
+  <testcase name="F4 short landscape, Back with the drawer open from the rail over the add-action menu closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.067"/>
+  <testcase name="F4 short landscape, Back with the drawer open from the rail over the search dropdown closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.096"/>
+  <testcase name="F3 the Maps search bar shows on Maps while a find is kept open on the Journal" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.081"/>
+  <testcase name="F2 after that return, the leave prompt's Save stores the typed text" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.135"/>
+  <testcase name="F1 a committed find changed in its editor then left by Back shows Saved to Drafts, and Discard deletes only the draft row" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.109"/>
+  <testcase name="F2 a committed day entry's editor left with typed text comes back in its editor, the text still unsaved and drawn only there" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.095"/>
+  <testcase name="F3 Log a find on Maps over a changed kept find leaves it first, its draft in Drafts at once with Saved to Drafts" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.23"/>
+  <testcase name="F3 Log a find on Maps over a viewed committed find closes it with no snackbar and nothing deleted" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.139"/>
+  <testcase name="F2 a committed day entry's editor left with a waypoint withheld comes back in its editor with the waypoint still withheld" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.244"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
