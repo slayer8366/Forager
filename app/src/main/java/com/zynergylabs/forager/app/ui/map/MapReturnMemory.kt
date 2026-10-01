@@ -44,12 +44,16 @@ class MapReturnMemory(
 
     /** Remembers that [findId] was opened from the map, with the fan that was open then and the bubble's anchor. */
     fun remember(findId: String, anchorPx: Offset, bearingDeg: Float) {
-        request = MapReturnRequest(findId, openFanKeys.toList(), anchorPx, bearingDeg)
+        // A find picked from a fan: that fan folded on the tap, so the fan to bring back is the one it was picked from (dispatch 2026-09-28-381). Any
+        // other find: the fan open now, if one is, as before.
+        val pickedFrom = fannedFrom?.takeIf { it.tapped == FanKey(MapLayerIds.FINDS, findId) }?.members
+        request = MapReturnRequest(findId, pickedFrom ?: openFanKeys.toList(), anchorPx, bearingDeg)
     }
 
     /** The user left the find any other way (another tab, an edit, another record): Back does what it did before. */
     fun forget() {
         request = null
+        fannedFrom = null
     }
 
     /**
@@ -60,7 +64,10 @@ class MapReturnMemory(
     fun onFindClosed(findId: String): Boolean {
         val remembered = request ?: return false
         request = null
+        fannedFrom = null // used up: the fan that comes back is open again, and the next round reads it
         if (remembered.findId != findId) return false
+        // What comes back is decided here: the find's bubble and its fan together, as the owner has it today (-262 item 8). Bringing back the fan alone
+        // would be `bubbleRestore = null` when there are fan keys.
         bubbleRestore = remembered
         fanRestore = remembered.fanKeys.takeIf { it.isNotEmpty() }
         return true
@@ -70,6 +77,7 @@ class MapReturnMemory(
     fun onFindDeleted(findId: String): Boolean {
         val remembered = request ?: return false
         request = null
+        fannedFrom = null
         if (remembered.findId != findId) return false
         bubbleRestore = null
         fanRestore = remembered.fanKeys.filterNot { it.layerId == MapLayerIds.FINDS && it.featureId == findId }.takeIf { it.isNotEmpty() }

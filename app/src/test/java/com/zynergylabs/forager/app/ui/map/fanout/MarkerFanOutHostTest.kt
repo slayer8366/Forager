@@ -269,7 +269,16 @@ class MarkerFanOutHostTest {
         assertEquals(1f, state.progress, 0f)
         assertEquals(emptyList<String>(), sinks.events)
 
-        for (member in state.members.toList()) {
+        for ((i, key) in state.members.map { it.key }.withIndex()) {
+            if (i > 0) {
+                // The fan folded on the previous icon's tap (dispatch 2026-09-28-381): let it finish folding, and tap the stack again.
+                advance(500)
+                assertTrue("folded home", state.members.isEmpty())
+                write { handler.onMapTap(LatLng(45.0, -122.0), scene.xPx(-122.0), scene.yPx(45.0)) }
+                advance(16); advance(500)
+                assertEquals(1f, state.progress, 0f)
+            }
+            val member = state.members.single { it.key == key }
             val at = memberPositionDp(member, state.progress)
             write { handler.onMapTap(LatLng(45.0, -122.0), at.xDp * scene.density, at.yDp * scene.density) }
         }
