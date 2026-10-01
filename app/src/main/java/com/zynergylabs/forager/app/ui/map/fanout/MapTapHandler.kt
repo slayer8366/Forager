@@ -68,6 +68,8 @@ class MapTapHandler(
     private val layerDrawn: (String) -> Boolean = { true },
     /** Where a fallback is reported, never silent: the host passes `Log.w`; a test passes its own. */
     private val warn: (String) -> Unit = {},
+    /** Told, on every map tap, the fan an icon was just picked from, or `null` for any tap that was not on a fanned icon (dispatch 2026-09-28-381). */
+    private val onFannedFrom: (FannedFrom?) -> Unit = {},
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density

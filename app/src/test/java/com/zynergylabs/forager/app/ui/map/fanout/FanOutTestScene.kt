@@ -89,12 +89,18 @@ internal class FanOutTestScene(override val density: Float = 2f) : MapProbe {
 internal class RecordingSinks : MapTapSinks {
     val events = mutableListOf<String>()
 
+    /** Every feature tap with what it carried: the bubble's anchor in px of the map view and the map position (dispatch 2026-09-28-381). */
+    data class FeatureTapRecord(val layerId: String, val featureId: String, val xPx: Float, val yPx: Float, val at: LatLng)
+
+    val featureTaps = mutableListOf<FeatureTapRecord>()
+
     override fun onPlainTap() { events += "plain" }
 
     override fun onSightingTap(observationId: Long?, xPx: Float, yPx: Float) { events += "sighting:$observationId" }
 
     override fun onFeatureTap(layerId: String, featureId: String, xPx: Float, yPx: Float, at: LatLng) {
         events += "feature:$layerId:$featureId"
+        featureTaps += FeatureTapRecord(layerId, featureId, xPx, yPx, at)
     }
 
     override fun onUnidentifiedFeature(layerId: String) { events += "unidentified:$layerId" }

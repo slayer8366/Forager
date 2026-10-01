@@ -161,13 +161,20 @@ class AvailabilityScreenBubbleAndDropdownBackTest {
         assertTrue("the search dropdown is open", shown(SEARCH_DROPDOWN_TAG))
     }
 
+    /**
+     * A bubble over a fan: a tap on a fanned icon folds the fan now (dispatch 2026-09-28-381), so the state is reached by the find's bubble first, while it
+     * is alone on the spot, then a photo joining it and a tap on the stack, which fans it with the bubble still up.
+     */
     private fun openBubbleOverFan() {
-        fanOpen()
-        val find = fan.members.single { it.key.featureId == "find-1" }
-        val at = memberPositionDp(find, fan.progress)
-        touchMap(at.xDp, at.yDp)
+        composeFan()
+        val s = checkNotNull(scene)
+        s.addAtScreen(MapLayerIds.FINDS, "find-1", SPOT_X * density, SPOT_Y * density)
+        touchMap(SPOT_X, SPOT_Y)
         composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
-        assertTrue("the fan is still open under the bubble", fan.isOpen)
+        s.addAtScreen(MapLayerIds.PHOTOS, "ph-1", SPOT_X * density, SPOT_Y * density)
+        touchMap(SPOT_X, SPOT_Y)
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        assertTrue("the fan is open with the bubble still up", fan.isOpen)
     }
 
     private fun bubbleShown() = shown(MAP_BUBBLE_TAG)

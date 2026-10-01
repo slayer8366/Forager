@@ -133,11 +133,15 @@ class AvailabilityScreenFanBackDrawerTest {
         composeRule.onNodeWithText("Trip Planner").assertIsDisplayed()
     }
 
-    private fun fanOpen() {
+    private fun composeScreen() {
         val store = OneCellStore()
         val viewModel = mapLayersViewModel(store = store)
         composeRule.setContent { MapLayersTestScreen(viewModel = viewModel, mapSlot = slot, store = store, logUiState = log) }
         composeRule.waitForIdle()
+    }
+
+    private fun fanOpen() {
+        composeScreen()
         val s = checkNotNull(scene)
         s.addAtScreen(MapLayerIds.FINDS, "find-1", SPOT_X * density, SPOT_Y * density)
         s.addAtScreen(MapLayerIds.PHOTOS, "ph-1", SPOT_X * density, SPOT_Y * density)
@@ -179,11 +183,17 @@ class AvailabilityScreenFanBackDrawerTest {
 
     @Test
     fun `with a bubble open over the fan, Back closes the drawer, then the bubble, then the fan`() {
-        fanOpen()
-        val find = fan.members.single { it.key.featureId == "find-1" }
-        val at = memberPositionDp(find, fan.progress)
-        touchMap(at.xDp, at.yDp)
+        // A tap on a fanned icon folds the fan now (dispatch 2026-09-28-381), so a bubble over a fan is reached by the find's bubble first, while it is
+        // alone on the spot, then a photo joining it and a tap on the stack, which fans it with the bubble still up.
+        composeScreen()
+        val s = checkNotNull(scene)
+        s.addAtScreen(MapLayerIds.FINDS, "find-1", SPOT_X * density, SPOT_Y * density)
+        touchMap(SPOT_X, SPOT_Y)
         composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        s.addAtScreen(MapLayerIds.PHOTOS, "ph-1", SPOT_X * density, SPOT_Y * density)
+        touchMap(SPOT_X, SPOT_Y)
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        assertTrue("the fan is open with the bubble still up", fan.isOpen)
         openTools()
 
         back()
