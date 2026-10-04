@@ -582,3 +582,178 @@ and one constant. A draft follows. It is **not yet committed anywhere**; see "De
 
 `docs/audits/README.md` gains one row. Other open branches may add rows there. Merge, never
 rebase, and keep every row (CLAUDE.md).
+
+---
+
+# Addendum, 2026-10-04: changes 1 to 3, on the owner's word
+
+**The owner, verbatim, in this window:**
+- "A, leave access at zoom 15. B, trail keys at every zoom the trail appears. C, coastline polygons
+  monthly. D, yes, read us.pmtiles read-only through the pmtiles CLI for the zoom 14 comparison.
+  E, BRouter's release zip; if it lacks the map creator, stop and ask me rather than compiling.
+  F, yes, a forager-build user."
+- "Go ahead with changes 1 to 3 only: install the toolchain (verify every checksum and signature),
+  create forager-build and the two directories, and commit and push map-build/ to pi-build. Then
+  stop, tell the planner the commit, and wait. Change 4 onward needs my word after the planner's
+  review."
+
+Recorded by the planner as `RECORD.md` -601 on `records-pi-after-166`, read before starting. The
+base was unchanged: `origin/main` at `bc364238`.
+
+**Not done:** changes 4 to 9. No profile clone, no Maven dependency fetch, no BRouter zip, no
+extract or source download, no build. Nothing was copied to `/opt/forager-build/map-build` and no
+unit was installed. `/srv/forager-tiles`, the tile server, the tunnel and `us.pmtiles` were not
+touched; the zoom 14 read waits for the run.
+
+## Change 1: the toolchain
+
+**Each signing key was confirmed on four channels before it was trusted.** This is the same method
+the Pi-origin report used for rclone.
+
+| Key | Fingerprint | Channels that agree |
+|---|---|---|
+| Adoptium (Temurin) | `3B04D753C9050D9A5D343F39843C48A565F8F04B` | keyserver.ubuntu.com; keys.openpgp.org (published there without a user ID, as is normal for that server); packages.adoptium.net, Adoptium's own repository key; Adoptium's documentation source (`adoptium/adoptium.net`, the aarch64 reproducible-build page), which names this fingerprint for verifying JDK `.sig` files |
+| Slawomir Jaranowski (Maven 3.9.16's release manager) | `84789D24DF77A32433CE1F079EB80E92EB2135B1` | `downloads.apache.org/maven/KEYS`; keyserver.ubuntu.com; keys.openpgp.org; Apache's committer key registry (`people.apache.org/keys/committer/`) |
+
+The four channels are not fully independent. Two of Adoptium's are Adoptium's own, and the
+keyservers relay what was uploaded to them. But they are separate hosts, and they agreed. Apache's
+group key file for Maven did not contain the fingerprint as text, so it is not counted.
+
+**The checks, in order.** All of them ran before anything was installed:
+
+| | Temurin jdk-21.0.12.1+1 | Maven 3.9.16 |
+|---|---|---|
+| Downloaded | 205,641,175 bytes | 9,278,065 bytes |
+| Checksum | SHA-256 matches the pin and Adoptium's `.sha256.txt` (`sha256sum -c`: OK) | SHA-512 matches the pin and `downloads.apache.org`'s `.sha512` (`sha512sum -c`: OK) |
+| Signature | GOODSIG; VALIDSIG primary key `3B04D753…F04B` | GOODSIG; VALIDSIG primary key `84789D24…35B1` |
+
+- **A negative control,** so the signature check is known to be able to fail: Maven's signature
+  checked against the Temurin archive gave BADSIG.
+- **The checks were run twice.** First by hand. Then by `map-build/bin/install-toolchain.sh`, which
+  re-checks both archives against `pins.env` and the committed key files before it installs
+  anything. After the install, both archives in `/opt/forager-build/archives/` were checked again,
+  checksum and signature: all good. The signature files fetched by the script are byte-identical to
+  the first fetch.
+- The two downloads took 88 s, about 2.4 MB/s. That is faster than the 1.32 MiB/s the Pi-origin
+  report measured, so the first-run download estimate in section 5 is probably high.
+
+**Installed:**
+- `/opt/forager-build/jdk-21.0.12.1+1`, linked as `jdk`. It reports "openjdk version 21.0.12.1
+  2026-08-18 LTS", Temurin-21.0.12.1+1.
+- `/opt/forager-build/apache-maven-3.9.16`, linked as `maven`. It reports "Apache Maven 3.9.16
+  (2bdd9fdd…)".
+- The verified archives in `/opt/forager-build/archives/`.
+- Everything is owned by root. Nothing is group- or world-writable (`find -perm -o+w`: none).
+- Nothing was added to the system `PATH`, and no apt source was added, so automatic upgrades
+  cannot move Java or Maven.
+- **`osmium-tool` 1.15.0-1** from Debian bookworm main, by `apt-get install --no-install-recommends`.
+  A simulation first showed one new package and nothing else; its dependencies were already
+  present. `dpkg -s`: "install ok installed". apt also listed old kernel and Qt packages as
+  autoremovable. They were not touched.
+
+## Change 2: the build user and the two directories
+
+- **`forager-build`:** a system user, uid 995, its own group (990) only. Password locked (`passwd
+  -S`: `L`), shell `/usr/sbin/nologin`, home `/srv/forager-build`, not created by `useradd`.
+- **No sudo:**
+  - the `sudo` group holds only `bwann83`;
+  - no file in `/etc/sudoers` or `/etc/sudoers.d/` names `forager-build`;
+  - `sudo -l -U forager-build` asked for a password even with `-n`, so it could not serve as
+    evidence.
+- **`/srv/forager-build`:** `forager-build:forager-build`, `0755`.
+- **`/opt/forager-build`:** `root:root`, `0755`.
+- Both are on the NVMe. Neither is under `/srv/forager-tiles`.
+
+## Change 3: `map-build/`, committed
+
+| Path | What it is | How far it is checked |
+|---|---|---|
+| `pins.env` | every version, URL, checksum, key fingerprint and setting | values compared with the sources named in this report |
+| `keys/` | the two public keys, Adoptium's and Maven's release manager's | fingerprints as above |
+| `bin/install-toolchain.sh` | change 1 | **run**: it did change 1 |
+| `patches/protomaps-basemaps/0001-roads-trail-attributes.patch` | the six trail keys on path, footway, track, bridleway and steps; tests in upstream's `RoadsTest` | applies cleanly (`git apply --check`) to `Roads.java` and `RoadsTest.java` fetched at `ca93fc06`, whose git blob hashes match the commit's tree. **Not compiled and not tested**: that needs Maven's dependencies, which are change 4 |
+| `bin/install-map-build.sh` | copies `map-build/` at a committed revision to `/opt/forager-build/map-build`, with `COMMIT` | syntax only; not run |
+| `bin/build-basemap-jar.sh` | change 4 | syntax only; not run |
+| `bin/fetch-brouter.sh` | change 5; exits 3, installing nothing, if the zip lacks the map creator (ruling E) | syntax only; not run |
+| `bin/build-orwa.sh` | changes 6 and 7, and the weekly run | syntax only; not run. Its pieces are checked separately: rows below, plus the redirect parser on Geofabrik's live header and GNU `date` on Geofabrik's timestamp |
+| `systemd/forager-build.service`, `.timer` | the weekly run, written and **not installed** | `systemd-analyze verify`: clean, apart from the expected "is not executable" for the not-yet-installed script; `systemd-analyze calendar`: Sundays at 10:00 UTC |
+| `tools/mvt_decode.py` | tile decoder; prints properties, never geometry | 6 tests pass against tiles encoded by hand. Two deliberate breakages each failed for their own reason, and the restored file matched its saved hash |
+| `tools/union_bounds.py` | the `--bounds` for Planetiler | on synthetic files: the right union, and exit 1 when any input has no box |
+| `tools/peak_rss.py` | wall time and peak memory, since GNU `time` is absent | a 200 MiB allocation read as 213,648 KiB, and the child's exit code was passed through |
+| `tools/run_record.py` | `status.json` and `manifest.json` | on dummy files: a failure keeps `last_success`, and a missing record shows as `missing` rather than a guess |
+| `README.md` | what the folder is, the steps and their state | |
+
+The two breakages of the decoder were these:
+- With no zigzag decoding, `sort_rank` read 5 instead of −3.
+- With no gzip detection, the gzip test errored.
+
+**Two of the report's "could not determine" items are now settled,** on synthetic files made with
+`osmium` itself, at made-up coordinates:
+- **`osmium merge` 1.15.0 drops the replication timestamp from the header.** With
+  `--output-header=osmosis_replication_timestamp=…` it reads back correctly, so `build-orwa.sh`
+  always sets it.
+- **It also drops the inputs' bounding boxes,** even when both inputs carry one (made with
+  `osmium extract --set-bounds`). So the merged file has none, and Planetiler would build the
+  world. The explicit `--bounds` from `union_bounds.py` is required, not just a precaution.
+- The same test confirmed that a way present in both inputs is written once.
+
+## Disclosure for this addendum
+
+**Confirmed:** every checksum, signature, fingerprint and channel above; the installed versions,
+paths, ownership and permissions; the user's attributes; the two osmium behaviours; the test,
+breakage and functional results listed.
+
+**Inferred:**
+- That the scripts that were not run will work. Each is syntax-checked, and its pieces are tested
+  where they could be without changes 4 to 9.
+- That the patch compiles and its 13 test cases pass. It applies cleanly, and it was written
+  against upstream's own test helpers, but it has not been compiled.
+
+**Could not determine:**
+- `sudo -l -U forager-build` without a password.
+- Whether the BRouter zip contains the map creator. That is change 5, and the script stops there
+  if not.
+
+**Premises that were wrong:**
+- **The report's description of the weekly run** had Maven fetch dependencies once and then build
+  offline. As written, the jar is built once, in change 4, and the weekly run uses the installed
+  jar without Maven at all, so no code is fetched weekly.
+
+**Decided beyond scope:**
+1. Change 1 was done by a committed script, not ad hoc commands, so what ran is in history.
+2. The verified archives are kept in `/opt/forager-build/archives/` (about 215 MB) for re-checking
+   and reinstalling.
+3. The two public keys are committed in `map-build/keys/`.
+4. `install-map-build.sh` is new. It is the mechanism, which the report did not describe, by which
+   the scripts reach a path the build user and the service can read. It refuses uncommitted changes.
+5. BRouter's flags follow its own script at v1.7.10, except `-DuseDenseMaps=true`, which is left at
+   the code's default (off). That setting is sized for the planet with a 6 GB heap; the run
+   measures what Oregon and Washington need.
+6. The validation fails the run if any of the six trail keys is absent from the roads layer.
+   Across two states that would be suspicious in itself. If it happens, the previous output stays.
+7. A run whose extract is unchanged ends as "skipped". Old extracts are deleted after a good run,
+   and the newest two outputs are kept.
+8. A neutral User-Agent, without the repository's address.
+9. The service has `CPUWeight=20`, so it yields CPU to the tile server.
+
+**Scratch left in place:** `/home/bwann83/forager-build-staging` (207 MB). It holds:
+- the first copies of the two archives;
+- the public keys and signature files;
+- the three upstream files used to write the patch;
+- the synthetic osmium files;
+- the throwaway verification keyrings.
+
+It contains nothing secret, and it is left for the owner to keep or remove. A safety check stopped
+one removal earlier in the session, of a temporary keyring whose path came from `mktemp`. That
+command never ran. The work was redone with fixed paths, and no `mktemp` directory was left
+behind (`ls -d /tmp/tmp.*`: none).
+
+## Rollback for changes 1 to 3
+
+| Change | Undo |
+|---|---|
+| Temurin, Maven, archives | `sudo rm -r /opt/forager-build/jdk /opt/forager-build/jdk-21.0.12.1+1 /opt/forager-build/maven /opt/forager-build/apache-maven-3.9.16 /opt/forager-build/archives` |
+| osmium-tool | `sudo apt-get purge osmium-tool` |
+| The two directories | `sudo rmdir /srv/forager-build /opt/forager-build` (once empty) |
+| The build user | `sudo userdel forager-build` (the group goes with it) |
+| `map-build/` | a revert commit on `pi-build` |
