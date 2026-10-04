@@ -255,22 +255,33 @@ ln -sfn "$name" "$OUT/.current.new"
 mv -T "$OUT/.current.new" "$OUT/current"
 log "published $OUT/$name; current -> $name"
 
+# From here the new output is live, and nothing below may record this run as failed: the failure
+# trap is disarmed and errors no longer stop the script; each step logs a warning instead and the
+# run still exits 0 (planner's review of 17e2611b). The status is written first, so it describes
+# the published output even if a cleanup step below goes wrong.
+trap - EXIT
+set +e
+warn() { log "WARNING (the output is already published): $*"; }
+"${RECORD[@]}" status "$STATUS" --state ok --stage done --run-id "$run_id" --osm-timestamp "$osm_ts" \
+  --output "$OUT/$name" || warn "could not write $STATUS"
+
 # Keep the newest KEEP_GOOD_OUTPUTS outputs; never the one current points at.
 current_target="$(readlink "$OUT/current")"
 mapfile -t olds < <(cd "$OUT" && ls -1d [0-9]*T*Z* 2>/dev/null | sort -r | tail -n +"$((KEEP_GOOD_OUTPUTS + 1))")
 for d in "${olds[@]}"; do
-  [[ "$d" != "$current_target" && -d "$OUT/$d" ]] && rm -rf -- "${OUT:?}/$d" && log "removed old output $d"
+  [[ -n "$current_target" && "$d" != "$current_target" && -d "$OUT/$d" ]] || continue
+  if rm -rf -- "${OUT:?}/$d"; then log "removed old output $d"; else warn "could not remove old output $d"; fi
 done
 
 # Extracts are dated, so each week adds a pair; keep only the pair this output was built from.
 for f in "$SRC/osm/"*.osm.pbf; do
   keep=0
   for i in "${inputs[@]}"; do [[ "$f" == "$i" ]] && keep=1; done
-  if [[ $keep -eq 0 ]]; then rm -f -- "$f" "$f.md5" "$f.headers"; log "removed old extract $(basename "$f")"; fi
+  [[ $keep -eq 1 ]] && continue
+  if rm -f -- "$f" "$f.md5" "$f.headers"; then log "removed old extract $(basename "$f")"
+  else warn "could not remove old extract $(basename "$f")"; fi
 done
 
-"${RECORD[@]}" status "$STATUS" --state ok --stage done --run-id "$run_id" --osm-timestamp "$osm_ts" \
-  --output "$OUT/$name"
-trap - EXIT
-cleanup_scratch
+cleanup_scratch || warn "could not remove the scratch directory $run"
 log "done"
+exit 0
