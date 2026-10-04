@@ -11450,3 +11450,19 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "Write a handoff for the next planner and I'll have it set up on the RPI while you deal with the laptop side".
 **The split:** the Pi planner owns the map service (the Pi, the Worker and storage in the zynergy-labs account, the data pipeline, stages 4 onward); the laptop planner owns the app, its coder, app pull requests and the S22. The owner relays between them. **Record IDs:** the Pi planner uses the block 2026-09-28-600 to -699; the laptop planner continues below it from -497. Shared files (`RECORD.md`, the index READMEs) are merged, never rebased, with every entry and row kept.
 **Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-600
+**Timestamp:** 2026-10-04T08:37:00Z
+**Title:** the Pi planner starts: the handoff checked against the remote and the Pi, and how dispatch -495's coder and the planner talk
+**Handoff-file:** `prompts/preserved/2026-10-04-07-pi-planner-handoff.md` (-496)
+**Checked at:** `main` `bc364238`, `records-after-166` `e046d90e`, the Pi read-only.
+**Confirmed:** CLAUDE.md on `main` unchanged (485 lines); `pi-origin` contained in `main`, `engine-spike` and `label-check` not; no use of the -600 block before this entry. On the Pi: `forager-tiles` (nologin) and `planner` exist; `forager-tiles.service` and `forager-tunnel.service` active and enabled, the tile server on 127.0.0.1:8080 only; pmtiles 1.31.2, cloudflared 2026.9.3, rclone 1.75.1; `/srv/forager-tiles/us.pmtiles` present (8,817,909,309 bytes); `origin.zynergy-labs.com` answers 403 without the token, the local server 200; journal capped at 2G; unattended upgrades narrowed to Debian-Security by `/etc/apt/apt.conf.d/52forager-security-only` (the shipped file alone also allows `label=Debian`), automatic reboot off.
+**Premises that were wrong:** `gh` is installed on the Pi (Debian's 2.23.0, 2023-02-27); its login state is not checked. The handoff says the laptop planner continues "from -496"; -496 itself says -497, which is right. The pi-origin report is 549 lines, not 552. `~/forager-repo-backups/` does not exist yet. `~/Forager` is checked out on the merged `pi-origin`, clean.
+**Observed, not a gate:** the Pi booted three times between 2026-10-03 23:52 and 2026-10-04 01:09 PDT. On the last boot Wi-Fi connected about 16 s in, DNS was usable at once, the tunnel started at 01:09:58 with 0 restarts: a second clean boot for open item 5. The tunnel lost all connections twice on "no recent network activity" (01:10:51 and 01:26:24) and re-registered within seconds without a service restart; relevant to the Wi-Fi decision (-472).
+**Could not determine:** the Access token file's owner and mode, which users hold SSH keys, and passwordless sudo; the planner's read of these was refused by the session's permission check and not attempted another way.
+**The owner, verbatim, on the planner's three questions:** "You can message the coder directly"; "handoff version"; "yes".
+**Ruled:** (1) the Pi planner may message dispatch -495's coder directly; the owner's go for any change still comes only in the coder's own window. This replaces the dispatch's "You and the planner" section, which was written for the laptop planner; the dispatch file stays as sent. (2) Commits by the Pi planner and its coders end with the handoff's `Co-Authored-By: Claude <noreply@anthropic.com>`, no model name. (3) The Pi planner's records go on branch `records-pi-after-166`, cut from `records-after-166`.
+**Notes:** Written by the Pi planner by hand, on branch records-pi-after-166.
