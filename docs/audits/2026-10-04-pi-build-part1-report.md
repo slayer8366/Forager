@@ -1388,3 +1388,54 @@ scratch only.
 - the new output was not served: the tile server still serves `us.pmtiles`;
 - the weekly timer (change 9) was not touched.
 Each needs the owner's word.
+
+# Addendum, 2026-10-04: scripts installed at `e0c8207b`; the new map staged on the Pi's tile server
+
+**The scripts.** The owner said "Update the scripts". `bin/install-map-build.sh` installed
+`e0c8207b` into `/opt/forager-build/map-build`. `diff -rq` against `git archive` of that commit
+finds only the install's own `COMMIT` file. Against `4a28364d`, the only change is the
+`verify-orwa.sh` newline fix. The previous copy is `map-build.prev`, and the one before it was
+renamed `map-build.prev.1791153963`, as the installer does.
+
+**A premise corrected before acting.** "Option 1" was first put to the owner as "serve the new map
+online, public alongside the old one", to be tested through the public address. That was wrong.
+The public name `tiles.zynergy-labs.com` is the Worker, which reads `us.pmtiles` from R2.
+`server/pmtiles-worker/src/index.ts` on `main` and on `pi-build` has no path to the Pi. The Pi's
+tile server is reachable only at `origin.zynergy-labs.com`, behind Cloudflare Access, with one
+service token (`docs/plans/2026-10-04-pi-origin-part1-report.md`). The owner was told so before
+the go. Whether the deployed Worker matches the committed source was not checked: this session has
+no Cloudflare access.
+
+**The change, on the owner's "Go ahead".** The output was copied into the tile server's folder.
+- `out/20261003T202050Z/forager-orwa.pmtiles` went to `/srv/forager-tiles/forager-orwa.pmtiles`,
+  owned by `forager-tiles`, mode 0644. It was written to a dot-named `.part` file and renamed once
+  its SHA-256 matched.
+- That SHA-256, `2904a30d…5b70`, equals the source's and the manifest's.
+- It is a copy, not a link, so no later build or cleanup of `out/` can change the served file.
+- `forager-tiles` was not restarted. It still reads NRestarts 0, active since 14:28:02 PDT.
+
+**Verified:**
+- **On the Pi, localhost:**
+  - `/forager-orwa.json` returns 200, with zooms 0–15 and 9 vector layers.
+  - The zoom 15 tile at Ramona Falls returns 200 as `application/x-protobuf`. After
+    decompression it is byte-identical to `pmtiles tile` read from the file (SHA-256 `de718487…8148`
+    for both).
+  - That tile carries 4 roads features with trail keys: Pacific Crest Trail, Ramona Falls Trail
+    #797 and Timberline Trail #600.
+  - `/us.json` still returns 200.
+- **Through `origin.zynergy-labs.com`, that same tile:**
+  - without the token: **403**, with `cf-access-domain`, so Access refuses it at the edge;
+  - with the token: **200**, the same decompressed SHA-256 `de718487…8148`.
+
+  `/us.json` with the token still returns 200. The token was read inside a root shell from
+  `/etc/forager/access-token.env` and was never printed. The tile was written to `/tmp` and then
+  deleted.
+- **Observed, not a gate:** the tileset JSON's `tiles` URL reads
+  `https://tiles.zynergy-labs.com/forager-orwa/{z}/{x}/{y}.mvt`, because of `--public-url`. That
+  name does not serve this archive until the Worker is pointed at the Pi or the archive is in R2.
+
+**Not reached:** the app, and anything public. Getting the new map to the app needs the owner's
+choice between two Cloudflare changes, the Worker reaching the Pi (the Pi-origin plan's next part)
+or the archive uploaded to R2, and then the app or style using the name `forager-orwa`.
+
+**Undo:** `sudo rm /srv/forager-tiles/forager-orwa.pmtiles`.
