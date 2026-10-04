@@ -1001,3 +1001,65 @@ its seven failures and its restoration.
 - in the staging folder: the BRouter zip, the copied test reports, and the build and revert-check
   logs;
 - `/srv/forager-build/.java`, which Java created as the build user's preferences folder.
+
+---
+
+# Addendum, 2026-10-04: change 5 done, option (b)
+
+**The owner's decision, read at the source (RECORD -603).** At 14:28:40Z, in the planner's session,
+the owner typed "Change 5: take the routing settings from BRouter's source, option (b)". It is a
+human turn from the owner's phone, with no synthetic or peer marker. It answers the planner's
+14:19:59Z recommendation, which is this report's option (b) narrowed: the jar from the release zip,
+and every profile file the build or its verification reads from `misc/profiles2` at the tag, each
+pinned by git blob hash, with nothing compiled.
+
+**The five blob hashes, checked two ways before they were pinned.** They are the planner's own
+computation from the tag's raw files, and each matches the tag's tree as GitHub's API reports it at
+`4d2639af`:
+
+| File | Git blob | Read by |
+|---|---|---|
+| `lookups.dat` | `60e59d083bfff198e27e14aae6a3d4ed44e1cb2b` | all three map-creator steps, and routing |
+| `all.brf` | `35b46729f73ffb179cfd14e9614d1c6adc796d4e` | `OsmFastCutter`, `WayLinker` |
+| `trekking.brf` | `42135d41d1adbbc9c09eeaab190350a1ea2de3cc` | `OsmFastCutter` |
+| `softaccess.brf` | `88d5a81d3f01fc940b2720473bcc1d03fa77a175` | `OsmFastCutter` |
+| `hiking-mountain.brf` | `f2bed1a5c21895195d6fe47c4b1982b5f0a0d4c5` | the verification route |
+
+**The script change, committed and pushed before it ran, at `b4707f52`:**
+- `pins.env` gains the source URL at the tag and the five blobs.
+- `fetch-brouter.sh` now takes only the jar from the zip. It requires six classes in the jar:
+  - the map creator's three: `OsmFastCutter`, `PosUnifier` and `WayLinker`;
+  - the command-line router, `BRouter`;
+  - the OSM PBF reader (`org/openstreetmap/osmosis/osmbinary/Fileformat`) and protobuf
+    (`CodedInputStream`). The jar bundles both, so the zip's separate `lib/` jars are not needed.
+  - It still stops with exit 3 if any is missing (ruling E).
+- It fetches the five profiles from the tag and checks each with `git hash-object`, before
+  installing anything.
+- The heredoc-and-handler construct it uses was tested on a toy for exit codes 0, 3 and 1.
+- `map-build/` was reinstalled into `/opt` at `b4707f52`, so `COMMIT` names what ran. The previous
+  copy, at `92a1a17a`, is kept as `map-build.prev`.
+
+**The run.** The zip already downloaded was re-checked, not re-fetched, and it passed size and
+GitHub's digest. All six classes were present. Each profile matched its blob. The install put in
+place:
+- `/opt/forager-build/brouter-1.7.10/brouter-1.7.10-all.jar`: 2,341,826 bytes, SHA-256
+  `93e9821640093cde82ed470ac8c08ab84fc7ae3b570e30c9ab41d686c7af1d4a`;
+- the five profiles in `profiles2/`;
+- the link `/opt/forager-build/brouter`;
+- the zip, archived in `/opt/forager-build/archives/`.
+
+BRouter's router starts and prints "BRouter 1.7.10".
+
+**Checked independently of the script's output:**
+- `git hash-object` on the five installed profiles equals the pinned list, five of five.
+- The jar's SHA-256 matches.
+- Everything is owned by root, and nothing is world-writable.
+- `forager-build` can read the jar and the profiles.
+
+**On the planner's note** that the 465-test total of change 4 could not be recounted on the Pi: the
+revert check's rerun cleared the other 27 reports in the build tree. This session copied all 28
+reports before that rerun, into its staging folder, which the planner's account cannot read. The
+copy is where the 465 was counted. If the owner wants the planner to recount it, the copy can be
+placed where `planner` can read it. That is a change on the Pi, so it is not done unasked.
+
+**Not started:** changes 6 and 7.

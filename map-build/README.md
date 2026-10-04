@@ -38,8 +38,8 @@ anything placed there would be published.
 | 1 | Install Java, Maven and osmium, each checked | `bin/install-toolchain.sh <download dir>` | **done** 2026-10-04 |
 | 2 | Create the `forager-build` user and the two folders | by hand (see the report's addendum) | **done** 2026-10-04 |
 | 3 | Commit this folder | | **done**, this commit |
-| 4 | Install this folder into `/opt`, then build the patched basemap jar | `bin/install-map-build.sh`, then `/opt/forager-build/map-build/bin/build-basemap-jar.sh` | waits for the owner's word, after the planner's review |
-| 5 | Fetch BRouter's jar (release zip) and profiles (source), and check them | `…/bin/fetch-brouter.sh <download dir>` | owner chose option (b); see the report |
+| 4 | Install this folder into `/opt`, then build the patched basemap jar | `bin/install-map-build.sh`, then `/opt/forager-build/map-build/bin/build-basemap-jar.sh` | **done** 2026-10-04 |
+| 5 | Fetch BRouter's jar (release zip) and profiles (source), and check them | `…/bin/fetch-brouter.sh <download dir>` | **done** 2026-10-04 |
 | 6 | Download the extracts and sources | `sudo -u forager-build …/bin/build-orwa.sh --fetch-only` | waits |
 | 7 | The manual run | `sudo -u forager-build …/bin/build-orwa.sh` | waits |
 | 8 | The zoom 14 comparison against `us.pmtiles`, read-only through the `pmtiles` CLI | `pmtiles tile` and `tools/mvt_decode.py compare` | waits |
