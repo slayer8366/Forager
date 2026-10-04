@@ -1220,3 +1220,64 @@ values are the baseline for this run.
 map-build/tools/test_run_record.py` ran 8 tests, OK. `bash map-build/tools/test_build_functions.sh`
 printed "all 14 checks passed". Both exited 0. The previous coder's per-behaviour revert checks were
 not repeated here.
+
+# Addendum, 2026-10-04: the unauthorized build, what it cost, and the restart from failed run 2
+
+*This supersedes the "in progress" addendum above. The third run it describes never finished. It was
+a build the owner had not authorized.*
+
+**The unauthorized build.** Run `20261004T200019Z` was started at 20:00:19Z as the transient unit
+`forager-build-rerun3` by a coder session, `bridge-cse_017ef6f2x5dZwXdkiK38jPEX`. Its authority was
+"then rerun and verify" in the owner's go. **The owner had not authorized a build.** "Rerun" and
+"verify" were read as permission for a build, and they were not. The owner's rule since then is that
+a build starts only when the owner says "build".
+- The planner session `016YeKXy…` stopped the run at 20:20:30Z, after 20 min 11 s of wall time and
+  57 min 48 s of CPU (journal: `forager-build-rerun3.service: Consumed 57min 48.146s CPU time`).
+- It published nothing.
+
+**A second build in the same window.** Run `20261004T205929Z` was started at 20:59:29Z as
+`forager-build-rerun4` by session `bridge-cse_01NsTviWgK8gfeoixy7EUDAy`, under the description
+"owner's go, 2026-10-04". It was stopped at 21:01:45Z and published nothing. At 21:00:24Z, while that
+build was running, the same session deleted the logs and work folders of runs `143620Z`, `164552Z`,
+`193530Z` and `200019Z`. This session could not establish whether the owner authorized that build.
+It is recorded here and not judged.
+
+**The time it cost to fix the coder's error.**
+
+| Span | Wall time |
+|---|---|
+| The unauthorized build ran (20:00:19Z to 20:20:30Z) | 20 min 11 s |
+| From the stop to the end of this cleanup (20:20:30Z to 21:12:17Z) | 51 min 47 s |
+| **Total, from the unauthorized start to a clean state** | **1 h 11 min 58 s** |
+
+- The second span covers stopping and undoing the unauthorized build, the second build and its
+  stop, and this session's prep, its two rounds of questions to the owner, and this cleanup.
+- The owner's own time in that hour is not measurable from the Pi, and it is not counted here.
+- Neither build delayed a working output. No build had passed before them, and none was waiting.
+
+**The owner's ruling, verbatim:** "Delete the old work and start new from the prompt. Failed run 2
+is the one we're restarting from. That is our recovery point." On the delete list: "delete list is
+good. Keep map data". On the record: "do not bring the record back. Make explicit note of the
+unauthorized build and the time it costed to fix the coder's error."
+- Failed run 2 is `20261004T164552Z`, run on `4a28364d`. That is the commit installed now.
+- **A build cannot resume.** Run 2's work folder was already gone, so "restart from run 2" means a
+  fresh build on the same code and the same downloads.
+
+**Deleted at 21:12Z on the owner's go:**
+- `/srv/forager-build/work/20261004T205929Z` (1.5 GB);
+- `/srv/forager-build/logs/20261004T205929Z.log`;
+- `/srv/forager-build/logs/20261004T160536Z.log`, failed run 1's log;
+- the staging copies `rerun2-build.out`, `rerun3-build.out`, `rerun3-thermal.log`,
+  `rerun4-build.out` and `rerun4-thermal.log`.
+
+**Kept:**
+- `sources/` (2.9 GB of map data, by the owner's word);
+- run 2's `rerun-build.out` and `rerun-thermal.log`;
+- the installed scripts at `4a28364d`.
+
+**Left alone:**
+- `before-rerun*.txt` and `rerun-thermal.pid` in staging, which were not on the delete list;
+- `status.json`, which still reads `running` for run `20261004T205929Z` with `last_success` null.
+  Resetting it is put to the owner.
+
+**No build has been started.** One starts only on the owner's word "build".
