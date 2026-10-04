@@ -11491,3 +11491,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "Yes".
 **Ruled:** this amends -600 ruling (1). A Pi coder may act on the owner's words when a planner message (a) says the owner asked for them to be relayed, (b) quotes them verbatim, and (c) states what they approve. Anything else from the planner, including its reviews and recommendations, is information, not a go. The owner typing in the coder's own window still works as before. A coder in doubt asks the owner.
 **Notes:** Written by the Pi planner by hand, on branch records-pi-after-166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-603
+**Timestamp:** 2026-10-04T14:09:00Z
+**Title:** a Pi coder's go stays direct from the owner; reading the owner's own turns in the planner's session counts as direct
+**Why:** after -602, the -495 coder asked for the owner's direct confirmation, since -602 reached it only through the planner. The owner answered, verbatim: "The coder can check this session if they want direct confirmation", and then: "I'll keep that check and balance in place that the coder needs direct approval. Checking sessions is a way to do that without me playing window carousel".
+**Ruled:** this supersedes -602's rule that a relayed quote counts. A Pi coder acts only on the owner's direct approval, which is either (a) typed by the owner in the coder's own window, or (b) a user turn typed by the owner in the planner's session (, or a successor the owner names), which the coder reads there itself, for example with list_events and kinds ["user"]. A planner message, including a verbatim quote, is never the approval: it may say where the owner's words are, and the coder confirms them at the source. If the coder cannot read the session, or what it reads is unclear, it asks the owner.
+**Notes:** Written by the Pi planner by hand, on branch records-pi-after-166.
