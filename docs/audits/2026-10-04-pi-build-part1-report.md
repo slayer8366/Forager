@@ -1063,3 +1063,86 @@ copy is where the 465 was counted. If the owner wants the planner to recount it,
 placed where `planner` can read it. That is a change on the Pi, so it is not done unasked.
 
 **Not started:** changes 6 and 7.
+
+---
+
+# Addendum, 2026-10-04: change 6 done; change 7's first run failed validation, as designed
+
+**The owner's go, read at the source (RECORD -603).** At 14:34:51Z, in the planner's session, the
+owner typed "Go ahead with changes 6 and 7, routing test from Ramona Falls Trailhead to Ramona
+Falls". It is a human turn from the owner's phone, and it answers the planner's 14:34:11Z
+recommendation. The owner's 14:34:34Z turn, about designing the map's topography, went to the
+planner and was not acted on here. Units were not installed and the timer stays disabled: change 9
+is not approved.
+
+## Change 6: the downloads
+
+- `build-orwa.sh --fetch-only` ran as `forager-build` from 14:36:20Z to 16:04:53Z, about 1 h 28 min.
+- Both extracts: the published MD5 matched, and the header timestamp is 2026-10-03T20:20:50Z,
+  sequence 4930, the same in both.
+- All eight files have exactly the sizes recorded in section 1 and section 2's table.
+- Geofabrik served at about 262 KiB/s, measured. The two coastline files took about 27 minutes each.
+- `status.json` read `ok`, stage `fetch-only`.
+
+## Change 7: the first build run
+
+Run as `forager-build` by hand, from 16:05:36Z to 16:35:05Z.
+
+| Step | Wall time | Peak resident memory | Result |
+|---|---|---|---|
+| merge | 37 s | 250 MiB | header timestamp set; bounds computed from the inputs |
+| Planetiler | 17 min 50 s | **5.6 GiB** | archive written |
+| BRouter `OsmFastCutter` | 9 min 18 s | 2.1 GiB | |
+| BRouter `PosUnifier` | 21 s | 321 MiB | |
+| BRouter `WayLinker` | 1 min 8 s | 2.2 GiB | |
+| validate | 1 s | | **archive passed; `.rd5` check failed** |
+
+- **The archive passed every check:** zooms 0–15, the nine layers the style reads, and all six trail
+  keys among the roads layer's fields. Bounds fell within the extracts'.
+- **The routing check failed.** There were 11 `.rd5` files, not the 4 expected: `W120_N40`,
+  `W120_N45`, `W125_N40`, `W125_N45`, plus `W130_N45`, `W130_N50`, `W135_N50`, `W135_N55`,
+  `W140_N55`, `W145_N55` and `W150_N60`.
+- **The cause, found in the extracts.** Washington's extract carries three ferry ways whole, as
+  Geofabrik keeps ways that cross its boundary complete: "Alaska Marine Lines", "Alaska Marine
+  Highway – Bellingham ↔ Ketchikan", and "Duke Point ↔ Tsawwassen". BRouter routes ferries. The 5°
+  squares touched by ferry ways in the two extracts are exactly the 11 squares written. Only the
+  names and squares were read out; positions stayed in the staging folder.
+- **The failure path did what it was built to do:**
+  - `status.json` reads `"state": "failed", "stage": "validate", "message": "exit 1; log
+    /srv/forager-build/logs/20261004T160536Z.log"`, `osm_timestamp` 2026-10-03T20:20:50Z;
+  - the log is kept, nothing was published, `out/` is empty, and there was no previous output to
+    keep;
+  - the scratch directory was removed.
+
+  **That last point includes the archive that had passed its checks.** A rerun rebuilds it, about
+  30 minutes. Whether a failed run should keep its outputs for inspection is put to the owner.
+- **The Pi through the run:**
+
+  | | Available memory | Temperature | Throttling | Fan | Tile server / tunnel |
+  |---|---|---|---|---|---|
+  | before, 16:05Z | 6,594 MB | 46.1 C | `0x0` | 0 | active, 0 restarts each |
+  | mid-run, 16:34Z | 4,668 MB | 60.9 C | `0x0` | | active, 0 restarts |
+  | after, 16:36Z | 6,955 MB | 50.5 C | `0x0` | 1 | active since 01:09 PDT, 0 restarts |
+
+  No out-of-memory events in the kernel log. Planetiler's 5.6 GiB peak includes its memory-mapped
+  temporary files. Memory stayed ample, but that is the tightest margin seen.
+- **A slip, disclosed.** The after-readings command also sent one request for `/us.json` to the
+  running tile server on localhost (HTTP 200). Ruling D keeps the comparison off the running
+  server. This request was not the comparison and changed nothing, but it was against the
+  intention. It will not be repeated.
+
+**Not done yet:** change 7's verification (`map-build/bin/verify-orwa.sh`, committed at
+`09fd75e8`) needs a published output, so it waits for a successful run.
+
+**Put to the owner:**
+1. **The extra squares:**
+   - (a) clip the merged extract to the two states' box before both builds, so neither output
+     carries the ferries beyond it;
+   - (b), recommended: keep the four squares that hold the states, drop the others after the
+     build, and list the dropped ones, with sizes, in the manifest. The map is untouched, and the
+     dropped squares hold only stretches of two ferry routes to Alaska;
+   - (c) accept every square produced.
+2. **Whether a failed run should keep its outputs** for inspection: one copy, replaced by the next
+   failure.
+
+Either needs a script change and then a rerun of change 7.
