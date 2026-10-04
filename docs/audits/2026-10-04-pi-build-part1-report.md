@@ -757,3 +757,64 @@ behind (`ls -d /tmp/tmp.*`: none).
 | The two directories | `sudo rmdir /srv/forager-build /opt/forager-build` (once empty) |
 | The build user | `sudo userdel forager-build` (the group goes with it) |
 | `map-build/` | a revert commit on `pi-build` |
+
+---
+
+# Correction, 2026-10-04: the patch's tests were in the wrong class
+
+**Found by the planner's review** of `pi-build` at `17e2611b`, sent to this session as information,
+not a go-ahead. It was confirmed here before anything was changed. **The owner, in this window**,
+answered the proposed three fixes with "Go  ahead?", which this session read as approval of fixes 1
+to 3. The owner was told that reading, and that a revert follows if it was meant as a question.
+Only `map-build/` and this report changed; nothing on the Pi, and change 4 has not started.
+
+**What was wrong.**
+- At `ca93fc06`, `RoadsTest.java` holds two classes: `class RoadsTest` at lines 20–580 and
+  `class RoadsOvertureTest` at lines 583–1250. That was read from the file whose blob hash,
+  `f39aadef`, matches the commit's tree.
+- The patch committed at `17e2611b` appended its six test methods (13 cases) at the end of the
+  file, inside `RoadsOvertureTest`.
+- The helper they call, `processWith(String...)`, is private to `RoadsTest` (line 21).
+  `LayerTest` has only `process(SourceFeature)` (`LayerTest.java:43`). So test compilation would
+  have failed at change 4.
+- Had it compiled, the cases would have reported under `RoadsOvertureTest`, while
+  `build-basemap-jar.sh` counts them in `TEST-…RoadsTest.xml`.
+- **The miss was this session's.** Only the head and the tail of that file were read, and it was
+  taken to be one class. The addendum's line "tests in upstream's `RoadsTest`" was therefore wrong
+  at `17e2611b`.
+
+**How it was confirmed, and how the fix was checked.** Java's own parser (`JavacTask.parse`, which
+parses without compiling or needing dependencies) listed each class's methods:
+
+| | `RoadsTest` | `RoadsOvertureTest` | Parse errors |
+|---|---|---|---|
+| Patch at `17e2611b` | 29 methods, no Forager tests | 33 methods, **all six Forager tests** | 0 |
+| Corrected patch | 35 methods, **all six Forager tests** | 27 methods, as upstream has | 0 |
+
+- **Fix 1: the patch.** The same 86-line block now sits after `RoadsTest`'s last method (line 578)
+  and before its closing brace. The regenerated hunk's header names the enclosing class:
+  `@@ -577,6 +577,92 @@ class RoadsTest extends LayerTest {`. It applies cleanly with
+  `git apply --check` to a fresh copy of the blob-verified upstream files, and the result is
+  identical to the edited files. `Roads.java`'s change is unchanged. **Still not compiled:** that
+  is change 4, and `build-basemap-jar.sh`'s 13-case gate remains the check that the tests ran.
+- **Fix 2: the steps after publishing in `build-orwa.sh`.** Also from the planner's review. Before,
+  once `current` was switched to the new output, any failure in the cleanup or in the final status
+  write fired the failure trap and recorded "failed" for a run that was already live.
+  - Now the trap is disarmed at the switch and the status is written first.
+  - Each later step logs a warning instead of stopping, and the run exits 0.
+  - The old-output cleanup also skips itself if the `current` link cannot be read.
+  - **Tested in a harness** that sources only that block, with the status write forced to fail and
+    one old output made undeletable. The committed block exited 1 and fired the failure path. The
+    new block exited 0 with two warnings and left `current` untouched. It removed the old extract,
+    kept the newest two outputs, and reported the one it could not remove.
+  - The rest of `build-orwa.sh` is syntax-checked only, as before.
+- **Fix 3:** this section, and one index row.
+
+**Still true from the planner's review, not changed:** the four expected `.rd5` names are fixed.
+If offshore data in the extract ever produces a fifth square, the run fails loudly and the
+previous output stays.
+
+**Scratch added** to `/home/bwann83/forager-build-staging`: the parse-check program, the clean
+and corrected test files, the saved `17e2611b` patch, and the post-publish harness with its two
+fake output trees. The trees' locked test folder was made writable again, so the whole staging
+folder can be deleted in one go.

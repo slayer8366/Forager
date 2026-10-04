@@ -7,8 +7,9 @@ Adds six keys, the OpenStreetMap values passed through as mapped, to roads-layer
 highway=path, footway, track, bridleway and steps: sac_scale, trail_visibility, informal,
 tracktype, surface, foot. They appear at every zoom the way appears (owner's ruling B). Absent
 tags emit nothing. No existing attribute changes; access stays at zoom 15 as upstream emits it
-(ruling A). The tests at the end of RoadsTest pin these, plus the existing kind, kind_detail
-and minimum zoom of those ways.
+(ruling A). The tests, placed at the end of class RoadsTest (RoadsTest.java also holds class
+RoadsOvertureTest, after it), pin these, plus the existing kind, kind_detail and minimum zoom of
+those ways.
 
 diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
 index 03be049..1f015ec 100644
@@ -40,14 +41,13 @@ index 03be049..1f015ec 100644
      if (kind.equals("other") && sf.hasTag("service")) {
        feat.inheritAttrFromSource("service");
 diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
-index f39aade..b6737e4 100644
+index f39aade..d2d2ae2 100644
 --- a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
 +++ b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
-@@ -1247,4 +1247,90 @@ class RoadsOvertureTest extends LayerTest {
-       )
-     ), results);
+@@ -577,6 +577,92 @@ class RoadsTest extends LayerTest {
+     );
    }
-+
+ 
 +  // Forager (dispatch 2026-09-28-495): trail attributes on paths, footways, tracks, bridleways and steps.
 +
 +  @Test
@@ -133,4 +133,7 @@ index f39aade..b6737e4 100644
 +      processWith("highway", highway, "sac_scale", "hiking", "surface", "asphalt", "foot", "yes")
 +    );
 +  }
++
  }
+ 
+ 
