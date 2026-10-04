@@ -97,7 +97,7 @@ for z in (14, 15):
     n = 2 ** z
     x = int((lon + 180) / 360 * n)
     y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
-    open(os.path.join(scratch, f"tile{z}.txt"), "w").write(f"{z} {x} {y}")
+    open(os.path.join(scratch, f"tile{z}.txt"), "w").write(f"{z} {x} {y}\n")
 EOF
 read -r z x y < "$scratch/tile15.txt"; pmtiles tile "$pm" "$z" "$x" "$y" > "$scratch/new-z15.mvt"
 python3 "$here/tools/mvt_decode.py" features "$scratch/new-z15.mvt" --layer roads --has "$TRAIL_KEYS" > "$scratch/new-z15-trail-features.json"
