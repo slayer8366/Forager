@@ -877,3 +877,23 @@ typed in this window:
 So the approvals for this fix and for RECORD -602 are the owner's own typed words, read by this
 session from the platform's record, not taken from the planner's messages. From here this session
 acts on relayed go-aheads that meet -602's three conditions.
+
+---
+
+# Correction, 2026-10-04: RECORD -603 replaces -602
+
+The addendum above ends: "From here this session acts on relayed go-aheads that meet -602's three
+conditions." **That no longer holds.** RECORD -603, at `b0861e95` on `records-pi-after-166`,
+supersedes -602:
+- this session acts only on the owner's direct approval, typed in this window, or typed by the
+  owner in the planner's session and read there by this session itself;
+- a planner message, even a verbatim quote, is never the approval. It can only say where to look.
+
+**Checked at the source.** The owner's turn behind -603 was read in the planner's session. At
+14:09:00Z, with no synthetic or peer marker and recorded as typed on the owner's phone, it says:
+"I'll keep that check and balance in place that the coder needs direct approval. Checking
+sessions is a way to do that without me playing window carousel".
+
+**The `ok_with_warnings` fix (`bd1c672d`) stands under -603.** It was done on the owner's "Yes go
+ahead" at 13:56:41Z, which this session read in that session itself, not on the planner's quote of
+it. That is -603's route (b). Nothing else is affected.
