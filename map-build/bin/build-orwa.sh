@@ -62,16 +62,49 @@ cleanup_scratch() {
     rm -rf -- "$run"
   fi
 }
+# The latest failed run's outputs, kept for inspection (owner's ruling after change 7's first run,
+# which deleted an archive that had passed its checks). Outside $OUT, so `current` can never point
+# at it and nothing publishes from it; replaced by the next failure.
+FAILED_KEEP="$FB_SRV/failed/latest"
+keep_failed_run() { # exit-code
+  [[ "$FAILED_KEEP" == "$FB_SRV/failed/latest" && "$FAILED_KEEP" != "$OUT"* ]] || return 1
+  if [[ -e "$FAILED_KEEP" ]]; then rm -rf -- "$FAILED_KEEP"; fi
+  mkdir -p "$FAILED_KEEP"
+  if [[ -d "$run/out" ]]; then mv "$run/out" "$FAILED_KEEP/out"; fi
+  local f
+  for f in metrics.jsonl versions.txt bounds.txt dropped-rd5.tsv; do
+    if [[ -f "$run/$f" ]]; then cp "$run/$f" "$FAILED_KEEP/"; fi
+  done
+  printf 'run %s failed at stage %s with exit %s at %s; not published, and never publishable from here\n' \
+    "$run_id" "$stage" "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$FAILED_KEEP/FAILED.txt"
+  cp "$log_file" "$FAILED_KEEP/"
+}
 on_exit() {
   local code=$?
   if [[ $code -ne 0 ]]; then
     "${RECORD[@]}" status "$STATUS" --state failed --stage "$stage" --run-id "$run_id" \
-      ${osm_ts:+--osm-timestamp "$osm_ts"} --message "exit $code; log $log_file" || true
-    log "run failed with exit $code; previous outputs untouched; log kept at $log_file"
+      ${osm_ts:+--osm-timestamp "$osm_ts"} --message "exit $code; log $log_file; outputs kept in $FAILED_KEEP" || true
+    log "run failed with exit $code; previous outputs untouched; this run's outputs kept in $FAILED_KEEP"
+    keep_failed_run "$code" || log "could not keep this run's outputs in $FAILED_KEEP"
     cleanup_scratch
   fi
 }
 trap on_exit EXIT
+
+drop_extra_rd5() { # segments-dir record-file: delete squares outside RD5_SQUARES, listing each
+  : > "$2"
+  local f n size
+  for f in "$1"/*.rd5; do
+    [[ -e "$f" ]] || continue  # no .rd5 at all: left for the validation to report
+    n="$(basename "$f" .rd5)"
+    if [[ " $RD5_SQUARES " != *" $n "* ]]; then
+      size="$(stat -c %s "$f")"
+      printf '%s\t%s\n' "$n.rd5" "$size" >> "$2"
+      rm -f -- "$f"
+      log "dropped $n.rd5 ($size bytes): not one of the two states' squares"
+    fi
+  done
+}
 
 curl_get() { # url dest: download to dest.part with the response headers, then move into place
   curl -sSfL --retry 3 --retry-delay 10 -A "$HTTP_USER_AGENT" -D "$2.headers" -o "$2.part" "$1"
@@ -203,6 +236,8 @@ bjava=("$JAVA" "-Xmx$BROUTER_XMX" -cp "$BROUTER_HOME/brouter-$BROUTER_VERSION-al
   unodes55 waytiles55 bordernodes.dat restrictions.dat "$profiles/lookups.dat" "$profiles/all.brf" segments rd5)
 mkdir -p "$run/out/segments"
 mv "$br"/segments/*.rd5 "$run/out/segments/"
+# Keep only the two states' squares; the rest hold only stretches of ferry routes to Alaska.
+drop_extra_rd5 "$run/out/segments" "$run/dropped-rd5.tsv"
 # .rd5 files carry no date of their own; stamp them with the extract's.
 touch -d "$osm_ts" "$run/out/segments/"*.rd5
 
@@ -233,10 +268,9 @@ if problems:
     print("archive check: " + "; ".join(problems)); sys.exit(1)
 print(f"archive check: zooms 0-{header['maxzoom']}, {len(layers)} layers, roads carries all six trail keys")
 EOF
-expected_rd5="W125_N40.rd5 W120_N40.rd5 W125_N45.rd5 W120_N45.rd5"
+expected_rd5="$(for s in $RD5_SQUARES; do echo "$s.rd5"; done | sort | tr '\n' ' ')"
 actual_rd5="$(cd "$run/out/segments" && ls -- *.rd5 | sort | tr '\n' ' ')"
-[[ "$actual_rd5" == "$(tr ' ' '\n' <<<"$expected_rd5" | sort | tr '\n' ' ')" ]] \
-  || die "rd5 files are [$actual_rd5], expected [$expected_rd5]"
+[[ "$actual_rd5" == "$expected_rd5" ]] || die "rd5 files are [$actual_rd5], expected [$expected_rd5]"
 for f in "$run/out/segments/"*.rd5; do
   [[ $(stat -c %s "$f") -gt 100000 ]] || die "$(basename "$f") is implausibly small"
 done
@@ -247,7 +281,7 @@ set_stage publish
 cp "$run/bounds.txt" "$run/out/bounds.txt"
 "${RECORD[@]}" manifest "$run/out/manifest.json" --pins "$here/pins.env" --run-dir "$run" \
   --osm-timestamp "$osm_ts" --osm-sequence "$osm_seq" --inputs "${inputs[@]}" --sources "${sources[@]}" \
-  --outputs "$pmtiles_out" "$run/out/segments/"*.rd5
+  --outputs "$pmtiles_out" "$run/out/segments/"*.rd5 --dropped "$run/dropped-rd5.tsv"
 name="$(date -u -d "$osm_ts" +%Y%m%dT%H%M%SZ)"
 [[ -e "$OUT/$name" ]] && name="$name-$run_id"
 mv "$run/out" "$OUT/$name"
