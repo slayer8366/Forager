@@ -897,3 +897,107 @@ sessions is a way to do that without me playing window carousel".
 **The `ok_with_warnings` fix (`bd1c672d`) stands under -603.** It was done on the owner's "Yes go
 ahead" at 13:56:41Z, which this session read in that session itself, not on the planner's quote of
 it. That is -603's route (b). Nothing else is affected.
+
+---
+
+# Addendum, 2026-10-04: change 4 done; change 5 stopped for the owner
+
+**The owner's go, read at the source (RECORD -603).** In the planner's session, at 14:11:50Z the
+planner recommended changes 4 and 5 together and described each. The owner's next turns are
+human-typed, with no synthetic or peer marker, from the owner's phone:
+- "Go ahead" at 14:15:12Z;
+- "Go ahead with changes 4 and 5" at 14:15:56Z.
+
+The planner's messages only said where to look. Changes 6 and 7 were not approved and were not
+started.
+
+## Change 4: the patched basemap jar, built and installed
+
+1. **`install-map-build.sh`** was run from a clean checkout at `92a1a17a`, the pushed head of
+   `pi-build`. `/opt/forager-build/map-build/COMMIT` reads `92a1a17ad970cc27f690195685a93773eb3660cc`.
+   Everything is owned by root and nothing is world-writable. The installed file list equals
+   `git archive` of that commit's `map-build/`, and `forager-build` can read the patch.
+2. **`build-basemap-jar.sh`** was run by `bwann83` from `/srv/forager-build`. Every build step ran
+   as `forager-build`:
+   - The checkout, confirmed by `git rev-parse`, is `ca93fc06`, and `Basemap.java` reports tiles
+     4.15.2. The patch applied cleanly.
+   - Maven fetched 665 artifacts, 629 from Maven Central and 36 from the OSGeo repository:
+     139 MB in `/srv/forager-build/.m2`, plus 97 MB of source and build output. Maven ran for
+     4 min 05 s.
+   - **Every test ran and passed. Counted from the surefire XML by this session,** not taken from
+     the script's line: **465 tests in 28 suites, 0 failures, 0 errors, 0 skipped.** Of those,
+     **13 are Forager cases, all in `RoadsTest`** (82 cases there, none in `RoadsOvertureTest`'s
+     27), all passed, which leaves **452 upstream tests**. The script's own gate saw the same 13.
+   - The jar is installed at `/opt/forager-build/basemap/protomaps-basemap-HEAD-with-deps.jar`:
+     88,617,645 bytes, `root:root 0644`, **SHA-256
+     `a2bc32717bb3d942ab94d86f6c144389e57cf33b13ddc9ddf2e224ebe7130671`**. Its `--version` prints
+     `4.15.2`.
+
+**Revert check: the Forager tests do test the patch.** This followed CLAUDE.md's method, on the
+build checkout after the jar was installed:
+- Roads.java was first saved as a copy, and the old test reports were removed so a run that did
+  not compile could not be mistaken for one that did.
+- One line was removed: the patch's `feat.setAttr(key, sf.getString(key))`.
+- `RoadsTest` was rerun offline (`mvn -o test -Dtest=RoadsTest`). The build log shows both source
+  sets recompiled and **0 compile errors**. The fresh report was written at 14:22:38Z.
+- **82 run, 7 failures,** and those are exactly the seven that check for keys:
+  - the five trail kinds, each expecting `sac_scale`;
+  - the track, expecting `tracktype` and `surface`;
+  - the path, expecting all five keys it sets.
+- The six absence checks passed, as they must, since removing `setAttr` cannot make an absent key
+  appear: the untagged path, the four non-trail ways, and `access` at zoom 15. Upstream's other 69
+  `RoadsTest` cases passed, so no failure came from outside this edit.
+- **Restored from the saved copy, not from git.** The file's SHA-256 matches the copy, and the
+  patch reverse-applies cleanly (`git apply --check -R`), so the checkout is the pinned commit plus
+  the patch and nothing else. `RoadsTest` passed 82 of 82 again, and the installed jar's SHA-256 is
+  unchanged.
+
+## Change 5: stopped, nothing installed
+
+- **`fetch-brouter.sh`** downloaded `brouter-1.7.10.zip`. It passed its size check (6,724,983
+  bytes) and GitHub's SHA-256 digest.
+- **The jar holds the map creator:** `brouter-1.7.10-all.jar` contains `OsmFastCutter`,
+  `PosUnifier`, `WayLinker` and `BRouter`. So ruling E's stop condition, "lacks the map creator",
+  is not met.
+- **But the zip has no `all.brf` and no `softaccess.brf`.** The map creator reads `all.brf` in its
+  first and third steps and `softaccess.brf` in its first. The script stopped at its layout check,
+  before installing anything; `/opt/forager-build` has no `brouter` directory.
+- **The cause:** BRouter's own `brouter-server/build.gradle:75-77` at the tag excludes `all.brf`,
+  `dummy.brf` and `softaccess.brf` from the release distribution.
+- **Compared with the tag's source by git blob hash:**
+  - 17 of the zip's profile files are byte-identical to `misc/profiles2` at `4d2639af`, including
+    `lookups.dat`, `trekking.brf` and `hiking-mountain.brf`;
+  - 11 more are variants the release build generates, which the map creator does not read;
+  - missing from the zip are only `all.brf` (blob `35b46729f73ffb179cfd14e9614d1c6adc796d4e`),
+    `softaccess.brf` (`88d5a81d3f01fc940b2720473bcc1d03fa77a175`) and `dummy.brf`.
+- **Put to the owner:**
+  - (a), recommended: the jar and the other profiles from the zip, plus the two missing files from
+    the tag's source, each checked against its blob hash and pinned. Nothing is compiled.
+  - (b): all profiles from the tag's source, and only the jar from the zip.
+  - (c): something else.
+
+  Waiting for the owner.
+
+## Disclosure for this addendum
+
+**Confirmed:** the owner's two turns, at the source; every figure above, from the build log, the
+surefire XML, `sha256sum`, `stat` and the zip's own listing; the revert check's compile-clean log,
+its seven failures and its restoration.
+
+**Premises that were wrong:**
+- **The report's section 4** said the release zip would supply the map creator. It does supply the
+  classes, but not two profile files the map creator reads. Those exclusions are in the same
+  `brouter-server/build.gradle` the report cited for the fat jar's contents, so the miss is this
+  session's.
+
+**Decided beyond scope:**
+1. **The revert check.** It ran extra offline tests in the build checkout. Nothing was installed
+   or downloaded, and the checkout and jar were confirmed unchanged afterwards.
+2. **Change 5 ran in parallel with change 4,** since both were approved and they do not depend on
+   each other.
+
+**Left in place:**
+- in `/srv/forager-build/src/`: `Roads.java.patched-saved`, the revert check's copy;
+- in the staging folder: the BRouter zip, the copied test reports, and the build and revert-check
+  logs;
+- `/srv/forager-build/.java`, which Java created as the build user's preferences folder.
