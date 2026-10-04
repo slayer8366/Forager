@@ -235,3 +235,45 @@ The same 60 × 60 km square, centred on r2 in the Mount Hood forest, was used th
 3. **The town route is the walk's direction extended to 2.56 km,** since the walk itself went only 0.27 km from its start.
 4. **Gradle's home for BRouter's own build was on the USB drive,** so its plugin and Gradle version did not land on the laptop.
 5. **The spike app and its data were uninstalled** from the S22 afterwards. A `pinch.sh` left in `/data/local/tmp` from earlier work was not touched.
+
+## Addendum, 2026-10-04: Valhalla tuned toward trails (Amendment 3)
+
+**Asked:** the owner chose "One more Valhalla run first" (`RECORD.md` -478). The task: re-run the routes with Valhalla's pedestrian costing tuned toward trails, using 3.6.3's documented options, and compare the share on the named trail with the defaults and with BRouter.
+
+**How:**
+- On the laptop with pyvalhalla 3.6.3, the same Valhalla version valhalla-mobile 0.6.3 bundles, on the same Oregon tiles. No new download.
+- Each route's line is matched to OSM ways exactly as for item 5 (`tools/tune_valhalla.py`; output in the evidence folder, `tune-valhalla.txt`).
+
+**What the options can do, read from 3.6.3's documentation and source:**
+- The documented pedestrian options are: `walking_speed`, `walkway_factor`, `sidewalk_factor`, `alley_factor`, `driveway_factor`, `step_penalty`, `elevator_penalty`, `use_ferry`, `use_living_streets`, `use_tracks`, `use_hills`, `use_lit`, `service_penalty`, `service_factor`, `destination_only_penalty`, `max_hiking_difficulty`, `shortest`, `max_distance`, two transit distances, `type` and `mode_factor`.
+- **There is no `use_roads` for walking**; that option is cycling's.
+- In the costing (`src/sif/pedestriancost.cc`, 3.6.3, around line 751), `walkway_factor` multiplies only edges whose use is footway or sidewalk.
+- OSM `highway=path`, which is how all three trails are mapped (their edges match as use "path"), gets no factor. Neither does an ordinary road without sidewalk tags.
+- So **no documented option makes a road cost more than a trail**. The levers reach footways, sidewalks, tracks, service roads, living streets and alleys only.
+- Valhalla 3.9.0's pedestrian costing source has no road option either; a search for `use_roads` and `road_factor` found none. It is newer than what valhalla-mobile bundles in any case.
+
+**Settings tried,** each with `max_hiking_difficulty` 6 as in the spike:
+- **A:** `walkway_factor` 0.5, `use_tracks` 1.0.
+- **B:** A, plus `service_factor` 3, `sidewalk_factor` 3, `use_living_streets` 0, `alley_factor` 5.
+- **C:** B with `walkway_factor` 0.1, the lowest the code allows.
+
+| Route | Valhalla defaults | A | B | C | BRouter (hiking-mountain, defaults) |
+|---|---|---|---|---|---|
+| r1 McKenzie: on the named trail | 48% (9.07 km; 50% road) | 48% | **51%** (9.24 km; 47% road) | 51% | **100%** (10.03 km) |
+| r2 Salmon | 100% | 100% | 100% | 100% | 100% |
+| r3 Green Lakes | 87% (all path) | 87% | 87% | 87% | 100% |
+| r4 off-trail start | 100% | 100% | 100% | 100% | 100% |
+| r5 town: by use | 96% road, 4% service | 87% road, **8% footway** | 87% road, 8% footway | the same | 93% road, 4% footway |
+
+- **The finding:** tuning moves r1 by 3 points, from 48% to 51%. Valhalla still takes the road for 47% of it, because the road is shorter and no option prices a road above a path. On r3 the 13% off the named trail is on other paths, which the options cannot tell apart either.
+- **What does respond:** the walkway factor, in town. It moves 8% of r5 onto footways.
+- **Times:** 0 to 3 ms per route on the laptop with a warm engine, the same for every setting. These are not comparable with the phone figures above, which include the engine's start; the settings did not change them measurably.
+
+**What this leaves for the choice, inferred:**
+- Trail preference with Valhalla would need a change beyond its documented options: a custom costing or patched factors in a fork of valhalla-mobile, or edge data marked at tile build time.
+- BRouter's profiles are plain text files that the app ships, so trail preference there is a profile edit.
+
+**Disclosure for this addendum:**
+- Confirmed: the shares and lengths above, the documented option list, and the factor code in 3.6.3.
+- Inferred: what a fork or a custom costing would take; it was not tried.
+- Premise that was wrong: the amendment named `use_roads` as a possible option; 3.6.3 has none for walking.
