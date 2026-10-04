@@ -1146,3 +1146,77 @@ Run as `forager-build` by hand, from 16:05:36Z to 16:35:05Z.
    failure.
 
 Either needs a script change and then a rerun of change 7.
+
+# Addendum, 2026-10-04: why the two reruns of `4a28364d` stopped, and a third run detached from every session
+
+*In progress: written while the third run builds. The verification section follows when it ends.*
+
+**The go, read at the source (RECORD -603).** The owner's turn at 16:41:10Z in the planner's session
+`session_01SziubQqDcuUn56ptAQjXwW`, typed from the owner's phone: "Go ahead: keep the four routing
+squares, keep the last failed run, fix last success, then rerun and verify". No later owner turn
+there changes it (read with list_events, kinds ["user"], to the end). The owner typed the same
+words again at 19:32:54Z in a CLI session on the Pi (`b3a51889…`) and at 19:52:58Z as the first
+turn of a new planner session (`session_016YeKXyBLRGFhiWWwA1SqxE`), which opened this coder
+session. That new session has not been named a successor under -603, so this addendum does not
+rest on it. The code half is the previous coder's `4a28364d`. This session changed no code.
+
+**Before starting:** no build process was running (`ps`). The previous coder session
+(`session_01AKa2c87V8mPGFj4TvBs8Da`) was idle and disconnected. It had no CLI process on the Pi,
+and its local transcript was last written at 17:03:38Z. `status.json` still read `running` /
+`planetiler` / run `20261004T193530Z`, `last_success` null.
+
+## Why each rerun stopped
+
+| Run | Started by | How it ended | Evidence |
+|---|---|---|---|
+| `20261004T164552Z` | previous coder, as a Claude background task (`run_in_background`) | **killed by its own session at 17:03:38Z**; the BRouter cut step it had started ran on as an orphan until 17:11:40Z | that session's transcript ends with a `<task-notification>` for task `betre8m76`, `<status>killed</status>`, "Background command "Rerun change 7's build as forager-build" was stopped", at 17:03:38.542Z; the journal shows `sudo[30478]` "session closed for user forager-build" at 17:03:38Z, the same second; the log's last line is `brouter-cut`'s metrics line (566 s, exit 0), written by the orphaned `peak_rss.py` at 17:11:40Z; no reboot in that boot (boot -1, 08:09Z to 19:46Z); Wi-Fi was failing to reconnect at the time (NetworkManager, 17:09Z) |
+| `20261004T193530Z` | **not the previous coder**: the CLI session `b3a51889…` on the Pi, detached with `setsid nohup bash -c 'sudo -u forager-build -H …/build-orwa.sh; …' > ~/forager-build-staging/rerun2-build.out 2>&1 < /dev/null &` | **an orderly reboot of the Pi at 19:46:17Z**. The run survived its session: that session's watcher task was killed at 19:40:35Z, and the build went on writing until 19:46:16Z | `systemd-logind`: "The system will reboot now!" at 19:46:17Z, "System is rebooting." at 19:46:18Z, then `sudo[36493]` "session closed for user forager-build"; `last -x`: shutdown 19:46, boot 19:47; `rerun2-build.out` last modified 19:46:16Z; the thermal log's last line is 19:45:50Z |
+
+**What the reboot was, as far as the journal shows.** Wi-Fi dropped at 19:44:03Z ("ssid-not-found",
+then an association reject). At 19:46:03Z a desktop process run as uid 1000,
+`/usr/bin/lp-connection-editor`, the desktop's network connection editor, asked for the hostname
+service. The reboot followed 14 seconds later, through logind. That fits someone at the Pi's
+desktop fixing the network and then rebooting. Who did it is not in the journal.
+
+**So the planner's inference was half right.** Run 1 was killed with its session. Run 2 was not:
+it was already detached and died in the reboot. The thermal logger did not stop with run 1, as
+the planner's reading had it. It ran from 16:45:44Z to 19:45:50Z, 361 lines, and stopped at the
+reboot.
+
+**Why neither run left `failed/latest` or a final `status.json`.** Run 1's script was signalled
+while its child was running, and run 2's was stopped at shutdown. Neither run's EXIT trap wrote a
+failure record. `failed/` does not exist. That `status.json` therefore reads `running` for good is
+the open question below, left to the owner.
+
+## The third run, `20261004T200019Z`
+
+Started at 20:00:19Z as a transient systemd unit, so PID 1 owns it and no Claude session's
+lifetime can end it. Exact command:
+
+```
+sudo systemd-run --unit=forager-build-rerun3 \
+  --description="Forager map build rerun of 4a28364d (dispatch after RECORD -603)" \
+  --uid=forager-build --gid=forager-build -p WorkingDirectory=/srv/forager-build \
+  --setenv=HOME=/srv/forager-build --setenv=USER=forager-build --setenv=LOGNAME=forager-build \
+  -p StandardOutput=append:/home/bwann83/forager-build-staging/rerun3-build.out \
+  -p StandardError=append:/home/bwann83/forager-build-staging/rerun3-build.out \
+  /opt/forager-build/map-build/bin/build-orwa.sh
+```
+
+The temperature, throttling and memory log runs the same way, as a separate transient unit
+(`forager-thermal-rerun3`), writing every 30 s to `~/forager-build-staging/rerun3-thermal.log`
+in the previous coder's line format. **A reboot still ends both.** A transient unit is not
+restarted at boot, and the script cannot resume a half-done run.
+
+Before the run: `/opt/forager-build/map-build` matches `origin/pi-build` at `4a28364d` (`git
+archive` compared with `diff -rq`; the only difference is the install's own `COMMIT` file, which
+reads `4a28364dcbabf6c3617aa0a5a647d3cba2b11f3e`). 6,977 MB available, 50.5 C, `0x0`, fan 1, 153G
+free. `forager-tiles` active since 19:47:12Z with NRestarts 0. `forager-tunnel` active since
+19:48:46Z with **NRestarts 1, already at 1 before this session touched anything**, which is
+consistent with it starting while the network was still coming up after the reboot. These two
+values are the baseline for this run.
+
+**The two new test files, run in this session's checkout of `4a28364d`:** `python3 -m unittest
+map-build/tools/test_run_record.py` ran 8 tests, OK. `bash map-build/tools/test_build_functions.sh`
+printed "all 14 checks passed". Both exited 0. The previous coder's per-behaviour revert checks were
+not repeated here.
