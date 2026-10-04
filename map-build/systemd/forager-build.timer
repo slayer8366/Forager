@@ -1,0 +1,13 @@
+# Weekly trigger for forager-build.service (dispatch 2026-09-28-495).
+# Written and LEFT DISABLED: enable only after a manual run has been verified and the owner says so.
+# Sunday 10:00 UTC falls after Geofabrik publishes; files dated 2026-10-04 appeared 06:09-06:19 UTC.
+[Unit]
+Description=Weekly Forager map and routing build
+
+[Timer]
+OnCalendar=Sun *-*-* 10:00:00 UTC
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

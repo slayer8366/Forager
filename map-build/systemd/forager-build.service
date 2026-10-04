@@ -1,0 +1,45 @@
+# Forager's weekly map and routing build (dispatch 2026-09-28-495). Started by forager-build.timer,
+# which stays disabled until a manual run is verified and the owner says so.
+# Install: copy to /etc/systemd/system/, then `systemctl daemon-reload` (change 9, owner's word).
+[Unit]
+Description=Forager map and routing build (Oregon + Washington)
+Documentation=file:/opt/forager-build/map-build/README.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=forager-build
+Group=forager-build
+Environment=HOME=/srv/forager-build
+WorkingDirectory=/srv/forager-build
+ExecStart=/opt/forager-build/map-build/bin/build-orwa.sh
+TimeoutStartSec=4h
+
+# Yield to the tile server and the tunnel. The kernel has the memory cgroup disabled
+# (cgroup_disable=memory), so MemoryMax= would be inert here. Memory is bounded by the JVM's -Xmx
+# (pins.env), and the OOM killer is pointed at this build first.
+Nice=10
+IOSchedulingClass=idle
+CPUWeight=20
+OOMScoreAdjust=800
+
+# Hardening, as on the tile units. No MemoryDenyWriteExecute: the JVM's JIT needs it off.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/srv/forager-build
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=1000

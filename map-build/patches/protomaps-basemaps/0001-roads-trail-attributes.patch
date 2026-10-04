@@ -1,0 +1,136 @@
+Forager: trail attributes in the roads layer (dispatch 2026-09-28-495, RECORD -601)
+
+Against protomaps/basemaps at ca93fc06efbaff1c5f069d06edbe5de18839c1c8 (tiles 4.15.2).
+Applied with `git apply` from the repository root by map-build/bin/build-basemap-jar.sh.
+
+Adds six keys, the OpenStreetMap values passed through as mapped, to roads-layer features for
+highway=path, footway, track, bridleway and steps: sac_scale, trail_visibility, informal,
+tracktype, surface, foot. They appear at every zoom the way appears (owner's ruling B). Absent
+tags emit nothing. No existing attribute changes; access stays at zoom 15 as upstream emits it
+(ruling A). The tests at the end of RoadsTest pin these, plus the existing kind, kind_detail
+and minimum zoom of those ways.
+
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+index 03be049..1f015ec 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+@@ -38,6 +38,10 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+ 
+   public static final String LAYER_NAME = "roads";
+ 
++  // Forager: trail attributes for navigation, passed through as mapped (dispatch 2026-09-28-495).
++  private static final List<String> FORAGER_TRAIL_KEYS =
++    List.of("sac_scale", "trail_visibility", "informal", "tracktype", "surface", "foot");
++
+   private static final MultiExpression.Index<Map<String, Object>> osmKindsIndex = MultiExpression.of(List.of(
+     rule(
+       use("pm:kindDetail", fromTag("highway")),
+@@ -426,6 +430,13 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+       feat.setAttr("kind_detail", highway);
+     }
+ 
++    // Forager: at every zoom the way is in; an absent tag is null, which setAttr skips
++    if (sf.hasTag("highway", "path", "footway", "track", "bridleway", "steps")) {
++      for (String key : FORAGER_TRAIL_KEYS) {
++        feat.setAttr(key, sf.getString(key));
++      }
++    }
++
+     // Core OSM tags for different kinds of places
+     if (kind.equals("other") && sf.hasTag("service")) {
+       feat.inheritAttrFromSource("service");
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
+index f39aade..b6737e4 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
+@@ -1247,4 +1247,90 @@ class RoadsOvertureTest extends LayerTest {
+       )
+     ), results);
+   }
++
++  // Forager (dispatch 2026-09-28-495): trail attributes on paths, footways, tracks, bridleways and steps.
++
++  @Test
++  void foragerTrailAttributesOnPath() {
++    assertFeatures(13,
++      List.of(Map.of(
++        "kind", "path",
++        "kind_detail", "path",
++        "_minzoom", 13,
++        "sac_scale", "mountain_hiking",
++        "trail_visibility", "intermediate",
++        "informal", "yes",
++        "surface", "ground",
++        "foot", "designated"
++      )),
++      processWith(
++        "highway", "path",
++        "sac_scale", "mountain_hiking",
++        "trail_visibility", "intermediate",
++        "informal", "yes",
++        "surface", "ground",
++        "foot", "designated"
++      )
++    );
++  }
++
++  @Test
++  void foragerTrailAttributesOnTrackFromItsFirstZoom() {
++    assertFeatures(12,
++      List.of(Map.of(
++        "kind", "path",
++        "kind_detail", "track",
++        "_minzoom", 12,
++        "tracktype", "grade3",
++        "surface", "gravel"
++      )),
++      processWith("highway", "track", "tracktype", "grade3", "surface", "gravel")
++    );
++  }
++
++  @Test
++  void foragerAccessStaysAtZoom15() {
++    assertFeatures(14,
++      List.of(Map.of("kind_detail", "track", "access", "<null>")),
++      processWith("highway", "track", "access", "forestry")
++    );
++    assertFeatures(15,
++      List.of(Map.of("kind_detail", "track", "access", "forestry")),
++      processWith("highway", "track", "access", "forestry")
++    );
++  }
++
++  @Test
++  void foragerTrailAttributesAbsentWhenUntagged() {
++    assertFeatures(15,
++      List.of(Map.of(
++        "kind_detail", "path",
++        "sac_scale", "<null>",
++        "trail_visibility", "<null>",
++        "informal", "<null>",
++        "tracktype", "<null>",
++        "surface", "<null>",
++        "foot", "<null>"
++      )),
++      processWith("highway", "path")
++    );
++  }
++
++  @ParameterizedTest
++  @CsvSource({"path", "footway", "track", "bridleway", "steps"})
++  void foragerTrailAttributesOnEachTrailKind(String highway) {
++    assertFeatures(15,
++      List.of(Map.of("kind", "path", "kind_detail", highway, "sac_scale", "hiking")),
++      processWith("highway", highway, "sac_scale", "hiking")
++    );
++  }
++
++  @ParameterizedTest
++  @CsvSource({"residential", "service", "cycleway", "pedestrian"})
++  void foragerTrailAttributesNotOnOtherWays(String highway) {
++    assertFeatures(15,
++      List.of(Map.of("kind_detail", highway, "sac_scale", "<null>", "surface", "<null>", "foot", "<null>")),
++      processWith("highway", highway, "sac_scale", "hiking", "surface", "asphalt", "foot", "yes")
++    );
++  }
+ }
