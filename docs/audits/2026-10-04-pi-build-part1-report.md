@@ -1281,3 +1281,39 @@ unauthorized build and the time it costed to fix the coder's error."
   Resetting it is put to the owner.
 
 **No build has been started.** One starts only on the owner's word "build".
+
+# Addendum, 2026-10-04: the owner's authorized build, ended by a reboot
+
+**The status file.** On the owner's go ("1 yes"), `status.json` was reset at 21:14:42Z for the
+stopped run `20261004T205929Z`. `run_record.py` has no `stopped` state, so it reads `failed`, with
+the message "stopped by hand at 2026-10-04T21:01:45Z (systemctl stop), not a build failure".
+`last_success` stays null.
+
+**The build.** The owner said "You have my authorization to build". Run `20261004T211454Z` was
+started at 21:14:54Z as the transient unit `forager-build-restart-run2`, on `4a28364d` (install
+`COMMIT` checked).
+- Baseline at the start: 48.8 C, `0x0`, 7,008 MB available, 156G free. `forager-tiles` had
+  NRestarts 0; `forager-tunnel` had NRestarts 1.
+- The run passed fetch and merge. It was 11 min 12 s into Planetiler when it ended.
+
+**How it ended.** The Pi rebooted, orderly, through logind at 21:27:16Z ("The system will reboot
+now!"). The reboot followed a Wi-Fi drop: disconnects at 21:18:59Z and 21:23:18Z, then repeated
+association rejects. The owner's account: Wi-Fi is unreliable there, and they reconnected through
+Bluetooth from a phone that was on Wi-Fi.
+- The thermal log's last line, 21:26:55Z, read 67.0 C, `0x0`, fan 3, 3,143 MB available.
+- There was no sign of memory or heat trouble.
+- The transient unit did not survive the reboot, as this report already noted it would not.
+
+**For the next run.** The build reaches the network only in its first stages: `state.txt`, the
+extract `HEAD`, any newer extract, and the `.md5` files (`build-orwa.sh` lines 118–152). After that it
+runs offline. A Wi-Fi drop mid-build does not stop it; a reboot does. If Geofabrik has published
+newer extracts, the next run downloads and uses them instead of the 2026-10-03 files.
+
+**Cleaned up on the owner's go ("1 go ahead"), at 21:40Z:**
+- `work/20261004T211454Z` (591 MB) and `logs/20261004T211454Z.log` were deleted;
+- `status.json` now reads `failed`, with "stopped by an orderly reboot of the Pi at
+  2026-10-04T21:27:16Z, not a build failure";
+- `last_success` stays null;
+- `sources/` was kept.
+
+**The owner then said "Start the build again as you were".** That run follows in the next addendum.
