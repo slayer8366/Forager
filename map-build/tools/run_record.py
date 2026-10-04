@@ -8,8 +8,11 @@
 
 status: STATE is running, ok, ok_with_warnings, skipped or failed. ok_with_warnings means the
 output was published, but a step after publishing failed; --warnings names those steps. The file
-is replaced atomically. last_success is carried over from the previous file unless this write is
-ok or ok_with_warnings.
+is replaced atomically. last_success means the last published build and nothing else: only an ok
+or ok_with_warnings write at stage "done" with an --output sets it. A fetch-only or skipped run
+does not, so a weekly run whose download works and build fails cannot read as current. Any other
+write carries the previous last_success over, but only if it names a published output; an entry
+without one, as an earlier version of this tool wrote for a fetch-only run, is dropped.
 
 manifest: records, for one output directory, everything needed to say what it was built from:
 - the OSM timestamp and sequence;
@@ -89,6 +92,21 @@ def headers(path):
     return out
 
 
+def dropped(path):
+    """The .rd5 squares deleted after the build, from build-orwa.sh's name<TAB>size list."""
+    if not path:
+        return []
+    if not os.path.exists(path):
+        return {"missing": os.path.basename(path)}
+    out = []
+    with open(path) as f:
+        for line in f:
+            if line.strip():
+                name, size = line.rstrip("\n").split("\t")
+                out.append({"name": name, "size": int(size)})
+    return out
+
+
 def cmd_status(a):
     previous = {}
     if os.path.exists(a.file):
@@ -97,6 +115,9 @@ def cmd_status(a):
                 previous = json.load(f)
             except json.JSONDecodeError:
                 previous = {"unreadable_previous_status": True}
+    carried = previous.get("last_success")
+    if not (isinstance(carried, dict) and carried.get("output")):
+        carried = None
     status = {
         "state": a.state,
         "stage": a.stage,
@@ -105,12 +126,12 @@ def cmd_status(a):
         "message": a.message,
         "warnings": [w for w in (a.warnings or "").split(",") if w],
         "updated": now(),
-        "last_success": previous.get("last_success"),
+        "last_success": carried,
     }
     if a.state == "ok_with_warnings" and not status["warnings"]:
         print("ok_with_warnings needs --warnings naming the failed steps", file=sys.stderr)
         return 2
-    if a.state in ("ok", "ok_with_warnings"):
+    if a.state in ("ok", "ok_with_warnings") and a.stage == "done" and a.output:
         status["last_success"] = {"run_id": a.run_id, "osm_timestamp": a.osm_timestamp, "output": a.output,
                                   "at": status["updated"], "warnings": status["warnings"]}
     write_atomic(a.file, status)
@@ -129,6 +150,7 @@ def cmd_manifest(a):
         "inputs": [dict(file_entry(p), published_md5=read_or_missing(p + ".md5")) for p in a.inputs],
         "sources": [dict(file_entry(p), fetched_with=headers(p + ".headers")) for p in a.sources],
         "outputs": [file_entry(p) for p in a.outputs],
+        "dropped_rd5": dropped(a.dropped),
         "pins": parse_pins(a.pins),
         "map_build_commit": read_or_missing(os.path.join(os.path.dirname(os.path.abspath(a.pins)), "COMMIT")),
         "tool_versions": read_or_missing(os.path.join(a.run_dir, "versions.txt")),
@@ -163,6 +185,7 @@ def main(argv=None):
     m.add_argument("--inputs", nargs="+", required=True)
     m.add_argument("--sources", nargs="+", required=True)
     m.add_argument("--outputs", nargs="+", required=True)
+    m.add_argument("--dropped", help="build-orwa.sh's list of deleted .rd5 squares (name<TAB>size)")
     a = p.parse_args(argv)
     return cmd_status(a) if a.cmd == "status" else cmd_manifest(a)
 

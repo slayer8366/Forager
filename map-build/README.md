@@ -27,6 +27,7 @@ not touched.
 | `/srv/forager-build/out/<extract time>/` | one output: `forager-orwa.pmtiles`, `segments/*.rd5`, `manifest.json` | `forager-build` |
 | `/srv/forager-build/out/current` | a link to the newest good output | `forager-build` |
 | `/srv/forager-build/logs/`, `status.json` | every run's log, and the last run's state | `forager-build` |
+| `/srv/forager-build/failed/latest/` | the latest failed run's outputs and log, for inspection; never published, replaced by the next failure | `forager-build` |
 
 Nothing goes under `/srv/forager-tiles`. The tile server serves every archive in that folder, so
 anything placed there would be published.
@@ -89,8 +90,10 @@ anything placed there would be published.
    the whole world.
 5. Runs Planetiler with the patched profile, with no downloads, and the computed `--bounds`, to
    zoom 15.
-6. Runs BRouter's `OsmFastCutter`, `PosUnifier` (with no elevation data) and `WayLinker`, then sets
-   each `.rd5` file's date to the extract's.
+6. Runs BRouter's `OsmFastCutter`, `PosUnifier` (with no elevation data) and `WayLinker`. It
+   keeps only the two states' four squares (`RD5_SQUARES`), deleting the squares that hold only
+   stretches of ferry routes to Alaska and listing them in the manifest, then sets each `.rd5`
+   file's date to the extract's.
 7. Validates before publishing:
    - zooms 0 to 15;
    - bounds inside the extract's;
@@ -100,9 +103,10 @@ anything placed there would be published.
 8. Writes `manifest.json`, moves the output into `out/`, and switches `current` atomically. It keeps
    the newest two outputs and deletes extracts older than the ones just used.
 
-Any failure leaves the previous output and `current` untouched. The run's log is kept,
-`status.json` names the failed stage, and the run exits non-zero, so a timer-started run shows as
-a failed unit.
+Any failure leaves the previous output and `current` untouched. The run's log and outputs are
+kept in `failed/latest/`, `status.json` names the failed stage, and the run exits non-zero, so a
+timer-started run shows as a failed unit. `status.json`'s `last_success` names only a published
+build; a download-only or skipped run never counts.
 
 Each step's wall time and peak memory are recorded by `tools/peak_rss.py`, since GNU `time` is not
 installed. The kernel has the memory cgroup disabled, so systemd cannot cap the build's memory.
@@ -112,6 +116,10 @@ The JVM's `-Xmx` caps it, and `OOMScoreAdjust=800` points the kernel at the buil
 
 - `python3 -m unittest map-build/tools/test_mvt_decode.py`: the tile decoder, against tiles
   encoded by hand.
+- `python3 -m unittest map-build/tools/test_run_record.py`: the status rules and the manifest's
+  dropped squares.
+- `bash map-build/tools/test_build_functions.sh`: `build-orwa.sh`'s square-dropping and
+  failed-run keeping, loaded from the script itself.
 - The patch's own tests (`foragerTrail…`, `foragerAccess…` in upstream's `RoadsTest`) run inside
   `build-basemap-jar.sh`. It refuses the jar unless all 13 of their cases appear in the test report
   with no failures.
