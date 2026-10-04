@@ -1317,3 +1317,74 @@ newer extracts, the next run downloads and uses them instead of the 2026-10-03 f
 - `sources/` was kept.
 
 **The owner then said "Start the build again as you were".** That run follows in the next addendum.
+
+# Addendum, 2026-10-04: the restart from failed run 2 succeeded; change 7 verified
+
+**The build.** Run `20261004T214038Z` was started at 21:40:38Z on the owner's "Start the build again
+as you were", as the transient unit `forager-build-restart-run2b`, on `4a28364d`. It finished at
+22:08:19Z with unit result `success`, exit 0.
+
+| Step | Wall time | Peak resident memory |
+|---|---|---|
+| merge | 36 s | 256 MiB |
+| Planetiler | 15 min 59 s | 5.6 GiB |
+| BRouter cut | 9 min 22 s | 2.0 GiB |
+| BRouter unify | 21 s | 331 MiB |
+| BRouter link | 1 min 7 s | 2.2 GiB |
+
+- **Inputs:** the 2026-10-03 extracts, sequence 4930. Geofabrik had nothing newer, so nothing was
+  downloaded, and both MD5s were good.
+- **The routing squares:** seven `.rd5` squares outside the two states were dropped and logged
+  with their sizes (`W130_N45`, `W130_N50`, `W135_N50`, `W135_N55`, `W140_N55`, `W145_N55`,
+  `W150_N60`). The four kept are `W120_N40`, `W120_N45`, `W125_N40` and `W125_N45`.
+- **Validation:** "archive and four .rd5 files". The output was published to
+  `out/20261003T202050Z`, and `current` points there.
+- **`status.json`:** `ok`, stage `done`. `last_success` names run `20261004T214038Z`, output
+  `/srv/forager-build/out/20261003T202050Z`, OSM timestamp 2026-10-03T20:20:50Z, with no warnings.
+  This is the first `last_success` this pipeline has written.
+- **The Pi through the run:** the peak was 72.5 C, throttling stayed `0x0` throughout, and
+  available memory never fell below 2,317 MB. `forager-tiles` and `forager-tunnel` both read
+  NRestarts 0 after the run.
+
+**A bug in the verification script, found on its first real run.** `verify-orwa.sh` wrote the
+tile numbers without a trailing newline. `read` then returned 1 at end of file even though it had
+read the values, and `set -e` ended the script silently at step 2. This was reproduced on the file
+it wrote (`read` exit 1, values set). Fixed in `2497d9d2` on the owner's go ("Yes go ahead"). The
+rerun used the repository copy at that commit. The installed `/opt/forager-build/map-build` was
+not changed and is still `4a28364d`. The map is unaffected: the bug was in the check, not the
+build.
+
+**Change 7's verification**, `verify-orwa.sh` at `2497d9d2`, exit 0. Positions and tiles went to
+scratch only.
+
+1. **Header.** Zooms 0–15, MVT, gzip. The bounds equal the union of the extracts' header boxes. The
+   archive has 9 layers. The roads layer carries `sac_scale`, `trail_visibility`, `informal`,
+   `tracktype`, `surface` and `foot`. Metadata: Protomaps Basemap 4.15.2, Planetiler 0.10.2,
+   replication time 2026-10-03T20:20:50Z.
+2. **The zoom 15 tile at Ramona Falls.** Four roads features carry trail keys: Pacific Crest Trail,
+   Ramona Falls Trail #797, and Timberline Trail #600 (twice). All are `path/path`, with
+   `sac_scale=hiking`, `foot=yes` and `trail_visibility` (good or excellent), and three of them
+   carry `surface=ground`.
+   - **2b:** for each of the three names, every tile value is present on the extract's ways of that
+     name (True ×3).
+3. **The zoom 14 tile against the live `us.pmtiles`,** read-only through the pmtiles CLI. Both
+   have the same layers (`earth`, `landuse`, `roads`, `water`), and roads `kind` and `kind_detail`
+   are `path` in both. 0 differences.
+4. **The BRouter route, Ramona Falls Trailhead to Ramona Falls, `hiking-mountain`:**
+   - 5,411 m over 285 points, all of it on `highway=path`;
+   - by trail: Sandy River Trail #770 2,348 m, Pacific Crest Trail 2,330 m, Timberline Trail #600
+     720 m, unnamed 13 m;
+   - 0 m beyond 15 m of any way;
+   - **0% on a trail whose name contains "Ramona".**
+
+   The route reaches the falls by the Sandy River and Pacific Crest Trail side of the loop, not by
+   Ramona Falls Trail #797. The plan set no pass condition for the share; it records the value.
+   Whether this is the route BRouter should pick was not judged here (inferred: two branches lead
+   to the falls, and the profile chose one). `filtered ascend = 0`, as expected, because the
+   `.rd5` files carry no elevation (section 4).
+
+**Not done:**
+- the installed copy was not updated to `2497d9d2`;
+- the new output was not served: the tile server still serves `us.pmtiles`;
+- the weekly timer (change 9) was not touched.
+Each needs the owner's word.
