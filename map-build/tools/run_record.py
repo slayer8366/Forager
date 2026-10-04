@@ -2,12 +2,14 @@
 """Writes the build's status file and each output's manifest (dispatch 2026-09-28-495).
 
     run_record.py status FILE --state STATE [--stage S] [--run-id R] [--osm-timestamp T]
-                                            [--output DIR] [--message M]
+                                            [--output DIR] [--message M] [--warnings W1,W2]
     run_record.py manifest OUT.json --pins PINS_ENV --run-dir RUN --osm-timestamp T
                                     --osm-sequence N --inputs F... --sources F... --outputs F...
 
-status: STATE is running, ok, skipped or failed. The file is replaced atomically. last_success is
-carried over from the previous file unless this write is a success.
+status: STATE is running, ok, ok_with_warnings, skipped or failed. ok_with_warnings means the
+output was published, but a step after publishing failed; --warnings names those steps. The file
+is replaced atomically. last_success is carried over from the previous file unless this write is
+ok or ok_with_warnings.
 
 manifest: records, for one output directory, everything needed to say what it was built from:
 - the OSM timestamp and sequence;
@@ -101,12 +103,16 @@ def cmd_status(a):
         "run_id": a.run_id,
         "osm_timestamp": a.osm_timestamp,
         "message": a.message,
+        "warnings": [w for w in (a.warnings or "").split(",") if w],
         "updated": now(),
         "last_success": previous.get("last_success"),
     }
-    if a.state == "ok":
+    if a.state == "ok_with_warnings" and not status["warnings"]:
+        print("ok_with_warnings needs --warnings naming the failed steps", file=sys.stderr)
+        return 2
+    if a.state in ("ok", "ok_with_warnings"):
         status["last_success"] = {"run_id": a.run_id, "osm_timestamp": a.osm_timestamp, "output": a.output,
-                                  "at": status["updated"]}
+                                  "at": status["updated"], "warnings": status["warnings"]}
     write_atomic(a.file, status)
     return 0
 
@@ -141,12 +147,13 @@ def main(argv=None):
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("status")
     s.add_argument("file")
-    s.add_argument("--state", required=True, choices=["running", "ok", "skipped", "failed"])
+    s.add_argument("--state", required=True, choices=["running", "ok", "ok_with_warnings", "skipped", "failed"])
     s.add_argument("--stage")
     s.add_argument("--run-id")
     s.add_argument("--osm-timestamp")
     s.add_argument("--output")
     s.add_argument("--message")
+    s.add_argument("--warnings", help="comma-separated names of the steps that failed after publishing")
     m = sub.add_parser("manifest")
     m.add_argument("out")
     m.add_argument("--pins", required=True)

@@ -256,21 +256,27 @@ mv -T "$OUT/.current.new" "$OUT/current"
 log "published $OUT/$name; current -> $name"
 
 # From here the new output is live, and nothing below may record this run as failed: the failure
-# trap is disarmed and errors no longer stop the script; each step logs a warning instead and the
-# run still exits 0 (planner's review of 17e2611b). The status is written first, so it describes
-# the published output even if a cleanup step below goes wrong.
+# trap is disarmed and errors no longer stop the script (planner's review of 17e2611b). A step
+# that fails is logged and its name collected. The status is written once, after the cleanup:
+# "ok", or "ok_with_warnings" naming the failed steps, so a cleanup that keeps failing (old
+# outputs piling up, say) shows in status.json and not only in the log (planner's review of
+# 177c0e90). Until then status.json reads "running", stage "publish".
 trap - EXIT
 set +e
-warn() { log "WARNING (the output is already published): $*"; }
-"${RECORD[@]}" status "$STATUS" --state ok --stage done --run-id "$run_id" --osm-timestamp "$osm_ts" \
-  --output "$OUT/$name" || warn "could not write $STATUS"
+warnings=()
+warn() { # step-name message
+  log "WARNING (the output is already published): $2"
+  [[ " ${warnings[*]} " == *" $1 "* ]] || warnings+=("$1")
+}
 
 # Keep the newest KEEP_GOOD_OUTPUTS outputs; never the one current points at.
 current_target="$(readlink "$OUT/current")"
+[[ -n "$current_target" ]] || warn remove-old-outputs "cannot read the current link; old outputs left in place"
 mapfile -t olds < <(cd "$OUT" && ls -1d [0-9]*T*Z* 2>/dev/null | sort -r | tail -n +"$((KEEP_GOOD_OUTPUTS + 1))")
 for d in "${olds[@]}"; do
   [[ -n "$current_target" && "$d" != "$current_target" && -d "$OUT/$d" ]] || continue
-  if rm -rf -- "${OUT:?}/$d"; then log "removed old output $d"; else warn "could not remove old output $d"; fi
+  if rm -rf -- "${OUT:?}/$d"; then log "removed old output $d"
+  else warn remove-old-outputs "could not remove old output $d"; fi
 done
 
 # Extracts are dated, so each week adds a pair; keep only the pair this output was built from.
@@ -279,9 +285,17 @@ for f in "$SRC/osm/"*.osm.pbf; do
   for i in "${inputs[@]}"; do [[ "$f" == "$i" ]] && keep=1; done
   [[ $keep -eq 1 ]] && continue
   if rm -f -- "$f" "$f.md5" "$f.headers"; then log "removed old extract $(basename "$f")"
-  else warn "could not remove old extract $(basename "$f")"; fi
+  else warn remove-old-extracts "could not remove old extract $(basename "$f")"; fi
 done
 
-cleanup_scratch || warn "could not remove the scratch directory $run"
-log "done"
+cleanup_scratch || warn remove-scratch "could not remove the scratch directory $run"
+
+if [[ ${#warnings[@]} -eq 0 ]]; then
+  final=(--state ok)
+else
+  final=(--state ok_with_warnings --warnings "$(IFS=,; echo "${warnings[*]}")")
+fi
+"${RECORD[@]}" status "$STATUS" "${final[@]}" --stage done --run-id "$run_id" --osm-timestamp "$osm_ts" \
+  --output "$OUT/$name" || log "WARNING (the output is already published): could not write $STATUS"
+log "done${warnings[*]:+, with warnings: ${warnings[*]}}"
 exit 0

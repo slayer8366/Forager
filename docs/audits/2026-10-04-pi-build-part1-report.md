@@ -818,3 +818,62 @@ previous output stays.
 and corrected test files, the saved `17e2611b` patch, and the post-publish harness with its two
 fake output trees. The trees' locked test folder was made writable again, so the whole staging
 folder can be deleted in one go.
+
+---
+
+# Addendum, 2026-10-04: `ok_with_warnings`, and how the owner's go reached this session
+
+**What changed, in the repository only.** Nothing on the Pi changed, and change 4 has not started.
+
+**From the planner's review of `177c0e90`:**
+- At `177c0e90`, `build-orwa.sh` wrote "ok" right after publishing. Its cleanup failures went only
+  to the log, so a cleanup that kept failing could never show in `status.json`. Old outputs not
+  being removed while the disk fills is one example.
+- Now the cleanup steps run first, and each failure is logged and its step name collected:
+  `remove-old-outputs`, `remove-old-extracts` or `remove-scratch`.
+- Then the status is written once: `ok`, or `ok_with_warnings` with `warnings` naming the failed
+  steps. If even that write fails, it is logged and the run still exits 0.
+- Until that write, `status.json` reads "running", stage "publish". If the Pi lost power during
+  the cleanup, the status would stay "running" over an output that is already live. The planner
+  judged that rare and harmless.
+- `run_record.py` gains the `ok_with_warnings` state and `--warnings`. It refuses that state
+  without step names. Both `ok` and `ok_with_warnings` update `last_success`, which now also
+  carries the warnings.
+
+**Tested** in the post-publish harness, now using the real `run_record.py` and asserting on what
+`status.json` contains:
+
+| Case | Block | Exit | `status.json` |
+|---|---|---|---|
+| clean | new | 0 | `ok`, warnings `[]`, `last_success` set |
+| an old output cannot be removed | new | 0 | `ok_with_warnings`, warnings `["remove-old-outputs"]`, `last_success` set with them |
+| the status write itself fails | new | 0 | still "running", stage "publish"; the failed write is logged |
+| an old output cannot be removed | `177c0e90` | 0 | plain `ok`, no warnings: **the defect, shown** |
+
+The last row used the current `run_record.py`. The old block simply never passed the warnings.
+`run_record.py status --state ok_with_warnings` without `--warnings` exits 2 and writes nothing.
+The rest of `build-orwa.sh` is still syntax-checked only.
+
+**How the go reached this session.** For this fix the owner's word came through the planner, not
+typed in this window:
+1. First relayed, it was declined. Under RECORD -600 and the launch prompt, a planner message is
+   never a go-ahead.
+2. The planner then recorded RECORD -602, at `6cbd183e` on `records-pi-after-166`. It makes the
+   owner's words relayed verbatim at the owner's request count as a go. This session asked to
+   have that confirmed by the owner, because it changes the rule that controls this session's own
+   go-ahead and had reached it only through the planner.
+3. The owner replied, through the planner, that this session could check the planner's session
+   itself. It did, reading that session's transcript through the `claude-code-remote` tools.
+   Messages from other sessions are marked there as synthetic, peer-origin turns. Four turns carry
+   no such marker, meaning the owner typed them in that session:
+
+   | Time (UTC) | What the owner typed | Answering |
+   |---|---|---|
+   | 13:43:34 | "Tell the coder. I'll take the recommendation" | the planner's recommendation of this fix |
+   | 13:56:41 | "Yes go ahead" | the planner's 13:44:11 turn putting this session's five-point plan to the owner |
+   | 14:05:18 | "Yes" | the planner's question at 13:56:54 and 13:57:02, whether relayed words should count (RECORD -602) |
+   | 14:06:15 | "The coder can check this session if they want direct confirmation" | this session's request for direct confirmation |
+
+So the approvals for this fix and for RECORD -602 are the owner's own typed words, read by this
+session from the platform's record, not taken from the planner's messages. From here this session
+acts on relayed go-aheads that meet -602's three conditions.
