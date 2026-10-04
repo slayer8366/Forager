@@ -21,7 +21,9 @@ import kotlin.concurrent.thread
  *   adb shell am force-stop com.zynergylabs.enginespike
  *   adb shell am start -W -n com.zynergylabs.enginespike/.SpikeActivity --es engine valhalla --es route r1 --es run 1
  *
- * Inputs on the phone, in the app's external files directory (pushed by adb, never in the repo):
+ * Inputs on the phone, in the app's internal files directory (never in the repo). Files adb pushes into
+ * the external `Android/data` directory are owned by the shell and the app cannot open them (seen on
+ * the S22: EACCES), so they are staged in /data/local/tmp and copied in with `run-as`:
  * `routes.json` ({"r1": [[lat, lon], [lat, lon], ...], ...}: positions stay off the repository),
  * `valhalla/config.json` with its tiles, and `brouter/segments4/` and `brouter/profiles2/`.
  *
@@ -38,7 +40,7 @@ class SpikeActivity : Activity() {
         thread(name = "spike-run") {
             val result = JSONObject().put("engine", engine).put("route", routeId).put("run", run)
             try {
-                val dir = getExternalFilesDir(null)!!
+                val dir = filesDir
                 val points = JSONObject(File(dir, "routes.json").readText()).getJSONArray(routeId)
                 val stops = (0 until points.length()).map { points.getJSONArray(it).let { p -> p.getDouble(0) to p.getDouble(1) } }
                 val out = File(dir, "out").apply { mkdirs() }
