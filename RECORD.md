@@ -11479,3 +11479,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "I'll take all your recommendations".
 **Ruled:** A, `access` stays at zoom 15 as upstream has it. B, the six trail keys at every zoom the trail appears; tile size measured and labels judged on the S22. C, coastline polygons refreshed monthly; the manifest records their date. D, the zoom 14 comparison may read `/srv/forager-tiles/us.pmtiles` read-only through the `pmtiles` CLI, not the running server. E, BRouter's release zip; if it lacks the map creator, stop and ask rather than compile. F, a dedicated build user `forager-build`. Of the report's nine changes, 1 to 3 (toolchain install, the build user and directories, committing `map-build/`) go ahead, and the planner reviews the committed `map-build/` before 4 onward. The coder's go-ahead is the owner's, typed in the coder's window; this entry records the decision, not that go.
 **Notes:** Written by the Pi planner by hand, on branch records-pi-after-166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-602
+**Timestamp:** 2026-10-04T14:05:00Z
+**Title:** the owner's words relayed by the Pi planner count as the owner's go for a Pi coder
+**Why:** under -600 ruling (1) a coder's go-ahead came only typed in the coder's own window. The -495 coder rightly declined the owner's "Yes go ahead", relayed from the planner's window, and asked for it to be typed again; the owner was typing each go twice.
+**The planner's question, in the planner's window:** should the owner's words count when the planner passes them to a coder? (Recommended) Yes, only when the owner tells the planner in the planner's window to pass them on, and the planner quotes them verbatim; a message the planner sends on its own still never counts as a go-ahead.
+**The owner, verbatim:** "Yes".
+**Ruled:** this amends -600 ruling (1). A Pi coder may act on the owner's words when a planner message (a) says the owner asked for them to be relayed, (b) quotes them verbatim, and (c) states what they approve. Anything else from the planner, including its reviews and recommendations, is information, not a go. The owner typing in the coder's own window still works as before. A coder in doubt asks the owner.
+**Notes:** Written by the Pi planner by hand, on branch records-pi-after-166.
