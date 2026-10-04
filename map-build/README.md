@@ -39,7 +39,7 @@ anything placed there would be published.
 | 2 | Create the `forager-build` user and the two folders | by hand (see the report's addendum) | **done** 2026-10-04 |
 | 3 | Commit this folder | | **done**, this commit |
 | 4 | Install this folder into `/opt`, then build the patched basemap jar | `bin/install-map-build.sh`, then `/opt/forager-build/map-build/bin/build-basemap-jar.sh` | waits for the owner's word, after the planner's review |
-| 5 | Fetch BRouter's release zip and check it | `…/bin/fetch-brouter.sh <download dir>` | waits |
+| 5 | Fetch BRouter's jar (release zip) and profiles (source), and check them | `…/bin/fetch-brouter.sh <download dir>` | owner chose option (b); see the report |
 | 6 | Download the extracts and sources | `sudo -u forager-build …/bin/build-orwa.sh --fetch-only` | waits |
 | 7 | The manual run | `sudo -u forager-build …/bin/build-orwa.sh` | waits |
 | 8 | The zoom 14 comparison against `us.pmtiles`, read-only through the `pmtiles` CLI | `pmtiles tile` and `tools/mvt_decode.py compare` | waits |
@@ -51,8 +51,10 @@ anything placed there would be published.
 - **B.** The six trail keys appear at every zoom the trail appears.
 - **C.** Coastline polygons are refreshed monthly (`COASTLINE_MAX_AGE_DAYS`).
 - **D.** The zoom 14 comparison may read `us.pmtiles` read-only through the `pmtiles` CLI.
-- **E.** BRouter comes from its release zip. If the zip lacks the map creator, stop and ask; do not
-  compile. `fetch-brouter.sh` exits 3 in that case.
+- **E.** BRouter's jar comes from its release zip. If the jar lacks the map creator, stop and ask;
+  do not compile. `fetch-brouter.sh` exits 3 in that case.
+- **Change 5, option (b):** the routing profiles come from BRouter's source at the tag, each pinned
+  by git blob hash, since the zip leaves out `all.brf` and `softaccess.brf`.
 - **F.** A dedicated `forager-build` user.
 
 ## How each download is checked
@@ -65,7 +67,11 @@ anything placed there would be published.
 - **The two public keys** are in `keys/`.
 - **The basemap profile:** the pinned commit, confirmed with `git rev-parse` after checkout. The
   patch must apply cleanly, and upstream's tests must pass with the patch applied.
-- **BRouter:** the zip's size and GitHub's digest. BRouter publishes no checksum file of its own.
+- **BRouter's jar:** from the release zip, checked by size and GitHub's digest. BRouter publishes no
+  checksum file of its own.
+- **BRouter's routing profiles:** from BRouter's source at the same tag, because the release zip
+  leaves out two that the map creator reads. Each of the five files the build reads is checked
+  against its pinned git blob hash.
 - **Geofabrik extracts:** their published MD5. Both must name the same snapshot, and their headers
   must carry that timestamp.
 - **The profile's other sources:** none publishes a checksum, so each file's size, ETag and
