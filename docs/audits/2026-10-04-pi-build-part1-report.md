@@ -13,7 +13,9 @@ says it was written against, and it was `origin/main` when fetched at the start 
 **Run by** a Claude Code session on the Pi, as `bwann83`.
 **A premise changed in this window,** by the owner: the planner now runs on this Pi and may message
 this session directly. A go-ahead for any change still comes only from the owner, typed in this
-window.
+window. It is recorded as ruling (1) of `RECORD.md` 2026-09-28-600, on branch
+`records-pi-after-166` at `15e95ded`, which replaces the dispatch's "You and the planner" section.
+The dispatch file stays as sent.
 
 This report contains no credentials, addresses, network names or walk positions. Ramona Falls is
 named because the dispatch names it. No tile coordinates or bounding boxes are written here.
@@ -549,7 +551,7 @@ and one constant. A draft follows. It is **not yet committed anywhere**; see "De
    `records-after-166`.
 2. **"The planner cannot message you; the owner relays."** The owner superseded this in this
    window: the planner runs on this Pi and may message directly. A go-ahead still comes only from
-   the owner.
+   the owner. This is ruling (1) of `RECORD.md` -600 (`records-pi-after-166`).
 3. **`access` is not absent:** it is emitted at zoom 15 on every road (`Roads.java:401`). Of the
    seven attributes to add, one partly exists.
 4. **"The live archive's same tile" at zoom 15 does not exist:** the live archive's maximum zoom
