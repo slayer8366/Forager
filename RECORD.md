@@ -11466,3 +11466,16 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim, on the planner's three questions:** "You can message the coder directly"; "handoff version"; "yes".
 **Ruled:** (1) the Pi planner may message dispatch -495's coder directly; the owner's go for any change still comes only in the coder's own window. This replaces the dispatch's "You and the planner" section, which was written for the laptop planner; the dispatch file stays as sent. (2) Commits by the Pi planner and its coders end with the handoff's `Co-Authored-By: Claude <noreply@anthropic.com>`, no model name. (3) The Pi planner's records go on branch `records-pi-after-166`, cut from `records-after-166`.
 **Notes:** Written by the Pi planner by hand, on branch records-pi-after-166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-601
+**Timestamp:** 2026-10-04T09:05:00Z
+**Title:** dispatch -495's report-first reviewed; the owner's answers to its questions A to F
+**Report:** `docs/audits/2026-10-04-pi-build-part1-report.md`, branch `pi-build` at `89f11baa` (`b16d3ce9` plus a citation of -600 only).
+**Planner's review, checked independently:** the kernel boots with `cgroup_disable=memory` (controllers `cpuset cpu io pids`), so a systemd memory limit would be inert; bookworm has no OpenJDK 21 candidate, and `protomaps/basemaps` `tiles/pom.xml` at `ca93fc06` requires Java 21 with Planetiler 0.10.2; `Roads.java` at `ca93fc06` already emits `access` from zoom 15 and none of `sac_scale`, `trail_visibility`, `tracktype`, `surface`; Planetiler 0.10.2's `Bounds` falls back to world bounds when none is given; `LICENSE_DATA.md` at the pin puts the `landcover` layer under CC-BY 4.0 (ESA WorldCover); the live server's `us.json` reports maxzoom 14, version 4.15.2. The report was scanned for addresses, positions and credentials: none.
+**For the laptop planner, through the owner:** once Forager's own tiles ship, the app's attribution needs ESA WorldCover (CC-BY 4.0) beside OpenStreetMap wherever the `landcover` layer is drawn.
+**The owner, verbatim:** "I'll take all your recommendations".
+**Ruled:** A, `access` stays at zoom 15 as upstream has it. B, the six trail keys at every zoom the trail appears; tile size measured and labels judged on the S22. C, coastline polygons refreshed monthly; the manifest records their date. D, the zoom 14 comparison may read `/srv/forager-tiles/us.pmtiles` read-only through the `pmtiles` CLI, not the running server. E, BRouter's release zip; if it lacks the map creator, stop and ask rather than compile. F, a dedicated build user `forager-build`. Of the report's nine changes, 1 to 3 (toolchain install, the build user and directories, committing `map-build/`) go ahead, and the planner reviews the committed `map-build/` before 4 onward. The coder's go-ahead is the owner's, typed in the coder's window; this entry records the decision, not that go.
+**Notes:** Written by the Pi planner by hand, on branch records-pi-after-166.
