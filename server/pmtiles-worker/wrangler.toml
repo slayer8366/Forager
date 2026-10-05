@@ -25,3 +25,11 @@ bucket_name = "forager-maps"
 # requests typically don't send an Origin header at all, so this is mostly relevant if a browser
 # client (e.g. a future web viewer) ever calls this Worker directly.
 ALLOWED_ORIGINS = "*"
+
+# The Pi origin (src/origin.ts): tiles for these archives come from the Pi's tile server first, through
+# its Cloudflare Tunnel, and from the same archive in R2 when the Pi cannot answer. The Access service
+# token's two values are secrets, never vars: CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET, set by
+# hand in the dashboard. Until both are set, every archive is served from R2 as before, and the Worker
+# logs once per isolate that the origin is unconfigured.
+ORIGIN_URL = "https://origin.zynergy-labs.com"
+ORIGIN_ARCHIVES = "forager-orwa"
