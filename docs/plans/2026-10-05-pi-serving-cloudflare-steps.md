@@ -154,3 +154,83 @@ overwritten in place, so the bucket does not grow.
   untested.
 - Whether a Worker on one account can reach an Access-protected hostname on another account with a
   service token. The origin report says it should; nobody has tried it.
+
+## Progress
+
+- **Step 0, done 2026-10-05,** on the owner's "1 yes", typed in this coder's session.
+  - Node v22.23.3 (linux-arm64) is at `/opt/forager-build/node-v22.23.3-linux-arm64`, linked
+    as `/opt/forager-build/node`. Its archive and `SHASUMS256.txt.asc` are in
+    `/opt/forager-build/archives/`.
+  - `SHASUMS256.txt.asc` carries a good signature from `5BE8A3F6C8A5C01D106C0AD820B1A390B168D356`.
+    That fingerprint is listed under "Release keys" in the v22.x README, and the key was fetched
+    separately from `nodejs/release-keys`. The tarball's checksum is OK.
+  - `npm ci` installed the lock's versions (wrangler 4.124.0). `npm run typecheck` is clean, and
+    `npm test` passes 16 of 16.
+  - Three revert checks each failed exactly the matching test (`d0c4bac4`).
+  - `wrangler deploy --dry-run` bundles, listing `ORIGIN_URL` and `ORIGIN_ARCHIVES` among the
+    bindings.
+  - Wrangler announced anonymous telemetry on that run. Every later command sets
+    `WRANGLER_SEND_METRICS=false`.
+- **Step 1, done 2026-10-05,** on the owner's "2 yes".
+  - `/etc/systemd/system/forager-tiles.service` now runs `pmtiles serve /srv/forager-tiles
+    --quiet …`. The previous file is kept as `forager-tiles.service.pre-quiet`.
+  - After `daemon-reload` and a restart: the unit is active, NRestarts 0, and `forager-orwa` and
+    `us` both answer 200 for a tile and for their JSON.
+  - Those four requests wrote **0** `served`/`fetch` lines to the journal. Before the change,
+    each request wrote one (the 2026-10-04 20:21Z lines quoted above).
+  - The journal's older lines, including this session's test requests, were **not** cleared.
+    That is still for the owner to decide.
+  - Undo: `sudo cp -p /etc/systemd/system/forager-tiles.service.pre-quiet
+    /etc/systemd/system/forager-tiles.service && sudo systemctl daemon-reload && sudo systemctl
+    restart forager-tiles`.
+
+## The owner's steps, written out
+
+### A. The API token
+
+1. Sign in at dash.cloudflare.com to the account that holds the Worker `forager-pmtiles`. Its
+   account ID ends in `0e14`, and its Workers & Pages list shows `forager-pmtiles`.
+2. Click the profile icon at the top right, then **My Profile**, then **API Tokens**, then
+   **Create Token**.
+3. Under **Custom token**, click **Get started**.
+4. **Token name:** `forager-pi-deploy`.
+5. **Permissions:** one row: **Account**, then **Workers Scripts**, then **Edit**. Add no other
+   rows.
+6. **Account Resources:** **Include**, then the account that holds `forager-pmtiles`.
+7. **Client IP Address Filtering:** leave it empty.
+8. **TTL:** start today, and end in about 30 days.
+9. Click **Continue to summary**. Check that it lists only *Workers Scripts: Edit* on that one
+   account, then click **Create Token**. Cloudflare shows the token once; copy it.
+10. At the Pi, in a terminal you open yourself (not through Claude), run:
+    ```
+    sudo nano /etc/forager/cloudflare-api-token.env
+    ```
+    Type these two lines, pasting the token after the first `=`:
+    ```
+    CLOUDFLARE_API_TOKEN=
+    CLOUDFLARE_ACCOUNT_ID=a6a899e01e2194ef8fff048c20130e14
+    ```
+    Save with Ctrl+O, then Enter, then Ctrl+X. Then run:
+    ```
+    sudo chown root:root /etc/forager/cloudflare-api-token.env
+    sudo chmod 600 /etc/forager/cloudflare-api-token.env
+    clear
+    ```
+11. Tell the coder "token placed". It checks the file's shape and permissions without printing the
+    token, then runs one read-only command (`wrangler deployments list`) to confirm the token
+    works.
+
+### B. The Worker's two secrets
+
+1. At the Pi, in a terminal you open yourself, run `sudo cat /etc/forager/access-token.env`. It
+   shows two lines, `CF_ACCESS_CLIENT_ID=…` and `CF_ACCESS_CLIENT_SECRET=…`.
+2. In the dashboard, on the same account: **Workers & Pages**, then `forager-pmtiles`, then
+   **Settings**, then **Variables and Secrets**, then **Add**.
+3. **Type:** Secret. **Variable name:** `CF_ACCESS_CLIENT_ID`. **Value:** everything after the `=`
+   on that line.
+4. **Add** again. **Type:** Secret. **Variable name:** `CF_ACCESS_CLIENT_SECRET`. **Value:**
+   everything after the `=` on its line.
+5. Click **Deploy** (or **Save**). This makes a new version of the code that is live now, with the
+   two secrets attached. The live code ignores them, so nothing changes for users.
+6. Back at the Pi, run `clear`.
+7. Tell the coder "secrets set". It then asks before deploying the new code.
