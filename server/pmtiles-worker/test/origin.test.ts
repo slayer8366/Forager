@@ -99,8 +99,16 @@ test("a network error falls back and marks the Pi down", async () => {
 
 test("no answer within the timeout falls back and marks the Pi down", async () => {
   const state = new OriginState();
+  // A Pi that never answers. Node's AbortSignal.timeout timer does not keep the process alive on
+  // its own, so a referenced keep-alive timer holds the event loop open until the abort fires.
   const hang = (_u: string, init: { signal: AbortSignal }) =>
-    new Promise<Response>((_res, rej) => init.signal.addEventListener("abort", () => rej(init.signal.reason)));
+    new Promise<Response>((_res, rej) => {
+      const keepAlive = setTimeout(() => rej(new Error("the timeout never fired")), 5000);
+      init.signal.addEventListener("abort", () => {
+        clearTimeout(keepAlive);
+        rej(init.signal.reason);
+      });
+    });
   const started = Date.now();
   const r = await originTile(cfg({ timeoutMs: 30 }), state, "forager-orwa", TILE, "mvt", hang, () => 0);
   assert.deepEqual(r, { source: "r2", reason: "no answer within 30 ms", markedDown: true });
