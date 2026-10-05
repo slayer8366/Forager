@@ -1439,3 +1439,47 @@ choice between two Cloudflare changes, the Worker reaching the Pi (the Pi-origin
 or the archive uploaded to R2, and then the app or style using the name `forager-orwa`.
 
 **Undo:** `sudo rm /srv/forager-tiles/forager-orwa.pmtiles`.
+
+# Addendum, 2026-10-05: the weekly timer enabled (change 9)
+
+**The go, read at the source.** The planner relayed the owner's answers, and this session read
+them in the planner's session (`session_01Hz8eij3gNycnr4uQVR5pAe`) with `list_events`. The owner
+typed "1 yes  2 A  3 A + B as a backup" at 00:16:15Z, a non-synthetic turn. It answers the
+planner's 00:06:13Z posting of this session's three questions, which labelled them:
+- 1, the timer, yes or no;
+- 2(a), swap in new maps by hand, or 2(b), automatically;
+- 3(A), the public Worker reads from the Pi, or 3(B), the archive is uploaded to R2.
+
+So: the timer is on. New maps are swapped in by hand (no script change, and the README's
+"nothing goes under `/srv/forager-tiles`" stays). The Pi serves, with R2 as the backup. Item 3 is
+prep only, and needs Cloudflare access this session does not have.
+
+**Done at 00:17Z.**
+- `forager-build.service` and `forager-build.timer` were copied from the install at `e0c8207b` to
+  `/etc/systemd/system/`, root, 0644, followed by `daemon-reload`.
+- `systemd-analyze verify` printed nothing for either unit.
+- `systemctl enable --now forager-build.timer` ran.
+
+**Verified:**
+- `systemctl list-timers` shows NEXT **Sun 2026-10-11 03:14:09 PDT (10:14:09 UTC)** and LAST `-`.
+  The 14 minutes are `RandomizedDelaySec=30min`.
+- The timer is `enabled`. `forager-build.service` is `inactive`, and no `build-orwa.sh` process
+  exists.
+- `status.json` is unchanged: `ok`, run `20261004T214038Z`.
+- **Why `Persistent=true` started nothing:** there was no stamp file in `/var/lib/systemd/timers/`,
+  because the timer had never run, so there was no missed elapse to catch up. From now on, a Sunday
+  10:00 UTC that passes while the Pi is off runs the build at the next boot.
+
+**Not verified: the unit itself has never run a build.** Every build so far ran through
+`systemd-run` without the unit's hardening: `ProtectSystem=strict`, `ReadWritePaths=/srv/forager-build`,
+`ProtectHome`, `PrivateDevices`, `PrivateTmp`, and the rest. The first scheduled run on 11 October is
+the first test of those settings. A setting that blocks the build fails the run, and the published
+map stays as it is (the script's failure path). Running the unit once by hand beforehand is a build,
+and needs the owner's word.
+
+**Unchanged:**
+- The timer file's header comment still reads "LEFT DISABLED". Editing it would put the install and
+  `map-build/` out of step for a comment, so it was left alone; this addendum and the README's step
+  table record the change.
+- The served `forager-orwa.pmtiles` is a copy. A weekly build does not change it until the owner
+  says to swap it in.

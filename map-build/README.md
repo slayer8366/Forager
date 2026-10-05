@@ -41,10 +41,10 @@ anything placed there would be published.
 | 3 | Commit this folder | | **done**, this commit |
 | 4 | Install this folder into `/opt`, then build the patched basemap jar | `bin/install-map-build.sh`, then `/opt/forager-build/map-build/bin/build-basemap-jar.sh` | **done** 2026-10-04 |
 | 5 | Fetch BRouter's jar (release zip) and profiles (source), and check them | `…/bin/fetch-brouter.sh <download dir>` | **done** 2026-10-04 |
-| 6 | Download the extracts and sources | `sudo -u forager-build …/bin/build-orwa.sh --fetch-only` | waits |
-| 7 | The manual run | `sudo -u forager-build …/bin/build-orwa.sh` | waits |
-| 8 | The zoom 14 comparison against `us.pmtiles`, read-only through the `pmtiles` CLI | `pmtiles tile` and `tools/mvt_decode.py compare` | waits |
-| 9 | Install the two units; **the timer stays disabled** | copy `systemd/*` to `/etc/systemd/system/` | waits |
+| 6 | Download the extracts and sources | `sudo -u forager-build …/bin/build-orwa.sh --fetch-only` | **done** 2026-10-04 |
+| 7 | The manual run | `sudo -u forager-build …/bin/build-orwa.sh` | **done** 2026-10-04, run `20261004T214038Z` |
+| 8 | The zoom 14 comparison against `us.pmtiles`, read-only through the `pmtiles` CLI | `pmtiles tile` and `tools/mvt_decode.py compare` | **done** 2026-10-04, 0 differences |
+| 9 | Install the two units, then enable the timer on the owner's word | copy `systemd/*` to `/etc/systemd/system/`, `systemctl enable --now forager-build.timer` | **done** 2026-10-05; timer enabled |
 
 ## The owner's rulings (RECORD -601)
 
