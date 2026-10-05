@@ -234,3 +234,23 @@ overwritten in place, so the bucket does not grow.
    two secrets attached. The live code ignores them, so nothing changes for users.
 6. Back at the Pi, run `clear`.
 7. Tell the coder "secrets set". It then asks before deploying the new code.
+
+## Progress, continued
+
+- **Step 2, the API token, done by the owner.**
+  - The owner made it in the newer "Account API tokens" screen, which offers a per-Worker scope.
+    The token is **Individual Workers Editor on `forager-pmtiles` only**, narrower than the
+    account-wide Workers Scripts Edit planned above.
+  - A first draft also carried "Account API Tokens Write" on the whole account. It was removed
+    before creation, at the coder's advice.
+  - The coder advised an expiry date. Whether one was set was not seen.
+  - `/etc/forager/cloudflare-api-token.env` is `root:root 0600`, two lines. The token value is 53
+    characters and was not printed. The account ID equals `wrangler.toml`'s.
+  - **Read-only check:** `wrangler deployments list --name forager-pmtiles`, run as root with the
+    file sourced and `WRANGLER_SEND_METRICS=false`, succeeded.
+- **The 2026-10-04T22:42Z change explained.** It is deployment version
+  `ed36a10c-967b-437c-85f5-d3981aaa6bb0`, created 2026-10-04T22:42:37Z, authored by the owner's
+  own account, with source "Unknown (deployment)". Its code matches the repository (see "What
+  exists"). **This is the version to roll back to.**
+- **Step 3 not done yet.** `wrangler secret list` returns `[]`, so no secrets are set on the
+  Worker.
