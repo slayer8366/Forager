@@ -20,9 +20,10 @@ import {
   tileTypeExt,
 } from "pmtiles";
 import { pmtilesPath, tilePath } from "./shared";
+import { originConfig, originTile, originTileJson, OriginState, type OriginEnv } from "./origin";
 import offlineStyle from "./offline-style.json";
 
-interface Env {
+interface Env extends OriginEnv {
   ALLOWED_ORIGINS?: string;
   BUCKET: R2Bucket;
   CACHE_CONTROL?: string;
@@ -48,6 +49,11 @@ async function nativeDecompress(
 }
 
 const CACHE = new ResolvedValueCache(25, undefined, nativeDecompress);
+
+// The Pi origin's per-isolate state (src/origin.ts), and whether this isolate has already logged
+// that the origin is unconfigured, so that line appears once per isolate rather than per request.
+const ORIGIN_STATE = new OriginState();
+let originUnconfiguredLogged = false;
 
 class R2Source implements Source {
   env: Env;
@@ -298,6 +304,49 @@ export default {
     };
 
     const cacheableHeaders = new Headers();
+
+    // Pi first for the archives named in ORIGIN_ARCHIVES, R2 when the Pi cannot answer
+    // (src/origin.ts), for tiles and for the tileset JSON. The Pi's JSON names its own
+    // --public-url, so originTileJson rewrites `tiles` to this Worker. X-Forager-Source says which
+    // one answered, and every fallback is logged (visible with `wrangler tail`; observability is
+    // off). `fellBack` makes a missing R2 copy a 503 that is not cached, below.
+    let fellBack = false;
+    const cfg = originConfig(env);
+    if ("unconfigured" in cfg) {
+      if (!originUnconfiguredLogged) {
+        console.warn(`forager origin: not configured (${cfg.unconfigured}); serving every archive from R2`);
+        originUnconfiguredLogged = true;
+      }
+    } else if (cfg.archives.has(name) && !tile) {
+      const tilesBase = `https://${env.PUBLIC_HOSTNAME || url.hostname}/${name}`;
+      const r = await originTileJson(cfg, ORIGIN_STATE, name, tilesBase, (u, init) => fetch(u, init), Date.now);
+      if (r.source === "pi") {
+        cacheableHeaders.set("X-Forager-Source", "pi");
+        cacheableHeaders.set("Content-Type", "application/json");
+        return cacheableResponse(JSON.stringify(r.json), cacheableHeaders, 200);
+      }
+      console.warn(`forager origin: ${name} tileset JSON from R2: ${r.reason}${r.markedDown ? " (pi marked down)" : ""}`);
+      cacheableHeaders.set("X-Forager-Source", `r2; ${r.reason}`.replace(/[^\x20-\x7e]/g, "?").slice(0, 200));
+      fellBack = true;
+    } else if (cfg.archives.has(name) && tile) {
+      const r = await originTile(cfg, ORIGIN_STATE, name, tile, ext, (u, init) => fetch(u, init), Date.now);
+      if (r.source === "pi") {
+        cacheableHeaders.set("X-Forager-Source", "pi");
+        if (r.status === 200) {
+          cacheableHeaders.set("Content-Type", r.contentType || "application/x-protobuf");
+          return cacheableResponse(r.body ?? undefined, cacheableHeaders, 200);
+        }
+        return cacheableResponse(undefined, cacheableHeaders, 204);
+      }
+      console.warn(
+        // The archive name and the reason only: no tile coordinates, which would record where
+        // users looked (the privacy note on [observability] in wrangler.toml).
+        `forager origin: ${name} tile from R2: ${r.reason}${r.markedDown ? " (pi marked down)" : ""}`
+      );
+      cacheableHeaders.set("X-Forager-Source", `r2; ${r.reason}`.replace(/[^\x20-\x7e]/g, "?").slice(0, 200));
+      fellBack = true;
+    }
+
     const source = new R2Source(env, name);
     const p = new PMTiles(source, CACHE, nativeDecompress);
     try {
@@ -352,6 +401,16 @@ export default {
       return cacheableResponse(undefined, cacheableHeaders, 204);
     } catch (e) {
       if (e instanceof KeyNotFoundError) {
+        if (fellBack) {
+          // The Pi could not answer and R2 holds no copy of this archive (the storage backup is
+          // on hold, owner 2026-10-05). Not cached: a cached failure would outlive the outage by
+          // the edge cache's whole lifetime.
+          console.warn(`forager origin: ${name} unavailable: pi could not answer and R2 has no copy`);
+          return new Response("Map temporarily unavailable", {
+            status: 503,
+            headers: { "Cache-Control": "no-store", "Retry-After": "60", "X-Forager-Source": "none" },
+          });
+        }
         return cacheableResponse("Archive not found", cacheableHeaders, 404);
       }
       throw e;
