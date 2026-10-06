@@ -12318,3 +12318,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Backup:** 2026-10-06-05
 **Observed:** pull request #178 (walk-logger-first-run at d0184f21: 1b48b357 red, ccba34be the fix, d0184f21 the superseding note in the -532 report) was merged as f4b6b98e at 2026-10-06T05:37:48Z, on green CI (run 37418613881, 9 m 35 s), read from GitHub, on the owner's "Fix and merge on green (Recommended)" (-569). Red on main's code: 3 of 6 service tests, the start test's log reading the S22's "free=0" line; fix 6 of 6; revert R14 brought "free=0" back; full suite 3,817 tests, 0 failures. One failure in the R14 run that the revert cannot reach (the storage-low test, during a slow run alongside device sampling) stays recorded as unexplained; it passed in the full suite. The planner's check: the one changed assertion keeps its condition and gains the log in its message, and a precondition that no `walklogs/` folder exists is added; no `@Ignore`. Desk run file size on the S22: about 781 KiB a minute, about 96 MB per two hours, indoors, screen off. Battery not measured (the owner: "Skip it for now"). The fresh-folder confirmation on a phone waits for the S26, the S22's folder already existing.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -571.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-571
+**Timestamp:** 2026-10-06T06:10:00Z
+**Title:** s22-combined-check: the S22 steps left open by -549 (units) and -527 (fix provider), on one debug build of main f4b6b98e
+**Dispatch-file:** preserved/2026-10-06-05.md
+**Context:** the owner, asked in the planner's window which new tasks to dispatch: "There was a coder who needed to do a device check, let's finish that before any new builds"; then "Start new agents, resume the work". Read as the go for the one build this check needs. The open steps are in -561's and -563's "Not shown"; -570's S26 fresh-folder check stays waiting on the S26 being connected.
+**Also on that word:** a resume was queued to the forecast D32 reviewer (offline Remote Control session; delivery waits for its machine), for -565's review under D18.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -572.
