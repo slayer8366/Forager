@@ -12689,3 +12689,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner: "Yes, write the date-rule task and T6". Two dispatches are filed in forager-forecast, each the first commit of its branch off main 41005c1. `docs/dispatch/2026-10-06-d28-date-rule.md` (d28-date-rule): Part 1 fixes and runs the midnight count by dataset (00:00:00 on day 1 against other days), then stops for the owner's midnight ruling (-602). Part 2 files D97 and D98 and applies the rule to the shared date step, with survivors matching the tables' figures. `docs/dispatch/2026-10-06-t6-observation-layer.md` (t6-observation-layer): the first model fit. Every modelling choice (unit, response, benchmark taxon, weekday term, model family, held-out scheme with D31's seed and tuning grid, output) is proposed before any outcome count is read, for the owner to rule. There is no fit until D28's final rule is filed. It runs after the date-rule task; decision rows from D101.
 **Sent:** the date-rule task to a coder subagent now; T6 after it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -605.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-605
+**Timestamp:** 2026-10-06T22:30:00Z
+**Continues:** 2026-09-28-602, 2026-09-28-604
+**The midnight count and the owner's final midnight ruling.** forager-forecast d28-date-rule at 394c6c1. The measure was fixed at 00d23f6 (12:24:18 -0700), before any count was read: expected = 12/365.2425, D95's test style. Over D26's download, iNaturalist has 657 midnight records of 2,123,100 timed, 30 of them on the 1st against about 22 expected (x1.39), p = 0.047 against 0.01. Verdict: not special to the 1st, and the 19th has 88. NABU|naturgucker: 18 timed records, all at midnight, none on the 1st. Six other timed datasets have no midnight; 18 datasets are date-only. What the check moves: 5 records reaching T1's date step and 10 reaching R6's, all iNaturalist. 372 tests; 7 revert checks bite. The tests were written after the code (disclosed). The owner had asked to "Wait for the count" (keeping the check provisional); then "Sorry I forgot about the plan to check for a moment".
+**The owner, verbatim:** shown that the count does not back the check, "Drop the check, keep them (Recommended)". The declined option was "Keep the check anyway".
+**What it sets:** D28's final rule, before any model is fit: date-only records on the 1st are kept (-601), and so are midnight-stamped records on the 1st. No first-of-month or midnight drop remains in the date step. Part 2 files D97 ("Keep the 1st") and D98 (dropping the midnight check) and applies both. The survivor counts are expected at the "keep all" figures plus at most 5 (T1) and 10 (R6) before duplicates.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -606.
