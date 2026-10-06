@@ -12479,3 +12479,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **D26 (-575, -576):** forager-forecast d26-shared-download at 28d7907. One GBIF download, 0012112-260928105237408, DOI 10.15468/dl.8jxmeb, 2,493,578 records, 1,434,032,123 bytes, provisional. Acceptance: 1,194,729 of 0005709's 1,195,034 keys are present; the 305 missing return 404 on GBIF; 29,792 untagged are kept by the fallback. The independent review (d26-review dfd5d1d) holds and re-ran every headline. Finding 1 was for the owner, the old records' `superseded_by`. The owner, verbatim: "Fill in the field (Recommended)". Then, to "do you authorise merging `d26-shared-download` into forecast main, together with its review branch `d26-review`?": "Merge both (Recommended)". The planner filed D73 and filled both fields on branch d26-merge, then merged it into forecast main as 614b262 (from ad64fef). 219 passed before the push. The review's four minor items go into the next forecast task.
 **T4:** completed on t4-master-grid at b78ab5c. The zoom-9 archive passes 10 of 10 cells (largest difference 0.00062 pH); tests 162 functions, 266 collected. The independent review has started. The builder's 0.5 valid-fraction threshold awaits a ruling.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -585.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-585
+**Timestamp:** 2026-10-06T11:40:00Z
+**Continues:** 2026-09-28-583
+**When T5 Part 1 runs.** The owner first said "Start T5's source survey now", then stopped the launch before it ran and said: "Start it after T4 review is filed". Nothing was sent. Part 1 starts once T4's review (D18, now running) is filed. Part 2 still also waits for T4's merge and the owner's pick of a US source.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -586.
