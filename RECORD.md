@@ -12533,3 +12533,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner asked "Where are we at on the forecast project list?". The planner answered from forecast main 74c7f3b. Merged: D32 follow-up, D26 and T4. In progress: T5. Next: D27 to D29, then T6 to T11 and the app wiring. It also raised a gap: no task yet takes the soil and tree layers continent-wide before T7. It asked whether to write D27 to D29 "to run after T5 merges". The owner: "Yes, write the D27 to D29 dispatch". The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-d27-d29-data-quality-tables.md`, the first commit on dq-tables-d27-d29. D28's day-of-month table goes to the owner for the final date rule, and its test measure is fixed before any count is read. Decision rows from D95.
 **Not yet sent:** it starts when T5 has merged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -590.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-590
+**Timestamp:** 2026-10-06T14:20:00Z
+**Continues:** 2026-09-28-589
+**The continental layers task.** The owner, verbatim: "Add that continental run to the task list before T7 like proposed". The planner added T6b, "Continental soil and host-tree layers", to forager-forecast's TASKS.md before T7: T4's soil and T5's host-tree layers over the US and Canada (Alaska, Mexico and the Arctic masked), tiled, with data on the flash drive. Its Verify: no step at internal tile edges, valid-cell counts against land area, ten pre-fixed cells per layer, and run time and disk use recorded. T7 gains a dated line making it depend on T6b; the original line is kept. D100 is filed. All on branch tasks-continental-layers at 6a0fcc3, off main 74c7f3b. Not merged: merging into forecast main needs the owner's written word naming the branch (D40).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -591.
