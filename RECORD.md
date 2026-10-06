@@ -12729,3 +12729,20 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The date rule merged, and a correction to this planner's timestamps.** The D28 review (forager-forecast d28-review at a001109) recounted every figure with its own code. It traced the +4/+9 to one record: gbifID 3466077871 (iNaturalist, 2021-10-01T00:00, East box) replaces survivor 3466153817 under the lowest-gbifID rule. It added one coverage test (G1) and found nothing for the owner. F1 (a swapped-in rule runs under the ruling's step name in `date_quality.py:252-253`) and F2 (six changed filters tests unlisted in the report) are left for the next task. Under -606 the planner merged origin/d28-review (containing d28-date-rule at 48c78c7) into forager-forecast main as 5540a2c, from 9d67e4c. The conflict was appended index rows, all kept. 377 tests.
 **Correction (the review's F3):** this session's planner wrote the Timestamp fields of its entries -571 to -607 without reading the clock. They are guesses. Entries -601 to -607 carry times (20:05Z to 22:35Z) later than the real time of this entry, which was read with `date -u`. Those fields are not evidence of when anything happened. The commit times on records-after-173 are, and they give the true order. The earlier entries are not edited. From this entry on, Timestamp is read from the clock.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -609.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-609
+**Timestamp:** 2026-10-06T21:03:31Z
+**Continues:** 2026-09-28-604
+**T6's proposals and the owner's rulings.** forager-forecast t6-observation-layer at b11d9a5, `docs/audits/2026-10-06-t6-proposal.md`. The proposal was committed (9cd95df) before any T6 count was read; nothing has been fitted. Wrong premise: the cited benchmark study (Capinha et al. 2023) used pines, which are not in the fungi-only download. The owner was also asked "What variables are the model using to determine the sighting chance?", and the planner answered from SPEC and DATA_REGISTER: habitat, trigger and observation. It noted which layers are built (soil pH, host trees) and which are only listed, and that T7 and T8 choose.
+**The owner, verbatim, to the coder's nine choices:**
+- Benchmark: "Lichens (Recommended)" (Lecanoromycetes, GBIF key 180).
+- Effort: "Outings (person-days) (Recommended)".
+- Area: "All of US and Canada (Recommended)" (0.1° cell × ISO week, 573 whole weeks).
+- Scoring: "Count-based score (Recommended)". Configurations are picked by deviance, filed as a new row; D31 stays for yes/no models.
+- Location: "1 km (Recommended)".
+- The remaining four (weekday split with its pre-written test, the Poisson log-linear model fitted from totals, the CSV parts plus manifest plus effort() output, and a second CC0/CC BY surface): "Accept the coder's four (Recommended)".
+**What it sets:** T6 fits as proposed. Decision rows start at D101.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -610.
