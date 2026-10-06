@@ -12542,3 +12542,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-589
 **The continental layers task.** The owner, verbatim: "Add that continental run to the task list before T7 like proposed". The planner added T6b, "Continental soil and host-tree layers", to forager-forecast's TASKS.md before T7: T4's soil and T5's host-tree layers over the US and Canada (Alaska, Mexico and the Arctic masked), tiled, with data on the flash drive. Its Verify: no step at internal tile edges, valid-cell counts against land area, ten pre-fixed cells per layer, and run time and disk use recorded. T7 gains a dated line making it depend on T6b; the original line is kept. D100 is filed. All on branch tasks-continental-layers at 6a0fcc3, off main 74c7f3b. Not merged: merging into forecast main needs the owner's written word naming the branch (D40).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -591.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-591
+**Timestamp:** 2026-10-06T14:50:00Z
+**Continues:** 2026-09-28-590, 2026-09-28-588
+**T6b merged; T5's Amendment 2 result.** The owner, verbatim: "Merge tasks-continental-layers". The planner merged it into forager-forecast main as fe0993a (from 74c7f3b, --no-ff; tree equal to the branch head 6a0fcc3). T5 Amendment 2 (t5-host-trees at 02d4f19): the US total is TreeMap's CANOPYPCT ("Live canopy cover (percent)", FVS; overlap inferred accounted for, saplings included), and the genus cover is CANOPYPCT × the tree-list share. Transects, old → new: total cover 14.4 → 15.0 points against 12.6 → 14.2 (still an artifact; the US side now reads higher); Douglas-fir share 0.088 → 0.083 against 0.072 (still an artifact, n = 7); conifer and broadleaf 0.020 → 0.017 against 0.059 (no step). Recorded, not tuned. D88 and D89 filed. 307 tests; 21 of 23 revert checks bite. The independent review (D18) of T5 is running.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -592.
