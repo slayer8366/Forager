@@ -12256,3 +12256,29 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner, asked to multitask the forecast work that wires into the app: "Yes, bring them now (Recommended)", then, after the planner found no forecast ruling outstanding and proposed this task: "Yes go ahead and do as you proposed." The owner's answers on app-side pieces: "None yet" (no app-side forecast code until a real artifact exists). D63 filed in forager-forecast on the owner's "Do what the weather source does (Recommended)". The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-d32-followup-unify-filters.md` on branch d32-followup-unify-filters at 88b10ee, off its main 1d5bd80.
 **Not yet sent:** to a coder session on the laptop (the forecast repo's credentials machine), started by the planner on the owner's word. No Gradle; Python only. Merge into forager-forecast main only on the owner's written authorisation naming the branch (its D40).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -566.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-566
+**Timestamp:** 2026-10-06T05:04:00Z
+**Closes:** 2026-09-28-532 (preserved 2026-10-05-02)
+**Outcome:** completed; merged through PR #177
+**Observed:** walk-logger (session_01Gn2BRx1HoYB5oec6c4bjSY) at bf5c6133, with Amendments 1 to 3 (-533, -559, -560): 816bdc5a (failing tests), 401a54b2 (harness only, +16/-0, no assertion line), 4ed83cb9 (the code), c0fab08a (the how-to's "close Google Maps" line, the owner's "Yes, add the line (Recommended)"), edf533a0 (three fixes: a header legend word read as an unsupported line, Robolectric's 0 bytes free, the 5 s flush clock), 62f41bc7 (a race: the session was marked inactive before its file closed), 3c025c6f (main 71c1de9c merged in, no conflict), bf5c6133 (report `docs/navigation/2026-10-05-walk-logger-report.md`, how-to `docs/navigation/2026-10-05-how-to-log-a-walk.md`, index rows). Red at 401a54b2: 44 tests, 38 failing on their own assertions. 13 revert checks, each specific to its edit. Full suite 3,763 tests 0 failures at 62f41bc7, 3,817 tests 0 failures 24 skipped on the merged tree. Release: no ACTIVITY_RECOGNITION or READ_BASIC_PHONE_STATE in the merged release manifest (WAKE_LOCK and ACCESS_NETWORK_STATE come from WorkManager 2.12.0 and MapLibre 13.5.0), no walklog classes in release. S22 capability read done (L5 tracked and used; carrier phase "unknown").
+**What the planner checked itself:** against main: no `@Ignore` added, no assertion removed; the main-side change is +10 lines in `TrackRecordingService`; the rest is under `app/src/debug` plus the release twin. PR #177's CI passed on the merged tree.
+**Not shown:** the desk run on both phones and the S26's read-only read.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-567
+**Timestamp:** 2026-10-06T05:04:00Z
+**PR:** 177
+**Head:** t532-merge
+**Base:** main
+**Merge-commit:** 38058cd8a8f29b2b168a9d5e0bdb01ae216cf29e
+**Pre-merge:** 71c1de9cf5d80b2e58c0c857332e02b65e3f2c42
+**Backup:** 2026-10-06-04
+**Observed:** pull request #177 (t532-merge into main: walk-logger at bf5c6133 with records-after-173 at 381e9e07) was merged as 38058cd8 at 2026-10-06T05:04:48Z, on green CI at its head 58773e8a (run 37416087114, 7 m 24 s), read from GitHub, on the owner's "Merge now, phones after (Recommended)". Main's tree equals t532-merge's. Intent -565 (forecast) is on records-after-173 after the PR's head.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -568.
