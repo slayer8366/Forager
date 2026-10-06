@@ -12657,3 +12657,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** the date rule, "Keep the 1st (Recommended)": day-only records on the 1st are kept like any other day. The declined option was "Keep dropping the 1st". Then, on the one narrow case the measured "keep all" rule still drops (a clock time of exactly 00:00:00 on the 1st, the original T1 wording): "Keep the midnight check (Recommended)". The declined option was "Drop the midnight check too".
 **What it sets:** D28's final rule, ruled before any model is fit, as D28 requires. It is filed as a decision row and applied to the shared date step in the next forecast task, after the D27 to D29 review. If the review changes the numbers, the planner brings it back to the owner.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -602.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-602
+**Timestamp:** 2026-10-06T20:55:00Z
+**Continues:** 2026-09-28-601
+**The midnight check made provisional, to be measured first.** The owner asked "Explain why I should keep the midnight ones". The planner corrected the reading (the choice drops them, not keeps them) and explained the check: a 00:00:00 time on the 1st is the usual fingerprint of a month-only date filled with defaults. The planner then disclosed that the D27 to D29 tables did not measure it. If a source stores every date-only record with a midnight time on every day, the check would drop real records. It recommended a count by source of midnight-stamped records on the 1st against other days, in the manner of D28's test. The owner, verbatim: "Yes, measure it first".
+**What it sets:** -601's "Keep the 1st" stands. Its "Keep the midnight check" becomes provisional until the count is in, and then returns to the owner. The count is added to the next forecast task, reading D26's download already on the laptop, with no new download. The measure is fixed before any count is read, as D95 was.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -603.
