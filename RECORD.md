@@ -12245,3 +12245,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Backup:** 2026-10-06-03
 **Observed:** pull request #176 (t527-merge into main: fix-provider at 3dd1abe8 merged with main 315669e5, the two index files keeping every row from both sides) was merged as 71c1de9c at 2026-10-06T04:34:59Z, on green CI at its head 657b222f (run 37413653030, 8 m 44 s), read from GitHub, on the owner's "Merge now, phone after (Recommended)". The PR description first said no file outside the indexes changed on both sides; three test files had, and it was corrected before the merge.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -565.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-565
+**Timestamp:** 2026-10-06T04:57:00Z
+**Title:** forager-forecast, D32's follow-up task: one filter pipeline, one Record type, nearest-point cells with D63's tie rule
+**Dispatch-file:** preserved/2026-10-06-04.md
+**Context:** the owner, asked to multitask the forecast work that wires into the app: "Yes, bring them now (Recommended)", then, after the planner found no forecast ruling outstanding and proposed this task: "Yes go ahead and do as you proposed." The owner's answers on app-side pieces: "None yet" (no app-side forecast code until a real artifact exists). D63 filed in forager-forecast on the owner's "Do what the weather source does (Recommended)". The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-d32-followup-unify-filters.md` on branch d32-followup-unify-filters at 88b10ee, off its main 1d5bd80.
+**Not yet sent:** to a coder session on the laptop (the forecast repo's credentials machine), started by the planner on the owner's word. No Gradle; Python only. Merge into forager-forecast main only on the owner's written authorisation naming the branch (its D40).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -566.
