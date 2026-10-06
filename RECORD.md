@@ -12584,3 +12584,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** F1, "Fix the rule, record both (Recommended)": the null is built from the same transects as the border step, re-run, and the old and new verdicts are recorded side by side with the reason. F2, "Cap at the fitted size (Recommended)": diameters beyond the fitted range take the largest fitted size's width, and none are dropped; the capped trees are counted. F3, "Use SCANFI's own total (Recommended)": fetch SCANFI's total crown closure for the strip to the flash drive, use it as Canada's total, and re-run.
 **What it sets:** Amendment 3 to T5, on t5-host-trees, after merging t5-review (its test included). Decision rows D90 to D92 (D93 and D94 spare; D95 onward is D27 to D29's). The F5 slips are corrected by appended notes. Then a short follow-up review of the amendment, and the owner's merge word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -595.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-595
+**Timestamp:** 2026-10-06T16:50:00Z
+**Continues:** 2026-09-28-593
+**Amendment 2 to -592: when the sunset line shows.** The owner, unprompted, verbatim: "For sundown alerts, it wouldn't be useful in the morning or early noon so while navigating and tracking, those alerts can be clutter on the UI. Maybe have sundown alerts appear ~4 hours prior to sundown." The planner restated it as the on-screen line (strip and HUD), notifications unaffected, with the step path (10 AM, sunset 6:42 PM > no line > 2:42 PM > the line appears) and the long-walk edge. The owner chose the option "Yes; also show if start-back is near" ("The line appears 4 hours before sunset, or earlier if the start-back time is less than 1 hour away, so it's never hidden when it matters"), verbatim: "Option 1, but change it from 4 hours to 2.5 hours before sunset".
+**What it sets:** the sunset line is hidden until 2 h 30 min before sunset, or until the start-back time is less than 1 hour away, whichever comes first. After that, the confirmed path stands. The after-sunset and after-dark lines show as confirmed. The notifications are unchanged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -596.
