@@ -12594,3 +12594,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Amendment 2 to -592: when the sunset line shows.** The owner, unprompted, verbatim: "For sundown alerts, it wouldn't be useful in the morning or early noon so while navigating and tracking, those alerts can be clutter on the UI. Maybe have sundown alerts appear ~4 hours prior to sundown." The planner restated it as the on-screen line (strip and HUD), notifications unaffected, with the step path (10 AM, sunset 6:42 PM > no line > 2:42 PM > the line appears) and the long-walk edge. The owner chose the option "Yes; also show if start-back is near" ("The line appears 4 hours before sunset, or earlier if the start-back time is less than 1 hour away, so it's never hidden when it matters"), verbatim: "Option 1, but change it from 4 hours to 2.5 hours before sunset".
 **What it sets:** the sunset line is hidden until 2 h 30 min before sunset, or until the start-back time is less than 1 hour away, whichever comes first. After that, the confirmed path stands. The after-sunset and after-dark lines show as confirmed. The notifications are unchanged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -596.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-596
+**Timestamp:** 2026-10-06T17:00:00Z
+**Continues:** 2026-09-28-595
+**Before a position is known.** The planner had leaned to hiding the line while no position exists, since the window can't be known then. The owner, verbatim: "Yes hide it before a position is known". So "Sunset: finding your position…" from -592's confirmed path no longer shows: with no position, there is no line. Once a position gives a sunset, the 2 h 30 min and 1 h rule (-595) decides.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -597.
