@@ -12329,3 +12329,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner, asked in the planner's window which new tasks to dispatch: "There was a coder who needed to do a device check, let's finish that before any new builds"; then "Start new agents, resume the work". Read as the go for the one build this check needs. The open steps are in -561's and -563's "Not shown"; -570's S26 fresh-folder check stays waiting on the S26 being connected.
 **Also on that word:** a resume was queued to the forecast D32 reviewer (offline Remote Control session; delivery waits for its machine), for -565's review under D18.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -572.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-572
+**Timestamp:** 2026-10-06T06:45:00Z
+**Continues:** 2026-09-28-565
+**The forecast's next step, D26's shared US and Canada sightings download, and its boundary.** The owner, verbatim: "Yes, write the sightings download dispatch after review" (after the D32 follow-up's independent review, D18). A read-only pulse of forager-forecast at abac2b2 found no US and Canada geometry in its code, and that D26 (DECISIONS.md:49) allows "a simple bounding polygon or GBIF's coordinate-derived administrative filter ... whichever the builder verifies first", while D47 (:28) later excludes Mexico. Asked which edge to use, the owner chose "GBIF country borders (Recommended)": the request selects US and Canada by GBIF's coordinate-derived administrative (GADM) tag, verified on a small request first, with no outline and no trimming. The other options were "Simple outline, then trim" and "Let the coder pick".
+**What it sets:** the dispatch is written only after the review is filed; the forecast-side decision row quoting this answer is filed by that dispatch's writer (D38). Nothing merges without the owner's written word naming the branch (D40).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -573.
