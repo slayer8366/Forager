@@ -12522,3 +12522,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** on the seam, "Try TreeMap's own canopy (Recommended)": TreeMap's published canopy figure becomes the US total cover, the tree-list split stays for the genus shares, and the 25 transects are re-run. The other options were to accept and record, or to try every fix. On the coder's four calls (Pinus, Picea and Abies wholly not available in Canada; the surrogate crown equations; the 10% cover threshold; SCANFI 2025 over 2020): "Accept all four (Recommended)".
 **What it sets:** Amendment 2 to -583, on the same branch, before the D18 review. Decision rows continue from D88.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -589.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-589
+**Timestamp:** 2026-10-06T14:00:00Z
+**Title:** forager-forecast D27 to D29: the data-quality tables over D26's download, and the D26 review's four minor items
+**Dispatch-file:** preserved/2026-10-06-10.md
+**Context:** the owner asked "Where are we at on the forecast project list?". The planner answered from forecast main 74c7f3b. Merged: D32 follow-up, D26 and T4. In progress: T5. Next: D27 to D29, then T6 to T11 and the app wiring. It also raised a gap: no task yet takes the soil and tree layers continent-wide before T7. It asked whether to write D27 to D29 "to run after T5 merges". The owner: "Yes, write the D27 to D29 dispatch". The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-d27-d29-data-quality-tables.md`, the first commit on dq-tables-d27-d29. D28's day-of-month table goes to the owner for the final date rule, and its test measure is fixed before any count is read. Decision rows from D95.
+**Not yet sent:** it starts when T5 has merged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -590.
