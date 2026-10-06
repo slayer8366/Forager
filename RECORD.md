@@ -12700,3 +12700,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** shown that the count does not back the check, "Drop the check, keep them (Recommended)". The declined option was "Keep the check anyway".
 **What it sets:** D28's final rule, before any model is fit: date-only records on the 1st are kept (-601), and so are midnight-stamped records on the 1st. No first-of-month or midnight drop remains in the date step. Part 2 files D97 ("Keep the 1st") and D98 (dropping the midnight check) and applies both. The survivor counts are expected at the "keep all" figures plus at most 5 (T1) and 10 (R6) before duplicates.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -606.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-606
+**Timestamp:** 2026-10-06T22:35:00Z
+**Continues:** 2026-09-28-605
+**The owner's merge word for the date rule.** The owner, verbatim: "Merge the date rule once the review is filed". This is the D40 written word for forager-forecast's d28-date-rule, with its review branch. The planner merges when the independent review (D18) is filed and finds nothing for the owner. A finding for the owner is brought back first, as under -598.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -607.
