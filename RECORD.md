@@ -12351,3 +12351,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Also on the S22 (-571, in progress):** the desk-run recording since 05:09Z was stopped from the in-app control and both logs were pulled to evidence with matching hashes. 1.0.2824+gf4b6b98e is installed. A short recording logged; its folder already existed, so it does not test the fresh-folder case. Correcting a premise in the planner's message to that agent: a normal stop writes `END reason=recording-stopped`; STOPPED is written only for storage-low or a failure.
 **Evidence:** `~/Zynergy/device-evidence/2026-10-06-s26-walk-logger-first-run/` (the walklog has FIX lines with coordinates, so it stays outside every repository).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -574.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-574
+**Timestamp:** 2026-10-06T07:20:00Z
+**Continues:** 2026-09-28-568
+**forager-forecast's D32 follow-up, reviewed and merged.** The old reviewer session died without committing anything. A fresh reviewer (D18) reviewed `d32-followup-unify-filters` at abac2b2 and pushed `docs/audits/2026-10-06-d32-followup-review.md` on `d32-followup-review` at 4a35adc. Verdict: the build holds against D63 to D67. It re-ran 213 passing items, ruff clean, T2's summary identical on every key, its own six revert checks, and the frozen T1 at 142,238 / 447,163. Its findings: the test count is 117 functions, not 109 as reported; two index rows had no file, and it appended a row; three items for the owner; a `year_of` side change with 0 of 2,539,881 rows differing; test-first order can't be told from git; ±180° longitudes get two cell ids, for D26 to check. It disclosed one unplanned unauthenticated read of api.inaturalist.org, made when importing two planning scripts, written to its scratch only.
+**The owner, verbatim:** finding 3 (`t1_record.py` frozen on the planner's reading of D67): "Keep it frozen (Recommended)". Finding 4 (the frozen T1 now gives East 447,163, not the published 447,164, through D63): "Accept, note it (Recommended)". Finding 6 (two counted refusal reasons beyond D66): "Keep, counted (Recommended)". The merge, asked "Do you authorise merging `d32-followup-unify-filters`, with the review branch `d32-followup-review`?": "Merge both (Recommended)".
+**Observed:** merged by the planner into forager-forecast main as ad64fef (from 1d5bd80, `--no-ff` of origin/d32-followup-review, whose tree it equals). Before the push: 213 passed, ruff clean. The merge message quotes the four answers. The decision rows for the three findings, and the appended 109 to 117 correction, are left to the next task's writer (D38).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -575.
