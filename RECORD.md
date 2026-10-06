@@ -12631,3 +12631,18 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-598
 **T5 merged.** The Amendment 3 review (forager-forecast t5-review-a3 at d9326de, `docs/audits/2026-10-06-t5-amendment-3-review.md`) found that Amendment 3 holds and nothing else was tuned. It re-ran the transects on all nine stored strips (field for field), checked all 53 caps against Bechtold Table 1, and the SCANFI total against the ten classes on 10,976,781 pixels. It added a test (A4) that reads D92's real file name. Record notes A1 to A3 (the 0.088 slip repeated; three F5 slips without appended notes; the bootstrap interval reusing the null's generator) change no verdict, and are left for an appended correction in the next task. It flags for T6b (D100) that the class-sum equality is shown on this strip only. Nothing was for the owner, so under -598 the planner merged origin/t5-review-a3 (which contains t5-host-trees 0c0c726 and t5-review 20eda69) into forager-forecast main as aa05c1f, from fe0993a. Conflicts were appends in three record files; every row is kept. 315 tests; ruff clean. The D27 to D29 dispatch (-589) now has its start condition. It runs after #181's fix finishes, one heavy job at a time.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -600.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-600
+**Timestamp:** 2026-10-06T19:50:00Z
+**PR:** 181
+**Head:** sundown-line
+**Base:** main
+**Merge-commit:** 4db24110525540b83445edede81278fa0c75417e
+**Pre-merge:** ef2690253b93401c324ddfac02c650678fed9ef0
+**Backup:** 2026-10-06-08
+**Closes:** 2026-09-28-592 (preserved 2026-10-06-11), with Amendments 1 to 3 (-593, -595, -596)
+**Observed:** the CI timeout (-597) was root-caused by a coder at dae48454. The margin's DataStore write resumes on Robolectric's paused main looper, and `composeRule.waitUntil` never runs that looper. It reproduced 17 of 40 with the test files on a real disk, 0 of 80 on tmpfs. The fix is test-only: the wait idles the main looper each pass. 100 of 100 passed on disk; the revert check bites; the full suite was 3,890 tests, 0 failures. On head 339b0bbe, CI run 37506593399 failed on one test the PR doesn't touch: `MushroomLogViewModelWiringTest` ("a find deleted through the Journal's ViewModel leaves the Maps tab's records", `:80`). It is the parked intermittent group (-348/-349, deferred by the owner), seen before on runs changing no app code (-396; #166). The planner commented on the PR and re-ran the failed job once; it passed (6 m 18 s). Merged as 4db24110 on the owner's "Merge #181 once checks pass", with main backed up as 2026-10-06-08. The coder notes 21 other test files use `waitUntil` and were not checked for the same looper wait. Not yet seen on a phone.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -601.
