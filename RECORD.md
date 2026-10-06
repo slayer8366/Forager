@@ -12709,3 +12709,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-605
 **The owner's merge word for the date rule.** The owner, verbatim: "Merge the date rule once the review is filed". This is the D40 written word for forager-forecast's d28-date-rule, with its review branch. The planner merges when the independent review (D18) is filed and finds nothing for the owner. A finding for the owner is brought back first, as under -598.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -607.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-607
+**Timestamp:** 2026-10-06T20:05:00Z
+**Continues:** 2026-09-28-397
+**forager-forecast's licence.** The owner asked "What kind of licensing should I have on this repo?". The planner (not legal advice) set out that the public repo with no licence is all rights reserved, compared GPL-3.0, AGPL-3.0 and MIT/Apache for the code, and noted that the data derived from 80% CC BY-NC sightings should be CC BY-NC 4.0. It recommended GPL-3.0. The owner, verbatim: "AGPL 3.0 sounds better". Then, asked to confirm (AGPL code, CC BY-NC 4.0 for published forecast data, merge branch `licence-agpl`): "Yes: AGPL code, CC BY-NC data, merge (Recommended)".
+**Observed:** branch licence-agpl. `LICENSE` holds the AGPL-3.0 text from GitHub's licence API; gnu.org did not answer within two minutes, so it is not compared with the FSF's copy, and D110 says so. `LICENSE-DATA` holds the CC BY-NC 4.0 legal code from creativecommons.org. Also a README "Licence" section and D110 answering D22. Merged into forager-forecast main as 9d67e4c (from 41005c1, tree equal to the branch). The unmerged d28-date-rule and t6-observation-layer branches will meet it as append conflicts in DECISIONS.md and the audits index. The app repo's licence was not discussed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -608.
