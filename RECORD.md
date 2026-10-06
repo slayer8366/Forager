@@ -12551,3 +12551,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-590, 2026-09-28-588
 **T6b merged; T5's Amendment 2 result.** The owner, verbatim: "Merge tasks-continental-layers". The planner merged it into forager-forecast main as fe0993a (from 74c7f3b, --no-ff; tree equal to the branch head 6a0fcc3). T5 Amendment 2 (t5-host-trees at 02d4f19): the US total is TreeMap's CANOPYPCT ("Live canopy cover (percent)", FVS; overlap inferred accounted for, saplings included), and the genus cover is CANOPYPCT × the tree-list share. Transects, old → new: total cover 14.4 → 15.0 points against 12.6 → 14.2 (still an artifact; the US side now reads higher); Douglas-fir share 0.088 → 0.083 against 0.072 (still an artifact, n = 7); conifer and broadleaf 0.020 → 0.017 against 0.059 (no step). Recorded, not tuned. D88 and D89 filed. 307 tests; 21 of 23 revert checks bite. The independent review (D18) of T5 is running.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -592.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-592
+**Timestamp:** 2026-10-06T15:20:00Z
+**Title:** sundown-line-and-settings: the sunset line in the strip and the HUD (plan T3), and the alerts switch and darkness margin in Settings (plan T4)
+**Dispatch-file:** preserved/2026-10-06-11.md
+**Context:** the owner asked "What's next on the navigation end?" and agreed to confirm T3 and T4 as step paths ("Yes, confirm T3 and T4 with me"). The owner's choices, verbatim: the start-back time, "Add "start back by" (Recommended)" (the line uses the leave-by alert's own time whenever the walk-back is known); the margin choices, "30 min, 45 min, 1 h, 1 h 30 (Recommended)". Then, shown the whole path (strip strings, "start back was" after it passes, the move into the HUD on Return or Navigate, "Sun set … dark in", "Dark since", "Sunset: finding your position…", no countdown to tomorrow after dark; Settings > "Sundown" > "Sundown alerts" switch, on by default, gating notifications only; "Dark under trees" with "Woods get dark before sunset. Alerts allow this much extra."; both survive closing the app): "Yes, write it (Recommended)". Placement follows -421's "Strip, then HUD (Recommended)".
+**Not yet sent:** to a laptop coder; Gradle waits on the owner's "go".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -593.
