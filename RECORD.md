@@ -12397,3 +12397,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Premises that were wrong:** a normal stop writes END, not STOPPED (the planner's); soil temperature lives under Trip Planner > Trip Windows, not "Availability results" (-549's report).
 **Also on the owner's word:** "Push the pr-140 README commits". Pushed b0101543 as new branch pr-140-wrap-up. It carries 13 commits of 2026-09-19 and -20 on no remote branch (the three README commits on top of ten others, among them a "Merge pull request #107" commit whose hash is not on main). Nothing merged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -578.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-578
+**Timestamp:** 2026-10-06T07:35:00Z
+**Title:** arrived-alone: the HUD's status line drops "Approaching" when arrived; a stale fix shows only "Last fix N ago"
+**Dispatch-file:** preserved/2026-10-06-07.md
+**Context:** the owner, on -577's observation: "Yes, look into the Arrived bug". A read-only diagnosis at f4b6b98e: "Arrived" (`NavigationHud.kt:586`) and the status line (`:632-640`) read the same held gated fix independently, and arrival's radius always contains approaching's, so both show from the first gated fix, and stay while the fix is stale (up to 5 min). There is no arrival flag (-503, -504). The fresh-fix look was accepted at -500 ("Done, as expected"). No ruling covered the stale case. The owner, asked "What should the walker see?", chose "Drop "Approaching" when arrived": at the waypoint, "Arrived" alone; GPS stalls, "Arrived" (dimmed) with "Last fix 2 min ago". This supersedes -500's accepted look for the status line only. The other options were the stale-only rewording (recommended), "Arrived needs fresh GPS", and "Leave it as is".
+**Not yet sent:** to a laptop coder; Gradle waits on the owner's "go".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -579.
