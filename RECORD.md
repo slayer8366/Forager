@@ -12488,3 +12488,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-583
 **When T5 Part 1 runs.** The owner first said "Start T5's source survey now", then stopped the launch before it ran and said: "Start it after T4 review is filed". Nothing was sent. Part 1 starts once T4's review (D18, now running) is filed. Part 2 still also waits for T4's merge and the owner's pick of a US source.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -586.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-586
+**Timestamp:** 2026-10-06T12:30:00Z
+**Continues:** 2026-09-28-582, 2026-09-28-585
+**T4 reviewed and merged; T5's survey back.** The first T4 reviewer stopped without committing. The owner: "The agent stopped. Restart it". A new reviewer (t4-review at fe87ec3, `docs/audits/2026-10-06-t4-review.md`) found that the build holds. Every headline re-ran byte-identically; its own regrid matched 13 real cells to 2.4e-7 pH; all 3,211,264 zoom-9 pixels match their master cells. It added three tests: the datum pin, which the builder had called untestable offline (it shifts cells by 0.7 to 1 m in Hawaii and the Aleutians, and by 0 in the T4 rectangle), and two for tile rounding at exact halves. Minor findings: the Q columns are unlabelled "approximate" in the ten-cell table; an at-threshold exemption in the check. RECORD -582 was reported missing; the planner confirmed it is on origin/records-after-173.
+**The owner, verbatim:** the valid-fraction threshold, "Half the cell (Recommended)". The merge, asked "do you authorise merging `t4-master-grid` into forecast main, together with its review branch `t4-review`?": "Merge both (Recommended)".
+**Observed:** the planner filed D74, numbered from D26's unused range, and merged t4-merge (t4-review plus D74) into forager-forecast main as 74c7f3b (from 614b262). The four record files conflicted with appends only, and every row is kept. 275 tests pass on the merged tree; ruff is clean. The T5 survey (Part 1) started after the review was filed, per -585. It is filed on t5-host-trees at 0192dfd, `docs/audits/2026-10-06-t5-source-survey.md`, and its decisions go to the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -587.
