@@ -12304,3 +12304,17 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "Fix and merge on green (Recommended)", and to measuring battery cost now with the phone unplugged: "Skip it for now" (learned from the first real logged walk instead).
 **What it sets:** a fix on a branch from main: the free-space check reads a folder that exists, or creates `walklogs/` first; the 10 GB stand-in comes out of the service tests' setup so a first-ever recording runs against the real temporary filesystem; a test that fails before the fix and a revert check; a superseding note in the report, not an edit. Merge on green CI. The desk run's file-size sampling stands.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -570.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-570
+**Timestamp:** 2026-10-06T05:37:00Z
+**PR:** 178
+**Head:** walk-logger-first-run
+**Base:** main
+**Merge-commit:** f4b6b98eac0a441cf31f4e4706c9bd2e8453cbe3
+**Pre-merge:** 38058cd8a8f29b2b168a9d5e0bdb01ae216cf29e
+**Backup:** 2026-10-06-05
+**Observed:** pull request #178 (walk-logger-first-run at d0184f21: 1b48b357 red, ccba34be the fix, d0184f21 the superseding note in the -532 report) was merged as f4b6b98e at 2026-10-06T05:37:48Z, on green CI (run 37418613881, 9 m 35 s), read from GitHub, on the owner's "Fix and merge on green (Recommended)" (-569). Red on main's code: 3 of 6 service tests, the start test's log reading the S22's "free=0" line; fix 6 of 6; revert R14 brought "free=0" back; full suite 3,817 tests, 0 failures. One failure in the R14 run that the revert cannot reach (the storage-low test, during a slow run alongside device sampling) stays recorded as unexplained; it passed in the full suite. The planner's check: the one changed assertion keeps its condition and gains the log in its message, and a precondition that no `walklogs/` folder exists is added; no `@Ignore`. Desk run file size on the S22: about 781 KiB a minute, about 96 MB per two hours, indoors, screen off. Battery not measured (the owner: "Skip it for now"). The fresh-folder confirmation on a phone waits for the S26, the S22's folder already existing.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -571.
