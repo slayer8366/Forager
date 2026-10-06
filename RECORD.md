@@ -12282,3 +12282,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Backup:** 2026-10-06-04
 **Observed:** pull request #177 (t532-merge into main: walk-logger at bf5c6133 with records-after-173 at 381e9e07) was merged as 38058cd8 at 2026-10-06T05:04:48Z, on green CI at its head 58773e8a (run 37416087114, 7 m 24 s), read from GitHub, on the owner's "Merge now, phones after (Recommended)". Main's tree equals t532-merge's. Intent -565 (forecast) is on records-after-173 after the PR's head.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -568.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-568
+**Timestamp:** 2026-10-06T05:14:00Z
+**Continues:** 2026-09-28-565
+**Amendment 1 to -565 (forager-forecast D32 follow-up), after the coder's verify report** (session_01HwRC9gBc3wyQBMvGkUbuhK, `docs/audits/2026-10-06-d32-followup-verify-report.md` at 1bf444f on d32-followup-unify-filters; T1's old pipeline reproduces 142,238 and 447,164 exactly; 27 T1 records change cell under D46 and D63).
+**The owner, verbatim, to four questions:** (A) D63 at decimal half points that are not exact in binary (Open-Meteo went west at 47.05, -123.05; 73 records): "Yes, as worded (Recommended)": D63 applies to the decimal value GBIF reports. (B) The three filter differences no row settles (the user-obscured step in both lists; T1's partial-date parser for both; the lowest gbifID survives a duplicate): "Accept all three (Recommended)". (C) The Record type: "Stricter, set aside and counted (Recommended)": T1's frozen dataclass extended with the DWCA fields, one loader; the 9,627 non-day or range-dated rows go to a counted cannot-be-loaded stage, and no-coordinate records stop merging under "no-cell". (D) The old T1 path: "Keep frozen as evidence (Recommended)": `build_download_request` and SIMPLE_CSV retired for new downloads; `t1_simple_csv.py` and the two T1 scripts kept unchanged, marked as not in the pipeline, as D30 kept the T0b script.
+**Planner's instructions with it:** the coder files these as forecast decision rows on its branch (it is the branch's one writer, D38), quoting the owner's words; confirms the T2 duplicate-step gap (94,247 against the published 538,793) by re-running the old key on local data before building; follows D27's accepted taxon key where T1 used taxonKey.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -569.
