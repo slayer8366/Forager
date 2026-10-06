@@ -12603,3 +12603,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-595
 **Before a position is known.** The planner had leaned to hiding the line while no position exists, since the window can't be known then. The owner, verbatim: "Yes hide it before a position is known". So "Sunset: finding your position…" from -592's confirmed path no longer shows: with no position, there is no line. Once a position gives a sunset, the 2 h 30 min and 1 h rule (-595) decides.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -597.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-597
+**Timestamp:** 2026-10-06T17:40:00Z
+**Continues:** 2026-09-28-592
+**-592 built; PR #181's CI red; the laptop's restarts.** The session's container restarted twice during this work. The kernel log shows a global OOM killing a forager-forecast T5 build process (3.9 GB RSS) while an app full suite ran beside it, on this 11 GB laptop. From then on, one heavy job at a time. The owner: "When I get my new laptop, that'll change. But for now, sensible ordering". The sundown-line branch was finished by a third session at 494a1754. Alert-moment guards: 9 of 9 green on main ef269025 and on the branch. 24 revert checks. Full suite 3,890 tests, 0 failures, 24 skipped (main 3,823 + 67). Two existing settings tests now scroll to their text, because the new section pushes it below the fold. The ViewModel's unrendered countdown is retired, with its five tests replaced where the value is now computed; the planner checked this. PR #181 was opened. The owner: "Merge #181 once checks pass". Its CI failed: 3,890 tests, 1 failed. `SundownSettingsTest` "real touches across each row change it, and both settings survive a recreated repository" hit a ComposeTimeoutException at `SundownSettingsTest.kt:186` (`waitUntil(5_000) { stored.lastOrNull() == 45 }`). It passes locally, and an unexplained timeout was noted in the draft report. Not merged. Treated as this PR's fault to root-cause, not a flake to re-run. The owner agreed the order: "Sounds good on the order". T5's rebuild finishes alone first; then a coder diagnoses and fixes, pushes, and #181 merges on green.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -598.
