@@ -12362,3 +12362,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** finding 3 (`t1_record.py` frozen on the planner's reading of D67): "Keep it frozen (Recommended)". Finding 4 (the frozen T1 now gives East 447,163, not the published 447,164, through D63): "Accept, note it (Recommended)". Finding 6 (two counted refusal reasons beyond D66): "Keep, counted (Recommended)". The merge, asked "Do you authorise merging `d32-followup-unify-filters`, with the review branch `d32-followup-review`?": "Merge both (Recommended)".
 **Observed:** merged by the planner into forager-forecast main as ad64fef (from 1d5bd80, `--no-ff` of origin/d32-followup-review, whose tree it equals). Before the push: 213 passed, ruff clean. The merge message quotes the four answers. The decision rows for the three findings, and the appended 109 to 117 correction, are left to the next task's writer (D38).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -575.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-575
+**Timestamp:** 2026-10-06T07:40:00Z
+**Title:** forager-forecast D26: the shared US and Canada download by GBIF country borders, and its acceptance check
+**Dispatch-file:** preserved/2026-10-06-06.md
+**Context:** the owner, verbatim: "Yes, write the sightings download dispatch after review", with the boundary "GBIF country borders (Recommended)" (-572). The review is filed and merged (-574). The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-d26-shared-download.md`, the first commit on branch d26-shared-download, off main ad64fef. Its first commits file D68 to D71 (the owner's three answers in -574 and the boundary in -572) and the appended 109 to 117 correction. One GBIF download, on the planner's go after the verify report; one background wait; data under the gitignored `data/d26/downloads/`.
+**Sent:** to a coder subagent on the laptop (the credentials machine), started by the planner on the owner's "Start new agents, resume the work" and the request for this dispatch. Merge only on the owner's written word naming the branch (D40).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -576.
