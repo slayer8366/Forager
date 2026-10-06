@@ -12419,3 +12419,18 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** to "Go ahead?" (removing "Approaching"), "Give Approaching its own zone". Shown the step path (far away: distance and needle, as today; inside the approaching zone: the distance counting down, the needle still pointing, "Approaching" under it; inside the arrival zone, unchanged: "Arrived" alone; GPS stalls while arrived: "Arrived" (dimmed) with "Last fix 2 min ago") and asked where "Approaching" starts, the owner chose "100 m / 330 ft (Recommended)". The other options were 50 m, and the arrival zone + 50 m.
 **What it sets:** "Approaching" shows when the distance is within 100 m and the target has not arrived. Arrival, its radius and the map's ring and lines are unchanged. When arrived, the status line drops "Approaching": empty on a fresh fix, "Last fix N ago" when stale. The needle withholding and the blank target column that today hang on the old `approaching` predicate (`NavigationHud.kt:603`, `:614-615`) must not start firing at 100 m; the needle keeps pointing in the approaching zone. If the arrival radius is 100 m or more, it goes straight to "Arrived". Gradle still waits on the owner's "go".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -580.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-580
+**Timestamp:** 2026-10-06T08:10:00Z
+**PR:** 179
+**Head:** s22-combined-check
+**Base:** main
+**Merge-commit:** 730a7a12d76a0d21c9f3298dea5735074b1b19f7
+**Pre-merge:** f4b6b98eac0a441cf31f4e4706c9bd2e8453cbe3
+**Backup:** 2026-10-06-06
+**Observed:** pull request #179 (s22-combined-check at d6f57efd: the -571 report and its two index rows, docs only) merged as 730a7a12 on green CI (Build, test, publish APK, 7 m 31 s), read from GitHub, on the owner's "Merge PR #179 once checks pass". The planner checked the report for coordinates before opening it.
+**Also:** -578's coder re-verified against -579. It counts 8 status-line assertions and 3 test renames. The needle and the blank target column stay on today's 2×accuracy test, with only the local variable renamed; the planner accepted this. Two consequences of the owner's words are built as they follow, and told to the owner: (i) "Arrived" with a route no longer shows "Straight line X" under it ("Arrived alone"); (ii) "Approaching" now shows within 100 m when no accuracy is reported (a fixed distance). The owner's Gradle go, verbatim: "Go ahead and build it."
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -581.
