@@ -12511,3 +12511,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The planner also cleared:** this session's own merged scratch worktrees (three forecast merge worktrees and the s22-combined-check and arrived-alone ones), each clean with its HEAD on a remote branch. Little space was freed, because their environments share uv's cache.
 **What it sets:** T5 Part 2 starts, now that T4 is merged (74c7f3b), with these answers as Amendment 1 to -583. Decision rows run from D83. TreeMap data goes to `forecast-data/t5/` on the flash drive, never extracted to the internal disk.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -588.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-588
+**Timestamp:** 2026-10-06T13:40:00Z
+**Continues:** 2026-09-28-587
+**T5 Part 2 built** (forager-forecast t5-host-trees at 61ba17b, `docs/audits/2026-10-06-t5-completion-report.md`). The crown cover comes from TreeMap 2023's tree list (Bechtold 2004 Eq. 3; Crookston & Stage 1999 eqs 1-2), with SCANFI 2025 on the Canadian side and source flags. 25 meridian transects across 49°N. The total cover step is a median of 14.4 points against a threshold of 12.6 (artifact, no consistent sign). The Douglas-fir share step is 0.087 against 0.072 (artifact, n = 7). The conifer and broadleaf shares show no step. The computed US cover runs a median 10.9 points below TreeMap's own canopy figure (r = 0.83). Host sources: Pilz et al. 2003 (PNW *Cantharellus*: Douglas-fir, hemlock, spruce, fir and pine; oak only in California and the East). This corrects the planner's earlier oak line. Burdsall & Banik 2001 (*Laetiporus*). Tests 303, 19 revert checks (17 bite; the 2 that can't are explained).
+**The owner, verbatim:** on the seam, "Try TreeMap's own canopy (Recommended)": TreeMap's published canopy figure becomes the US total cover, the tree-list split stays for the genus shares, and the 25 transects are re-run. The other options were to accept and record, or to try every fix. On the coder's four calls (Pinus, Picea and Abies wholly not available in Canada; the surrogate crown equations; the 10% cover threshold; SCANFI 2025 over 2020): "Accept all four (Recommended)".
+**What it sets:** Amendment 2 to -583, on the same branch, before the D18 review. Decision rows continue from D88.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -589.
