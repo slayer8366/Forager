@@ -12434,3 +12434,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Observed:** pull request #179 (s22-combined-check at d6f57efd: the -571 report and its two index rows, docs only) merged as 730a7a12 on green CI (Build, test, publish APK, 7 m 31 s), read from GitHub, on the owner's "Merge PR #179 once checks pass". The planner checked the report for coordinates before opening it.
 **Also:** -578's coder re-verified against -579. It counts 8 status-line assertions and 3 test renames. The needle and the blank target column stay on today's 2×accuracy test, with only the local variable renamed; the planner accepted this. Two consequences of the owner's words are built as they follow, and told to the owner: (i) "Arrived" with a route no longer shows "Straight line X" under it ("Arrived alone"); (ii) "Approaching" now shows within 100 m when no accuracy is reported (a fixed distance). The owner's Gradle go, verbatim: "Go ahead and build it."
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -581.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-581
+**Timestamp:** 2026-10-06T08:30:00Z
+**Title:** forager-forecast T4: the master grid (ESRI:102008, 250 m) and SoilGrids pH for western Washington, end to end to a zoom-9 PMTiles archive
+**Dispatch-file:** preserved/2026-10-06-08.md
+**Context:** the owner asked "What steps are sitting between us now and finishing the wiring of the forecast as a layer?" The planner answered from forager-forecast main ad64fef (TASKS.md T4 to T11, D55 to D58, D5/D18). There are four stages: clean data (D26 to D29), the model (T4 to T9), the nightly publish (T10, T11, plus where it is hosted), and the app wiring. The app-side reading is the previous planner's and was not re-read. The decisions only the owner makes: the D28 date rule, T8's tuning, where the nightly files are published, and where the phone stores them. Then the owner: "Yes, write the T4 dispatch". The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-t4-master-grid.md`, the first commit on t4-master-grid. It asks for the grid origin and cell ids, the SoilGrids depth and statistic, and the "western Washington" extent to be proposed before building. An undecided depth or statistic is a stop for the owner. The SoilGrids fetch waits until D26's download has finished fetching (one download at a time).
+**Sent:** to a coder subagent on the laptop. Merge only on the owner's written word naming the branch (D40).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -582.
