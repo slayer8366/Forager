@@ -12746,3 +12746,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 - The remaining four (weekday split with its pre-written test, the Poisson log-linear model fitted from totals, the CSV parts plus manifest plus effort() output, and a second CC0/CC BY surface): "Accept the coder's four (Recommended)".
 **What it sets:** T6 fits as proposed. Decision rows start at D101.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -610.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-610
+**Timestamp:** 2026-10-06T22:14:17Z
+**Continues:** 2026-09-28-609
+**T6 built; its review restarted after an out-of-memory kill; the owner's merge word.** forager-forecast t6-observation-layer at fd12837, `docs/audits/2026-10-06-t6-completion-report.md`. D101 to D108 are filed. The Verify passes on both licence tracks under the pre-written tests. All licences: the surface minus constant effort is −2,608,992 (−2,816,366 to −2,411,888); the weekend ratio is 1.496 (1.478 to 1.516); the day-type term lowers held-out deviance by 32,147. The CC0/CC BY track passes too. The builder's own findings: the weekend test's first condition can't fail on a full frame; "+ year" adds exactly zero under the headline scoring; the lichen season peaks around ISO weeks 16 to 17 against fungi at 39 to 41; the quiet-cell pull chose 10, the grid's top, in every fold, and the grid was not widened. 416 tests; 17 revert checks bite. The independent review (D18) started on t6-review. Its own recount script (7a743d4) was killed by the kernel's OOM killer at 9.4 GB RSS (journal 14:36:04 local), and the session's container restarted. It was the only heavy job, so this one script outgrew the machine. The reviewer is restarted with every heavy command run under `systemd-run --user --scope -p MemoryMax=5G -p MemorySwapMax=0`, so a runaway process is killed alone.
+**The owner, verbatim:** "Merge T6 once the review is filed". This is the D40 word for t6-observation-layer with its review branch. The planner merges when the review is filed and finds nothing for the owner. A finding for the owner (the review is asked to judge the lichen benchmark's fitness for T8) is brought back first.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -611.
