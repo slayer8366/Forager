@@ -12456,3 +12456,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** depth, "Top 30 cm, blended (Recommended)": a thickness-weighted 0-30 cm from the 0-5, 5-15 and 15-30 cm layers. The range, "Carry the range too": Q0.05 and Q0.95 are carried. The owner was told that with the blended depth they'd be approximate, because a weighted mean of quantiles is not a quantile, so they are labelled approximate wherever they appear. The recommended "Central value only" was declined. Test area, "Simple rectangle (Recommended)": 45.5-49.0°N, 121-125°W, in code, with no boundary download.
 **Planner's acceptances (not owner rulings):** the coder's grid (lattice on ESRI:102008's origin, 250 m, row/col packed into uint32, edges toward +∞ as D63, NAD83 to WGS84 pinned to EPSG:1188 with PROJ_NETWORK=OFF); access through ISRIC's WebDAV VRTs in native Homolosine, warped once; average for the first warp, nearest for Mercator at zoom 9 (against the dispatch's default, argued: tile values equal master cells), average for overviews; the mean as the central value; a copy of the stored request under `docs/pulls/`; `pmtiles==3.8.1` pinned, via MBTiles. The fetch waits until D26's download has finished fetching.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -583.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-583
+**Timestamp:** 2026-10-06T10:40:00Z
+**Title:** forager-forecast T5: host trees as genus fraction and the BC/Washington seam; Part 1 a licence-first survey of US sources
+**Dispatch-file:** preserved/2026-10-06-09.md
+**Context:** the owner: "Write the T5 dispatch". T5's US layer, BIGMAP, is "verified, licence not stated at source: blocked from use" (D31). Asked how to handle the US side, the owner chose "Find a cleared alternative (Recommended)": survey US tree layers whose licence is stated at the source, compare each with BIGMAP, and download nothing until the owner picks one. The owner may still write to the Forest Service. The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-t5-host-trees.md`, the first commit on t5-host-trees. Part 2 (the build) waits for T4's review and merge under the review protocol (`:15-16`) and the owner's pick. Whether Part 1, which writes no code, may run before T4's review is put to the owner. Decision rows start at D83 (D73 to D79 are reserved for D26, D80 to D82 are T4's).
+**Not yet sent.**
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -584.
