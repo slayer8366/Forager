@@ -12961,3 +12961,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The privacy policy's camera text, approved.** Branch privacy-policy-camera at 9876710c, then 32ff90ca. CAMERA was re-added by 7a4ddc49 (2026-09-14, the in-app CameraX camera). Three policy statements had been false since then; they are rewritten from code read at d23aeaa6: no location on capture, the allowlist metadata scrub that fails open, nothing uploaded, and the permission asked at first camera open. `verify-policy-permissions.sh` fails before (check 2, CAMERA) and passes after. Noted and not changed: the policy's claim that Android 10+ redacts GPS tags from imports is unverified against today's photo picker; the Data safety CSV has no camera row (no data leaves the device).
 **The owner, verbatim:** shown the exact new wording, "Approve, fix delete page too (Recommended)". The planner changed docs/legal/delete-data.md's photo line from "taken with your camera app" to "taken with Forager's camera" and added an index row (32ff90ca). The script passes. Next: a PR merged on green. Regenerating https://zynergy-labs.com/privacy (the zynergy-site repository) is a separate step on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -630.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-630
+**Timestamp:** 2026-10-07T05:23:23Z
+**PR:** 184
+**Merge-commit:** 63124a978170625aa80296fda6bf32edc08a67e4
+**Pre-merge:** d23aeaa6587df8e1d2e0a11044ded30096c6fa93
+**Backup:** 2026-10-07-03
+**Observed:** PR #184 (privacy-policy-camera, docs only) merged on green CI (run 37575164850, 9 m 26 s), on the owner's "Approve, fix delete page too (Recommended)". The owner, verbatim: "Regenerate the privacy page after it merges". The site pages (zynergy-site privacy/ and delete-data/) are hand-built HTML. A coder is rebuilding them from the merged markdown by the 2026-09-29 report's method, with a word-for-word text check, a PR on zynergy-site merged (Cloudflare Pages publishes), and a check of the live page.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -631.
