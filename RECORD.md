@@ -13486,3 +13486,12 @@ The planner's calls under the owner's -651 answers:
 **Continues:** 2026-09-28-658
 **Failure fixes green, and data part A Amendment 2.** failure-fixes at 28e2e512: with the decode stand-ins answering dimensions-only calls as the platform does (af39a73e, test-only, no assertion changed, revert-checked from saved copies), the full suite is 495 suites, 4,004 tests, 24 skipped, 0 failures. Gradle is stopped. Not merged, and no PR yet. Motion Part 1 builds next under -664's go. Motion Part 2 Amendment 1 is applied at f0689094, not compiled. It found that design-token check 3 misses a tween written with type arguments (tween<Float>(…)); this goes to a later blind-checks fix. Data part A (data-a-entry at 684970ea), the owner, verbatim: "'No longer in Records' (Recommended)" for a track deleted from Records since the entry; "'Chanterelle · 2 journal entries' (Recommended)": when a photo's line names both a find and journal entries, neither gets "In".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -674.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-674
+**Timestamp:** 2026-10-07T23:14:07Z
+**Continues:** 2026-09-28-673
+**PR #191 merged into main** (4f078b8b), from failure-fixes (head 28e2e512): the first hygiene build, dispatch -658 with amendments -660, -661 and -670. The owner, verbatim: "Merge the failure fixes once checks pass". CI "Build, test, publish APK" passed on the head. The laptop suite had passed: 4,004 tests, 0 failures. Pre-merge main 340bdc4a is backed up at forager-repo-backups/2026-10-07-10. Device-only items are still open for the S22: capture size, thumbnails, the settings-reset snackbar, and the refused-start message. Back-by must now merge main and guard its own watch on the fix path through RecordingWatches before it builds.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -675.
