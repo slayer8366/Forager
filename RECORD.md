@@ -13320,3 +13320,21 @@ Settled by the owner's earlier answers in -651, not asked again: the waypoint an
 **Continues:** 2026-09-28-657
 **Amendment 2 to -652 (motion Part 1).** Amendment 1 was applied at motion-part-1 01a4801e (not compiled). The bounce covers all 32 icon-button calls. Rows and links are rounded with a flat rounded press shade (`clickableWithShapedPress`) instead of a clipped ripple. The owner, verbatim: "Shutter yes, rows no (Recommended)": the camera shutter bounces; rows that pair an icon with words do not. And: "Rounded shade (Recommended)": keep the rounded shade, judged on the S22 before it is kept.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -660.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-660
+**Timestamp:** 2026-10-07T21:36:05Z
+**Continues:** 2026-09-28-658
+**Amendment 1 to -658 (failure fixes), after the coder's stops.** Code and tests are written on failure-fixes at 47b10188, not compiled. The owner's answers, verbatim:
+- Strings: "Shorter set (Recommended)". J1: "Couldn't read this crash report. Go back and open it again." M2: "Couldn't read the regions from your backup. Showing downloaded regions only. Reopen Offline maps to try again." R9: "Couldn't add the full GPS record. This file has the track only. Share again to retry."
+- D10 corrupt settings file: "Reset it and say so once (Recommended)". Only that file resets to defaults, logged, with a one-time message: "Some settings couldn't be read and were reset. Check Settings."
+- D3 unrecognised stored value: "Fall back and log (Recommended)". One shared decode for all settings.
+- R7 new finding, a screen showing "recording" when the service was refused or lost permission: "Fix it, say why (Recommended)". The screen shows not recording, with "Recording couldn't start. Open Forager and tap Record again.", or a pointer to the permission in the permission case.
+- R8: "Leave it, comments only (Recommended)".
+- DecodedPhotoTest: "Yes, rewrite it (Recommended)". It tests the new sized thumbnails as strictly, and the unused DECODE_SAMPLE_SIZE goes.
+- The 74 design-token breaks: "Piece by piece (Recommended)". Each sweep fixes those in files it works on; a small sweep takes the remainder at the end.
+- CLAUDE.md's returnWalkingTime entry: "Add a dated note (Recommended)". Done by the planner on branch claude-md-returnwalkingtime-note (78f06c21): text appended within line 153, so no line moves. Unmerged.
+The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (RecordingWatches, internal watchesFor) is accepted; design-token check 3's pattern is fixed under "Fix and prove they bite" and its findings listed; SearchEntryBar's unused parameter is removed after motion Part 1 lands.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -661.
