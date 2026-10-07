@@ -13039,3 +13039,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 - Size: "10 MB limit (Recommended)", with "This file is too big to import (over 10 MB)."
 The coder's smaller calls are accepted by the planner: segments joined, nameless waypoints named "Waypoint N", an untimed waypoint takes the track's start, DOCTYPE off, imported ORIGIN/END designations kept as labels only, and fresh ids. T16's Gradle go stands (-635).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -637.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-637
+**Timestamp:** 2026-10-07T06:22:57Z
+**PR:** 187
+**Merge-commit:** ef01abae83240fca03d1d3038141be76dbc8fcb5
+**Pre-merge:** fac1d330f087110c6f0bbccb6ee1398b230b329f
+**Backup:** 2026-10-07-06
+**Observed:** PR #187 (planner-profile, docs/process/planner-profile.md and its index row) merged on green CI, on the owner's "Merge it (Recommended)" (-636). The owner then confirmed, verbatim: "I just wanted to double check. Nothing gets changed from my original decision". All seven answers in -636 are the original ones.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -638.
