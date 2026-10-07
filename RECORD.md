@@ -13286,3 +13286,17 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 - Small ones: "Fix both (Recommended)". "Zoom in to see the forecast" below the layer's zoom, and times follow the phone's 12- or 24-hour setting.
 - Shown the whole summary, the owner: "Yes, that's right (Recommended)". It is built after the failure fixes and the motion parts (-655's order).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -657.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-657
+**Timestamp:** 2026-10-07T20:56:07Z
+**Continues:** 2026-09-28-652
+**Amendment 1 to -652 (motion Part 1), after the coder's stops.** The code and tests are written on motion-part-1 at 8f8daee7, not compiled. The owner's answers, verbatim:
+- Cluster glide: "At release (Recommended)". The arrangement switches the moment the finger lifts, and the cluster glides there already in its new order. Touches are as today throughout. This replaces the dispatch's "when it lands", which was the planner's wording.
+- Bounce: "Every icon button (Recommended)". Every tappable icon in the app, off under reduced motion.
+- Snackbar over the map catching touches 12 dp beyond its drawn edge (Material3's own padding): "Trim to its visible edge (Recommended)". A touch-area change, tested with real coordinate touches.
+- Restore page with only the transition scale at 0: "Keep instant (Recommended)".
+Settled by the owner's earlier answers in -651, not asked again: the waypoint and offline-region swipe rows and the other hard-cornered highlights are rounded ("Yes, round them all (Recommended)"); the camera's Location chip crossfades ("Quick crossfade (Recommended)"); Record's highlight stays round when not recording. The planner's call: a finger already down on a dropdown button when the close begins is left as it is, because cancelling it would change the open panel's touch area. `MarkerFanOutHostTest` composes the fan without the provider; the coder wraps its content in the provider with its assertion unchanged, and reports it. Order (-655): the failure fixes build before this part.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -658.
