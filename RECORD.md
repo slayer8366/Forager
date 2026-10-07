@@ -13420,3 +13420,16 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 **Context:** the owner's go for "The motions, animations, the engineering hygiene, the data sweep" (-664), and the owner's choices in -651 and -656. Asked whether coders should start writing while the failure fixes build, the owner: "Yes, start them (Recommended)". Motion Part 2 is cut from motion-part-1, and Part 3 follows from Part 2 once written. The data sweep is split into four parts: A, the entry report and "Leave out"; B, the track sheet and the navigation display, after motion Part 2; C, Seasonal; D, dates, Finds and times, after motion Part 3. A and C start now. Builds wait for the planner's go, one at a time, in queue order.
 **Sent:** to a coder subagent, code and tests only, no Gradle.
 **Notes:** Written by the planner by hand, on branch records-after-173. Correction to -665: it says "Seven of them" but lists eight branches (chrome-colour, followups-backup, followups-map, kept-track-path, landscape-l, marker-fanout, privacy-fixes, site-audit-0929). Eight is right. Next free ID -669.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-669
+**Timestamp:** 2026-10-07T22:45:09Z
+**Continues:** 2026-09-28-668
+**Amendment 1 to -668 (data part C), after the coder's stops.** Code and tests are on data-c-seasonal at e6a8b888, not compiled. The coder found that "Rain today." printed a day early: the count starts from yesterday, the newest observed day. The owner's answers, verbatim:
+- Moisture scale: "Loam scale, figure below (Recommended)". Dry below 0.15 m³/m³, Moist from 0.15 to under 0.30, Wet at 0.30 and above (FAO Irrigation and Drainage Paper 56, Table 19), with the figure always under the word.
+- Lag chart: "7-day bars (Recommended)". Six 7-day spans, days 0 to 41, with the 7–21 rule of thumb shaded.
+- A Soil moisture row on the Seasonal card: "Yes, add it (Recommended)", using the already-fetched figure and the same scale.
+- The one-day correction and the new rain wording ("Yesterday", "N days ago", "Rain, last 14 days", "Last rainy day", "Rain forecast today", "Daily rain, last 14 days"): "Approve (Recommended)".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -670.
