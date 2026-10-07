@@ -13134,3 +13134,21 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Context:** the owner, verbatim: "Yes, take T15 through with me". The answers: "During a recording only (Recommended)", "A "Back by" button (Recommended)", "Strong alert + two buttons (Recommended)", "Cancel automatically (Recommended)". Shown the whole path (the Back by button with +1 h, +2 h, +3 h or a time; cancelled on arrival or stop; a strong alert breaking through silent mode, "You planned to be back by 3:30 PM", with "I'm back" and "+30 min"; only while recording, no Settings switch), the owner confirmed: "Yes, show in last hour (Recommended)" (the strip shows "Back by" only in the last hour). Also from the owner, verbatim: "For T20, my S22 has been running without network the entire time": the S22 is the natural test phone for offline readiness.
 **Sent:** to a coder subagent, verify only. Gradle waits for the owner's "go", after today's S22 check and the two queued fixes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -646.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-646
+**Timestamp:** 2026-10-07T17:52:04Z
+**Continues:** 2026-09-28-645
+**Amendment 1 to -645 (T15, back-by), after the coder's stops.** The verify report (worktree ~/.cache/forager-wt/back-by, nothing built) had two stops. Placement: the only recording controls are the Record/Return pill, and a third button lengthens the icon cluster. Arrival: "back at the start" is only known after Return (SundownWatch.kt:243-252). The coder proposed a BackByWatch driven by the service's 15 s tick (no exact-alarm permission), its own channel (1004), and notification actions reaching the service directly. A side finding in shipped code: the sundown alerts' three-pulse pattern (AndroidAlertDelivery.kt:207) is unused, so they buzz twice like off-track.
+**The owner's answers, verbatim, after several rounds of questions:**
+- When: "During a recording only (Recommended)".
+- Setting it: "Add a settings icon to the strip that contains quick menu for Sundown timer and Back-By timer, and any misc. nav item that does doesn't logically fit on the UI". There is no new button in the record pill and no Back-by in Settings.
+- At the time: "Strong alert + two buttons (Recommended)".
+- Ending it: "Automatically stops when Returning since the phone knows when you return. It would be annoying to receive a back by reminder that breaks silent when the trip is long done". Offered an automatic "back at the car" rule for when neither Return nor Stop is used, the owner chose B: "Your proposal has a good point: A return to the car for a quick break may happen before setting off onto another trail, and that's an opportunity to miss an alert the user relies on. So it stops by user choice only." So it ends on arrival after Return, on Stop, or on "I'm back", and never by inference.
+- Confirmed, verbatim: "yes, both still stand" (the strip quick menu and the strong alert).
+- Sunset alerts, verbatim: "Fix to three buzzes (Recommended)". Back-by buzzes three times too.
+- The strip line: the owner's earlier "Yes, show in last hour (Recommended)" stands.
+**What it sets:** the quick menu (a gear at the end of the strip, opening a menu over the map at 80%) holds Back by (+1 h, +2 h, +3 h or a time, while recording), Sundown alerts on/off, Dark under trees, and the Off-track reminder on/off. Its exact contents are proposed by the coder and confirmed with the owner before building.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -647.
