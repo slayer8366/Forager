@@ -13180,3 +13180,14 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Continues:** 2026-09-28-648
 **Amendment 3 to -645: where the three dots sit in landscape.** The coder built -648 at c93181e3 on back-by, not yet compiled. It read "at the far right" as replacing -647's "inner end in landscape", so the button is the last item at the strip's right end in every orientation. In landscape the strip sits in the top-right corner, so that end is beside the screen's edge. The planner's first question framed this as screen position: "Far right everywhere" against "Inner end in landscape". The owner, verbatim: "Option 2. While Option 1 may sound easier, the logic in placement is less about screen position than it is about logical placement. The compass strip just happens to be on the far right in landscape regardless, so put it in the compass strip. Not because it's on the far right on the screen, but because it's far right in the strip. That's a nuance In placement logic". The option chosen and the reasoning pointed opposite ways: the reasoning describes the build as it is. The planner said it had framed the question badly and asked again, by end of strip. The owner: "Far right in the strip (Recommended)". **Ruling:** the three dots sit at the strip's own far-right end in every orientation. The placement follows the strip, not the screen. -647's "inner end in landscape" is superseded. The build at c93181e3 stands unchanged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -650.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-650
+**Timestamp:** 2026-10-07T19:14:17Z
+**Title:** motion-scout: every on-screen change that does not animate (UI sweep 1)
+**Dispatch-file:** preserved/2026-10-07-05.md
+**Context:** the owner, verbatim: "I need to do some cosmetic UI adjustments that help the UX appear more smooth and less clunky. Animations are present in a lot of cases, but in most, they're not. Switching between tabs has no animations, icon toggles don't animate when pressed (a highlight is the confirmation for the icon tapped, but it looks boxy in some areas, especially the map icon bar, and that gives it a less polished feel), and a lot others I have yet to think of." Shown the planner's scout scope (screen changes, toggles and presses, things appearing and disappearing, value changes; read-only, no build, no phone), the owner: "toggles, or anything that doesn't animate. Your proposed list is a good start. Go ahead and scout it."
+**Sent:** to a coder subagent, read-only survey. The owner chooses what gets animated from its list before any build dispatch.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -651.
