@@ -13338,3 +13338,16 @@ Settled by the owner's earlier answers in -651, not asked again: the waypoint an
 - CLAUDE.md's returnWalkingTime entry: "Add a dated note (Recommended)". Done by the planner on branch claude-md-returnwalkingtime-note (78f06c21): text appended within line 153, so no line moves. Unmerged.
 The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (RecordingWatches, internal watchesFor) is accepted; design-token check 3's pattern is fixed under "Fix and prove they bite" and its findings listed; SearchEntryBar's unused parameter is removed after motion Part 1 lands.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -661.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-661
+**Timestamp:** 2026-10-07T21:54:54Z
+**Continues:** 2026-09-28-660
+**Amendment 2 to -658 (failure fixes).** Amendment 1 is applied at failure-fixes 506b4171, not compiled. The owner's answers, verbatim:
+- R7 permission wording, "Recording stopped because Forager can't use your location. Allow location for Forager in your phone's Settings, then tap Record again.": "Use it as written (Recommended)".
+- Where the settings-reset notice shows: "Snackbar with 'Settings' button (Recommended)". A snackbar that stays until dismissed, with a Settings action, replacing the coder's fading Toast.
+- DataStoreCameraGridModeRepositoryTest, which expects an unknown stored grid name to be a failed read: "Yes, rewrite it (Recommended)". It now asserts the fallback to Off and the log line.
+- The design-token check flagging the Spacing scale and navigationBarContainerColor (the owner's C1 ruling): "Allow both in the check (Recommended)". Both are added to check 2's allowed list, with their reasons.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -662.
