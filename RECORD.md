@@ -12829,3 +12829,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner asked "What's next on the navigation list?" and then said "Yes, take T10 through with me". The planner read that `WaypointEntity.trackId` exists but `addWaypoint` never sets it, and that `getForTrack` has no UI reader. It showed the step path: drop while recording, tied to the walk; Records > the walk shows its waypoints on its map plus a "Waypoints on this walk" list; GPX export includes them; drops outside a recording stay standalone; deleting a walk keeps its waypoints. The owner chose "Walk map + list + export (Recommended)". The other options were "Walk map + list only" and "Link only, no display yet".
 **Sent:** to a coder subagent for verify only. Gradle waits for the owner's "go" and a free heavy slot (the S22 check holds it now).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -617.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-617
+**Timestamp:** 2026-10-07T02:45:32Z
+**Continues:** 2026-09-28-616
+**Correction to -616's step path.** The owner, verbatim: "Long press isn't built yet. Adding waypoints is done by the '+' icon". The planner's step path said "long-press the map > Drop waypoint", which was wrong: the planner had not read how waypoints are added. The confirmed behaviour stands with the entry point corrected: while recording, tap the '+' icon > name it > it is saved, tied to this walk. No long-press is to be built under T10.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -618.
