@@ -12890,3 +12890,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** asked about the 2 dp margin, "Leave it, check on the phone (Recommended)". The test is fixed (clock pinned; a line-shown S10 case under native graphics), and the S22 check gains a step: the HUD with the line, in landscape, against the centre. The declined options were moving the line beside the HUD and joining it to the coordinates row.
 **SCANFI download (-620):** the user service t6b-scanfi-download (1 GB cap, nice 19, idle I/O) started 20:32 PDT at about 3 MB/s, against 77 kB/s on the night of 10-06 02:42Z. It pauses before the "otherConiferous" layer to keep an 8 GB reserve. T6b is at 908a18b with the night order mask, plots, soil, trees; 451 tests; 25 of 27 revert checks bite.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -623.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-623
+**Timestamp:** 2026-10-07T04:05:04Z
+**Continues:** 2026-09-28-621, 2026-09-28-616
+**Two PRs, and the owner's merge word.** landscape-centre-dusk at 0acb562d plus an index row is test-only: the B2 test is pinned to B2_DAY_NOW, and new S10 dusk cases at 90 and 270 run under native graphics (-119). 3,892 tests, 0 failures (main at night: 3,890 with 2 failures). Three revert checks bite. Opened as PR #182. The dusk check's clock strings were run under PDT only. The coder found that no other navigating test can flip with the hour. T10 (walk-waypoints at c912e4ff) is built: 19 new tests, a red run (7 failing for the predicted reasons), 6 revert checks, 3,909 tests with the same 2 main failures. Gaps it disclosed: Navigate from a waypoint opened from its walk loses the walk behind it on Back (navigation, out of scope); a scrim tap or drag-down also returns to the walk.
+**The owner, verbatim:** "Both, on green (Recommended)": merge #182 when its checks pass, then bring main into walk-waypoints, open T10's PR, and merge it when its checks pass. Main is backed up before each merge.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -624.
