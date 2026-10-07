@@ -12879,3 +12879,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the T10 coder (walk-waypoints at c912e4ff; red run, 6 revert checks, 3,909 tests) found 2 failures on unchanged main 4db24110. The 160 dp navigation HUD crosses the central third in landscape. The same code had 0 failures at dae48454 earlier on 2026-10-06, and main's push CI for #181 passed at 18:09Z. Inferred and unverified: since -592 the HUD carries the sundown line when it is shown, the test reads the real clock (`:808`), and so the HUD is taller in the evening. This is #181's fault, the planner's PR, to root-cause before T10's PR opens. Also from the T10 coder: a default full suite exceeds the 5 GB cap. What works: compile first, stop the Kotlin daemon, then test. The owner, verbatim: "Yes, investigate and fix (Recommended)". The fix stops and asks if it changes how the screen looks (S10's "the centre stays clear" is the owner's landscape layout, B2).
 **Sent:** to a coder subagent.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -622.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-622
+**Timestamp:** 2026-10-07T03:49:06Z
+**Continues:** 2026-09-28-621, 2026-09-28-620
+**The landscape failure's cause, the owner's call, and the SCANFI download.** The landscape coder (worktree /tmp/claude-1000/landscape-centre-dusk) reproduced 2 S10 failures on main 4db24110 at 03:39Z. Cause (A), a test defect: the HUD's sundown line reads AvailabilityScreen's `currentTime`, which defaults to the system clock (AvailabilityCompactMapUi.kt:1012), and the B2 test passes no clock. With the fixture near Portland, the line shows from about 23:15Z through the night, so S10 passes only between about 14:15Z and 23:15Z. Probes: line off gives 124 dp, line on 160 dp (legacy graphics); native graphics give 80 dp and 96 dp. Inferred real clearance on the S22 at ROTATION_90 with the line: about 2 dp above the central third, against about 18 dp before the line, from a pre-line device dump plus 16 dp.
+**The owner, verbatim:** asked about the 2 dp margin, "Leave it, check on the phone (Recommended)". The test is fixed (clock pinned; a line-shown S10 case under native graphics), and the S22 check gains a step: the HUD with the line, in landscape, against the centre. The declined options were moving the line beside the HUD and joining it to the coordinates row.
+**SCANFI download (-620):** the user service t6b-scanfi-download (1 GB cap, nice 19, idle I/O) started 20:32 PDT at about 3 MB/s, against 77 kB/s on the night of 10-06 02:42Z. It pauses before the "otherConiferous" layer to keep an 8 GB reserve. T6b is at 908a18b with the night order mask, plots, soil, trees; 451 tests; 25 of 27 revert checks bite.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -623.
