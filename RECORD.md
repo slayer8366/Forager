@@ -13300,3 +13300,14 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 - Restore page with only the transition scale at 0: "Keep instant (Recommended)".
 Settled by the owner's earlier answers in -651, not asked again: the waypoint and offline-region swipe rows and the other hard-cornered highlights are rounded ("Yes, round them all (Recommended)"); the camera's Location chip crossfades ("Quick crossfade (Recommended)"); Record's highlight stays round when not recording. The planner's call: a finger already down on a dropdown button when the close begins is left as it is, because cancelling it would change the open panel's touch area. `MarkerFanOutHostTest` composes the fan without the provider; the coder wraps its content in the provider with its assertion unchanged, and reports it. Order (-655): the failure fixes build before this part.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -658.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-658
+**Timestamp:** 2026-10-07T21:01:07Z
+**Title:** failure-fixes: the first hygiene build (failure paths, merged copies, photo size, dead weight, blind checks)
+**Dispatch-file:** preserved/2026-10-07-09.md
+**Context:** the order the owner set in -655 ("Failure fixes, motion, data (Recommended)") and the owner's hygiene choices there. The owner: "Yes, write the failure-fix dispatch". Shown its summary, the owner: "Yes, start it (Recommended)". The coder writes code and tests now. New user-facing strings and the stops (D10 settings corruption, D3 throw-or-fallback changes, R8 off-track accuracy handling) come back to the owner before the build. The build queues after the S22 sunset check and the back-by build. Back-by also touches TrackRecordingService, so the coder merges main after back-by lands.
+**Sent:** to a coder subagent, verify, then code and tests, no Gradle.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -659.
