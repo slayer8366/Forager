@@ -12951,3 +12951,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner, verbatim: "Go ahead and build T14 and fix the policy". T14 (-626, -627) has its go and is building. `scripts/verify-policy-permissions.sh` (check 2) fails on main: the manifest declares android.permission.CAMERA, and the policy doesn't account for it. The script's own comments (`:44-48`) say CAMERA was dropped on 2026-09-10 when capture went through ACTION_IMAGE_CAPTURE; it has since come back (the in-app camera). The policy file is the source of https://zynergy-labs.com/privacy, which is generated in a separate repository. The fix is docs-only. The coder reads what the camera actually does (where photos go, location scrubbing, whether anything leaves the phone) from the code, drafts the policy wording, and runs the script. The wording comes to the owner before it merges, because it is public text. Updating the published site is a separate step on the owner's word.
 **Sent:** to a coder subagent (light, no Gradle).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -629.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-629
+**Timestamp:** 2026-10-07T05:12:14Z
+**Continues:** 2026-09-28-628
+**The privacy policy's camera text, approved.** Branch privacy-policy-camera at 9876710c, then 32ff90ca. CAMERA was re-added by 7a4ddc49 (2026-09-14, the in-app CameraX camera). Three policy statements had been false since then; they are rewritten from code read at d23aeaa6: no location on capture, the allowlist metadata scrub that fails open, nothing uploaded, and the permission asked at first camera open. `verify-policy-permissions.sh` fails before (check 2, CAMERA) and passes after. Noted and not changed: the policy's claim that Android 10+ redacts GPS tags from imports is unverified against today's photo picker; the Data safety CSV has no camera row (no data leaves the device).
+**The owner, verbatim:** shown the exact new wording, "Approve, fix delete page too (Recommended)". The planner changed docs/legal/delete-data.md's photo line from "taken with your camera app" to "taken with Forager's camera" and added an index row (32ff90ca). The script passes. Next: a PR merged on green. Regenerating https://zynergy-labs.com/privacy (the zynergy-site repository) is a separate step on the owner's word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -630.
