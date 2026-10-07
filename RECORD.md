@@ -12869,3 +12869,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **T6b's order of work.** D116 to D118 are filed and built (t6b-continental-layers at a581ddc, the section-1 report's section 7). The GDAL tuning probe got 0.191 against the trial's 0.61 Mpx/s, so the whole-layer SCANFI route was built. Its cost: about 68 h of download at the SCANFI server's measured night rate (77 kB/s); the daytime rate is unknown. Canadian compute is about 130 h with two workers (inferred), against about 25 h on the window route, which needs about 19 to 20 GB at once against 17 GB free. 449 tests; 23 of 25 revert checks bite, and the 2 that don't were labelled beforehand. Section 1 overran its 45 minutes by about 9.
 **The owner, verbatim:** "US and soil first (Recommended)". At night: the mask, the plot table, soil for the whole area, then the US tree tiles (TreeMap is already on the drive). By day: SCANFI's layers download as a light background job (network and disk only, low priority, resumable), alongside app work. Canadian tree compute comes last, possibly on the owner's new laptop. T7 may start on the US first. The declined options were everything at night only, and waiting for the new laptop.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -621.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-621
+**Timestamp:** 2026-10-07T03:34:42Z
+**Title:** landscape-centre-at-dusk: main fails AvailabilityScreenLandscapeB2Test S10 (ROTATION_90 and 270 while navigating) in the evening since PR #181
+**Context:** the T10 coder (walk-waypoints at c912e4ff; red run, 6 revert checks, 3,909 tests) found 2 failures on unchanged main 4db24110. The 160 dp navigation HUD crosses the central third in landscape. The same code had 0 failures at dae48454 earlier on 2026-10-06, and main's push CI for #181 passed at 18:09Z. Inferred and unverified: since -592 the HUD carries the sundown line when it is shown, the test reads the real clock (`:808`), and so the HUD is taller in the evening. This is #181's fault, the planner's PR, to root-cause before T10's PR opens. Also from the T10 coder: a default full suite exceeds the 5 GB cap. What works: compile first, stop the Kotlin daemon, then test. The owner, verbatim: "Yes, investigate and fix (Recommended)". The fix stops and asks if it changes how the screen looks (S10's "the centre stays clear" is the owner's landscape layout, B2).
+**Sent:** to a coder subagent.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -622.
