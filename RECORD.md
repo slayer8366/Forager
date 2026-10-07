@@ -13085,3 +13085,12 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Backup:** 2026-10-07-08
 **Observed:** PR #189 (gpx-import, T16) merged on green CI, after main's database was confirmed still at version 17 and main was backed up, on the owner's "Merge T16 once checks pass". Main's database is now at 18. Not yet seen on a phone; the report lists six S22 steps.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -641.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-641
+**Timestamp:** 2026-10-07T09:24:10Z
+**Continues:** 2026-09-28-620
+**T6b night section 2 started.** The owner, verbatim: "Goodnight, start the T6b section". Started 02:23 PDT as the transient user service t6b-night (MemoryMax=5G, no swap, nice 10), so it survives a session restart: t6b_run.py --until 09:30 --stages mask,plots,soil,trees --workers 2, on t6b-continental-layers at 908a18b. Log at forecast-data/t6b/night-2026-10-07.log on the flash drive (7.6 GB free there at the start). As built, the old mask was moved to superseded/ and is being rebuilt under D117. The SCANFI download service was no longer present. The planner reads the log and the tile manifest in the morning.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -642.
