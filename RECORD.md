@@ -12768,3 +12768,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Observed:** the planner filed D109 with both rulings on branch t6-merge (from t6-review) and merged it into forager-forecast main as 36cc647, from 5540a2c, under -610's word. 416 tests passed under the memory cap before the push.
 **What it sets:** T8's dispatch must carry the late-April spike and the north-of-50 N limit. The event week is handled before any spring group is modelled.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -612.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-612
+**Timestamp:** 2026-10-07T00:35:48Z
+**Title:** forager-forecast T6b: continental soil and host-tree layers on the master grid
+**Dispatch-file:** preserved/2026-10-06-14.md
+**Context:** the owner, verbatim: "Yes, write the T6b dispatch". The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-t6b-continental-layers.md`, the first commit on t6b-continental-layers, off main 36cc647. It sets every heavy command under `systemd-run --user --scope -p MemoryMax=5G -p MemorySwapMax=0` (after three OOM restarts, -610), data on the flash drive (about 21 GB free), and a run that is tiled and resumable by tile. Verify first: the study-area mask and its sources (licence gate D31), the tile plan with a measured trial tile, sizes and run time, and ten cells per layer fixed before any value is read. The Arctic line is undefined on record, so it is a stop for the owner. It also checks SCANFI's class-sum equality continent-wide (the T5 review's flag) and records the 49 N seam along the whole border.
+**Sent:** to a coder subagent; fetches wait for the planner's go after the verify report.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -613.
