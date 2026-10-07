@@ -13360,3 +13360,12 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 **Continues:** 2026-09-28-660
 **PR #190 merged into main** (340bdc4a), from claude-md-returnwalkingtime-note (head 78f06c21). It adds the dated note on CLAUDE.md's returnWalkingTime entry, appended within line 153 so no line moves. The owner, verbatim: "Merge the CLAUDE.md note branch". CI "Build, test, publish APK" passed on the head. Pre-merge main aa79f25a is backed up at forager-repo-backups/2026-10-07-09.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -663.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-663
+**Timestamp:** 2026-10-07T22:18:36Z
+**Continues:** 2026-09-28-645
+**Gradle go for the build queue.** The owner, verbatim: "Go ahead and start the building". The builds run one at a time, in the order the owner set: back-by (-645, back-by at 29074703), then failure fixes (-658, failure-fixes at f862aeda, after merging main once back-by lands), then motion Part 1 (-652, motion-part-1 at cdf0875b). This starts back-by's build ahead of the S22 sunset check, which needs only the phone, not a build.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -664.
