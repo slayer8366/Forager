@@ -12850,3 +12850,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Planner's reading, applied as Back retraces the way in:** the waypoint's details replace the walk's, and Back returns to the walk's details.
 **S22 check (-614):** the build of 4db24110 succeeded (versionName 1.0.2845+g4db24110, APK kept at /tmp/claude-1000/wt-s22-sundown). The S22 was not attached (not in adb or lsusb), so nothing was installed or checked. It waits for the phone on USB.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -619.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-619
+**Timestamp:** 2026-10-07T03:06:54Z
+**Continues:** 2026-09-28-614
+**The S22 check, tonight's part.** The owner, verbatim: "S22 plugged back in". Report on branch s22-sundown-check at e2e369db, `docs/navigation/2026-10-06-s22-sundown-approaching-check.md`. 1.0.2845+g4db24110 was installed with install -r, same signer. Settings > Sundown passes: the heading, the ticked "Sundown alerts" checkbox, "Dark under trees" with the sentence and four options with "1 h" selected, and "45 min" surviving a swipe-away from Recents (set back to "1 h"). The after-dusk line passes on an approximate position: "Dark since 7:10 PM" in the strip, moving under the HUD on Return and back on Stop navigating, and gone when the recording stops. NOAA equations at the phone's network location give civil dusk 19:10:34 PDT. Insets, observation only: the line sits clear of the real status bar in portrait, landscape and fullscreen. Database: forager.db unchanged. The WAL changed by one 1-point track (fa3b383e…, 20:02:14 to 20:03:44 PDT), caused by the check and disclosed. **Not reached tonight:** the 2 h 30 min window, "start back by" and "in … · dark", "Sun set … dark in", and the margin moving the start-back time. These need a session before about 16:09 PDT on 10-07. Approaching and Arrived need the owner outdoors.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -620.
