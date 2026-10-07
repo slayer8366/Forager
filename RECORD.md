@@ -12818,3 +12818,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Planner's decision (technical):** SCANFI fetched at about 30 kB/s through windowed network reads. One short probe of GDAL's network settings (at most 10 minutes). If it doesn't fix the rate, download each SCANFI layer whole onto the flash drive, one at a time, regrid, then delete. No rule changes.
 **What it sets:** the coder makes these changes (tests first, revert checks, suite), files the two rulings as decision rows, and runs no section until the owner says goodnight (-614). The S22 check (-614) takes the heavy slot now.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -616.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-616
+**Timestamp:** 2026-10-07T02:45:07Z
+**Title:** walk-waypoints: a waypoint dropped while recording belongs to that walk, shown on the walk in Records and in its GPX (plan T10)
+**Dispatch-file:** preserved/2026-10-06-16.md
+**Context:** the owner asked "What's next on the navigation list?" and then said "Yes, take T10 through with me". The planner read that `WaypointEntity.trackId` exists but `addWaypoint` never sets it, and that `getForTrack` has no UI reader. It showed the step path: drop while recording, tied to the walk; Records > the walk shows its waypoints on its map plus a "Waypoints on this walk" list; GPX export includes them; drops outside a recording stay standalone; deleting a walk keeps its waypoints. The owner chose "Walk map + list + export (Recommended)". The other options were "Walk map + list only" and "Link only, no display yet".
+**Sent:** to a coder subagent for verify only. Gradle waits for the owner's "go" and a free heavy slot (the S22 check holds it now).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -617.
