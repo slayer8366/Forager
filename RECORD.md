@@ -12806,3 +12806,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner, asked which navigation work comes first: "Phone check first (Recommended)". On when T6b runs: "I'll tell you each night". The check is ordered cheap first: install; Settings > Sundown, with persistence; the sunset line's 2 h 30 min window and its move into the HUD; Approaching and Arrived outdoors with the owner; insets as an observation. The build waits until T6b's first short section ends, one heavy job at a time, under the 5 GB cap.
 **Not yet sent.**
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -615.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-615
+**Timestamp:** 2026-10-07T02:41:09Z
+**Continues:** 2026-09-28-613
+**T6b's first section and three stops.** forager-forecast t6b-continental-layers at d214bcb, `docs/audits/2026-10-07-t6b-section-1-report.md`. D111 to D115 are filed; NALCMS is CC BY 4.0 at source, with class 18 as water. Section 1 used about 54 minutes of compute in four starts, against the 45 asked, all under the cap at 1.32 GB peak. The mask covers 241,229,862 study cells. Two edge soil tiles are done; 4,788 tree tiles are listed. Suite 440. 13 of 15 revert checks bite; the 2 that don't were labelled beforehand.
+**The owner, verbatim:** on 73 TreeMap genera outside T5's lists (about 11% of live trees 5 in and over), which T5's refusal rule blocks: "Sort by the survey's codes (Recommended)". Unlisted genera are classed by the FIA species code (under 300 conifer, 300 and over broadleaf), counting toward the totals only and never as hosts. On 991,716 coastal cells inside the country line but in no ecoregion (all of them north of 70 N): "Only inside named regions (Recommended)". A cell counts only inside a non-Arctic ecoregion.
+**Planner's decision (technical):** SCANFI fetched at about 30 kB/s through windowed network reads. One short probe of GDAL's network settings (at most 10 minutes). If it doesn't fix the rate, download each SCANFI layer whole onto the flash drive, one at a time, regrid, then delete. No rule changes.
+**What it sets:** the coder makes these changes (tests first, revert checks, suite), files the two rulings as decision rows, and runs no section until the owner says goodnight (-614). The S22 check (-614) takes the heavy slot now.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -616.
