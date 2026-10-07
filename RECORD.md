@@ -13051,3 +13051,14 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Backup:** 2026-10-07-06
 **Observed:** PR #187 (planner-profile, docs/process/planner-profile.md and its index row) merged on green CI, on the owner's "Merge it (Recommended)" (-636). The owner then confirmed, verbatim: "I just wanted to double check. Nothing gets changed from my original decision". All seven answers in -636 are the original ones.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -638.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-638
+**Timestamp:** 2026-10-07T06:53:50Z
+**PR:** 188
+**Merge-commit:** dcad84a02a2cabaa4f361940bb849e7b3b48f7ae
+**Backup:** 2026-10-07-07
+**Observed:** PR #188 (planner-name) added the planner's name to docs/process/planner-profile.md and merged on green CI. The owner, verbatim: "Rowan it is", then "Add Rowan Waymark to the planner profile. It's a personal touch, I think agents who share a common profile deserve a name to be referred to".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -639.
