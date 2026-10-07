@@ -13094,3 +13094,12 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Continues:** 2026-09-28-620
 **T6b night section 2 started.** The owner, verbatim: "Goodnight, start the T6b section". Started 02:23 PDT as the transient user service t6b-night (MemoryMax=5G, no swap, nice 10), so it survives a session restart: t6b_run.py --until 09:30 --stages mask,plots,soil,trees --workers 2, on t6b-continental-layers at 908a18b. Log at forecast-data/t6b/night-2026-10-07.log on the flash drive (7.6 GB free there at the start). As built, the old mask was moved to superseded/ and is being rebuilt under D117. The SCANFI download service was no longer present. The planner reads the log and the tile manifest in the morning.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -642.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-642
+**Timestamp:** 2026-10-07T16:46:37Z
+**Continues:** 2026-09-28-641
+**T6b night section 2 result.** It ran 02:23 to 04:18 PDT. The mask was rebuilt under D117 (441 s). The plot table was built (18 s; 65,814 plots, 13,364 capped trees, 0 non-positive widths). Soil: 37 of 89 tiles finished, median 346 s per tile with 2 workers; no memory kill. The laptop's Wi-Fi dropped at about 03:40 (NetworkManager journal). At 04:18 a soil fetch raised URLError "Temporary failure in name resolution", which ended the whole section through run_section's fut.result() (src/forager_forecast/t6b_run.py:175). Nothing finished was lost. **Planner's decision (technical):** fetches retry network errors with backoff; a tile that still fails is deferred in the manifest and the section continues; non-network errors still stop it; deferred tiles are retried first next time. Sent to the T6b coder (Python only, no section started). The flash drive is at 6.1 GB free.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -643.
