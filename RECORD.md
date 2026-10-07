@@ -13433,3 +13433,12 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 - A Soil moisture row on the Seasonal card: "Yes, add it (Recommended)", using the already-fetched figure and the same scale.
 - The one-day correction and the new rain wording ("Yesterday", "N days ago", "Rain, last 14 days", "Last rainy day", "Rain forecast today", "Daily rain, last 14 days"): "Approve (Recommended)".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -670.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-670
+**Timestamp:** 2026-10-07T22:45:51Z
+**Continues:** 2026-09-28-658
+**Failure-fixes build, first result, and a test-stand-in fix.** At failure-fixes 3b034a8f, with main 340bdc4a merged in and back-by not, the build compiles. All 137 tests in the 15 new or changed classes pass. All 15 revert checks failed for reasons specific to their own edits, with no compile errors and every file restored from a saved copy. The full suite: 4,004 tests, 24 skipped, 11 failed. The 11 are in PhotoDecodeThreadTest, DecodedPhotoGestureTest and DecodedPhotoSemanticsTest. Their BitmapFactory stand-ins never report image dimensions, and the new bounded thumbnail decode reads dimensions first. A first full run was killed at the 5 GB cap because leftover daemons were still alive, and its stale results were not used. The owner, verbatim: "Yes, fix and rerun (Recommended)". The stand-ins answer a dimensions-only call as the platform does, and count and gate only the pixel decode, with assertions kept as strict. The three classes and the full suite then rerun.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -671.
