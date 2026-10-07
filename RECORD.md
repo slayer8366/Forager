@@ -13051,12 +13051,3 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Backup:** 2026-10-07-06
 **Observed:** PR #187 (planner-profile, docs/process/planner-profile.md and its index row) merged on green CI, on the owner's "Merge it (Recommended)" (-636). The owner then confirmed, verbatim: "I just wanted to double check. Nothing gets changed from my original decision". All seven answers in -636 are the original ones.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -638.
-
----
-
-**Kind:** continuation
-**ID:** 2026-09-28-638
-**Timestamp:** 2026-10-07T06:26:31Z
-**Continues:** 2026-09-28-636
-**The seven questions asked again, all answered.** The owner asked "Ask the second round again". All seven were asked again, numbered 1 to 7, with the current answer marked. The owner chose the current answer to every one: keep the planner profile; the invisible doorway; import no-times files showing "No times in file"; Records and map only; round to the second; leave routes out; the 10 MB limit. No change to -636. The owner also asked that the "skipped means unchanged" handling not be kept as a rule ("It's a one off thing"); the planner removed that memory note.
-**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -639.
