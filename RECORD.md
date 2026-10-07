@@ -12919,3 +12919,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **T19 closed as no longer applying.** The planner checked origin/main: "Straight-line bearing; not a walking route" appears in no string resource or UI code. The only related text is the HUD's "Straight line X" status (NavigationHud.kt:668), a distance rather than a disclaimer, so there is nothing to consolidate. The owner, verbatim, to "Close T19?": "Close it (Recommended)".
 **T14's wording, asked "Why is this important?".** The current alert is "Off track" / "You're moving away from your start point, not toward it." (strings.xml:21-23). The requirement comes from the navigator plan (docs/navigation/forager-navigator-plan.md:205-217), which says Doze, standby buckets and OEM battery management can silently suppress a local alarm, so these alerts ship only with a setup-time check that the notification fires and with "Wording stating what it is: a local phone reminder, not a monitored service, and not a substitute for telling someone where you went". The planner explained this to the owner. The owner's choice is pending.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -626.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-626
+**Timestamp:** 2026-10-07T04:57:49Z
+**Title:** off-track-reminder: plain wording and a one-time check that the reminder can fire (plan T14)
+**Dispatch-file:** preserved/2026-10-07-01.md
+**Context:** the owner, after the planner explained the navigator plan's reason for "a local phone reminder, not a monitored service" (-625), said verbatim: "Just say that it sets a reminder. No need to hedge anything." This supersedes that wording requirement. Shown the step path, the owner chose "Yes, both (Recommended)" (the other option was wording only). The path: Settings reads "Off-track reminder: your phone buzzes if you head away from your start."; the alert text is unchanged; at the first recording with the reminder on, a background-run check shows nothing if allowed, or one prompt "To make sure your off-track reminder can buzz, let Forager run in the background" > the phone's battery setting > Back to the recording. Stops: no off-track setting exists today; the only route needs a restricted permission.
+**Sent:** to a coder subagent, verify only. Gradle waits for the owner's "go".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -627.
