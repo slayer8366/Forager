@@ -12982,3 +12982,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-630
 **The public privacy and delete-data pages updated.** zynergy-site PR #4 (branch commit 54814b8) merged as 48e2ffc5 after its one check (Cloudflare Pages) passed. Only privacy/index.html and delete-data/index.html changed. The site had last been built from Forager b3f2539c (site 10bcded), so the diff applied is exactly PR #184's two commits. A visible-text extraction diff shows only the camera passages and the date changed, and they match the markdown at 63124a97 word for word, apart from the source-file references. Live: https://zynergy-labs.com/privacy and /delete-data returned 200 and are identical to the site's main byte for byte, about 30 s after the merge. **Left for the owner:** the delete-data page's date is still 11 September 2026, because delete-data.md's own date wasn't moved by #184. Site PR #3 (branch site-legal-pages-2026-09-29, held for the PR #140 release, built from the legal-drafts documents rather than Forager main's docs/legal) rewrites both pages and now conflicts; merged as it stands, it would undo the camera text. Forager main's docs/legal hasn't received PR #140's legal wording either.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -632.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-632
+**Timestamp:** 2026-10-07T05:56:29Z
+**Continues:** 2026-09-28-631
+**The delete-data date.** The owner, verbatim: "Bump the delete-data date to 7 October". zynergy-site PR #5 (delete-data/index.html, one line) merged as 89593b17 after Cloudflare Pages passed; the live https://zynergy-labs.com/delete-data/ reads "Last updated: 7 October 2026". Forager PR #185 (docs/legal/delete-data.md line 3 to 2026-10-07) merged as b7bfe135 on green CI (run 37578017112), after main 63124a97 was backed up as 2026-10-07-04. verify-policy-permissions.sh passes.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -633.
