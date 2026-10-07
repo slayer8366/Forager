@@ -12973,3 +12973,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Backup:** 2026-10-07-03
 **Observed:** PR #184 (privacy-policy-camera, docs only) merged on green CI (run 37575164850, 9 m 26 s), on the owner's "Approve, fix delete page too (Recommended)". The owner, verbatim: "Regenerate the privacy page after it merges". The site pages (zynergy-site privacy/ and delete-data/) are hand-built HTML. A coder is rebuilding them from the merged markdown by the 2026-09-29 report's method, with a word-for-word text check, a PR on zynergy-site merged (Cloudflare Pages publishes), and a check of the live page.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -631.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-631
+**Timestamp:** 2026-10-07T05:27:21Z
+**Continues:** 2026-09-28-630
+**The public privacy and delete-data pages updated.** zynergy-site PR #4 (branch commit 54814b8) merged as 48e2ffc5 after its one check (Cloudflare Pages) passed. Only privacy/index.html and delete-data/index.html changed. The site had last been built from Forager b3f2539c (site 10bcded), so the diff applied is exactly PR #184's two commits. A visible-text extraction diff shows only the camera passages and the date changed, and they match the markdown at 63124a97 word for word, apart from the source-file references. Live: https://zynergy-labs.com/privacy and /delete-data returned 200 and are identical to the site's main byte for byte, about 30 s after the merge. **Left for the owner:** the delete-data page's date is still 11 September 2026, because delete-data.md's own date wasn't moved by #184. Site PR #3 (branch site-legal-pages-2026-09-29, held for the PR #140 release, built from the legal-drafts documents rather than Forager main's docs/legal) rewrites both pages and now conflicts; merged as it stands, it would undo the camera text. Forager main's docs/legal hasn't received PR #140's legal wording either.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -632.
