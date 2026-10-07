@@ -13460,3 +13460,20 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 - The new strings in the coder's report: "Approve (Recommended)".
 The planner's call, under CLAUDE.md's UX default that user-set UI state survives navigation within a session: the open coordinate rows survive leaving and returning to the report, like the panel's open groups.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -672.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-672
+**Timestamp:** 2026-10-07T22:52:23Z
+**Continues:** 2026-09-28-666
+**Amendment 1 to -666 (motion Part 2), after the coder's stops.** Code and tests are on motion-part-2 at ff9140c2, not compiled. The owner, verbatim, on matching the strip and navigation display to the map's fixed 750 ms tilt: "Allow one exception (Recommended)". One timed animation, exactly the tilt's duration, is recorded in docs/motion-spec.md and ADR-0002 with its reason. The design-token check allows only that one call site.
+The planner's calls under the owner's -651 answers:
+- The navigation display's own sundown line (N6) fades and grows ("Fade and grow").
+- The strip's whole swap between readout, "unavailable" and the position note (C2) crossfades ("words fade").
+- The coordinate-format tap (C5) stays instant ("Numbers instant").
+- Back during a tab fade goes only to the arriving tab; the leaving tab's Back handlers are disabled the moment it starts to leave (Back retraces the way in).
+- A late-loading forecast-cell bubble (M7) fades and grows when its content arrives.
+- The drawn-only grow, with touch areas at the final place, is confirmed ("Touch areas unchanged").
+- Two maps for a moment (Maps to an entry map) is judged on the S22, with the coder's fallback ready.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -673.
