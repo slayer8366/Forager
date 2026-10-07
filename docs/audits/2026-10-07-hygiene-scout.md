@@ -651,3 +651,52 @@ touch the same files but not the same lines, as far as can be told without its r
   indirectly, notably J6, L3 and J8.
 - **Survey items.** Items marked "survey" rest on a sub-survey's reading and were not re-read by me.
 - **Not covered.** The areas listed as not covered above.
+
+## Addendum, 2026-10-07: the fifth survey (coverage gaps)
+
+The fifth read-only survey covered the areas listed above as not covered: `Migrations.kt`,
+`AppContainer.kt`, the `ui/availability` search, results, settings and screen files, `ui/theme`,
+`ui/adaptive`, and `scripts/`. It reported 11 findings (F1 to F11) to the planner after this report
+was first pushed.
+
+Its full text did not reach this session. What follows is the planner's summary of four of the
+eleven, each re-read against `aa79f25a`. The other seven are **not recorded here**: their content
+is unknown to this document, they are not counted, and the areas they cover stay "not cleared".
+
+**G1. `verify-design-tokens.sh` check 2 can never fail.** Under, confirmed (re-read).
+- Where: `scripts/verify-design-tokens.sh:54-55` greps `^import com\.forager\.app\.ui\.theme\.`, the
+  package root from before the rename.
+- Evidence:
+  - `git grep` finds 0 imports under that root in `app/src/main`.
+  - It finds 74 under the real root (`com.zynergylabs.forager.app.ui.theme.`) once the same
+    allowed names are excluded.
+- So the check passes because it never sees the data that could fail it (the CLAUDE.md family).
+- Balancing: point the pattern at the current root and show it failing once.
+- Risk: none at runtime. The design-token check has been reporting green on no input.
+
+**G2. `compare-test-baseline.sh` has no `pipefail`.** Under, confirmed (re-read).
+- Where: `scripts/compare-test-baseline.sh:21` sets only `set -u`. The pipelines at `:53-63`
+  (perl into `sort`, `comm` into `wc`) can fail upstream without the script noticing.
+- Inferred: a failed parse would read as "no failures".
+- Balancing: `set -euo pipefail`, with the deliberate `|| true` sites kept.
+
+**G3. A dead branch in `SpeciesSearchControls`.** Over, confirmed (re-read).
+- Where: `ui/availability/AvailabilitySearchUi.kt:813`. It has one caller, at `:239`, which passes
+  `showLocationTrailingIcon = false` (`:248`).
+- So the `if (showLocationTrailingIcon)` branch at `:910`, and the parameter's default of `true`
+  (`:832`), are never used.
+- Balancing: remove the parameter and its branch.
+
+**G4. Stale KDoc and stale `AppContainer` comments.** Over (comment hygiene), not re-read.
+- Reported by the survey through the planner. Which lines are meant was not available here, so this
+  is unverified and not counted.
+
+**Updated counts.** G1, G2 and G3 are counted; G4 and the seven unseen findings are not.
+
+| Area | Over | Under |
+|---|---|---|
+| List, Seasonal, search, Settings, Tools | 1 | 4 |
+| Build and dependencies (with `scripts/`) | 2 | 2 |
+| **Total, whole report** | **13** | **36** |
+
+The other areas' counts are unchanged.
