@@ -13191,3 +13191,30 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Context:** the owner, verbatim: "I need to do some cosmetic UI adjustments that help the UX appear more smooth and less clunky. Animations are present in a lot of cases, but in most, they're not. Switching between tabs has no animations, icon toggles don't animate when pressed (a highlight is the confirmation for the icon tapped, but it looks boxy in some areas, especially the map icon bar, and that gives it a less polished feel), and a lot others I have yet to think of." Shown the planner's scout scope (screen changes, toggles and presses, things appearing and disappearing, value changes; read-only, no build, no phone), the owner: "toggles, or anything that doesn't animate. Your proposed list is a good start. Go ahead and scout it."
 **Sent:** to a coder subagent, read-only survey. The owner chooses what gets animated from its list before any build dispatch.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -651.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-651
+**Timestamp:** 2026-10-07T19:49:16Z
+**Continues:** 2026-09-28-650
+**The owner's choices from the motion scout.** The scout (branch motion-scout at 8a40c6d4, `docs/ui/2026-10-07-motion-scout.md`) lists 154 on-screen changes that do not animate. The planner took the owner through it in four rounds, under `docs/motion-spec.md` (legibility, then performance, then calm). The owner's answers, verbatim:
+- Phone's reduce-motion setting: "Yes, follow it (Recommended)". It is wired in first; under it things fade or appear, and every change still shows.
+- Icon bar highlight: "Rounded, fits the bar (Recommended)". A rounded square inset in the bar, never past its edges in portrait or landscape; round highlights on the round Add and Record badges. Touch areas unchanged.
+- Press motion: "Small press bounce (Recommended)". Highlight only under reduced motion.
+- Icon picture swaps (Fullscreen, Record/Stop, Return/Cancel): "Quick crossfade (Recommended)", with a slight grow; the red recording circle fades with it.
+- Tabs: "Quick crossfade (Recommended)". The phone cost of keeping the live map through the fade is checked on the S22 before it is kept.
+- Journal pages: "Slide in, slide back (Recommended)". Opened pages slide in from the right; Back slides them out to the right.
+- Bottom bar: "Fade with the tab (Recommended)". Solid to 80% and back fades in time with the tab change.
+- Night mode: "Fade the colours". This is against the planner's recommendation to keep it instant.
+- Navigation start and stop: "Move with the map (Recommended)". The strip slides up and out and the navigation display slides down and in, timed to the map's tilt; reversed on stop.
+- Pop-ups over the map (bubble, centre pin, Return to Route pill, chips and legend, the strip's sundown and Back by lines): "Fade and grow (Recommended)", from where each belongs.
+- Taps on a leaving pop-up: "Let taps through at once (Recommended)". From the moment something starts to leave, taps go to the map beneath it.
+- Icon cluster dragged across: "Glide to its side (Recommended)", and back when released short.
+- Lists: "Slide and close up (Recommended)". Removed rows fade and shrink, the rest glide up, Undo reverses, and new or reordered rows glide into place.
+- Live values: "Numbers instant, words fade (Recommended)". Numbers change instantly; changed words and status lines crossfade quickly.
+- Other hard-cornered highlights (tappable snackbar, species card, legend): "Yes, round them all (Recommended)". Every press highlight follows its control's shape; touch areas unchanged.
+- Search dropdown tap-through as it closes: "Fix it in this sweep (Recommended)". Once it starts closing, taps go beneath it and its buttons stop responding.
+- The scout's five deliberately instant items (search field on other tabs, camera rotation, marker placement fade, camera restore jump, arrival ring swap) stay as recorded. Anything on the list these answers don't clearly cover goes back to the owner before it is built.
+- Shown the whole summary, the owner: "Yes, that's right (Recommended)". Batches: "Three parts (Recommended)". Part 1: reduce-motion wiring, every press highlight and bounce, icon crossfades, the cluster glide, the search bug. Part 2: tabs, bottom bar, navigation, map pop-ups with taps through. Part 3: Journal pages, lists, word fades, night mode. Each part waits behind the back-by build, one build at a time.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -652.
