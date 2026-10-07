@@ -13152,3 +13152,13 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 - The strip line: the owner's earlier "Yes, show in last hour (Recommended)" stands.
 **What it sets:** the quick menu (a gear at the end of the strip, opening a menu over the map at 80%) holds Back by (+1 h, +2 h, +3 h or a time, while recording), Sundown alerts on/off, Dark under trees, and the Off-track reminder on/off. Its exact contents are proposed by the coder and confirmed with the owner before building.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -647.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-647
+**Timestamp:** 2026-10-07T18:16:38Z
+**Continues:** 2026-09-28-646
+**Amendment 2 to -645: the strip gear and quick menu.** The coder's re-check (code only): the strip is a plain Box with no touch handling except the coordinates (AvailabilityMapControlsUi.kt:441-460); its fill is already 80%; real long-press tests on and under it exist (AvailabilityScreenSundownLineTest.kt:329-366); a gear as its own small clickable box takes touches only inside itself. The strip is hidden while navigating (AvailabilityCompactMapUi.kt:884).
+**The owner, verbatim:** "Gear in nav display too (Recommended)"; "Taller strip (Recommended)" (the strip grows to fit a finger-sized gear inside it; nothing hangs over the map); "Menu shows it + dot (Recommended)" (after a choice the menu stays open reading "Back by 5:30 PM" with "Clear", and the gear carries a dot while a time is set); "All three sections (Recommended)": Back by (+1 h, +2 h, +3 h, "Pick a time…", "Clear"; "Start a recording to set a Back by time." when not recording), Sundown ("Sundown alerts" tick box; "Dark under trees" 30 min / 45 min / 1 h / 1 h 30), and Off-track ("Off-track reminder" tick box), reading and writing the same values as Settings. The gear sits at the strip's right end in portrait and at the inner end in landscape.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -648.
