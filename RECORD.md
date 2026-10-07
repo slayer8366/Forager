@@ -12909,3 +12909,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Closes:** 2026-09-28-621 (via PR #182) and 2026-09-28-616 (preserved 2026-10-06-16, with -617 and -618, via PR #183)
 **Observed:** PR #182 (landscape-centre-dusk, test-only) merged as fd0db163 on green CI (run 37569639259, 9 m 3 s), which also shows the dusk S10 case passes under CI's UTC clock. Pre-merge 4db24110, backup 2026-10-07-01. PR #183 (walk-waypoints, T10) merged as d23aeaa6587df8e1d2e0a11044ded30096c6fa93 on green CI, after main (fd0db163) was merged into the branch at 8b2e0167. The only conflict was an appended row in docs/audits/README.md, both rows kept. That merge commit carries git's default message without the co-author line: a recorded slip, not amended. Backup 2026-10-07-02. Both were merged on the owner's "Both, on green (Recommended)" (-623). T10 is not yet seen on a phone.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -625.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-625
+**Timestamp:** 2026-10-07T04:53:31Z
+**Continues:** the navigation plan's build list (docs/navigation/2026-10-01-navigator-completion-plan.md)
+**T19 closed as no longer applying.** The planner checked origin/main: "Straight-line bearing; not a walking route" appears in no string resource or UI code. The only related text is the HUD's "Straight line X" status (NavigationHud.kt:668), a distance rather than a disclaimer, so there is nothing to consolidate. The owner, verbatim, to "Close T19?": "Close it (Recommended)".
+**T14's wording, asked "Why is this important?".** The current alert is "Off track" / "You're moving away from your start point, not toward it." (strings.xml:21-23). The requirement comes from the navigator plan (docs/navigation/forager-navigator-plan.md:205-217), which says Doze, standby buckets and OEM battery management can silently suppress a local alarm, so these alerts ship only with a setup-time check that the notification fires and with "Wording stating what it is: a local phone reminder, not a monitored service, and not a substitute for telling someone where you went". The planner explained this to the owner. The owner's choice is pending.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -626.
