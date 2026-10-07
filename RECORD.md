@@ -12991,3 +12991,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-631
 **The delete-data date.** The owner, verbatim: "Bump the delete-data date to 7 October". zynergy-site PR #5 (delete-data/index.html, one line) merged as 89593b17 after Cloudflare Pages passed; the live https://zynergy-labs.com/delete-data/ reads "Last updated: 7 October 2026". Forager PR #185 (docs/legal/delete-data.md line 3 to 2026-10-07) merged as b7bfe135 on green CI (run 37578017112), after main 63124a97 was backed up as 2026-10-07-04. verify-policy-permissions.sh passes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -633.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-633
+**Timestamp:** 2026-10-07T06:00:16Z
+**Continues:** 2026-09-28-627
+**T14 built.** off-track-reminder at d001c67e, then 5ca3295f (main merged in; index rows only). The tests went in first against stubs (14 of 21 failing). 10 revert checks bite. Real touches on the checkbox and the prompt. Full suite 3,932, 0 failures. The full suite exposed a settings read/write race, fixed by having reads and writes take turns (10 of 10 passes on disk). Disclosed: the reminder setting is loaded at Settings open, at Record and at service start, not when the app object is built, so just after the system restarts a recording a stored "off" can briefly read as on. The prompt has no button: the whole message bar is the tap target. A 5 GB cgroup kill of one Gradle test JVM (22:32 local) killed only that process; the coder moved Java's temp folder off tmpfs to ~/.cache/forager-test-tmp. Opened as PR #186.
+**The owner, verbatim:** "Merge on green (Recommended)". The merge waits on green CI, with main backed up first. The S22 check gains T14's steps: Restricted, then Record, the prompt once, the tap to App info, Back; and the checkbox off with no buzz on Return.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -634.
