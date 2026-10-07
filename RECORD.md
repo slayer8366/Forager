@@ -13311,3 +13311,12 @@ Settled by the owner's earlier answers in -651, not asked again: the waypoint an
 **Context:** the order the owner set in -655 ("Failure fixes, motion, data (Recommended)") and the owner's hygiene choices there. The owner: "Yes, write the failure-fix dispatch". Shown its summary, the owner: "Yes, start it (Recommended)". The coder writes code and tests now. New user-facing strings and the stops (D10 settings corruption, D3 throw-or-fallback changes, R8 off-track accuracy handling) come back to the owner before the build. The build queues after the S22 sunset check and the back-by build. Back-by also touches TrackRecordingService, so the coder merges main after back-by lands.
 **Sent:** to a coder subagent, verify, then code and tests, no Gradle.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -659.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-659
+**Timestamp:** 2026-10-07T21:16:07Z
+**Continues:** 2026-09-28-657
+**Amendment 2 to -652 (motion Part 1).** Amendment 1 was applied at motion-part-1 01a4801e (not compiled). The bounce covers all 32 icon-button calls. Rows and links are rounded with a flat rounded press shade (`clickableWithShapedPress`) instead of a clipped ripple. The owner, verbatim: "Shutter yes, rows no (Recommended)": the camera shutter bounces; rows that pair an icon with words do not. And: "Rounded shade (Recommended)": keep the rounded shade, judged on the S22 before it is kept.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -660.
