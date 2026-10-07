@@ -12779,3 +12779,19 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner, verbatim: "Yes, write the T6b dispatch". The dispatch is filed byte-identical in forager-forecast as `docs/dispatch/2026-10-06-t6b-continental-layers.md`, the first commit on t6b-continental-layers, off main 36cc647. It sets every heavy command under `systemd-run --user --scope -p MemoryMax=5G -p MemorySwapMax=0` (after three OOM restarts, -610), data on the flash drive (about 21 GB free), and a run that is tiled and resumable by tile. Verify first: the study-area mask and its sources (licence gate D31), the tile plan with a measured trial tile, sizes and run time, and ten cells per layer fixed before any value is read. The Arctic line is undefined on record, so it is a stop for the owner. It also checks SCANFI's class-sum equality continent-wide (the T5 review's flag) and records the 49 N seam along the whole border.
 **Sent:** to a coder subagent; fetches wait for the planner's go after the verify report.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -613.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-613
+**Timestamp:** 2026-10-07T01:07:04Z
+**Continues:** 2026-09-28-612
+**T6b's verify report and the owner's rulings.** forager-forecast t6b-continental-layers at 7e7a086, `docs/audits/2026-10-07-t6b-verify-report.md`. The ten-cell rule was committed first (fb4ac19). Trial tile, 92,588 cells across 49 N at 114.5 W, under the 5 GB cap: host-tree build 1.88 ms per cell at 1.93 GB peak; soil regrid 37 µs per cell. SCANFI's eleven whole files are 18.78 GB, so they are read in windows. Run time as coded: about 5.5 to 6.3 days for host trees, plus 8 to 15 hours for soil. About 1.5 to 2 days with unmeasured speed-ups. Lakes and sea read as 0% tree cover under T5's rule.
+**The owner, verbatim:**
+- The Arctic line: "The treeline (Recommended)". The CEC ecoregions "Tundra" and "Arctic Cordillera" are masked.
+- Water: "Mark water as blank (Recommended)". A land-cover water mask (NALCMS, subject to its licence check under D31) makes lakes and sea no data rather than 0% trees, filed as a new decision that amends T5's reading.
+- The run: "Option 1 but make it in sections so a little can be done at a time, and we can switch to finishing nav production. The build can work mostly while I sleep".
+- Hawaii, Puerto Rico and the US Virgin Islands masked with Alaska, and the CEC Political Boundaries 2021 (CC BY 4.0) for country lines: "Accept both (Recommended)".
+**Planner's acceptances (not owner rulings):** which country a cell belongs to keeps T5's 49 N rule where the border is the 49th parallel and uses the CEC country line elsewhere. This corrects T5's latitude rule east of Lake of the Woods, which T5's strip never reached. The speed-ups are accepted, with the first large window timed and reported before more runs. Surrogate scale 1.0 only. Ten-cell tolerances: cover 0.1 points, shares 0.001, valid fraction 0.001, flags exact.
+**What it sets:** T6b runs in resumable sections, each with a stop time, started by the planner when no other heavy job (an app build) needs the laptop, mostly overnight. Navigation work takes the daytime slots. Decision rows from D111.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -614.
