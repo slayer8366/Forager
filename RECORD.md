@@ -13351,3 +13351,12 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 - DataStoreCameraGridModeRepositoryTest, which expects an unknown stored grid name to be a failed read: "Yes, rewrite it (Recommended)". It now asserts the fallback to Off and the log line.
 - The design-token check flagging the Spacing scale and navigationBarContainerColor (the owner's C1 ruling): "Allow both in the check (Recommended)". Both are added to check 2's allowed list, with their reasons.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -662.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-662
+**Timestamp:** 2026-10-07T22:07:15Z
+**Continues:** 2026-09-28-660
+**PR #190 merged into main** (340bdc4a), from claude-md-returnwalkingtime-note (head 78f06c21). It adds the dated note on CLAUDE.md's returnWalkingTime entry, appended within line 153 so no line moves. The owner, verbatim: "Merge the CLAUDE.md note branch". CI "Build, test, publish APK" passed on the head. Pre-merge main aa79f25a is backed up at forager-repo-backups/2026-10-07-09.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -663.
