@@ -13442,3 +13442,21 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 **Continues:** 2026-09-28-658
 **Failure-fixes build, first result, and a test-stand-in fix.** At failure-fixes 3b034a8f, with main 340bdc4a merged in and back-by not, the build compiles. All 137 tests in the 15 new or changed classes pass. All 15 revert checks failed for reasons specific to their own edits, with no compile errors and every file restored from a saved copy. The full suite: 4,004 tests, 24 skipped, 11 failed. The 11 are in PhotoDecodeThreadTest, DecodedPhotoGestureTest and DecodedPhotoSemanticsTest. Their BitmapFactory stand-ins never report image dimensions, and the new bounded thumbnail decode reads dimensions first. A first full run was killed at the 5 GB cap because leftover daemons were still alive, and its stale results were not used. The owner, verbatim: "Yes, fix and rerun (Recommended)". The stand-ins answer a dimensions-only call as the platform does, and count and gate only the pixel decode, with assertions kept as strict. The three classes and the full suite then rerun.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -671.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-671
+**Timestamp:** 2026-10-07T22:50:10Z
+**Continues:** 2026-09-28-667
+**Amendment 1 to -667 (data part A), after the coder's stops.** Code and tests are on data-a-entry at 14cfd582, not compiled. The owner's answers, verbatim:
+- Old wording outside the editor ("Kept in N journal entries", "Nothing kept"): "'In 2 journal entries' / 'Nothing included' (Recommended)".
+- A mixed group's switch: "On, with 'Some left out' (Recommended)".
+- Dropped waypoints: "Under their track (Recommended)". The Waypoints group holds only waypoints on no track; Start and End are not counted in the summary.
+- Time out with two walks: "Walking time added up (Recommended)".
+- From start: "Distance walked to it (Recommended)".
+- The height-profile threshold (at least 10 heights and at least half the points, a judgement): "Keep it, check real walks (Recommended)". It is checked against real walks on the S22 before it is final.
+- The lists below the waypoint table: "Keep Finds & maps, fold tracks (Recommended)". Each track becomes one name row that opens it; its distance and time are in the tiles.
+- The new strings in the coder's report: "Approve (Recommended)".
+The planner's call, under CLAUDE.md's UX default that user-set UI state survives navigation within a session: the open coordinate rows survive leaving and returning to the report, like the panel's open groups.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -672.
