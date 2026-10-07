@@ -13103,3 +13103,13 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Continues:** 2026-09-28-641
 **T6b night section 2 result.** It ran 02:23 to 04:18 PDT. The mask was rebuilt under D117 (441 s). The plot table was built (18 s; 65,814 plots, 13,364 capped trees, 0 non-positive widths). Soil: 37 of 89 tiles finished, median 346 s per tile with 2 workers; no memory kill. The laptop's Wi-Fi dropped at about 03:40 (NetworkManager journal). At 04:18 a soil fetch raised URLError "Temporary failure in name resolution", which ended the whole section through run_section's fut.result() (src/forager_forecast/t6b_run.py:175). Nothing finished was lost. **Planner's decision (technical):** fetches retry network errors with backoff; a tile that still fails is deferred in the manifest and the section continues; non-network errors still stop it; deferred tiles are retried first next time. Sent to the T6b coder (Python only, no section started). The flash drive is at 6.1 GB free.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -643.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-643
+**Timestamp:** 2026-10-07T16:57:40Z
+**Title:** s22-day-check: everything merged on 2026-10-06 and -07 (PRs #180 to #189), on the S22
+**Dispatch-file:** preserved/2026-10-07-03.md
+**Context:** the owner, verbatim: "S22 plugged in, start the phone check". One build of main aa79f25a under the 5 GB cap. In order: desk steps now (off-track reminder and its Restricted prompt, GPX import, walk waypoints); the sunset window at about 16:08 PDT (the line, start back by, the margin, landscape against the centre); then outdoors with the owner (Approaching and Arrived, a walk waypoint, and -400 with the app swiped away). The T6b coder is doing light Python work meanwhile.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -644.
