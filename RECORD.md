@@ -12795,3 +12795,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Planner's acceptances (not owner rulings):** which country a cell belongs to keeps T5's 49 N rule where the border is the 49th parallel and uses the CEC country line elsewhere. This corrects T5's latitude rule east of Lake of the Woods, which T5's strip never reached. The speed-ups are accepted, with the first large window timed and reported before more runs. Surrogate scale 1.0 only. Ten-cell tolerances: cover 0.1 points, shares 0.001, valid fraction 0.001, flags exact.
 **What it sets:** T6b runs in resumable sections, each with a stop time, started by the planner when no other heavy job (an app build) needs the laptop, mostly overnight. Navigation work takes the daytime slots. Decision rows from D111.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -614.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-614
+**Timestamp:** 2026-10-07T01:08:19Z
+**Title:** s22-check-sundown-and-approaching: PR #180 and PR #181 on the S22
+**Dispatch-file:** preserved/2026-10-06-15.md
+**Context:** the owner, asked which navigation work comes first: "Phone check first (Recommended)". On when T6b runs: "I'll tell you each night". The check is ordered cheap first: install; Settings > Sundown, with persistence; the sunset line's 2 h 30 min window and its move into the HUD; Approaching and Arrived outdoors with the owner; insets as an observation. The build waits until T6b's first short section ends, one heavy job at a time, under the 5 GB cap.
+**Not yet sent.**
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -615.
