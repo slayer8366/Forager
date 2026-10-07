@@ -13218,3 +13218,14 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 - The scout's five deliberately instant items (search field on other tabs, camera rotation, marker placement fade, camera restore jump, arrival ring swap) stay as recorded. Anything on the list these answers don't clearly cover goes back to the owner before it is built.
 - Shown the whole summary, the owner: "Yes, that's right (Recommended)". Batches: "Three parts (Recommended)". Part 1: reduce-motion wiring, every press highlight and bounce, icon crossfades, the cluster glide, the search bug. Part 2: tabs, bottom bar, navigation, map pop-ups with taps through. Part 3: Journal pages, lists, word fades, night mode. Each part waits behind the back-by build, one build at a time.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -652.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-652
+**Timestamp:** 2026-10-07T19:54:57Z
+**Title:** motion-part-1: reduce motion, press highlights and bounce, icon crossfades, cluster glide, search tap-through
+**Dispatch-file:** preserved/2026-10-07-06.md
+**Context:** Part 1 of the three the owner chose in -651. The owner, verbatim: "Yes, start the Part 1 coder now". The coder writes code and tests now. Gradle waits for the owner's go, after the back-by build (-645). Also from the owner, on night mode (Part 3, chosen in -651 against the planner's recommendation), verbatim: "your stated reason was that the switch was made plain by keeping it instant. But my suggestion is that the night mode switch is already suggestive by virtue of a night mode being active alone. The results aren't subtle, it's an entire UI shift, so the fade is permissible if it's fast and smooth, and not ceremonial and boring." So Part 3's night mode fade is fast and smooth, not a slow show.
+**Sent:** to a coder subagent, code and tests only, no Gradle.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -653.
