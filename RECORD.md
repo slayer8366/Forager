@@ -13251,3 +13251,20 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Context:** the owner's third tier, verbatim: "So my proposal first is an engineering hygiene sweep. See where parts of the app is overly engineered next to parts that are under engineered, and let's balance the field". Asked whether "first" meant before motion and data are built, the owner: "Scout now, decide order after (Recommended)". On starting it now: "Yes, start it (Recommended)".
 **Sent:** to a coder subagent, read-only survey.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -655.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-655
+**Timestamp:** 2026-10-07T20:36:54Z
+**Continues:** 2026-09-28-654
+**The owner's hygiene choices.** The hygiene scout (branch hygiene-scout at 0f2dae77, `docs/audits/2026-10-07-hygiene-scout.md`) reports 15 over-engineered and 42 under-engineered items. The data scout (data-scout at 00caf406, `docs/ui/2026-10-07-data-scout.md`) is also in. The owner asked: "Wait for hygiene, then walk me through both". Hygiene answers, verbatim:
+- Order: "Failure fixes, motion, data (Recommended)". First the failure paths: GPS-path errors that can end a recording, backup cancel counted as failure, the unreadable crash log, silent failures and unlogged fallbacks. Then the motion parts, then the data sweep. Tidying rides along where each sweep touches the code.
+- Big files: "Piece by piece (Recommended)". A sweep that works on part of a big file moves that part out, with tests. There is no separate restructure.
+- Hand-copied logic: "Merge into one each (Recommended)", with the failure fixes. No behaviour change.
+- Motion machinery: "Use it, then prune (Recommended)". The motion parts use the styles. Whatever is still unused after Part 3 is removed.
+- Photo size: "Phone's standard size (Recommended)". Capture at the phone's normal size (about 12 MP), never its largest mode. Thumbnails are sized to the screen they're shown on. Imports keep their size but display through the same limits.
+- Silent failures: "Log all, tell user where it matters (Recommended)". Every fallback logs. Where the user would otherwise see a wrong picture, the app says what happened, plainly, with a next step.
+- Dead weight: "Remove what costs, keep plans (Recommended)". Remove the unused serif font and the unreachable search option. Unused spacing and tablet breakpoints stay, with a note.
+- Blind checks: "Fix and prove they bite (Recommended)". Each one is pointed at the real thing and shown failing on a planted mistake. What it then finds (74 design-token imports for the first) goes to the owner as a list, not fixed silently.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -656.
