@@ -13012,3 +13012,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** PR #186 (T14, off-track reminder) merged as fac1d330 on green CI, with main b7bfe135 backed up as 2026-10-07-05, on the owner's "Merge on green (Recommended)". The owner then asked "What's next on the navigation list?" and said "Yes, take T16 through with me". The step path: pick a .gpx file; it lands in Records named from the GPX or the file, with its drawing, distance, dates and an "Imported" label; its waypoints are tied to the track as in T10; a bad file shows "This file couldn't be read as GPX". The owner, verbatim: "Button + Share/Open with (Recommended)" (Records > Tracks > "Import GPX", plus Open with and Share from other apps) and "One track each (Recommended)" for multi-track files, with loose waypoints going to the first track. The verify step checks whether "Imported" needs a Room migration, with its number checked against main's database version now.
 **Sent:** to a coder subagent, verify only. Gradle waits for the owner's "go".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -635.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-635
+**Timestamp:** 2026-10-07T06:09:29Z
+**Continues:** 2026-09-28-634
+**T16 Gradle go.** The owner, verbatim: "Go ahead and build T16". Passed to the coder: build unless its verify report finds a stop (a migration collision, the import touching recording, navigation or alert state, or a new permission).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -636.
