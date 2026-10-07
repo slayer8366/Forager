@@ -13495,3 +13495,12 @@ The planner's calls under the owner's -651 answers:
 **Continues:** 2026-09-28-673
 **PR #191 merged into main** (4f078b8b), from failure-fixes (head 28e2e512): the first hygiene build, dispatch -658 with amendments -660, -661 and -670. The owner, verbatim: "Merge the failure fixes once checks pass". CI "Build, test, publish APK" passed on the head. The laptop suite had passed: 4,004 tests, 0 failures. Pre-merge main 340bdc4a is backed up at forager-repo-backups/2026-10-07-10. Device-only items are still open for the S22: capture size, thumbnails, the settings-reset snackbar, and the refused-start message. Back-by must now merge main and guard its own watch on the fix path through RecordingWatches before it builds.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -675.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-675
+**Timestamp:** 2026-10-07T23:56:47Z
+**Continues:** 2026-09-28-652
+**PR #192 merged into main** (1317369f), from motion-part-1 (head 28de7c52): motion Part 1, dispatch -652 with amendments -657 and -659, built on main after failure-fixes. The owner, verbatim: "Go ahead and merge". CI "Build, test, publish APK" passed on the head. The laptop suite: 4,053 tests, 0 failures. Of nine revert checks, eight bit; R4 (icon descriptions moved to buttons) could not fail and is kept as a labelled pin. Pre-merge main 4f078b8b is backed up at forager-repo-backups/2026-10-07-11. Its look and feel is still to be checked on the S22. Motion Part 2 is fixing leaving-content semantics: a screen reader saw two bars mid-fade, caught by RestoreReturnsToMap tests, which stay unchanged. The planner chose to fix the cause rather than the tests.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -676.
