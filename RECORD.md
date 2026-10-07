@@ -13240,3 +13240,14 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Context:** the owner, verbatim: "My idea is to strike a fine balance between speed/utility and visual polish as you noted before. With that said, I have two more tiers of adjustments to make. Next sweep is data friendliness: raw data is useful and honest, but put plainly in a UI amounts to clutter to a user, no matter how useful it is. Adding visuals like pie charts, graphs, in a tabled format (as opposed to line by line), with clear and intuitive labels. Intuitive design creates less need to think." Two phone screenshots, kept off GitHub: the entry editor's Withhold cards, and the saved report's plain lines under its map. The owner: "A polished journal, and then a raw data dump as if we gave up at the last moment." And: "The withhold list is useful, but it bombards the user with data. Maybe we can have a way to walk the user through the journal entry witholding part that gives both utility and ease of use? Just an example, but we have a philosophy outline at least." Offered a read-only scout, the owner: "Yes, start it (Recommended)". A third tier is still to come from the owner.
 **Sent:** to a coder subagent, read-only survey.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -654.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-654
+**Timestamp:** 2026-10-07T20:08:54Z
+**Title:** hygiene-scout: where the app is over-engineered and where it is under-engineered (UI sweep 3)
+**Dispatch-file:** preserved/2026-10-07-08.md
+**Context:** the owner's third tier, verbatim: "So my proposal first is an engineering hygiene sweep. See where parts of the app is overly engineered next to parts that are under engineered, and let's balance the field". Asked whether "first" meant before motion and data are built, the owner: "Scout now, decide order after (Recommended)". On starting it now: "Yes, start it (Recommended)".
+**Sent:** to a coder subagent, read-only survey.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -655.
