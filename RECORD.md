@@ -13369,3 +13369,12 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 **Continues:** 2026-09-28-645
 **Gradle go for the build queue.** The owner, verbatim: "Go ahead and start the building". The builds run one at a time, in the order the owner set: back-by (-645, back-by at 29074703), then failure fixes (-658, failure-fixes at f862aeda, after merging main once back-by lands), then motion Part 1 (-652, motion-part-1 at cdf0875b). This starts back-by's build ahead of the S22 sunset check, which needs only the phone, not a build.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -664.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-664
+**Timestamp:** 2026-10-07T22:20:26Z
+**Continues:** 2026-09-28-663
+**Correction to -663: the go was for the three sweeps, not back-by.** -663 read the owner's "Go ahead and start the building" as a go for the existing queue, which starts with back-by. The owner, verbatim: "Not those ones. The fixes we discussed". Asked which, the owner: "The motions, animations, the engineering hygiene, the data sweep". The back-by coder was stopped before it had run Gradle; its branch is unchanged at 29074703. Back-by stays queued for a later go. The builds now run one at a time in the order set in -655: failure fixes (-658, failure-fixes at f862aeda) first, then motion Part 1 (-652, motion-part-1 at cdf0875b), then motion Parts 2 and 3 and the data sweep once written. Because failure fixes now lands before back-by, back-by's own fix-path watch gets failure-fixes' guard when back-by merges main, not the other way round.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -665.
