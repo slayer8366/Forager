@@ -13072,3 +13072,16 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **T16 built and up for merge.** The first T16 coder was stopped before building, during the owner's interruptions of the question round. The owner, verbatim: "Yes, start a new T16 coder". The new coder pushed gpx-import: 68b9628b (48 tests, 26 red on stubs), 7e1df31c (the build), 30906932 (the report, docs/navigation/2026-10-07-gpx-import-report.md). It adds GpxImportActivity (no UI, never builds a recording ViewModel, tested with a recording running), "Import GPX" in Records > Tracks, and MIGRATION_17_18 (importedAtEpochMillis, importedWithoutTimes; 18.json; 276 refs checked, none claims 18). 22 revert checks; one did not fail because the filter line it removed is redundant. Full suite 3,932 → 3,966, 0 failures. The planner checked the diff: no @Ignore, and every removed assertion is a version bump to 18 with its replacement present. The coder's worktree moved to ~/.cache/forager-wt/gpx-import after /tmp's tmpfs quota filled. The planner then removed ten of its own clean, pushed scratch worktrees from /tmp/claude-1000 (3.4 G to 1.5 G). Opened as PR #189.
 **The owner, verbatim:** "Merge T16 once checks pass". Asked about four visible choices the answers didn't cover (a waypoints-only file refused with "This file has no track to import"; a failed save leaving nothing, "Couldn't save this file's tracks. Nothing was imported."; a failed Open with still opening on Records > Tracks with the message; Records rows titled by track name), the owner said: "Keep all four (Recommended)". The merge waits on green CI, with a check that main's database is still at 17 and main backed up first.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -640.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-640
+**Timestamp:** 2026-10-07T08:54:48Z
+**PR:** 189
+**Closes:** 2026-09-28-634 (preserved 2026-10-07-02), with -636 and -639
+**Merge-commit:** aa79f25af2cdb14eb2136611b0e52d9fca1d78f3
+**Pre-merge:** dcad84a02a2cabaa4f361940bb849e7b3b48f7ae
+**Backup:** 2026-10-07-08
+**Observed:** PR #189 (gpx-import, T16) merged on green CI, after main's database was confirmed still at version 17 and main was backed up, on the owner's "Merge T16 once checks pass". Main's database is now at 18. Not yet seen on a phone; the report lists six S22 steps.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -641.
