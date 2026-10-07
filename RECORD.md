@@ -13062,3 +13062,13 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Backup:** 2026-10-07-07
 **Observed:** PR #188 (planner-name) added the planner's name to docs/process/planner-profile.md and merged on green CI. The owner, verbatim: "Rowan it is", then "Add Rowan Waymark to the planner profile. It's a personal touch, I think agents who share a common profile deserve a name to be referred to".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -639.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-639
+**Timestamp:** 2026-10-07T08:50:34Z
+**Continues:** 2026-09-28-636
+**T16 built and up for merge.** The first T16 coder was stopped before building, during the owner's interruptions of the question round. The owner, verbatim: "Yes, start a new T16 coder". The new coder pushed gpx-import: 68b9628b (48 tests, 26 red on stubs), 7e1df31c (the build), 30906932 (the report, docs/navigation/2026-10-07-gpx-import-report.md). It adds GpxImportActivity (no UI, never builds a recording ViewModel, tested with a recording running), "Import GPX" in Records > Tracks, and MIGRATION_17_18 (importedAtEpochMillis, importedWithoutTimes; 18.json; 276 refs checked, none claims 18). 22 revert checks; one did not fail because the filter line it removed is redundant. Full suite 3,932 → 3,966, 0 failures. The planner checked the diff: no @Ignore, and every removed assertion is a version bump to 18 with its replacement present. The coder's worktree moved to ~/.cache/forager-wt/gpx-import after /tmp's tmpfs quota filled. The planner then removed ten of its own clean, pushed scratch worktrees from /tmp/claude-1000 (3.4 G to 1.5 G). Opened as PR #189.
+**The owner, verbatim:** "Merge T16 once checks pass". Asked about four visible choices the answers didn't cover (a waypoints-only file refused with "This file has no track to import"; a failed save leaving nothing, "Couldn't save this file's tracks. Nothing was imported."; a failed Open with still opening on Records > Tracks with the message; Records rows titled by track name), the owner said: "Keep all four (Recommended)". The merge waits on green CI, with a check that main's database is still at 17 and main backed up first.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -640.
