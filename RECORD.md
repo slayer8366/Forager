@@ -13387,3 +13387,36 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 **Continues:** 2026-09-28-664
 **Disk space freed for the builds.** The failure-fixes coder found the home disk 100% full (349 MB free) and stopped before running Gradle. Offered options, the owner, verbatim: "Merged folders + old logs (Recommended)". The planner removed 39 git worktrees (38 under ~/Zynergy/forager-wt and gpx-import under ~/.cache/forager-wt). Each was checked just before removal: a named branch, no uncommitted changes, nothing unpushed against its upstream, and its HEAD an ancestor of origin/main. So every commit in them is on main on GitHub. Seven of them (chrome-colour, followups-backup, followups-map, kept-track-path, landscape-l, marker-fanout, privacy-fixes, site-audit-0929) are branches whose own names never merged, but whose commits reached main by another branch. The branches themselves were not deleted. Also removed: Gradle daemon .out.log files older than a day. Untouched: unmerged or dirty worktrees, evidence, backups, s22-day-check and the active coders' worktrees. Free space went from 349 MB to 6.4 GB. The failure-fixes build then had its go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -666.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-666
+**Timestamp:** 2026-10-07T22:22:41Z
+**Title:** motion-part-2: tabs, bottom bar, navigation, map pop-ups (motion Part 2)
+**Dispatch-file:** preserved/2026-10-07-10.md
+**Context:** the owner's go for "The motions, animations, the engineering hygiene, the data sweep" (-664), and the owner's choices in -651 and -656. Asked whether coders should start writing while the failure fixes build, the owner: "Yes, start them (Recommended)". Motion Part 2 is cut from motion-part-1, and Part 3 follows from Part 2 once written. The data sweep is split into four parts: A, the entry report and "Leave out"; B, the track sheet and the navigation display, after motion Part 2; C, Seasonal; D, dates, Finds and times, after motion Part 3. A and C start now. Builds wait for the planner's go, one at a time, in queue order.
+**Sent:** to a coder subagent, code and tests only, no Gradle.
+**Notes:** Written by the planner by hand, on branch records-after-173. Correction to -665: it says "Seven of them" but lists eight branches (chrome-colour, followups-backup, followups-map, kept-track-path, landscape-l, marker-fanout, privacy-fixes, site-audit-0929). Eight is right. Next free ID -667.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-667
+**Timestamp:** 2026-10-07T22:22:41Z
+**Title:** data-a-entry: the entry report and choosing what's in an entry, "Leave out" (data part A)
+**Dispatch-file:** preserved/2026-10-07-11.md
+**Context:** the owner's go for "The motions, animations, the engineering hygiene, the data sweep" (-664), and the owner's choices in -651 and -656. Asked whether coders should start writing while the failure fixes build, the owner: "Yes, start them (Recommended)". Motion Part 2 is cut from motion-part-1, and Part 3 follows from Part 2 once written. The data sweep is split into four parts: A, the entry report and "Leave out"; B, the track sheet and the navigation display, after motion Part 2; C, Seasonal; D, dates, Finds and times, after motion Part 3. A and C start now. Builds wait for the planner's go, one at a time, in queue order.
+**Sent:** to a coder subagent, code and tests only, no Gradle.
+**Notes:** Written by the planner by hand, on branch records-after-173. Correction to -665: it says "Seven of them" but lists eight branches (chrome-colour, followups-backup, followups-map, kept-track-path, landscape-l, marker-fanout, privacy-fixes, site-audit-0929). Eight is right. Next free ID -668.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-668
+**Timestamp:** 2026-10-07T22:22:41Z
+**Title:** data-c-seasonal: Seasonal, trip windows and the forecast zoom note (data part C)
+**Dispatch-file:** preserved/2026-10-07-12.md
+**Context:** the owner's go for "The motions, animations, the engineering hygiene, the data sweep" (-664), and the owner's choices in -651 and -656. Asked whether coders should start writing while the failure fixes build, the owner: "Yes, start them (Recommended)". Motion Part 2 is cut from motion-part-1, and Part 3 follows from Part 2 once written. The data sweep is split into four parts: A, the entry report and "Leave out"; B, the track sheet and the navigation display, after motion Part 2; C, Seasonal; D, dates, Finds and times, after motion Part 3. A and C start now. Builds wait for the planner's go, one at a time, in queue order.
+**Sent:** to a coder subagent, code and tests only, no Gradle.
+**Notes:** Written by the planner by hand, on branch records-after-173. Correction to -665: it says "Seven of them" but lists eight branches (chrome-colour, followups-backup, followups-map, kept-track-path, landscape-l, marker-fanout, privacy-fixes, site-audit-0929). Eight is right. Next free ID -669.
