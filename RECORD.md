@@ -13378,3 +13378,12 @@ The planner's calls, under earlier answers: R9 stays a Toast; the R1 test seam (
 **Continues:** 2026-09-28-663
 **Correction to -663: the go was for the three sweeps, not back-by.** -663 read the owner's "Go ahead and start the building" as a go for the existing queue, which starts with back-by. The owner, verbatim: "Not those ones. The fixes we discussed". Asked which, the owner: "The motions, animations, the engineering hygiene, the data sweep". The back-by coder was stopped before it had run Gradle; its branch is unchanged at 29074703. Back-by stays queued for a later go. The builds now run one at a time in the order set in -655: failure fixes (-658, failure-fixes at f862aeda) first, then motion Part 1 (-652, motion-part-1 at cdf0875b), then motion Parts 2 and 3 and the data sweep once written. Because failure fixes now lands before back-by, back-by's own fix-path watch gets failure-fixes' guard when back-by merges main, not the other way round.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -665.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-665
+**Timestamp:** 2026-10-07T22:22:27Z
+**Continues:** 2026-09-28-664
+**Disk space freed for the builds.** The failure-fixes coder found the home disk 100% full (349 MB free) and stopped before running Gradle. Offered options, the owner, verbatim: "Merged folders + old logs (Recommended)". The planner removed 39 git worktrees (38 under ~/Zynergy/forager-wt and gpx-import under ~/.cache/forager-wt). Each was checked just before removal: a named branch, no uncommitted changes, nothing unpushed against its upstream, and its HEAD an ancestor of origin/main. So every commit in them is on main on GitHub. Seven of them (chrome-colour, followups-backup, followups-map, kept-track-path, landscape-l, marker-fanout, privacy-fixes, site-audit-0929) are branches whose own names never merged, but whose commits reached main by another branch. The branches themselves were not deleted. Also removed: Gradle daemon .out.log files older than a day. Untouched: unmerged or dirty worktrees, evidence, backups, s22-day-check and the active coders' worktrees. Free space went from 349 MB to 6.4 GB. The failure-fixes build then had its go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -666.
