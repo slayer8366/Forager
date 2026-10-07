@@ -13001,3 +13001,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **T14 built.** off-track-reminder at d001c67e, then 5ca3295f (main merged in; index rows only). The tests went in first against stubs (14 of 21 failing). 10 revert checks bite. Real touches on the checkbox and the prompt. Full suite 3,932, 0 failures. The full suite exposed a settings read/write race, fixed by having reads and writes take turns (10 of 10 passes on disk). Disclosed: the reminder setting is loaded at Settings open, at Record and at service start, not when the app object is built, so just after the system restarts a recording a stored "off" can briefly read as on. The prompt has no button: the whole message bar is the tap target. A 5 GB cgroup kill of one Gradle test JVM (22:32 local) killed only that process; the coder moved Java's temp folder off tmpfs to ~/.cache/forager-test-tmp. Opened as PR #186.
 **The owner, verbatim:** "Merge on green (Recommended)". The merge waits on green CI, with main backed up first. The S22 check gains T14's steps: Restricted, then Record, the prompt once, the tap to App info, Back; and the checkbox off with no buzz on Return.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -634.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-634
+**Timestamp:** 2026-10-07T06:08:19Z
+**Title:** gpx-import: a GPX file becomes a track in Records (plan T16); and T14 merged
+**Dispatch-file:** preserved/2026-10-07-02.md
+**Context:** PR #186 (T14, off-track reminder) merged as fac1d330 on green CI, with main b7bfe135 backed up as 2026-10-07-05, on the owner's "Merge on green (Recommended)". The owner then asked "What's next on the navigation list?" and said "Yes, take T16 through with me". The step path: pick a .gpx file; it lands in Records named from the GPX or the file, with its drawing, distance, dates and an "Imported" label; its waypoints are tied to the track as in T10; a bad file shows "This file couldn't be read as GPX". The owner, verbatim: "Button + Share/Open with (Recommended)" (Records > Tracks > "Import GPX", plus Open with and Share from other apps) and "One track each (Recommended)" for multi-track files, with loose waypoints going to the first track. The verify step checks whether "Imported" needs a Room migration, with its number checked against main's database version now.
+**Sent:** to a coder subagent, verify only. Gradle waits for the owner's "go".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -635.
