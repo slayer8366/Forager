@@ -12838,3 +12838,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-616
 **Correction to -616's step path.** The owner, verbatim: "Long press isn't built yet. Adding waypoints is done by the '+' icon". The planner's step path said "long-press the map > Drop waypoint", which was wrong: the planner had not read how waypoints are added. The confirmed behaviour stands with the entry point corrected: while recording, tap the '+' icon > name it > it is saved, tied to this walk. No long-press is to be built under T10.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -618.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-618
+**Timestamp:** 2026-10-07T02:57:07Z
+**Continues:** 2026-09-28-616, 2026-09-28-617, 2026-09-28-614
+**Amendment 1 to -616 after the coder's stop, and the S22 check's state.** T10's verify report (worktree /tmp/claude-1000/walk-waypoints): the only add path is the map bar's '+' > Waypoint > the centre-pin picker > the name dialog > `TrackRecordingViewModel.addWaypoint` (MainActivity.kt:637). The link is `uiState.activeTrack?.trackId` at name-confirm. GPX export already writes every waypoint linked to the walk (TrackExportPanel.kt:247-252). The stop: Records' walk details (RecordDetailsSheet.kt:290-334) have no map, only a 96 dp line thumbnail. A second planner premise was wrong, and the planner told the owner so.
+**The owner, verbatim:** "Dots on the drawing + list (Recommended)": start, end and waypoint dots on the thumbnail (not tappable), and a list under it; tapping a row opens that waypoint's own details (Navigate and Directions as today). The declined options were "Show on map", a real map in the sheet, and the list only. The heading: ""Waypoints on this track" (Recommended)". The list leaves out the start and end; a walk with no dropped waypoints shows no section. The Gradle go: "Yes, go".
+**Planner's reading, applied as Back retraces the way in:** the waypoint's details replace the walk's, and Back returns to the walk's details.
+**S22 check (-614):** the build of 4db24110 succeeded (versionName 1.0.2845+g4db24110, APK kept at /tmp/claude-1000/wt-s22-sundown). The S22 was not attached (not in adb or lsusb), so nothing was installed or checked. It waits for the phone on USB.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -619.
