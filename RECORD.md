@@ -13113,3 +13113,13 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 **Dispatch-file:** preserved/2026-10-07-03.md
 **Context:** the owner, verbatim: "S22 plugged in, start the phone check". One build of main aa79f25a under the 5 GB cap. In order: desk steps now (off-track reminder and its Restricted prompt, GPX import, walk waypoints); the sunset window at about 16:08 PDT (the line, start back by, the margin, landscape against the centre); then outdoors with the owner (Approaching and Arrived, a walk waypoint, and -400 with the app swiped away). The T6b coder is doing light Python work meanwhile.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -644.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-644
+**Timestamp:** 2026-10-07T17:22:45Z
+**Continues:** 2026-09-28-643, 2026-09-28-642
+**S22 day check, step 1 (desk), and two fixes queued.** Report on s22-day-check at d8da9dbd. 1.0.2874+gaa79f25a was installed; the database migrated 17 to 18. Off-track reminder: all desk items pass (the tick box and its persistence; the Restricted prompt once; App info and Back; no prompt when off, on a repeat, or when allowed). GPX import: the picker, multi-track ("Imported 2 tracks"), no times, route-only, broken file, Open with, Share, and Open with during a recording (service unchanged) all pass. Walk waypoints: a '+' waypoint is listed under "Waypoints on this track", row > details > Back > walk > Back passes; dots not yet seen on a recorded walk (0 indoor points). Findings: (1) the "Imported" label beside a long title is squeezed to one letter per line; (2) Back after Open with or Share steps through Forager's screens to Maps, as the owner's "Invisible doorway" option described; (3) at font scale 2.0 in landscape, the top strip and the HUD overlap the search bar and "No origin waypoint…" clips to "No", while the HUD bottom (408 px) stays clear of the central third. The dispatch's "128 dp = 360 px" was the planner's error: it is 480 px at 600 dpi. The coder set Restricted without reading the prior battery mode; after its restore the page shows "Unrestricted". The T6b runner fix (retry with backoff, defer and continue) is pushed at be17b71: 460 tests, 32 of 34 revert checks bite; tonight's soil and US trees need about 3.9 GB of the 6.1 GB free.
+**The owner, verbatim:** the battery mode, "Set it to Optimized (Recommended)". The large-font overlap, "Log it, fix next (Recommended)". The squeezed label, "Fix it (Recommended)": the label stays on one line and the title shortens with "…". The two fixes go to one small dispatch after today's check.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -645.
