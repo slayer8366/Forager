@@ -13477,3 +13477,12 @@ The planner's calls under the owner's -651 answers:
 - The drawn-only grow, with touch areas at the final place, is confirmed ("Touch areas unchanged").
 - Two maps for a moment (Maps to an entry map) is judged on the S22, with the coder's fallback ready.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -673.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-673
+**Timestamp:** 2026-10-07T22:59:45Z
+**Continues:** 2026-09-28-658
+**Failure fixes green, and data part A Amendment 2.** failure-fixes at 28e2e512: with the decode stand-ins answering dimensions-only calls as the platform does (af39a73e, test-only, no assertion changed, revert-checked from saved copies), the full suite is 495 suites, 4,004 tests, 24 skipped, 0 failures. Gradle is stopped. Not merged, and no PR yet. Motion Part 1 builds next under -664's go. Motion Part 2 Amendment 1 is applied at f0689094, not compiled. It found that design-token check 3 misses a tween written with type arguments (tween<Float>(…)); this goes to a later blind-checks fix. Data part A (data-a-entry at 684970ea), the owner, verbatim: "'No longer in Records' (Recommended)" for a track deleted from Records since the entry; "'Chanterelle · 2 journal entries' (Recommended)": when a photo's line names both a find and journal entries, neither gets "In".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -674.
