@@ -12930,3 +12930,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Context:** the owner, after the planner explained the navigator plan's reason for "a local phone reminder, not a monitored service" (-625), said verbatim: "Just say that it sets a reminder. No need to hedge anything." This supersedes that wording requirement. Shown the step path, the owner chose "Yes, both (Recommended)" (the other option was wording only). The path: Settings reads "Off-track reminder: your phone buzzes if you head away from your start."; the alert text is unchanged; at the first recording with the reminder on, a background-run check shows nothing if allowed, or one prompt "To make sure your off-track reminder can buzz, let Forager run in the background" > the phone's battery setting > Back to the recording. Stops: no off-track setting exists today; the only route needs a restricted permission.
 **Sent:** to a coder subagent, verify only. Gradle waits for the owner's "go".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -627.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-627
+**Timestamp:** 2026-10-07T05:05:59Z
+**Continues:** 2026-09-28-626
+**Amendment 1 to -626 after the coder's stop.** Settings has no off-track option (AvailabilitySettingsUi.kt:276-329). The alert runs whenever Return is tapped during a recording and nothing turns it off (ReturnWatch.kt:170-186, :266). Opening Forager's battery yes/no directly needs REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, which Google Play's Device and Network Abuse policy (answer/9888379) allows only for eligible apps. Separately, `scripts/verify-policy-permissions.sh` fails today on a pre-existing gap: the manifest declares CAMERA and the privacy policy doesn't account for it. That was reported, not touched.
+**The owner, verbatim:** "Add an on/off tick box (Recommended)": "Off-track reminder: your phone buzzes if you head away from your start.", on by default, stored like the Sundown alerts switch; unticking it stops the alert (new behaviour). "At Record (Recommended)": the check runs when a recording starts, beside the existing silenced-phone notice. "Only when truly blocked (Recommended)": the prompt shows only when ActivityManager.isBackgroundRestricted() is true. "App info page, once per block (Recommended)": the prompt opens ACTION_APPLICATION_DETAILS_SETTINGS for Forager (no restricted permission) and shows once, and again only after the phone becomes blocked again.
+**Not decided:** the Gradle go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -628.
