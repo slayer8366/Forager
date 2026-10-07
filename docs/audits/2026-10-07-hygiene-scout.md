@@ -700,3 +700,128 @@ is unknown to this document, they are not counted, and the areas they cover stay
 | **Total, whole report** | **13** | **36** |
 
 The other areas' counts are unchanged.
+
+## Addendum 2, 2026-10-07: the fifth survey in full (supersedes Addendum 1's counts)
+
+The fifth survey's full report reached this session after Addendum 1 was pushed. This section
+replaces Addendum 1's counts and its "seven unseen" note. Addendum 1 is left as written. Its G1, G2
+and G3 are F1, F10 and F3 below; its G4 is F4 and F5.
+
+Each item was re-read by me against `aa79f25a` unless marked "survey".
+
+### What the fifth survey cleared
+
+- **Migrations.** Each step from 4→5 to 17→18 has its own test validated against the next schema
+  JSON (`app/src/test/.../data/local/SchemaMigrationTest.kt:67-150`), plus a 4→18 chain test (`:167`).
+  - 3→4 is covered only by a v3 fixture. That is recorded at `SchemaMigrationTest.kt:38-40`.
+  - `version = 18` and `exportSchema = true`; 15 schema files, 4 to 18.
+  - The destructive fallback is debug-only and recorded (`ForagerDatabase.kt:135-152`, `:205-207`).
+  - The repeated rebuild DDL in `Migrations.kt` is frozen per-version snapshots. That is expected,
+    not a finding.
+  - Survey.
+- **AppContainer.** No swallowed exceptions, and no property without a use.
+  - 17 public properties are used only inside the class and could be private. That is minor and
+    not counted.
+  - Survey.
+- **Availability UI files.** No catch or `runCatching`, and every private function has a caller
+  (survey).
+- **`scripts/`.** No script is dead (survey).
+
+### Findings
+
+**F1. `scripts/verify-design-tokens.sh` check 2 can never fail.** Under, confirmed.
+- This is Addendum 1's G1.
+- The rename commit (`892883c3`, survey) missed the escaped pattern at `:54`.
+- The header (`:11-19`) still says "check 2 still fails".
+- Inferred: the header's claim that check 3 passes may also be stale (8 `tween(` hits under `ui/`;
+  survey, some may be comments).
+- Bark alone is imported in 9 files (survey).
+
+**F2. `AvailabilityScreen()` is one composable of about 1,447 lines.** Over (the survey's label;
+by this report's sorting it reads as under, like the other large-file items). Line counts survey.
+- Where: `ui/availability/AvailabilityScreen.kt:398-1844`.
+- Recorded split Stages F and G (`RECORD.md:1769-1787`, `:1878-1936`) took the file from 5,674 lines
+  to 1,505. No record decides on further splitting (inferred from a search).
+- Counted here as **under**, in line with X2.
+
+**F3. A dead branch in `SpeciesSearchControls`.** Over, confirmed.
+- This is Addendum 1's G3.
+- `onUseCurrentLocation` is passed in only to feed the dead branch (`AvailabilitySearchUi.kt:241`, `:815`).
+- Its KDoc (`:792`, `:808`, `:826`) names call sites that no longer exist (survey).
+
+**F4. `AvailabilityScreen`'s KDoc links a composable that no longer exists.** Under (doc), confirmed.
+- `ui/availability/AvailabilityScreen.kt:374` and `:392` link `[AvailabilitySearchTopBar]`.
+- `git grep "fun AvailabilitySearchTopBar"` finds 0.
+
+**F5. Two "no consumer yet" comments in `AppContainer` are wrong.** Under (doc), confirmed.
+- `AppContainer.kt:180` says `computeTrueHeadingUseCase` has "No consumer yet by design". It is
+  consumed at `MainActivity.kt:694`.
+- `AppContainer.kt:389-390` says `getTrackOriginWaypointUseCase` has "no consumer until the
+  navigation HUD dispatch". It is consumed at `MainActivity.kt:226`.
+- Same family as the `returnWalkingTime` note under R11: a reachability claim that later work made
+  false.
+
+**F6. The same settings row is hand-copied eight times.** Over (survey label); hand-copied, so
+counted here as **under**, in line with X3. Survey.
+- Where: `ui/availability/AvailabilitySettingsUi.kt`. Radio rows at `:388`, `:451`, `:575`; checkbox
+  rows at `:374`, `:419`, `:474`, `:500`, `:527`.
+- `PhotoLocationSection` (`:495-513`) and `CameraPortraitLockSection` (`:522-541`) are identical
+  apart from two constants.
+- Overlap: **data scout** (Settings) and **motion Part 1** item 3 (press highlight on hard-cornered
+  controls), which may touch these rows.
+
+**F7. `WindowWidthClass` models a distinction nothing uses.** Over, confirmed.
+- Where: `ui/adaptive/WindowWidthClass.kt:13-44`.
+- Its only behavioural test is `== WindowWidthClass.COMPACT` at `ui/availability/AvailabilityResultsUi.kt:251`.
+  MEDIUM and EXPANDED are never told apart, so the 840 dp breakpoint drives nothing.
+- The tablet tree was removed in dispatch 2026-09-28-245 (survey).
+
+**F8. Unused theme tokens, including a font shipped in every APK.** Over, partly recorded; confirmed.
+- `LongFormSerifTextStyle` and `CompassCoordinateTextStyle` have 0 callers outside `Typography.kt`.
+  `Spacing.xl` and `Spacing.xxl` have 0 callers (survey).
+- `LongFormSerifTextStyle` is the only reason `res/font/notoserif_regular.ttf` (444,064 bytes, survey)
+  exists.
+- Release builds have `isMinifyEnabled = false` (`app/build.gradle.kts:288`), so the font ships.
+- The tokens are recorded as unwired scaffolding (`Typography.kt`, `Spacing.kt`,
+  `docs/plans/understory-design-system.md:1255`). The APK cost is not recorded.
+- Inferred: shrinking would otherwise remove it.
+
+**F9. The migration list is hand-copied into 13 test files.** Over (survey label); counted here as
+**under** (hand-copied). Survey.
+- Production keeps its list private (`ForagerDatabase.kt:227`). `SchemaMigrationTest.kt:258` and 12
+  legacy migration tests each restate it.
+- Room throws on a missing path, so a stale copy fails loudly.
+- Risk: maintenance only.
+
+**F10. `scripts/compare-test-baseline.sh` can report a clean run when perl fails.** Under; the gap
+is confirmed, the effect inferred.
+- This is Addendum 1's G2.
+- An empty run file prints "VERDICT: no failures outside the recorded baseline" and exits 0
+  (`:66-67`, survey).
+
+**F11. `scripts/measure-night-inversion.py` doesn't count skipped tiles in its summary.** Under,
+minor; confirmed.
+- The catch at `:192` is commented as deliberate ("report and continue").
+- The worst-case summary never says how many tiles failed (survey). That is partial data presented
+  as the full sample.
+
+### Updated counts (supersede Addendum 1)
+
+| Area | Over | Under |
+|---|---|---|
+| Map and its chrome (with the motion package) | 2 | 5 |
+| Journal, records, finds, camera, GPX | 3 | 8 |
+| Recording, navigation, alerts, location | 1 | 10 |
+| Data (with `AppContainer`, migrations) | 4 | 9 |
+| List, Seasonal, search, Settings, Tools (with theme, adaptive) | 3 | 7 |
+| Build and dependencies (with `scripts/`) | 2 | 3 |
+| **Total** | **15** | **42** |
+
+How the eleven were sorted:
+- F2, F6 and F9 are counted as under, by this report's rule that size and hand-copying are under.
+  The survey labelled them over.
+- Data gains F5 and F9.
+- List gains F2, F3, F4, F6, F7 and F8.
+- Build gains F1, F10 and F11.
+- "Not covered" in the area sections above is now covered, except that the survey's per-composable
+  test search was inconclusive. Tests assert by tag, not by name.
