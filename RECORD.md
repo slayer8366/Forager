@@ -13021,3 +13021,21 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-634
 **T16 Gradle go.** The owner, verbatim: "Go ahead and build T16". Passed to the coder: build unless its verify report finds a stop (a migration collision, the import touching recording, navigation or alert state, or a new permission).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -636.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-636
+**Timestamp:** 2026-10-07T06:22:01Z
+**Continues:** 2026-09-28-635
+**The planner profile, and T16's answers.** The owner, verbatim: "I like your overall planning style, how you handled multiple tasks, and how you asked questions, and so on. Can you model it into a planner profile saved to the repo?" Written as docs/process/planner-profile.md on branch planner-profile and opened as PR #187. T16's coder stopped at verify (worktree /tmp/claude-1000/gpx-import, nothing built). Open with/Share into MainActivity would start a second Activity whose TrackRecordingViewModel takes up a running recording and re-sends ACTION_START (TrackRecordingViewModel.kt:268-272, MainActivity.kt:434-450). Its other findings: GpxCodec.decode has no production caller, reads only the first track, drops untimed points and unnamed waypoints, ignores routes, and parses DOCTYPE; an "Imported" flag needs MIGRATION_17_18 (database at 17, no branch claims 18); an imported track must have an end time; ms-timed points are hidden by the network-fix rule; re-importing Forager's own export would overwrite waypoints by id, so imports get fresh ids.
+**The owner's answers.** The questions were asked twice; the second round showed some as "No preference". The owner then said, verbatim, "Anything skipped means it stays as is", and confirmed "Keep my first answers (Recommended)". The answers stand as follows:
+- Profile: "Merge it (Recommended)".
+- Open with/Share: "Invisible doorway (Recommended)". A separate import Activity saves the track, then opens Forager on Records on the new track, never touching recording.
+- No-times files: "Import, show "No times" (Recommended)". Dated the import day, showing "No times in file" where duration or pace would be; a second column in the same migration if needed.
+- Journal: "Records and map only (Recommended)".
+- Millisecond times: "Round to the second (Recommended)".
+- Routes: "Leave routes out for now (Recommended)", with "This file has a route but no track; routes aren't imported yet".
+- Size: "10 MB limit (Recommended)", with "This file is too big to import (over 10 MB)."
+The coder's smaller calls are accepted by the planner: segments joined, nameless waypoints named "Waypoint N", an untimed waypoint takes the track's start, DOCTYPE off, imported ORIGIN/END designations kept as labels only, and fresh ids. T16's Gradle go stands (-635).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -637.
