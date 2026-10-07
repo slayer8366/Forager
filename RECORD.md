@@ -13268,3 +13268,21 @@ The coder's smaller calls are accepted by the planner: segments joined, nameless
 - Dead weight: "Remove what costs, keep plans (Recommended)". Remove the unused serif font and the unreachable search option. Unused spacing and tablet breakpoints stay, with a note.
 - Blind checks: "Fix and prove they bite (Recommended)". Each one is pointed at the real thing and shown failing on a planted mistake. What it then finds (74 design-token imports for the first) goes to the owner as a list, not fixed silently.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -656.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-656
+**Timestamp:** 2026-10-07T20:53:38Z
+**Continues:** 2026-09-28-653
+**The owner's data-friendliness choices** (from the data scout, data-scout at 00caf406). The owner's answers, verbatim:
+- Entry report: "Summary tiles + height profile (Recommended)". Labelled tiles (Distance, Time out, Climb, Finds), a small height profile, then waypoints as a short table (name, time, distance from start), with coordinates behind a tap. Every number carries its label and unit.
+- Choosing what's in an entry: "Summary first, open to adjust (Recommended)". One panel with a switch per group; tap a group to change single items; a track's Start, End and waypoints sit under the track; items new since the last save are flagged at the top.
+- The word: "'Leave out' (Recommended)". "Withhold" becomes "Leave out", and its opposite "Include".
+- Track sheet: "Tiles + profile, raw tucked away (Recommended)". Distance, Time, Climb, Descent, Avg speed and the height profile; Points and other raw figures go in a "Details" fold.
+- Navigation display: "Plain words + labels (Recommended)". For example "Slight left · 10°" with an arrow, "0.4 mi by trail" or "0.3 mi straight", heading and altitude labelled. Numbers stay big and instant.
+- Seasonal and trip windows: "Plain scales + real charts (Recommended)". Soil moisture as Dry, Moist or Wet with the figure under it; the chart gets axes, labels and equal spans; daily rain is kept and drawn as a 14-day bar chart; conditions are a small table.
+- Dates: "Use 'Oct 7, 2026' everywhere. In the Finds tab, the date is shown as part of the tile. Have it group the entries by date and then keep the name they gave on the tile instead of the date". This replaces the earlier planner answer Q3 (ISO dates in the map's journal menu and bubbles). Finds are grouped under date headings, and each tile shows the find's given name. Unnamed: "Time it was found (Recommended)", for example "Found 2:14 PM".
+- Small ones: "Fix both (Recommended)". "Zoom in to see the forecast" below the layer's zoom, and times follow the phone's 12- or 24-hour setting.
+- Shown the whole summary, the owner: "Yes, that's right (Recommended)". It is built after the failure fixes and the motion parts (-655's order).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -657.
