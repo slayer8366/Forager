@@ -13642,3 +13642,12 @@ The planner's calls on the other stops: J6/J10/F5/F8/V4/K2 (a loading or empty s
 **Continues:** 2026-09-28-677
 **PR #196 merged into main** (a71b57ac), from data-b-track-nav (head a80fc364): data part B, dispatch -677 with amendment -680. The owner, verbatim: "Merge data part B once checks pass". The laptop suite passed after merging main through data part A (4,167 tests, 0 failures, 9 revert checks bit). The planner merged main again for data part C (a80fc364), which conflicted only in the audits index; both rows were kept. CI "Build, test, publish APK" passed on that head. Pre-merge main f6fc6c91 is backed up at forager-repo-backups/2026-10-07-15. The S22's real landscape clearance, the profile's look and the outlined tiles over satellite imagery are still to be checked on the phone.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -689.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-689
+**Timestamp:** 2026-10-08T01:29:46Z
+**Continues:** 2026-09-28-685, 2026-09-28-687
+**Build order.** The owner, verbatim: "Motion part 3, then the small fixes, and then the back-by". Motion Part 3 builds now and merges on green CI (owner, earlier: "Merge motion Part 3 once checks pass"). Then the small fixes (-685) are cut from main after Part 3 lands, written, and built. Then back-by builds, after merging main with the small fixes. Both the small fixes and back-by touch the alert delivery code, so back-by takes the small fixes' vibration-record and "Start back now" changes when it merges main.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -690.
