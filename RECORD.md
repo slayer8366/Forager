@@ -14316,3 +14316,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** The -755 coder could not make the landscape bar grow on the merged code: at 780 and 823, in both rotations, after a turn from portrait, with short and long summaries, the bar keeps its closed bounds and the panel hangs flush beneath it. The owner: the S26 screenshot was "Build 1.0.3097". That is the commit count of c0ec942a, main before #206. Asked whether the bar itself moved or the bar and panel only read as one block, the owner answered "Not sure".
 **Decision:** No geometry change for item 1. Guard tests stay. The coder reads c0ec942a's code to see whether #206 changed this. The owner looks again on the new build.
 **Notes:** Planner's slip, disclosed: -755's "at its own width" was the planner's wording and not part of the owner's choice in -754. Next free ID -759.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-759
+**Timestamp:** 2026-10-08T22:42:13Z
+**Title:** -755 item 1 reopened: the bar outgrows the strip after a turn to landscape on build 3103
+**Context:** The owner sent an S26 screenshot on build 1.0.3103 (merged main 34fd5deb), in landscape with the dropdown closed: "Build 3103 does similar with the same action, but this time no species name was input. But the behavior was triggered by rotating from portrait to landscape". As the planner reads it, the bar's fill reaches lower than the strip's bottom and wider than the join, under the strip's left end. The screenshot is kept at ~/Zynergy/device-evidence/2026-10-08/, off GitHub. This supersedes -758's "no geometry change".
+**Decision:** The coder finds the cause on the S22 (install -r only, captures kept outside the repo), then fixes it so the bar keeps the strip's height and ends at the join after any rotation, open or closed. A test must fail on the real cause.
+**Notes:** Next free ID -760.
