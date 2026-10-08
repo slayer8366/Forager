@@ -13576,3 +13576,13 @@ Motion Part 3 (motion-part-3 at 2cb2b19e, not compiled). The owner, verbatim: "S
 Data part A: confirmed with a probe that Save sat at 530–582 dp on a 470 dp test root. The three CartographyScreenTest Save tests now scroll to Save, with assertions unchanged. Full suite on data-a-entry 8755d85e: 4,093 tests, 0 failures. Ready to merge on the owner's word.
 Data part B (add94e66, not compiled; main merged): the planner accepts the coder's two calls. Moving speed shows "—" under 5 minutes of moving time, rather than an assumed 2 mph ("unsupported" is never a fabricated value). Decimal coordinates always use a full stop as the decimal mark.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -682.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-682
+**Timestamp:** 2026-10-08T00:51:56Z
+**Continues:** 2026-09-28-681
+**Amendment 2 to -676 (motion Part 3).** Amendment 1 is applied at motion-part-3 48e16e1f, not compiled. The Tools drawer's pages (T1–T3) sit at 80% over the map, and a page sliding over another inside it would block the map, show a darker overlapping band, or show both pages through each other. Asked, the owner, verbatim: "The tool drawer pulls from the left side so the animation sliding from the left is logical. Is there a reason to discontinue the slide?" The planner explained that the problem is overlap, not sliding, and offered a push slide. The owner: "Push slide from the left (Recommended)". A new page slides in from the drawer's left edge while the current page slides out to the right, side by side with no overlap, so the drawer stays at 80%. Back reverses it, on every tab.
+The planner's calls on the other stops: J6/J10/F5/F8/V4/K2 (a loading or empty state giving way to content) crossfade; E2/E3 grow in like rows; E1 (entry map to fullscreen) and R11/R12 (sheet replacing sheet) stay instant, because animating them would re-measure the live map or change a touch area mid-change; K1 (camera) and V1 to V5 (photo viewer) keep the system's window behaviour; F7/R5's end reflow jump is accepted for now.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -683.
