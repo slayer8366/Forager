@@ -13539,3 +13539,12 @@ The planner's calls under the owner's -651 answers:
 - A leave-by time already past when the alert fires: "'Start back now' (Recommended)". It still fires once and never names a time already gone.
 - The off-track buzz retest on Vibrate with the app swiped away: "Now, before dark".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -679.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-679
+**Timestamp:** 2026-10-08T00:30:45Z
+**Continues:** 2026-09-28-666
+**PR #193 merged into main** (bc85fd29), from motion-part-2 (head 008ebbab): motion Part 2, dispatch -666 with amendment -672. The owner, verbatim: "Merge motion Part 2". CI "Build, test, publish APK" passed on the head. The laptop suite: 4,083 tests, 0 failures. All 14 revert checks bit. Pre-merge main 1317369f is backed up at forager-repo-backups/2026-10-07-12. Its look and feel, and the live map's cost during a tab fade, are still to be checked on the S22. Also: data part A's build found 3 CartographyScreenTest failures (Save pushed below the test screen's fold by the new panel). The owner: "Confirm cause, then scroll (Recommended)".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -680.
