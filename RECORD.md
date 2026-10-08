@@ -13907,3 +13907,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-713
 **Back-by, third round.** back-by at ce93efa4. Full suite: 4,317 tests, 3 failures. -713's two rules are built (readoutsFitBeside; the kind in the status line; "Unable to calculate route" at status size when it doesn't fit), with R15 to R18 biting. Left: at 360 dp the display's status column is 87 dp beside the three-dot button, narrower than some statuses ("≈ 1250 ft straight" needs 102 dp). The owner, verbatim: "Button moves to second row (Recommended)". Only when the screen is that narrow, the display's three-dot button sits at the end of its second row, the status gets its full width, and the second row's readouts give way under -713's rule with coordinates whole. Wider screens keep it beside the X (-648). The planner's calls: delete the now-uncalled readoutsKeptBeside/stripReadoutsShown and their tests (dead code, "Remove what costs", -655), and keep "Unable…" at status size conditional.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -715.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-715
+**Timestamp:** 2026-10-08T07:27:41Z
+**Continues:** 2026-09-28-714
+**Back-by, fourth round.** back-by at caf337f9. Full suite: 4,313 tests, 4 failures. The button's row is chosen by a measured fit (firstRowHoldsTheButton, against data part B's longest route line). The measurement put the button in the second row at 320 and 360 dp portrait and in both landscape widths, and beside the X at 384 dp (S22). The planner had told the owner landscape would keep it beside the X; that was wrong, because the landscape display is capped at the search bar. Wherever the button is in the second row, the display is 12 dp taller (108 dp in landscape, still above the central third). The owner, verbatim: "Keep it, 12 dp taller (Recommended)". The planner's calls under the owner's rulings: data part B's three 360 dp display tests change from "labels drawn" to -713's rule (labels may drop, values and coordinates whole); NavigationHudQuickSettingsWidthTest's "No origin waypoint for this track" case, cut even without the button, changes to -694's rule (one line, ends in "…").
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -716.
