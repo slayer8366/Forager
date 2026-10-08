@@ -14241,3 +14241,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** the owner's landscape report (quoted in the dispatch), and "Yes, build now. To clarify a bit: If the keyboard is floating keep it to the one side. The bar still should scroll up to reveal the search button at the bottom". The device check (-749) found a recent search's results loading while the map stayed on the GPS fix (SightingsMap.kt:880-899), which is likely the owner's original "nothing new" report. The owner: "Yes, fly to the search (Recommended)". The device check also gets the owner's "Yes, add two (Recommended)" for two test finds on the S22. Clear now resets the selection, which replaces -728's kept selection. The device check observed French common names in species suggestions; that is logged for later. Per -748 the planner pauses T6b for this build, and gives the owner the patience reminder they asked for.
 **Sent:** to a coder subagent; the build runs once T6b has paused.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -751.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-751
+**Timestamp:** 2026-10-08T20:54:44Z
+**Continues:** 2026-09-28-750
+**A "New find" button replaces the "+" tile.** The owner, verbatim, with two phone screenshots (kept off GitHub): "Now that the UI changed for Finds (which I like), can we use a New Find button instead of the + tile. The New Find button should look like the New Entry button found in the journal entry section." Shown as steps (the grid starts at the first date heading; a "New find" extended button floats bottom right, matching "New entry"; tapping it opens a new find as the tile did), the owner chose: "The Finds leaf (Recommended)" for the icon, and "Yes, same build (Recommended)", so it joins landscape-search-fixes (-750). This supersedes -703's "+" tile alone at the top.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -752.
