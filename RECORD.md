@@ -14259,3 +14259,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-749
 **Device check findings queued as a follow-up.** The merged device check (-749) passed items 1 to 7 and 9 on the S22 with CI's APK for c0ec942a. Its failure (a recent search not moving the map) is in -750. Two motion observations: the night blend shows one muddy grey middle frame instead of a smooth fade, and returning to Maps from another tab shows a blank map with the heading "—" for a moment, then one frame drawn hugely magnified before the view settles. The owner, verbatim: "Yes, add them to a follow-up". Both go to a small follow-up after landscape-search-fixes, with the root cause found before any fix (map: likely the tab crossfade's hold and the camera restore; night blend: the colour interpolation). Also on the list: French common names in species suggestions; the 6 dp accessibility gap at ROTATION_270's join; CI failing on main's push run for 6cbcdac5.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -753.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-753
+**Timestamp:** 2026-10-08T22:01:30Z
+**Continues:** 2026-09-28-750, 2026-09-28-751
+**landscape-search-fixes built; two owner calls.** landscape-search-fixes at eb4932ca, PR #206 open. Full suite: 4,485 tests, 0 failures. All 11 revert checks bit. S22 launch check: PASS on 1.0.3101+ga1accb17. The landscape gap was 36 dp, from the panel leaving room for the strip that sits beside the bar there; it is now 0. Item 4 (the bar dropping below the strip) did not reproduce; 8 guard tests were added, and Clear's reset removes the owner's state. The owner, verbatim: "Keep month and radius (Recommended)", so Clear resets the species but keeps the month and radius; and "Yes, match Entries (Recommended)", so in short landscape New find moves into the header row like New entry, as a quick follow-up after this merge. It merges once checks pass (the owner's "Yes, build now" on the option reading "Merge once checks pass").
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -754.
