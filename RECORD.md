@@ -13586,3 +13586,12 @@ Data part B (add94e66, not compiled; main merged): the planner accepts the coder
 **Amendment 2 to -676 (motion Part 3).** Amendment 1 is applied at motion-part-3 48e16e1f, not compiled. The Tools drawer's pages (T1–T3) sit at 80% over the map, and a page sliding over another inside it would block the map, show a darker overlapping band, or show both pages through each other. Asked, the owner, verbatim: "The tool drawer pulls from the left side so the animation sliding from the left is logical. Is there a reason to discontinue the slide?" The planner explained that the problem is overlap, not sliding, and offered a push slide. The owner: "Push slide from the left (Recommended)". A new page slides in from the drawer's left edge while the current page slides out to the right, side by side with no overlap, so the drawer stays at 80%. Back reverses it, on every tab.
 The planner's calls on the other stops: J6/J10/F5/F8/V4/K2 (a loading or empty state giving way to content) crossfade; E2/E3 grow in like rows; E1 (entry map to fullscreen) and R11/R12 (sheet replacing sheet) stay instant, because animating them would re-measure the live map or change a touch area mid-change; K1 (camera) and V1 to V5 (photo viewer) keep the system's window behaviour; F7/R5's end reflow jump is accepted for now.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -683.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-683
+**Timestamp:** 2026-10-08T00:53:48Z
+**Continues:** 2026-09-28-667
+**PR #194 merged into main** (f17b24b5), from data-a-entry (head 497305c9): data part A, dispatch -667 with amendments -671 and -673. The owner, verbatim: "Merge data part A once checks pass". The laptop suite passed before main moved (4,093 tests, 0 failures, 8 revert checks bit). Merging main after motion Part 2 conflicted only in the audits index. CI "Build, test, publish APK" passed on the merged head; that was its first compile and test of the merged code. Pre-merge main bc85fd29 is backed up at forager-repo-backups/2026-10-07-13. Device checks D1 (profile threshold against real walks) and D2 (Save on an empty day) are still open.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -684.
