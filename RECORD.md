@@ -13604,3 +13604,14 @@ The planner's calls on the other stops: J6/J10/F5/F8/V4/K2 (a loading or empty s
 **Continues:** 2026-09-28-678
 **S22 day check finished; -400 passes on Vibrate.** The owner's retest ("S22 plugged in, test finished"): ringer on Vibrate at 17:44:07, recording from 17:44:28, Return at 17:50:46, Forager swiped away at 17:50:54. At 17:54:01 the app judged off-track and posted its notification, and Android's vibration history shows the buzz played ("finished", 690 ms). A sundown alert buzzed at once when recording started, because the day's leave-by time had already passed; this is the case -678's "Start back now" fix covers. The final report is on s22-day-check at 6c1c9005 (docs/navigation/2026-10-07-s22-day-check.md). The margin is back to 1 h. The phone's ringer is left on Vibrate, as the owner left it. Final DB hash forager.db 40397ca1…, WAL c6be97ae…. Since step 2 the database has gained 2 tracks, 6 waypoints and 524 points. Open: the no-times track's bubble, the Journal step (empty on this phone), and dark-mode dots. The queued small fixes stand: the "Imported" label squeeze, the large-font landscape overlap, the false "vibration=done", and "Start back now".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -685.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-685
+**Timestamp:** 2026-10-08T01:02:07Z
+**Title:** small-fixes-1007: the "Imported" label, the large-font landscape overlap, a skipped buzz recorded as done, "Start back now", typed tweens in check 3
+**Dispatch-file:** preserved/2026-10-07-15.md
+**Context:** the owner, verbatim: "Write the queued small fixes dispatch". The fixes come from -644 ("Fix it (Recommended)"; "Log it, fix next (Recommended)"), -678 ("Fix: record it as skipped (Recommended)"; "'Start back now' (Recommended)") and -655 ("Fix and prove they bite (Recommended)"), with the typed-tween gap found by motion Part 2. On timing, the owner: "After B and Part 3 merge (Recommended)". Stops: fix 2's approach and fix 4's exact strings go to the owner before the build.
+**Sent:** not yet. The coder starts once data part B and motion Part 3 are on main.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -686.
