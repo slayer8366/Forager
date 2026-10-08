@@ -14055,3 +14055,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-729
 **Merge word.** The owner, verbatim: "Merge it once checks pass". This covers PR #202 (already covered by -728's word) and the landscape-bar-strip branch (-729), each after its laptop build is green and its CI passes. T6b resumes after the landscape merge.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -731.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-731
+**Timestamp:** 2026-10-08T13:56:11Z
+**Continues:** 2026-09-28-728
+**PR #202 merged into main** (f8739856), from search-keyboard (head 50f245d9): -722 to -728. The owner, verbatim: "Merge it once checks pass". The laptop suite: 4,416 tests, 0 failures. CI "Build, test, publish APK" passed on the first run. Pre-merge main bfbba33f is backed up at forager-repo-backups/2026-10-08-04. Next: landscape-bar-strip (-729), then T6b resumes.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -732.
