@@ -13713,3 +13713,12 @@ Logged as separate findings, not fixed here: at font 2.0 in landscape, Record an
 **Context:** the owner, verbatim, with a phone screenshot of Trip Windows for Fly Agaric (kept off GitHub): "Real quick: remove the bottom text about "No weather guidance for this section" and the text below it. That seems like a placeholder and users might get confused". The planner explained that the text was deliberate honest copy, and that Fly Agaric, a fungus, was falling to the no-guidance branch because forChip gives a SpecificTaxon a null group. The owner: "Both, everywhere; fix Fly Agaric (Recommended)". The no-guidance block and the italic species note go everywhere; the fungi and plants pattern text stays.
 **Sent:** to a coder subagent, code and tests now. Its build is queued after the small fixes and back-by (-689).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -696.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-696
+**Timestamp:** 2026-10-08T03:55:25Z
+**Continues:** 2026-09-28-695
+**Amendment 1 to -695 (guidance-text).** Items 1, 2 and 4 are written at guidance-text 99a401a1, not compiled. The no-guidance block and the species note are removed, and forSelection returns null when there is no guidance. Only one path loses a species' group: reopening a recent search (AvailabilityViewModel onRecentSearchSelected), because cached_searches stores only the taxon id and label for a species. The owner, verbatim: "Save it with the search (Recommended)". A new nullable column on cached_searches holds the species' iNaturalist iconic group, written on save and read when a recent search is reopened. ForagerDatabase goes from version 18 to 19 with MIGRATION_18_19 and its schema JSON. The planner checked that no other open branch claims version 19 (main, back-by, small-fixes-1007 and guidance-text are all at 18). Rows saved before the change keep no group. Lichens keep their deliberate null.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -697.
