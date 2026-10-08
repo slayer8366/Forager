@@ -13702,3 +13702,14 @@ Motion Part 3 (f7cb6ea3, main merged through data part C): 46 new tests pass, an
 - The skipped-buzz record: "Yes, cover Do Not Disturb (Recommended)". It also records "skipped (Do Not Disturb)" from the interruption filter. A phone-level vibration-off setting can't be read reliably, and the report says so.
 Logged as separate findings, not fixed here: at font 2.0 in landscape, Record and Return are pushed to the bottom edge, and the rail's "Tools" label is cut.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -695.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-695
+**Timestamp:** 2026-10-08T03:47:36Z
+**Title:** guidance-text: remove the trip-window no-guidance block and species note; a species keeps its group
+**Dispatch-file:** preserved/2026-10-07-16.md
+**Context:** the owner, verbatim, with a phone screenshot of Trip Windows for Fly Agaric (kept off GitHub): "Real quick: remove the bottom text about "No weather guidance for this section" and the text below it. That seems like a placeholder and users might get confused". The planner explained that the text was deliberate honest copy, and that Fly Agaric, a fungus, was falling to the no-guidance branch because forChip gives a SpecificTaxon a null group. The owner: "Both, everywhere; fix Fly Agaric (Recommended)". The no-guidance block and the italic species note go everywhere; the fungi and plants pattern text stays.
+**Sent:** to a coder subagent, code and tests now. Its build is queued after the small fixes and back-by (-689).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -696.
