@@ -14183,3 +14183,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-743
 **A new coder for the fix; device check requested.** launch-verifyerror at 516180f6: R8 9.3.31 pinned, CompactMapTab split (255 to 173 dex registers), main (with #204's revert) merged in while keeping #203's join. The s22-launch-check.sh script and the register-script edits were left uncommitted. The owner, verbatim: "Run device check when ready". The coder had stopped and could not be resumed. Asked, the owner: "Yes, start a new coder (Recommended)". A new coder finishes the branch, runs the S22 launch check and a portrait/landscape check, then the full suite. It merges once checks pass, under -730's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -745.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-745
+**Timestamp:** 2026-10-08T20:07:28Z
+**Continues:** 2026-09-28-744
+**The fix is checked; R8 stays pinned.** launch-verifyerror at 8d779ae8, PR #205 opened. Its contents: #203's join kept (10 files byte-identical, 2 regrouped only); s22-launch-check.sh (exit 0: "compile -m verify -f: Success", "dexopt: status=verify", "PASS: verified (status=verify), launched, process 23519 alive after 8 s, crash buffer empty"); the S22 checks of the portrait strip at 36 dp, a tab switch, and landscape at both rotations (join, line, portrait height, heading whole); and the full suite, 4,454 tests with 0 failures. The revert check without the R8 pin also verifies and launches, so the split is the fix and the pin is insurance. The guard has not yet been seen failing on a crashing build, because install -r refused the older crashing build. At ROTATION_270 the bar's accessibility box starts about 6 dp after the strip ends; it isn't visible and is noted for later. The register report lists nine methods over 256 registers. The owner, verbatim: "Keep it pinned (Recommended)". It merges once checks pass, under -730.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -746.
