@@ -14346,3 +14346,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** On the S22 (1.0.3107+g5c693fe5) the coder found that every return to Maps builds a new MapLibre MapView. The map area is the bare background for about 200 ms, then one or two black frames, then tiles at the remembered camera. The heading shows "—" because the compass restarts with the tab. No magnified frame was recorded. The options were (B) cover the returning map with a picture of it as it was left, and (C) keep one MapView alive across tabs. followup-1008 is at e20de11d with items 1 to 3 done: full suite 4,502 tests, 0 failures; launch check PASS.
 **Decision:** The owner: "Picture cover, this build (Recommended)" and "Keep last reading (Recommended)". A stale picture or an unready map falls back to today's behaviour, and the fallback is logged. The cover takes no touches. The heading still shows "—" when there was never a reading.
 **Notes:** T6b stays paused for this build. Next free ID -762.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-762
+**Timestamp:** 2026-10-08T23:56:45Z
+**Title:** PR #207 (followup-1008) merged into main
+**Context:** The owner: "Merge it once checks pass". CI passed on head 1cbae504 (Build, test, publish APK, 8m20s). The coder's report: full suite 4,510 tests, 0 failures; nine revert checks bit; S22 launch check PASS on 1.0.3111+gaae61004; four returns to Maps on the S22 showed the map from the first frame. Merge commit c81b326d; pre-merge main 34fd5deb was backed up to forager-repo-backups/2026-10-08-09. The worktree was removed. T6b was restarted before CI (PAUSE removed, --until 07:00 local).
+**Notes:** Still to check on a phone: item 1 on the S26, the New find header's look, the night blend's smoothness on the S22, and the cover's fallbacks. Disk is at about 1.7 GB free. Next free ID -763.
