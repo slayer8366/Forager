@@ -13830,3 +13830,14 @@ The planner's calls: Drafts grouped by day, newest day first, and the "+" tile a
 **Context:** the owner, verbatim, with a phone screenshot of Settings (kept off GitHub): "In the settings menu, can you move the Sundown area to the Tools so that it's one button away instead of two. Move the two camera options at the bottom to a settings menu inside the camera itself." Answers: "Section in the Tools drawer (Recommended)" (Sundown alerts, Dark under trees and the Off-track reminder, as a section in the drawer, gone from Settings); "Gear chip with the others (Recommended)" (a gear chip beside flash, timer and grid, opening a panel with "Automatically Save Location to Photos" and "Lock camera to portrait", gone from Settings). Shown the step path, the owner: "Yes, that's it (Recommended)", on the option reading "I record it and queue it after search order. It merges once checks pass, like the rest."
 **Sent:** to a coder subagent, code and tests now. Its build is queued after back-by, guidance-text and search-order.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -708.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-708
+**Timestamp:** 2026-10-08T05:35:30Z
+**Title:** basemaps: Satellite removed, and the basemap remembered across restarts
+**Dispatch-file:** preserved/2026-10-08-01.md
+**Context:** the owner, verbatim: "I'm also wondering about what would be lost if I removed satellite view from the maps and leave it at Topo + street view. Satellite loses quality fast and is less useful when zoomed in. That's a hit on quality when Google maps does it much better, and people are used to that. Any drawbacks to that decision?" The planner checked the code: Satellite is USGS orthoimagery, US-only, with maxZoom 15. Asked to take it through as a decision, the owner chose "Remove now, revisit later (Recommended)", and "Topo (Recommended)" for anyone with Satellite stored. To the step path: "Option 1 with an addition: have the app remember which map modes you had it on last so we don't have to keep switching to the favorite". The basemap had been session-only by omission, not by ruling (docs/plans/journal-redesign.md:517: "Not asked, and so unchanged"). It now persists across restarts. Shown the updated steps, the owner: "Yes, that's it (Recommended)", on the option reading "It merges once checks pass." Satellite is to be revisited once the forecast's habitat layers are on the map.
+**Sent:** not yet; the coder starts once a slot frees. Its build is queued after settings-moves.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -709.
