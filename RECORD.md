@@ -14138,3 +14138,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** the owner, verbatim: "App force closes when trying to start". The connected S22 still had 1.0.2874 (no crash). The owner plugged in the S26, which has 1.0.3086+g0e766d94, installed 11:36 PDT. Its crash buffer shows java.lang.VerifyError rejecting AvailabilityCompactMapUiKt: CompactMapTab (about 77 parameters plus ten int masks) fails ART verification ("register v0 has type Reference: …MapMode but expected Integer"). Robolectric and CI never run ART's verifier, so every suite was green. The planner paused T6b again (PAUSE file), as the owner chose for the earlier fix ("Pause T6b, build, resume (Recommended)"). Nothing was installed on the S26; it was read only. The fix: reproduce on the S22 with install -r, shrink CompactMapTab's parameters into holder classes with no behaviour change, verify on the S22, and add a guard against a repeat.
 **Sent:** to a coder subagent, urgent.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -740.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-740
+**Timestamp:** 2026-10-08T18:50:52Z
+**Continues:** 2026-09-28-739
+**Cause confirmed; #203 to be reverted.** The owner asked, verbatim: "Is it better if main is fixed first? You're the planner so let me know what makes it better". The planner recommended confirming the cause with CI's own APKs, then reverting #203 so main launches while the proper fix is built. The owner, verbatim: "Confirm and undo, leave S26". On the S22, CI's debug APK for f8739856 (before #203, 1.0.3072) opens with no VerifyError, and 0e766d94 (1.0.3086) crashes. The coder's dex reading: CompactMapTab has 246 registers at f8739856 against 259 at 0e766d94. #203's two added parameters pushed the method past 256 registers, and at 0x10E D8's code reads v0 (holding mapMode) where it should have moved v256: a D8 register-allocation miscompile. The planner opened a revert PR (branch revert-203, git revert -m 1 0e766d94), to merge on green CI. The S26 is left alone. The fix (-739) brings the join back with grouped parameters (67 to 37).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -741.
