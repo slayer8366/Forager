@@ -13801,3 +13801,12 @@ The planner's calls: Drafts grouped by day, newest day first, and the "+" tile a
 **Continues:** 2026-09-28-685
 **PR #198 merged into main** (d223728b), from small-fixes-1007 (head 20f84143): dispatch -685 with amendments -694, -699 and -701. The owner, verbatim: "Merge the small fixes once checks pass". The laptop suite: 4,239 tests, 0 failures, all eight revert checks bit. The first CI run failed one test outside the diff: WalkLoggerServiceTest "switched on, the log starts with the recording…", NoSuchElementException at :148 (readLines().first() on a walk log whose header wasn't written yet). That reads as a race in the test's wait; it was inferred, not reproduced. The planner posted one comment on the PR and ran the one rerun, which passed. The walk-logger test's wait goes on the follow-up list. Pre-merge main b71c1569 is backed up at forager-repo-backups/2026-10-07-17. Next per -689: back-by.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -705.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-705
+**Timestamp:** 2026-10-08T05:07:08Z
+**Continues:** 2026-09-28-703
+**Find dates (search-order at 92726960).** Asked whether a find's own pages should show its date, now that "Find on <date>" is gone from its title, the owner, verbatim: "Group the finds by a single date heading rather than dating each individually". So the Finds tab dates by day heading only, and a find's own pages carry no date line (as built). Asked about the map bubble, which has no heading, the owner: "Keep the date in the bubble (Recommended)". As built, no code change follows.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -706.
