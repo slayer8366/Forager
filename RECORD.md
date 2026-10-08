@@ -13970,3 +13970,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-720
 **T6b section started.** The owner, verbatim: "Good night". Asked whether to start tonight's T6b section, the owner: "Yes, start it (Recommended)". It was started at 05:03 PDT as the transient user service t6b-night (MemoryMax=5G, no swap, Nice=10), running forager-forecast-t6b at be17b71 (the runner with network retry and deferral): scripts/t6b_run.py --until 13:00 --stages mask,plots,soil,trees --workers 2, logging to the flash drive's t6b/night-2026-10-08.log. Mask and plots were already done; soil has 89 tiles. No Gradle build is running alongside.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -722.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-722
+**Timestamp:** 2026-10-08T12:07:02Z
+**Title:** search-keyboard: the search dropdown keeps its bottom row above the keyboard again (a regression from -697)
+**Dispatch-file:** preserved/2026-10-08-02.md
+**Context:** the owner, verbatim, with a phone screenshot (kept off GitHub): "Real quick, the search menu doesn't bounce back up when the keyboard hits it. It used to do that. The search button is still hidden as a result. Fix this before the build". The cause is PR #200's removal of the keep-in-view scroll. The planner restated the fix (the panel scrolls its bottom row above the keyboard whenever it shrinks; a user drag stops it) and raised the T6b clash. The owner: "Pause T6b, build, resume (Recommended)". The planner set T6b's PAUSE file at the time below. The build waits for T6b's current tile to end. It merges once checks pass, then T6b resumes until 13:00.
+**Sent:** to a coder subagent: write now, and build when T6b has paused.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -723.
